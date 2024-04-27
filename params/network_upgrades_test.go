@@ -216,7 +216,7 @@ func TestVerifyNetworkUpgrades(t *testing.T) {
 	}
 	for _, test := range testcases {
 		t.Run(test.name, func(t *testing.T) {
-			err := test.upgrades.VerifyNetworkUpgrades(test.networkID)
+			err := test.upgrades.verifyNetworkUpgrades(test.networkID)
 			if test.expected {
 				require.Nil(t, err)
 			} else {

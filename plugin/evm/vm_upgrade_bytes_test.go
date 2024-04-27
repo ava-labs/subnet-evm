@@ -171,7 +171,7 @@ func TestNetworkUpgradesOverriden(t *testing.T) {
 	upgradeBytesJSON := `{
 			"networkUpgradeOverrides": {
 				"subnetEVMTimestamp": 2,
-				"durangoTimestamp": 5
+				"durangoTimestamp": 1607144401
 			}
 		}`
 
@@ -206,7 +206,7 @@ func TestNetworkUpgradesOverriden(t *testing.T) {
 	require.False(t, vm.chainConfig.IsSubnetEVM(0))
 	require.True(t, vm.chainConfig.IsSubnetEVM(2))
 	require.False(t, vm.chainConfig.IsDurango(0))
-	require.True(t, vm.chainConfig.IsDurango(5))
+	require.True(t, vm.chainConfig.IsDurango(1607144401))
 }
 
 func mustMarshal(t *testing.T, v interface{}) string {
