@@ -79,8 +79,8 @@ func (n *NetworkUpgrades) setDefaults(networkID uint32) {
 	}
 }
 
-// VerifyNetworkUpgrades checks that the network upgrades are well formed.
-func (n *NetworkUpgrades) VerifyNetworkUpgrades(networkID uint32) error {
+// verifyNetworkUpgrades checks that the network upgrades are well formed.
+func (n *NetworkUpgrades) verifyNetworkUpgrades(networkID uint32) error {
 	defaults := getDefaultNetworkUpgrades(networkID)
 	if err := verifyWithDefault(n.SubnetEVMTimestamp, defaults.SubnetEVMTimestamp); err != nil {
 		return fmt.Errorf("SubnetEVM fork block timestamp is invalid: %w", err)
@@ -163,7 +163,7 @@ func verifyWithDefault(configTimestamp *uint64, defaultTimestamp *uint64) error 
 	}
 
 	if *configTimestamp < *defaultTimestamp {
-		return fmt.Errorf("provided timestamp (%d) must be greater than or equal to the default timestamp (%d)", *configTimestamp, defaultTimestamp)
+		return fmt.Errorf("provided timestamp (%d) must be greater than or equal to the default timestamp (%d)", *configTimestamp, *defaultTimestamp)
 	}
 	return nil
 }
