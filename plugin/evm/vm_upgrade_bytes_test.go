@@ -318,3 +318,61 @@ func TestVMStateUpgrade(t *testing.T) {
 	require.Equal(t, state.GetNonce(newAccount), uint64(1)) // Nonce should be set to 1 when code is set if nonce was 0
 	require.Equal(t, state.GetState(newAccount, storageKey), newAccountUpgrade.Storage[storageKey])
 }
+
+func TestVMEupgradeActivatesCancun(t *testing.T) {
+	tests := []struct {
+		name        string
+		genesisJSON string
+		upgradeJSON string
+		check       func(*testing.T, *VM) // function to check the VM state
+	}{
+		{
+			name:        "EUpgrade activates Cancun",
+			genesisJSON: genesisJSONEUpgrade,
+			check: func(t *testing.T, vm *VM) {
+				require.True(t, vm.chainConfig.IsCancun(0))
+			},
+		},
+		{
+			name:        "Later EUpgrade activates Cancun",
+			genesisJSON: genesisJSONDurango,
+			upgradeJSON: func() string {
+				upgrade := &params.UpgradeConfig{
+					NetworkUpgradeOverrides: &params.NetworkUpgrades{
+						EUpgradeTimestamp: utils.NewUint64(0),
+					},
+				}
+				b, err := json.Marshal(upgrade)
+				require.NoError(t, err)
+				return string(b)
+			}(),
+			check: func(t *testing.T, vm *VM) {
+				require.True(t, vm.chainConfig.IsCancun(0))
+			},
+		},
+		{
+			name:        "Changed EUpgrade changes Cancun",
+			genesisJSON: genesisJSONEUpgrade,
+			upgradeJSON: func() string {
+				upgrade := &params.UpgradeConfig{
+					NetworkUpgradeOverrides: &params.NetworkUpgrades{
+						EUpgradeTimestamp: utils.NewUint64(11),
+					},
+				}
+				b, err := json.Marshal(upgrade)
+				require.NoError(t, err)
+				return string(b)
+			}(),
+			check: func(t *testing.T, vm *VM) {
+				require.True(t, vm.chainConfig.IsCancun(11))
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			_, vm, _, _ := GenesisVM(t, true, test.genesisJSON, "", test.upgradeJSON)
+			defer func() { require.NoError(t, vm.Shutdown(context.Background())) }()
+			test.check(t, vm)
+		})
+	}
+}
