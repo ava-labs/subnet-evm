@@ -3271,3 +3271,109 @@ func TestCrossChainMessagestoVM(t *testing.T) {
 	require.NoError(err)
 	require.True(calledSendCrossChainAppResponseFn, "sendCrossChainAppResponseFn was not called")
 }
+func TestParentBeaconRootBlock(t *testing.T) {
+	tests := []struct {
+		name          string
+		genesisJSON   string
+		beaconRoot    *common.Hash
+		expectedError bool
+		errString     string
+	}{
+		{
+			name:          "non-empty parent beacon root in Durango",
+			genesisJSON:   genesisJSONDurango,
+			beaconRoot:    &common.Hash{0x01},
+			expectedError: true,
+			// err string wont work because it will also fail with blob gas is non-empty (zeroed)
+		},
+		{
+			name:          "empty parent beacon root in Durango",
+			genesisJSON:   genesisJSONDurango,
+			beaconRoot:    &common.Hash{},
+			expectedError: true,
+		},
+		{
+			name:          "nil parent beacon root in Durango",
+			genesisJSON:   genesisJSONDurango,
+			beaconRoot:    nil,
+			expectedError: false,
+		},
+		{
+			name:          "non-empty parent beacon root in E-Upgrade (Cancun)",
+			genesisJSON:   genesisJSONEUpgrade,
+			beaconRoot:    &common.Hash{0x01},
+			expectedError: true,
+			errString:     "expected empty hash",
+		},
+		{
+			name:          "empty parent beacon root in E-Upgrade (Cancun)",
+			genesisJSON:   genesisJSONEUpgrade,
+			beaconRoot:    &common.Hash{},
+			expectedError: false,
+		},
+		{
+			name:          "nil parent beacon root in E-Upgrade (Cancun)",
+			genesisJSON:   genesisJSONEUpgrade,
+			beaconRoot:    nil,
+			expectedError: true,
+			errString:     "header is missing parentBeaconRoot",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			issuer, vm, _, _ := GenesisVM(t, true, test.genesisJSON, "", "")
+
+			defer func() {
+				if err := vm.Shutdown(context.Background()); err != nil {
+					t.Fatal(err)
+				}
+			}()
+
+			tx := types.NewTransaction(uint64(0), testEthAddrs[1], firstTxAmount, 21000, big.NewInt(testMinGasPrice), nil)
+			signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0])
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			txErrors := vm.txPool.AddRemotesSync([]*types.Transaction{signedTx})
+			for i, err := range txErrors {
+				if err != nil {
+					t.Fatalf("Failed to add tx at index %d: %s", i, err)
+				}
+			}
+
+			<-issuer
+
+			blk, err := vm.BuildBlock(context.Background())
+			if err != nil {
+				t.Fatalf("Failed to build block with import transaction: %s", err)
+			}
+
+			// Modify the block to have a parent beacon root
+			ethBlock := blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
+			header := types.CopyHeader(ethBlock.Header())
+			header.ParentBeaconRoot = test.beaconRoot
+			parentBeaconEthBlock := ethBlock.WithSeal(header)
+
+			parentBeaconBlock := vm.newBlock(parentBeaconEthBlock)
+
+			errCheck := func(err error) {
+				if test.expectedError {
+					if test.errString != "" {
+						require.ErrorContains(t, err, test.errString)
+					} else {
+						require.Error(t, err)
+					}
+				} else {
+					require.NoError(t, err)
+				}
+			}
+
+			_, err = vm.ParseBlock(context.Background(), parentBeaconBlock.Bytes())
+			errCheck(err)
+			err = parentBeaconBlock.Verify(context.Background())
+			errCheck(err)
+		})
+	}
+}
