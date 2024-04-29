@@ -182,6 +182,7 @@ func TestVerifyNetworkUpgrades(t *testing.T) {
 			upgrades: &NetworkUpgrades{
 				SubnetEVMTimestamp: utils.NewUint64(0),
 				DurangoTimestamp:   utils.NewUint64(2),
+				EUpgradeTimestamp:  utils.NewUint64(3),
 			},
 			networkID: 1111,
 			expected:  true,
@@ -211,6 +212,26 @@ func TestVerifyNetworkUpgrades(t *testing.T) {
 				DurangoTimestamp:   utils.NewUint64(1),
 			},
 			networkID: constants.MainnetID,
+			expected:  false,
+		},
+		{
+			name: "Invalid EUpgrade nil",
+			upgrades: &NetworkUpgrades{
+				SubnetEVMTimestamp: utils.NewUint64(0),
+				DurangoTimestamp:   utils.NewUint64(2),
+				EUpgradeTimestamp:  nil,
+			},
+			networkID: 1,
+			expected:  false,
+		},
+		{
+			name: "Invalid EUpgrade before Durango",
+			upgrades: &NetworkUpgrades{
+				SubnetEVMTimestamp: utils.NewUint64(0),
+				DurangoTimestamp:   utils.NewUint64(2),
+				EUpgradeTimestamp:  utils.NewUint64(1),
+			},
+			networkID: 1,
 			expected:  false,
 		},
 	}
