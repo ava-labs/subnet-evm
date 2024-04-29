@@ -235,7 +235,7 @@ func (self *DummyEngine) verifyHeader(chain consensus.ChainHeaderReader, header 
 		return consensus.ErrInvalidNumber
 	}
 	// Verify the existence / non-existence of excessBlobGas
-	cancun := chain.Config().IsCancun(header.Number, header.Time)
+	cancun := chain.Config().IsCancun(header.Time)
 	if !cancun {
 		switch {
 		case header.ExcessBlobGas != nil:

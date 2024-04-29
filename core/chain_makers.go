@@ -361,7 +361,7 @@ func makeHeader(chain consensus.ChainReader, config *params.ChainConfig, parent 
 	} else {
 		header.GasLimit = CalcGasLimit(parent.GasUsed(), parent.GasLimit(), parent.GasLimit(), parent.GasLimit())
 	}
-	if chain.Config().IsCancun(header.Number, header.Time) {
+	if chain.Config().IsCancun(header.Time) {
 		var (
 			parentExcessBlobGas uint64
 			parentBlobGasUsed   uint64
