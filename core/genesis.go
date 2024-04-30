@@ -213,8 +213,9 @@ func SetupGenesisBlock(
 	}
 	// Check whether the genesis block is already written.
 	hash := genesis.ToBlock().Hash()
+	hdr := genesis.ToBlock().Header()
 	if hash != stored {
-		return genesis.Config, common.Hash{}, &GenesisMismatchError{stored, hash}
+		return genesis.Config, common.Hash{}, &GenesisMismatchError{stored, hdr.Hash()}
 	}
 	// Get the existing chain configuration.
 	newcfg := genesis.Config

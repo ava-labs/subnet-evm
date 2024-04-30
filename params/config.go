@@ -104,7 +104,7 @@ var (
 		PetersburgBlock:     big.NewInt(0),
 		IstanbulBlock:       big.NewInt(0),
 		MuirGlacierBlock:    big.NewInt(0),
-		NetworkUpgrades:     TestNetworkUpgrades,
+		NetworkUpgrades:     getDefaultNetworkUpgrades(constants.UnitTestID),
 		GenesisPrecompiles:  Precompiles{},
 		UpgradeConfig:       UpgradeConfig{},
 	}
