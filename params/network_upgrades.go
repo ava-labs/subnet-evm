@@ -151,8 +151,8 @@ func (n *NetworkUpgrades) GetAvalancheRules(time uint64) AvalancheRules {
 func getDefaultNetworkUpgrades(networkID uint32) NetworkUpgrades {
 	return NetworkUpgrades{
 		SubnetEVMTimestamp: utils.NewUint64(0),
-		DurangoTimestamp:   utils.NewUint64(getUpgradeTime(networkID, version.DurangoTimes)),
-		EUpgradeTimestamp:  utils.NewUint64(getUpgradeTime(networkID, version.EUpgradeTimes)),
+		DurangoTimestamp:   utils.TimeToNewUint64(version.GetDurangoTime(networkID)),
+		EUpgradeTimestamp:  utils.TimeToNewUint64(version.GetEUpgradeTime(networkID)),
 	}
 }
 
