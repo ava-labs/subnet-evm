@@ -107,13 +107,10 @@ var (
 		PetersburgBlock:     big.NewInt(0),
 		IstanbulBlock:       big.NewInt(0),
 		MuirGlacierBlock:    big.NewInt(0),
-		NetworkUpgrades: NetworkUpgrades{
-			SubnetEVMTimestamp: utils.NewUint64(0),
-			DurangoTimestamp:   utils.NewUint64(0),
-			EUpgradeTimestamp:  utils.NewUint64(0),
-		},
-		GenesisPrecompiles: Precompiles{},
-		UpgradeConfig:      UpgradeConfig{},
+		CancunTime:          utils.TimeToNewUint64(version.GetEUpgradeTime(constants.UnitTestID)),
+		NetworkUpgrades:     getDefaultNetworkUpgrades(constants.UnitTestID),
+		GenesisPrecompiles:  Precompiles{},
+		UpgradeConfig:       UpgradeConfig{},
 	}
 
 	TestSubnetEVMConfig = &ChainConfig{
