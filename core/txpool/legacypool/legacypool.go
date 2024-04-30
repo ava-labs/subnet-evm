@@ -599,6 +599,8 @@ func (pool *LegacyPool) PendingWithBaseFee(enforceTips bool, baseFee *big.Int) m
 					Time:      txs[i].Time(),
 					GasFeeCap: txs[i].GasFeeCap(),
 					GasTipCap: txs[i].GasTipCap(),
+					Gas:       txs[i].Gas(),
+					BlobGas:   txs[i].BlobGas(),
 				}
 			}
 			pending[addr] = lazies

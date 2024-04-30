@@ -311,7 +311,6 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 		}
 		return block, b.receipts, nil
 	}
-
 	// Forcibly use hash-based state scheme for retaining all nodes in disk.
 	triedb := trie.NewDatabase(db, trie.HashDefaults)
 	defer triedb.Close()
