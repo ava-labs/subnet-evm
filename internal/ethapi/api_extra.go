@@ -132,3 +132,13 @@ func (s *BlockChainAPI) GetActivePrecompilesAt(ctx context.Context, blockTimesta
 
 	return s.b.ChainConfig().EnabledStatefulPrecompiles(timestamp)
 }
+
+func (s *BlockChainAPI) GetActiveRulesAt(ctx context.Context, blockTimestamp *uint64) params.Rules {
+	var timestamp uint64
+	if blockTimestamp == nil {
+		timestamp = s.b.CurrentHeader().Time
+	} else {
+		timestamp = *blockTimestamp
+	}
+	return s.b.ChainConfig().Rules(common.Big0, timestamp)
+}
