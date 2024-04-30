@@ -37,7 +37,7 @@ var (
 
 func TestVMUpgradeBytesPrecompile(t *testing.T) {
 	// Make a TxAllowListConfig upgrade at genesis and convert it to JSON to apply as upgradeBytes.
-	enableAllowListTimestamp := defaultGenesisTime // enable at default genesis time
+	enableAllowListTimestamp := params.DefaultGenesisTime // enable at default genesis time
 	upgradeConfig := &params.UpgradeConfig{
 		PrecompileUpgrades: []params.PrecompileUpgrade{
 			{
