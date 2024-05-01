@@ -8,7 +8,7 @@
 //
 // Much love to the original authors for their work.
 // **********
-// Copyright 2016 The go-ethereum Authors
+// Copyright 2024 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
@@ -24,19 +24,44 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-//go:build !go1.5
-// +build !go1.5
+package ethapi
 
-// no-op implementation of tracing methods for Go < 1.5.
+import (
+	"fmt"
 
-package debug
+	"github.com/ava-labs/subnet-evm/accounts/abi"
+	"github.com/ava-labs/subnet-evm/vmerrs"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+)
 
-import "errors"
-
-func (*HandlerT) StartGoTrace(string) error {
-	return errors.New("tracing is not supported on Go < 1.5")
+// revertError is an API error that encompasses an EVM revert with JSON error
+// code and a binary data blob.
+type revertError struct {
+	error
+	reason string // revert reason hex encoded
 }
 
-func (*HandlerT) StopGoTrace() error {
-	return errors.New("tracing is not supported on Go < 1.5")
+// ErrorCode returns the JSON error code for a revert.
+// See: https://github.com/ethereum/wiki/wiki/JSON-RPC-Error-Codes-Improvement-Proposal
+func (e *revertError) ErrorCode() int {
+	return 3
+}
+
+// ErrorData returns the hex encoded revert reason.
+func (e *revertError) ErrorData() interface{} {
+	return e.reason
+}
+
+// newRevertError creates a revertError instance with the provided revert data.
+func newRevertError(revert []byte) *revertError {
+	err := vmerrs.ErrExecutionReverted
+
+	reason, errUnpack := abi.UnpackRevert(revert)
+	if errUnpack == nil {
+		err = fmt.Errorf("%w: %v", vmerrs.ErrExecutionReverted, reason)
+	}
+	return &revertError{
+		error:  err,
+		reason: hexutil.Encode(revert),
+	}
 }
