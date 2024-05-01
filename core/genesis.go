@@ -333,6 +333,7 @@ func (g *Genesis) toBlock(db ethdb.Database, triedb *trie.Database) *types.Block
 		head.Difficulty = params.GenesisDifficulty
 	}
 	if conf := g.Config; conf != nil {
+		num := new(big.Int).SetUint64(g.Number)
 		if conf.IsSubnetEVM(g.Timestamp) {
 			if g.BaseFee != nil {
 				head.BaseFee = g.BaseFee
@@ -340,7 +341,7 @@ func (g *Genesis) toBlock(db ethdb.Database, triedb *trie.Database) *types.Block
 				head.BaseFee = new(big.Int).Set(g.Config.FeeConfig.MinBaseFee)
 			}
 		}
-		if conf.IsCancun(g.Timestamp) {
+		if conf.IsCancun(num, g.Timestamp) {
 			// EIP-4788: The parentBeaconBlockRoot of the genesis block is always
 			// the zero hash. This is because the genesis block does not have a parent
 			// by definition.

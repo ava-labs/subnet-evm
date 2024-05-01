@@ -181,8 +181,8 @@ func TestVerifyNetworkUpgrades(t *testing.T) {
 			name: "ValidNetworkUpgrades",
 			upgrades: &NetworkUpgrades{
 				SubnetEVMTimestamp: utils.NewUint64(0),
-				DurangoTimestamp:   utils.NewUint64(2),
-				EUpgradeTimestamp:  utils.NewUint64(3),
+				DurangoTimestamp:   utils.NewUint64(1607144400),
+				EUpgradeTimestamp:  utils.NewUint64(1607144400),
 			},
 			networkID: 1111,
 			expected:  true,

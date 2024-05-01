@@ -33,6 +33,7 @@ import (
 	"math/big"
 
 	"github.com/ava-labs/avalanchego/utils/constants"
+	"github.com/ava-labs/avalanchego/version"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
@@ -54,6 +55,8 @@ var (
 
 	DynamicFeeExtraDataSize        = 80
 	RollupWindow            uint64 = 10
+
+	DefaultGenesisTime = version.DefaultUpgradeTime
 
 	DefaultFeeConfig = commontype.FeeConfig{
 		GasLimit:        big.NewInt(8_000_000),
@@ -104,7 +107,8 @@ var (
 		PetersburgBlock:     big.NewInt(0),
 		IstanbulBlock:       big.NewInt(0),
 		MuirGlacierBlock:    big.NewInt(0),
-		NetworkUpgrades:     TestNetworkUpgrades,
+		CancunTime:          utils.TimeToNewUint64(version.GetEUpgradeTime(constants.UnitTestID)),
+		NetworkUpgrades:     getDefaultNetworkUpgrades(constants.UnitTestID),
 		GenesisPrecompiles:  Precompiles{},
 		UpgradeConfig:       UpgradeConfig{},
 	}
@@ -292,7 +296,7 @@ func (c *ChainConfig) IsIstanbul(num *big.Int) bool {
 
 // IsCancun returns whether [time] represents a block
 // with a timestamp after the Cancun upgrade time.
-func (c *ChainConfig) IsCancun(time uint64) bool {
+func (c *ChainConfig) IsCancun(num *big.Int, time uint64) bool {
 	return utils.IsTimestampForked(c.CancunTime, time)
 }
 
@@ -667,7 +671,7 @@ func (c *ChainConfig) rules(num *big.Int, timestamp uint64) Rules {
 		IsConstantinople: c.IsConstantinople(num),
 		IsPetersburg:     c.IsPetersburg(num),
 		IsIstanbul:       c.IsIstanbul(num),
-		IsCancun:         c.IsCancun(timestamp),
+		IsCancun:         c.IsCancun(num, timestamp),
 	}
 }
 

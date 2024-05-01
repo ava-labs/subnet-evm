@@ -13,12 +13,6 @@ import (
 
 var (
 	errCannotBeNil = fmt.Errorf("timestamp cannot be nil")
-
-	TestNetworkUpgrades = NetworkUpgrades{
-		SubnetEVMTimestamp: utils.NewUint64(0),
-		DurangoTimestamp:   utils.NewUint64(0),
-		EUpgradeTimestamp:  utils.NewUint64(0),
-	}
 )
 
 // NetworkUpgrades contains timestamps that enable network upgrades.
