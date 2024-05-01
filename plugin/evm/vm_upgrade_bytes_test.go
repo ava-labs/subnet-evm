@@ -256,7 +256,7 @@ func TestVMStateUpgrade(t *testing.T) {
 		Code:          upgradedCode,
 	}
 
-	upgradeTimestamp := time.Now() // arbitrary timestamp to perform the network upgrade
+	upgradeTimestamp := params.DefaultGenesisTime.Add(10 * time.Hour)
 	upgradeBytesJSON := fmt.Sprintf(
 		`{
 			"stateUpgrades": [
@@ -337,7 +337,7 @@ func TestVMEupgradeActivatesCancun(t *testing.T) {
 			name:        "EUpgrade activates Cancun",
 			genesisJSON: genesisJSONEUpgrade,
 			check: func(t *testing.T, vm *VM) {
-				require.True(t, vm.chainConfig.IsCancun(DefaultEUpgradeTime))
+				require.True(t, vm.chainConfig.IsCancun(common.Big0, DefaultEUpgradeTime))
 			},
 		},
 		{
@@ -354,8 +354,8 @@ func TestVMEupgradeActivatesCancun(t *testing.T) {
 				return string(b)
 			}(),
 			check: func(t *testing.T, vm *VM) {
-				require.False(t, vm.chainConfig.IsCancun(DefaultEUpgradeTime))
-				require.True(t, vm.chainConfig.IsCancun(DefaultEUpgradeTime+2))
+				require.False(t, vm.chainConfig.IsCancun(common.Big0, DefaultEUpgradeTime))
+				require.True(t, vm.chainConfig.IsCancun(common.Big0, DefaultEUpgradeTime+2))
 			},
 		},
 		{
@@ -372,8 +372,8 @@ func TestVMEupgradeActivatesCancun(t *testing.T) {
 				return string(b)
 			}(),
 			check: func(t *testing.T, vm *VM) {
-				require.False(t, vm.chainConfig.IsCancun(DefaultEUpgradeTime))
-				require.True(t, vm.chainConfig.IsCancun(DefaultEUpgradeTime+2))
+				require.False(t, vm.chainConfig.IsCancun(common.Big0, DefaultEUpgradeTime))
+				require.True(t, vm.chainConfig.IsCancun(common.Big0, DefaultEUpgradeTime+2))
 			},
 		},
 	}

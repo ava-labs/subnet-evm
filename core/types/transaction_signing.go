@@ -49,7 +49,7 @@ type sigCache struct {
 // MakeSigner returns a Signer based on the given chain config and block number or time.
 func MakeSigner(config *params.ChainConfig, blockNumber *big.Int, blockTime uint64) Signer {
 	switch {
-	case config.IsCancun(blockTime):
+	case config.IsCancun(blockNumber, blockTime):
 		return NewCancunSigner(config.ChainID)
 	case config.IsSubnetEVM(blockTime):
 		return NewLondonSigner(config.ChainID)
