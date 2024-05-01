@@ -30,7 +30,7 @@ import (
 	"fmt"
 
 	"github.com/ava-labs/subnet-evm/accounts/abi"
-	"github.com/ava-labs/subnet-evm/core/vm"
+	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
@@ -54,11 +54,11 @@ func (e *revertError) ErrorData() interface{} {
 
 // newRevertError creates a revertError instance with the provided revert data.
 func newRevertError(revert []byte) *revertError {
-	err := vm.ErrExecutionReverted
+	err := vmerrs.ErrExecutionReverted
 
 	reason, errUnpack := abi.UnpackRevert(revert)
 	if errUnpack == nil {
-		err = fmt.Errorf("%w: %v", vm.ErrExecutionReverted, reason)
+		err = fmt.Errorf("%w: %v", vmerrs.ErrExecutionReverted, reason)
 	}
 	return &revertError{
 		error:  err,
