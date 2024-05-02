@@ -14,8 +14,6 @@ import (
 	"github.com/ava-labs/subnet-evm/plugin/evm"
 )
 
-const LocalTxsEnabledKey = "local-txs-enabled"
-
 var DefaultChainConfig = tmpnet.FlagsMap{
 	"log-level":         "debug",
 	"warp-api-enabled":  true,
