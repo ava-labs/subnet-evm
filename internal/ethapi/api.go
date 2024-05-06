@@ -1176,12 +1176,6 @@ func DoEstimateGas(ctx context.Context, b Backend, args TransactionArgs, blockNr
 		State:      state,
 		ErrorRatio: estimateGasErrorRatio,
 	}
-
-	// If the user has not specified a gas limit, use the block gas limit
-	if args.Gas == nil {
-		args.Gas = new(hexutil.Uint64)
-		*args.Gas = hexutil.Uint64(header.GasLimit)
-	}
 	// Run the gas estimation andwrap any revertals into a custom return
 	call, err := args.ToMessage(gasCap, header.BaseFee)
 	if err != nil {
