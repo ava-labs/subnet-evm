@@ -55,7 +55,6 @@ var DefaultConfig = NewDefaultConfig()
 
 func NewDefaultConfig() Config {
 	return Config{
-		// XXX: is this desirable 1 -> 0?
 		NetworkId:                 0, // enable auto configuration of networkID == chainID
 		StateHistory:              params.FullImmutabilityThreshold,
 		TrieCleanCache:            512,
