@@ -78,6 +78,8 @@ func (h *TerminalHandler) format(buf []byte, r slog.Record, usecolor bool) []byt
 		b.WriteString(LevelAlignedString(r.Level))
 	}
 
+	b.WriteByte(' ')
+
 	// Prefix is added compared to upstream
 	if h.Prefix != nil {
 		b.WriteString(h.Prefix(r))

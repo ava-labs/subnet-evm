@@ -71,13 +71,13 @@ func LevelAlignedString(l slog.Level) string {
 	case slog.LevelDebug:
 		return "DEBUG"
 	case slog.LevelInfo:
-		return "INFO "
+		return "INFO"
 	case slog.LevelWarn:
-		return "WARN "
+		return "WARN"
 	case slog.LevelError:
 		return "ERROR"
 	case LevelCrit:
-		return "CRIT "
+		return "CRIT"
 	default:
 		return "unknown level"
 	}
