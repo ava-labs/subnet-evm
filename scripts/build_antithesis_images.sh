@@ -54,10 +54,31 @@ function build_images {
   # Define default build command
   local docker_cmd="docker buildx build --build-arg GO_VERSION=${GO_VERSION} --build-arg NODE_IMAGE=${node_image_name}"
 
-  # Build node image first to allow the config and workload image builds to use it.
+  # Build node image first to allow the workload image to be based on it.
   ${docker_cmd} --build-arg AVALANCHEGO_NODE_IMAGE="${avalanche_node_image}" -t "${node_image_name}" \
                 -f "${node_dockerfile}" "${SUBNET_EVM_PATH}"
-  ${docker_cmd} --build-arg IMAGE_TAG="${TAG}" -t "${config_image_name}" -f "${base_dockerfile}.config" "${SUBNET_EVM_PATH}"
+  TARGET_PATH="${SUBNET_EVM_PATH}/build/antithesis"
+  if [[ -d "${TARGET_PATH}" ]]; then
+    # Ensure the target path is empty before generating the compose config
+    rm -r "${TARGET_PATH}"
+  fi
+
+  # Ensure avalanchego and subnet-evm binaries are available to create an initial db state that includes subnets.
+  "${AVALANCHEGO_CLONE_PATH}"/scripts/build.sh
+  PLUGIN_PATH="${TARGET_PATH}"/plugins
+  "${SUBNET_EVM_PATH}"/scripts/build.sh "${PLUGIN_PATH}"/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
+
+  # Generate compose config and db state for the config image
+  TARGET_PATH="${TARGET_PATH}"\
+    IMAGE_TAG="${TAG}"\
+    AVALANCHEGO_PATH="${AVALANCHEGO_CLONE_PATH}/build/avalanchego"\
+    AVALANCHEGO_PLUGIN_DIR="${PLUGIN_PATH}"\
+    go run "${SUBNET_EVM_PATH}/tests/antithesis/gencomposeconfig"
+
+  # Build config image
+  ${docker_cmd} -t "${config_image_name}" -f "${base_dockerfile}.config" "${SUBNET_EVM_PATH}"
+
+  # Build workload image
   ${docker_cmd} -t "${workload_image_name}" -f "${base_dockerfile}.workload" "${SUBNET_EVM_PATH}"
 }
 

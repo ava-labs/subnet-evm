@@ -50,13 +50,18 @@ func main() {
 	genesisPath := filepath.Join(cwd, "tests/load/genesis/genesis.json")
 
 	// Create a network with an xsvm subnet
-	network := tmpnet.LocalNetworkOrDie()
+	network := tmpnet.LocalNetworkOrPanic()
 	network.Subnets = []*tmpnet.Subnet{
 		utils.NewTmpnetSubnet("subnet-evm", genesisPath, utils.DefaultChainConfig, network.Nodes...),
 	}
 
-	if err := antithesis.InitDBVolumes(network, avalancheGoPath, pluginDir, targetPath); err != nil {
-		log.Fatalf("failed to initialize db volumes: %s", err)
+	bootstrapVolumePath, err := antithesis.GetBootstrapVolumePath(targetPath)
+	if err != nil {
+		log.Fatalf("failed to get bootstrap volume path: %v", err)
+	}
+
+	if err := antithesis.InitBootstrapDB(network, avalancheGoPath, pluginDir, bootstrapVolumePath); err != nil {
+		log.Fatalf("failed to initialize db volumes: %v", err)
 	}
 
 	if err := antithesis.GenerateComposeConfig(network, nodeImageName, workloadImageName, targetPath); err != nil {
