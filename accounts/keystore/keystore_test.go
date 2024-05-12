@@ -352,7 +352,7 @@ func TestWalletNotifications(t *testing.T) {
 	checkEvents(t, wantEvents, events)
 }
 
-// TestImportExport tests the import functionality of a keystore.
+// TestImportECDSA tests the import functionality of a keystore.
 func TestImportECDSA(t *testing.T) {
 	_, ks := tmpKeyStore(t, true)
 	key, err := crypto.GenerateKey()
@@ -370,7 +370,7 @@ func TestImportECDSA(t *testing.T) {
 	}
 }
 
-// TestImportECDSA tests the import and export functionality of a keystore.
+// TestImportExport tests the import and export functionality of a keystore.
 func TestImportExport(t *testing.T) {
 	_, ks := tmpKeyStore(t, true)
 	acc, err := ks.NewAccount("old")
