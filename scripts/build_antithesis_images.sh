@@ -53,6 +53,10 @@ function build_images {
 
   # Define default build command
   local docker_cmd="docker buildx build --build-arg GO_VERSION=${GO_VERSION} --build-arg NODE_IMAGE=${node_image_name}"
+  if [[ -n "${IMAGE_PREFIX}" ]]; then
+    # Push images with an image prefix since the prefix defines a registry location
+    docker_cmd="${docker_cmd} --push"
+  fi
 
   # Build node image first to allow the workload image to be based on it.
   ${docker_cmd} --build-arg AVALANCHEGO_NODE_IMAGE="${avalanche_node_image}" -t "${node_image_name}" \
@@ -102,6 +106,6 @@ git checkout -B "test-${AVALANCHE_VERSION}" "${AVALANCHE_VERSION}"
 cd "${SUBNET_EVM_PATH}"
 
 # Build avalanchego node image. Supply an empty tag so the tag can be discovered from the hash of the avalanchego repo.
-NODE_ONLY=1 TEST_SETUP=avalanchego IMAGE_PREFIX="${IMAGE_PREFIX}" TAG='' bash -x "${AVALANCHEGO_CLONE_PATH}"/scripts/build_antithesis_images.sh
+NODE_ONLY=1 TEST_SETUP=avalanchego TAG='' bash -x "${AVALANCHEGO_CLONE_PATH}"/scripts/build_antithesis_images.sh
 
 build_images antithesis-subnet-evm "${SUBNET_EVM_PATH}/Dockerfile" "antithesis-avalanchego-node:${AVALANCHE_VERSION::8}"
