@@ -34,7 +34,7 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 )
 
-//go:generate go run github.com/ethereum/go-etherum/rlp/rlpgen -type StateAccount -out gen_account_rlp.go
+//go:generate go run github.com/ethereum/go-ethereum/rlp/rlpgen -type StateAccount -out gen_account_rlp.go
 
 // StateAccount is the Ethereum consensus representation of accounts.
 // These objects are stored in the main account trie.
