@@ -29,9 +29,29 @@ package backends
 import (
 	"context"
 
+	"github.com/ava-labs/subnet-evm/accounts/abi/bind"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/ethclient/simulated"
+	"github.com/ava-labs/subnet-evm/interfaces"
 	"github.com/ethereum/go-ethereum/common"
+)
+
+// Verify that SimulatedBackend implements required interfaces
+var (
+	_ bind.AcceptedContractCaller = (*SimulatedBackend)(nil)
+	_ bind.ContractBackend        = (*SimulatedBackend)(nil)
+	_ bind.DeployBackend          = (*SimulatedBackend)(nil)
+
+	_ interfaces.ChainReader            = (*SimulatedBackend)(nil)
+	_ interfaces.ChainStateReader       = (*SimulatedBackend)(nil)
+	_ interfaces.TransactionReader      = (*SimulatedBackend)(nil)
+	_ interfaces.TransactionSender      = (*SimulatedBackend)(nil)
+	_ interfaces.ContractCaller         = (*SimulatedBackend)(nil)
+	_ interfaces.GasEstimator           = (*SimulatedBackend)(nil)
+	_ interfaces.GasPricer              = (*SimulatedBackend)(nil)
+	_ interfaces.LogFilterer            = (*SimulatedBackend)(nil)
+	_ interfaces.AcceptedStateReader    = (*SimulatedBackend)(nil)
+	_ interfaces.AcceptedContractCaller = (*SimulatedBackend)(nil)
 )
 
 // SimulatedBackend is a simulated blockchain.

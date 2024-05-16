@@ -609,7 +609,7 @@ func (pool *LegacyPool) Pending(filter txpool.PendingFilter) map[common.Address]
 					Time:      txs[i].Time(),
 					GasFeeCap: uint256.MustFromBig(txs[i].GasFeeCap()),
 					GasTipCap: uint256.MustFromBig(txs[i].GasTipCap()),
-					Gas:       txs[i].Gas(), // XXX: seems missing from previous branch
+					Gas:       txs[i].Gas(),
 					BlobGas:   txs[i].BlobGas(),
 				}
 			}

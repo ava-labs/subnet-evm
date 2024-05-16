@@ -179,12 +179,12 @@ type CacheConfig struct {
 	PopulateMissingTries            *uint64 // If non-nil, sets the starting height for re-generating historical tries.
 	PopulateMissingTriesParallelism int     // Number of readers to use when trying to populate missing tries.
 	AllowMissingTries               bool    // Whether to allow an archive node to run with pruning enabled
-	SnapshotDelayInit               bool    // Whether to initialize snapshots on startup or wait for external call
+	SnapshotDelayInit               bool    // Whether to initialize snapshots on startup or wait for external call (= StateSyncEnabled)
 	SnapshotLimit                   int     // Memory allowance (MB) to use for caching snapshot entries in memory
 	SnapshotVerify                  bool    // Verify generated snapshots
 	Preimages                       bool    // Whether to store preimage of trie key to the disk
 	AcceptedCacheSize               int     // Depth of accepted headers cache and accepted logs cache at the accepted tip
-	TxLookupLimit                   uint64  // Number of recent blocks for which to maintain transaction lookup indices
+	TransactionHistory              uint64  // Number of recent blocks for which to maintain transaction lookup indices
 	SkipTxIndexing                  bool    // Whether to skip transaction indexing
 	StateHistory                    uint64  // Number of blocks from head whose state histories are reserved.
 	StateScheme                     string  // Scheme used to store ethereum states and merkle tree nodes on top
@@ -344,6 +344,9 @@ type BlockChain struct {
 
 	// [acceptedLogsCache] stores recently accepted logs to improve the performance of eth_getLogs.
 	acceptedLogsCache FIFOCache[common.Hash, [][]*types.Log]
+
+	// [txIndexTailLock] is used to synchronize the updating of the tx index tail.
+	txIndexTailLock sync.Mutex
 }
 
 // NewBlockChain returns a fully initialised block chain using information
@@ -453,12 +456,18 @@ func NewBlockChain(
 	// Warm up [hc.acceptedNumberCache] and [acceptedLogsCache]
 	bc.warmAcceptedCaches()
 
+	// if txlookup limit is 0 (uindexing disabled), we don't need to repair the tx index tail.
+	if bc.cacheConfig.TransactionHistory != 0 {
+		latestStateSynced := rawdb.GetLatestSyncPerformed(bc.db)
+		bc.setTxIndexTail(latestStateSynced)
+	}
+
 	// Start processing accepted blocks effects in the background
 	go bc.startAcceptor()
 
 	// Start tx indexer if it's enabled.
-	if bc.cacheConfig.TxLookupLimit != 0 {
-		bc.txIndexer = newTxIndexer(bc.cacheConfig.TxLookupLimit, bc)
+	if bc.cacheConfig.TransactionHistory != 0 {
+		bc.txIndexer = newTxIndexer(bc.cacheConfig.TransactionHistory, bc)
 	}
 	return bc, nil
 }
@@ -469,14 +478,21 @@ func NewBlockChain(
 // - updating the acceptor tip index
 func (bc *BlockChain) writeBlockAcceptedIndices(b *types.Block) error {
 	batch := bc.db.NewBatch()
+	if err := bc.batchBlockAcceptedIndices(batch, b); err != nil {
+		return err
+	}
+	if err := batch.Write(); err != nil {
+		return fmt.Errorf("%w: failed to write accepted indices entries batch", err)
+	}
+	return nil
+}
+
+func (bc *BlockChain) batchBlockAcceptedIndices(batch ethdb.Batch, b *types.Block) error {
 	if !bc.cacheConfig.SkipTxIndexing {
 		rawdb.WriteTxLookupEntriesByBlock(batch, b)
 	}
 	if err := rawdb.WriteAcceptorTip(batch, b.Hash()); err != nil {
 		return fmt.Errorf("%w: failed to write acceptor tip key", err)
-	}
-	if err := batch.Write(); err != nil {
-		return fmt.Errorf("%w: failed to write tx lookup entries batch", err)
 	}
 	return nil
 }
@@ -851,7 +867,7 @@ func (bc *BlockChain) ValidateCanonicalChain() error {
 		// that the transactions have been indexed, if we are checking below the last accepted
 		// block.
 		shouldIndexTxs := !bc.cacheConfig.SkipTxIndexing &&
-			(bc.cacheConfig.TxLookupLimit == 0 || bc.lastAccepted.NumberU64() < current.Number.Uint64()+bc.cacheConfig.TxLookupLimit)
+			(bc.cacheConfig.TransactionHistory == 0 || bc.lastAccepted.NumberU64() < current.Number.Uint64()+bc.cacheConfig.TransactionHistory)
 		if current.Number.Uint64() <= bc.lastAccepted.NumberU64() && shouldIndexTxs {
 			// Ensure that all of the transactions have been stored correctly in the canonical
 			// chain
@@ -1011,7 +1027,7 @@ func (bc *BlockChain) setPreference(block *types.Block) error {
 	return nil
 }
 
-// LastAcceptedBlock returns the last block to be marked as accepted. It may or
+// LastConsensusAcceptedBlock returns the last block to be marked as accepted. It may or
 // may not yet be processed.
 func (bc *BlockChain) LastConsensusAcceptedBlock() *types.Block {
 	bc.chainmu.Lock()
@@ -2102,6 +2118,8 @@ func (bc *BlockChain) gatherBlockRootsAboveLastAccepted() map[common.Hash]struct
 	return blockRoots
 }
 
+// TODO: split extras to blockchain_extra.go
+
 // ResetToStateSyncedBlock reinitializes the state of the blockchain
 // to the trie represented by [block.Root()] after updating
 // in-memory and on disk current block pointers to [block].
@@ -2112,7 +2130,9 @@ func (bc *BlockChain) ResetToStateSyncedBlock(block *types.Block) error {
 
 	// Update head block and snapshot pointers on disk
 	batch := bc.db.NewBatch()
-	rawdb.WriteAcceptorTip(batch, block.Hash())
+	if err := bc.batchBlockAcceptedIndices(batch, block); err != nil {
+		return err
+	}
 	rawdb.WriteHeadBlockHash(batch, block.Hash())
 	rawdb.WriteHeadHeaderHash(batch, block.Hash())
 	rawdb.WriteSnapshotBlockHash(batch, block.Hash())
@@ -2123,6 +2143,11 @@ func (bc *BlockChain) ResetToStateSyncedBlock(block *types.Block) error {
 
 	if err := batch.Write(); err != nil {
 		return err
+	}
+
+	// if txlookup limit is 0 (uindexing disabled), we don't need to repair the tx index tail.
+	if bc.cacheConfig.TransactionHistory != 0 {
+		bc.setTxIndexTail(block.NumberU64())
 	}
 
 	// Update all in-memory chain markers
@@ -2156,4 +2181,21 @@ func (bc *BlockChain) ResetToStateSyncedBlock(block *types.Block) error {
 // during block building.
 func (bc *BlockChain) CacheConfig() *CacheConfig {
 	return bc.cacheConfig
+}
+
+func (bc *BlockChain) setTxIndexTail(newTail uint64) error {
+	bc.txIndexTailLock.Lock()
+	defer bc.txIndexTailLock.Unlock()
+
+	tailP := rawdb.ReadTxIndexTail(bc.db)
+	var tailV uint64
+	if tailP != nil {
+		tailV = *tailP
+	}
+
+	if newTail > tailV {
+		log.Info("Repairing tx index tail", "old", tailV, "new", newTail)
+		rawdb.WriteTxIndexTail(bc.db, newTail)
+	}
+	return nil
 }

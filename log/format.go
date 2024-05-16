@@ -1,3 +1,14 @@
+// (c) 2024, Ava Labs, Inc.
+//
+// This file is a derived work, based on the go-ethereum library whose original
+// notices appear below.
+//
+// It is distributed under a license compatible with the licensing terms of the
+// original code from which it is derived.
+//
+// Much love to the original authors for their work.
+// **********
+
 package log
 
 import (
@@ -66,6 +77,8 @@ func (h *TerminalHandler) format(buf []byte, r slog.Record, usecolor bool) []byt
 	} else {
 		b.WriteString(LevelAlignedString(r.Level))
 	}
+
+	b.WriteByte(' ')
 
 	// Prefix is added compared to upstream
 	if h.Prefix != nil {

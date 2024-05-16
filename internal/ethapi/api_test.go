@@ -1871,6 +1871,7 @@ func setupReceiptBackend(t *testing.T, genBlocks int) (*testBackend, []common.Ha
 			b.AddTx(tx)
 			txHashes[i] = tx.Hash()
 		}
+		// b.SetPoS()
 	})
 	return backend, txHashes
 }

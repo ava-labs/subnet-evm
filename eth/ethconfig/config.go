@@ -55,7 +55,6 @@ var DefaultConfig = NewDefaultConfig()
 
 func NewDefaultConfig() Config {
 	return Config{
-		// XXX: is this desirable 1 -> 0?
 		NetworkId:                 0, // enable auto configuration of networkID == chainID
 		StateHistory:              params.FullImmutabilityThreshold,
 		TrieCleanCache:            512,
@@ -92,7 +91,7 @@ type Config struct {
 	PopulateMissingTries            *uint64 // Height at which to start re-populating missing tries on startup.
 	PopulateMissingTriesParallelism int     // Number of concurrent readers to use when re-populating missing tries on startup.
 	AllowMissingTries               bool    // Whether to allow an archival node to run with pruning enabled and corrupt a complete index.
-	SnapshotDelayInit               bool    // Whether snapshot tree should be initialized on startup or delayed until explicit call
+	SnapshotDelayInit               bool    // Whether snapshot tree should be initialized on startup or delayed until explicit call (= StateSyncEnabled)
 	SnapshotWait                    bool    // Whether to wait for the initial snapshot generation
 	SnapshotVerify                  bool    // Whether to verify generated snapshots
 	SkipSnapshotRebuild             bool    // Whether to skip rebuilding the snapshot in favor of returning an error (only set to true for tests)
@@ -158,12 +157,10 @@ type Config struct {
 	// identical state with the pre-upgrade ruleset.
 	SkipUpgradeCheck bool
 
-	// TxLookupLimit is the maximum number of blocks from head whose tx indices
+	// TransactionHistory is the maximum number of blocks from head whose tx indices
 	// are reserved:
 	//  * 0:   means no limit
 	//  * N:   means N block limit [HEAD-N+1, HEAD] and delete extra indexes
-	// Deprecated, use 'TransactionHistory' instead.
-	TxLookupLimit      uint64 `toml:",omitempty"` // The maximum number of blocks from head whose tx indices are reserved.
 	TransactionHistory uint64 `toml:",omitempty"` // The maximum number of blocks from head whose tx indices are reserved.
 	StateHistory       uint64 `toml:",omitempty"` // The maximum number of blocks from head whose state histories are reserved.
 

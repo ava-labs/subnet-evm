@@ -49,6 +49,8 @@ type txIndexer struct {
 	progress chan chan TxIndexProgress
 	term     chan chan struct{}
 	closed   chan struct{}
+
+	chain *BlockChain
 }
 
 // newTxIndexer initializes the transaction indexer.
@@ -59,8 +61,23 @@ func newTxIndexer(limit uint64, chain *BlockChain) *txIndexer {
 		progress: make(chan chan TxIndexProgress),
 		term:     make(chan chan struct{}),
 		closed:   make(chan struct{}),
+		chain:    chain,
 	}
-	go indexer.loop(chain)
+	chain.wg.Add(1)
+	var (
+		headCh = make(chan ChainEvent, 1) // XXX: Buffered to avoid locking up the event feed
+		sub    = chain.SubscribeChainAcceptedEvent(headCh)
+	)
+	go func() {
+		defer chain.wg.Done()
+		if sub == nil {
+			log.Warn("could not create chain accepted subscription to unindex txs")
+			return
+		}
+		defer sub.Unsubscribe()
+
+		indexer.loop(headCh)
+	}()
 
 	var msg string
 	if limit == 0 {
@@ -80,7 +97,9 @@ func (indexer *txIndexer) run(tail *uint64, head uint64, stop chan struct{}, don
 	start := time.Now()
 	defer func() {
 		txUnindexTimer.Inc(time.Since(start).Milliseconds())
+		indexer.chain.txIndexTailLock.Unlock()
 		close(done)
+		indexer.chain.wg.Done()
 	}()
 
 	// Short circuit if chain is empty and nothing to index.
@@ -96,7 +115,7 @@ func (indexer *txIndexer) run(tail *uint64, head uint64, stop chan struct{}, don
 
 // loop is the scheduler of the indexer, assigning indexing/unindexing tasks depending
 // on the received chain event.
-func (indexer *txIndexer) loop(chain *BlockChain) {
+func (indexer *txIndexer) loop(headCh <-chan ChainEvent) {
 	defer close(indexer.closed)
 
 	// If the user just upgraded to a new version which supports transaction
@@ -111,21 +130,18 @@ func (indexer *txIndexer) loop(chain *BlockChain) {
 		done     chan struct{}                       // Non-nil if background routine is active.
 		lastHead uint64                              // The latest announced chain head (whose tx indexes are assumed created)
 		lastTail = rawdb.ReadTxIndexTail(indexer.db) // The oldest indexed block, nil means nothing indexed
-
-		headCh = make(chan ChainHeadEvent)
-		sub    = chain.SubscribeChainHeadEvent(headCh)
 	)
-	defer sub.Unsubscribe()
+	log.Info("Initialized transaction unindexer", "limit", indexer.limit)
 
-	// TODO: Uncomment this code when the tx-unindexer fix is ready.
 	// Launch the initial processing if chain is not empty (head != genesis).
 	// This step is useful in these scenarios that chain has no progress.
-	// if head := rawdb.ReadHeadBlock(indexer.db); head != nil && head.Number().Uint64() != 0 {
-	// 	stop = make(chan struct{})
-	// 	done = make(chan struct{})
-	// 	lastHead = head.Number().Uint64()
-	// 	go indexer.run(rawdb.ReadTxIndexTail(indexer.db), head.NumberU64(), stop, done)
-	// }
+	if head := rawdb.ReadHeadBlock(indexer.db); head != nil && head.Number().Uint64() != 0 {
+		stop = make(chan struct{})
+		done = make(chan struct{})
+		lastHead = head.Number().Uint64()
+		indexer.chain.wg.Add(1)
+		go indexer.run(rawdb.ReadTxIndexTail(indexer.db), head.NumberU64(), stop, done)
+	}
 	for {
 		select {
 		case head := <-headCh:
@@ -137,6 +153,7 @@ func (indexer *txIndexer) loop(chain *BlockChain) {
 			if done == nil {
 				stop = make(chan struct{})
 				done = make(chan struct{})
+				indexer.chain.wg.Add(1)
 				go indexer.run(rawdb.ReadTxIndexTail(indexer.db), head.Block.NumberU64(), stop, done)
 			}
 			lastHead = head.Block.NumberU64()
@@ -151,7 +168,7 @@ func (indexer *txIndexer) loop(chain *BlockChain) {
 				close(stop)
 			}
 			if done != nil {
-				log.Info("Waiting background transaction indexer to exit")
+				log.Info("Waiting background transaction unindexer to exit")
 				<-done
 			}
 			close(ch)

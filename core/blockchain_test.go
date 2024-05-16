@@ -665,7 +665,7 @@ func TestTxLookupBlockChain(t *testing.T) {
 		SnapshotLimit:             256,
 		SnapshotNoBuild:           true, // Ensure the test errors if snapshot initialization fails
 		AcceptorQueueLimit:        64,   // ensure channel doesn't block
-		TxLookupLimit:             5,
+		TransactionHistory:        5,
 	}
 	createTxLookupBlockChain := func(db ethdb.Database, gspec *Genesis, lastAcceptedHash common.Hash) (*BlockChain, error) {
 		return createBlockChain(db, cacheConf, gspec, lastAcceptedHash)
@@ -688,7 +688,7 @@ func TestTxLookupSkipIndexingBlockChain(t *testing.T) {
 		SnapshotLimit:             256,
 		SnapshotNoBuild:           true, // Ensure the test errors if snapshot initialization fails
 		AcceptorQueueLimit:        64,   // ensure channel doesn't block
-		TxLookupLimit:             5,
+		TransactionHistory:        5,
 		SkipTxIndexing:            true,
 	}
 	createTxLookupBlockChain := func(db ethdb.Database, gspec *Genesis, lastAcceptedHash common.Hash) (*BlockChain, error) {
