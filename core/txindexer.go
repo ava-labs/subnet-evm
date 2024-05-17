@@ -136,7 +136,7 @@ func (indexer *txIndexer) loop(headCh <-chan ChainEvent) {
 
 	// Launch the initial processing if chain is not empty (head != genesis).
 	// This step is useful in these scenarios that chain has no progress.
-	if head := indexer.chain.CurrentBlock(); head != nil && head.Number.Uint64() != 0 {
+	if head := indexer.chain.CurrentBlock(); head != nil && head.Number.Uint64() > indexer.limit {
 		stop = make(chan struct{})
 		done = make(chan struct{})
 		lastHead = head.Number.Uint64()
