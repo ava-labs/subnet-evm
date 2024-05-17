@@ -95,6 +95,7 @@ func newTxIndexer(limit uint64, chain *BlockChain) *txIndexer {
 // possible, the done channel will be closed once the task is finished.
 func (indexer *txIndexer) run(tail *uint64, head uint64, stop chan struct{}, done chan struct{}) {
 	start := time.Now()
+	indexer.chain.txIndexTailLock.Lock()
 	defer func() {
 		txUnindexTimer.Inc(time.Since(start).Milliseconds())
 		indexer.chain.txIndexTailLock.Unlock()
@@ -135,12 +136,12 @@ func (indexer *txIndexer) loop(headCh <-chan ChainEvent) {
 
 	// Launch the initial processing if chain is not empty (head != genesis).
 	// This step is useful in these scenarios that chain has no progress.
-	if head := rawdb.ReadHeadBlock(indexer.db); head != nil && head.Number().Uint64() != 0 {
+	if head := indexer.chain.CurrentBlock(); head != nil && head.Number.Uint64() != 0 {
 		stop = make(chan struct{})
 		done = make(chan struct{})
-		lastHead = head.Number().Uint64()
+		lastHead = head.Number.Uint64()
 		indexer.chain.wg.Add(1)
-		go indexer.run(rawdb.ReadTxIndexTail(indexer.db), head.NumberU64(), stop, done)
+		go indexer.run(rawdb.ReadTxIndexTail(indexer.db), head.Number.Uint64(), stop, done)
 	}
 	for {
 		select {

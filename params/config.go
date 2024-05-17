@@ -88,7 +88,7 @@ var (
 		ConstantinopleBlock: big.NewInt(0),
 		PetersburgBlock:     big.NewInt(0),
 		IstanbulBlock:       big.NewInt(0),
-		MuirGlacierBlock:    big.NewInt(0),
+		MuirGlacierBlock:    big.NewInt(0),                                  // XXX: Should this include Cancun time?
 		NetworkUpgrades:     getDefaultNetworkUpgrades(constants.MainnetID), // This can be changed to correct network (local, test) via VM.
 		GenesisPrecompiles:  Precompiles{},
 	}
