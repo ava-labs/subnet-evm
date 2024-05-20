@@ -122,6 +122,7 @@ func (s *BlockChainAPI) FeeConfig(ctx context.Context, blockNrOrHash *rpc.BlockN
 }
 
 // GetActivePrecompilesAt returns the active precompile configs at the given block timestamp.
+// DEPRECATED: Use GetActiveRulesAt instead.
 func (s *BlockChainAPI) GetActivePrecompilesAt(ctx context.Context, blockTimestamp *uint64) params.Precompiles {
 	var timestamp uint64
 	if blockTimestamp == nil {
