@@ -41,7 +41,7 @@ type Backend interface {
 	GetMessageSignature(messageID ids.ID) ([bls.SignatureLen]byte, error)
 
 	// GetBlockSignature returns the signature of the requested message hash.
-	GetBlockSignature(blockID ids.ID) ([bls.SignatureLen]byte, error)
+	GetBlockSignature(ctx context.Context, blockID ids.ID) ([bls.SignatureLen]byte, error)
 
 	// GetMessage retrieves the [unsignedMessage] from the warp backend database if available
 	GetMessage(messageHash ids.ID) (*avalancheWarp.UnsignedMessage, error)
@@ -163,13 +163,13 @@ func (b *backend) GetMessageSignature(messageID ids.ID) ([bls.SignatureLen]byte,
 	return signature, nil
 }
 
-func (b *backend) GetBlockSignature(blockID ids.ID) ([bls.SignatureLen]byte, error) {
+func (b *backend) GetBlockSignature(ctx context.Context, blockID ids.ID) ([bls.SignatureLen]byte, error) {
 	log.Debug("Getting block from backend", "blockID", blockID)
 	if sig, ok := b.blockSignatureCache.Get(blockID); ok {
 		return sig, nil
 	}
 
-	block, err := b.blockClient.GetBlock(context.TODO(), blockID)
+	block, err := b.blockClient.GetBlock(ctx, blockID)
 	if err != nil {
 		return [bls.SignatureLen]byte{}, fmt.Errorf("failed to get block %s: %w", blockID, err)
 	}

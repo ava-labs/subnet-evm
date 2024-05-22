@@ -161,7 +161,7 @@ func TestBlockSignatureHandler(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	signature, err := backend.GetBlockSignature(blkID)
+	signature, err := backend.GetBlockSignature(context.Background(), blkID)
 	require.NoError(t, err)
 	unknownMessageID := ids.GenerateTestID()
 

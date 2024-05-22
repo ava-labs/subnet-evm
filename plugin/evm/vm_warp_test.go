@@ -116,7 +116,7 @@ func TestSendWarpMessage(t *testing.T) {
 	// Verify the signature cannot be fetched before the block is accepted
 	_, err = vm.warpBackend.GetMessageSignature(unsignedMessageID)
 	require.Error(err)
-	_, err = vm.warpBackend.GetBlockSignature(blk.ID())
+	_, err = vm.warpBackend.GetBlockSignature(context.Background(), blk.ID())
 	require.Error(err)
 
 	require.NoError(vm.SetPreference(context.Background(), blk.ID()))
@@ -141,7 +141,7 @@ func TestSendWarpMessage(t *testing.T) {
 	require.True(bls.Verify(vm.ctx.PublicKey, blsSignature, unsignedMessage.Bytes()))
 
 	// Verify the blockID will now be signed by the backend and produces a valid signature.
-	rawSignatureBytes, err = vm.warpBackend.GetBlockSignature(blk.ID())
+	rawSignatureBytes, err = vm.warpBackend.GetBlockSignature(context.Background(), blk.ID())
 	require.NoError(err)
 	blsSignature, err = bls.SignatureFromBytes(rawSignatureBytes[:])
 	require.NoError(err)
@@ -656,7 +656,7 @@ func TestBlockSignatureRequestsToVM(t *testing.T) {
 	lastAcceptedID, err := vm.LastAccepted(context.Background())
 	require.NoError(t, err)
 
-	signature, err := vm.warpBackend.GetBlockSignature(lastAcceptedID)
+	signature, err := vm.warpBackend.GetBlockSignature(context.Background(), lastAcceptedID)
 	require.NoError(t, err)
 
 	tests := map[string]struct {

@@ -306,7 +306,7 @@ func createSyncServerAndClientVMs(t *testing.T, test syncTest, numBlocks int) *s
 	patchedBlock := patchBlock(lastAccepted, root, serverVM.chaindb)
 	blockBytes, err := rlp.EncodeToBytes(patchedBlock)
 	require.NoError(err)
-	internalBlock, err := serverVM.parseBlock(context.Background(), blockBytes)
+	internalBlock, err := serverVM.parseBlock(blockBytes)
 	require.NoError(err)
 	internalBlock.(*Block).SetStatus(choices.Accepted)
 	require.NoError(serverVM.State.SetLastAcceptedBlock(internalBlock))

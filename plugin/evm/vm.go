@@ -638,7 +638,7 @@ func (vm *VM) initChainState(lastAcceptedBlock *types.Block) error {
 		BytesToIDCacheSize:    bytesToIDCacheSize,
 		GetBlockIDAtHeight:    vm.GetBlockIDAtHeight,
 		GetBlock:              vm.getBlock,
-		UnmarshalBlock:        vm.parseBlock,
+		UnmarshalBlock:        vm.unmarshalBlock,
 		BuildBlock:            vm.buildBlock,
 		BuildBlockWithContext: vm.buildBlockWithContext,
 		LastAcceptedBlock:     block,
@@ -655,7 +655,7 @@ func (vm *VM) initChainState(lastAcceptedBlock *types.Block) error {
 	return vm.multiGatherer.Register(chainStateMetricsPrefix, chainStateRegisterer)
 }
 
-func (vm *VM) SetState(_ context.Context, state snow.State) error {
+func (vm *VM) SetState(ctx context.Context, state snow.State) error {
 	switch state {
 	case snow.StateSyncing:
 		vm.bootstrapped = false
@@ -668,7 +668,7 @@ func (vm *VM) SetState(_ context.Context, state snow.State) error {
 		return nil
 	case snow.NormalOp:
 		// Initialize goroutines related to block building once we enter normal operation as there is no need to handle mempool gossip before this point.
-		if err := vm.initBlockBuilding(); err != nil {
+		if err := vm.initBlockBuilding(ctx); err != nil {
 			return fmt.Errorf("failed to initialize block building: %w", err)
 		}
 		vm.bootstrapped = true
@@ -679,8 +679,8 @@ func (vm *VM) SetState(_ context.Context, state snow.State) error {
 }
 
 // initBlockBuilding starts goroutines to manage block building
-func (vm *VM) initBlockBuilding() error {
-	ctx, cancel := context.WithCancel(context.TODO())
+func (vm *VM) initBlockBuilding(ctx context.Context) error {
+	ctx, cancel := context.WithCancel(ctx)
 	vm.cancel = cancel
 
 	ethTxGossipMarshaller := GossipEthTxMarshaller{}
@@ -875,8 +875,13 @@ func (vm *VM) buildBlockWithContext(ctx context.Context, proposerVMBlockCtx *blo
 	return blk, nil
 }
 
+// unmarshalBlock wraps parseBlock to implement the snowman.ChainVM interface
+func (vm *VM) unmarshalBlock(_ context.Context, b []byte) (snowman.Block, error) {
+	return vm.parseBlock(b)
+}
+
 // parseBlock parses [b] into a block to be wrapped by ChainState.
-func (vm *VM) parseBlock(_ context.Context, b []byte) (snowman.Block, error) {
+func (vm *VM) parseBlock(b []byte) (snowman.Block, error) {
 	ethBlock := new(types.Block)
 	if err := rlp.DecodeBytes(b, ethBlock); err != nil {
 		return nil, err
@@ -893,7 +898,7 @@ func (vm *VM) parseBlock(_ context.Context, b []byte) (snowman.Block, error) {
 }
 
 func (vm *VM) ParseEthBlock(b []byte) (*types.Block, error) {
-	block, err := vm.parseBlock(context.TODO(), b)
+	block, err := vm.parseBlock(b)
 	if err != nil {
 		return nil, err
 	}

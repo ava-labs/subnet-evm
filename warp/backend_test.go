@@ -157,11 +157,11 @@ func TestGetBlockSignature(t *testing.T) {
 	expectedSig, err := warpSigner.Sign(unsignedMessage)
 	require.NoError(err)
 
-	signature, err := backend.GetBlockSignature(blkID)
+	signature, err := backend.GetBlockSignature(context.Background(), blkID)
 	require.NoError(err)
 	require.Equal(expectedSig, signature[:])
 
-	_, err = backend.GetBlockSignature(ids.GenerateTestID())
+	_, err = backend.GetBlockSignature(context.Background(), ids.GenerateTestID())
 	require.Error(err)
 }
 

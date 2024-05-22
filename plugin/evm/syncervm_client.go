@@ -213,7 +213,7 @@ func (client *stateSyncerClient) acceptSyncSummary(proposedSummary message.SyncS
 		if err := client.stateSync(ctx); err != nil {
 			client.stateSyncErr = err
 		} else {
-			client.stateSyncErr = client.finishSync()
+			client.stateSyncErr = client.finishSync(ctx)
 		}
 		// notify engine regardless of whether err == nil,
 		// this error will be propagated to the engine when it calls
@@ -307,8 +307,8 @@ func (client *stateSyncerClient) Shutdown() error {
 
 // finishSync is responsible for updating disk and memory pointers so the VM is prepared
 // for bootstrapping. Executes any shared memory operations from the atomic trie to shared memory.
-func (client *stateSyncerClient) finishSync() error {
-	stateBlock, err := client.state.GetBlock(context.TODO(), ids.ID(client.syncSummary.BlockHash))
+func (client *stateSyncerClient) finishSync(ctx context.Context) error {
+	stateBlock, err := client.state.GetBlock(ctx, ids.ID(client.syncSummary.BlockHash))
 	if err != nil {
 		return fmt.Errorf("could not get block by hash from client state: %s", client.syncSummary.BlockHash)
 	}

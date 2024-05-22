@@ -72,7 +72,7 @@ func (s *SignatureRequestHandler) OnBlockSignatureRequest(ctx context.Context, n
 		s.stats.UpdateBlockSignatureRequestTime(time.Since(startTime))
 	}()
 
-	signature, err := s.backend.GetBlockSignature(request.BlockID)
+	signature, err := s.backend.GetBlockSignature(ctx, request.BlockID)
 	if err != nil {
 		log.Debug("Unknown warp signature requested", "blockID", request.BlockID)
 		s.stats.IncBlockSignatureMiss()
