@@ -344,7 +344,7 @@ type BlockChain struct {
 // available in the database. It initialises the default Ethereum Validator and
 // Processor.
 func NewBlockChain(
-	db ethdb.Database, cacheConfig *CacheConfig, genesis *Genesis, engine consensus.Engine,
+	ctx context.Context, db ethdb.Database, cacheConfig *CacheConfig, genesis *Genesis, engine consensus.Engine,
 	vmConfig vm.Config, lastAcceptedHash common.Hash, skipChainConfigCheckCompatible bool,
 ) (*BlockChain, error) {
 	if cacheConfig == nil {
@@ -409,7 +409,7 @@ func NewBlockChain(
 	bc.stateManager = NewTrieWriter(bc.triedb, cacheConfig)
 
 	// Re-generate current block state if it is missing
-	if err := bc.loadLastState(lastAcceptedHash); err != nil {
+	if err := bc.loadLastState(ctx, lastAcceptedHash); err != nil {
 		return nil, err
 	}
 
@@ -431,7 +431,7 @@ func NewBlockChain(
 	}
 
 	// Populate missing tries if required
-	if err := bc.populateMissingTries(); err != nil {
+	if err := bc.populateMissingTries(ctx); err != nil {
 		return nil, fmt.Errorf("could not populate missing tries: %v", err)
 	}
 
@@ -768,7 +768,7 @@ func (bc *BlockChain) SenderCacher() *TxSenderCacher {
 
 // loadLastState loads the last known chain state from the database. This method
 // assumes that the chain manager mutex is held.
-func (bc *BlockChain) loadLastState(lastAcceptedHash common.Hash) error {
+func (bc *BlockChain) loadLastState(ctx context.Context, lastAcceptedHash common.Hash) error {
 	// Initialize genesis state
 	if lastAcceptedHash == (common.Hash{}) {
 		return bc.loadGenesisState()
@@ -813,7 +813,7 @@ func (bc *BlockChain) loadLastState(lastAcceptedHash common.Hash) error {
 	// reprocessState is necessary to ensure that the last accepted state is
 	// available. The state may not be available if it was not committed due
 	// to an unclean shutdown.
-	return bc.reprocessState(bc.lastAccepted, 2*bc.cacheConfig.CommitInterval)
+	return bc.reprocessState(ctx, bc.lastAccepted, 2*bc.cacheConfig.CommitInterval)
 }
 
 func (bc *BlockChain) loadGenesisState() error {
@@ -1891,7 +1891,7 @@ func (bc *BlockChain) initSnapshot(b *types.Header) {
 // it reaches a block with a state committed to the database. reprocessState does not use
 // snapshots since the disk layer for snapshots will most likely be above the last committed
 // state that reprocessing will start from.
-func (bc *BlockChain) reprocessState(current *types.Block, reexec uint64) error {
+func (bc *BlockChain) reprocessState(ctx context.Context, current *types.Block, reexec uint64) error {
 	origin := current.NumberU64()
 	acceptorTip, err := rawdb.ReadAcceptorTip(bc.db)
 	if err != nil {
@@ -1924,7 +1924,10 @@ func (bc *BlockChain) reprocessState(current *types.Block, reexec uint64) error 
 	}
 
 	for i := 0; i < int(reexec); i++ {
-		// TODO: handle canceled context
+		// handle canceled context
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
 
 		if current.NumberU64() == 0 {
 			return errors.New("genesis state is missing")
@@ -1959,7 +1962,10 @@ func (bc *BlockChain) reprocessState(current *types.Block, reexec uint64) error 
 	// Note: we add 1 since in each iteration, we attempt to re-execute the next block.
 	log.Info("Re-executing blocks to generate state for last accepted block", "from", current.NumberU64()+1, "to", origin)
 	for current.NumberU64() < origin {
-		// TODO: handle canceled context
+		// handle canceled context
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
 
 		// Print progress logs if long enough time elapsed
 		if time.Since(logged) > 8*time.Second {
@@ -2045,7 +2051,7 @@ func (bc *BlockChain) protectTrieIndex() error {
 // used to fill trie index gaps in an "archive" node without resyncing from scratch.
 //
 // NOTE: Assumes the genesis root and last accepted root are written to disk
-func (bc *BlockChain) populateMissingTries() error {
+func (bc *BlockChain) populateMissingTries(ctx context.Context) error {
 	if bc.cacheConfig.PopulateMissingTries == nil {
 		return nil
 	}
@@ -2078,14 +2084,18 @@ func (bc *BlockChain) populateMissingTries() error {
 	defer it.Stop()
 
 	for i := startHeight; i < lastAccepted; i++ {
+		// handle canceled context
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
+
 		// Print progress logs if long enough time elapsed
 		if time.Since(logged) > 8*time.Second {
 			log.Info("Populating missing tries", "missing", missing, "block", i, "remaining", lastAccepted-i, "elapsed", time.Since(startTime))
 			logged = time.Now()
 		}
 
-		// TODO: handle canceled context
-		current, hasState, err := it.Next(context.TODO())
+		current, hasState, err := it.Next(ctx)
 		if err != nil {
 			return fmt.Errorf("error while populating missing tries: %w", err)
 		}
@@ -2199,7 +2209,7 @@ func (bc *BlockChain) gatherBlockRootsAboveLastAccepted() map[common.Hash]struct
 // to the trie represented by [block.Root()] after updating
 // in-memory and on disk current block pointers to [block].
 // Only should be called after state sync has completed.
-func (bc *BlockChain) ResetToStateSyncedBlock(block *types.Block) error {
+func (bc *BlockChain) ResetToStateSyncedBlock(ctx context.Context, block *types.Block) error {
 	bc.chainmu.Lock()
 	defer bc.chainmu.Unlock()
 
@@ -2234,7 +2244,7 @@ func (bc *BlockChain) ResetToStateSyncedBlock(block *types.Block) error {
 	lastAcceptedHash := block.Hash()
 	bc.stateCache = state.NewDatabaseWithNodeDB(bc.db, bc.triedb)
 
-	if err := bc.loadLastState(lastAcceptedHash); err != nil {
+	if err := bc.loadLastState(ctx, lastAcceptedHash); err != nil {
 		return err
 	}
 	// Create the state manager

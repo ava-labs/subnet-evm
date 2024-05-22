@@ -28,6 +28,7 @@
 package eth
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math/big"
@@ -125,6 +126,7 @@ func roundUpCacheSize(input int, allocSize int) int {
 // New creates a new Ethereum object (including the
 // initialisation of the common Ethereum object)
 func New(
+	ctx context.Context,
 	stack *node.Node,
 	config *Config,
 	gossiper PushGossiper,
@@ -232,7 +234,7 @@ func New(
 	if err := eth.precheckPopulateMissingTries(); err != nil {
 		return nil, err
 	}
-	eth.blockchain, err = core.NewBlockChain(chainDb, cacheConfig, config.Genesis, eth.engine, vmConfig, lastAcceptedHash, config.SkipUpgradeCheck)
+	eth.blockchain, err = core.NewBlockChain(ctx, chainDb, cacheConfig, config.Genesis, eth.engine, vmConfig, lastAcceptedHash, config.SkipUpgradeCheck)
 	if err != nil {
 		return nil, err
 	}
@@ -242,7 +244,7 @@ func New(
 		config.Genesis.AirdropData = nil
 	}()
 
-	if err := eth.handleOfflinePruning(cacheConfig, config.Genesis, vmConfig, lastAcceptedHash); err != nil {
+	if err := eth.handleOfflinePruning(ctx, cacheConfig, config.Genesis, vmConfig, lastAcceptedHash); err != nil {
 		return nil, err
 	}
 
@@ -432,7 +434,7 @@ func (s *Ethereum) precheckPopulateMissingTries() error {
 	return nil
 }
 
-func (s *Ethereum) handleOfflinePruning(cacheConfig *core.CacheConfig, gspec *core.Genesis, vmConfig vm.Config, lastAcceptedHash common.Hash) error {
+func (s *Ethereum) handleOfflinePruning(ctx context.Context, cacheConfig *core.CacheConfig, gspec *core.Genesis, vmConfig vm.Config, lastAcceptedHash common.Hash) error {
 	if s.config.OfflinePruning && !s.config.Pruning {
 		return core.ErrRefuseToCorruptArchiver
 	}
@@ -478,7 +480,7 @@ func (s *Ethereum) handleOfflinePruning(cacheConfig *core.CacheConfig, gspec *co
 	}
 	// Note: Time Marker is written inside of [Prune] before compaction begins
 	// (considered an optional optimization)
-	s.blockchain, err = core.NewBlockChain(s.chainDb, cacheConfig, gspec, s.engine, vmConfig, lastAcceptedHash, s.config.SkipUpgradeCheck)
+	s.blockchain, err = core.NewBlockChain(ctx, s.chainDb, cacheConfig, gspec, s.engine, vmConfig, lastAcceptedHash, s.config.SkipUpgradeCheck)
 	if err != nil {
 		return fmt.Errorf("failed to re-initialize blockchain after offline pruning: %w", err)
 	}

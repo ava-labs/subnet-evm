@@ -113,7 +113,7 @@ func newTestBackendFakerEngine(t *testing.T, config *params.ChainConfig, numBloc
 	}
 	// Construct testing chain
 	diskdb := rawdb.NewMemoryDatabase()
-	chain, err := core.NewBlockChain(diskdb, core.DefaultCacheConfig, gspec, engine, vm.Config{}, common.Hash{}, false)
+	chain, err := core.NewBlockChain(context.Background(), diskdb, core.DefaultCacheConfig, gspec, engine, vm.Config{}, common.Hash{}, false)
 	if err != nil {
 		t.Fatalf("Failed to create local chain, %v", err)
 	}
@@ -139,7 +139,7 @@ func newTestBackend(t *testing.T, config *params.ChainConfig, numBlocks int, gen
 		t.Fatal(err)
 	}
 	// Construct testing chain
-	chain, err := core.NewBlockChain(rawdb.NewMemoryDatabase(), core.DefaultCacheConfig, gspec, engine, vm.Config{}, common.Hash{}, false)
+	chain, err := core.NewBlockChain(context.Background(), rawdb.NewMemoryDatabase(), core.DefaultCacheConfig, gspec, engine, vm.Config{}, common.Hash{}, false)
 	if err != nil {
 		t.Fatalf("Failed to create local chain, %v", err)
 	}

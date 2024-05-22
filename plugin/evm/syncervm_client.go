@@ -344,7 +344,7 @@ func (client *stateSyncerClient) finishSync(ctx context.Context) error {
 	parentHash := block.ParentHash()
 	client.chain.BloomIndexer().AddCheckpoint(parentHeight/params.BloomBitsBlocks, parentHash)
 
-	if err := client.chain.BlockChain().ResetToStateSyncedBlock(block); err != nil {
+	if err := client.chain.BlockChain().ResetToStateSyncedBlock(ctx, block); err != nil {
 		return err
 	}
 

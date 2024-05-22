@@ -262,7 +262,7 @@ func TestFilters(t *testing.T) {
 		}
 	})
 	require.NoError(t, err)
-	bc, err := core.NewBlockChain(db, core.DefaultCacheConfig, gspec, dummy.NewCoinbaseFaker(), vm.Config{}, gspec.ToBlock().Hash(), false)
+	bc, err := core.NewBlockChain(context.Background(), db, core.DefaultCacheConfig, gspec, dummy.NewCoinbaseFaker(), vm.Config{}, gspec.ToBlock().Hash(), false)
 	if err != nil {
 		t.Fatal(err)
 	}

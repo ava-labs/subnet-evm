@@ -4,6 +4,7 @@
 package core
 
 import (
+	"context"
 	"fmt"
 	"math/big"
 	"os"
@@ -58,6 +59,7 @@ func createBlockChain(
 ) (*BlockChain, error) {
 	// Import the chain. This runs all block validation rules.
 	blockchain, err := NewBlockChain(
+		context.Background(),
 		db,
 		cacheConfig,
 		gspec,
@@ -799,7 +801,7 @@ func testCanonicalHashMarker(t *testing.T, scheme string) {
 		}
 
 		// Initialize test chain
-		chain, err := NewBlockChain(rawdb.NewMemoryDatabase(), DefaultCacheConfigWithScheme(scheme), gspec, engine, vm.Config{}, common.Hash{}, false)
+		chain, err := NewBlockChain(context.Background(), rawdb.NewMemoryDatabase(), DefaultCacheConfigWithScheme(scheme), gspec, engine, vm.Config{}, common.Hash{}, false)
 		if err != nil {
 			t.Fatalf("failed to create tester chain: %v", err)
 		}
@@ -977,7 +979,7 @@ func testCreateThenDelete(t *testing.T, config *params.ChainConfig) {
 		nonce++
 	})
 	// Import the canonical chain
-	chain, err := NewBlockChain(rawdb.NewMemoryDatabase(), DefaultCacheConfig, gspec, engine, vm.Config{
+	chain, err := NewBlockChain(context.Background(), rawdb.NewMemoryDatabase(), DefaultCacheConfig, gspec, engine, vm.Config{
 		//Debug:  true,
 		//Tracer: logger.NewJSONLogger(nil, os.Stdout),
 	}, common.Hash{}, false)
@@ -1095,7 +1097,7 @@ func TestDeleteThenCreate(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Import the canonical chain
-	chain, err := NewBlockChain(rawdb.NewMemoryDatabase(), DefaultCacheConfig, gspec, engine, vm.Config{}, common.Hash{}, false)
+	chain, err := NewBlockChain(context.Background(), rawdb.NewMemoryDatabase(), DefaultCacheConfig, gspec, engine, vm.Config{}, common.Hash{}, false)
 	if err != nil {
 		t.Fatalf("failed to create tester chain: %v", err)
 	}
@@ -1181,7 +1183,7 @@ func TestTransientStorageReset(t *testing.T) {
 	})
 
 	// Initialize the blockchain with 1153 enabled.
-	chain, err := NewBlockChain(rawdb.NewMemoryDatabase(), DefaultCacheConfig, gspec, engine, vmConfig, common.Hash{}, false)
+	chain, err := NewBlockChain(context.Background(), rawdb.NewMemoryDatabase(), DefaultCacheConfig, gspec, engine, vmConfig, common.Hash{}, false)
 	if err != nil {
 		t.Fatalf("failed to create tester chain: %v", err)
 	}
@@ -1271,7 +1273,7 @@ func TestEIP3651(t *testing.T) {
 
 		b.AddTx(tx)
 	})
-	chain, err := NewBlockChain(rawdb.NewMemoryDatabase(), DefaultCacheConfig, gspec, engine, vm.Config{Tracer: logger.NewMarkdownLogger(&logger.Config{}, os.Stderr)}, common.Hash{}, false)
+	chain, err := NewBlockChain(context.Background(), rawdb.NewMemoryDatabase(), DefaultCacheConfig, gspec, engine, vm.Config{Tracer: logger.NewMarkdownLogger(&logger.Config{}, os.Stderr)}, common.Hash{}, false)
 	if err != nil {
 		t.Fatalf("failed to create tester chain: %v", err)
 	}

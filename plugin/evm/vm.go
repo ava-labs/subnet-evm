@@ -252,7 +252,7 @@ type VM struct {
 
 // Initialize implements the snowman.ChainVM interface
 func (vm *VM) Initialize(
-	_ context.Context,
+	ctx context.Context,
 	chainCtx *snow.Context,
 	db database.Database,
 	genesisBytes []byte,
@@ -501,7 +501,7 @@ func (vm *VM) Initialize(
 		}
 	}
 
-	if err := vm.initializeChain(lastAcceptedHash, vm.ethConfig); err != nil {
+	if err := vm.initializeChain(ctx, lastAcceptedHash, vm.ethConfig); err != nil {
 		return err
 	}
 
@@ -531,7 +531,7 @@ func (vm *VM) initializeMetrics() error {
 	return nil
 }
 
-func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.Config) error {
+func (vm *VM) initializeChain(ctx context.Context, lastAcceptedHash common.Hash, ethConfig ethconfig.Config) error {
 	nodecfg := &node.Config{
 		SubnetEVMVersion:      Version,
 		KeyStoreDir:           vm.config.KeystoreDirectory,
@@ -543,6 +543,7 @@ func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.
 		return err
 	}
 	vm.eth, err = eth.New(
+		ctx,
 		node,
 		&vm.ethConfig,
 		&EthPushGossiper{vm: vm},

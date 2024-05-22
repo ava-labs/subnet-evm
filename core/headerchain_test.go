@@ -27,6 +27,7 @@
 package core
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math/big"
@@ -80,7 +81,7 @@ func TestHeaderInsertion(t *testing.T) {
 		}
 	)
 	genesis := gspec.ToBlock()
-	chain, err := NewBlockChain(db, DefaultCacheConfig, gspec, dummy.NewCoinbaseFaker(), vm.Config{}, common.Hash{}, false)
+	chain, err := NewBlockChain(context.Background(), db, DefaultCacheConfig, gspec, dummy.NewCoinbaseFaker(), vm.Config{}, common.Hash{}, false)
 	if err != nil {
 		t.Fatal(err)
 	}

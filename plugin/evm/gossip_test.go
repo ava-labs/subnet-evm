@@ -98,7 +98,7 @@ func setupPoolWithConfig(t *testing.T, config *params.ChainConfig, fundedAddress
 		Config: config,
 		Alloc:  core.GenesisAlloc{fundedAddress: core.GenesisAccount{Balance: big.NewInt(1000000000000000000)}},
 	}
-	chain, err := core.NewBlockChain(diskdb, core.DefaultCacheConfig, gspec, engine, vm.Config{}, common.Hash{}, false)
+	chain, err := core.NewBlockChain(context.Background(), diskdb, core.DefaultCacheConfig, gspec, engine, vm.Config{}, common.Hash{}, false)
 	require.NoError(t, err)
 	testTxPoolConfig := legacypool.DefaultConfig
 	legacyPool := legacypool.New(testTxPoolConfig, chain)

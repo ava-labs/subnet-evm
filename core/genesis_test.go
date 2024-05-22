@@ -28,6 +28,7 @@ package core
 
 import (
 	"bytes"
+	"context"
 	_ "embed"
 	"math/big"
 	"reflect"
@@ -141,7 +142,7 @@ func testSetupGenesis(t *testing.T, scheme string) {
 					t.Fatal(err)
 				}
 
-				bc, _ := NewBlockChain(db, DefaultCacheConfigWithScheme(scheme), &oldcustomg, dummy.NewFullFaker(), vm.Config{}, genesis.Hash(), false)
+				bc, _ := NewBlockChain(context.Background(), db, DefaultCacheConfigWithScheme(scheme), &oldcustomg, dummy.NewFullFaker(), vm.Config{}, genesis.Hash(), false)
 				defer bc.Stop()
 
 				_, blocks, _, err := GenerateChainWithGenesis(&oldcustomg, dummy.NewFullFaker(), 4, 25, nil)
@@ -262,7 +263,7 @@ func TestPrecompileActivationAfterHeaderBlock(t *testing.T) {
 		},
 		GasLimit: params.TestChainConfig.FeeConfig.GasLimit.Uint64(),
 	}
-	bc, _ := NewBlockChain(db, DefaultCacheConfig, &customg, dummy.NewFullFaker(), vm.Config{}, common.Hash{}, false)
+	bc, _ := NewBlockChain(context.Background(), db, DefaultCacheConfig, &customg, dummy.NewFullFaker(), vm.Config{}, common.Hash{}, false)
 	defer bc.Stop()
 
 	// Advance header to block #4, past the ContractDeployerAllowListConfig.

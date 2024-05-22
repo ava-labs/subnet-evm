@@ -31,6 +31,7 @@
 package core
 
 import (
+	"context"
 	"math/big"
 	"testing"
 
@@ -553,7 +554,7 @@ func testRepairWithScheme(t *testing.T, tt *rewindTest, snapshots bool, scheme s
 		config.SnapshotLimit = 256
 		config.SnapshotWait = true
 	}
-	chain, err := NewBlockChain(db, config, gspec, engine, vm.Config{}, common.Hash{}, false)
+	chain, err := NewBlockChain(context.Background(), db, config, gspec, engine, vm.Config{}, common.Hash{}, false)
 	if err != nil {
 		t.Fatalf("Failed to create chain: %v", err)
 	}
@@ -619,7 +620,7 @@ func testRepairWithScheme(t *testing.T, tt *rewindTest, snapshots bool, scheme s
 	}
 	defer db.Close()
 
-	newChain, err := NewBlockChain(db, config, gspec, engine, vm.Config{}, lastAcceptedHash, false)
+	newChain, err := NewBlockChain(context.Background(), db, config, gspec, engine, vm.Config{}, lastAcceptedHash, false)
 	if err != nil {
 		t.Fatalf("Failed to recreate chain: %v", err)
 	}

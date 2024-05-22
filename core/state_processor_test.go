@@ -27,6 +27,7 @@
 package core
 
 import (
+	"context"
 	"crypto/ecdsa"
 	"math/big"
 	"testing"
@@ -120,7 +121,7 @@ func TestStateProcessorErrors(t *testing.T) {
 				},
 				GasLimit: params.TestChainConfig.FeeConfig.GasLimit.Uint64(),
 			}
-			blockchain, _  = NewBlockChain(db, DefaultCacheConfig, gspec, dummy.NewCoinbaseFaker(), vm.Config{}, common.Hash{}, false)
+			blockchain, _  = NewBlockChain(context.Background(), db, DefaultCacheConfig, gspec, dummy.NewCoinbaseFaker(), vm.Config{}, common.Hash{}, false)
 			tooBigInitCode = [params.MaxInitCodeSize + 1]byte{}
 		)
 
@@ -276,7 +277,7 @@ func TestStateProcessorErrors(t *testing.T) {
 				},
 				GasLimit: params.TestChainConfig.FeeConfig.GasLimit.Uint64(),
 			}
-			blockchain, _ = NewBlockChain(db, DefaultCacheConfig, gspec, dummy.NewCoinbaseFaker(), vm.Config{}, common.Hash{}, false)
+			blockchain, _ = NewBlockChain(context.Background(), db, DefaultCacheConfig, gspec, dummy.NewCoinbaseFaker(), vm.Config{}, common.Hash{}, false)
 		)
 		defer blockchain.Stop()
 		for i, tt := range []struct {
@@ -316,7 +317,7 @@ func TestStateProcessorErrors(t *testing.T) {
 				},
 				GasLimit: params.TestChainConfig.FeeConfig.GasLimit.Uint64(),
 			}
-			blockchain, _ = NewBlockChain(db, DefaultCacheConfig, gspec, dummy.NewCoinbaseFaker(), vm.Config{}, common.Hash{}, false)
+			blockchain, _ = NewBlockChain(context.Background(), db, DefaultCacheConfig, gspec, dummy.NewCoinbaseFaker(), vm.Config{}, common.Hash{}, false)
 		)
 		defer blockchain.Stop()
 		for i, tt := range []struct {
@@ -382,7 +383,7 @@ func TestBadTxAllowListBlock(t *testing.T) {
 			},
 			GasLimit: config.FeeConfig.GasLimit.Uint64(),
 		}
-		blockchain, _ = NewBlockChain(db, DefaultCacheConfig, gspec, dummy.NewCoinbaseFaker(), vm.Config{}, common.Hash{}, false)
+		blockchain, _ = NewBlockChain(context.Background(), db, DefaultCacheConfig, gspec, dummy.NewCoinbaseFaker(), vm.Config{}, common.Hash{}, false)
 	)
 	defer blockchain.Stop()
 

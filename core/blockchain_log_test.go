@@ -4,6 +4,7 @@
 package core
 
 import (
+	"context"
 	"math/big"
 	"strings"
 	"testing"
@@ -73,7 +74,7 @@ func TestAcceptedLogsSubscription(t *testing.T) {
 	})
 	require.NoError(err)
 
-	chain, err := NewBlockChain(rawdb.NewMemoryDatabase(), DefaultCacheConfig, gspec, engine, vm.Config{}, common.Hash{}, false)
+	chain, err := NewBlockChain(context.Background(), rawdb.NewMemoryDatabase(), DefaultCacheConfig, gspec, engine, vm.Config{}, common.Hash{}, false)
 	require.NoError(err)
 	defer chain.Stop()
 
