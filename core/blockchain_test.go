@@ -1336,3 +1336,88 @@ func createAndInsertChain(db ethdb.Database, cacheConfig *CacheConfig, gspec *Ge
 
 	return chain, nil
 }
+
+func TestRepopulateContext(t *testing.T) {
+	var (
+		key1, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
+		key2, _ = crypto.HexToECDSA("8a1f9a8f95be41cd7ccb6168179afb4504aefe388d1e14474d32c45c72ce7b7a")
+		addr1   = crypto.PubkeyToAddress(key1.PublicKey)
+		addr2   = crypto.PubkeyToAddress(key2.PublicKey)
+		chainDB = rawdb.NewMemoryDatabase()
+	)
+
+	// Ensure that key1 has some funds in the genesis block.
+	genesisBalance := big.NewInt(1000000)
+	gspec := &Genesis{
+		Config: &params.ChainConfig{HomesteadBlock: new(big.Int), FeeConfig: params.DefaultFeeConfig},
+		Alloc:  GenesisAlloc{addr1: {Balance: genesisBalance}},
+	}
+
+	blockchain, err := createBlockChain(chainDB, pruningConfig, gspec, common.Hash{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer blockchain.Stop()
+
+	// This call generates a chain of 3 blocks.
+	signer := types.HomesteadSigner{}
+	_, chain, _, err := GenerateChainWithGenesis(gspec, blockchain.engine, 10, 10, func(i int, gen *BlockGen) {
+		tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr1), addr2, big.NewInt(10000), params.TxGas, nil, nil), signer, key1)
+		gen.AddTx(tx)
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := blockchain.InsertChain(chain); err != nil {
+		t.Fatal(err)
+	}
+	for _, block := range chain {
+		if err := blockchain.Accept(block); err != nil {
+			t.Fatal(err)
+		}
+	}
+	blockchain.DrainAcceptorQueue()
+
+	lastAcceptedHash := blockchain.LastConsensusAcceptedBlock().Hash()
+	blockchain.Stop()
+
+	blockchain, err = createBlockChain(chainDB, pruningConfig, gspec, lastAcceptedHash)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Confirm that the node does not have the state for intermediate nodes (exclude the last accepted block)
+	for _, block := range chain[:len(chain)-1] {
+		if blockchain.HasState(block.Root()) {
+			t.Fatalf("Expected blockchain to be missing state for intermediate block %d with pruning enabled", block.NumberU64())
+		}
+	}
+	blockchain.Stop()
+
+	startHeight := uint64(1)
+	// Create a node in archival mode and re-populate the trie history.
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	blockchain, err = NewBlockChain(
+		ctx,
+		chainDB,
+		&CacheConfig{
+			TrieCleanLimit:            256,
+			TrieDirtyLimit:            256,
+			TrieDirtyCommitTarget:     20,
+			TriePrefetcherParallelism: 4,
+			Pruning:                   false, // Archive mode
+			SnapshotLimit:             256,
+			PopulateMissingTries:      &startHeight, // Starting point for re-populating.
+			AcceptorQueueLimit:        64,
+		},
+		gspec,
+		dummy.NewCoinbaseFaker(),
+		vm.Config{},
+		lastAcceptedHash,
+		false,
+	)
+
+	require.ErrorIs(t, err, context.Canceled)
+}
