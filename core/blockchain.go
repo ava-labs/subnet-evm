@@ -385,7 +385,6 @@ func NewBlockChain(
 		coinbaseConfigCache: lru.NewCache[common.Hash, *cacheableCoinbaseConfig](coinbaseConfigCacheLimit),
 		engine:              engine,
 		vmConfig:            vmConfig,
-		senderCacher:        NewTxSenderCacher(runtime.NumCPU()),
 		acceptorQueue:       make(chan *types.Block, cacheConfig.AcceptorQueueLimit),
 		quit:                make(chan struct{}),
 		acceptedLogsCache:   NewFIFOCache[common.Hash, [][]*types.Log](cacheConfig.AcceptedCacheSize),
@@ -432,8 +431,10 @@ func NewBlockChain(
 
 	// Populate missing tries if required
 	if err := bc.populateMissingTries(ctx); err != nil {
-		return nil, fmt.Errorf("could not populate missing tries: %v", err)
+		return nil, fmt.Errorf("could not populate missing tries: %w", err)
 	}
+
+	bc.senderCacher = NewTxSenderCacher(runtime.NumCPU())
 
 	// If snapshot initialization is delayed for fast sync, skip initializing it here.
 	// This assumes that no blocks will be processed until ResetState is called to initialize
@@ -1829,7 +1830,7 @@ func (bc *BlockChain) reprocessBlock(parent *types.Block, current *types.Block) 
 		statedb, err = state.NewWithSnapshot(parentRoot, bc.stateCache, snap)
 	}
 	if err != nil {
-		return common.Hash{}, fmt.Errorf("could not fetch state for (%s: %d): %v", parent.Hash().Hex(), parent.NumberU64(), err)
+		return common.Hash{}, fmt.Errorf("could not fetch state for (%s: %d): %w", parent.Hash().Hex(), parent.NumberU64(), err)
 	}
 
 	// Enable prefetching to pull in trie node paths while processing transactions
@@ -1841,12 +1842,12 @@ func (bc *BlockChain) reprocessBlock(parent *types.Block, current *types.Block) 
 	// Process previously stored block
 	receipts, _, usedGas, err := bc.processor.Process(current, parent.Header(), statedb, vm.Config{})
 	if err != nil {
-		return common.Hash{}, fmt.Errorf("failed to re-process block (%s: %d): %v", current.Hash().Hex(), current.NumberU64(), err)
+		return common.Hash{}, fmt.Errorf("failed to re-process block (%s: %d): %w", current.Hash().Hex(), current.NumberU64(), err)
 	}
 
 	// Validate the state using the default validator
 	if err := bc.validator.ValidateState(current, statedb, receipts, usedGas); err != nil {
-		return common.Hash{}, fmt.Errorf("failed to validate state while re-processing block (%s: %d): %v", current.Hash().Hex(), current.NumberU64(), err)
+		return common.Hash{}, fmt.Errorf("failed to validate state while re-processing block (%s: %d): %w", current.Hash().Hex(), current.NumberU64(), err)
 	}
 	log.Debug("Processed block", "block", current.Hash(), "number", current.NumberU64())
 
