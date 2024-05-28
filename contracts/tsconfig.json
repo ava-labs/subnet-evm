@@ -10,6 +10,8 @@
     "skipLibCheck": true,
     "resolveJsonModule": true,
   },
+  "include": ["./scripts", "./test", "./typechain-types"],
+  "files": ["./hardhat.config.ts"],
   "exclude": ["node_modules", "artifacts", "cache"],
   "typeAcquisition": {
     "enable": true,
