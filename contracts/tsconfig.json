@@ -4,7 +4,6 @@
     "baseUrl": ".",
     "module": "commonjs",
     "target": "es2020",
-    "lib": ["es2016"],
     "typeRoots": ["./typings/**", "./node_modules/@types"],
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
