@@ -9,6 +9,7 @@ import (
 	"time"
 
 	utils_math "github.com/ava-labs/avalanchego/utils/math"
+	"github.com/ava-labs/avalanchego/utils/timer"
 	"github.com/ava-labs/subnet-evm/metrics"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
@@ -131,7 +132,7 @@ func (t *trieSyncStats) updateETA(sinceUpdate time.Duration, now time.Time) time
 		return leafsTime
 	}
 
-	triesTime := now.Sub(t.triesStartTime) * time.Duration(t.triesRemaining/t.triesSynced)
+	triesTime := timer.EstimateETA(t.triesStartTime, uint64(t.triesSynced), uint64(t.triesSynced+t.triesRemaining))
 	eta := max(leafsTime, triesTime)
 	log.Info(
 		"state sync: syncing storage tries",
