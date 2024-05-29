@@ -132,7 +132,7 @@ func (t *trieSyncStats) updateETA(sinceUpdate time.Duration, now time.Time) time
 	}
 
 	triesTime := now.Sub(t.triesStartTime) * time.Duration(t.triesRemaining/t.triesSynced)
-	eta := leafsTime + triesTime // TODO: should we use max instead of sum?
+	eta := max(leafsTime, triesTime)
 	log.Info(
 		"state sync: syncing storage tries",
 		"triesRemaining", t.triesRemaining,
