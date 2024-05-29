@@ -131,7 +131,7 @@ func (t *trieSyncStats) updateETA(sinceUpdate time.Duration, now time.Time) {
 		return
 	}
 
-	triesTime := now.Sub(t.triesStartTime) * time.Duration(t.triesRemaining) / time.Duration(t.triesSynced)
+	triesTime := now.Sub(t.triesStartTime) * time.Duration(t.triesRemaining/t.triesSynced)
 	log.Info(
 		"state sync: syncing storage tries",
 		"triesRemaining", t.triesRemaining,
