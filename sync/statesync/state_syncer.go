@@ -254,11 +254,8 @@ func (t *stateSync) addTrieInProgress(root common.Hash, trie *trieToSync) {
 	t.triesInProgress[root] = trie
 }
 
-// removeTrieInProgress removes root from the set of tracked
-// tries in progress and notifies the storage root producer
-// so it can continue in case it was paused due to the
-// maximum number of tries in progress being previously reached.
-// returns the number of tries in progress after the removal.
+// removeTrieInProgress removes root from the set of tracked tries in progress
+// and returns the number of tries in progress after the removal.
 func (t *stateSync) removeTrieInProgress(root common.Hash) (int, error) {
 	t.lock.Lock()
 	defer t.lock.Unlock()
