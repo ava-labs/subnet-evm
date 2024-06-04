@@ -13,8 +13,6 @@ import (
 
 	ginkgo "github.com/onsi/ginkgo/v2"
 
-	"github.com/onsi/gomega"
-
 	"github.com/stretchr/testify/require"
 
 	"github.com/ethereum/go-ethereum/log"
@@ -46,7 +44,6 @@ func init() {
 }
 
 func TestE2E(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
 	ginkgo.RunSpecs(t, "subnet-evm small load simulator test suite")
 }
 
@@ -59,7 +56,6 @@ var _ = ginkgo.Describe("[Load Simulator]", ginkgo.Ordered, func() {
 		genesisPath := filepath.Join(repoRootPath, "tests/load/genesis/genesis.json")
 
 		nodes := utils.NewTmpnetNodes(nodeCount)
-
 		env = e2e.NewTestEnvironment(
 			flagVars,
 			utils.NewTmpnetNetwork(

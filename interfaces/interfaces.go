@@ -39,8 +39,6 @@ import (
 // NotFound is returned by API methods if the requested item does not exist.
 var NotFound = errors.New("not found")
 
-// TODO: move subscription to package event
-
 // Subscription represents an event subscription where events are
 // delivered on a data channel.
 type Subscription interface {
@@ -117,6 +115,10 @@ type CallMsg struct {
 	Data      []byte          // input data, usually an ABI-encoded contract method invocation
 
 	AccessList types.AccessList // EIP-2930 access list.
+
+	// For BlobTxType
+	BlobGasFeeCap *big.Int
+	BlobHashes    []common.Hash
 }
 
 // A ContractCaller provides contract calls, essentially transactions that are executed by

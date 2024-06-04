@@ -568,9 +568,6 @@ func (t *Tree) AbortGeneration() {
 // for it to shutdown before returning (if it is running). This call should not
 // be made concurrently.
 func (dl *diskLayer) abortGeneration() bool {
-	dl.lock.Lock()
-	defer dl.lock.Unlock()
-
 	// Store ideal time for abort to get better estimate of load
 	//
 	// Note that we set this time regardless if abortion was skipped otherwise we
@@ -580,7 +577,10 @@ func (dl *diskLayer) abortGeneration() bool {
 	}
 
 	// If the disk layer is running a snapshot generator, abort it
-	if dl.genAbort != nil && dl.genStats == nil {
+	dl.lock.RLock()
+	shouldAbort := dl.genAbort != nil && dl.genStats == nil
+	dl.lock.RUnlock()
+	if shouldAbort {
 		abort := make(chan struct{})
 		dl.genAbort <- abort
 		<-abort
@@ -740,6 +740,13 @@ func diffToDisk(bottom *diffLayer) (*diskLayer, bool, error) {
 		}
 	}
 	return res, base.genMarker == nil, nil
+}
+
+// Release releases resources
+func (t *Tree) Release() {
+	if dl := t.disklayer(); dl != nil {
+		dl.Release()
+	}
 }
 
 // Rebuild wipes all available snapshot data from the persistent database and
