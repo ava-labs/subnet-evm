@@ -27,15 +27,26 @@
 package core
 
 import (
+	"fmt"
 	"math/big"
 
+	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/coreth/consensus"
 	"github.com/ava-labs/coreth/consensus/misc/eip4844"
+	"github.com/ava-labs/coreth/constants"
 	"github.com/ava-labs/coreth/core/types"
-	"github.com/ava-labs/coreth/core/vm"
+	"github.com/ava-labs/coreth/params"
+	"github.com/ava-labs/coreth/precompile/contract"
+	"github.com/ava-labs/coreth/precompile/contracts/deployerallowlist"
+	"github.com/ava-labs/coreth/precompile/modules"
+	"github.com/ava-labs/coreth/precompile/precompileconfig"
 	"github.com/ava-labs/coreth/predicate"
+	"github.com/ava-labs/coreth/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
+	gethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/log"
+	gethparams "github.com/ethereum/go-ethereum/params"
 	//"github.com/ethereum/go-ethereum/log"
 )
 
@@ -97,17 +108,17 @@ func newEVMBlockContext(header *types.Header, chain ChainContext, author *common
 		blobBaseFee = eip4844.CalcBlobFee(*header.ExcessBlobGas)
 	}
 	return vm.BlockContext{
-		CanTransfer:      CanTransfer,
-		Transfer:         Transfer,
-		GetHash:          GetHashFn(header, chain),
-		PredicateResults: predicateResults,
-		Coinbase:         beneficiary,
-		BlockNumber:      new(big.Int).Set(header.Number),
-		Time:             header.Time,
-		Difficulty:       new(big.Int).Set(header.Difficulty),
-		BaseFee:          baseFee,
-		BlobBaseFee:      blobBaseFee,
-		GasLimit:         header.GasLimit,
+		CanTransfer: CanTransfer,
+		Transfer:    Transfer,
+		GetHash:     GetHashFn(header, chain),
+		Coinbase:    beneficiary,
+		BlockNumber: new(big.Int).Set(header.Number),
+		Time:        header.Time,
+		Difficulty:  new(big.Int).Set(header.Difficulty),
+		BaseFee:     baseFee,
+		BlobBaseFee: blobBaseFee,
+		GasLimit:    header.GasLimit,
+		Extra:       predicateResults,
 	}
 }
 
@@ -173,4 +184,174 @@ func CanTransfer(db vm.StateDB, addr common.Address, amount *big.Int) bool {
 func Transfer(db vm.StateDB, sender, recipient common.Address, amount *big.Int) {
 	db.SubBalance(sender, amount)
 	db.AddBalance(recipient, amount)
+}
+
+type EVM struct {
+	*vm.EVM
+
+	chainConfig *params.ChainConfig
+	stateDB     StateDB
+}
+
+func NewEVM(blockCtx vm.BlockContext, txCtx vm.TxContext, statedb StateDB, chainConfig *params.ChainConfig, config vm.Config) *EVM {
+	evm := &EVM{
+		chainConfig: chainConfig,
+		stateDB:     statedb,
+	}
+
+	rules := chainConfig.Rules(blockCtx.BlockNumber, blockCtx.Time)
+	switch {
+	case rules.IsCancun:
+		config.JumpTable = &vm.SubnetEVMCancunInstructionSet
+	case rules.IsDurango:
+		config.JumpTable = &vm.SubnetEVMDurangoInstructionSet
+	case rules.IsSubnetEVM:
+		config.JumpTable = &vm.SubnetEVMInstructionSet
+	}
+	config.ActivePrecompiles = ActivePrecompiles(rules)
+	config.IsProhibited = func(addr common.Address) error {
+		if IsProhibited(addr) {
+			return vmerrs.ErrAddrProhibited
+		}
+		return nil
+	}
+	config.CanDeploy = func(origin common.Address) error {
+		// If the allow list is enabled, check that [origin] has permission to deploy a contract.
+		if rules.IsPrecompileEnabled(deployerallowlist.ContractAddress) {
+			allowListRole := deployerallowlist.GetContractDeployerAllowListStatus(evm.stateDB, origin)
+			if !allowListRole.IsEnabled() {
+				return fmt.Errorf("tx.origin %s is not authorized to deploy a contract", origin)
+			}
+		}
+		return nil
+	}
+
+	config.CustomPrecompiles = make(map[common.Address]vm.RunFunc)
+
+	// stateful precompiles
+	var precompiles map[common.Address]contract.StatefulPrecompiledContract
+	for addr, precompile := range precompiles {
+		addr, precompile := addr, precompile
+		config.CustomPrecompiles[addr] = func(caller common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
+			ret, remainingGas, err = precompile.Run(evm, caller, addr, input, suppliedGas, readOnly)
+			return ret, remainingGas, fromVMErr(err)
+		}
+	}
+
+	// module precompiles
+	for addr := range rules.ActivePrecompiles {
+		addr := addr
+		module, ok := modules.GetPrecompileModuleByAddress(addr)
+		if !ok {
+			continue
+		}
+		config.CustomPrecompiles[addr] = func(caller common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
+			ret, remainingGas, err = module.Contract.Run(evm, caller, addr, input, suppliedGas, readOnly)
+			return ret, remainingGas, fromVMErr(err)
+		}
+	}
+
+	evm.EVM = vm.NewEVM(blockCtx, txCtx, &stateDBWrapper{statedb}, &chainConfigWrapper{chainConfig}, config)
+	return evm
+}
+
+func fromVMErr(err error) error {
+	switch err {
+	case vmerrs.ErrExecutionReverted:
+		return vm.ErrExecutionReverted
+	case vmerrs.ErrOutOfGas:
+		return vm.ErrOutOfGas
+	case vmerrs.ErrInsufficientBalance:
+		return vm.ErrInsufficientBalance
+	case vmerrs.ErrWriteProtection:
+		return vm.ErrWriteProtection
+	}
+	return err
+}
+
+type blockContext struct {
+	*vm.BlockContext
+}
+
+func (bc *blockContext) GetPredicateResults(txHash common.Hash, address common.Address) []byte {
+	pr := bc.BlockContext.Extra.(*predicate.Results)
+	if pr == nil {
+		return nil
+	}
+	return pr.GetResults(txHash, address)
+}
+
+func (evm *EVM) GetBlockContext() contract.BlockContext {
+	return &blockContext{&evm.EVM.Context}
+}
+
+func (evm *EVM) GetChainConfig() precompileconfig.ChainConfig {
+	return evm.chainConfig
+}
+
+func (evm *EVM) GetSnowContext() *snow.Context {
+	return evm.chainConfig.AvalancheContext.SnowCtx
+}
+
+func (evm *EVM) GetStateDB() contract.StateDB {
+	return evm.stateDB
+}
+
+type stateDBWrapper struct {
+	StateDB
+}
+
+func (s *stateDBWrapper) AddLog(log *gethtypes.Log) {
+	s.StateDB.AddLog(log.Address, log.Topics, log.Data, log.BlockNumber)
+}
+
+type chainConfigWrapper struct {
+	*params.ChainConfig
+}
+
+func (c *chainConfigWrapper) IsLondon(blockNum *big.Int) bool {
+	panic("should not be called")
+}
+
+func (c *chainConfigWrapper) Rules(blockNum *big.Int, isMerge bool, timestamp uint64) gethparams.Rules {
+	rules := c.ChainConfig.Rules(blockNum, timestamp)
+	return asGethRules(rules)
+}
+
+func asGethRules(rules params.Rules) gethparams.Rules {
+	return gethparams.Rules{
+		ChainID:          rules.ChainID,
+		IsHomestead:      rules.IsHomestead,
+		IsEIP150:         rules.IsEIP150,
+		IsEIP155:         rules.IsEIP155,
+		IsEIP158:         rules.IsEIP158,
+		IsByzantium:      rules.IsByzantium,
+		IsConstantinople: rules.IsConstantinople,
+		IsPetersburg:     rules.IsPetersburg,
+		IsIstanbul:       rules.IsIstanbul,
+		IsBerlin:         rules.IsSubnetEVM,
+		IsLondon:         rules.IsSubnetEVM,
+		IsMerge:          rules.IsDurango,
+		IsShanghai:       rules.IsDurango,
+		IsCancun:         rules.IsCancun,
+	}
+}
+
+func unwrapStateDB(db vm.StateDB) StateDB {
+	return db.(*stateDBWrapper).StateDB
+}
+
+// IsProhibited returns true if [addr] is in the prohibited list of addresses which should
+// not be allowed as an EOA or newly created contract address.
+func IsProhibited(addr common.Address) bool {
+	if addr == constants.BlackholeAddr {
+		return true
+	}
+
+	return modules.ReservedAddress(addr)
+}
+
+var BuiltinAddr = common.Address{
+	1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 }
