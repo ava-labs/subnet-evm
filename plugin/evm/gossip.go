@@ -20,7 +20,6 @@ import (
 	"github.com/ava-labs/avalanchego/network/p2p/gossip"
 
 	"github.com/ava-labs/coreth/core"
-	"github.com/ava-labs/coreth/core/txpool"
 	"github.com/ava-labs/coreth/core/types"
 	"github.com/ava-labs/coreth/eth"
 )
@@ -90,7 +89,7 @@ func (t txGossipHandler) CrossChainAppRequest(context.Context, ids.ID, time.Time
 	return nil, nil
 }
 
-func NewGossipEthTxPool(mempool *txpool.TxPool, registerer prometheus.Registerer) (*GossipEthTxPool, error) {
+func NewGossipEthTxPool(mempool TxPool, registerer prometheus.Registerer) (*GossipEthTxPool, error) {
 	bloom, err := gossip.NewBloomFilter(registerer, "eth_tx_bloom_filter", txGossipBloomMinTargetElements, txGossipBloomTargetFalsePositiveRate, txGossipBloomResetFalsePositiveRate)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize bloom filter: %w", err)
@@ -104,7 +103,7 @@ func NewGossipEthTxPool(mempool *txpool.TxPool, registerer prometheus.Registerer
 }
 
 type GossipEthTxPool struct {
-	mempool    *txpool.TxPool
+	mempool    TxPool
 	pendingTxs chan core.NewTxsEvent
 
 	bloom *gossip.BloomFilter

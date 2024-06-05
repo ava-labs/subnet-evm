@@ -24,7 +24,6 @@ import (
 	"github.com/ava-labs/coreth/constants"
 	"github.com/ava-labs/coreth/core"
 	"github.com/ava-labs/coreth/core/rawdb"
-	"github.com/ava-labs/coreth/core/txpool"
 	"github.com/ava-labs/coreth/core/types"
 	"github.com/ava-labs/coreth/eth"
 	"github.com/ava-labs/coreth/eth/ethconfig"
@@ -187,7 +186,7 @@ type VM struct {
 
 	// pointers to eth constructs
 	eth        *eth.Ethereum
-	txPool     *txpool.TxPool
+	txPool     TxPool
 	blockChain BlockChain
 	miner      *miner.Miner
 
@@ -549,10 +548,13 @@ func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.
 	}
 	vm.eth.SetEtherbase(ethConfig.Miner.Etherbase)
 	vm.txPool = vm.eth.TxPool()
+	vm.blockChain = &ethBlockChainer{vm.eth.BlockChain()}
+	vm.miner = vm.eth.Miner()
+
+	// Set the gas parameters for the tx pool to the minimum gas price for the
+	// latest upgrade.
 	vm.txPool.SetMinFee(vm.chainConfig.FeeConfig.MinBaseFee)
 	vm.txPool.SetGasTip(big.NewInt(0))
-	vm.blockChain = vm.eth.BlockChain()
-	vm.miner = vm.eth.Miner()
 
 	vm.eth.Start()
 	return vm.initChainState(vm.blockChain.LastAcceptedBlock())

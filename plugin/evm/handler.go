@@ -17,7 +17,7 @@ import (
 // GossipHandler handles incoming gossip messages
 type GossipHandler struct {
 	vm     *VM
-	txPool *txpool.TxPool
+	txPool TxPool
 	stats  GossipStats
 }
 
