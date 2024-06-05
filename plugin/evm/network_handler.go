@@ -35,6 +35,13 @@ func newNetworkHandler(
 	warpBackend warp.Backend,
 	networkCodec codec.Manager,
 ) message.RequestHandler {
+	// XXX: Don't care about the state sync server for now
+	if provider == nil {
+		return &networkHandler{
+			signatureRequestHandler: warpHandlers.NewSignatureRequestHandler(warpBackend, networkCodec),
+		}
+	}
+
 	syncStats := syncStats.NewHandlerStats(metrics.Enabled)
 	return &networkHandler{
 		stateTrieLeafsRequestHandler: syncHandlers.NewLeafsRequestHandler(evmTrieDB, provider, networkCodec, syncStats),

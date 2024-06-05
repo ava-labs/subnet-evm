@@ -378,7 +378,10 @@ func testWarpVMTransaction(t *testing.T, unsignedMessage *avalancheWarp.Unsigned
 	vm.blockChain.DrainAcceptorQueue()
 
 	ethBlock := warpBlock.(*chain.BlockWrapper).Block.(*Block).ethBlock
-	verifiedMessageReceipts := vm.blockChain.GetReceiptsByHash(ethBlock.Hash())
+	verifiedMessageReceipts := rawdb.ReadReceipts(
+		vm.chaindb, ethBlock.Hash(), ethBlock.NumberU64(), ethBlock.Time(),
+		vm.chainConfig,
+	)
 	require.Len(verifiedMessageReceipts, 2)
 	for i, receipt := range verifiedMessageReceipts {
 		require.Equal(types.ReceiptStatusSuccessful, receipt.Status, "index: %d", i)
@@ -553,7 +556,10 @@ func TestReceiveWarpMessage(t *testing.T) {
 	vm.blockChain.DrainAcceptorQueue()
 
 	ethBlock := block2.(*chain.BlockWrapper).Block.(*Block).ethBlock
-	verifiedMessageReceipts := vm.blockChain.GetReceiptsByHash(ethBlock.Hash())
+	verifiedMessageReceipts := rawdb.ReadReceipts(
+		vm.chaindb, ethBlock.Hash(), ethBlock.NumberU64(), ethBlock.Time(),
+		vm.chainConfig,
+	)
 	require.Len(verifiedMessageReceipts, 1)
 	verifiedMessageTxReceipt := verifiedMessageReceipts[0]
 	require.Equal(types.ReceiptStatusSuccessful, verifiedMessageTxReceipt.Status)

@@ -188,7 +188,7 @@ type VM struct {
 	// pointers to eth constructs
 	eth        *eth.Ethereum
 	txPool     *txpool.TxPool
-	blockChain *core.BlockChain
+	blockChain BlockChain
 	miner      *miner.Miner
 
 	// [db] is the VM's current database managed by ChainState
@@ -800,8 +800,13 @@ func (vm *VM) setAppRequestHandlers() {
 			},
 		},
 	)
-
-	networkHandler := newNetworkHandler(vm.blockChain, vm.chaindb, evmTrieDB, vm.warpBackend, vm.networkCodec)
+	networkHandler := newNetworkHandler(
+		nil, // XXX: don't care about state sync server for now (was vm.blockChain)
+		vm.chaindb,
+		evmTrieDB,
+		vm.warpBackend,
+		vm.networkCodec,
+	)
 	vm.Network.SetRequestHandler(networkHandler)
 }
 

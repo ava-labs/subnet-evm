@@ -2151,7 +2151,8 @@ func TestBuildAllowListActivationBlock(t *testing.T) {
 	newTxPoolHeadChan := make(chan core.NewTxPoolReorgEvent, 1)
 	vm.txPool.SubscribeNewReorgEvent(newTxPoolHeadChan)
 
-	genesisState, err := vm.blockChain.StateAt(vm.blockChain.Genesis().Root())
+	genesisRoot := vm.ethConfig.Genesis.ToBlock().Root()
+	genesisState, err := vm.blockChain.StateAt(genesisRoot)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -2238,7 +2239,8 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 	newTxPoolHeadChan := make(chan core.NewTxPoolReorgEvent, 1)
 	vm.txPool.SubscribeNewReorgEvent(newTxPoolHeadChan)
 
-	genesisState, err := vm.blockChain.StateAt(vm.blockChain.Genesis().Root())
+	genesisRoot := vm.ethConfig.Genesis.ToBlock().Root()
+	genesisState, err := vm.blockChain.StateAt(genesisRoot)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -2455,7 +2457,8 @@ func TestTxAllowListDisablePrecompile(t *testing.T) {
 	newTxPoolHeadChan := make(chan core.NewTxPoolReorgEvent, 1)
 	vm.txPool.SubscribeNewReorgEvent(newTxPoolHeadChan)
 
-	genesisState, err := vm.blockChain.StateAt(vm.blockChain.Genesis().Root())
+	genesisRoot := vm.ethConfig.Genesis.ToBlock().Root()
+	genesisState, err := vm.blockChain.StateAt(genesisRoot)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -2566,7 +2569,8 @@ func TestFeeManagerChangeFee(t *testing.T) {
 	newTxPoolHeadChan := make(chan core.NewTxPoolReorgEvent, 1)
 	vm.txPool.SubscribeNewReorgEvent(newTxPoolHeadChan)
 
-	genesisState, err := vm.blockChain.StateAt(vm.blockChain.Genesis().Root())
+	genesisRoot := vm.ethConfig.Genesis.ToBlock().Root()
+	genesisState, err := vm.blockChain.StateAt(genesisRoot)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -2581,7 +2585,8 @@ func TestFeeManagerChangeFee(t *testing.T) {
 		t.Fatalf("Expected fee manager list status to be set to no role: %s, but found: %s", allowlist.NoRole, role)
 	}
 	// Contract is initialized but no preconfig is given, reader should return genesis fee config
-	feeConfig, lastChangedAt, err := vm.blockChain.GetFeeConfigAt(vm.blockChain.Genesis().Header())
+	genesisBlock := vm.ethConfig.Genesis.ToBlock()
+	feeConfig, lastChangedAt, err := vm.blockChain.GetFeeConfigAt(genesisBlock.Header())
 	require.NoError(t, err)
 	require.EqualValues(t, feeConfig, testLowFeeConfig)
 	require.Zero(t, vm.blockChain.CurrentBlock().Number.Cmp(lastChangedAt))
