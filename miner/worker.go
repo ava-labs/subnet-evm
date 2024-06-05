@@ -90,7 +90,7 @@ type worker struct {
 	config      *Config
 	chainConfig *params.ChainConfig
 	engine      consensus.Engine
-	eth         Backend
+	txPool      TxPool
 	chain       *core.BlockChain
 
 	// Feeds
@@ -105,13 +105,13 @@ type worker struct {
 	beaconRoot *common.Hash    // TODO: set to empty hash, retained for upstream compatibility and future use
 }
 
-func newWorker(config *Config, chainConfig *params.ChainConfig, engine consensus.Engine, eth Backend, mux *event.TypeMux, clock *mockable.Clock) *worker {
+func newWorker(config *Config, chainConfig *params.ChainConfig, engine consensus.Engine, chain *core.BlockChain, txPool TxPool, mux *event.TypeMux, clock *mockable.Clock) *worker {
 	worker := &worker{
 		config:      config,
 		chainConfig: chainConfig,
 		engine:      engine,
-		eth:         eth,
-		chain:       eth.BlockChain(),
+		txPool:      txPool,
+		chain:       chain,
 		mux:         mux,
 		coinbase:    config.Etherbase,
 		clock:       clock,
@@ -232,11 +232,11 @@ func (w *worker) commitNewWork(predicateContext *precompileconfig.PredicateConte
 		return nil, err
 	}
 
-	pending := w.eth.TxPool().PendingWithBaseFee(true, header.BaseFee)
+	pending := w.txPool.PendingWithBaseFee(true, header.BaseFee)
 
 	// Split the pending transactions into locals and remotes.
 	localTxs, remoteTxs := make(map[common.Address][]*txpool.LazyTransaction), pending
-	for _, account := range w.eth.TxPool().Locals() {
+	for _, account := range w.txPool.Locals() {
 		if txs := remoteTxs[account]; len(txs) > 0 {
 			delete(remoteTxs, account)
 			localTxs[account] = txs
@@ -261,7 +261,7 @@ func (w *worker) createCurrentEnvironment(predicateContext *precompileconfig.Pre
 	if err != nil {
 		return nil, err
 	}
-	state.StartPrefetcher("miner", w.eth.BlockChain().CacheConfig().TriePrefetcherParallelism)
+	state.StartPrefetcher("miner", w.chain.CacheConfig().TriePrefetcherParallelism)
 	return &environment{
 		signer:           types.MakeSigner(w.chainConfig, header.Number, header.Time),
 		state:            state,

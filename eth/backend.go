@@ -258,7 +258,7 @@ func New(
 		return nil, err
 	}
 
-	eth.miner = miner.New(eth, &config.Miner, eth.blockchain.Config(), eth.EventMux(), eth.engine, clock)
+	eth.miner = miner.New(eth.blockchain, eth.txPool, &config.Miner, eth.blockchain.Config(), eth.EventMux(), eth.engine, clock)
 
 	allowUnprotectedTxHashes := make(map[common.Hash]struct{})
 	for _, txHash := range config.AllowUnprotectedTxHashes {
