@@ -248,17 +248,20 @@ func New(
 
 	eth.bloomIndexer.Start(eth.blockchain)
 
+	blockchain := BlockChain(eth.blockchain) // used in initializing the txpool and miner
+	// Uncomment the following to enable the new blobpool
+
 	// config.BlobPool.Datadir = ""
-	// blobPool := blobpool.New(config.BlobPool, &chainWithFinalBlock{eth.blockchain})
+	// blobPool := blobpool.New(config.BlobPool, &chainWithFinalBlock{blockchain})
 
-	legacyPool := legacypool.New(config.TxPool, eth.blockchain)
+	legacyPool := legacypool.New(config.TxPool, blockchain)
 
-	eth.txPool, err = txpool.New(new(big.Int).SetUint64(config.TxPool.PriceLimit), eth.blockchain, []txpool.SubPool{legacyPool}) //, blobPool})
+	eth.txPool, err = txpool.New(new(big.Int).SetUint64(config.TxPool.PriceLimit), blockchain, []txpool.SubPool{legacyPool}) //, blobPool})
 	if err != nil {
 		return nil, err
 	}
 
-	eth.miner = miner.New(eth.blockchain, eth.txPool, &config.Miner, eth.blockchain.Config(), eth.EventMux(), eth.engine, clock)
+	eth.miner = miner.New(blockchain, eth.txPool, &config.Miner, blockchain.Config(), eth.EventMux(), eth.engine, clock)
 
 	allowUnprotectedTxHashes := make(map[common.Hash]struct{})
 	for _, txHash := range config.AllowUnprotectedTxHashes {

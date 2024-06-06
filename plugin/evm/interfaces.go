@@ -4,12 +4,17 @@
 package evm
 
 import (
+	"context"
 	"math/big"
 
 	"github.com/ava-labs/coreth/commontype"
 	"github.com/ava-labs/coreth/core"
 	"github.com/ava-labs/coreth/core/types"
+	"github.com/ava-labs/coreth/eth"
+	"github.com/ava-labs/coreth/miner"
+	"github.com/ava-labs/coreth/params"
 	"github.com/ava-labs/coreth/precompile/contract"
+	"github.com/ava-labs/coreth/rpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/event"
 )
@@ -18,6 +23,7 @@ type BlockChain interface {
 	Accept(*types.Block) error
 	Reject(*types.Block) error
 	CurrentBlock() *types.Header
+	CurrentHeader() *types.Header
 	LastAcceptedBlock() *types.Block
 	LastConsensusAcceptedBlock() *types.Block
 	GetBlockByNumber(uint64) *types.Block
@@ -33,6 +39,7 @@ type BlockChain interface {
 	GetBlockByHash(common.Hash) *types.Block
 	SetPreference(*types.Block) error
 	GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig, *big.Int, error)
+	SubscribeAcceptedLogsEvent(ch chan<- []*types.Log) event.Subscription
 }
 
 type ethBlockChainer struct {
@@ -75,4 +82,51 @@ type TxPool interface {
 	SetMinFee(fee *big.Int)
 	SetGasTip(tip *big.Int)
 	GasTip() *big.Int
+}
+
+type Backend interface {
+	BlockChain() BlockChain
+	TxPool() TxPool
+	Miner() *miner.Miner
+	EstimateBaseFee(context.Context) (*big.Int, error)
+	Start()
+	Stop() error
+	SetEtherbase(common.Address)
+	ResetToStateSyncedBlock(*types.Block) error
+	APIs() []rpc.API
+}
+
+type ethBackender struct {
+	*eth.Ethereum
+}
+
+func (e *ethBackender) BlockChain() BlockChain {
+	return &ethBlockChainer{e.Ethereum.BlockChain()}
+}
+
+func (e *ethBackender) TxPool() TxPool {
+	return e.Ethereum.TxPool()
+}
+
+func (e *ethBackender) EstimateBaseFee(ctx context.Context) (*big.Int, error) {
+	// Note: this is cheating a little, but it's only used to estimate
+	// fees, and in principle we can fix the gpo to not depend on
+	// the APIBackend (see OracleBackend).
+	return e.Ethereum.APIBackend.EstimateBaseFee(ctx)
+}
+
+func (e *ethBackender) ResetToStateSyncedBlock(block *types.Block) error {
+	// BloomIndexer needs to know that some parts of the chain are not available
+	// and cannot be indexed. This is done by calling [AddCheckpoint] here.
+	// Since the indexer uses sections of size [params.BloomBitsBlocks] (= 4096),
+	// each block is indexed in section number [blockNumber/params.BloomBitsBlocks].
+	// To allow the indexer to start with the block we just synced to,
+	// we create a checkpoint for its parent.
+	// Note: This requires assuming the synced block height is divisible
+	// by [params.BloomBitsBlocks].
+	parentHeight := block.NumberU64() - 1
+	parentHash := block.ParentHash()
+	e.Ethereum.BloomIndexer().AddCheckpoint(parentHeight/params.BloomBitsBlocks, parentHash)
+
+	return e.Ethereum.BlockChain().ResetToStateSyncedBlock(block)
 }

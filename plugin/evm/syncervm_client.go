@@ -17,8 +17,6 @@ import (
 	"github.com/ava-labs/avalanchego/vms/components/chain"
 	"github.com/ava-labs/coreth/core/rawdb"
 	"github.com/ava-labs/coreth/core/state/snapshot"
-	"github.com/ava-labs/coreth/eth"
-	"github.com/ava-labs/coreth/params"
 	"github.com/ava-labs/coreth/plugin/evm/message"
 	syncclient "github.com/ava-labs/coreth/sync/client"
 	"github.com/ava-labs/coreth/sync/statesync"
@@ -47,7 +45,7 @@ type stateSyncClientConfig struct {
 
 	lastAcceptedHeight uint64
 
-	chain           *eth.Ethereum
+	chain           Backend
 	state           *chain.State
 	chaindb         ethdb.Database
 	metadataDB      database.Database
@@ -326,19 +324,7 @@ func (client *stateSyncerClient) finishSync() error {
 		return fmt.Errorf("attempted to set last summary block to unexpected block number: (%d != %d)", block.NumberU64(), client.syncSummary.BlockNumber)
 	}
 
-	// BloomIndexer needs to know that some parts of the chain are not available
-	// and cannot be indexed. This is done by calling [AddCheckpoint] here.
-	// Since the indexer uses sections of size [params.BloomBitsBlocks] (= 4096),
-	// each block is indexed in section number [blockNumber/params.BloomBitsBlocks].
-	// To allow the indexer to start with the block we just synced to,
-	// we create a checkpoint for its parent.
-	// Note: This requires assuming the synced block height is divisible
-	// by [params.BloomBitsBlocks].
-	parentHeight := block.NumberU64() - 1
-	parentHash := block.ParentHash()
-	client.chain.BloomIndexer().AddCheckpoint(parentHeight/params.BloomBitsBlocks, parentHash)
-
-	if err := client.chain.BlockChain().ResetToStateSyncedBlock(block); err != nil {
+	if err := client.chain.ResetToStateSyncedBlock(block); err != nil {
 		return err
 	}
 

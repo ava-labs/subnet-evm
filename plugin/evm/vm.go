@@ -185,7 +185,7 @@ type VM struct {
 	ethConfig   ethconfig.Config
 
 	// pointers to eth constructs
-	eth        *eth.Ethereum
+	eth        Backend
 	txPool     TxPool
 	blockChain BlockChain
 	miner      *miner.Miner
@@ -534,7 +534,7 @@ func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.
 	if err != nil {
 		return err
 	}
-	vm.eth, err = eth.New(
+	eth, err := eth.New(
 		node,
 		&vm.ethConfig,
 		&EthPushGossiper{vm: vm},
@@ -546,9 +546,10 @@ func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.
 	if err != nil {
 		return err
 	}
+	vm.eth = &ethBackender{eth}
 	vm.eth.SetEtherbase(ethConfig.Miner.Etherbase)
 	vm.txPool = vm.eth.TxPool()
-	vm.blockChain = &ethBlockChainer{vm.eth.BlockChain()}
+	vm.blockChain = vm.eth.BlockChain()
 	vm.miner = vm.eth.Miner()
 
 	// Set the gas parameters for the tx pool to the minimum gas price for the
@@ -815,7 +816,8 @@ func (vm *VM) setAppRequestHandlers() {
 // setCrossChainAppRequestHandler sets the request handlers for the VM to serve cross chain
 // requests.
 func (vm *VM) setCrossChainAppRequestHandler() {
-	crossChainRequestHandler := message.NewCrossChainHandler(vm.eth.APIBackend, message.CrossChainCodec)
+	// XXX: don't care about cross chain for now
+	crossChainRequestHandler := message.NewCrossChainHandler(nil, message.CrossChainCodec)
 	vm.Network.SetCrossChainRequestHandler(crossChainRequestHandler)
 }
 

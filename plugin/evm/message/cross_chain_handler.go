@@ -5,13 +5,11 @@ package message
 
 import (
 	"context"
-	"encoding/json"
 
 	"github.com/ava-labs/avalanchego/codec"
 	"github.com/ava-labs/avalanchego/ids"
 
 	"github.com/ava-labs/coreth/internal/ethapi"
-	"github.com/ava-labs/coreth/rpc"
 
 	"github.com/ethereum/go-ethereum/log"
 )
@@ -37,39 +35,8 @@ func NewCrossChainHandler(b ethapi.Backend, codec codec.Manager) CrossChainReque
 // transaction call object [ethCallRequest].
 // This function does not return an error as errors are treated as FATAL to the node.
 func (c *crossChainHandler) HandleEthCallRequest(ctx context.Context, requestingChainID ids.ID, requestID uint32, ethCallRequest EthCallRequest) ([]byte, error) {
-	lastAcceptedBlockNumber := rpc.BlockNumber(c.backend.LastAcceptedBlock().NumberU64())
-	lastAcceptedBlockNumberOrHash := rpc.BlockNumberOrHash{BlockNumber: &lastAcceptedBlockNumber}
-
-	transactionArgs := ethapi.TransactionArgs{}
-	err := json.Unmarshal(ethCallRequest.RequestArgs, &transactionArgs)
-	if err != nil {
-		log.Error("error occurred with JSON unmarshalling ethCallRequest.RequestArgs", "err", err)
-		return nil, nil
-	}
-
-	result, err := ethapi.DoCall(
-		ctx,
-		c.backend,
-		transactionArgs,
-		lastAcceptedBlockNumberOrHash,
-		nil,
-		nil,
-		c.backend.RPCEVMTimeout(),
-		c.backend.RPCGasCap())
-	if err != nil {
-		log.Error("error occurred with EthCall", "err", err, "transactionArgs", ethCallRequest.RequestArgs, "blockNumberOrHash", lastAcceptedBlockNumberOrHash)
-		return nil, nil
-	}
-
-	executionResult, err := json.Marshal(&result)
-	if err != nil {
-		log.Error("error occurred with JSON marshalling result", "err", err)
-		return nil, nil
-	}
-
-	response := EthCallResponse{
-		ExecutionResult: executionResult,
-	}
+	// XXX: Don't care about this for now
+	response := EthCallResponse{}
 
 	responseBytes, err := c.crossChainCodec.Marshal(Version, response)
 	if err != nil {

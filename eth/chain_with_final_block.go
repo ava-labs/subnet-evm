@@ -2,14 +2,13 @@
 package eth
 
 import (
-	"github.com/ava-labs/coreth/core"
 	"github.com/ava-labs/coreth/core/types"
 )
 
 const blocksToKeep = 604_800 // Approx. 2 weeks worth of blocks assuming 2s block time
 
 type chainWithFinalBlock struct {
-	*core.BlockChain
+	BlockChain
 }
 
 // CurrentFinalBlock returns the current block below which blobs should not
