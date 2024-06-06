@@ -571,8 +571,8 @@ func TestReceiveWarpMessage(t *testing.T) {
 	// 	Valid: true,
 	// })
 	// require.NoError(err)
-	//
-	// tracerAPI := tracers.NewAPI(vm.eth.APIBackend())
+
+	// tracerAPI := tracers.NewAPI(vm.eth.APIBackend)
 	// txTraceResults, err := tracerAPI.TraceBlockByHash(context.Background(), ethBlock.Hash(), nil)
 	// require.NoError(err)
 	// require.Len(txTraceResults, 1)
@@ -581,7 +581,7 @@ func TestReceiveWarpMessage(t *testing.T) {
 	// unmarshalResults := make(map[string]interface{})
 	// require.NoError(json.Unmarshal(blockTxTraceResultBytes, &unmarshalResults))
 	// require.Equal(common.Bytes2Hex(expectedOutput), unmarshalResults["returnValue"])
-	//
+
 	// txTraceResult, err := tracerAPI.TraceTransaction(context.Background(), getVerifiedWarpMessageTx.Hash(), nil)
 	// require.NoError(err)
 	// txTraceResultBytes, err := json.Marshal(txTraceResult)
