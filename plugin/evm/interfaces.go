@@ -130,3 +130,7 @@ func (e *ethBackender) ResetToStateSyncedBlock(block *types.Block) error {
 
 	return e.Ethereum.BlockChain().ResetToStateSyncedBlock(block)
 }
+
+func (e *ethBackender) APIs() []rpc.API {
+	return nil // deliberately turn off the APIs
+}
