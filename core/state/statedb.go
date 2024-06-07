@@ -619,19 +619,18 @@ func (s *StateDB) getDeletedStateObject(addr common.Address) *stateObject {
 	var data *types.StateAccount
 	if s.snap != nil {
 		start := time.Now()
-		acc, err := s.snap.Account(crypto.HashData(s.hasher, addr.Bytes()))
+		acc, err := s.snap.AccountRLP(crypto.HashData(s.hasher, addr.Bytes()))
 		if metrics.EnabledExpensive {
 			s.SnapshotAccountReads += time.Since(start)
 		}
 		if err == nil {
-			if acc == nil {
+			if len(acc) == 0 {
 				return nil
 			}
-			data = &types.StateAccount{
-				Nonce:    acc.Nonce,
-				Balance:  acc.Balance,
-				CodeHash: acc.CodeHash,
-				Root:     common.BytesToHash(acc.Root),
+			data, err = types.FullAccount(acc)
+			if err != nil {
+				s.setError(fmt.Errorf("could not unmarshal account (%x) error: %w", addr.Bytes(), err))
+				return nil
 			}
 			if len(data.CodeHash) == 0 {
 				data.CodeHash = types.EmptyCodeHash.Bytes()
