@@ -142,6 +142,7 @@ func (eth *Ethereum) hashState(ctx context.Context, block *types.Block, reexec u
 		logged time.Time
 		parent common.Hash
 	)
+	triedb.EnableRefCounting()
 	for current.NumberU64() < origin {
 		if err := ctx.Err(); err != nil {
 			return nil, nil, err
@@ -162,7 +163,7 @@ func (eth *Ethereum) hashState(ctx context.Context, block *types.Block, reexec u
 			return nil, nil, fmt.Errorf("processing block %d failed: %v", current.NumberU64(), err)
 		}
 		// Finalize the state so any modifications are written to the trie
-		root, err := statedb.Commit(current.NumberU64(), eth.blockchain.Config().IsEIP158(current.Number()), true)
+		root, err := statedb.Commit(current.NumberU64(), eth.blockchain.Config().IsEIP158(current.Number()))
 		if err != nil {
 			return nil, nil, fmt.Errorf("stateAtBlock commit failed, number %d root %v: %w",
 				current.NumberU64(), current.Root().Hex(), err)

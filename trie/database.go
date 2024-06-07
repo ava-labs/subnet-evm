@@ -80,10 +80,11 @@ type backend interface {
 // types of node backend as an entrypoint. It's responsible for all interactions
 // relevant with trie nodes and node preimages.
 type Database struct {
-	config    *Config        // Configuration for trie database
-	diskdb    ethdb.Database // Persistent database to store the snapshot
-	preimages *preimageStore // The store for caching preimages
-	backend   backend        // The backend for managing trie nodes
+	config      *Config        // Configuration for trie database
+	diskdb      ethdb.Database // Persistent database to store the snapshot
+	preimages   *preimageStore // The store for caching preimages
+	backend     backend        // The backend for managing trie nodes
+	refCounting bool           // True if Update should increment the root's reference count
 }
 
 // NewDatabase initializes the trie database with default settings, note
@@ -136,18 +137,15 @@ func (db *Database) Update(root common.Hash, parent common.Hash, block uint64, n
 	if db.preimages != nil {
 		db.preimages.commit(false)
 	}
-	return db.backend.Update(root, parent, block, nodes, states)
-}
-
-func (db *Database) UpdateAndReferenceRoot(root common.Hash, parent common.Hash, block uint64, nodes *trienode.MergedNodeSet, states *triestate.Set) error {
-	if db.preimages != nil {
-		db.preimages.commit(false)
-	}
 	hdb, ok := db.backend.(*hashdb.Database)
-	if ok {
+	if ok && db.refCounting {
 		return hdb.UpdateAndReferenceRoot(root, parent, block, nodes, states)
 	}
 	return db.backend.Update(root, parent, block, nodes, states)
+}
+
+func (db *Database) EnableRefCounting() {
+	db.refCounting = true
 }
 
 // Commit iterates over all the children of a particular node, writes them out
