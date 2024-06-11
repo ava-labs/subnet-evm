@@ -41,6 +41,7 @@ import (
 	"github.com/ava-labs/coreth/precompile/modules"
 	"github.com/ava-labs/coreth/precompile/precompileconfig"
 	"github.com/ava-labs/coreth/predicate"
+	"github.com/ava-labs/coreth/utils"
 	"github.com/ava-labs/coreth/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	gethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -251,7 +252,7 @@ func NewEVM(blockCtx vm.BlockContext, txCtx vm.TxContext, statedb StateDB, chain
 		}
 	}
 
-	evm.EVM = vm.NewEVM(blockCtx, txCtx, &stateDBWrapper{statedb}, &chainConfigWrapper{chainConfig}, config)
+	evm.EVM = vm.NewEVM(blockCtx, txCtx, &stateDBWrapper{&vmStateDB{statedb}}, &chainConfigWrapper{chainConfig}, config)
 	return evm
 }
 
@@ -294,7 +295,7 @@ func (evm *EVM) GetSnowContext() *snow.Context {
 }
 
 func (evm *EVM) GetStateDB() contract.StateDB {
-	return evm.stateDB
+	return &vmStateDB{evm.stateDB}
 }
 
 type stateDBWrapper struct {
@@ -303,6 +304,60 @@ type stateDBWrapper struct {
 
 func (s *stateDBWrapper) AddLog(log *gethtypes.Log) {
 	s.StateDB.AddLog(log.Address, log.Topics, log.Data, log.BlockNumber)
+}
+
+type vmStateDB struct {
+	StateDB
+}
+
+// GetPredicateStorageSlots returns the storage slots associated with the address, index pair.
+// A list of access tuples can be included within transaction types post EIP-2930. The address
+// is declared directly on the access tuple and the index is the i'th occurrence of an access
+// tuple with the specified address.
+//
+// Ex. AccessList[[AddrA, Predicate1], [AddrB, Predicate2], [AddrA, Predicate3]]
+// In this case, the caller could retrieve predicates 1-3 with the following calls:
+// GetPredicateStorageSlots(AddrA, 0) -> Predicate1
+// GetPredicateStorageSlots(AddrB, 0) -> Predicate2
+// GetPredicateStorageSlots(AddrA, 1) -> Predicate3
+func (s *vmStateDB) GetPredicateStorageSlots(address common.Address, index int) ([]byte, bool) {
+	predicates := predicate.GetPredicatesFromAccessList(s.AccessList(), address)
+	if index >= len(predicates) {
+		return nil, false
+	}
+	return predicates[index], true
+}
+
+// SetPredicateStorageSlots sets the predicate storage slots for the given address
+// TODO: This test-only method can be replaced with setting the access list.
+func (s *vmStateDB) SetPredicateStorageSlots(address common.Address, predicates [][]byte) {
+	accessList := make(types.AccessList, 0, len(predicates))
+	for _, predicateBytes := range predicates {
+		accessList = append(accessList, types.AccessTuple{
+			Address:     address,
+			StorageKeys: utils.BytesToHashSlice(predicateBytes),
+		})
+	}
+	s.SetAccessList(accessList)
+}
+
+// NormalizeStateKey ANDs the 0th bit of the first byte in
+// [key], which ensures this bit will be 0 and all other bits
+// are left the same.
+// This partitions normal state storage from multicoin storage.
+func NormalizeStateKey(key *common.Hash) {
+	key[0] &= 0xfe
+}
+
+func (s *vmStateDB) SetState(addr common.Address, key, value common.Hash) {
+	NormalizeStateKey(&key)
+	s.StateDB.SetState(addr, key, value)
+}
+
+// GetState retrieves a value from the given account's storage trie.
+func (s *vmStateDB) GetState(addr common.Address, hash common.Hash) common.Hash {
+	NormalizeStateKey(&hash)
+	return s.StateDB.GetState(addr, hash)
 }
 
 type chainConfigWrapper struct {

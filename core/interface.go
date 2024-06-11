@@ -29,6 +29,7 @@ package core
 import (
 	"math/big"
 
+	"github.com/ava-labs/coreth/core/types"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -85,10 +86,10 @@ type StateDB interface {
 
 	AddLog(addr common.Address, topics []common.Hash, data []byte, blockNumber uint64)
 	GetLogData() (topics [][]common.Hash, data [][]byte)
-	GetPredicateStorageSlots(address common.Address, index int) ([]byte, bool)
-	SetPredicateStorageSlots(address common.Address, predicates [][]byte)
 
 	GetTxHash() common.Hash
+	AccessList() types.AccessList
+	SetAccessList(types.AccessList)
 
 	AddPreimage(common.Hash, []byte)
 }
