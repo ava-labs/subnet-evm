@@ -543,7 +543,7 @@ func TestTouchDelete(t *testing.T) {
 	s := newStateEnv()
 	s.state.GetOrNewStateObject(common.Address{})
 	root, _ := s.state.Commit(0, false)
-	s.state, _ = NewWithSnapshot(root, s.state.db, s.state.snap)
+	s.state, _ = New(root, s.state.db, s.state.snaps)
 
 	snapshot := s.state.Snapshot()
 	s.state.AddBalance(common.Address{}, new(big.Int))
@@ -779,7 +779,7 @@ func TestDeleteCreateRevert(t *testing.T) {
 	state.SetBalance(addr, big.NewInt(1))
 
 	root, _ := state.Commit(0, false)
-	state, _ = NewWithSnapshot(root, state.db, state.snap)
+	state, _ = New(root, state.db, state.snaps)
 
 	// Simulate self-destructing in one transaction, then create-reverting in another
 	state.SelfDestruct(addr)
@@ -791,7 +791,7 @@ func TestDeleteCreateRevert(t *testing.T) {
 
 	// Commit the entire state and make sure we don't crash and have the correct state
 	root, _ = state.Commit(0, true)
-	state, _ = NewWithSnapshot(root, state.db, state.snap)
+	state, _ = New(root, state.db, state.snaps)
 
 	if state.getStateObject(addr) != nil {
 		t.Fatalf("self-destructed contract came alive")
@@ -1132,7 +1132,7 @@ func TestResetObject(t *testing.T) {
 	state.CreateAccount(addr)
 	state.SetBalance(addr, big.NewInt(2))
 	state.SetState(addr, slotB, common.BytesToHash([]byte{0x2}))
-	root, _ := state.CommitWithSnap(0, true, snaps, common.Hash{}, common.Hash{})
+	root, _ := state.Commit(0, true)
 
 	// Ensure the original account is wiped properly
 	snap := snaps.Snapshot(root)
@@ -1163,7 +1163,7 @@ func TestDeleteStorage(t *testing.T) {
 		value := common.Hash(uint256.NewInt(uint64(10 * i)).Bytes32())
 		state.SetState(addr, slot, value)
 	}
-	root, _ := state.CommitWithSnap(0, true, snaps, common.Hash{}, common.Hash{})
+	root, _ := state.Commit(0, true)
 	// Init phase done, create two states, one with snap and one without
 	fastState, _ := New(root, db, snaps)
 	slowState, _ := New(root, db, nil)

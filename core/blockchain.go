@@ -1299,12 +1299,7 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 	// Commit all cached state changes into underlying memory database.
 	// If snapshots are enabled, call CommitWithSnaps to explicitly create a snapshot
 	// diff layer for the block.
-	var err error
-	if bc.snaps == nil {
-		_, err = state.Commit(block.NumberU64(), bc.chainConfig.IsEIP158(block.Number()))
-	} else {
-		_, err = state.CommitWithSnap(block.NumberU64(), bc.chainConfig.IsEIP158(block.Number()), bc.snaps, block.Hash(), block.ParentHash())
-	}
+	_, err := state.CommitWithBlockHash(block.NumberU64(), bc.chainConfig.IsEIP158(block.Number()), block.Hash(), block.ParentHash())
 	if err != nil {
 		return err
 	}
@@ -1827,7 +1822,7 @@ func (bc *BlockChain) reprocessBlock(parent *types.Block, current *types.Block) 
 		if snap == nil {
 			return common.Hash{}, fmt.Errorf("failed to get snapshot for parent root: %s", parentRoot)
 		}
-		statedb, err = state.NewWithSnapshot(parentRoot, bc.stateCache, snap)
+		statedb, err = state.NewWithSnapshot(parentRoot, bc.stateCache, bc.snaps, snap)
 	}
 	if err != nil {
 		return common.Hash{}, fmt.Errorf("could not fetch state for (%s: %d): %v", parent.Hash().Hex(), parent.NumberU64(), err)
@@ -1852,12 +1847,7 @@ func (bc *BlockChain) reprocessBlock(parent *types.Block, current *types.Block) 
 	log.Debug("Processed block", "block", current.Hash(), "number", current.NumberU64())
 
 	// Commit all cached state changes into underlying memory database.
-	// If snapshots are enabled, call CommitWithSnaps to explicitly create a snapshot
-	// diff layer for the block.
-	if bc.snaps == nil {
-		return statedb.Commit(current.NumberU64(), bc.chainConfig.IsEIP158(current.Number()))
-	}
-	return statedb.CommitWithSnap(current.NumberU64(), bc.chainConfig.IsEIP158(current.Number()), bc.snaps, current.Hash(), current.ParentHash())
+	return statedb.CommitWithBlockHash(current.NumberU64(), bc.chainConfig.IsEIP158(current.Number()), current.Hash(), current.ParentHash())
 }
 
 // initSnapshot instantiates a Snapshot instance and adds it to [bc]
