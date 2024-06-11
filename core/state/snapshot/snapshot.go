@@ -354,10 +354,6 @@ func (t *Tree) Update(blockHash, blockRoot, parentBlockHash common.Hash, destruc
 	return nil
 }
 
-func (t *Tree) Cap(root common.Hash, layers int) error {
-	return nil
-}
-
 // verifyIntegrity performs an integrity check on the current snapshot using
 // verify. Most importantly, verifyIntegrity ensures verify is called at
 // most once during the entire lifetime of [Tree], returning immediately if
