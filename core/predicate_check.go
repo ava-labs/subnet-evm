@@ -37,7 +37,13 @@ func CheckPredicates(rules params.Rules, predicateContext *precompileconfig.Pred
 	}
 
 	// Prepare the predicate storage slots from the transaction's access list
-	predicateArguments := predicate.PreparePredicateStorageSlots(rules, tx.AccessList())
+	predicateArguments := make(map[common.Address][][]byte)
+	for address := range rules.Predicaters {
+		predicates := predicate.GetPredicatesFromAccessList(tx.AccessList(), address)
+		if len(predicates) > 0 {
+			predicateArguments[address] = predicates
+		}
+	}
 
 	// If there are no predicates to verify, return early and skip requiring the proposervm block
 	// context to be populated.
