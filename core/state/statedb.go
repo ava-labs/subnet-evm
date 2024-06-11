@@ -164,8 +164,7 @@ func New(root common.Hash, db Database, snaps SnapshotTree) (*StateDB, error) {
 
 // NewWithSnapshot creates a new state from a given trie with the specified [snap]
 // If [snap] doesn't have the same root as [root], then NewWithSnapshot will return
-// an error. If snap is nil, then no snapshot will be used and CommitWithSnapshot
-// cannot be called on the returned StateDB.
+// an error.
 func NewWithSnapshot(root common.Hash, db Database, snaps SnapshotTree, snap snapshot.Snapshot) (*StateDB, error) {
 	tr, err := db.OpenTrie(root)
 	if err != nil {
