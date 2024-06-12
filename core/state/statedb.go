@@ -378,6 +378,7 @@ func (s *StateDB) GetCodeHash(addr common.Address) common.Hash {
 func (s *StateDB) GetState(addr common.Address, hash common.Hash) common.Hash {
 	stateObject := s.getStateObject(addr)
 	if stateObject != nil {
+		NormalizeStateKey(&hash)
 		return stateObject.GetState(hash)
 	}
 	return common.Hash{}
@@ -449,6 +450,7 @@ func (s *StateDB) SetCode(addr common.Address, code []byte) {
 func (s *StateDB) SetState(addr common.Address, key, value common.Hash) {
 	stateObject := s.GetOrNewStateObject(addr)
 	if stateObject != nil {
+		NormalizeStateKey(&key)
 		stateObject.SetState(key, value)
 	}
 }

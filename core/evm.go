@@ -191,13 +191,13 @@ type EVM struct {
 	*vm.EVM
 
 	chainConfig *params.ChainConfig
-	stateDB     StateDB
+	stateDB     *vmStateDB
 }
 
 func NewEVM(blockCtx vm.BlockContext, txCtx vm.TxContext, statedb StateDB, chainConfig *params.ChainConfig, config vm.Config) *EVM {
 	evm := &EVM{
 		chainConfig: chainConfig,
-		stateDB:     statedb,
+		stateDB:     &vmStateDB{statedb},
 	}
 
 	rules := chainConfig.Rules(blockCtx.BlockNumber, blockCtx.Time)
@@ -252,7 +252,7 @@ func NewEVM(blockCtx vm.BlockContext, txCtx vm.TxContext, statedb StateDB, chain
 		}
 	}
 
-	evm.EVM = vm.NewEVM(blockCtx, txCtx, &stateDBWrapper{&vmStateDB{statedb}}, &chainConfigWrapper{chainConfig}, config)
+	evm.EVM = vm.NewEVM(blockCtx, txCtx, &stateDBWrapper{evm.stateDB}, &chainConfigWrapper{chainConfig}, config)
 	return evm
 }
 
@@ -295,7 +295,7 @@ func (evm *EVM) GetSnowContext() *snow.Context {
 }
 
 func (evm *EVM) GetStateDB() contract.StateDB {
-	return &vmStateDB{evm.stateDB}
+	return evm.stateDB
 }
 
 type stateDBWrapper struct {
@@ -339,25 +339,6 @@ func (s *vmStateDB) SetPredicateStorageSlots(address common.Address, predicates 
 		})
 	}
 	s.SetAccessList(accessList)
-}
-
-// NormalizeStateKey ANDs the 0th bit of the first byte in
-// [key], which ensures this bit will be 0 and all other bits
-// are left the same.
-// This partitions normal state storage from multicoin storage.
-func NormalizeStateKey(key *common.Hash) {
-	key[0] &= 0xfe
-}
-
-func (s *vmStateDB) SetState(addr common.Address, key, value common.Hash) {
-	NormalizeStateKey(&key)
-	s.StateDB.SetState(addr, key, value)
-}
-
-// GetState retrieves a value from the given account's storage trie.
-func (s *vmStateDB) GetState(addr common.Address, hash common.Hash) common.Hash {
-	NormalizeStateKey(&hash)
-	return s.StateDB.GetState(addr, hash)
 }
 
 type chainConfigWrapper struct {
