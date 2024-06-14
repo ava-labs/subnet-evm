@@ -37,10 +37,11 @@ import (
 	"github.com/ava-labs/coreth/core/state"
 	"github.com/ava-labs/coreth/core/types"
 	"github.com/ava-labs/coreth/eth/tracers"
-	"github.com/ava-labs/coreth/trie"
+	"github.com/ava-labs/coreth/trie/triedb/hashdb"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/ethereum/go-ethereum/trie"
 )
 
 // noopReleaser is returned in case there is no operation expected
@@ -95,7 +96,9 @@ func (eth *Ethereum) hashState(ctx context.Context, block *types.Block, reexec u
 		// the internal junks created by tracing will be persisted into the disk.
 		// TODO(rjl493456442), clean cache is disabled to prevent memory leak,
 		// please re-enable it for better performance.
-		triedb = trie.NewDatabase(eth.chainDb, trie.HashDefaults)
+		triedb = trie.NewDatabase(eth.chainDb, &trie.Config{
+			HashDB: hashdb.Defaults.WithRefCounting(),
+		})
 		database = state.NewDatabaseWithNodeDB(eth.chainDb, triedb)
 
 		// If we didn't check the live database, do check state over ephemeral database,

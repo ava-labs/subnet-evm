@@ -99,6 +99,17 @@ type cache interface {
 type Config struct {
 	CleanCacheSize int    // Maximum memory allowance (in bytes) for caching clean nodes
 	StatsPrefix    string // Prefix for cache stats (disabled if empty)
+	RefCounting    bool   // Whether to enable reference counting for trie nodes
+}
+
+func (c *Config) New(diskdb ethdb.Database, resolver database.ChildResolver) database.HashBackend {
+	return New(diskdb, c, resolver)
+}
+
+func (c *Config) WithRefCounting() *Config {
+	copy := *c
+	copy.RefCounting = true
+	return &copy
 }
 
 // Defaults is the default setting for database if it's not specified.
