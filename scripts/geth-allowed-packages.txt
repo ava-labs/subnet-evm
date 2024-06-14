@@ -28,4 +28,3 @@
 "github.com/ethereum/go-ethereum/trie/trienode"
 "github.com/ethereum/go-ethereum/trie/triestate"
 "github.com/ethereum/go-ethereum/trie/utils"
-
