@@ -36,6 +36,9 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 )
 
+// XXX: Keep linter quiet
+var NewTriePrefetcher = newTriePrefetcher
+
 // triePrefetchMetricsPrefix is the prefix under which to publish the metrics.
 const triePrefetchMetricsPrefix = "trie/prefetch/"
 
