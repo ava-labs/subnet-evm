@@ -24,10 +24,10 @@ BASE="${1}";
 # The diffs/ directory is in .gitignore to avoid recursive diffiffiffs.
 mkdir -p "diffs/${BASE}";
 
-git diff ${BASE} --name-only | while read f
+git diff "${BASE}" --name-only | while read -r f
 do
     echo "${f}";
     DIR=$(dirname "${f}");
     mkdir -p "diffs/${BASE}/${DIR}";
-    git diff ${BASE} -- "${f}" > "diffs/${BASE}/${f}.diff";
+    git diff "${BASE}" -- "${f}" > "diffs/${BASE}/${f}.diff";
 done
