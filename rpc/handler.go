@@ -29,6 +29,7 @@ package rpc
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
@@ -39,6 +40,8 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"golang.org/x/time/rate"
 )
+
+const truncateLimit = 1024
 
 // handler handles JSON-RPC messages. There is one handler per connection. Note that
 // handler is not safe for concurrent use. Message handling never blocks indefinitely
@@ -571,7 +574,20 @@ func (h *handler) handleCallMsg(ctx *callProc, msg *jsonrpcMessage) *jsonrpcMess
 		if resp.Error != nil {
 			ctx = append(ctx, "err", resp.Error.Message)
 			if resp.Error.Data != nil {
-				ctx = append(ctx, "errdata", resp.Error.Data)
+				// If the log level is debug, log the full error data. Otherwise, truncate it.
+				if h.log.Enabled(context.Background(), log.LvlDebug) {
+					ctx = append(ctx, "errdata", resp.Error.Data)
+				} else {
+					errDataStr := fmt.Sprintf("%v", resp.Error.Data)
+					// Truncate the error data if it is too long. Otherwise, preserve the original data.
+					if len(errDataStr) > truncateLimit {
+						remaining := len(errDataStr) - truncateLimit
+						errDataStr = errDataStr[:truncateLimit] + "...(truncated remaining " + strconv.Itoa(remaining) + " chars)"
+						ctx = append(ctx, "errdata", errDataStr)
+					} else {
+						ctx = append(ctx, "errdata", resp.Error.Data)
+					}
+				}
 			}
 			h.log.Info("Served "+msg.Method, ctx...)
 		} else {
