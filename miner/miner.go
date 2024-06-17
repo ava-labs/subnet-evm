@@ -46,9 +46,9 @@ type Miner struct {
 	worker *worker
 }
 
-func New(chain BlockChain, txPool TxPool, config *Config, chainConfig *params.ChainConfig, mux *event.TypeMux, engine consensus.Engine, clock *mockable.Clock) *Miner {
+func New(chain BlockChain, txPool TxPool, config *Config, chainConfig *params.ChainConfig, engine consensus.Engine, clock *mockable.Clock) *Miner {
 	return &Miner{
-		worker: newWorker(config, chainConfig, engine, chain, txPool, mux, clock),
+		worker: newWorker(config, chainConfig, engine, chain, txPool, clock),
 	}
 }
 
