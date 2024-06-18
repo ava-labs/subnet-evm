@@ -5,6 +5,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"go/ast"
 	"go/parser"
 	"go/token"
 	"log"
@@ -15,6 +16,8 @@ import (
 	"github.com/ava-labs/avalanchego/utils/set"
 	"go.uber.org/multierr"
 	"golang.org/x/tools/go/packages"
+
+	_ "embed"
 
 	// TODO(arr4n): change to using a git sub-module
 	_ "github.com/ethereum/go-ethereum"
@@ -77,6 +80,9 @@ func (c *config) loadAndParse(ctx context.Context, fset *token.FileSet, patterns
 	return nil
 }
 
+//go:embed copyright.go.txt
+var copyrightHeader string
+
 // parse parses all `pkg.Files` into `fset`, transforms each according to
 // semantic patches, and passes all geth imports back to `c.loadAndParse()` for
 // recursive handling.
@@ -109,6 +115,10 @@ func (c *config) parse(ctx context.Context, pkg *packages.Package, fset *token.F
 			}
 		}
 		allGethImports.Union(gethImports)
+
+		file.Comments = append([]*ast.CommentGroup{{
+			List: []*ast.Comment{{Text: copyrightHeader}},
+		}}, file.Comments...)
 
 		// TODO(arr4n): add transformations
 	}
