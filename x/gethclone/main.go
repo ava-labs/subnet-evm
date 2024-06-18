@@ -21,7 +21,7 @@ import (
 	_ "embed"
 
 	// TODO(arr4n): change to using a git sub-module
-	_ "github.com/ethereum/go-ethereum"
+	_ "github.com/ethereum/go-ethereum/common"
 )
 
 const geth = "github.com/ethereum/go-ethereum/"
