@@ -24,7 +24,6 @@ type BlockChain interface {
 	GetBlockByNumber(uint64) *types.Block
 	InitializeSnapshots()
 	HasBlock(common.Hash, uint64) bool
-	GetBlock(common.Hash, uint64) *types.Block
 	DrainAcceptorQueue()
 	HasState(common.Hash) bool
 	State() (*state.StateDB, error)

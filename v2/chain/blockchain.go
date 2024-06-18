@@ -1,7 +1,9 @@
 package chain
 
 import (
+	"runtime"
 	"sync"
+	"sync/atomic"
 
 	"github.com/ava-labs/coreth/consensus"
 	"github.com/ava-labs/coreth/core"
@@ -9,7 +11,9 @@ import (
 	"github.com/ava-labs/coreth/core/types"
 	"github.com/ava-labs/coreth/params"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/lru"
 	"github.com/ethereum/go-ethereum/core/vm"
+	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/event"
 )
 
@@ -17,44 +21,87 @@ var _ BlockChain = (*blockChain)(nil)
 
 type blockChain struct {
 	lock sync.RWMutex
+
+	blocksDb ethdb.Database // Block chain to store block headers and bodies
+	state    state.Database
+
+	// TODO: should make a config struct?
+	config      *params.ChainConfig
+	cacheConfig *core.CacheConfig
+	vmConfig    vm.Config
+	engine      consensus.Engine
+
+	hc           *core.HeaderChain
+	blockCache   *lru.Cache[common.Hash, *types.Block] // Cache for the most recent entire blocks
+	lastAccepted atomic.Pointer[types.Block]           // Prevents reorgs past this height
+
+	senderCacher *core.TxSenderCacher
 }
 
-func (b *blockChain) Accept(*types.Block) error                               { panic("unimplemented") }
-func (b *blockChain) Reject(*types.Block) error                               { panic("unimplemented") }
-func (b *blockChain) CurrentBlock() *types.Header                             { panic("unimplemented") }
-func (b *blockChain) CurrentHeader() *types.Header                            { panic("unimplemented") }
-func (b *blockChain) LastAcceptedBlock() *types.Block                         { panic("unimplemented") }
-func (b *blockChain) LastConsensusAcceptedBlock() *types.Block                { panic("unimplemented") }
-func (b *blockChain) GetBlockByNumber(uint64) *types.Block                    { panic("unimplemented") }
-func (b *blockChain) HasBlock(common.Hash, uint64) bool                       { panic("unimplemented") }
-func (b *blockChain) GetBlock(common.Hash, uint64) *types.Block               { panic("unimplemented") }
-func (b *blockChain) HasState(common.Hash) bool                               { panic("unimplemented") }
-func (b *blockChain) State() (*state.StateDB, error)                          { panic("unimplemented") }
-func (b *blockChain) StateAt(common.Hash) (*state.StateDB, error)             { panic("unimplemented") }
-func (b *blockChain) InsertBlockManual(*types.Block, bool) error              { panic("unimplemented") }
-func (b *blockChain) GetBlockByHash(common.Hash) *types.Block                 { panic("unimplemented") }
-func (b *blockChain) SetPreference(*types.Block) error                        { panic("unimplemented") }
-func (b *blockChain) GetHeader(hash common.Hash, number uint64) *types.Header { panic("unimplemented") }
-func (b *blockChain) GetHeaderByHash(hash common.Hash) *types.Header          { panic("unimplemented") }
-func (b *blockChain) GetHeaderByNumber(number uint64) *types.Header           { panic("unimplemented") }
-func (b *blockChain) SenderCacher() *core.TxSenderCacher                      { panic("unimplemented") }
+func NewBlockChain(
+	blocksDb ethdb.Database,
+	config *params.ChainConfig,
+	cacheConfig *core.CacheConfig,
+	vmConfig vm.Config,
+	engine consensus.Engine,
+) (*blockChain, error) {
+	hc, err := core.NewHeaderChain(blocksDb, config, cacheConfig, engine)
+	if err != nil {
+		return nil, err
+	}
 
-func (b *blockChain) CacheConfig() *core.CacheConfig { panic("unimplemented") }
-func (b *blockChain) Config() *params.ChainConfig    { panic("unimplemented") }
-func (b *blockChain) GetVMConfig() *vm.Config        { panic("unimplemented") }
-func (b *blockChain) Engine() consensus.Engine       { panic("unimplemented") }
-func (b *blockChain) Stop()                          { panic("unimplemented") }
+	return &blockChain{
+		blocksDb:     blocksDb,
+		config:       config,
+		cacheConfig:  cacheConfig,
+		engine:       engine,
+		vmConfig:     vmConfig,
+		senderCacher: core.NewTxSenderCacher(runtime.NumCPU()),
+		hc:           hc,
+	}, nil
+}
+
+func (bc *blockChain) Stop() {
+	bc.senderCacher.Shutdown()
+}
+
+func (bc *blockChain) Accept(*types.Block) error                  { panic("unimplemented") }
+func (bc *blockChain) Reject(*types.Block) error                  { panic("unimplemented") }
+func (bc *blockChain) InsertBlockManual(*types.Block, bool) error { panic("unimplemented") }
+func (bc *blockChain) SetPreference(*types.Block) error           { panic("unimplemented") }
 
 // Subscriptions
-func (b *blockChain) SubscribeAcceptedLogsEvent(ch chan<- []*types.Log) event.Subscription {
+func (bc *blockChain) SubscribeAcceptedLogsEvent(ch chan<- []*types.Log) event.Subscription {
 	panic("unimplemented")
 }
 
-func (b *blockChain) SubscribeChainHeadEvent(ch chan<- core.ChainHeadEvent) event.Subscription {
+func (bc *blockChain) SubscribeChainHeadEvent(ch chan<- core.ChainHeadEvent) event.Subscription {
 	panic("unimplemented")
+}
+
+// Getters
+func (bc *blockChain) CurrentBlock() *types.Header              { return bc.hc.CurrentHeader() }
+func (bc *blockChain) CurrentHeader() *types.Header             { return bc.hc.CurrentHeader() }
+func (bc *blockChain) LastAcceptedBlock() *types.Block          { return bc.lastAccepted.Load() }
+func (bc *blockChain) LastConsensusAcceptedBlock() *types.Block { return bc.lastAccepted.Load() }
+func (bc *blockChain) SenderCacher() *core.TxSenderCacher       { return bc.senderCacher }
+func (bc *blockChain) CacheConfig() *core.CacheConfig           { return bc.cacheConfig }
+func (bc *blockChain) Config() *params.ChainConfig              { return bc.config }
+func (bc *blockChain) GetVMConfig() *vm.Config                  { return &bc.vmConfig }
+func (bc *blockChain) Engine() consensus.Engine                 { return bc.engine }
+
+func (bc *blockChain) HasState(hash common.Hash) bool {
+	_, err := bc.state.OpenTrie(hash)
+	return err == nil
+}
+func (bc *blockChain) StateAt(root common.Hash) (*state.StateDB, error) {
+	return state.New(root, bc.state, nil)
+}
+func (bc *blockChain) State() (*state.StateDB, error) {
+	return bc.StateAt(bc.CurrentHeader().Root)
 }
 
 // No-ops
-func (b *blockChain) DrainAcceptorQueue()           {}
-func (b *blockChain) InitializeSnapshots()          {}
-func (b *blockChain) ValidateCanonicalChain() error { return nil }
+func (bc *blockChain) DrainAcceptorQueue()           {}
+func (bc *blockChain) InitializeSnapshots()          {}
+func (bc *blockChain) ValidateCanonicalChain() error { return nil }
