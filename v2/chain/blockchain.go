@@ -22,7 +22,7 @@ var _ BlockChain = (*blockChain)(nil)
 type blockChain struct {
 	lock sync.RWMutex
 
-	blocksDb ethdb.Database // Block chain to store block headers and bodies
+	blocksDb ethdb.Database // Stores block headers and bodies
 	state    state.Database
 
 	// TODO: should make a config struct?
