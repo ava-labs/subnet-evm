@@ -49,6 +49,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/ethereum/go-ethereum/trie"
 )
 
 var _ BlockChain = (*blockChain)(nil)
@@ -94,15 +95,18 @@ var (
 type blockChain struct {
 	chainmu sync.RWMutex
 
-	db           ethdb.Database
-	state        state.Database
-	stateManager TrieWriter
-	senderCacher *core.TxSenderCacher
-	hc           *core.HeaderChain
-	blockCache   *lru.Cache[common.Hash, *types.Block] // Cache for the most recent entire blocks
-	lastAccepted *types.Block                          // Prevents reorgs past this height
-	validator    core.Validator                        // Block and state validator interface
-	processor    core.Processor                        // Block transaction processor interface
+	db            ethdb.Database
+	triedb        *trie.Database
+	state         state.Database
+	stateManager  TrieWriter
+	senderCacher  *core.TxSenderCacher
+	hc            *core.HeaderChain
+	blockCache    *lru.Cache[common.Hash, *types.Block]     // Cache for the most recent entire blocks
+	receiptsCache *lru.Cache[common.Hash, []*types.Receipt] // Cache for the most recent receipts per block
+	lastAccepted  *types.Block                              // Prevents reorgs past this height
+	validator     core.Validator                            // Block and state validator interface
+	processor     core.Processor                            // Block transaction processor interface
+	genesisBlock  *types.Block
 
 	// TODO: should make a config struct?
 	config      *params.ChainConfig
@@ -110,38 +114,70 @@ type blockChain struct {
 	vmConfig    vm.Config
 	engine      consensus.Engine
 
-	scope            event.SubscriptionScope
-	chainHeadFeed    event.Feed
-	logsAcceptedFeed event.Feed
+	scope             event.SubscriptionScope
+	chainHeadFeed     event.Feed
+	chainAcceptedFeed event.Feed
+	logsAcceptedFeed  event.Feed
 }
 
 func NewBlockChain(
-	blocksDb ethdb.Database,
-	config *params.ChainConfig,
+	chaindb ethdb.Database,
+	triedb *trie.Database,
 	cacheConfig *core.CacheConfig,
-	vmConfig vm.Config,
+	genesis *core.Genesis,
 	engine consensus.Engine,
+	vmConfig vm.Config,
+	lastAcceptedHash common.Hash,
 ) (*blockChain, error) {
 	if cacheConfig == nil {
 		return nil, errCacheConfigNotSpecified
 	}
-	hc, err := core.NewHeaderChain(blocksDb, config, cacheConfig, engine)
+	// Setup the genesis block, commit the provided genesis specification
+	// to database if the genesis block is not present yet, or load the
+	// stored one from database.
+	// Note: In go-ethereum, the code rewinds the chain on an incompatible config upgrade.
+	// We don't do this and expect the node operator to always update their node's configuration
+	// before network upgrades take effect.
+	config, _, err := core.SetupGenesisBlock(chaindb, triedb, genesis, lastAcceptedHash, false)
 	if err != nil {
 		return nil, err
 	}
-
 	bc := &blockChain{
-		db:           blocksDb,
+		db:           chaindb,
+		triedb:       triedb,
 		config:       config,
 		cacheConfig:  cacheConfig,
 		engine:       engine,
 		vmConfig:     vmConfig,
 		senderCacher: core.NewTxSenderCacher(runtime.NumCPU()),
-		hc:           hc,
 	}
-	bc.stateManager = NewStateManager(bc.state)
+	bc.state = state.NewDatabaseWithNodeDB(chaindb, triedb)
 	bc.validator = core.NewBlockValidator(config, bc, engine)
 	bc.processor = core.NewStateProcessor(config, bc, engine)
+
+	bc.hc, err = core.NewHeaderChain(chaindb, config, cacheConfig, engine)
+	if err != nil {
+		return nil, err
+	}
+	bc.genesisBlock = bc.GetBlockByNumber(0)
+	if bc.genesisBlock == nil {
+		return nil, core.ErrNoGenesis
+	}
+
+	// Create the state manager
+	bc.stateManager = NewStateManager(bc.triedb)
+
+	// Re-generate current block state if it is missing
+	if err := bc.loadLastState(lastAcceptedHash); err != nil {
+		return nil, err
+	}
+	// Make sure the state associated with the block is available
+	head := bc.CurrentBlock()
+	if !bc.HasState(head.Root) {
+		return nil, fmt.Errorf("head state missing %d:%s", head.Number, head.Hash())
+	}
+
+	bc.warmAcceptedCaches()
 	return bc, nil
 }
 
@@ -149,10 +185,9 @@ func (bc *blockChain) Stop() {
 	bc.senderCacher.Shutdown()
 	bc.scope.Close()
 
-	triedb := bc.state.TrieDB()
-	if triedb.Scheme() == rawdb.PathScheme {
+	if bc.triedb.Scheme() == rawdb.PathScheme {
 		// Ensure that the in-memory trie nodes are journaled to disk properly.
-		if err := triedb.Journal(bc.CurrentBlock().Root); err != nil {
+		if err := bc.triedb.Journal(bc.CurrentBlock().Root); err != nil {
 			log.Info("Failed to journal in-memory trie nodes", "err", err)
 		}
 	}
@@ -163,7 +198,7 @@ func (bc *blockChain) Stop() {
 	}
 	log.Info("State manager shut down", "t", time.Since(start))
 	// Close the trie database, release all the held resources as the last step.
-	if err := triedb.Close(); err != nil {
+	if err := bc.triedb.Close(); err != nil {
 		log.Error("Failed to close trie database", "err", err)
 	}
 }
@@ -453,6 +488,7 @@ func (bc *blockChain) accept(next *types.Block) error {
 
 	// Update accepted feeds
 	flattenedLogs := types.FlattenLogs(logs)
+	bc.chainAcceptedFeed.Send(core.ChainEvent{Block: next, Hash: next.Hash(), Logs: flattenedLogs})
 	if len(flattenedLogs) > 0 {
 		bc.logsAcceptedFeed.Send(flattenedLogs)
 	}
@@ -563,6 +599,72 @@ func (bc *blockChain) reportBlock(block *types.Block, receipts types.Receipts, e
 
 	// TODO: remove this log once we have a better way to report bad blocks
 	log.Error("Invalid block detected", "number", block.Number(), "hash", block.Hash(), "err", err)
+}
+
+// loadLastState loads the last known chain state from the database. This method
+// assumes that the chain manager mutex is held.
+func (bc *blockChain) loadLastState(lastAcceptedHash common.Hash) error {
+	// Initialize genesis state
+	if lastAcceptedHash == (common.Hash{}) {
+		return bc.loadGenesisState()
+	}
+
+	// Restore the last known head block
+	head := rawdb.ReadHeadBlockHash(bc.db)
+	if head == (common.Hash{}) {
+		return errors.New("could not read head block hash")
+	}
+	// Make sure the entire head block is available
+	headBlock := bc.GetBlockByHash(head)
+	if headBlock == nil {
+		return fmt.Errorf("could not load head block %s", head.Hex())
+	}
+
+	// Restore the last known head header
+	currentHeader := headBlock.Header()
+	if head := rawdb.ReadHeadHeaderHash(bc.db); head != (common.Hash{}) {
+		if header := bc.GetHeaderByHash(head); header != nil {
+			currentHeader = header
+		}
+	}
+	// Everything seems to be fine, set as the head block
+	bc.hc.SetCurrentHeader(currentHeader)
+
+	log.Info("Loaded most recent local header", "number", currentHeader.Number, "hash", currentHeader.Hash(), "age", common.PrettyAge(time.Unix(int64(currentHeader.Time), 0)))
+	log.Info("Loaded most recent local full block", "number", headBlock.Number(), "hash", headBlock.Hash(), "age", common.PrettyAge(time.Unix(int64(headBlock.Time()), 0)))
+
+	// Otherwise, set the last accepted block and perform a re-org.
+	bc.lastAccepted = bc.GetBlockByHash(lastAcceptedHash)
+	if bc.lastAccepted == nil {
+		return fmt.Errorf("could not load last accepted block")
+	}
+
+	// This ensures that the head block is updated to the last accepted block on startup
+	if err := bc.setPreference(bc.lastAccepted); err != nil {
+		return fmt.Errorf("failed to set preference to last accepted block while loading last state: %w", err)
+	}
+
+	// reprocessState is necessary to ensure that the last accepted state is
+	// available. The state may not be available if it was not committed due
+	// to an unclean shutdown.
+	// return bc.reprocessState(bc.lastAccepted, 2*bc.cacheConfig.CommitInterval)
+	return fmt.Errorf("reprocessState not implemented: %x", lastAcceptedHash)
+}
+
+func (bc *blockChain) loadGenesisState() error {
+	// Prepare the genesis block and reinitialise the chain
+	batch := bc.db.NewBatch()
+	rawdb.WriteBlock(batch, bc.genesisBlock)
+	if err := batch.Write(); err != nil {
+		log.Crit("Failed to write genesis block", "err", err)
+	}
+	bc.writeHeadBlock(bc.genesisBlock)
+
+	// Last update all in-memory chain markers
+	bc.lastAccepted = bc.genesisBlock
+	bc.hc.SetGenesis(bc.genesisBlock.Header())
+	bc.hc.SetCurrentHeader(bc.genesisBlock.Header())
+	return nil
 }
 
 // Getters

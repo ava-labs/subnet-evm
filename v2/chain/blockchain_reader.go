@@ -49,6 +49,14 @@ func (bc *blockChain) GetHeaderByNumber(number uint64) *types.Header {
 	return bc.hc.GetHeaderByNumber(number)
 }
 
+func (bc *blockChain) GetBlockByHash(hash common.Hash) *types.Block {
+	number := bc.hc.GetBlockNumber(hash)
+	if number == nil {
+		return nil
+	}
+	return bc.GetBlock(hash, *number)
+}
+
 func (bc *blockChain) GetBlockByNumber(number uint64) *types.Block {
 	hash := rawdb.ReadCanonicalHash(bc.db, number)
 	if hash == (common.Hash{}) {
@@ -57,12 +65,25 @@ func (bc *blockChain) GetBlockByNumber(number uint64) *types.Block {
 	return bc.GetBlock(hash, number)
 }
 
-func (bc *blockChain) GetBlockByHash(hash common.Hash) *types.Block {
-	number := bc.hc.GetBlockNumber(hash)
+// GetReceiptsByHash retrieves the receipts for all transactions in a given block.
+func (bc *blockChain) GetReceiptsByHash(hash common.Hash) types.Receipts {
+	if receipts, ok := bc.receiptsCache.Get(hash); ok {
+		return receipts
+	}
+	number := rawdb.ReadHeaderNumber(bc.db, hash)
 	if number == nil {
 		return nil
 	}
-	return bc.GetBlock(hash, *number)
+	header := bc.GetHeader(hash, *number)
+	if header == nil {
+		return nil
+	}
+	receipts := rawdb.ReadReceipts(bc.db, hash, *number, header.Time, bc.config)
+	if receipts == nil {
+		return nil
+	}
+	bc.receiptsCache.Add(hash, receipts)
+	return receipts
 }
 
 func (bc *blockChain) HasBlock(hash common.Hash, number uint64) bool {
@@ -111,6 +132,11 @@ func (bc *blockChain) HasBlockAndState(hash common.Hash, number uint64) bool {
 // SubscribeChainHeadEvent registers a subscription of ChainHeadEvent.
 func (bc *blockChain) SubscribeChainHeadEvent(ch chan<- core.ChainHeadEvent) event.Subscription {
 	return bc.scope.Track(bc.chainHeadFeed.Subscribe(ch))
+}
+
+// SubscribeChainAcceptedEvent registers a subscription of ChainEvent.
+func (bc *blockChain) SubscribeChainAcceptedEvent(ch chan<- core.ChainEvent) event.Subscription {
+	return bc.scope.Track(bc.chainAcceptedFeed.Subscribe(ch))
 }
 
 // SubscribeAcceptedLogsEvent registers a subscription of accepted []*types.Log.

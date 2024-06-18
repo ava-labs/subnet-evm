@@ -1,8 +1,8 @@
 package chain
 
 import (
-	"github.com/ava-labs/coreth/core/state"
 	"github.com/ava-labs/coreth/core/types"
+	"github.com/ethereum/go-ethereum/trie"
 )
 
 type TrieWriter interface {
@@ -13,17 +13,17 @@ type TrieWriter interface {
 }
 
 type stateManager struct {
-	state state.Database
+	tdb *trie.Database
 }
 
-func NewStateManager(state state.Database) *stateManager {
+func NewStateManager(tdb *trie.Database) *stateManager {
 	return &stateManager{
-		state: state,
+		tdb: tdb,
 	}
 }
 
 func (sm *stateManager) AcceptTrie(block *types.Block) error {
-	return sm.state.TrieDB().Commit(block.Root(), false)
+	return sm.tdb.Commit(block.Root(), false)
 }
 
 func (sm *stateManager) InsertTrie(block *types.Block) error { return nil }

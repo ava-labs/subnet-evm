@@ -33,6 +33,10 @@ type BlockChain interface {
 	GetBlockByHash(common.Hash) *types.Block
 	SetPreference(*types.Block) error
 	SubscribeAcceptedLogsEvent(ch chan<- []*types.Log) event.Subscription
+	SubscribeChainAcceptedEvent(ch chan<- core.ChainEvent) event.Subscription
+
+	GetReceiptsByHash(common.Hash) types.Receipts
+	ResetToStateSyncedBlock(block *types.Block) error
 	Stop()
 
 	// used by miner
