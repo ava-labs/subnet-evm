@@ -114,12 +114,15 @@ func (bc *blockChain) HasState(hash common.Hash) bool {
 	_, err := bc.state.OpenTrie(hash)
 	return err == nil
 }
+
 func (bc *blockChain) StateAt(root common.Hash) (*state.StateDB, error) {
 	return state.New(root, bc.state, nil)
 }
+
 func (bc *blockChain) State() (*state.StateDB, error) {
 	return bc.StateAt(bc.CurrentHeader().Root)
 }
+
 func (bc *blockChain) HasBlockAndState(hash common.Hash, number uint64) bool {
 	// Check first that the block itself is known
 	block := bc.GetBlock(hash, number)
