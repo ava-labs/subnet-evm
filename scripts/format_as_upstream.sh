@@ -39,7 +39,7 @@ git checkout "${upstream_tag}" -- "${upstream_dirs_array[@]}"
 git add "${upstream_dirs_array[@]}"
 make_commit "${commit_msg_add_upstream}"
 
-sed_command='s!\([^/]\)github.com/ava-labs/subnet-evm!\1github.com/ethereum/go-ethereum!g'
+sed_command='s!\([^/]\)github.com/ava-labs/coreth!\1github.com/ethereum/go-ethereum!g'
 find . \( -name '*.go' -o -name 'go.mod' -o -name 'build_test.sh' \) -exec sed -i '' -e "${sed_command}" {} \;
 gofmt -w .
 go mod tidy

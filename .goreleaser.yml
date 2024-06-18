@@ -5,7 +5,7 @@ builds:
     binary: subnet-evm
     flags:
       - -v
-    ldflags: -X github.com/ava-labs/subnet-evm/plugin/evm.Version=v{{.Version}}
+    ldflags: -X github.com/ava-labs/coreth/plugin/evm.Version=v{{.Version}}
     goos:
       - linux
       - darwin

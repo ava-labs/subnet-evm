@@ -1,7 +1,7 @@
 # Subnet EVM
 
-[![Build + Test + Release](https://github.com/ava-labs/subnet-evm/actions/workflows/lint-tests-release.yml/badge.svg)](https://github.com/ava-labs/subnet-evm/actions/workflows/lint-tests-release.yml)
-[![CodeQL](https://github.com/ava-labs/subnet-evm/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/ava-labs/subnet-evm/actions/workflows/codeql-analysis.yml)
+[![Build + Test + Release](https://github.com/ava-labs/coreth/actions/workflows/lint-tests-release.yml/badge.svg)](https://github.com/ava-labs/coreth/actions/workflows/lint-tests-release.yml)
+[![CodeQL](https://github.com/ava-labs/coreth/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/ava-labs/coreth/actions/workflows/codeql-analysis.yml)
 
 [Avalanche](https://docs.avax.network/overview/getting-started/avalanche-platform) is a network composed of multiple blockchains.
 Each blockchain is an instance of a Virtual Machine (VM), much like an object in an object-oriented language is an instance of a class.

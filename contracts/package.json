@@ -21,7 +21,7 @@
   "module": "dist/index.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ava-labs/subnet-evm.git",
+    "url": "https://github.com/ava-labs/coreth.git",
     "directory": "contracts"
   },
   "license": "BSD-3-Clause",

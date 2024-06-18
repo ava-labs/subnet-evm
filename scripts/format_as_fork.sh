@@ -38,10 +38,10 @@ done
 git clean -df -- "${upstream_dirs}"
 make_commit "${commit_msg_remove_upstream}"
 
-sed_command='s!\([^/]\)github.com/ethereum/go-ethereum!\1github.com/ava-labs/subnet-evm!g'
+sed_command='s!\([^/]\)github.com/ethereum/go-ethereum!\1github.com/ava-labs/coreth!g'
 find . \( -name '*.go' -o -name 'go.mod' -o -name 'build_test.sh' \) -exec sed -i '' -e "${sed_command}" {} \;
 for dir in ${upstream_dirs}; do
-    sed_command="s!\"github.com/ava-labs/subnet-evm/${dir}\"!\"github.com/ethereum/go-ethereum/${dir}\"!g"
+    sed_command="s!\"github.com/ava-labs/coreth/${dir}\"!\"github.com/ethereum/go-ethereum/${dir}\"!g"
     find . -name '*.go' -exec sed -i '' -e "${sed_command}" {} \;
 done
 go get github.com/ethereum/go-ethereum@"$1"

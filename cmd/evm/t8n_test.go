@@ -34,9 +34,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/cmd/evm/internal/t8ntool"
-	"github.com/ava-labs/subnet-evm/internal/cmdtest"
-	"github.com/ava-labs/subnet-evm/internal/reexec"
+	"github.com/ava-labs/coreth/cmd/evm/internal/t8ntool"
+	"github.com/ava-labs/coreth/internal/cmdtest"
+	"github.com/ava-labs/coreth/internal/reexec"
 )
 
 func TestMain(m *testing.M) {

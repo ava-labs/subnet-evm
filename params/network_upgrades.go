@@ -8,7 +8,7 @@ import (
 	"reflect"
 
 	"github.com/ava-labs/avalanchego/version"
-	"github.com/ava-labs/subnet-evm/utils"
+	"github.com/ava-labs/coreth/utils"
 )
 
 var (
