@@ -65,7 +65,7 @@ func (vm *VM) createBackendV2(lastAcceptedHash common.Hash) (Backend, error) {
 		StateHistory:              config.StateHistory,
 		StateScheme:               rawdb.PathScheme, // XXX: hardcoded to pathdb
 	}
-	engine := dummy.NewFakerWithClock(vm.createConsensusCallbacks(), &vm.clock)
+	engine := dummy.NewFakerWithClock(&vm.clock)
 	// TODO: add support for separate trie db disk storage.
 	// TODO: add support for chainDir
 	tdb := chain.NewTrieDB(vm.chaindb, cacheConfig)

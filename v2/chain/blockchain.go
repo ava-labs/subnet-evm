@@ -94,6 +94,8 @@ var (
 )
 
 const (
+	blockCacheLimit          = 256
+	receiptsCacheLimit       = 32
 	feeConfigCacheLimit      = 256
 	coinbaseConfigCacheLimit = 256
 )
