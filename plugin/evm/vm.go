@@ -25,12 +25,10 @@ import (
 	"github.com/ava-labs/coreth/core"
 	"github.com/ava-labs/coreth/core/rawdb"
 	"github.com/ava-labs/coreth/core/types"
-	"github.com/ava-labs/coreth/eth"
 	"github.com/ava-labs/coreth/eth/ethconfig"
 	"github.com/ava-labs/coreth/metrics"
 	subnetEVMPrometheus "github.com/ava-labs/coreth/metrics/prometheus"
 	"github.com/ava-labs/coreth/miner"
-	"github.com/ava-labs/coreth/node"
 	"github.com/ava-labs/coreth/params"
 	"github.com/ava-labs/coreth/peer"
 	"github.com/ava-labs/coreth/plugin/evm/message"
@@ -499,7 +497,7 @@ func (vm *VM) Initialize(
 		}
 	}
 
-	if err := vm.initializeChain(lastAcceptedHash, vm.ethConfig); err != nil {
+	if err := vm.initializeChain(lastAcceptedHash); err != nil {
 		return err
 	}
 
@@ -523,31 +521,13 @@ func (vm *VM) initializeMetrics() error {
 	return vm.ctx.Metrics.Register(sdkMetricsPrefix, vm.sdkMetrics)
 }
 
-func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.Config) error {
-	nodecfg := &node.Config{
-		SubnetEVMVersion:      Version,
-		KeyStoreDir:           vm.config.KeystoreDirectory,
-		ExternalSigner:        vm.config.KeystoreExternalSigner,
-		InsecureUnlockAllowed: vm.config.KeystoreInsecureUnlockAllowed,
-	}
-	node, err := node.New(nodecfg)
+func (vm *VM) initializeChain(lastAcceptedHash common.Hash) error {
+	eth, err := vm.createBackend(lastAcceptedHash)
 	if err != nil {
 		return err
 	}
-	eth, err := eth.New(
-		node,
-		&vm.ethConfig,
-		&EthPushGossiper{vm: vm},
-		vm.chaindb,
-		vm.config.EthBackendSettings(),
-		lastAcceptedHash,
-		&vm.clock,
-	)
-	if err != nil {
-		return err
-	}
-	vm.eth = &ethBackender{eth}
-	vm.eth.SetEtherbase(ethConfig.Miner.Etherbase)
+	vm.eth = eth
+	vm.eth.SetEtherbase(vm.ethConfig.Miner.Etherbase)
 	vm.txPool = vm.eth.TxPool()
 	vm.blockChain = vm.eth.BlockChain()
 	vm.miner = vm.eth.Miner()

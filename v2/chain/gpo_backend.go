@@ -5,6 +5,7 @@ import (
 	"errors"
 	"math/big"
 
+	"github.com/ava-labs/coreth/commontype"
 	"github.com/ava-labs/coreth/consensus/dummy"
 	"github.com/ava-labs/coreth/core"
 	"github.com/ava-labs/coreth/core/types"
@@ -108,4 +109,8 @@ func (g *gpoBackend) SubscribeChainAcceptedEvent(ch chan<- core.ChainEvent) even
 
 func (g *gpoBackend) LastAcceptedBlock() *types.Block {
 	return g.chain.LastAcceptedBlock()
+}
+
+func (g *gpoBackend) GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig, *big.Int, error) {
+	return g.chain.GetFeeConfigAt(parent)
 }

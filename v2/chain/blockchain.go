@@ -35,6 +35,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ava-labs/coreth/commontype"
 	"github.com/ava-labs/coreth/consensus"
 	"github.com/ava-labs/coreth/consensus/misc/eip4844"
 	"github.com/ava-labs/coreth/core"
@@ -92,21 +93,42 @@ var (
 	errInvalidNewChain         = errors.New("invalid new chain")
 )
 
+const (
+	feeConfigCacheLimit      = 256
+	coinbaseConfigCacheLimit = 256
+)
+
+// cacheableFeeConfig encapsulates fee configuration itself and the block number that it has changed at,
+// in order to cache them together.
+type cacheableFeeConfig struct {
+	feeConfig     commontype.FeeConfig
+	lastChangedAt *big.Int
+}
+
+// cacheableCoinbaseConfig encapsulates coinbase address itself and allowFeeRecipient flag,
+// in order to cache them together.
+type cacheableCoinbaseConfig struct {
+	coinbaseAddress    common.Address
+	allowFeeRecipients bool
+}
+
 type blockChain struct {
 	chainmu sync.RWMutex
 
-	db            ethdb.Database
-	triedb        *trie.Database
-	state         state.Database
-	stateManager  TrieWriter
-	senderCacher  *core.TxSenderCacher
-	hc            *core.HeaderChain
-	blockCache    *lru.Cache[common.Hash, *types.Block]     // Cache for the most recent entire blocks
-	receiptsCache *lru.Cache[common.Hash, []*types.Receipt] // Cache for the most recent receipts per block
-	lastAccepted  *types.Block                              // Prevents reorgs past this height
-	validator     core.Validator                            // Block and state validator interface
-	processor     core.Processor                            // Block transaction processor interface
-	genesisBlock  *types.Block
+	db                  ethdb.Database
+	triedb              *trie.Database
+	state               state.Database
+	stateManager        TrieWriter
+	senderCacher        *core.TxSenderCacher
+	hc                  *core.HeaderChain
+	blockCache          *lru.Cache[common.Hash, *types.Block]             // Cache for the most recent entire blocks
+	receiptsCache       *lru.Cache[common.Hash, []*types.Receipt]         // Cache for the most recent receipts per block
+	feeConfigCache      *lru.Cache[common.Hash, *cacheableFeeConfig]      // Cache for the most recent feeConfig lookup data.
+	coinbaseConfigCache *lru.Cache[common.Hash, *cacheableCoinbaseConfig] // Cache for the most recent coinbaseConfig lookup data.
+	lastAccepted        *types.Block                                      // Prevents reorgs past this height
+	validator           core.Validator                                    // Block and state validator interface
+	processor           core.Processor                                    // Block transaction processor interface
+	genesisBlock        *types.Block
 
 	// TODO: should make a config struct?
 	config      *params.ChainConfig
@@ -143,13 +165,15 @@ func NewBlockChain(
 		return nil, err
 	}
 	bc := &blockChain{
-		db:           chaindb,
-		triedb:       triedb,
-		config:       config,
-		cacheConfig:  cacheConfig,
-		engine:       engine,
-		vmConfig:     vmConfig,
-		senderCacher: core.NewTxSenderCacher(runtime.NumCPU()),
+		db:                  chaindb,
+		triedb:              triedb,
+		config:              config,
+		cacheConfig:         cacheConfig,
+		engine:              engine,
+		vmConfig:            vmConfig,
+		senderCacher:        core.NewTxSenderCacher(runtime.NumCPU()),
+		feeConfigCache:      lru.NewCache[common.Hash, *cacheableFeeConfig](feeConfigCacheLimit),
+		coinbaseConfigCache: lru.NewCache[common.Hash, *cacheableCoinbaseConfig](coinbaseConfigCacheLimit),
 	}
 	bc.state = state.NewDatabaseWithNodeDB(chaindb, triedb)
 	bc.validator = core.NewBlockValidator(config, bc, engine)
