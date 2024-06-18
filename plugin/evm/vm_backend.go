@@ -69,14 +69,16 @@ func (vm *VM) createBackendV2(lastAcceptedHash common.Hash) (Backend, error) {
 	// TODO: add support for separate trie db disk storage.
 	// TODO: add support for chainDir
 	tdb := chain.NewTrieDB(vm.chaindb, cacheConfig)
+	committable := core.AsCommittable(vm.chaindb, tdb)
 	blockchain, err := chain.NewBlockChain(
 		vm.chaindb,
-		tdb,
+		committable,
 		cacheConfig,
 		config.Genesis,
 		engine,
 		vmConfig,
 		lastAcceptedHash,
+		vm.config.SkipUpgradeCheck,
 	)
 	if err != nil {
 		return nil, err

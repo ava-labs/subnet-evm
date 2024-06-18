@@ -182,6 +182,15 @@ func (e *GenesisMismatchError) Error() string {
 func SetupGenesisBlock(
 	db ethdb.Database, triedb *trie.Database, genesis *Genesis, lastAcceptedHash common.Hash, skipChainConfigCheckCompatible bool,
 ) (*params.ChainConfig, common.Hash, error) {
+	committable := AsCommittable(db, triedb)
+	return SetupGenesisBlockWithCommitable(
+		db, committable, genesis, lastAcceptedHash, skipChainConfigCheckCompatible,
+	)
+}
+
+func SetupGenesisBlockWithCommitable(
+	db ethdb.Database, committable commitableStateDB, genesis *Genesis, lastAcceptedHash common.Hash, skipChainConfigCheckCompatible bool,
+) (*params.ChainConfig, common.Hash, error) {
 	if genesis == nil {
 		return nil, common.Hash{}, ErrNoGenesis
 	}
@@ -192,7 +201,7 @@ func SetupGenesisBlock(
 	stored := rawdb.ReadCanonicalHash(db, 0)
 	if (stored == common.Hash{}) {
 		log.Info("Writing genesis to database")
-		block, err := genesis.Commit(db, triedb)
+		block, err := genesis.commit(db, committable)
 		if err != nil {
 			return genesis.Config, common.Hash{}, err
 		}
@@ -203,13 +212,13 @@ func SetupGenesisBlock(
 	// is initialized with an external ancient store. Commit genesis state
 	// in this case.
 	header := rawdb.ReadHeader(db, stored, 0)
-	if header.Root != types.EmptyRootHash && !triedb.Initialized(header.Root) {
+	if header.Root != types.EmptyRootHash && !committable.Initialized(header.Root) {
 		// Ensure the stored genesis matches with the given one.
 		hash := genesis.ToBlock().Hash()
 		if hash != stored {
 			return genesis.Config, common.Hash{}, &GenesisMismatchError{stored, hash}
 		}
-		_, err := genesis.Commit(db, triedb)
+		_, err := genesis.commit(db, committable)
 		return genesis.Config, common.Hash{}, err
 	}
 	// Check whether the genesis block is already written.
@@ -270,7 +279,8 @@ func (g *Genesis) IsVerkle() bool {
 // ToBlock returns the genesis block according to genesis specification.
 func (g *Genesis) ToBlock() *types.Block {
 	db := rawdb.NewMemoryDatabase()
-	return g.toBlock(db, trie.NewDatabase(db, g.trieConfig()))
+	state := AsCommittable(db, trie.NewDatabase(db, g.trieConfig()))
+	return g.toBlock(db, state)
 }
 
 func (g *Genesis) trieConfig() *trie.Config {
@@ -284,8 +294,8 @@ func (g *Genesis) trieConfig() *trie.Config {
 }
 
 // TODO: migrate this function to "flush" for more similarity with upstream.
-func (g *Genesis) toBlock(db ethdb.Database, triedb *trie.Database) *types.Block {
-	statedb, err := state.New(types.EmptyRootHash, state.NewDatabaseWithNodeDB(db, triedb), nil)
+func (g *Genesis) toBlock(db ethdb.Database, committable commitableStateDB) *types.Block {
+	statedb, err := state.New(types.EmptyRootHash, committable, nil)
 	if err != nil {
 		panic(err)
 	}
@@ -377,7 +387,7 @@ func (g *Genesis) toBlock(db ethdb.Database, triedb *trie.Database) *types.Block
 	statedb.Commit(0, false)
 	// Commit newly generated states into disk if it's not empty.
 	if root != types.EmptyRootHash {
-		if err := triedb.Commit(root, true); err != nil {
+		if err := committable.Commit(root, true); err != nil {
 			panic(fmt.Sprintf("unable to commit genesis block: %v", err))
 		}
 	}
@@ -387,7 +397,12 @@ func (g *Genesis) toBlock(db ethdb.Database, triedb *trie.Database) *types.Block
 // Commit writes the block and state of a genesis specification to the database.
 // The block is committed as the canonical head block.
 func (g *Genesis) Commit(db ethdb.Database, triedb *trie.Database) (*types.Block, error) {
-	block := g.toBlock(db, triedb)
+	committable := AsCommittable(db, triedb)
+	return g.commit(db, committable)
+}
+
+func (g *Genesis) commit(db ethdb.Database, committable commitableStateDB) (*types.Block, error) {
+	block := g.toBlock(db, committable)
 	if block.Number().Sign() != 0 {
 		return nil, errors.New("can't commit genesis block with number > 0")
 	}

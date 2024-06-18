@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/ava-labs/coreth/core/rawdb"
-	"github.com/ava-labs/coreth/core/state"
 	"github.com/ava-labs/coreth/core/types"
 	"github.com/ethereum/go-ethereum/log"
 )
@@ -73,13 +72,9 @@ func (bc *blockChain) ResetToStateSyncedBlock(block *types.Block) error {
 	bc.hc.SetCurrentHeader(block.Header())
 
 	lastAcceptedHash := block.Hash()
-	bc.state = state.NewDatabaseWithNodeDB(bc.db, bc.triedb)
-
 	if err := bc.loadLastState(lastAcceptedHash); err != nil {
 		return err
 	}
-	// Create the state manager
-	bc.stateManager = NewStateManager(bc.triedb)
 
 	// Make sure the state associated with the block is available
 	head := bc.CurrentBlock()

@@ -70,3 +70,10 @@ type TxPool interface {
 
 	Close() error
 }
+
+type committableStateDB interface {
+	state.Database
+	Commit(root common.Hash, report bool) error
+	Initialized(root common.Hash) bool
+	Close(lastBlockRoot common.Hash) error
+}
