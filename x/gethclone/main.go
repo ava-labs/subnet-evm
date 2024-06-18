@@ -15,6 +15,7 @@ import (
 
 	"github.com/ava-labs/avalanchego/utils/set"
 	"go.uber.org/multierr"
+	"golang.org/x/tools/go/ast/astutil"
 	"golang.org/x/tools/go/packages"
 
 	_ "embed"
@@ -23,9 +24,12 @@ import (
 	_ "github.com/ethereum/go-ethereum"
 )
 
+const geth = "github.com/ethereum/go-ethereum/"
+
 func main() {
 	c := config{
-		packages: []string{"core/vm"},
+		packages:     []string{"core/vm"},
+		outputModule: "github.com/ava-labs/subnet-evm/",
 	}
 	// TODO(arr4n): add flags and parsing before running.
 
@@ -38,12 +42,11 @@ func main() {
 }
 
 type config struct {
-	packages []string
+	packages     []string
+	outputModule string // TODO(arr4n): when writing output, use the same directory to source the module path
 
 	processed map[string]bool
 }
-
-const geth = "github.com/ethereum/go-ethereum/"
 
 func (c *config) run(ctx context.Context) error {
 	for i, p := range c.packages {
@@ -108,11 +111,9 @@ func (c *config) parse(ctx context.Context, pkg *packages.Package, fset *token.F
 			return fmt.Errorf("parser.ParseFile(... %q ...): %v", fName, err)
 		}
 
-		gethImports := set.NewSet[string](len(file.Imports))
-		for _, im := range file.Imports {
-			if p := strings.Trim(im.Path.Value, `"`); strings.HasPrefix(p, geth) {
-				gethImports.Add(p)
-			}
+		gethImports, err := c.transformGethImports(fset, file)
+		if err != nil {
+			return nil
 		}
 		allGethImports.Union(gethImports)
 
@@ -124,4 +125,23 @@ func (c *config) parse(ctx context.Context, pkg *packages.Package, fset *token.F
 	}
 
 	return c.loadAndParse(ctx, fset, allGethImports.List()...)
+}
+
+// transformGethImports finds all `ethereum/go-ethereum` imports in the file,
+// converts their path to `c.outputModule`, and returns the set of transformed
+// import paths.
+func (c *config) transformGethImports(fset *token.FileSet, file *ast.File) (set.Set[string], error) {
+	imports := set.NewSet[string](len(file.Imports))
+	for _, im := range file.Imports {
+		p := strings.Trim(im.Path.Value, `"`)
+		if !strings.HasPrefix(p, geth) {
+			continue
+		}
+
+		imports.Add(p)
+		if !astutil.RewriteImport(fset, file, p, strings.Replace(p, geth, c.outputModule, 1)) {
+			return nil, fmt.Errorf("failed to rewrite import %q", p)
+		}
+	}
+	return imports, nil
 }
