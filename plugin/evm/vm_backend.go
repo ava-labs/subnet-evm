@@ -9,6 +9,7 @@ import (
 	"github.com/ava-labs/coreth/v2/chain"
 	"github.com/ethereum/go-ethereum/common"
 	corevm "github.com/ethereum/go-ethereum/core/vm"
+	"github.com/ethereum/go-ethereum/log"
 )
 
 func (vm *VM) createBackend(lastAcceptedHash common.Hash) (Backend, error) {
@@ -45,6 +46,7 @@ func (vm *VM) createBackendV1(lastAcceptedHash common.Hash) (Backend, error) {
 }
 
 func (vm *VM) createBackendV2(lastAcceptedHash common.Hash) (Backend, error) {
+	log.Info("Creating v2 backend")
 	config := &vm.ethConfig
 
 	// round TrieCleanCache and SnapshotCache up to nearest 64MB, since fastcache will mmap
