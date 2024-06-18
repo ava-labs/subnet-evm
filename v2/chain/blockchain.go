@@ -1,29 +1,108 @@
+// (c) 2019-2020, Ava Labs, Inc.
+//
+// This file is a derived work, based on the go-ethereum library whose original
+// notices appear below.
+//
+// It is distributed under a license compatible with the licensing terms of the
+// original code from which it is derived.
+//
+// Much love to the original authors for their work.
+// **********
+// Copyright 2014 The go-ethereum Authors
+// This file is part of the go-ethereum library.
+//
+// The go-ethereum library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The go-ethereum library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+
+// Package core implements the Ethereum consensus protocol.
 package chain
 
 import (
+	"errors"
+	"fmt"
+	"math/big"
 	"runtime"
 	"sync"
-	"sync/atomic"
+	"time"
 
 	"github.com/ava-labs/coreth/consensus"
+	"github.com/ava-labs/coreth/consensus/misc/eip4844"
 	"github.com/ava-labs/coreth/core"
+	"github.com/ava-labs/coreth/core/rawdb"
 	"github.com/ava-labs/coreth/core/state"
 	"github.com/ava-labs/coreth/core/types"
+	"github.com/ava-labs/coreth/metrics"
 	"github.com/ava-labs/coreth/params"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/lru"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/event"
+	"github.com/ethereum/go-ethereum/log"
 )
 
 var _ BlockChain = (*blockChain)(nil)
 
-type blockChain struct {
-	lock sync.RWMutex
+var (
+	accountReadTimer   = metrics.NewRegisteredCounter("chain/account/reads", nil)
+	accountHashTimer   = metrics.NewRegisteredCounter("chain/account/hashes", nil)
+	accountUpdateTimer = metrics.NewRegisteredCounter("chain/account/updates", nil)
+	accountCommitTimer = metrics.NewRegisteredCounter("chain/account/commits", nil)
+	storageReadTimer   = metrics.NewRegisteredCounter("chain/storage/reads", nil)
+	storageHashTimer   = metrics.NewRegisteredCounter("chain/storage/hashes", nil)
+	storageUpdateTimer = metrics.NewRegisteredCounter("chain/storage/updates", nil)
+	storageCommitTimer = metrics.NewRegisteredCounter("chain/storage/commits", nil)
+	triedbCommitTimer  = metrics.NewRegisteredCounter("chain/triedb/commits", nil)
 
-	blocksDb ethdb.Database // Stores block headers and bodies
-	state    state.Database
+	blockInsertTimer            = metrics.NewRegisteredCounter("chain/block/inserts", nil)
+	blockInsertCount            = metrics.NewRegisteredCounter("chain/block/inserts/count", nil)
+	blockContentValidationTimer = metrics.NewRegisteredCounter("chain/block/validations/content", nil)
+	blockStateInitTimer         = metrics.NewRegisteredCounter("chain/block/inits/state", nil)
+	blockExecutionTimer         = metrics.NewRegisteredCounter("chain/block/executions", nil)
+	blockTrieOpsTimer           = metrics.NewRegisteredCounter("chain/block/trie", nil)
+	blockValidationTimer        = metrics.NewRegisteredCounter("chain/block/validations/state", nil)
+	blockWriteTimer             = metrics.NewRegisteredCounter("chain/block/writes", nil)
+
+	acceptorWorkTimer            = metrics.NewRegisteredCounter("chain/acceptor/work", nil)
+	acceptorWorkCount            = metrics.NewRegisteredCounter("chain/acceptor/work/count", nil)
+	processedBlockGasUsedCounter = metrics.NewRegisteredCounter("chain/block/gas/used/processed", nil)
+	acceptedBlockGasUsedCounter  = metrics.NewRegisteredCounter("chain/block/gas/used/accepted", nil)
+	badBlockCounter              = metrics.NewRegisteredCounter("chain/block/bad/count", nil)
+
+	acceptedTxsCounter  = metrics.NewRegisteredCounter("chain/txs/accepted", nil)
+	processedTxsCounter = metrics.NewRegisteredCounter("chain/txs/processed", nil)
+
+	acceptedLogsCounter  = metrics.NewRegisteredCounter("chain/logs/accepted", nil)
+	processedLogsCounter = metrics.NewRegisteredCounter("chain/logs/processed", nil)
+
+	errFutureBlockUnsupported  = errors.New("future block insertion not supported")
+	errCacheConfigNotSpecified = errors.New("must specify cache config")
+	errInvalidOldChain         = errors.New("invalid old chain")
+	errInvalidNewChain         = errors.New("invalid new chain")
+)
+
+type blockChain struct {
+	chainmu sync.RWMutex
+
+	db           ethdb.Database
+	state        state.Database
+	stateManager TrieWriter
+	senderCacher *core.TxSenderCacher
+	hc           *core.HeaderChain
+	blockCache   *lru.Cache[common.Hash, *types.Block] // Cache for the most recent entire blocks
+	lastAccepted *types.Block                          // Prevents reorgs past this height
+	validator    core.Validator                        // Block and state validator interface
+	processor    core.Processor                        // Block transaction processor interface
 
 	// TODO: should make a config struct?
 	config      *params.ChainConfig
@@ -31,11 +110,9 @@ type blockChain struct {
 	vmConfig    vm.Config
 	engine      consensus.Engine
 
-	hc           *core.HeaderChain
-	blockCache   *lru.Cache[common.Hash, *types.Block] // Cache for the most recent entire blocks
-	lastAccepted atomic.Pointer[types.Block]           // Prevents reorgs past this height
-
-	senderCacher *core.TxSenderCacher
+	scope            event.SubscriptionScope
+	chainHeadFeed    event.Feed
+	logsAcceptedFeed event.Feed
 }
 
 func NewBlockChain(
@@ -45,61 +122,465 @@ func NewBlockChain(
 	vmConfig vm.Config,
 	engine consensus.Engine,
 ) (*blockChain, error) {
+	if cacheConfig == nil {
+		return nil, errCacheConfigNotSpecified
+	}
 	hc, err := core.NewHeaderChain(blocksDb, config, cacheConfig, engine)
 	if err != nil {
 		return nil, err
 	}
 
-	return &blockChain{
-		blocksDb:     blocksDb,
+	bc := &blockChain{
+		db:           blocksDb,
 		config:       config,
 		cacheConfig:  cacheConfig,
 		engine:       engine,
 		vmConfig:     vmConfig,
 		senderCacher: core.NewTxSenderCacher(runtime.NumCPU()),
 		hc:           hc,
-	}, nil
+	}
+	bc.stateManager = NewStateManager(bc.state)
+	bc.validator = core.NewBlockValidator(config, bc, engine)
+	bc.processor = core.NewStateProcessor(config, bc, engine)
+	return bc, nil
 }
 
 func (bc *blockChain) Stop() {
 	bc.senderCacher.Shutdown()
+	bc.scope.Close()
+
+	triedb := bc.state.TrieDB()
+	if triedb.Scheme() == rawdb.PathScheme {
+		// Ensure that the in-memory trie nodes are journaled to disk properly.
+		if err := triedb.Journal(bc.CurrentBlock().Root); err != nil {
+			log.Info("Failed to journal in-memory trie nodes", "err", err)
+		}
+	}
+	log.Info("Shutting down state manager")
+	start := time.Now()
+	if err := bc.stateManager.Shutdown(); err != nil {
+		log.Error("Failed to Shutdown state manager", "err", err)
+	}
+	log.Info("State manager shut down", "t", time.Since(start))
+	// Close the trie database, release all the held resources as the last step.
+	if err := triedb.Close(); err != nil {
+		log.Error("Failed to close trie database", "err", err)
+	}
 }
 
-func (bc *blockChain) Accept(*types.Block) error                  { panic("unimplemented") }
-func (bc *blockChain) Reject(*types.Block) error                  { panic("unimplemented") }
-func (bc *blockChain) InsertBlockManual(*types.Block, bool) error { panic("unimplemented") }
-func (bc *blockChain) SetPreference(*types.Block) error           { panic("unimplemented") }
+func (bc *blockChain) InsertBlockManual(block *types.Block, writes bool) error {
+	bc.chainmu.Lock()
+	defer bc.chainmu.Unlock()
 
-// Subscriptions
-func (bc *blockChain) SubscribeAcceptedLogsEvent(ch chan<- []*types.Log) event.Subscription {
-	panic("unimplemented")
+	return bc.insertBlock(block, writes)
 }
 
-func (bc *blockChain) SubscribeChainHeadEvent(ch chan<- core.ChainHeadEvent) event.Subscription {
-	panic("unimplemented")
+func (bc *blockChain) insertBlock(block *types.Block, writes bool) error {
+	start := time.Now()
+	bc.senderCacher.Recover(types.MakeSigner(bc.config, block.Number(), block.Time()), block.Transactions())
+
+	substart := time.Now()
+	err := bc.engine.VerifyHeader(bc, block.Header())
+	if err == nil {
+		err = bc.validator.ValidateBody(block)
+	}
+
+	switch {
+	case errors.Is(err, core.ErrKnownBlock):
+		// even if the block is already known, we still need to generate the
+		// snapshot layer and add a reference to the triedb, so we re-execute
+		// the block. Note that insertBlock should only be called on a block
+		// once if it returns nil
+		if bc.newTip(block) {
+			log.Debug("Setting head to be known block", "number", block.Number(), "hash", block.Hash())
+		} else {
+			log.Debug("Reprocessing already known block", "number", block.Number(), "hash", block.Hash())
+		}
+
+	// If an ancestor has been pruned, then this block cannot be acceptable.
+	case errors.Is(err, consensus.ErrPrunedAncestor):
+		return errors.New("side chain insertion is not supported")
+
+	// Future blocks are not supported, but should not be reported, so we return an error
+	// early here
+	case errors.Is(err, consensus.ErrFutureBlock):
+		return errFutureBlockUnsupported
+
+	// Some other error occurred, abort
+	case err != nil:
+		bc.reportBlock(block, nil, err)
+		return err
+	}
+	blockContentValidationTimer.Inc(time.Since(substart).Milliseconds())
+
+	// No validation errors for the block
+	var activeState *state.StateDB
+	defer func() {
+		// The chain importer is starting and stopping trie prefetchers. If a bad
+		// block or other error is hit however, an early return may not properly
+		// terminate the background threads. This defer ensures that we clean up
+		// and dangling prefetcher, without defering each and holding on live refs.
+		if activeState != nil {
+			activeState.StopPrefetcher()
+		}
+	}()
+
+	// Retrieve the parent block to determine which root to build state on
+	substart = time.Now()
+	parent := bc.GetHeader(block.ParentHash(), block.NumberU64()-1)
+
+	// Instantiate the statedb to use for processing transactions
+	statedb, err := state.New(parent.Root, bc.state, nil)
+	if err != nil {
+		return err
+	}
+	blockStateInitTimer.Inc(time.Since(substart).Milliseconds())
+
+	// Enable prefetching to pull in trie node paths while processing transactions
+	statedb.StartPrefetcher("chain", bc.cacheConfig.TriePrefetcherParallelism)
+	activeState = statedb
+
+	// Process block using the parent state as reference point
+	pstart := time.Now()
+	receipts, logs, usedGas, err := bc.processor.Process(block, parent, statedb, bc.vmConfig)
+	if serr := statedb.Error(); serr != nil {
+		log.Error("statedb error encountered", "err", serr, "number", block.Number(), "hash", block.Hash())
+	}
+	if err != nil {
+		bc.reportBlock(block, receipts, err)
+		return err
+	}
+	ptime := time.Since(pstart)
+
+	// Validate the state using the default validator
+	vstart := time.Now()
+	if err := bc.validator.ValidateState(block, statedb, receipts, usedGas); err != nil {
+		bc.reportBlock(block, receipts, err)
+		return err
+	}
+	vtime := time.Since(vstart)
+
+	// Update the metrics touched during block processing and validation
+	accountReadTimer.Inc(statedb.AccountReads.Milliseconds())                  // Account reads are complete(in processing)
+	storageReadTimer.Inc(statedb.StorageReads.Milliseconds())                  // Storage reads are complete(in processing)
+	accountUpdateTimer.Inc(statedb.AccountUpdates.Milliseconds())              // Account updates are complete(in validation)
+	storageUpdateTimer.Inc(statedb.StorageUpdates.Milliseconds())              // Storage updates are complete(in validation)
+	accountHashTimer.Inc(statedb.AccountHashes.Milliseconds())                 // Account hashes are complete(in validation)
+	storageHashTimer.Inc(statedb.StorageHashes.Milliseconds())                 // Storage hashes are complete(in validation)
+	triehash := statedb.AccountHashes + statedb.StorageHashes                  // The time spent on tries hashing
+	trieUpdate := statedb.AccountUpdates + statedb.StorageUpdates              // The time spent on tries update
+	trieRead := statedb.SnapshotAccountReads + statedb.AccountReads            // The time spent on account read
+	trieRead += statedb.SnapshotStorageReads + statedb.StorageReads            // The time spent on storage read
+	blockExecutionTimer.Inc((ptime - trieRead).Milliseconds())                 // The time spent on EVM processing
+	blockValidationTimer.Inc((vtime - (triehash + trieUpdate)).Milliseconds()) // The time spent on block validation
+	blockTrieOpsTimer.Inc((triehash + trieUpdate + trieRead).Milliseconds())   // The time spent on trie operations
+
+	// If [writes] are disabled, skip [writeBlockWithState] so that we do not write the block
+	// or the state trie to disk.
+	// Note: in pruning mode, this prevents us from generating a reference to the state root.
+	if !writes {
+		return nil
+	}
+
+	// Write the block to the chain and get the status.
+	// writeBlockWithState (called within writeBlockAndSethead) creates a reference that
+	// will be cleaned up in Accept/Reject so we need to ensure an error cannot occur
+	// later in verification, since that would cause the referenced root to never be dereferenced.
+	wstart := time.Now()
+	if err := bc.writeBlockAndSetHead(block, receipts, logs, statedb); err != nil {
+		return err
+	}
+	// Update the metrics touched during block commit
+	accountCommitTimer.Inc(statedb.AccountCommits.Milliseconds()) // Account commits are complete, we can mark them
+	storageCommitTimer.Inc(statedb.StorageCommits.Milliseconds()) // Storage commits are complete, we can mark them
+	triedbCommitTimer.Inc(statedb.TrieDBCommits.Milliseconds())   // Trie database commits are complete, we can mark them
+	blockWriteTimer.Inc((time.Since(wstart) - statedb.AccountCommits - statedb.StorageCommits - statedb.SnapshotCommits - statedb.TrieDBCommits).Milliseconds())
+	blockInsertTimer.Inc(time.Since(start).Milliseconds())
+
+	log.Debug("Inserted new block", "number", block.Number(), "hash", block.Hash(),
+		"parentHash", block.ParentHash(),
+		"uncles", len(block.Uncles()), "txs", len(block.Transactions()), "gas", block.GasUsed(),
+		"elapsed", common.PrettyDuration(time.Since(start)),
+		"root", block.Root(), "baseFeePerGas", block.BaseFee(), "blockGasCost", block.BlockGasCost(),
+	)
+
+	processedBlockGasUsedCounter.Inc(int64(block.GasUsed()))
+	processedTxsCounter.Inc(int64(block.Transactions().Len()))
+	processedLogsCounter.Inc(int64(len(logs)))
+	blockInsertCount.Inc(1)
+	return nil
+}
+
+// newTip returns a boolean indicating if the block should be appended to
+// the canonical chain.
+func (bc *blockChain) newTip(block *types.Block) bool {
+	return block.ParentHash() == bc.CurrentBlock().Hash()
+}
+
+// writeBlockAndSetHead persists the block and associated state to the database
+// and optimistically updates the canonical chain if [block] extends the current
+// canonical chain.
+// writeBlockAndSetHead expects to be the last verification step during InsertBlock
+// since it creates a reference that will only be cleaned up by Accept/Reject.
+func (bc *blockChain) writeBlockAndSetHead(block *types.Block, receipts []*types.Receipt, logs []*types.Log, state *state.StateDB) error {
+	if err := bc.writeBlockWithState(block, receipts, state); err != nil {
+		return err
+	}
+
+	// If [block] represents a new tip of the canonical chain, we optimistically add it before
+	// setPreference is called. Otherwise, we consider it a side chain block.
+	if bc.newTip(block) {
+		bc.writeCanonicalBlockWithLogs(block, logs)
+	}
+
+	return nil
+}
+
+// writeBlockWithState writes the block and all associated state to the database,
+// but it expects the chain mutex to be held.
+func (bc *blockChain) writeBlockWithState(block *types.Block, receipts []*types.Receipt, state *state.StateDB) error {
+	// Irrelevant of the canonical status, write the block itself to the database.
+	//
+	// Note all the components of block(hash->number map, header, body, receipts)
+	// should be written atomically. BlockBatch is used for containing all components.
+	blockBatch := bc.db.NewBatch()
+	rawdb.WriteBlock(blockBatch, block)
+	rawdb.WriteReceipts(blockBatch, block.Hash(), block.NumberU64(), receipts)
+	rawdb.WritePreimages(blockBatch, state.Preimages())
+	if err := blockBatch.Write(); err != nil {
+		return err
+	}
+
+	// Commit all cached state changes into underlying memory database.
+	// If snapshots are enabled, call CommitWithSnaps to explicitly create a snapshot
+	// diff layer for the block.
+	_, err := state.CommitWithBlockHash(block.NumberU64(), bc.config.IsEIP158(block.Number()), block.Hash(), block.ParentHash())
+	if err != nil {
+		return err
+	}
+	// Note: if InsertTrie must be the last step in verification that can return an error.
+	// This allows [stateManager] to assume that if it inserts a trie without returning an
+	// error then the block has passed verification and either AcceptTrie/RejectTrie will
+	// eventually be called on [root] unless a fatal error occurs. It does not assume that
+	// the node will not shutdown before either AcceptTrie/RejectTrie is called.
+	if err := bc.stateManager.InsertTrie(block); err != nil {
+		return err
+	}
+	return nil
+}
+
+// writeCanonicalBlockWithLogs writes the new head [block] and emits events
+// for the new head block.
+func (bc *blockChain) writeCanonicalBlockWithLogs(block *types.Block, logs []*types.Log) {
+	bc.writeHeadBlock(block)
+	// bc.chainFeed.Send(ChainEvent{Block: block, Hash: block.Hash(), Logs: logs})
+	// if len(logs) > 0 {
+	// 	bc.logsFeed.Send(logs)
+	// }
+	bc.chainHeadFeed.Send(core.ChainHeadEvent{Block: block})
+}
+
+// writeHeadBlock injects a new head block into the current block chain. This method
+// assumes that the block is indeed a true head. It will also reset the head
+// header to this very same block if they are older or if they are on a different side chain.
+//
+// Note, this function assumes that the `mu` mutex is held!
+func (bc *blockChain) writeHeadBlock(block *types.Block) {
+	// If the block is on a side chain or an unknown one, force other heads onto it too
+	// Add the block to the canonical chain number scheme and mark as the head
+	batch := bc.db.NewBatch()
+	rawdb.WriteCanonicalHash(batch, block.Hash(), block.NumberU64())
+
+	rawdb.WriteHeadBlockHash(batch, block.Hash())
+	rawdb.WriteHeadHeaderHash(batch, block.Hash())
+
+	// Flush the whole batch into the disk, exit the node if failed
+	if err := batch.Write(); err != nil {
+		log.Crit("Failed to update chain indexes and markers", "err", err)
+	}
+	// Update all in-memory chain markers in the last step
+	bc.hc.SetCurrentHeader(block.Header())
+}
+
+func (bc *blockChain) Accept(block *types.Block) error {
+	bc.chainmu.Lock()
+	defer bc.chainmu.Unlock()
+
+	// The parent of [block] must be the last accepted block.
+	if bc.lastAccepted.Hash() != block.ParentHash() {
+		return fmt.Errorf(
+			"expected accepted block to have parent %s:%d but got %s:%d",
+			bc.lastAccepted.Hash().Hex(),
+			bc.lastAccepted.NumberU64(),
+			block.ParentHash().Hex(),
+			block.NumberU64()-1,
+		)
+	}
+
+	// If the canonical hash at the block height does not match the block we are
+	// accepting, we need to trigger a reorg.
+	canonical := bc.hc.GetCanonicalHash(block.NumberU64())
+	if canonical != block.Hash() {
+		log.Debug("Accepting block in non-canonical chain", "number", block.Number(), "hash", block.Hash())
+		if err := bc.setPreference(block); err != nil {
+			return fmt.Errorf("could not set new preferred block %d:%s as preferred: %w", block.Number(), block.Hash(), err)
+		}
+	}
+
+	bc.lastAccepted = block
+	acceptedBlockGasUsedCounter.Inc(int64(block.GasUsed()))
+	acceptedTxsCounter.Inc(int64(len(block.Transactions())))
+	return bc.accept(block)
+}
+
+// accept processes a block that has been verified and updates the snapshot
+// and indexes.
+func (bc *blockChain) accept(next *types.Block) error {
+	start := time.Now()
+
+	if err := bc.stateManager.AcceptTrie(next); err != nil {
+		return fmt.Errorf("unable to accept trie: %w", err)
+	}
+
+	// Update last processed and transaction lookup index
+	// if err := bc.writeBlockAcceptedIndices(next); err != nil {
+	// 	return fmt.Errorf("unable to write block accepted indices: %w", err)
+	// }
+
+	// Ensure [hc.acceptedNumberCache] and [acceptedLogsCache] have latest content
+	bc.hc.PutAcceptedHeader(next.NumberU64(), next.Header())
+	logs := bc.collectUnflattenedLogs(next, false)
+
+	// Update accepted feeds
+	flattenedLogs := types.FlattenLogs(logs)
+	if len(flattenedLogs) > 0 {
+		bc.logsAcceptedFeed.Send(flattenedLogs)
+	}
+
+	acceptorWorkTimer.Inc(time.Since(start).Milliseconds())
+	acceptorWorkCount.Inc(1)
+	acceptedLogsCounter.Inc(int64(len(logs)))
+	return nil
+}
+
+func (bc *blockChain) Reject(block *types.Block) error {
+	bc.chainmu.Lock()
+	defer bc.chainmu.Unlock()
+
+	// Reject Trie
+	if err := bc.stateManager.RejectTrie(block); err != nil {
+		return fmt.Errorf("unable to reject trie: %w", err)
+	}
+
+	// Remove the block since its data is no longer needed
+	batch := bc.db.NewBatch()
+	rawdb.DeleteBlock(batch, block.Hash(), block.NumberU64())
+	if err := batch.Write(); err != nil {
+		return fmt.Errorf("failed to write delete block batch: %w", err)
+	}
+
+	return nil
+}
+
+// SetPreference attempts to update the head block to be the provided block and
+// emits a ChainHeadEvent if successful. This function will handle all reorg
+// side effects, if necessary.
+//
+// Note: This function should ONLY be called on blocks that have already been
+// inserted into the chain.
+func (bc *blockChain) SetPreference(block *types.Block) error {
+	bc.chainmu.Lock()
+	defer bc.chainmu.Unlock()
+
+	return bc.setPreference(block)
+}
+
+// setPreference attempts to update the head block to be the provided block and
+// emits a ChainHeadEvent if successful. This function will handle all reorg
+// side effects, if necessary.
+func (bc *blockChain) setPreference(block *types.Block) error {
+	current := bc.CurrentBlock()
+
+	// Return early if the current block is already the block
+	// we are trying to write.
+	if current.Hash() == block.Hash() {
+		return nil
+	}
+
+	log.Debug("Setting preference", "number", block.Number(), "hash", block.Hash())
+
+	if block.ParentHash() != current.Hash() {
+		if err := bc.reorg(current, block); err != nil {
+			return err
+		}
+	}
+	bc.writeHeadBlock(block)
+
+	bc.chainHeadFeed.Send(core.ChainHeadEvent{Block: block})
+	return nil
+}
+
+// collectUnflattenedLogs collects the logs that were generated or removed during
+// the processing of a block.
+func (bc *blockChain) collectUnflattenedLogs(b *types.Block, removed bool) [][]*types.Log {
+	var blobGasPrice *big.Int
+	excessBlobGas := b.ExcessBlobGas()
+	if excessBlobGas != nil {
+		blobGasPrice = eip4844.CalcBlobFee(*excessBlobGas)
+	}
+	receipts := rawdb.ReadRawReceipts(bc.db, b.Hash(), b.NumberU64())
+	if err := receipts.DeriveFields(bc.config, b.Hash(), b.NumberU64(), b.Time(), b.BaseFee(), blobGasPrice, b.Transactions()); err != nil {
+		log.Error("Failed to derive block receipts fields", "hash", b.Hash(), "number", b.NumberU64(), "err", err)
+	}
+
+	// Note: gross but this needs to be initialized here because returning nil will be treated specially as an incorrect
+	// error case downstream.
+	logs := make([][]*types.Log, len(receipts))
+	for i, receipt := range receipts {
+		receiptLogs := make([]*types.Log, len(receipt.Logs))
+		for i, log := range receipt.Logs {
+			if removed {
+				log.Removed = true
+			}
+			receiptLogs[i] = log
+		}
+		logs[i] = receiptLogs
+	}
+	return logs
+}
+
+func (bc *blockChain) reportBlock(block *types.Block, receipts types.Receipts, err error) {
+	reason := &core.BadBlockReason{
+		ChainConfig: bc.config,
+		Receipts:    receipts,
+		Number:      block.NumberU64(),
+		Hash:        block.Hash(),
+		Error:       err.Error(),
+	}
+
+	badBlockCounter.Inc(1)
+	log.Debug(reason.String())
+
+	// TODO: remove this log once we have a better way to report bad blocks
+	log.Error("Invalid block detected", "number", block.Number(), "hash", block.Hash(), "err", err)
 }
 
 // Getters
+func (bc *blockChain) LastAcceptedBlock() *types.Block {
+	bc.chainmu.RLock()
+	defer bc.chainmu.RUnlock()
+
+	return bc.lastAccepted
+}
+
+func (bc *blockChain) LastConsensusAcceptedBlock() *types.Block { return bc.LastAcceptedBlock() }
 func (bc *blockChain) CurrentBlock() *types.Header              { return bc.hc.CurrentHeader() }
 func (bc *blockChain) CurrentHeader() *types.Header             { return bc.hc.CurrentHeader() }
-func (bc *blockChain) LastAcceptedBlock() *types.Block          { return bc.lastAccepted.Load() }
-func (bc *blockChain) LastConsensusAcceptedBlock() *types.Block { return bc.lastAccepted.Load() }
 func (bc *blockChain) SenderCacher() *core.TxSenderCacher       { return bc.senderCacher }
 func (bc *blockChain) CacheConfig() *core.CacheConfig           { return bc.cacheConfig }
 func (bc *blockChain) Config() *params.ChainConfig              { return bc.config }
 func (bc *blockChain) GetVMConfig() *vm.Config                  { return &bc.vmConfig }
 func (bc *blockChain) Engine() consensus.Engine                 { return bc.engine }
-
-func (bc *blockChain) HasState(hash common.Hash) bool {
-	_, err := bc.state.OpenTrie(hash)
-	return err == nil
-}
-func (bc *blockChain) StateAt(root common.Hash) (*state.StateDB, error) {
-	return state.New(root, bc.state, nil)
-}
-func (bc *blockChain) State() (*state.StateDB, error) {
-	return bc.StateAt(bc.CurrentHeader().Root)
-}
 
 // No-ops
 func (bc *blockChain) DrainAcceptorQueue()           {}

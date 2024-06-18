@@ -135,6 +135,9 @@ func newTester(t *testing.T, historyLimit uint64) *tester {
 		if err := db.Update(root, parent, uint64(i), nodes, states); err != nil {
 			panic(fmt.Errorf("failed to update state changes, err: %w", err))
 		}
+		if err := db.tree.cap(root, 128); err != nil {
+			panic(fmt.Errorf("failed to cap state changes, err: %w", err))
+		}
 		obj.roots = append(obj.roots, root)
 	}
 	return obj

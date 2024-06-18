@@ -43,9 +43,6 @@ import (
 )
 
 const (
-	// maxDiffLayers is the maximum diff layers allowed in the layer tree.
-	maxDiffLayers = 128
-
 	// defaultCleanSize is the default memory allowance of clean cache.
 	defaultCleanSize = 16 * 1024 * 1024
 
@@ -252,7 +249,11 @@ func (db *Database) Update(root common.Hash, parentRoot common.Hash, block uint6
 	// - head-1 layer is paired with HEAD-1 state
 	// - head-127 layer(bottom-most diff layer) is paired with HEAD-127 state
 	// - head-128 layer(disk layer) is paired with HEAD-128 state
-	return db.tree.cap(root, maxDiffLayers)
+	// return db.tree.cap(root, maxDiffLayers)
+
+	// XXX: Need to cap the number of diff layers to prevent memory exhaustion.
+	// (at least some error handling here)
+	return nil
 }
 
 // Commit traverses downwards the layer tree from a specified layer with the

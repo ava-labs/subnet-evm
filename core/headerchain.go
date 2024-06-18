@@ -204,3 +204,7 @@ func (hc *HeaderChain) Config() *params.ChainConfig { return hc.config }
 
 // Engine retrieves the header chain's consensus engine.
 func (hc *HeaderChain) Engine() consensus.Engine { return hc.engine }
+
+func (hc *HeaderChain) PutAcceptedHeader(number uint64, header *types.Header) {
+	hc.acceptedNumberCache.Put(number, header)
+}
