@@ -6,16 +6,20 @@ import (
 	"context"
 	"fmt"
 	"go/ast"
+	"go/format"
 	"go/parser"
 	"go/token"
 	"log"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/ava-labs/avalanchego/utils/set"
 	"github.com/ava-labs/subnet-evm/x/gethclone/astpatch"
+	"github.com/spf13/pflag"
 	"go.uber.org/multierr"
+	"golang.org/x/mod/modfile"
 	"golang.org/x/tools/go/ast/astutil"
 	"golang.org/x/tools/go/packages"
 
@@ -25,15 +29,14 @@ import (
 	_ "github.com/ethereum/go-ethereum/common"
 )
 
-const geth = "github.com/ethereum/go-ethereum/"
-
 func main() {
 	c := config{
-		packages:     []string{"core/vm"},
-		outputModule: "github.com/ava-labs/subnet-evm/",
-		astPatches:   make(astpatch.PatchRegistry),
+		astPatches: make(astpatch.PatchRegistry),
 	}
-	// TODO(arr4n): add flags and parsing before running.
+
+	pflag.StringSliceVar(&c.packages, "packages", []string{"core/vm"}, `Geth packages to clone, with or without "github.com/ethereum/go-ethereum" prefix.`)
+	pflag.StringVar(&c.outputGoMod, "output_go_mod", "", "go.mod file of the destination to which geth will be cloned.")
+	pflag.Parse()
 
 	log.SetOutput(os.Stderr)
 	log.Print("START")
@@ -44,13 +47,18 @@ func main() {
 }
 
 type config struct {
-	packages     []string
-	outputModule string // TODO(arr4n): when writing output, use the same directory to source the module path
+	// Externally configurable (e.g. flags)
+	packages    []string
+	outputGoMod string
 
-	astPatches astpatch.PatchRegistry
+	// Internal
+	outputModule *modfile.Module
+	astPatches   astpatch.PatchRegistry
 
 	processed map[string]bool
 }
+
+const geth = "github.com/ethereum/go-ethereum"
 
 func (c *config) run(ctx context.Context) error {
 	for i, p := range c.packages {
@@ -59,8 +67,23 @@ func (c *config) run(ctx context.Context) error {
 		}
 	}
 
+	mod, err := parseGoMod(c.outputGoMod)
+	fmt.Println(err)
+	if err != nil {
+		return nil
+	}
+	c.outputModule = mod.Module
+
 	c.processed = make(map[string]bool)
 	return c.loadAndParse(ctx, token.NewFileSet(), c.packages...)
+}
+
+func parseGoMod(filePath string) (*modfile.File, error) {
+	buf, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("parsing output go.mod: os.ReadFile(%q): %v", filePath, err)
+	}
+	return modfile.ParseLax(filePath, buf, nil)
 }
 
 // loadAndParse loads all packages that match the `patterns` and individually
@@ -106,7 +129,12 @@ func (c *config) parse(ctx context.Context, pkg *packages.Package, fset *token.F
 		return nil
 	}
 	c.processed[pkg.PkgPath] = true
-	log.Printf("Processing %q", pkg.PkgPath)
+
+	outDir := filepath.Join(
+		filepath.Dir(c.outputGoMod),
+		strings.TrimPrefix(pkg.PkgPath, geth),
+	)
+	log.Printf("Cloning %q into %q", pkg.PkgPath, outDir)
 
 	allGethImports := set.NewSet[string](0)
 	for _, fName := range pkg.CompiledGoFiles {
@@ -128,6 +156,21 @@ func (c *config) parse(ctx context.Context, pkg *packages.Package, fset *token.F
 		if err := c.astPatches.Apply(pkg.PkgPath, file); err != nil {
 			return fmt.Errorf("apply AST patches to %q: %v", pkg.PkgPath, err)
 		}
+
+		if false {
+			// TODO(arr4n): enable writing when a suitable strategy exists; in
+			// the meantime, this code is demonstrative of intent. Do we want to
+			// simply overwrite and then check `git diff`? Do we want to check
+			// the diffs here?
+			outFile := filepath.Join(outDir, filepath.Base(fName))
+			f, err := os.Create(outFile)
+			if err != nil {
+				return err
+			}
+			if err := format.Node(f, fset, file); err != nil {
+				return err
+			}
+		}
 	}
 
 	return c.loadAndParse(ctx, fset, allGethImports.List()...)
@@ -145,7 +188,7 @@ func (c *config) transformGethImports(fset *token.FileSet, file *ast.File) (set.
 		}
 
 		imports.Add(p)
-		if !astutil.RewriteImport(fset, file, p, strings.Replace(p, geth, c.outputModule, 1)) {
+		if !astutil.RewriteImport(fset, file, p, strings.Replace(p, geth, c.outputModule.Mod.String(), 1)) {
 			return nil, fmt.Errorf("failed to rewrite import %q", p)
 		}
 	}
