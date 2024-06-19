@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/ava-labs/avalanchego/utils/set"
+	"github.com/ava-labs/subnet-evm/x/gethclone/astpatch"
 	"go.uber.org/multierr"
 	"golang.org/x/tools/go/ast/astutil"
 	"golang.org/x/tools/go/packages"
@@ -30,6 +31,7 @@ func main() {
 	c := config{
 		packages:     []string{"core/vm"},
 		outputModule: "github.com/ava-labs/subnet-evm/",
+		astPatches:   make(astpatch.PatchRegistry),
 	}
 	// TODO(arr4n): add flags and parsing before running.
 
@@ -44,6 +46,8 @@ func main() {
 type config struct {
 	packages     []string
 	outputModule string // TODO(arr4n): when writing output, use the same directory to source the module path
+
+	astPatches astpatch.PatchRegistry
 
 	processed map[string]bool
 }
@@ -121,7 +125,7 @@ func (c *config) parse(ctx context.Context, pkg *packages.Package, fset *token.F
 			List: []*ast.Comment{{Text: copyrightHeader}},
 		}}, file.Comments...)
 
-		if err := astPatches.apply(pkg.PkgPath, file); err != nil {
+		if err := c.astPatches.Apply(pkg.PkgPath, file); err != nil {
 			return fmt.Errorf("apply AST patches to %q: %v", pkg.PkgPath, err)
 		}
 	}

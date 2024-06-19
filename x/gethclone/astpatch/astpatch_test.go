@@ -1,4 +1,4 @@
-package main
+package astpatch
 
 import (
 	"bytes"
@@ -14,7 +14,7 @@ import (
 	"golang.org/x/tools/go/ast/astutil"
 )
 
-type astPatchSpy struct {
+type patchSpy struct {
 	gotFuncs, gotStructs []string
 }
 
@@ -22,7 +22,7 @@ const errorIfFuncName = "ErrorFuncName"
 
 var errFuncName = fmt.Errorf("encountered sentinel function %q", errorIfFuncName)
 
-func (s *astPatchSpy) funcRecorder(c *astutil.Cursor) error {
+func (s *patchSpy) funcRecorder(c *astutil.Cursor) error {
 	name := c.Node().(*ast.FuncDecl).Name.String()
 	if name == errorIfFuncName {
 		return errFuncName
@@ -31,7 +31,7 @@ func (s *astPatchSpy) funcRecorder(c *astutil.Cursor) error {
 	return nil
 }
 
-func (s *astPatchSpy) structRecorder(c *astutil.Cursor) error {
+func (s *patchSpy) structRecorder(c *astutil.Cursor) error {
 	switch p := c.Parent().(type) {
 	case *ast.TypeSpec: // it's a `type x struct` not, for example, a `map[T]struct{}`
 		s.gotStructs = append(s.gotStructs, p.Name.String())
@@ -39,7 +39,7 @@ func (s *astPatchSpy) structRecorder(c *astutil.Cursor) error {
 	return nil
 }
 
-func TestASTPatchRegistry(t *testing.T) {
+func TestPatchRegistry(t *testing.T) {
 	tests := []struct {
 		name                   string
 		src                    string
@@ -76,15 +76,15 @@ func ` + errorIfFuncName + `() {}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var spy astPatchSpy
-			reg := make(astPatchRegistry)
+			var spy patchSpy
+			reg := make(PatchRegistry)
 
-			reg.add("*", &ast.FuncDecl{}, spy.funcRecorder)
+			reg.Add("*", &ast.FuncDecl{}, spy.funcRecorder)
 			const pkgPath = `github.com/the/repo/thepackage`
-			reg.add(pkgPath, &ast.StructType{}, spy.structRecorder)
+			reg.Add(pkgPath, &ast.StructType{}, spy.structRecorder)
 
-			reg.add("unknown/package/path", &ast.FuncDecl{}, func(c *astutil.Cursor) error {
-				t.Errorf("unexpected call to %T with different package path", (astPatch)(nil))
+			reg.Add("unknown/package/path", &ast.FuncDecl{}, func(c *astutil.Cursor) error {
+				t.Errorf("unexpected call to %T with different package path", (Patch)(nil))
 				return nil
 			})
 
@@ -94,8 +94,8 @@ func ` + errorIfFuncName + `() {}
 			// None of the `require.Equal*()` variants provide a check for exact
 			// match (i.e. equivalent to ==) of the identical error being
 			// propagated.
-			if gotErr := reg.apply(pkgPath, file); gotErr != tt.wantErr {
-				t.Fatalf("%T.apply(...) got err %v; want %v", reg, gotErr, tt.wantErr)
+			if gotErr := reg.Apply(pkgPath, file); gotErr != tt.wantErr {
+				t.Fatalf("%T.Apply(...) got err %v; want %v", reg, gotErr, tt.wantErr)
 			}
 			assert.Empty(t, cmp.Diff(tt.wantFuncs, spy.gotFuncs), "encountered function declarations (-want +got)")
 			assert.Empty(t, cmp.Diff(tt.wantStructs, spy.gotStructs), "encountered struct-type declarations (-want +got)")
