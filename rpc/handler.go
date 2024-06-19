@@ -41,7 +41,7 @@ import (
 	"golang.org/x/time/rate"
 )
 
-const truncateLimit = 1024
+const callErrorLogTruncateLimit = 1024
 
 // handler handles JSON-RPC messages. There is one handler per connection. Note that
 // handler is not safe for concurrent use. Message handling never blocks indefinitely
@@ -569,29 +569,29 @@ func (h *handler) handleCallMsg(ctx *callProc, msg *jsonrpcMessage) *jsonrpcMess
 
 	case msg.isCall():
 		resp := h.handleCall(ctx, msg)
-		var ctx []interface{}
-		ctx = append(ctx, "reqid", idForLog{msg.ID}, "execTime", time.Since(execStart), "procTime", time.Since(procStart), "totalTime", time.Since(callStart))
+		var logCtx []interface{}
+		logCtx = append(logCtx, "reqid", idForLog{msg.ID}, "execTime", time.Since(execStart), "procTime", time.Since(procStart), "totalTime", time.Since(callStart))
 		if resp.Error != nil {
-			ctx = append(ctx, "err", resp.Error.Message)
+			logCtx = append(logCtx, "err", resp.Error.Message)
 			if resp.Error.Data != nil {
 				// If the log level is debug, log the full error data. Otherwise, truncate it.
 				if h.log.Enabled(context.Background(), log.LvlDebug) {
-					ctx = append(ctx, "errdata", resp.Error.Data)
+					logCtx = append(logCtx, "errdata", resp.Error.Data)
 				} else {
 					errDataStr := fmt.Sprintf("%v", resp.Error.Data)
 					// Truncate the error data if it is too long. Otherwise, preserve the original data.
-					if len(errDataStr) > truncateLimit {
-						remaining := len(errDataStr) - truncateLimit
-						errDataStr = errDataStr[:truncateLimit] + "...(truncated remaining " + strconv.Itoa(remaining) + " chars)"
-						ctx = append(ctx, "errdata", errDataStr)
+					if len(errDataStr) > callErrorLogTruncateLimit {
+						remaining := len(errDataStr) - callErrorLogTruncateLimit
+						errDataStr = fmt.Sprintf("%s... (truncated remaining %d chars)", errDataStr[:callErrorLogTruncateLimit], remaining)
+						logCtx = append(logCtx, "errdata", errDataStr)
 					} else {
-						ctx = append(ctx, "errdata", resp.Error.Data)
+						logCtx = append(logCtx, "errdata", resp.Error.Data)
 					}
 				}
 			}
-			h.log.Info("Served "+msg.Method, ctx...)
+			h.log.Info("Served "+msg.Method, logCtx...)
 		} else {
-			h.log.Debug("Served "+msg.Method, ctx...)
+			h.log.Debug("Served "+msg.Method, logCtx...)
 		}
 		return resp
 
