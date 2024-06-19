@@ -121,7 +121,9 @@ func (c *config) parse(ctx context.Context, pkg *packages.Package, fset *token.F
 			List: []*ast.Comment{{Text: copyrightHeader}},
 		}}, file.Comments...)
 
-		// TODO(arr4n): add transformations
+		if err := astPatches.apply(pkg.PkgPath, file); err != nil {
+			return fmt.Errorf("apply AST patches to %q: %v", pkg.PkgPath, err)
+		}
 	}
 
 	return c.loadAndParse(ctx, fset, allGethImports.List()...)
