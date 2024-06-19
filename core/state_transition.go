@@ -268,7 +268,7 @@ type StateTransition struct {
 	msg          *Message
 	gasRemaining uint64
 	initialGas   uint64
-	state        *vmStateDB
+	state        vmStateDB
 	evm          *EVM
 }
 

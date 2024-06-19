@@ -39,10 +39,10 @@ import (
 	"github.com/ava-labs/coreth/params"
 	"github.com/ava-labs/coreth/precompile/contracts/feemanager"
 	"github.com/ava-labs/coreth/precompile/contracts/rewardmanager"
-	"github.com/ava-labs/coreth/trie"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/event"
+	"github.com/ethereum/go-ethereum/trie"
 )
 
 // CurrentHeader retrieves the current head header of the canonical chain. The

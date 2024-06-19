@@ -12,7 +12,7 @@ import (
 
 	"github.com/ava-labs/coreth/core/types"
 	"github.com/ava-labs/coreth/params"
-	"github.com/ava-labs/coreth/trie"
+	"github.com/ethereum/go-ethereum/trie"
 )
 
 var legacyMinGasPrice = big.NewInt(params.MinGasPrice)

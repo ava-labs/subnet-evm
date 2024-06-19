@@ -39,9 +39,9 @@ import (
 	"github.com/ava-labs/coreth/rpc"
 	statesyncclient "github.com/ava-labs/coreth/sync/client"
 	"github.com/ava-labs/coreth/sync/client/stats"
-	"github.com/ava-labs/coreth/trie"
 	"github.com/ava-labs/coreth/warp"
 	warpValidators "github.com/ava-labs/coreth/warp/validators"
+	"github.com/ethereum/go-ethereum/trie"
 
 	// Force-load tracer engine to trigger registration
 	//

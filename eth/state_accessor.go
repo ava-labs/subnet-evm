@@ -145,7 +145,6 @@ func (eth *Ethereum) hashState(ctx context.Context, block *types.Block, reexec u
 		logged time.Time
 		parent common.Hash
 	)
-	triedb.EnableRefCounting()
 	for current.NumberU64() < origin {
 		if err := ctx.Err(); err != nil {
 			return nil, nil, err
