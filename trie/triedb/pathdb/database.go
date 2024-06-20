@@ -93,6 +93,7 @@ type layer interface {
 
 // Config contains the settings for database.
 type Config struct {
+	CommitLag      int    // Number of blocks to keep difflayers ahead of the disk layer
 	StateHistory   uint64 // Number of recent blocks to maintain state history for
 	CleanCacheSize int    // Maximum memory allowance (in bytes) for caching clean nodes
 	DirtyCacheSize int    // Maximum memory allowance (in bytes) for caching dirty nodes
@@ -273,7 +274,7 @@ func (db *Database) Commit(root common.Hash, report bool) error {
 	if err := db.modifyAllowed(); err != nil {
 		return err
 	}
-	return db.tree.cap(root, 0)
+	return db.tree.cap(root, db.config.CommitLag)
 }
 
 // Disable deactivates the database and invalidates all available state layers

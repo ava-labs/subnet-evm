@@ -44,6 +44,7 @@ import (
 	"github.com/ava-labs/coreth/core/types"
 	"github.com/ava-labs/coreth/metrics"
 	"github.com/ava-labs/coreth/params"
+	"github.com/ava-labs/coreth/trie"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/lru"
 	"github.com/ethereum/go-ethereum/core/vm"
@@ -635,25 +636,129 @@ func (bc *blockChain) loadLastState(lastAcceptedHash common.Hash) error {
 	if bc.lastAccepted == nil {
 		return fmt.Errorf("could not load last accepted block")
 	}
+	// reprocessState is necessary to ensure that the last accepted state is
+	// available. The state may not be available if it was not committed due
+	// to an unclean shutdown.
+	reprocessBlocks := uint64(128)
+	if err := bc.reprocessState(bc.lastAccepted, reprocessBlocks); err != nil {
+		return fmt.Errorf("failed to reprocess state for last accepted block: %w", err)
+	}
 
 	// This ensures that the head block is updated to the last accepted block on startup
 	if err := bc.setPreference(bc.lastAccepted); err != nil {
 		return fmt.Errorf("failed to set preference to last accepted block while loading last state: %w", err)
 	}
-
-	// reprocessState is necessary to ensure that the last accepted state is
-	// available. The state may not be available if it was not committed due
-	// to an unclean shutdown.
-	return bc.reprocessState(bc.lastAccepted, 2*bc.cacheConfig.CommitInterval)
+	return nil
 }
 
+// reprocessState reprocesses the state up to [block], iterating through its ancestors until
+// it reaches a block with a state committed to the database. reprocessState does not use
+// snapshots since the disk layer for snapshots will most likely be above the last committed
+// state that reprocessing will start from.
 func (bc *blockChain) reprocessState(current *types.Block, reexec uint64) error {
+	origin := current.NumberU64()
+
 	// If the state is already available, skip re-processing.
 	if bc.HasState(current.Root()) {
 		log.Info("Skipping state reprocessing", "root", current.Root())
 		return nil
 	}
-	return fmt.Errorf("reprocessState not implemented: %x", bc.lastAccepted.Hash())
+
+	var err error
+	for i := 0; i < int(reexec); i++ {
+		// TODO: handle canceled context
+
+		if current.NumberU64() == 0 {
+			return errors.New("genesis state is missing")
+		}
+		parent := bc.GetBlock(current.ParentHash(), current.NumberU64()-1)
+		if parent == nil {
+			return fmt.Errorf("missing block %s:%d", current.ParentHash().Hex(), current.NumberU64()-1)
+		}
+		current = parent
+		_, err = bc.state.OpenTrie(current.Root())
+		if err == nil {
+			break
+		}
+	}
+	if err != nil {
+		switch err.(type) {
+		case *trie.MissingNodeError:
+			return fmt.Errorf("required historical state unavailable (reexec=%d)", reexec)
+		default:
+			return err
+		}
+	}
+
+	// State was available at historical point, regenerate
+	var (
+		start  = time.Now()
+		logged time.Time
+	)
+	// Note: we add 1 since in each iteration, we attempt to re-execute the next block.
+	log.Info("Re-executing blocks to generate state for last accepted block", "from", current.NumberU64()+1, "to", origin)
+	for current.NumberU64() < origin {
+		// TODO: handle canceled context
+
+		// Print progress logs if long enough time elapsed
+		if time.Since(logged) > 8*time.Second {
+			log.Info("Regenerating historical state", "block", current.NumberU64()+1, "target", origin, "remaining", origin-current.NumberU64(), "elapsed", time.Since(start))
+			logged = time.Now()
+		}
+
+		// Retrieve the next block to regenerate and process it
+		parent := current
+		next := current.NumberU64() + 1
+		if current = bc.GetBlockByNumber(next); current == nil {
+			return fmt.Errorf("failed to retrieve block %d while re-generating state", next)
+		}
+
+		// Reprocess next block using previously fetched data
+		_, err := bc.reprocessBlock(parent, current)
+		if err != nil {
+			return err
+		}
+	}
+
+	log.Info("Historical state regenerated", "block", current.NumberU64(), "elapsed", time.Since(start))
+	bc.writeHeadBlock(current)
+	return nil
+}
+
+// reprocessBlock reprocesses a previously accepted block. This is often used
+// to regenerate previously pruned state tries.
+func (bc *blockChain) reprocessBlock(parent *types.Block, current *types.Block) (common.Hash, error) {
+	// Retrieve the parent block and its state to execute block
+	var (
+		statedb    *state.StateDB
+		err        error
+		parentRoot = parent.Root()
+	)
+	statedb, err = state.New(parentRoot, bc.state, nil)
+	if err != nil {
+		return common.Hash{}, fmt.Errorf("could not fetch state for (%s: %d): %v", parent.Hash().Hex(), parent.NumberU64(), err)
+	}
+
+	// Enable prefetching to pull in trie node paths while processing transactions
+	statedb.StartPrefetcher("chain", bc.cacheConfig.TriePrefetcherParallelism)
+	defer func() {
+		statedb.StopPrefetcher()
+	}()
+
+	// Process previously stored block
+	receipts, _, usedGas, err := bc.processor.Process(current, parent.Header(), statedb, vm.Config{})
+	if err != nil {
+		return common.Hash{}, fmt.Errorf("failed to re-process block (%s: %d): %v", current.Hash().Hex(), current.NumberU64(), err)
+	}
+
+	// Validate the state using the default validator
+	if err := bc.validator.ValidateState(current, statedb, receipts, usedGas); err != nil {
+		return common.Hash{}, fmt.Errorf("failed to validate state while re-processing block (%s: %d): %v", current.Hash().Hex(), current.NumberU64(), err)
+	}
+	log.Debug("Processed block", "block", current.Hash(), "number", current.NumberU64())
+
+	// Commit all cached state changes into underlying memory database.
+	return statedb.CommitWithBlockHash(current.NumberU64(), bc.config.IsEIP158(current.Number()), current.Hash(), current.ParentHash())
 }
 
 func (bc *blockChain) loadGenesisState() error {
