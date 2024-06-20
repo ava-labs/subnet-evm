@@ -7,7 +7,7 @@ import (
 	"github.com/ethereum/go-ethereum/trie"
 )
 
-const commitLag = 1
+const commitLag = 32
 
 func NewTrieDB(db ethdb.Database, config *core.CacheConfig) *trie.Database {
 	pCfg := &pathdb.Config{
