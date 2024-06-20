@@ -34,10 +34,10 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 )
 
-// StateAccount is the Ethereum consensus representation of accounts.
-// These objects are stored in the main account trie.
-type StateAccount = gethtypes.StateAccount
-type SlimAccount = gethtypes.SlimAccount
+type (
+	StateAccount = gethtypes.StateAccount
+	SlimAccount  = gethtypes.SlimAccount
+)
 
 var (
 	NewEmptyStateAccount = gethtypes.NewEmptyStateAccount

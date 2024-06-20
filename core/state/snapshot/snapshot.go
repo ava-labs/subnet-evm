@@ -35,9 +35,9 @@ import (
 	"time"
 
 	"github.com/ava-labs/coreth/core/rawdb"
-	"github.com/ava-labs/coreth/core/types"
 	"github.com/ava-labs/coreth/metrics"
 	"github.com/ethereum/go-ethereum/common"
+	gethsnapshot "github.com/ethereum/go-ethereum/core/state/snapshot"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/trie"
@@ -117,29 +117,7 @@ var (
 	ErrNotConstructed = errors.New("snapshot is not constructed")
 )
 
-// Snapshot represents the functionality supported by a snapshot storage layer.
-type Snapshot interface {
-	// Root returns the root hash for which this snapshot was made.
-	Root() common.Hash
-
-	// Account directly retrieves the account associated with a particular hash in
-	// the snapshot slim data format.
-	Account(hash common.Hash) (*types.SlimAccount, error)
-
-	// AccountRLP directly retrieves the account RLP associated with a particular
-	// hash in the snapshot slim data format.
-	AccountRLP(hash common.Hash) ([]byte, error)
-
-	// Storage directly retrieves the storage data associated with a particular hash,
-	// within a particular account.
-	Storage(accountHash, storageHash common.Hash) ([]byte, error)
-
-	// AccountIterator creates an account iterator over the account trie given by the provided root hash.
-	AccountIterator(seek common.Hash) AccountIterator
-
-	// StorageIterator creates a storage iterator over the storage trie given by the provided root hash.
-	StorageIterator(account common.Hash, seek common.Hash) (StorageIterator, bool)
-}
+type Snapshot = gethsnapshot.Snapshot
 
 // snapshot is the internal version of the snapshot data layer that supports some
 // additional methods compared to the public API.

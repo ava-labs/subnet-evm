@@ -33,49 +33,17 @@ import (
 
 	"github.com/ava-labs/coreth/core/rawdb"
 	"github.com/ethereum/go-ethereum/common"
+	gethsnapshot "github.com/ethereum/go-ethereum/core/state/snapshot"
 	"github.com/ethereum/go-ethereum/ethdb"
 )
 
 // Iterator is an iterator to step over all the accounts or the specific
 // storage in a snapshot which may or may not be composed of multiple layers.
-type Iterator interface {
-	// Next steps the iterator forward one element, returning false if exhausted,
-	// or an error if iteration failed for some reason (e.g. root being iterated
-	// becomes stale and garbage collected).
-	Next() bool
-
-	// Error returns any failure that occurred during iteration, which might have
-	// caused a premature iteration exit (e.g. snapshot stack becoming stale).
-	Error() error
-
-	// Hash returns the hash of the account or storage slot the iterator is
-	// currently at.
-	Hash() common.Hash
-
-	// Release releases associated resources. Release should always succeed and
-	// can be called multiple times without causing error.
-	Release()
-}
-
-// AccountIterator is an iterator to step over all the accounts in a snapshot,
-// which may or may not be composed of multiple layers.
-type AccountIterator interface {
-	Iterator
-
-	// Account returns the RLP encoded slim account the iterator is currently at.
-	// An error will be returned if the iterator becomes invalid
-	Account() []byte
-}
-
-// StorageIterator is an iterator to step over the specific storage in a snapshot,
-// which may or may not be composed of multiple layers.
-type StorageIterator interface {
-	Iterator
-
-	// Slot returns the storage slot the iterator is currently at. An error will
-	// be returned if the iterator becomes invalid
-	Slot() []byte
-}
+type (
+	Iterator        = gethsnapshot.Iterator
+	AccountIterator = gethsnapshot.AccountIterator
+	StorageIterator = gethsnapshot.StorageIterator
+)
 
 // diffAccountIterator is an account iterator that steps over the accounts (both
 // live and deleted) contained within a single diff layer. Higher order iterators

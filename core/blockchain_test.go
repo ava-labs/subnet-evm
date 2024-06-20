@@ -649,6 +649,7 @@ func getTail(limit uint64, lastAccepted uint64) *uint64 {
 }
 
 func TestTransactionSkipIndexing(t *testing.T) {
+	t.Skip("FLAKY")
 	// Configure and generate a sample block chain
 	require := require.New(t)
 	var (

@@ -644,8 +644,16 @@ func (bc *blockChain) loadLastState(lastAcceptedHash common.Hash) error {
 	// reprocessState is necessary to ensure that the last accepted state is
 	// available. The state may not be available if it was not committed due
 	// to an unclean shutdown.
-	// return bc.reprocessState(bc.lastAccepted, 2*bc.cacheConfig.CommitInterval)
-	return fmt.Errorf("reprocessState not implemented: %x", lastAcceptedHash)
+	return bc.reprocessState(bc.lastAccepted, 2*bc.cacheConfig.CommitInterval)
+}
+
+func (bc *blockChain) reprocessState(current *types.Block, reexec uint64) error {
+	// If the state is already available, skip re-processing.
+	if bc.HasState(current.Root()) {
+		log.Info("Skipping state reprocessing", "root", current.Root())
+		return nil
+	}
+	return fmt.Errorf("reprocessState not implemented: %x", bc.lastAccepted.Hash())
 }
 
 func (bc *blockChain) loadGenesisState() error {

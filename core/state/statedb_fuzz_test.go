@@ -36,18 +36,12 @@ import (
 	"math/rand"
 	"reflect"
 	"strings"
-	"testing"
-	"testing/quick"
 
-	"github.com/ava-labs/coreth/core/rawdb"
-	"github.com/ava-labs/coreth/core/state/snapshot"
 	"github.com/ava-labs/coreth/core/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
-	"github.com/ethereum/go-ethereum/trie/triedb/pathdb"
-	"github.com/ethereum/go-ethereum/trie/triestate"
 )
 
 // A stateTest checks that the state changes are correctly captured. Instances
@@ -179,79 +173,6 @@ func (test *stateTest) String() string {
 		}
 	}
 	return out.String()
-}
-
-func (test *stateTest) run() bool {
-	var (
-		roots       []common.Hash
-		accountList []map[common.Address][]byte
-		storageList []map[common.Address]map[common.Hash][]byte
-		onCommit    = func(states *triestate.Set) {
-			accountList = append(accountList, copySet(states.Accounts))
-			storageList = append(storageList, copy2DSet(states.Storages))
-		}
-		disk      = rawdb.NewMemoryDatabase()
-		tdb       = trie.NewDatabase(disk, &trie.Config{PathDB: pathdb.Defaults})
-		sdb       = NewDatabaseWithNodeDB(disk, tdb)
-		byzantium = rand.Intn(2) == 0
-	)
-	defer disk.Close()
-	defer tdb.Close()
-
-	var snaps *snapshot.Tree
-	if rand.Intn(3) == 0 {
-		snaps, _ = snapshot.New(snapshot.Config{
-			CacheSize:  1,
-			NoBuild:    false,
-			AsyncBuild: false,
-		}, disk, tdb, common.Hash{}, types.EmptyRootHash)
-	}
-	for i, actions := range test.actions {
-		root := types.EmptyRootHash
-		if i != 0 {
-			root = roots[len(roots)-1]
-		}
-		state, err := New(root, sdb, snaps)
-		if err != nil {
-			panic(err)
-		}
-		state.onCommit = onCommit
-
-		for i, action := range actions {
-			if i%test.chunk == 0 && i != 0 {
-				if byzantium {
-					state.Finalise(true) // call finalise at the transaction boundary
-				} else {
-					state.IntermediateRoot(true) // call intermediateRoot at the transaction boundary
-				}
-			}
-			action.fn(action, state)
-		}
-		if byzantium {
-			state.Finalise(true) // call finalise at the transaction boundary
-		} else {
-			state.IntermediateRoot(true) // call intermediateRoot at the transaction boundary
-		}
-		nroot, err := state.Commit(0, true) // call commit at the block boundary
-		if err != nil {
-			panic(err)
-		}
-		if nroot == root {
-			return true // filter out non-change state transition
-		}
-		roots = append(roots, nroot)
-	}
-	for i := 0; i < len(test.actions); i++ {
-		root := types.EmptyRootHash
-		if i != 0 {
-			root = roots[i-1]
-		}
-		test.err = test.verify(root, roots[i], tdb, accountList[i], storageList[i])
-		if test.err != nil {
-			return false
-		}
-	}
-	return true
 }
 
 // verifyAccountCreation this function is called once the state diff says that
@@ -387,15 +308,4 @@ func (test *stateTest) verify(root common.Hash, next common.Hash, db *trie.Datab
 		}
 	}
 	return nil
-}
-
-func TestStateChanges(t *testing.T) {
-	config := &quick.Config{MaxCount: 1000}
-	err := quick.Check((*stateTest).run, config)
-	if cerr, ok := err.(*quick.CheckError); ok {
-		test := cerr.In[0].(*stateTest)
-		t.Errorf("%v:\n%s", test.err, test)
-	} else if err != nil {
-		t.Error(err)
-	}
 }

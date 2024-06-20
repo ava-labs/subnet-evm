@@ -77,7 +77,7 @@ func init() {
 // ActivePrecompiles returns the precompiles enabled with the current configuration.
 func ActivePrecompiles(rules params.Rules) []common.Address {
 	var precompiles []common.Address
-	precompiles = append(precompiles, vm.ActivePrecompiles(asGethRules(rules))...)
+	precompiles = append(precompiles, vm.ActivePrecompiles(rules.AsGeth())...)
 	precompiles = append(precompiles, avalanchePrecompiles(rules)...)
 	return precompiles
 }

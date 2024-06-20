@@ -320,26 +320,7 @@ func (c *chainConfigWrapper) IsLondon(blockNum *big.Int) bool {
 
 func (c *chainConfigWrapper) Rules(blockNum *big.Int, isMerge bool, timestamp uint64) gethparams.Rules {
 	rules := c.ChainConfig.Rules(blockNum, timestamp)
-	return asGethRules(rules)
-}
-
-func asGethRules(rules params.Rules) gethparams.Rules {
-	return gethparams.Rules{
-		ChainID:          rules.ChainID,
-		IsHomestead:      rules.IsHomestead,
-		IsEIP150:         rules.IsEIP150,
-		IsEIP155:         rules.IsEIP155,
-		IsEIP158:         rules.IsEIP158,
-		IsByzantium:      rules.IsByzantium,
-		IsConstantinople: rules.IsConstantinople,
-		IsPetersburg:     rules.IsPetersburg,
-		IsIstanbul:       rules.IsIstanbul,
-		IsBerlin:         rules.IsSubnetEVM,
-		IsLondon:         rules.IsSubnetEVM,
-		IsMerge:          rules.IsDurango,
-		IsShanghai:       rules.IsDurango,
-		IsCancun:         rules.IsCancun,
-	}
+	return rules.AsGeth()
 }
 
 func unwrapStateDB(db vm.StateDB) StateDB {

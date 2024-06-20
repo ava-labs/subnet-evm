@@ -2415,6 +2415,13 @@ func TestVerifyManagerConfig(t *testing.T) {
 // Test that the tx allow list allows whitelisted transactions and blocks non-whitelisted addresses
 // and the allowlist is removed after the precompile is disabled.
 func TestTxAllowListDisablePrecompile(t *testing.T) {
+	for i := 0; i < 10; i++ {
+		fmt.Println(i)
+		testTxAllowListDisablePrecompile(t)
+	}
+}
+
+func testTxAllowListDisablePrecompile(t *testing.T) {
 	// Setup chain params
 	genesis := &core.Genesis{}
 	if err := genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)); err != nil {

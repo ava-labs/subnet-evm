@@ -50,6 +50,7 @@ import (
 	"github.com/ava-labs/coreth/metrics"
 	"github.com/ava-labs/coreth/params"
 	"github.com/ava-labs/coreth/trie/triedb/hashdb"
+	"github.com/ava-labs/coreth/trie/triedb/pathdb"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/lru"
 	"github.com/ethereum/go-ethereum/core/vm"
@@ -57,7 +58,6 @@ import (
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/trie"
-	"github.com/ethereum/go-ethereum/trie/triedb/pathdb"
 )
 
 var (
@@ -199,6 +199,7 @@ func (c *CacheConfig) triedbConfig() *trie.Config {
 		config.HashDB = &hashdb.Config{
 			CleanCacheSize: c.TrieCleanLimit * 1024 * 1024,
 			StatsPrefix:    trieCleanCacheStatsNamespace,
+			RefCounting:    true,
 		}
 	}
 	if c.StateScheme == rawdb.PathScheme {
@@ -206,6 +207,12 @@ func (c *CacheConfig) triedbConfig() *trie.Config {
 			StateHistory:   c.StateHistory,
 			CleanCacheSize: c.TrieCleanLimit * 1024 * 1024,
 			DirtyCacheSize: c.TrieDirtyLimit * 1024 * 1024,
+		}
+	} else {
+		config.HashDB = &hashdb.Config{
+			CleanCacheSize: c.TrieCleanLimit * 1024 * 1024,
+			StatsPrefix:    trieCleanCacheStatsNamespace,
+			RefCounting:    true,
 		}
 	}
 	return config
