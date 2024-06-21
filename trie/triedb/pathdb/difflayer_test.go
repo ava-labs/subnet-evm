@@ -30,7 +30,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/ava-labs/coreth/core/rawdb"
+	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/trie/testutil"
 	"github.com/ethereum/go-ethereum/trie/trienode"

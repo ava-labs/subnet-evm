@@ -3,7 +3,7 @@ package state
 import (
 	"reflect"
 
-	"github.com/ava-labs/coreth/core/state/snapshot"
+	"github.com/ava-labs/subnet-evm/core/state/snapshot"
 	"github.com/ethereum/go-ethereum/common"
 )
 

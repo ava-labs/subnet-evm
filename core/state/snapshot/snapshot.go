@@ -34,8 +34,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ava-labs/coreth/core/rawdb"
-	"github.com/ava-labs/coreth/metrics"
+	"github.com/ava-labs/subnet-evm/core/rawdb"
+	"github.com/ava-labs/subnet-evm/metrics"
 	"github.com/ethereum/go-ethereum/common"
 	gethsnapshot "github.com/ethereum/go-ethereum/core/state/snapshot"
 	"github.com/ethereum/go-ethereum/ethdb"

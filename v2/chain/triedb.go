@@ -1,8 +1,8 @@
 package chain
 
 import (
-	"github.com/ava-labs/coreth/core"
-	"github.com/ava-labs/coreth/trie/triedb/pathdb"
+	"github.com/ava-labs/subnet-evm/core"
+	"github.com/ava-labs/subnet-evm/trie/triedb/pathdb"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/trie"
 )

@@ -30,7 +30,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ava-labs/coreth/core/rawdb"
+	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/crate-crypto/go-ipa/banderwagon"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/lru"

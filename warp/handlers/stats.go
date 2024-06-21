@@ -6,7 +6,7 @@ package handlers
 import (
 	"time"
 
-	"github.com/ava-labs/coreth/metrics"
+	"github.com/ava-labs/subnet-evm/metrics"
 )
 
 type handlerStats struct {

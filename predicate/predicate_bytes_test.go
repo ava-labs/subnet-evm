@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/ava-labs/avalanchego/utils"
-	"github.com/ava-labs/coreth/params"
+	"github.com/ava-labs/subnet-evm/params"
 	"github.com/stretchr/testify/require"
 )
 

@@ -26,7 +26,7 @@
 
 package pathdb
 
-import "github.com/ava-labs/coreth/metrics"
+import "github.com/ava-labs/subnet-evm/metrics"
 
 // nolint: unused
 var (

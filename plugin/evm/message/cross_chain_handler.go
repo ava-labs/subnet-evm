@@ -9,7 +9,7 @@ import (
 	"github.com/ava-labs/avalanchego/codec"
 	"github.com/ava-labs/avalanchego/ids"
 
-	"github.com/ava-labs/coreth/internal/ethapi"
+	"github.com/ava-labs/subnet-evm/internal/ethapi"
 
 	"github.com/ethereum/go-ethereum/log"
 )

@@ -5,13 +5,13 @@ import (
 	"math/big"
 
 	"github.com/ava-labs/avalanchego/utils/timer/mockable"
-	"github.com/ava-labs/coreth/consensus"
-	"github.com/ava-labs/coreth/core/txpool"
-	"github.com/ava-labs/coreth/core/txpool/legacypool"
-	"github.com/ava-labs/coreth/core/types"
-	"github.com/ava-labs/coreth/eth/gasprice"
-	"github.com/ava-labs/coreth/miner"
-	"github.com/ava-labs/coreth/rpc"
+	"github.com/ava-labs/subnet-evm/consensus"
+	"github.com/ava-labs/subnet-evm/core/txpool"
+	"github.com/ava-labs/subnet-evm/core/txpool/legacypool"
+	"github.com/ava-labs/subnet-evm/core/types"
+	"github.com/ava-labs/subnet-evm/eth/gasprice"
+	"github.com/ava-labs/subnet-evm/miner"
+	"github.com/ava-labs/subnet-evm/rpc"
 	"github.com/ethereum/go-ethereum/common"
 )
 

@@ -32,9 +32,9 @@ import (
 	"math/big"
 	"os"
 
-	"github.com/ava-labs/coreth/cmd/evm/internal/t8ntool"
-	"github.com/ava-labs/coreth/internal/debug"
-	"github.com/ava-labs/coreth/internal/flags"
+	"github.com/ava-labs/subnet-evm/cmd/evm/internal/t8ntool"
+	"github.com/ava-labs/subnet-evm/internal/debug"
+	"github.com/ava-labs/subnet-evm/internal/flags"
 	"github.com/urfave/cli/v2"
 
 	// Force-load the tracer engines to trigger registration

@@ -1,12 +1,12 @@
 package evm
 
 import (
-	"github.com/ava-labs/coreth/consensus/dummy"
-	"github.com/ava-labs/coreth/core"
-	"github.com/ava-labs/coreth/core/rawdb"
-	"github.com/ava-labs/coreth/eth"
-	"github.com/ava-labs/coreth/node"
-	"github.com/ava-labs/coreth/v2/chain"
+	"github.com/ava-labs/subnet-evm/consensus/dummy"
+	"github.com/ava-labs/subnet-evm/core"
+	"github.com/ava-labs/subnet-evm/core/rawdb"
+	"github.com/ava-labs/subnet-evm/eth"
+	"github.com/ava-labs/subnet-evm/node"
+	"github.com/ava-labs/subnet-evm/v2/chain"
 	"github.com/ethereum/go-ethereum/common"
 	corevm "github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/log"

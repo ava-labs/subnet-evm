@@ -25,7 +25,7 @@ It is also helpful to have a basic understanding of [Solidity](https://docs.soli
 Clone the repo and install the necessary packages via `yarn`.
 
 ```bash
-git clone https://github.com/ava-labs/coreth.git
+git clone https://github.com/ava-labs/subnet-evm.git
 cd contracts
 npm install
 ```
@@ -42,13 +42,13 @@ npm install
 
 All of these `NativeMinter`, `FeeManager` and `AllowList` contracts should be enabled by a chain config in genesis or as an upgrade. See the example genesis under [Tests](#tests) section.
 
-For more information about precompiles see [subnet-evm precompiles](https://github.com/ava-labs/coreth#precompiles).
+For more information about precompiles see [subnet-evm precompiles](https://github.com/ava-labs/subnet-evm#precompiles).
 
 ## Hardhat Config
 
 Hardhat uses `hardhat.config.js` as the configuration file. You can define tasks, networks, compilers and more in that file. For more information see [here](https://hardhat.org/config/).
 
-In Subnet-EVM, we provide a pre-configured file [hardhat.config.ts](https://github.com/ava-labs/coreth/blob/master/contracts/hardhat.config.ts).
+In Subnet-EVM, we provide a pre-configured file [hardhat.config.ts](https://github.com/ava-labs/subnet-evm/blob/master/contracts/hardhat.config.ts).
 
 The HardHat config file includes a single network configuration: `local`. `local` defaults to using the following values for the RPC URL and the Chain ID:
 

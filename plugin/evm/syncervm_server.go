@@ -10,7 +10,7 @@ import (
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
 
-	"github.com/ava-labs/coreth/plugin/evm/message"
+	"github.com/ava-labs/subnet-evm/plugin/evm/message"
 	"github.com/ethereum/go-ethereum/log"
 )
 
