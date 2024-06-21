@@ -9,6 +9,9 @@ FROM golang:1.21.11-bullseye AS builder
 
 WORKDIR /build
 
+# Wagmi specific data
+RUN curl https://raw.githubusercontent.com/ava-labs/public-chain-assets/main/chains/11111/airdrop.json -o /build/airdrop.json
+
 # Copy avalanche dependencies first (intermediate docker image caching)
 # Copy avalanchego directory if present (for manual CI case, which uses local dependency)
 COPY go.mod go.sum avalanchego* ./
@@ -30,3 +33,4 @@ FROM avaplatform/avalanchego:$AVALANCHE_VERSION AS builtImage
 
 # Copy the evm binary into the correct location in the container
 COPY --from=builder /build/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy /avalanchego/build/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
+COPY --from=builder /build/airdrop.json /avalanchego/airdrop.json
