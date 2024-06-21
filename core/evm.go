@@ -323,10 +323,6 @@ func (c *chainConfigWrapper) Rules(blockNum *big.Int, isMerge bool, timestamp ui
 	return rules.AsGeth()
 }
 
-func unwrapStateDB(db vm.StateDB) StateDB {
-	return db.(*stateDBWrapper).StateDB
-}
-
 // IsProhibited returns true if [addr] is in the prohibited list of addresses which should
 // not be allowed as an EOA or newly created contract address.
 func IsProhibited(addr common.Address) bool {

@@ -42,13 +42,6 @@ import (
 	"github.com/ethereum/go-ethereum/trie"
 )
 
-type testAction struct {
-	name   string
-	fn     func(testAction, *StateDB)
-	args   []int64
-	noAddr bool
-}
-
 // Tests that updating a state trie does not leak any database writes prior to
 // actually committing the state.
 func TestUpdateLeaks(t *testing.T) {
