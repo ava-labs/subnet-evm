@@ -695,7 +695,7 @@ func TestPrecompileBind(t *testing.T) {
 	if out, err := replacer.CombinedOutput(); err != nil {
 		t.Fatalf("failed to replace binding test dependency to current source tree: %v\n%s", err, out)
 	}
-	replacer = exec.Command(gocmd, "mod", "edit", "-x", "-replace", "github.com/ethereum/go-ethereum=github.com/darioush/go-ethereum@v1.13.8-coreth-004")
+	replacer = exec.Command(gocmd, "mod", "edit", "-x", "-replace", "github.com/ethereum/go-ethereum=github.com/darioush/go-ethereum@v1.13.8-coreth-005")
 	replacer.Dir = pkg
 	if out, err := replacer.CombinedOutput(); err != nil {
 		t.Fatalf("failed to replace binding test dependency to current source tree: %v\n%s", err, out)
