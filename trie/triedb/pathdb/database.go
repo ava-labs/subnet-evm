@@ -218,7 +218,9 @@ func New(diskdb ethdb.Database, config *Config) *Database {
 	// 		log.Crit("Failed to disable database", "err", err) // impossible to happen
 	// 	}
 	// }
-	log.Warn("Path-based state scheme is an experimental feature")
+	bottom := db.tree.bottom().root
+	layers := db.tree.len()
+	log.Warn("Path-based state scheme is an experimental feature", "bottom", bottom, "layers", layers)
 	return db
 }
 
