@@ -4,7 +4,7 @@ package main
 
 import (
 	"context"
-	"log"
+	"fmt"
 	"os"
 
 	"github.com/ava-labs/subnet-evm/x/gethclone/astpatch"
@@ -18,12 +18,17 @@ func main() {
 
 	pflag.StringSliceVar(&c.packages, "packages", []string{"core/vm"}, `Geth packages to clone, with or without "github.com/ethereum/go-ethereum" prefix.`)
 	pflag.StringVar(&c.outputGoMod, "output_go_mod", "", "go.mod file of the destination to which geth will be cloned.")
+	pflag.StringVar(&c.goBinary, "go_binary", "", "Location of `go` binary; uses system default if empty.")
 	pflag.Parse()
 
-	log.SetOutput(os.Stderr)
-	log.Print("START")
+	stderr("START")
 	if err := c.run(context.Background()); err != nil {
-		log.Fatal(err)
+		stderr(err)
+		os.Exit(1)
 	}
-	log.Print("DONE")
+	stderr("DONE")
+}
+
+func stderr(x ...any) {
+	fmt.Fprintln(os.Stderr, x...)
 }
