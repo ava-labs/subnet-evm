@@ -56,5 +56,5 @@ dist/
 # Outputs of `scripts/diff_against.sh`
 diffs/
 
-# gethclone output
+# gethclone experimental output
 *.gethclone
