@@ -194,7 +194,7 @@ func (tree *layerTree) cap(root common.Hash, layers int) error {
 		// parent is linked correctly.
 		diff.lock.Lock()
 
-		base, err := parent.persist(false)
+		base, err := parent.persist(true)
 		if err != nil {
 			diff.lock.Unlock()
 			return err
