@@ -18,7 +18,7 @@ func main() {
 
 	pflag.StringSliceVar(&c.packages, "packages", []string{"core/vm"}, `Geth packages to clone, with or without "github.com/ethereum/go-ethereum" prefix.`)
 	pflag.StringVar(&c.outputGoMod, "output_go_mod", "", "go.mod file of the destination to which geth will be cloned.")
-	pflag.StringVar(&c.goBinary, "go_binary", "", "Location of `go` binary; uses system default if empty.")
+	pflag.StringVar(&c.runGo.bin, "go_binary", "", "Location of `go` binary; uses system default if empty.")
 	pflag.Parse()
 
 	stderr("START")

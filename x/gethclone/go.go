@@ -7,23 +7,31 @@ import (
 	"os/exec"
 	"strings"
 	"time"
+
+	"go.uber.org/zap"
 )
 
-// goList runs `go list -json [patterns...]` and returns the parsed output. It
+// A goRunner runs the `go` binary.
+type goRunner struct {
+	bin string // if empty, `go` will be found in $PATH
+	log *zap.SugaredLogger
+}
+
+// list runs `go list -json [patterns...]` and returns the parsed output. It
 // returns an error if `PackagePublic.Err` is non-nil, but ignores
 // `PackagePublic.DepsErrors` as they may pertain to a non-geth package that
 // `gethclone` doesn't have available. Any dependency error pertaining to a geth
 // dep will eventually be reached when traversing the import tree.
-func (c *config) goList(ctx context.Context, patterns ...string) ([]*PackagePublic, error) {
-	if c.goBinary == "" {
+func (r *goRunner) list(ctx context.Context, patterns ...string) ([]*PackagePublic, error) {
+	if r.bin == "" {
 		// Although we could just use "go" as the command name later, this
 		// allows logging for debugging.
 		p, err := exec.LookPath("go")
 		if err != nil {
 			return nil, fmt.Errorf("finding `go` binary: %v", err)
 		}
-		c.log.Infof("Found `go` in PATH: %q", p)
-		c.goBinary = p
+		r.log.Infof("Found `go` in PATH: %q", p)
+		r.bin = p
 	}
 
 	var result []*PackagePublic
@@ -33,18 +41,18 @@ func (c *config) goList(ctx context.Context, patterns ...string) ([]*PackagePubl
 	// list` multiple times than it is to convert the output to a JSON list.
 	for _, p := range patterns {
 		// -find stops `go list` from traversing the dependency tree
-		cmd := exec.CommandContext(ctx, c.goBinary, "list", "-find", "-json", p)
+		cmd := exec.CommandContext(ctx, r.bin, "list", "-find", "-json", p)
 
 		start := time.Now()
 		buf, err := cmd.Output()
 		end := time.Now()
 		if ee, ok := err.(*exec.ExitError); ok {
-			c.log.Errorf("stderr of `go list`:\n%s", ee.Stderr)
+			r.log.Errorf("stderr of `go list`:\n%s", ee.Stderr)
 		}
 		if err != nil {
 			return nil, fmt.Errorf("running `go list`: %v", err)
 		}
-		c.log.Debugf("`go list ... %q` ran in %s", p, end.Sub(start))
+		r.log.Debugf("`go list ... %q` ran in %s", p, end.Sub(start))
 
 		pkg := new(PackagePublic)
 		if err := json.Unmarshal(buf, pkg); err != nil {

@@ -28,7 +28,7 @@ type config struct {
 	// Externally configurable (e.g. flags)
 	packages    []string
 	outputGoMod string
-	goBinary    string
+	runGo       goRunner
 
 	// Internal
 	log          *zap.SugaredLogger
@@ -46,6 +46,7 @@ func (c *config) run(ctx context.Context, logOpts ...zap.Option) (retErr error) 
 		return err
 	}
 	c.log = l.Sugar()
+	c.runGo.log = c.log
 	defer c.log.Sync()
 
 	for i, p := range c.packages {
@@ -85,7 +86,7 @@ func (c *config) loadAndParse(ctx context.Context, fset *token.FileSet, patterns
 	// becomes problematic, this is where to look first.
 	ps := set.Of(patterns...)
 	ps.Difference(c.processed)
-	pkgs, err := c.goList(ctx, ps.List()...)
+	pkgs, err := c.runGo.list(ctx, ps.List()...)
 	if err != nil {
 		return err
 	}
