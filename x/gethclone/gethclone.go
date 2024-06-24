@@ -7,7 +7,6 @@ import (
 	"go/format"
 	"go/parser"
 	"go/token"
-	"log"
 	"os"
 	"path"
 	"path/filepath"
@@ -15,10 +14,9 @@ import (
 
 	"github.com/ava-labs/avalanchego/utils/set"
 	"github.com/ava-labs/subnet-evm/x/gethclone/astpatch"
-	"go.uber.org/multierr"
+	"go.uber.org/zap"
 	"golang.org/x/mod/modfile"
 	"golang.org/x/tools/go/ast/astutil"
-	"golang.org/x/tools/go/packages"
 
 	_ "embed"
 
@@ -30,17 +28,27 @@ type config struct {
 	// Externally configurable (e.g. flags)
 	packages    []string
 	outputGoMod string
+	runGo       goRunner
 
 	// Internal
+	log          *zap.SugaredLogger
 	outputModule *modfile.Module
 	astPatches   astpatch.PatchRegistry
 
-	processed map[string]bool
+	processed set.Set[string]
 }
 
 const geth = "github.com/ethereum/go-ethereum"
 
-func (c *config) run(ctx context.Context) error {
+func (c *config) run(ctx context.Context, logOpts ...zap.Option) (retErr error) {
+	l, err := zap.NewDevelopment(logOpts...)
+	if err != nil {
+		return err
+	}
+	c.log = l.Sugar()
+	c.runGo.log = c.log
+	defer c.log.Sync()
+
 	for i, p := range c.packages {
 		if !strings.HasPrefix(p, geth) {
 			c.packages[i] = path.Join(geth, p)
@@ -48,13 +56,12 @@ func (c *config) run(ctx context.Context) error {
 	}
 
 	mod, err := parseGoMod(c.outputGoMod)
-	fmt.Println(err)
 	if err != nil {
 		return nil
 	}
 	c.outputModule = mod.Module
 
-	c.processed = make(map[string]bool)
+	c.processed = make(set.Set[string])
 	return c.loadAndParse(ctx, token.NewFileSet(), c.packages...)
 }
 
@@ -73,13 +80,15 @@ func (c *config) loadAndParse(ctx context.Context, fset *token.FileSet, patterns
 		return nil
 	}
 
-	pkgConfig := &packages.Config{
-		Context: ctx,
-		Mode:    packages.NeedName | packages.NeedCompiledGoFiles,
-	}
-	pkgs, err := packages.Load(pkgConfig, patterns...)
+	// TODO(arr4n): most of the time is spent here, listing patterns. Although
+	// the `processed` set gets rid of most of the duplication, occasionally a
+	// package is still `list`ed (but not parse()d) twice. If the overhead
+	// becomes problematic, this is where to look first.
+	ps := set.Of(patterns...)
+	ps.Difference(c.processed)
+	pkgs, err := c.runGo.list(ctx, ps.List()...)
 	if err != nil {
-		return fmt.Errorf("packages.Load(..., %q): %v", c.packages, err)
+		return err
 	}
 
 	for _, pkg := range pkgs {
@@ -96,31 +105,27 @@ var copyrightHeader string
 // parse parses all `pkg.Files` into `fset`, transforms each according to
 // semantic patches, and passes all geth imports back to `c.loadAndParse()` for
 // recursive handling.
-func (c *config) parse(ctx context.Context, pkg *packages.Package, fset *token.FileSet) error {
-	if len(pkg.Errors) != 0 {
-		var err error
-		for _, e := range pkg.Errors {
-			multierr.AppendInto(&err, e)
-		}
-		return err
-	}
-
-	if c.processed[pkg.PkgPath] {
+func (c *config) parse(ctx context.Context, pkg *PackagePublic, fset *token.FileSet) error {
+	if c.processed.Contains(pkg.ImportPath) {
+		c.log.Debugf("Already processed %q", pkg.ImportPath)
 		return nil
 	}
-	c.processed[pkg.PkgPath] = true
+	c.processed.Add(pkg.ImportPath)
 
-	outDir := filepath.Join(
-		filepath.Dir(c.outputGoMod),
-		strings.TrimPrefix(pkg.PkgPath, geth),
-	)
-	log.Printf("Cloning %q into %q", pkg.PkgPath, outDir)
+	shortPkgPath := strings.TrimPrefix(pkg.ImportPath, geth)
+
+	outDir := filepath.Join(filepath.Dir(c.outputGoMod), shortPkgPath)
+	if err := os.MkdirAll(outDir, 0755); err != nil {
+		return fmt.Errorf("create directory for %q: %v", shortPkgPath, err)
+	}
+	c.log.Infof("Cloning %q into %q", pkg.ImportPath, outDir)
 
 	allGethImports := set.NewSet[string](0)
-	for _, fName := range pkg.CompiledGoFiles {
-		file, err := parser.ParseFile(fset, fName, nil, parser.ParseComments|parser.SkipObjectResolution)
+	for _, fName := range concat(pkg.GoFiles, pkg.TestGoFiles) {
+		fPath := filepath.Join(pkg.Dir, fName)
+		file, err := parser.ParseFile(fset, fPath, nil, parser.ParseComments|parser.SkipObjectResolution)
 		if err != nil {
-			return fmt.Errorf("parser.ParseFile(... %q ...): %v", fName, err)
+			return fmt.Errorf("parser.ParseFile(... %q ...): %v", fPath, err)
 		}
 
 		gethImports, err := c.transformGethImports(fset, file)
@@ -133,27 +138,30 @@ func (c *config) parse(ctx context.Context, pkg *packages.Package, fset *token.F
 			List: []*ast.Comment{{Text: copyrightHeader}},
 		}}, file.Comments...)
 
-		if err := c.astPatches.Apply(pkg.PkgPath, file); err != nil {
-			return fmt.Errorf("apply AST patches to %q: %v", pkg.PkgPath, err)
+		if err := c.astPatches.Apply(pkg.ImportPath, file); err != nil {
+			return fmt.Errorf("apply AST patches to %q: %v", pkg.ImportPath, err)
 		}
 
-		if false {
-			// TODO(arr4n): enable writing when a suitable strategy exists; in
-			// the meantime, this code is demonstrative of intent. Do we want to
-			// simply overwrite and then check `git diff`? Do we want to check
-			// the diffs here?
-			outFile := filepath.Join(outDir, filepath.Base(fName))
-			f, err := os.Create(outFile)
-			if err != nil {
-				return err
-			}
-			if err := format.Node(f, fset, file); err != nil {
-				return err
-			}
+		outFile := fmt.Sprintf("%s.gethclone", filepath.Join(outDir, filepath.Base(fName)))
+		f, err := os.Create(outFile)
+		if err != nil {
+			return err
 		}
+		if err := format.Node(f, fset, file); err != nil {
+			return fmt.Errorf("format.Node(..., %T): %v", file, err)
+		}
+		c.log.Infof("Cloned %q", filepath.Join(shortPkgPath, fName))
 	}
 
 	return c.loadAndParse(ctx, fset, allGethImports.List()...)
+}
+
+func concat(strs ...[]string) []string {
+	var out []string
+	for _, s := range strs {
+		out = append(out, s...)
+	}
+	return out
 }
 
 // transformGethImports finds all `ethereum/go-ethereum` imports in the file,
