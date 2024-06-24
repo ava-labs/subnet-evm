@@ -35,7 +35,7 @@ type config struct {
 	outputModule *modfile.Module
 	astPatches   astpatch.PatchRegistry
 
-	processed map[string]bool
+	processed set.Set[string]
 }
 
 const geth = "github.com/ethereum/go-ethereum"
@@ -60,7 +60,7 @@ func (c *config) run(ctx context.Context, logOpts ...zap.Option) (retErr error) 
 	}
 	c.outputModule = mod.Module
 
-	c.processed = make(map[string]bool)
+	c.processed = make(set.Set[string])
 	return c.loadAndParse(ctx, token.NewFileSet(), c.packages...)
 }
 
@@ -79,10 +79,17 @@ func (c *config) loadAndParse(ctx context.Context, fset *token.FileSet, patterns
 		return nil
 	}
 
-	pkgs, err := c.goList(ctx, patterns...)
+	// TODO(arr4n): most of the time is spent here, listing patterns. Although
+	// the `processed` set gets rid of most of the duplication, occasionally a
+	// package is still `list`ed (but not parse()d) twice. If the overhead
+	// becomes problematic, this is where to look first.
+	ps := set.Of(patterns...)
+	ps.Difference(c.processed)
+	pkgs, err := c.goList(ctx, ps.List()...)
 	if err != nil {
 		return err
 	}
+
 	for _, pkg := range pkgs {
 		if err := c.parse(ctx, pkg, fset); err != nil {
 			return err
@@ -98,11 +105,11 @@ var copyrightHeader string
 // semantic patches, and passes all geth imports back to `c.loadAndParse()` for
 // recursive handling.
 func (c *config) parse(ctx context.Context, pkg *PackagePublic, fset *token.FileSet) error {
-	if c.processed[pkg.ImportPath] {
+	if c.processed.Contains(pkg.ImportPath) {
 		c.log.Debugf("Already processed %q", pkg.ImportPath)
 		return nil
 	}
-	c.processed[pkg.ImportPath] = true
+	c.processed.Add(pkg.ImportPath)
 
 	shortPkgPath := strings.TrimPrefix(pkg.ImportPath, geth)
 

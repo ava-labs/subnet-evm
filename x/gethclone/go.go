@@ -32,15 +32,19 @@ func (c *config) goList(ctx context.Context, patterns ...string) ([]*PackagePubl
 	// but a new-line concatenation of each JSON object. It's simpler to run `go
 	// list` multiple times than it is to convert the output to a JSON list.
 	for _, p := range patterns {
-		cmd := exec.CommandContext(ctx, c.goBinary, "list", "-json", p)
+		// -find stops `go list` from traversing the dependency tree
+		cmd := exec.CommandContext(ctx, c.goBinary, "list", "-find", "-json", p)
 
+		start := time.Now()
 		buf, err := cmd.Output()
+		end := time.Now()
 		if ee, ok := err.(*exec.ExitError); ok {
 			c.log.Errorf("stderr of `go list`:\n%s", ee.Stderr)
 		}
 		if err != nil {
 			return nil, fmt.Errorf("running `go list`: %v", err)
 		}
+		c.log.Debugf("`go list ... %q` ran in %s", p, end.Sub(start))
 
 		pkg := new(PackagePublic)
 		if err := json.Unmarshal(buf, pkg); err != nil {
