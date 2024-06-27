@@ -102,3 +102,30 @@ func UnqualifiedCall(name string, patch func(*astutil.Cursor, *ast.CallExpr) err
 		return patch(c, call)
 	}
 }
+
+// Function returns a `TypePatcher` that only applies to the specific function
+// declaration.
+//
+// The `patch` argument functions like a regular `Patch` except that its
+// parameters are extended to also accept the methods's AST declaration as its
+// concrete type (i.e. `astutil.Cursor.Node().(*ast.FuncDecl)`).
+func Function(name string, patch func(*astutil.Cursor, *ast.FuncDecl) error) TypePatcher {
+	return typePatcher{
+		typ: (*ast.FuncDecl)(nil),
+		patch: func(c *astutil.Cursor) error {
+			fn, ok := c.Node().(*ast.FuncDecl)
+			if !ok || fn.Name.Name != name {
+				return nil
+			}
+			return patch(c, fn)
+		},
+	}
+}
+
+// RenameFunction does what it says on the tin.
+func RenameFunction(from, to string) TypePatcher {
+	return Function(from, func(c *astutil.Cursor, fn *ast.FuncDecl) error {
+		fn.Name.Name = to
+		return nil
+	})
+}

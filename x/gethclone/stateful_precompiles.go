@@ -37,6 +37,13 @@ func (p *statefulPrecompiles) register(reg astpatch.PatchRegistry) {
 			astpatch.Method("EVM", method, p.patchRunPrecompiledCalls),
 		)
 	}
+
+	// Rename `RunPrecompiledContract()` to avoid it being called in production.
+	// An alias should be created in *test* file(s) that call the original.
+	reg.Add(
+		geth("core/vm"),
+		astpatch.RenameFunction("RunPrecompiledContract", "geth_RunPrecompiledContract"),
+	)
 }
 
 // validate returns nil iff all `evmCallMethods()` were patched.
@@ -85,7 +92,7 @@ func (p *statefulPrecompiles) patchRunPrecompiledCalls(_ *astutil.Cursor, fn *as
 		)
 	}
 
-	_, err := astpatch.Apply(fn,
+	_, err := astpatch.Apply(fn.Body,
 		astpatch.UnqualifiedCall("RunPrecompiledContract", func(_ *astutil.Cursor, call *ast.CallExpr) error {
 			call.Fun = ast.NewIdent("RunStatefulPrecompiledContract")
 
