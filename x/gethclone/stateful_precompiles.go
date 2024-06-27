@@ -31,10 +31,10 @@ func (p *statefulPrecompiles) register(reg astpatch.PatchRegistry) {
 		p.patchedMethods = make(map[string]bool)
 	}
 
-	for _, method := range p.evmCallMethods() {
+	for _, m := range p.evmCallMethods() {
 		reg.Add(
 			geth("core/vm"),
-			astpatch.Method("EVM", method, p.patchRunPrecompiledCalls),
+			astpatch.Method("EVM", m, p.patchRunPrecompiledCalls),
 		)
 	}
 
@@ -57,8 +57,9 @@ func (p *statefulPrecompiles) validate() error {
 }
 
 // patchRunPrecompiledCalls finds all `RunPrecompiledContract()` calls inside
-// `fn` and changes them to (a) call a different function; and (b) also
-// propagate fn's first argument (the caller) and `evm.interpreter.readOnly`.
+// `fn.Body` and changes them to (a) call a different function; and (b) also
+// propagate fn's first argument (the caller) and `evm.interpreter.readOnly`,
+// where `evm` is the receiver name of the function being patched.
 //
 //	RunPrecompiledContract(p, input gas)
 //	// becomes
