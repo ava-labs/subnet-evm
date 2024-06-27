@@ -49,8 +49,8 @@ func Apply(root ast.Node, pre, post Patch) (ast.Node, error) {
 //
 // The special `pkgPath` value "*" will match all package paths. While there is
 // no specific requirement for `pkgPath` other than it matching the equivalent
-// argument passed to `Apply()`, it is typically sourced from
-// `golang.org/x/tools/go/packages.Package.PkgPath`.
+// argument passed to `Apply()`, it is typically the import path of the package
+// being patched.
 func (r PatchRegistry) AddForType(pkgPath string, zeroNode ast.Node, fn Patch) {
 	pkg, ok := r[pkgPath]
 	if !ok {
@@ -64,7 +64,8 @@ func (r PatchRegistry) AddForType(pkgPath string, zeroNode ast.Node, fn Patch) {
 
 // A TypePatcher couples a `Patch` with the specific `ast.Node` type to which it
 // applies. It is useful when `PatchRegistry.AddForType()` MUST receive a
-// specific `Node` type for a particular `Patch`.
+// specific `Node` type for a particular `Patch`, in which case
+// `PatchRegistry.Add()` SHOULD be used instead.
 type TypePatcher interface {
 	Type() ast.Node
 	Patch(*astutil.Cursor) error

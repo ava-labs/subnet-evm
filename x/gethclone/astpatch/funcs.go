@@ -14,9 +14,8 @@ import (
 // parameters are extended to also accept the methods's AST declaration as its
 // concrete type (i.e. `astutil.Cursor.Node().(*ast.FuncDecl)`).
 //
-//	// Original declaration
+//	// Method declaration
 //	func (x *Thing) Do() { ... }
-//
 //	// Patched with
 //	astpatch.Method("Thing", "Do", ...)
 func Method(receiverType, methodName string, patch func(*astutil.Cursor, *ast.FuncDecl) error) TypePatcher {
