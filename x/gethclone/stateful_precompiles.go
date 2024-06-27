@@ -49,6 +49,17 @@ func (p *statefulPrecompiles) validate() error {
 	return nil
 }
 
+// patchRunPrecompiledCalls finds all `RunPrecompiledContract()` calls inside
+// `fn` and changes them to (a) call a different function; and (b) also
+// propagate fn's first argument (the caller) and `evm.interpreter.readOnly`.
+//
+//	RunPrecompiledContract(p, input gas)
+//	// becomes
+//	RunStatefulPrecompiledContract(p, input, gas, caller, evm.interpreter.readOnly)
+//
+// The definition of `RunStatefulPrecompiledContract()` SHOULD be implemented as
+// regular Go code. The determination of whether `p` is stateful or not can be
+// achieved with a type switch.
 func (p *statefulPrecompiles) patchRunPrecompiledCalls(_ *astutil.Cursor, fn *ast.FuncDecl) error {
 	{
 		// This block only locks in the assumptions we're making in the patch
