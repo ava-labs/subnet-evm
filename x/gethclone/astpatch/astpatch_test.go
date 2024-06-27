@@ -79,11 +79,11 @@ func ` + errorIfFuncName + `() {}
 			var spy patchSpy
 			reg := make(PatchRegistry)
 
-			reg.Add("*", &ast.FuncDecl{}, spy.funcRecorder)
+			reg.AddForType("*", &ast.FuncDecl{}, spy.funcRecorder)
 			const pkgPath = `github.com/the/repo/thepackage`
-			reg.Add(pkgPath, &ast.StructType{}, spy.structRecorder)
+			reg.AddForType(pkgPath, &ast.StructType{}, spy.structRecorder)
 
-			reg.Add("unknown/package/path", &ast.FuncDecl{}, func(c *astutil.Cursor) error {
+			reg.AddForType("unknown/package/path", &ast.FuncDecl{}, func(c *astutil.Cursor) error {
 				t.Errorf("unexpected call to %T with different package path", (Patch)(nil))
 				return nil
 			})
@@ -94,7 +94,7 @@ func ` + errorIfFuncName + `() {}
 			// None of the `require.Equal*()` variants provide a check for exact
 			// match (i.e. equivalent to ==) of the identical error being
 			// propagated.
-			if gotErr := reg.Apply(pkgPath, file); gotErr != tt.wantErr {
+			if _, gotErr := reg.Apply(pkgPath, file); gotErr != tt.wantErr {
 				t.Fatalf("%T.Apply(...) got err %v; want %v", reg, gotErr, tt.wantErr)
 			}
 			assert.Empty(t, cmp.Diff(tt.wantFuncs, spy.gotFuncs), "encountered function declarations (-want +got)")

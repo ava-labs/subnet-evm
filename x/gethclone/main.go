@@ -14,6 +14,9 @@ import (
 func main() {
 	c := config{
 		astPatches: make(astpatch.PatchRegistry),
+		patchSets: []patchSet{
+			&statefulPrecompiles{},
+		},
 	}
 
 	pflag.StringSliceVar(&c.packages, "packages", []string{"core/vm"}, `Geth packages to clone, with or without "github.com/ethereum/go-ethereum" prefix.`)
