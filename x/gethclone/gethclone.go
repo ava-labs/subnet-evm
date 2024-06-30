@@ -20,7 +20,6 @@ import (
 
 	_ "embed"
 
-	// TODO(arr4n): change to using a git sub-module
 	_ "github.com/ethereum/go-ethereum/common"
 )
 
@@ -34,11 +33,31 @@ type config struct {
 	log          *zap.SugaredLogger
 	outputModule *modfile.Module
 	astPatches   astpatch.PatchRegistry
+	patchSets    []patchSet
 
 	processed set.Set[string]
 }
 
-const geth = "github.com/ethereum/go-ethereum"
+// A patchSet registers one or more patches on a `patch.PatchRegistry` and later
+// validates that they were correctly applied. Validation is necessary because
+// an error-free application of the registry doesn't guarantee that all expected
+// nodes were actually visited.
+type patchSet interface {
+	name() string
+	register(astpatch.PatchRegistry)
+	validate() error
+}
+
+const gethMod = "github.com/ethereum/go-ethereum"
+
+// geth returns `gethMod`+`pkg` unless `pkg` already has `gethMod` as a prefix,
+// in which case `pkg` is returned unchanged.
+func geth(pkg string) string {
+	if strings.HasPrefix(pkg, gethMod) {
+		return pkg
+	}
+	return path.Join(gethMod, strings.TrimLeft(pkg, `/`))
+}
 
 func (c *config) run(ctx context.Context, logOpts ...zap.Option) (retErr error) {
 	l, err := zap.NewDevelopment(logOpts...)
@@ -50,9 +69,10 @@ func (c *config) run(ctx context.Context, logOpts ...zap.Option) (retErr error) 
 	defer c.log.Sync()
 
 	for i, p := range c.packages {
-		if !strings.HasPrefix(p, geth) {
-			c.packages[i] = path.Join(geth, p)
-		}
+		c.packages[i] = geth(p)
+	}
+	for _, ps := range c.patchSets {
+		ps.register(c.astPatches)
 	}
 
 	mod, err := parseGoMod(c.outputGoMod)
@@ -62,7 +82,16 @@ func (c *config) run(ctx context.Context, logOpts ...zap.Option) (retErr error) 
 	c.outputModule = mod.Module
 
 	c.processed = make(set.Set[string])
-	return c.loadAndParse(ctx, token.NewFileSet(), c.packages...)
+	if err := c.loadAndParse(ctx, token.NewFileSet(), c.packages...); err != nil {
+		return err
+	}
+
+	for _, ps := range c.patchSets {
+		if err := ps.validate(); err != nil {
+			return fmt.Errorf("patch-set %q validation: %v", ps.name(), err)
+		}
+	}
+	return nil
 }
 
 func parseGoMod(filePath string) (*modfile.File, error) {
@@ -112,7 +141,7 @@ func (c *config) parse(ctx context.Context, pkg *PackagePublic, fset *token.File
 	}
 	c.processed.Add(pkg.ImportPath)
 
-	shortPkgPath := strings.TrimPrefix(pkg.ImportPath, geth)
+	shortPkgPath := strings.TrimPrefix(pkg.ImportPath, gethMod)
 
 	outDir := filepath.Join(filepath.Dir(c.outputGoMod), shortPkgPath)
 	if err := os.MkdirAll(outDir, 0755); err != nil {
@@ -138,7 +167,7 @@ func (c *config) parse(ctx context.Context, pkg *PackagePublic, fset *token.File
 			List: []*ast.Comment{{Text: copyrightHeader}},
 		}}, file.Comments...)
 
-		if err := c.astPatches.Apply(pkg.ImportPath, file); err != nil {
+		if _, err := c.astPatches.Apply(pkg.ImportPath, file); err != nil {
 			return fmt.Errorf("apply AST patches to %q: %v", pkg.ImportPath, err)
 		}
 
@@ -171,12 +200,12 @@ func (c *config) transformGethImports(fset *token.FileSet, file *ast.File) (set.
 	imports := set.NewSet[string](len(file.Imports))
 	for _, im := range file.Imports {
 		p := strings.Trim(im.Path.Value, `"`)
-		if !strings.HasPrefix(p, geth) {
+		if !strings.HasPrefix(p, gethMod) {
 			continue
 		}
 
 		imports.Add(p)
-		if !astutil.RewriteImport(fset, file, p, strings.Replace(p, geth, c.outputModule.Mod.String(), 1)) {
+		if !astutil.RewriteImport(fset, file, p, strings.Replace(p, gethMod, c.outputModule.Mod.String(), 1)) {
 			return nil, fmt.Errorf("failed to rewrite import %q", p)
 		}
 	}
