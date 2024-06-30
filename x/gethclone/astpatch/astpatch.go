@@ -15,6 +15,12 @@ type (
 	// A non-nil error is equivalent to returning false and will also abort all
 	// further calls to other patches.
 	Patch func(*astutil.Cursor) error
+	// A TypedPatch functions identically to a `Patch` except that it also
+	// receives the `ast.Node` as its concrete type.
+	//
+	// Invariant: `c.Node()` and `n` MUST be of the same concrete type and point
+	// to the same memory; i.e. `c.Node().(N) == n` doesn't panic and is true.
+	TypedPatch[N ast.Node] func(c *astutil.Cursor, n N) error
 	// A PatchRegistry maps [Go package path] -> [ast.Node concrete types] ->
 	// [all `Patch` functions that must be applied to said node types in said
 	// package].
@@ -62,29 +68,29 @@ func (r PatchRegistry) AddForType(pkgPath string, zeroNode ast.Node, fn Patch) {
 	pkg[t] = append(pkg[t], fn)
 }
 
-// A TypePatcher couples a `Patch` with the specific `ast.Node` type to which it
+// A Patcher couples a `Patch` with the specific `ast.Node` type to which it
 // applies. It is useful when `PatchRegistry.AddForType()` MUST receive a
 // specific `Node` type for a particular `Patch`, in which case
 // `PatchRegistry.Add()` SHOULD be used instead.
-type TypePatcher interface {
+type Patcher interface {
 	Type() ast.Node
 	Patch(*astutil.Cursor) error
 }
 
 // Add is a synonym of `AddForType()`, instead accepting an argument that
 // provides the `Node` type and the `Patch`.
-func (r PatchRegistry) Add(pkgPath string, tp TypePatcher) {
+func (r PatchRegistry) Add(pkgPath string, tp Patcher) {
 	r.AddForType(pkgPath, tp.Type(), tp.Patch)
 }
 
-// typePatcher implements the `TypePatcher` interface.
-type typePatcher struct {
+// patcher implements the `Patcher` interface.
+type patcher struct {
 	typ   ast.Node
 	patch Patch
 }
 
-func (p typePatcher) Type() ast.Node                { return p.typ }
-func (p typePatcher) Patch(c *astutil.Cursor) error { return p.patch(c) }
+func (p patcher) Type() ast.Node                { return p.typ }
+func (p patcher) Patch(c *astutil.Cursor) error { return p.patch(c) }
 
 // Apply calls `astutil.Apply()` on `node`, calling the appropriate `Patch`
 // functions as the syntax tree is traversed. Patches are applied as the `pre`

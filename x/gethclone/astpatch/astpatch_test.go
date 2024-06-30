@@ -7,7 +7,6 @@ import (
 	"go/format"
 	"go/parser"
 	"go/token"
-	"reflect"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -70,15 +69,15 @@ func (s *patchSpy) structRecorder(c *astutil.Cursor) error {
 }
 
 func (s *patchSpy) funcDeclRecorder(c *astutil.Cursor, fn *ast.FuncDecl) error {
-	if !reflect.DeepEqual(c.Node(), fn) {
-		return fmt.Errorf("reflect.DeepEqual(%T.Node(), %T) = false; want true", c, fn)
+	if err := checkTypedPatchInvariant(c, fn); err != nil {
+		return err
 	}
 	return s.funcRecorder(c)
 }
 
 func (s *patchSpy) callRecorder(c *astutil.Cursor, call *ast.CallExpr) error {
-	if !reflect.DeepEqual(c.Node(), call) {
-		return fmt.Errorf("reflect.DeepEqual(%T.Node(), %T) = false; want true", c, call)
+	if err := checkTypedPatchInvariant(c, call); err != nil {
+		return err
 	}
 
 	var name string
@@ -179,7 +178,7 @@ func bestEffortLogAST(tb testing.TB, x any) {
 	tb.Logf("AST of parsed source:\n\n%s", buf.String())
 }
 
-func TestTypePatchers(t *testing.T) {
+func TestPatchers(t *testing.T) {
 	const src = `package box
 
 type (
@@ -209,12 +208,12 @@ func init() {
 
 	tests := []struct {
 		name    string
-		patcher func(*patchSpy) TypePatcher
+		patcher func(*patchSpy) Patcher
 		want    visited
 	}{
 		{
 			name: "method agnostic to pointer/value receiver",
-			patcher: func(s *patchSpy) TypePatcher {
+			patcher: func(s *patchSpy) Patcher {
 				return Method("TypeA", "valueMethod", s.funcDeclRecorder)
 			},
 			want: visited{
@@ -224,7 +223,7 @@ func init() {
 		},
 		{
 			name: "exported method, otherwise same as earlier test",
-			patcher: func(s *patchSpy) TypePatcher {
+			patcher: func(s *patchSpy) Patcher {
 				return Method("TypeA", "ValueMethod", s.funcDeclRecorder)
 			},
 			want: visited{
@@ -234,7 +233,7 @@ func init() {
 		},
 		{
 			name: "method on different type, otherwise same as earlier test",
-			patcher: func(s *patchSpy) TypePatcher {
+			patcher: func(s *patchSpy) Patcher {
 				return Method("TypeB", "valueMethod", s.funcDeclRecorder)
 			},
 			want: visited{
@@ -244,7 +243,7 @@ func init() {
 		},
 		{
 			name: "PointerMethod() with pointer receiver matches",
-			patcher: func(s *patchSpy) TypePatcher {
+			patcher: func(s *patchSpy) Patcher {
 				return PointerMethod("TypeA", "pointerMethod", s.funcDeclRecorder)
 			},
 			want: visited{
@@ -254,14 +253,14 @@ func init() {
 		},
 		{
 			name: "PointerMethod() with value receiver ignores",
-			patcher: func(s *patchSpy) TypePatcher {
+			patcher: func(s *patchSpy) Patcher {
 				return PointerMethod("TypeA", "valueMethod", s.funcDeclRecorder)
 			},
 			want: visited{},
 		},
 		{
 			name: "ValueMethod() with value receiver matches",
-			patcher: func(s *patchSpy) TypePatcher {
+			patcher: func(s *patchSpy) Patcher {
 				return ValueMethod("TypeA", "valueMethod", s.funcDeclRecorder)
 			},
 			want: visited{
@@ -271,14 +270,14 @@ func init() {
 		},
 		{
 			name: "ValueMethod() with pointer receiver ignores",
-			patcher: func(s *patchSpy) TypePatcher {
+			patcher: func(s *patchSpy) Patcher {
 				return ValueMethod("TypeA", "pointerMethod", s.funcDeclRecorder)
 			},
 			want: visited{},
 		},
 		{
 			name: "function (not method) declaration",
-			patcher: func(s *patchSpy) TypePatcher {
+			patcher: func(s *patchSpy) Patcher {
 				return Function("fn", s.funcDeclRecorder)
 			},
 			want: visited{
@@ -288,7 +287,7 @@ func init() {
 		},
 		{
 			name: "function of different name to earlier test",
-			patcher: func(s *patchSpy) TypePatcher {
+			patcher: func(s *patchSpy) Patcher {
 				return Function("Fn", s.funcDeclRecorder)
 			},
 			want: visited{
@@ -298,8 +297,8 @@ func init() {
 		},
 		{
 			name: "unqualified function call",
-			patcher: func(s *patchSpy) TypePatcher {
-				return typePatcher{
+			patcher: func(s *patchSpy) Patcher {
+				return patcher{
 					typ:   new(ast.CallExpr),
 					patch: UnqualifiedCall("calledFn", s.callRecorder),
 				}
@@ -308,8 +307,8 @@ func init() {
 		},
 		{
 			name: "UnqualifiedCall() for function not actually called",
-			patcher: func(s *patchSpy) TypePatcher {
-				return typePatcher{
+			patcher: func(s *patchSpy) Patcher {
+				return patcher{
 					typ:   new(ast.CallExpr),
 					patch: UnqualifiedCall("notCalledFn", s.callRecorder),
 				}
@@ -337,7 +336,7 @@ func init() {
 func TestRefactoring(t *testing.T) {
 	tests := []struct {
 		name, src string
-		patcher   TypePatcher
+		patcher   Patcher
 		want      string
 	}{
 		{
@@ -404,4 +403,29 @@ func formatGo(tb testing.TB, src string) string {
 	var buf bytes.Buffer
 	require.NoError(tb, format.Node(&buf, fset, file), "format.Node(parser.ParseFile(...)) round trip")
 	return buf.String()
+}
+
+// checkTypedPatchInvariant accepts the `astutil.Cursor` (`c`) and `ast.Node`
+// (`node`) passed to a `TypedPatch` function, confirming that `c.Node()` is (a)
+// of the same concrete type as `node`; and (b) points to the same memory.
+func checkTypedPatchInvariant[
+	N any, PtrN interface {
+		ast.Node
+		*N
+	},
+](c *astutil.Cursor, node PtrN) error {
+	var tp TypedPatch[PtrN]
+
+	switch cNode := c.Node().(type) {
+	case PtrN:
+		if cNode != node {
+			return fmt.Errorf("%T argument invariant broken; %T.Node() and %T point to different memory",
+				tp, c, node)
+		}
+	default:
+		return fmt.Errorf("%T argument invariant broken; %T.Node() of concrete type %T; want %T",
+			tp, c, cNode, node)
+	}
+
+	return nil
 }

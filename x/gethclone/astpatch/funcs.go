@@ -7,37 +7,33 @@ import (
 	"golang.org/x/tools/go/ast/astutil"
 )
 
-// Method returns a `TypePatcher` that only applies to the specific method on
-// the specific type.
-//
-// The `patch` argument functions like a regular `Patch` except that its
-// parameters are extended to also accept the methods's AST declaration as its
-// concrete type (i.e. `astutil.Cursor.Node().(*ast.FuncDecl)`).
+// Method returns a `Patcher` that only applies to the specific method on the
+// specific type.
 //
 //	// Method declaration
 //	func (x *Thing) Do() { ... }
 //	// Patched with
 //	astpatch.Method("Thing", "Do", ...)
-func Method(receiverType, methodName string, patch func(*astutil.Cursor, *ast.FuncDecl) error) TypePatcher {
+func Method(receiverType, methodName string, patch TypedPatch[*ast.FuncDecl]) Patcher {
 	return method(nil, receiverType, methodName, patch)
 }
 
 // PointerMethod is identical to `Method()` except that it only matches methods
 // with pointer receivers.
-func PointerMethod(receiverType, methodName string, patch func(*astutil.Cursor, *ast.FuncDecl) error) TypePatcher {
+func PointerMethod(receiverType, methodName string, patch TypedPatch[*ast.FuncDecl]) Patcher {
 	ptr := true
 	return method(&ptr, receiverType, methodName, patch)
 }
 
 // ValueMethod is identical to `Method()` except that it only matches methods
 // with value receivers.
-func ValueMethod(receiverType, methodName string, patch func(*astutil.Cursor, *ast.FuncDecl) error) TypePatcher {
+func ValueMethod(receiverType, methodName string, patch TypedPatch[*ast.FuncDecl]) Patcher {
 	ptr := false
 	return method(&ptr, receiverType, methodName, patch)
 }
 
-func method(pointerReceiver *bool, receiverType, methodName string, patch func(*astutil.Cursor, *ast.FuncDecl) error) TypePatcher {
-	return typePatcher{
+func method(pointerReceiver *bool, receiverType, methodName string, patch TypedPatch[*ast.FuncDecl]) Patcher {
+	return patcher{
 		typ: (*ast.FuncDecl)(nil),
 		patch: func(c *astutil.Cursor) error {
 			fn, ok := c.Node().(*ast.FuncDecl)
@@ -84,11 +80,7 @@ func method(pointerReceiver *bool, receiverType, methodName string, patch func(*
 // qualifiers before the selector (e.g. `foo.Bar()` or `pkg.Bar()`); an
 // unqualified function lacks any such qualifiers and applies to builtin and
 // package-internal functions.
-//
-// The `patch` argument functions like a regular `Patch` except that its
-// parameters are extended to also accept the call's AST declaration as its
-// concrete type (i.e. `astutil.Cursor.Node().(*ast.CallExpr)`).
-func UnqualifiedCall(name string, patch func(*astutil.Cursor, *ast.CallExpr) error) Patch {
+func UnqualifiedCall(name string, patch TypedPatch[*ast.CallExpr]) Patch {
 	return func(c *astutil.Cursor) error {
 		call, ok := c.Node().(*ast.CallExpr)
 		if !ok {
@@ -102,14 +94,10 @@ func UnqualifiedCall(name string, patch func(*astutil.Cursor, *ast.CallExpr) err
 	}
 }
 
-// Function returns a `TypePatcher` that only applies to the specific function
+// Function returns a `Patcher` that only applies to the specific function
 // declaration.
-//
-// The `patch` argument functions like a regular `Patch` except that its
-// parameters are extended to also accept the methods's AST declaration as its
-// concrete type (i.e. `astutil.Cursor.Node().(*ast.FuncDecl)`).
-func Function(name string, patch func(*astutil.Cursor, *ast.FuncDecl) error) TypePatcher {
-	return typePatcher{
+func Function(name string, patch TypedPatch[*ast.FuncDecl]) Patcher {
+	return patcher{
 		typ: (*ast.FuncDecl)(nil),
 		patch: func(c *astutil.Cursor) error {
 			fn, ok := c.Node().(*ast.FuncDecl)
@@ -122,7 +110,7 @@ func Function(name string, patch func(*astutil.Cursor, *ast.FuncDecl) error) Typ
 }
 
 // RenameFunction does what it says on the tin.
-func RenameFunction(from, to string) TypePatcher {
+func RenameFunction(from, to string) Patcher {
 	return Function(from, func(c *astutil.Cursor, fn *ast.FuncDecl) error {
 		fn.Name.Name = to
 		return nil
