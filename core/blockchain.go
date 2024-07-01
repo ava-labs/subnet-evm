@@ -805,15 +805,18 @@ func (bc *BlockChain) loadLastState(lastAcceptedHash common.Hash) error {
 		return fmt.Errorf("could not load last accepted block")
 	}
 
+	// reprocessState is necessary to ensure that the last accepted state is
+	// available. The state may not be available if it was not committed due
+	// to an unclean shutdown.
+	if err := bc.reprocessState(bc.lastAccepted, 2*bc.cacheConfig.CommitInterval); err != nil {
+		return fmt.Errorf("could not reprocess state for last accepted block: %w", err)
+	}
+
 	// This ensures that the head block is updated to the last accepted block on startup
 	if err := bc.setPreference(bc.lastAccepted); err != nil {
 		return fmt.Errorf("failed to set preference to last accepted block while loading last state: %w", err)
 	}
-
-	// reprocessState is necessary to ensure that the last accepted state is
-	// available. The state may not be available if it was not committed due
-	// to an unclean shutdown.
-	return bc.reprocessState(bc.lastAccepted, 2*bc.cacheConfig.CommitInterval)
+	return nil
 }
 
 func (bc *BlockChain) loadGenesisState() error {
@@ -1917,9 +1920,12 @@ func (bc *BlockChain) reprocessState(current *types.Block, reexec uint64) error 
 	// This may occur if we are running in archive mode where every block's trie is committed on insertion
 	// or during an unclean shutdown.
 	if acceptorTip != (common.Hash{}) {
-		current = bc.GetBlockByHash(acceptorTip)
-		if current == nil {
+		acceptorTipBlock := bc.GetBlockByHash(acceptorTip)
+		if acceptorTipBlock == nil {
 			return fmt.Errorf("failed to get block for acceptor tip %s", acceptorTip)
+		}
+		if acceptorTipBlock.NumberU64() < current.NumberU64() {
+			current = acceptorTipBlock
 		}
 	}
 
@@ -2020,6 +2026,7 @@ func (bc *BlockChain) reprocessState(current *types.Block, reexec uint64) error 
 	if previousRoot != (common.Hash{}) {
 		return triedb.Commit(previousRoot, true)
 	}
+	bc.writeHeadBlock(current)
 	return nil
 }
 
