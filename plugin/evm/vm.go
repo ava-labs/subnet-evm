@@ -37,6 +37,7 @@ import (
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
 	"github.com/ava-labs/subnet-evm/trie/triedb/hashdb"
 
+	warpcontract "github.com/ava-labs/subnet-evm/precompile/contracts/warp"
 	"github.com/ava-labs/subnet-evm/rpc"
 	statesyncclient "github.com/ava-labs/subnet-evm/sync/client"
 	"github.com/ava-labs/subnet-evm/sync/client/stats"
@@ -998,7 +999,18 @@ func (vm *VM) CreateHandlers(context.Context) (map[string]http.Handler, error) {
 	}
 
 	if vm.config.WarpAPIEnabled {
-		validatorsState := warpValidators.NewState(vm.ctx)
+		requirePrimaryNetworkSigners := func() bool {
+			warpCfgIntf, ok := vm.currentRules().ActivePrecompiles[warpcontract.ContractAddress]
+			if !ok {
+				return false
+			}
+			warpCfg, ok := warpCfgIntf.(*warpcontract.Config)
+			if !ok {
+				return false
+			}
+			return warpCfg.RequirePrimaryNetworkSigners
+		}
+		validatorsState := warpValidators.NewState(vm.ctx, requirePrimaryNetworkSigners)
 		if err := handler.RegisterName("warp", warp.NewAPI(vm.ctx.NetworkID, vm.ctx.SubnetID, vm.ctx.ChainID, validatorsState, vm.warpBackend, vm.client)); err != nil {
 			return nil, err
 		}
@@ -1044,6 +1056,12 @@ func (vm *VM) GetCurrentNonce(address common.Address) (uint64, error) {
 		return 0, err
 	}
 	return state.GetNonce(address), nil
+}
+
+// currentRules returns the chain rules for the current block.
+func (vm *VM) currentRules() params.Rules {
+	header := vm.eth.APIBackend.CurrentHeader()
+	return vm.chainConfig.Rules(header.Number, header.Time)
 }
 
 func (vm *VM) startContinuousProfiler() {

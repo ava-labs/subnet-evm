@@ -227,6 +227,12 @@ func createValidPredicateTest(snowCtx *snow.Context, numKeys uint64, predicateBy
 }
 
 func TestWarpMessageFromPrimaryNetwork(t *testing.T) {
+	for _, requirePrimaryNetworkSigners := range []bool{true, false} {
+		testWarpMessageFromPrimaryNetwork(t, requirePrimaryNetworkSigners)
+	}
+}
+
+func testWarpMessageFromPrimaryNetwork(t *testing.T, requirePrimaryNetworkSigners bool) {
 	require := require.New(t)
 	numKeys := 10
 	cChainID := ids.GenerateTestID()
@@ -272,13 +278,17 @@ func TestWarpMessageFromPrimaryNetwork(t *testing.T) {
 			return constants.PrimaryNetworkID, nil // Return Primary Network SubnetID
 		},
 		GetValidatorSetF: func(ctx context.Context, height uint64, subnetID ids.ID) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
-			require.Equal(snowCtx.SubnetID, subnetID)
+			expectedSubnetID := snowCtx.SubnetID
+			if requirePrimaryNetworkSigners {
+				expectedSubnetID = constants.PrimaryNetworkID
+			}
+			require.Equal(expectedSubnetID, subnetID)
 			return getValidatorsOutput, nil
 		},
 	}
 
 	test := testutils.PredicateTest{
-		Config: NewDefaultConfig(utils.NewUint64(0)),
+		Config: NewDefaultConfig(utils.NewUint64(0)).WithRequirePrimaryNetworkSigners(requirePrimaryNetworkSigners),
 		PredicateContext: &precompileconfig.PredicateContext{
 			SnowCtx: snowCtx,
 			ProposerVMBlockCtx: &block.Context{

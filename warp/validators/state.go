@@ -19,18 +19,20 @@ var _ validators.State = (*State)(nil)
 // signatures from a threshold of the RECEIVING subnet validator set rather than the full Primary Network
 // since the receiving subnet already relies on a majority of its validators being correct.
 type State struct {
-	chainContext *snow.Context
 	validators.State
+	chainContext                 *snow.Context
+	requirePrimaryNetworkSigners func() bool
 }
 
 // NewState returns a wrapper of [validators.State] which special cases the handling of the Primary Network.
 //
 // The wrapped state will return the chainContext's Subnet validator set instead of the Primary Network when
 // the Primary Network SubnetID is passed in.
-func NewState(chainContext *snow.Context) *State {
+func NewState(chainContext *snow.Context, requirePrimaryNetworkSigners func() bool) *State {
 	return &State{
-		chainContext: chainContext,
-		State:        chainContext.ValidatorState,
+		State:                        chainContext.ValidatorState,
+		chainContext:                 chainContext,
+		requirePrimaryNetworkSigners: requirePrimaryNetworkSigners,
 	}
 }
 
@@ -39,9 +41,9 @@ func (s *State) GetValidatorSet(
 	height uint64,
 	subnetID ids.ID,
 ) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
-	// If the subnetID is anything other than the Primary Network, this is a direct
-	// passthrough
-	if subnetID != constants.PrimaryNetworkID {
+	// If the subnetID is anything other than the Primary Network, or Primary
+	// Network signers are required, this is a direct passthrough.
+	if s.requirePrimaryNetworkSigners() || subnetID != constants.PrimaryNetworkID {
 		return s.State.GetValidatorSet(ctx, height, subnetID)
 	}
 

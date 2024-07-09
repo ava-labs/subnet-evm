@@ -47,7 +47,8 @@ var (
 // adds specific configuration for Warp.
 type Config struct {
 	precompileconfig.Upgrade
-	QuorumNumerator uint64 `json:"quorumNumerator"`
+	QuorumNumerator              uint64 `json:"quorumNumerator"`
+	RequirePrimaryNetworkSigners bool   `json:"requirePrimaryNetworkSigners"`
 }
 
 // NewConfig returns a config for a network upgrade at [blockTimestamp] that enables
@@ -57,6 +58,11 @@ func NewConfig(blockTimestamp *uint64, quorumNumerator uint64) *Config {
 		Upgrade:         precompileconfig.Upgrade{BlockTimestamp: blockTimestamp},
 		QuorumNumerator: quorumNumerator,
 	}
+}
+
+func (c *Config) WithRequirePrimaryNetworkSigners(requirePrimaryNetworkSigners bool) *Config {
+	c.RequirePrimaryNetworkSigners = requirePrimaryNetworkSigners
+	return c
 }
 
 // NewDefaultConfig returns a config for a network upgrade at [blockTimestamp] that enables
@@ -202,7 +208,7 @@ func (c *Config) VerifyPredicate(predicateContext *precompileconfig.PredicateCon
 		context.Background(),
 		&warpMsg.UnsignedMessage,
 		predicateContext.SnowCtx.NetworkID,
-		warpValidators.NewState(predicateContext.SnowCtx), // Wrap validators.State on the chain snow context to special case the Primary Network
+		warpValidators.NewState(predicateContext.SnowCtx, func() bool { return c.RequirePrimaryNetworkSigners }), // Wrap validators.State on the chain snow context to special case the Primary Network
 		predicateContext.ProposerVMBlockCtx.PChainHeight,
 		quorumNumerator,
 		WarpQuorumDenominator,
@@ -214,4 +220,12 @@ func (c *Config) VerifyPredicate(predicateContext *precompileconfig.PredicateCon
 	}
 
 	return nil
+}
+
+func RequirePrimaryNetworkSigners(cfg precompileconfig.Config) func() bool {
+	warpCfg, ok := cfg.(*Config)
+	if !ok {
+		return func() bool { return false }
+	}
+	return func() bool { return warpCfg.RequirePrimaryNetworkSigners }
 }
