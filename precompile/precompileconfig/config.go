@@ -38,6 +38,8 @@ type PredicateContext struct {
 	SnowCtx *snow.Context
 	// ProposerVMBlockCtx defines the ProposerVM context the predicate is verified within
 	ProposerVMBlockCtx *block.Context
+	// SubnetOnlyValidator is true if the predicate is being verified within a subnet-only validator
+	SubnetOnlyValidator bool
 }
 
 // Predicater is an optional interface for StatefulPrecompileContracts to implement.

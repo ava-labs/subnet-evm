@@ -844,8 +844,9 @@ func (vm *VM) buildBlockWithContext(ctx context.Context, proposerVMBlockCtx *blo
 		log.Debug("Building block without context")
 	}
 	predicateCtx := &precompileconfig.PredicateContext{
-		SnowCtx:            vm.ctx,
-		ProposerVMBlockCtx: proposerVMBlockCtx,
+		SnowCtx:             vm.ctx,
+		ProposerVMBlockCtx:  proposerVMBlockCtx,
+		SubnetOnlyValidator: vm.config.SubnetOnlyValidator,
 	}
 
 	block, err := vm.miner.GenerateBlock(predicateCtx)

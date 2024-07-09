@@ -227,6 +227,12 @@ func createValidPredicateTest(snowCtx *snow.Context, numKeys uint64, predicateBy
 }
 
 func TestWarpMessageFromPrimaryNetwork(t *testing.T) {
+	for _, subnetOnlyValidator := range []bool{false, true} {
+		testWarpMessageFromPrimaryNetwork(t, subnetOnlyValidator)
+	}
+}
+
+func testWarpMessageFromPrimaryNetwork(t *testing.T, subnetOnlyValidator bool) {
 	require := require.New(t)
 	numKeys := 10
 	cChainID := ids.GenerateTestID()
@@ -272,7 +278,11 @@ func TestWarpMessageFromPrimaryNetwork(t *testing.T) {
 			return constants.PrimaryNetworkID, nil // Return Primary Network SubnetID
 		},
 		GetValidatorSetF: func(ctx context.Context, height uint64, subnetID ids.ID) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
-			require.Equal(snowCtx.SubnetID, subnetID)
+			expectedSubnetID := snowCtx.SubnetID
+			if subnetOnlyValidator {
+				expectedSubnetID = constants.PrimaryNetworkID
+			}
+			require.Equal(expectedSubnetID, subnetID)
 			return getValidatorsOutput, nil
 		},
 	}
@@ -284,6 +294,7 @@ func TestWarpMessageFromPrimaryNetwork(t *testing.T) {
 			ProposerVMBlockCtx: &block.Context{
 				PChainHeight: 1,
 			},
+			SubnetOnlyValidator: subnetOnlyValidator,
 		},
 		PredicateBytes: predicateBytes,
 		Gas:            GasCostPerSignatureVerification + uint64(len(predicateBytes))*GasCostPerWarpMessageBytes + uint64(numKeys)*GasCostPerWarpSigner,

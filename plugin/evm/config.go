@@ -224,6 +224,12 @@ type Config struct {
 	// Note: only supports AddressedCall payloads as defined here:
 	// https://github.com/ava-labs/avalanchego/tree/7623ffd4be915a5185c9ed5e11fa9be15a6e1f00/vms/platformvm/warp/payload#addressedcall
 	WarpOffChainMessages []hexutil.Bytes `json:"warp-off-chain-messages"`
+
+	// SubnetOnlyValidator is true if the node is a subnet-only validator.  When
+	// set, the node will use the primary network's validator set to verify
+	// incoming warp messages from the primary network (instead of the subnet's
+	// validator set).
+	SubnetOnlyValidator bool `json:"subnet-only-validator"`
 }
 
 // EthAPIs returns an array of strings representing the Eth APIs that should be enabled

@@ -175,8 +175,9 @@ func (b *Block) syntacticVerify() error {
 // Verify implements the snowman.Block interface
 func (b *Block) Verify(context.Context) error {
 	return b.verify(&precompileconfig.PredicateContext{
-		SnowCtx:            b.vm.ctx,
-		ProposerVMBlockCtx: nil,
+		SnowCtx:             b.vm.ctx,
+		ProposerVMBlockCtx:  nil,
+		SubnetOnlyValidator: b.vm.config.SubnetOnlyValidator,
 	}, true)
 }
 
@@ -206,8 +207,9 @@ func (b *Block) ShouldVerifyWithContext(context.Context) (bool, error) {
 // VerifyWithContext implements the block.WithVerifyContext interface
 func (b *Block) VerifyWithContext(ctx context.Context, proposerVMBlockCtx *block.Context) error {
 	return b.verify(&precompileconfig.PredicateContext{
-		SnowCtx:            b.vm.ctx,
-		ProposerVMBlockCtx: proposerVMBlockCtx,
+		SnowCtx:             b.vm.ctx,
+		ProposerVMBlockCtx:  proposerVMBlockCtx,
+		SubnetOnlyValidator: b.vm.config.SubnetOnlyValidator,
 	}, true)
 }
 
