@@ -221,11 +221,3 @@ func (c *Config) VerifyPredicate(predicateContext *precompileconfig.PredicateCon
 
 	return nil
 }
-
-func RequirePrimaryNetworkSigners(cfg precompileconfig.Config) func() bool {
-	warpCfg, ok := cfg.(*Config)
-	if !ok {
-		return func() bool { return false }
-	}
-	return func() bool { return warpCfg.RequirePrimaryNetworkSigners }
-}
