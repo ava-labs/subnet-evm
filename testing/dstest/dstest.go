@@ -66,7 +66,7 @@ func (l Log) String() string {
 	default:
 		// The above cases are exhaustive at the time of writing; if the default
 		// is reached then they need to be updated.
-		return fmt.Sprintf("%+v", map[string]any(u))
+		return fmt.Sprintf("%+v", u)
 	}
 }
 
