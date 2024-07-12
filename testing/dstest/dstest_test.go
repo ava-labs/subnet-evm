@@ -82,8 +82,7 @@ func TestParseLogs(t *testing.T) {
 			tx, err := tt.tx()
 			require.NoErrorf(t, err, "bad test setup; sending %T", tx)
 
-			got, err := sut.ParseLogs(ctx, tx, sim)
-			require.NoErrorf(t, err, "%T.ParseLogs()", sut)
+			got := sut.ParseTB(ctx, t, tx, sim)
 			assert.Equalf(t, tt.want, got, "%T.ParseLogs() raw values", sut)
 			assert.Equalf(t, tt.wantAsStr, got.String(), "%T.ParseLogs() as string", sut)
 		})

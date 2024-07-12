@@ -136,6 +136,19 @@ func Deploy[T any](tb testing.TB, b *Backend, from int, fn Deployer[T]) (common.
 	return addr, contract
 }
 
+// A Binder binds to a Solidity contract deployed at the given address.
+type Binder[T any] func(common.Address, bind.ContractBackend) (T, error)
+
+// Bind binds to a `T` contract at the given address.
+func Bind[T any](tb testing.TB, b *Backend, fn Binder[T], addr common.Address) T {
+	tb.Helper()
+	contract, err := fn(addr, b)
+	if err != nil {
+		tb.Fatalf("binding to %T at %v: %v", contract, addr, err)
+	}
+	return contract
+}
+
 // Call calls the bound contract method, asserting that no error occurred, and
 // returns the value returned by the contract.
 func Call[T any](tb testing.TB, fn func(*bind.CallOpts) (T, error), opts *bind.CallOpts) T {

@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"testing"
 
 	"github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ava-labs/subnet-evm/accounts/abi/bind"
@@ -15,23 +16,23 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
-// New returns a new `Tester` with the provided addresses already
+// New returns a new `Parser` with the provided addresses already
 // `Register()`ed.
-func New(tests ...common.Address) *Tester {
-	t := &Tester{
+func New(tests ...common.Address) *Parser {
+	p := &Parser{
 		tests: make(map[common.Address]bool),
 	}
 	for _, tt := range tests {
-		t.Register(tt)
+		p.Register(tt)
 	}
-	return t
+	return p
 }
 
-// A Tester inspects transaction logs of `Register()`ed test addresses, parsing
+// A Parser inspects transaction logs of `Register()`ed test addresses, parsing
 // those that correspond to [DSTest] error logs.
 //
 // [DSTest]: https://github.com/dapphub/ds-test
-type Tester struct {
+type Parser struct {
 	tests map[common.Address]bool
 }
 
@@ -39,8 +40,8 @@ type Tester struct {
 // [DSTest contract].
 //
 // [DSTest contract]: https://github.com/dapphub/ds-test/blob/master/src/test.sol
-func (t *Tester) Register(test common.Address) {
-	t.tests[test] = true
+func (p *Parser) Register(test common.Address) {
+	p.tests[test] = true
 }
 
 // A Log represents a Solidity event emitted by the `DSTest` contract. Although
@@ -80,10 +81,10 @@ func (ls Logs) String() string {
 	return strings.Join(s, "\n")
 }
 
-// ParseLogs finds all [types.Log]s emitted by test contracts in the provided
+// Parse finds all [types.Log]s emitted by test contracts in the provided
 // `Transaction`, filters them to keep only those corresponding to `DSTest`
 // events, and returns the unpacked data.
-func (t *Tester) ParseLogs(ctx context.Context, tx *types.Transaction, b bind.DeployBackend) (Logs, error) {
+func (p *Parser) Parse(ctx context.Context, tx *types.Transaction, b bind.DeployBackend) (Logs, error) {
 	r, err := b.TransactionReceipt(ctx, tx.Hash())
 	if err != nil {
 		return nil, err
@@ -91,7 +92,7 @@ func (t *Tester) ParseLogs(ctx context.Context, tx *types.Transaction, b bind.De
 
 	var logs []*Log
 	for _, l := range r.Logs {
-		if !t.tests[l.Address] {
+		if !p.tests[l.Address] {
 			continue
 		}
 		ev, err := dstestbindings.EventByID(l.Topics[0])
@@ -114,4 +115,15 @@ func unpack(ev *abi.Event, l *types.Log) (*Log, error) {
 		return nil, err
 	}
 	return &Log{unpacked}, nil
+}
+
+// ParseTB is identical to [Parse] except that it reports all errors on
+// [testing.TB.Fatal].
+func (p *Parser) ParseTB(ctx context.Context, tb testing.TB, tx *types.Transaction, b bind.DeployBackend) Logs {
+	tb.Helper()
+	l, err := p.Parse(ctx, tx, b)
+	if err != nil {
+		tb.Fatalf("%T.Parse(): %v", p, err)
+	}
+	return l
 }
