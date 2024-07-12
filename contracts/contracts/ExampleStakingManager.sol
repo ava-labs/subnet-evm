@@ -3,9 +3,11 @@
 pragma solidity ^0.8.24;
 
 import "./interfaces/IWarpMessenger.sol";
+import "./interfaces/IStakingManager.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-contract ExampleStakingManager is Ownable {
+contract ExampleStakingManager is IStakingManager, Ownable {
   IWarpMessenger public constant WARP_MESSENGER = IWarpMessenger(0x0200000000000000000000000000000000000005);
   uint64 constant MAX_UINT64 = type(uint64).max;
 
@@ -42,29 +44,6 @@ contract ExampleStakingManager is Ownable {
     address rewardAddress;
   }
 
-  struct RegisterValidatorMessage {
-    bytes32 subnetID;
-    bytes32 nodeID;
-    uint64 weight;
-    uint64 expiryTimestamp;
-    bytes signature;
-  }
-
-  struct ValidatorRegisteredMessage {
-    bytes32 messageID;
-    // invalid is true if the message represents an invalid registration
-    // if a registered message considered invalid, it means the message cannot be used
-    // to register a validator, including the case that the registration is already finished/expired.
-    // it is required to prevent replay attacks
-    bool invalid;
-  }
-
-  struct SetSubnetValidatorWeightMessage {
-    bytes32 messageID;
-    uint64 nonce;
-    uint64 weight;
-  }
-
   constructor(address _stakingToken, address _rewardToken, uint256 _minStakingDuration, uint256 _minStakingAmount) {
     stakingToken = IERC20(_stakingToken);
     rewardsToken = IERC20(_rewardToken);
@@ -91,13 +70,13 @@ contract ExampleStakingManager is Ownable {
     require(activeValidators[stakingIDHash] == bytes32(0), "ExampleValidatorManager: validator already exists");
 
     // TODO: do we need to specify allowed relayers?
-    RegisterValidatorMessage memory message = RegisterValidatorMessage(
-      subnetID,
-      nodeID,
-      amount,
-      expiryTimestamp,
-      signature
-    );
+    RegisterValidatorMessage memory message = RegisterValidatorMessage({
+      subnetID: subnetID,
+      nodeID: nodeID,
+      weight: amount,
+      expiryTimestamp: expiryTimestamp,
+      signature: signature
+    });
 
     bytes memory messageBytes = abi.encode(message);
     bytes32 messageID = sha256(messageBytes);
@@ -115,7 +94,7 @@ contract ExampleStakingManager is Ownable {
     registeredValidatorMessages[messageID] = Validator(subnetID, nodeID, amount, 0, 0, 0, msg.sender);
   }
 
-  function receiveRegisterValidator(uint32 messageIndex) public {
+  function receiveRegisterValidator(uint32 messageIndex) external {
     (WarpMessage memory warpMessage, bool success) = WARP_MESSENGER.getVerifiedWarpMessage(messageIndex);
     require(success, "ExampleValidatorManager: invalid warp message");
 
@@ -128,7 +107,6 @@ contract ExampleStakingManager is Ownable {
 
     bytes32 messageID = registeredMessage.messageID;
     require(messageID != bytes32(0), "ExampleValidatorManager: invalid messageID");
-    require(!registeredMessage.invalid, "ExampleValidatorManager: invalid message");
 
     // TODO: maybe we want to minimize errors here?
     Validator memory pendingValidator = registeredValidatorMessages[messageID];
@@ -167,22 +145,28 @@ contract ExampleStakingManager is Ownable {
     registeredValidatorMessages[messageID].redeemedAt = block.timestamp;
   }
 
-  function receiveRegisterMessageInvalid(uint32 messageIndex) public {
+  // todo: should we give a partial reward in case the validator got removed from P-chain (balance drained)?
+  function receiveRegisterMessageInvalid(uint32 messageIndex) external {
     (WarpMessage memory warpMessage, bool success) = WARP_MESSENGER.getVerifiedWarpMessage(messageIndex);
     require(success, "ExampleValidatorManager: invalid warp message");
 
-    ValidatorRegisteredMessage memory registeredMessage = abi.decode(warpMessage.payload, (ValidatorRegisteredMessage));
+    InvalidValidatorRegisterMessage memory registeredMessage = abi.decode(
+      warpMessage.payload,
+      (InvalidValidatorRegisterMessage)
+    );
 
     bytes32 messageID = registeredMessage.messageID;
     require(messageID != bytes32(0), "ExampleValidatorManager: invalid messageID");
-    require(registeredMessage.invalid, "ExampleValidatorManager: expected an invalid message");
 
     Validator memory pendingValidator = registeredValidatorMessages[messageID];
+    if (pendingValidator.weight == 0) {
+      return;
+    }
     bytes32 stakingID = keccak256(abi.encode(pendingValidator.subnetID, pendingValidator.nodeID));
     delete activeValidators[stakingID];
-    // if redeemedAt is 0, this was not a graceful exit.
     // TODO: do we need to check balanceOf[pendingValidator.rewardAddress] > weight?
     uint256 totalAmount = pendingValidator.weight;
+    // if redeemedAt is 0, this was not a graceful exit.
     if (pendingValidator.redeemedAt != 0) {
       uint256 reward = calculateReward(
         pendingValidator.weight,
@@ -194,9 +178,22 @@ contract ExampleStakingManager is Ownable {
     unlockedBalanceOf[pendingValidator.rewardAddress] += totalAmount;
   }
 
+  function increaseValidatorWeight(bytes32 subnetID, bytes32 nodeID, uint64 amount) external {}
+
+  function decreaseValidatorWeight(bytes32 subnetID, bytes32 nodeID, uint64 amount) external {}
+
+  function receiveValidatorRegistered(uint32 messageIndex) external {}
+
+  function receiveValidatorWeightChanged(uint32 messageIndex) external {}
+
+  function receiveUptimeMessage(uint32 messageIndex) external {}
+
+  function setSubnetValidatorManager(bytes32 subnetID, bytes32 chainID, address validatorManager) external {}
+
   // TODO: add uptime tracking/rewards based on uptimes
 
   // TODO: add partial withdraw + increase stake
+  // TODO: check weight usages in case == 0
 
   // TODO: add delegation
 
@@ -216,13 +213,4 @@ contract ExampleStakingManager is Ownable {
     uint256 stakingTime = finishedAt - startedAt;
     return (stakingTime * rewardRate * amount) / (1 ether); // Assuming rewardRate is scaled appropriately
   }
-}
-
-interface IERC20 {
-  function totalSupply() external view returns (uint256);
-  function balanceOf(address account) external view returns (uint256);
-  function transfer(address recipient, uint256 amount) external returns (bool);
-  function allowance(address owner, address spender) external view returns (uint256);
-  function approve(address spender, uint256 amount) external returns (bool);
-  function transferFrom(address sender, address recipient, uint256 amount) external returns (bool);
 }
