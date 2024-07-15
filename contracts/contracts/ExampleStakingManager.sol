@@ -69,7 +69,6 @@ contract ExampleStakingManager is IStakingManager, Ownable {
     bytes32 stakingIDHash = keccak256(abi.encode(subnetID, nodeID));
     require(activeValidators[stakingIDHash] == bytes32(0), "ExampleValidatorManager: validator already exists");
 
-    // TODO: do we need to specify allowed relayers?
     RegisterValidatorMessage memory message = RegisterValidatorMessage({
       subnetID: subnetID,
       nodeID: nodeID,
@@ -83,7 +82,6 @@ contract ExampleStakingManager is IStakingManager, Ownable {
     // This requires the message ID on P-Chain to be same as this message ID.
     require(registeredValidatorMessages[messageID].weight == 0, "ExampleValidatorManager: message already exists");
 
-    // TODO: decide on relayer fee info
     WARP_MESSENGER.sendWarpMessage(messageBytes);
 
     stakingToken.transferFrom(msg.sender, address(this), amount);
