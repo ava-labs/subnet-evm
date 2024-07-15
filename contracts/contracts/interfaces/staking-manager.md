@@ -24,6 +24,8 @@ Subsequent `SetSubnetValidatorManagerTx` can be originated from the contract to 
 
 Related ACP-77 section [here](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/77-reinventing-subnets#step-1-retrieve-a-bls-multisig-from-the-subnet)
 
+### registerValidator
+
 Register validator is the process of adding a validator to the subnet.The contract initiates this with a `registerValidator` function that takes following inputs:
 
 - Subnet ID (bytes32): The ID of the subnet where the validator is being registered
@@ -45,6 +47,8 @@ The contract should verify these:
 
 The contract should then send a warp message to P-Chain and lock the staked amount in the contract. The manager should not start accruing reward at this time since the validator is not yet accepted by P-Chain and it's not guaranteed. The warp message will be aggregated and signed, then the validator will issue a `RegisterSubnetValidatorTx` transaction on P-Chain with warp message included. More details from ACP-77 [here](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/77-reinventing-subnets#step-2-issue-a-registersubnetvalidatortx-on-the-p-chain)
 
+### receiveRegisterValidator
+
 Once `RegisterSubnetValidatorTx` is accepted a warp message will be aggregated and relayed to this contract as a result of `RegisterSubnetValidatorTx`. Upon receiving and verifying this message (via `receiveRegisterValidator`), the contract should activate the validator and start accruing rewards. The message will only contain `messageID` which corresponds to the `messageID` in `registerValidator` request. The contract should verify these:
 
 - Verified warp message
@@ -61,6 +65,8 @@ If `RegisterSubnetValidatorTx` is not accepted, another warp message `InvalidVal
 
 ## Remove Validator
 
+### removeValidator
+
 The manager contract can remove a validator gracefully by sending a warp message to P-Chain. `removeValidator` function should be called with the following inputs:
 
 - Subnet ID (bytes32): The ID of the subnet where the validator is being removed
@@ -76,6 +82,8 @@ After verification contract should perform the following:
 
 - Send a warp message to P-Chain for `SetSubnetValidatorWeightTx{messageID: relatedRegisterValidatorMessageID, nonce: MaxUint64, Weight: 0, }` transaction
 - Stop accruing rewards for the validator
+
+### receiveRemoveValidator
 
 Once the `SetSubnetValidatorWeightTx` is accepted, a warp message `InvalidValidatorRegisterMessage` will be relayed to the contract with `messageID` of the request. The message represents a messageID will not possibly become a valid validator. This essentialy means the message was not valid in the first place, or the validator has removed from the set. The InvalidValidatorRegisterMessage can either be a result of `removeValidator` from the contract or it can be originated directly from P-chain via `ExitValidatorSetTx`. In either case this ultimately tells the contract that a validator was evicted. See related ACP-77 section [here](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/77-reinventing-subnets#exitvalidatorsettx).
 
@@ -102,7 +110,6 @@ TODO: Design currently is not finalized. We need to discuss how to track uptimes
 1- If a validator becomes ineligible permanetly due to low uptime, a warp message should be sent to the manager contract.
 2- Once a validator is removed, a warp message that indicates the uptime is enough will be sent to the contract.
 3- A message will be aggregated upon a request from the manager contract (e.g via an event), then the message will be sent to the manager contract.
-
 
 ## TODO: Add/Decrease Weight
 

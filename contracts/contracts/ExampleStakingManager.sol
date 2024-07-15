@@ -88,7 +88,6 @@ contract ExampleStakingManager is IStakingManager, Ownable {
     balanceOf[msg.sender] += amount;
     totalSupply += amount;
 
-    // TODO: see if we need to store the whole message vs receive it from P-Chain (in receiveRegisterValidator)
     registeredValidatorMessages[messageID] = Validator(subnetID, nodeID, amount, 0, 0, 0, msg.sender);
   }
 
