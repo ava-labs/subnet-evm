@@ -14,14 +14,10 @@ contract ExampleStakingManager is IStakingManager, Ownable {
   IERC20 public immutable stakingToken;
   IERC20 public immutable rewardsToken;
 
-  uint256 public minStakingDuration; // Minimun duration for staking in seconds.
+  uint256 public minStakingDuration; // Minimum duration for staking in seconds.
   uint256 public minStakingAmount; // Minimum amount for staking.
-  bool public stakingEnabled; // Start time of the staking period.s
+  bool public stakingEnabled; // Whether or not contract has started staking operations
   uint256 public rewardRate; // Reward rate per second.
-  // User address => rewardPerTokenStored
-  mapping(address => uint256) public userRewardPerTokenPaid;
-  // User address => rewards to be claimed
-  mapping(address => uint256) public rewards;
   // Total staked
   uint256 public totalSupply;
   // User address => staked amount
@@ -206,6 +202,7 @@ contract ExampleStakingManager is IStakingManager, Ownable {
 
   // TODO: validation vs delegation should be weighted differently for rewards
   // Function to calculate the user's reward.
+  // TODO: we probably would want a better reward calculation
   function calculateReward(uint256 amount, uint256 startedAt, uint256 finishedAt) internal view returns (uint256) {
     if (finishedAt <= startedAt || !stakingEnabled || finishedAt - startedAt < minStakingDuration) {
       return 0;
