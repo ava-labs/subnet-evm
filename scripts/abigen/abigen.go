@@ -85,10 +85,10 @@ func (cfg *config) run(ctx context.Context, stdout, stderr io.Writer) error {
 		return fmt.Errorf("abigen: %w", err)
 	}
 
-	re := regexp.MustCompile(`github.com/ethereum/go-ethereum/(accounts|core)/`)
+	re := regexp.MustCompile(`"github.com/ethereum/go-ethereum/(accounts|core)/`)
 	_, err = stdout.Write(re.ReplaceAll(
 		abigenOut.Bytes(),
-		[]byte(`github.com/ava-labs/subnet-evm/${1}/`)),
+		[]byte(`"github.com/ava-labs/subnet-evm/${1}/`)),
 	)
 	return err
 }
