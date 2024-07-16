@@ -85,7 +85,7 @@ After verification contract should perform the following:
 
 ### receiveRemoveValidator
 
-Once the `SetSubnetValidatorWeightTx` is accepted, a warp message `InvalidValidatorRegisterMessage` will be relayed to the contract with `messageID` of the request. The message represents a messageID will not possibly become a valid validator. This essentialy means the message was not valid in the first place, or the validator has removed from the set. The InvalidValidatorRegisterMessage can either be a result of `removeValidator` from the contract or it can be originated directly from P-chain via `ExitValidatorSetTx`. In either case this ultimately tells the contract that a validator was evicted. See related ACP-77 section [here](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/77-reinventing-subnets#exitvalidatorsettx).
+Once the `SetSubnetValidatorWeightTx` is accepted, a warp message `InvalidValidatorRegisterMessage` will be relayed to the contract with `messageID` of the request. The message represents a messageID will not possibly become a valid validator. This essentialy means the message was not valid in the first place, or the validator has removed from the set.
 
 The contract should verify these in `receiveRemoveValidator`:
 
@@ -101,6 +101,12 @@ TODO: should we give a partial reward in case the validator got removed from P-c
 
 TODO: should we add a cooldown period for validator removal/readd?
 
+### ExitValidatorSetTx
+
+ExitValidatorSetTx can be used by validators to evict themselves from validation. The transaction direclty sent to the P-chain without requiring any subnet signatures. Related ACP-77 section [here](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/77-reinventing-subnets#exitvalidatorsettx).
+
+Upon receiving and accepting this transaction, P-chain will mark the validator as inactive. This won't result into a `InvalidValidatorRegisterMessage` warp message. This means contract won't be able to know the validator is removed. The VM should handle this case in uptime tracking and stop incrementing uptime for the validator. The validator still can gracefully remove itself by sending a `removeValidator` request to the manager contract. The manager contract should handle this case as a normal removal.
+
 ## Uptime Based Rewards
 
 The manager contract should reward based on uptimes of validators. VMs should be able to track precise uptimes of validators. The manager contract should be able to query the uptime of a validator and reward based on the uptime.
@@ -113,4 +119,8 @@ TODO: Design currently is not finalized. We need to discuss how to track uptimes
 
 ## TODO: Add/Decrease Weight
 
+TODO: The contract should be able to increase/decrease the weight of a validator. By doing so a validator can increase their staked fund and weight on consensus. The rewarding must be handled according to the increased/decreased funds Add/Decrease weight will be issued with a warp message for `SetSubnetValidatorWeightTx` which requires two parameters: nonce and weight. The contract is responsible to track and manage correct nonces for validators. A response message will be returned once P-Chain accepts the warp message. The contract should verify the response message and update the weight and nonce of the validator.
+
 ## TODO: Delegations
+
+TODO: Delegations should be handled similarly to add/decrease weight. Once a delegator is added/removed to/from a validator a warp message for `SetSubnetValidatorWeightTx` should be sent to P-Chain with the new weight. Contract should track weights and nonces on validators. Rewarding is similar to validator rewarding, the uptime should be based on validators' uptime to calculate rewards for delegators. A minimum delegation amount should be required.

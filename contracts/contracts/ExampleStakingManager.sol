@@ -162,17 +162,21 @@ contract ExampleStakingManager is IStakingManager, Ownable {
     bytes32 stakingID = keccak256(abi.encode(pendingValidator.subnetID, pendingValidator.nodeID));
     delete activeValidators[stakingID];
     // TODO: do we need to check balanceOf[pendingValidator.rewardAddress] > weight?
-    uint256 totalAmount = pendingValidator.weight;
+    uint256 stakedAmount = pendingValidator.weight;
     // if redeemedAt is 0, this was not a graceful exit.
     if (pendingValidator.redeemedAt != 0) {
-      uint256 reward = calculateReward(
-        pendingValidator.weight,
-        pendingValidator.startedAt,
-        pendingValidator.redeemedAt
-      );
-      totalAmount += reward;
+      // TODO: a reward here should be calculated and locked until
+      // a uptime report is available for the validator.
+      // The validator should only be able to redeem the reward after
+      // the uptime confirms the validator is eligible for the reward.
+      // uint256 reward = calculateReward(
+      //   pendingValidator.weight,
+      //   pendingValidator.startedAt,
+      //   pendingValidator.redeemedAt
+      // );
+      // totalAmount += reward;
     }
-    unlockedBalanceOf[pendingValidator.rewardAddress] += totalAmount;
+    unlockedBalanceOf[pendingValidator.rewardAddress] += stakedAmount;
   }
 
   function increaseValidatorWeight(bytes32 subnetID, bytes32 nodeID, uint64 amount) external {}
