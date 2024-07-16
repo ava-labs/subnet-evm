@@ -16,7 +16,7 @@ import (
 func main() {
 	var c config
 
-	flag.StringVar(&c.solc.version, "solc.version", "0.8.24", "Version of solc expected; the version used will be sourced from $PATH")
+	flag.StringVar(&c.solc.version, "solc.version", "0.8.26", "Version of solc expected; the version used will be sourced from $PATH")
 	flag.StringVar(&c.solc.evmVersion, "solc.evm-version", "paris", "solc --evm-version flag")
 	flag.StringVar(&c.solc.basePath, "solc.base-path", "./", "solc --base-path flag")
 	flag.StringVar(&c.solc.includePath, "solc.include-path", "", "solc --include-path flag; only propagated if not empty")
