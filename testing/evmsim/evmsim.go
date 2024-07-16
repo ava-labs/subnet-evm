@@ -10,6 +10,7 @@ import (
 	"github.com/ava-labs/subnet-evm/accounts/abi/bind/backends"
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/types"
+	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -43,9 +44,19 @@ func (b *Backend) SendTransaction(ctx context.Context, tx *types.Transaction) er
 	return nil
 }
 
+// Config configures [Backend] constructors.
+type Config struct {
+	GenesisPrecompiles params.Precompiles
+}
+
+// Default returns a default [Config].
+func Default() *Config {
+	return new(Config)
+}
+
 // NewWithHexKeys is equivalent to [NewWithRawKeys], but accepting hex-encoded
 // private keys.
-func NewWithHexKeys(tb testing.TB, keys []string) *Backend {
+func (c *Config) NewWithHexKeys(tb testing.TB, keys []string) *Backend {
 	tb.Helper()
 
 	bKeys := make([][]byte, len(keys))
@@ -56,24 +67,24 @@ func NewWithHexKeys(tb testing.TB, keys []string) *Backend {
 		}
 		bKeys[i] = b
 	}
-	return NewWithRawKeys(tb, bKeys)
+	return c.NewWithRawKeys(tb, bKeys)
 }
 
 // NewWithNumKeys generates `n` private keys determinastically, passing them to
 // [NewWithRawKeys] and returning the result.
-func NewWithNumKeys(tb testing.TB, n uint) *Backend {
+func (c *Config) NewWithNumKeys(tb testing.TB, n uint) *Backend {
 	tb.Helper()
 	keys := make([][]byte, n)
 	for i := range keys {
 		keys[i] = crypto.Keccak256(keys...)
 	}
-	return NewWithRawKeys(tb, keys)
+	return c.NewWithRawKeys(tb, keys)
 }
 
 // NewWithRawKeys constructs and returns a new [Backend] with pre-allocated
 // accounts corresponding to the raw private keys, which are converted using
 // [crypto.ToECDSA].
-func NewWithRawKeys(tb testing.TB, keys [][]byte) *Backend {
+func (c *Config) NewWithRawKeys(tb testing.TB, keys [][]byte) *Backend {
 	tb.Helper()
 
 	txOpts := make([]*bind.TransactOpts, len(keys))
@@ -89,11 +100,23 @@ func NewWithRawKeys(tb testing.TB, keys [][]byte) *Backend {
 		}
 		txOpts[i] = opt
 	}
-	return newWithTransactOpts(tb, txOpts)
+	return c.newWithTransactOpts(tb, txOpts)
 }
 
-func newWithTransactOpts(tb testing.TB, txOpts []*bind.TransactOpts) *Backend {
+func (c *Config) newWithTransactOpts(tb testing.TB, txOpts []*bind.TransactOpts) *Backend {
 	tb.Helper()
+
+	// The geth SimulatedBackend constructor doesn't allow for injection of
+	// the ChainConfig, instead using a global. They have recently overhauled
+	// the implementation so there's no point in sending a PR to allow for
+	// injection.
+	// TODO(arr4n): once we have upgraded to a geth version with the new
+	// simulated.Backend, change how we inject the precompiles.
+	copy := *params.TestChainConfig
+	defer func() {
+		params.TestChainConfig = &copy
+	}()
+	params.TestChainConfig.GenesisPrecompiles = c.GenesisPrecompiles
 
 	alloc := make(core.GenesisAlloc)
 	for _, o := range txOpts {

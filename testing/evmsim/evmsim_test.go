@@ -12,7 +12,7 @@ func TestAddr(t *testing.T) {
 		"0x56289e99c94b6912bfc12adc093c9b51124f0dc54ac7a766b2bc5ccf558d8027",
 		"0x750839e9dbbd2a0910efe40f50b2f3b2f2f59f5580bb4b83bd8c1201cf9a010a",
 	}
-	b := NewWithHexKeys(t, keys)
+	b := Default().NewWithHexKeys(t, keys)
 
 	var got []common.Address
 	for i := range keys {
@@ -38,8 +38,8 @@ func FuzzNewWithNumKeys(f *testing.F) {
 			min = n2
 		}
 
-		b1 := NewWithNumKeys(t, uint(n1))
-		b2 := NewWithNumKeys(t, uint(n2))
+		b1 := Default().NewWithNumKeys(t, uint(n1))
+		b2 := Default().NewWithNumKeys(t, uint(n2))
 
 		t.Run("same prefix of addresses", func(t *testing.T) {
 			for i := 0; i < int(min); i++ {
@@ -54,6 +54,6 @@ func TestLockDeterministicKeys(t *testing.T) {
 	// so we know that those before it must be correct too (assuming the same
 	// algorithm is used for all keys).
 	const n = 100
-	b := NewWithNumKeys(t, n)
+	b := Default().NewWithNumKeys(t, n)
 	assert.Equalf(t, b.Addr(n-1), common.HexToAddress("0x529B45f562B9399D67435868A7474175E3B99Be3"), "NewWithNumKeys().Addr(%d)", n-1)
 }

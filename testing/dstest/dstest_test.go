@@ -15,7 +15,7 @@ import (
 
 func TestParseLogs(t *testing.T) {
 	ctx := context.Background()
-	sim := evmsim.NewWithNumKeys(t, 2)
+	sim := evmsim.Default().NewWithNumKeys(t, 2)
 
 	addr, fake := evmsim.Deploy(t, sim, 0, DeployFakeTest)
 	sut := New(addr)

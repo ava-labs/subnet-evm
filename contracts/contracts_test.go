@@ -12,19 +12,10 @@ import (
 func newEVMSim(tb testing.TB, genesis params.Precompiles) *evmsim.Backend {
 	tb.Helper()
 
-	// The geth SimulatedBackend constructor doesn't allow for injection of
-	// the ChainConfig, instead using a global. They have recently overhauled
-	// the implementation so there's no point in sending a PR to allow for
-	// injection.
-	// TODO(arr4n): once we have upgraded to a geth version with the new
-	// simulated.Backend, change how we inject the precompiles.
-	copy := *params.TestChainConfig
-	defer func() {
-		params.TestChainConfig = &copy
-	}()
-	params.TestChainConfig.GenesisPrecompiles = genesis
-
-	return evmsim.NewWithHexKeys(tb, keys())
+	cfg := &evmsim.Config{
+		GenesisPrecompiles: genesis,
+	}
+	return cfg.NewWithHexKeys(tb, keys())
 }
 
 // keys returns the hex-encoded private keys of the testing accounts; these
