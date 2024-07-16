@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-//go:generate sh -c "solc --evm-version=paris --base-path=./ --include-path=./internal --combined-json=abi,bin FakeTest.t.sol | abigen --pkg dstest --combined-json=- | sed -E 's,github.com/ethereum/go-ethereum/(accounts|core)/,github.com/ava-labs/subnet-evm/\\1/,' > generated_test.go"
+//go:generate sh -c "go run $(git rev-parse --show-toplevel)/scripts/abigen --solc.include-path=./internal --abigen.pkg=dstest FakeTest.t.sol > generated_test.go"
 
 func TestParseLogs(t *testing.T) {
 	ctx := context.Background()

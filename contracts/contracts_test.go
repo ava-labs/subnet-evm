@@ -7,7 +7,7 @@ import (
 	"github.com/ava-labs/subnet-evm/testing/evmsim"
 )
 
-//go:generate sh -c "solc --evm-version=paris --base-path=./ --include-path=./node_modules --combined-json=abi,bin contracts/**/*.sol | abigen --combined-json=- --pkg contracts | sed -E 's,github.com/ethereum/go-ethereum/(accounts|core)/,github.com/ava-labs/subnet-evm/\\1/,' > generated_test.go"
+//go:generate sh -c "go run $(git rev-parse --show-toplevel)/scripts/abigen --solc.include-path=./node_modules --abigen.pkg=contracts contracts/**/*.sol > generated_test.go"
 
 func newEVMSim(tb testing.TB, genesis params.Precompiles) *evmsim.Backend {
 	tb.Helper()

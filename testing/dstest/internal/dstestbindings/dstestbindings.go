@@ -9,7 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
-//go:generate sh -c "solc --evm-version=paris --base-path=../ds-test/src --combined-json=abi ../ds-test/src/test.sol | abigen --pkg dstestbindings --combined-json=- | sed -E 's,github.com/ethereum/go-ethereum/(accounts|core)/,github.com/ava-labs/subnet-evm/\\1/,' > generated.go"
+//go:generate sh -c "go run $(git rev-parse --show-toplevel)/scripts/abigen --solc.base-path=../ds-test/src --solc.output=abi --abigen.pkg=dstestbindings ../ds-test/src/test.sol > generated.go"
 
 var (
 	parsed *abi.ABI
