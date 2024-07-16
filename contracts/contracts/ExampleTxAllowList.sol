@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import "./AllowList.sol";
+import {Empty} from "./Empty.sol";
 import "./interfaces/IAllowList.sol";
 
 // Precompiled Allow List Contract Address
@@ -13,8 +14,6 @@ contract ExampleTxAllowList is AllowList {
   constructor() AllowList(TX_ALLOW_LIST) {}
 
   function deployContract() public {
-    new Example();
+    new Empty();
   }
 }
-
-contract Example {}
