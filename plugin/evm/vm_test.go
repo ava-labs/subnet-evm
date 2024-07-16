@@ -31,7 +31,6 @@ import (
 	"github.com/ava-labs/avalanchego/database/prefixdb"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow"
-	"github.com/ava-labs/avalanchego/snow/choices"
 	"github.com/ava-labs/avalanchego/snow/consensus/snowman"
 	commonEng "github.com/ava-labs/avalanchego/snow/engine/common"
 	"github.com/ava-labs/avalanchego/snow/validators"
@@ -351,11 +350,6 @@ func TestVMUpgrades(t *testing.T) {
 			if _, err := vm.ParseBlock(context.Background(), genesisBlk.Bytes()); err != nil {
 				t.Fatalf("Failed to parse genesis block due to %s", err)
 			}
-
-			genesisStatus := genesisBlk.Status()
-			if genesisStatus != choices.Accepted {
-				t.Fatalf("expected genesis status to be %s but was %s", choices.Accepted, genesisStatus)
-			}
 		})
 	}
 }
@@ -371,10 +365,6 @@ func issueAndAccept(t *testing.T, issuer <-chan commonEng.Message, vm *VM) snowm
 
 	if err := blk.Verify(context.Background()); err != nil {
 		t.Fatal(err)
-	}
-
-	if status := blk.Status(); status != choices.Processing {
-		t.Fatalf("Expected status of built block to be %s, but found %s", choices.Processing, status)
 	}
 
 	if err := vm.SetPreference(context.Background(), blk.ID()); err != nil {
@@ -447,10 +437,6 @@ func TestBuildEthTxBlock(t *testing.T) {
 		t.Fatalf("Expected new block to match")
 	}
 
-	if status := blk2.Status(); status != choices.Accepted {
-		t.Fatalf("Expected status of accepted block to be %s, but found %s", choices.Accepted, status)
-	}
-
 	lastAcceptedID, err := vm.LastAccepted(context.Background())
 	if err != nil {
 		t.Fatal(err)
@@ -470,17 +456,11 @@ func TestBuildEthTxBlock(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if status := blk2Refreshed.Status(); status != choices.Accepted {
-		t.Fatalf("Expected refreshed blk2 to be Accepted, but found status: %s", status)
-	}
 
 	blk1RefreshedID := blk2Refreshed.Parent()
 	blk1Refreshed, err := vm.GetBlockInternal(context.Background(), blk1RefreshedID)
 	if err != nil {
 		t.Fatal(err)
-	}
-	if status := blk1Refreshed.Status(); status != choices.Accepted {
-		t.Fatalf("Expected refreshed blk1 to be Accepted, but found status: %s", status)
 	}
 
 	if blk1Refreshed.ID() != blk1.ID() {
@@ -571,10 +551,6 @@ func TestSetPreferenceRace(t *testing.T) {
 		t.Fatalf("Block failed verification on VM1: %s", err)
 	}
 
-	if status := vm1BlkA.Status(); status != choices.Processing {
-		t.Fatalf("Expected status of built block to be %s, but found %s", choices.Processing, status)
-	}
-
 	if err := vm1.SetPreference(context.Background(), vm1BlkA.ID()); err != nil {
 		t.Fatal(err)
 	}
@@ -585,9 +561,6 @@ func TestSetPreferenceRace(t *testing.T) {
 	}
 	if err := vm2BlkA.Verify(context.Background()); err != nil {
 		t.Fatalf("Block failed verification on VM2: %s", err)
-	}
-	if status := vm2BlkA.Status(); status != choices.Processing {
-		t.Fatalf("Expected status of block on VM2 to be %s, but found %s", choices.Processing, status)
 	}
 	if err := vm2.SetPreference(context.Background(), vm2BlkA.ID()); err != nil {
 		t.Fatal(err)
@@ -642,10 +615,6 @@ func TestSetPreferenceRace(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if status := vm1BlkB.Status(); status != choices.Processing {
-		t.Fatalf("Expected status of built block to be %s, but found %s", choices.Processing, status)
-	}
-
 	if err := vm1.SetPreference(context.Background(), vm1BlkB.ID()); err != nil {
 		t.Fatal(err)
 	}
@@ -668,10 +637,6 @@ func TestSetPreferenceRace(t *testing.T) {
 
 	if err := vm2BlkC.Verify(context.Background()); err != nil {
 		t.Fatalf("BlkC failed verification on VM2: %s", err)
-	}
-
-	if status := vm2BlkC.Status(); status != choices.Processing {
-		t.Fatalf("Expected status of built block C to be %s, but found %s", choices.Processing, status)
 	}
 
 	if err := vm2.SetPreference(context.Background(), vm2BlkC.ID()); err != nil {
@@ -699,10 +664,6 @@ func TestSetPreferenceRace(t *testing.T) {
 
 	if err := vm2BlkD.Verify(context.Background()); err != nil {
 		t.Fatalf("BlkD failed verification on VM2: %s", err)
-	}
-
-	if status := vm2BlkD.Status(); status != choices.Processing {
-		t.Fatalf("Expected status of built block D to be %s, but found %s", choices.Processing, status)
 	}
 
 	if err := vm2.SetPreference(context.Background(), vm2BlkD.ID()); err != nil {
@@ -822,10 +783,6 @@ func TestReorgProtection(t *testing.T) {
 		t.Fatalf("Block failed verification on VM1: %s", err)
 	}
 
-	if status := vm1BlkA.Status(); status != choices.Processing {
-		t.Fatalf("Expected status of built block to be %s, but found %s", choices.Processing, status)
-	}
-
 	if err := vm1.SetPreference(context.Background(), vm1BlkA.ID()); err != nil {
 		t.Fatal(err)
 	}
@@ -836,9 +793,6 @@ func TestReorgProtection(t *testing.T) {
 	}
 	if err := vm2BlkA.Verify(context.Background()); err != nil {
 		t.Fatalf("Block failed verification on VM2: %s", err)
-	}
-	if status := vm2BlkA.Status(); status != choices.Processing {
-		t.Fatalf("Expected status of block on VM2 to be %s, but found %s", choices.Processing, status)
 	}
 	if err := vm2.SetPreference(context.Background(), vm2BlkA.ID()); err != nil {
 		t.Fatal(err)
@@ -893,10 +847,6 @@ func TestReorgProtection(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if status := vm1BlkB.Status(); status != choices.Processing {
-		t.Fatalf("Expected status of built block to be %s, but found %s", choices.Processing, status)
-	}
-
 	if err := vm1.SetPreference(context.Background(), vm1BlkB.ID()); err != nil {
 		t.Fatal(err)
 	}
@@ -919,9 +869,6 @@ func TestReorgProtection(t *testing.T) {
 
 	if err := vm2BlkC.Verify(context.Background()); err != nil {
 		t.Fatalf("Block failed verification on VM2: %s", err)
-	}
-	if status := vm2BlkC.Status(); status != choices.Processing {
-		t.Fatalf("Expected status of block on VM2 to be %s, but found %s", choices.Processing, status)
 	}
 
 	vm1BlkC, err := vm1.ParseBlock(context.Background(), vm2BlkC.Bytes())
@@ -1000,10 +947,6 @@ func TestNonCanonicalAccept(t *testing.T) {
 		t.Fatalf("Block failed verification on VM1: %s", err)
 	}
 
-	if status := vm1BlkA.Status(); status != choices.Processing {
-		t.Fatalf("Expected status of built block to be %s, but found %s", choices.Processing, status)
-	}
-
 	if _, err := vm1.GetBlockIDAtHeight(context.Background(), vm1BlkA.Height()); err != database.ErrNotFound {
 		t.Fatalf("Expected unaccepted block not to be indexed by height, but found %s", err)
 	}
@@ -1018,9 +961,6 @@ func TestNonCanonicalAccept(t *testing.T) {
 	}
 	if err := vm2BlkA.Verify(context.Background()); err != nil {
 		t.Fatalf("Block failed verification on VM2: %s", err)
-	}
-	if status := vm2BlkA.Status(); status != choices.Processing {
-		t.Fatalf("Expected status of block on VM2 to be %s, but found %s", choices.Processing, status)
 	}
 	if _, err := vm2.GetBlockIDAtHeight(context.Background(), vm2BlkA.Height()); err != database.ErrNotFound {
 		t.Fatalf("Expected unaccepted block not to be indexed by height, but found %s", err)
@@ -1086,10 +1026,6 @@ func TestNonCanonicalAccept(t *testing.T) {
 
 	if err := vm1BlkB.Verify(context.Background()); err != nil {
 		t.Fatal(err)
-	}
-
-	if status := vm1BlkB.Status(); status != choices.Processing {
-		t.Fatalf("Expected status of built block to be %s, but found %s", choices.Processing, status)
 	}
 
 	if _, err := vm1.GetBlockIDAtHeight(context.Background(), vm1BlkB.Height()); err != database.ErrNotFound {
@@ -1200,10 +1136,6 @@ func TestStickyPreference(t *testing.T) {
 		t.Fatalf("Block failed verification on VM1: %s", err)
 	}
 
-	if status := vm1BlkA.Status(); status != choices.Processing {
-		t.Fatalf("Expected status of built block to be %s, but found %s", choices.Processing, status)
-	}
-
 	if err := vm1.SetPreference(context.Background(), vm1BlkA.ID()); err != nil {
 		t.Fatal(err)
 	}
@@ -1214,9 +1146,6 @@ func TestStickyPreference(t *testing.T) {
 	}
 	if err := vm2BlkA.Verify(context.Background()); err != nil {
 		t.Fatalf("Block failed verification on VM2: %s", err)
-	}
-	if status := vm2BlkA.Status(); status != choices.Processing {
-		t.Fatalf("Expected status of block on VM2 to be %s, but found %s", choices.Processing, status)
 	}
 	if err := vm2.SetPreference(context.Background(), vm2BlkA.ID()); err != nil {
 		t.Fatal(err)
@@ -1271,10 +1200,6 @@ func TestStickyPreference(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if status := vm1BlkB.Status(); status != choices.Processing {
-		t.Fatalf("Expected status of built block to be %s, but found %s", choices.Processing, status)
-	}
-
 	if err := vm1.SetPreference(context.Background(), vm1BlkB.ID()); err != nil {
 		t.Fatal(err)
 	}
@@ -1300,10 +1225,6 @@ func TestStickyPreference(t *testing.T) {
 
 	if err := vm2BlkC.Verify(context.Background()); err != nil {
 		t.Fatalf("BlkC failed verification on VM2: %s", err)
-	}
-
-	if status := vm2BlkC.Status(); status != choices.Processing {
-		t.Fatalf("Expected status of built block C to be %s, but found %s", choices.Processing, status)
 	}
 
 	if err := vm2.SetPreference(context.Background(), vm2BlkC.ID()); err != nil {
@@ -1467,10 +1388,6 @@ func TestUncleBlock(t *testing.T) {
 		t.Fatalf("Block failed verification on VM1: %s", err)
 	}
 
-	if status := vm1BlkA.Status(); status != choices.Processing {
-		t.Fatalf("Expected status of built block to be %s, but found %s", choices.Processing, status)
-	}
-
 	if err := vm1.SetPreference(context.Background(), vm1BlkA.ID()); err != nil {
 		t.Fatal(err)
 	}
@@ -1481,9 +1398,6 @@ func TestUncleBlock(t *testing.T) {
 	}
 	if err := vm2BlkA.Verify(context.Background()); err != nil {
 		t.Fatalf("Block failed verification on VM2: %s", err)
-	}
-	if status := vm2BlkA.Status(); status != choices.Processing {
-		t.Fatalf("Expected status of block on VM2 to be %s, but found %s", choices.Processing, status)
 	}
 	if err := vm2.SetPreference(context.Background(), vm2BlkA.ID()); err != nil {
 		t.Fatal(err)
@@ -1535,10 +1449,6 @@ func TestUncleBlock(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if status := vm1BlkB.Status(); status != choices.Processing {
-		t.Fatalf("Expected status of built block to be %s, but found %s", choices.Processing, status)
-	}
-
 	if err := vm1.SetPreference(context.Background(), vm1BlkB.ID()); err != nil {
 		t.Fatal(err)
 	}
@@ -1558,10 +1468,6 @@ func TestUncleBlock(t *testing.T) {
 
 	if err := vm2BlkC.Verify(context.Background()); err != nil {
 		t.Fatalf("BlkC failed verification on VM2: %s", err)
-	}
-
-	if status := vm2BlkC.Status(); status != choices.Processing {
-		t.Fatalf("Expected status of built block C to be %s, but found %s", choices.Processing, status)
 	}
 
 	if err := vm2.SetPreference(context.Background(), vm2BlkC.ID()); err != nil {
@@ -1715,10 +1621,6 @@ func TestAcceptReorg(t *testing.T) {
 		t.Fatalf("Block failed verification on VM1: %s", err)
 	}
 
-	if status := vm1BlkA.Status(); status != choices.Processing {
-		t.Fatalf("Expected status of built block to be %s, but found %s", choices.Processing, status)
-	}
-
 	if err := vm1.SetPreference(context.Background(), vm1BlkA.ID()); err != nil {
 		t.Fatal(err)
 	}
@@ -1729,9 +1631,6 @@ func TestAcceptReorg(t *testing.T) {
 	}
 	if err := vm2BlkA.Verify(context.Background()); err != nil {
 		t.Fatalf("Block failed verification on VM2: %s", err)
-	}
-	if status := vm2BlkA.Status(); status != choices.Processing {
-		t.Fatalf("Expected status of block on VM2 to be %s, but found %s", choices.Processing, status)
 	}
 	if err := vm2.SetPreference(context.Background(), vm2BlkA.ID()); err != nil {
 		t.Fatal(err)
@@ -1783,10 +1682,6 @@ func TestAcceptReorg(t *testing.T) {
 
 	if err := vm1BlkB.Verify(context.Background()); err != nil {
 		t.Fatal(err)
-	}
-
-	if status := vm1BlkB.Status(); status != choices.Processing {
-		t.Fatalf("Expected status of built block to be %s, but found %s", choices.Processing, status)
 	}
 
 	if err := vm1.SetPreference(context.Background(), vm1BlkB.ID()); err != nil {
@@ -1965,10 +1860,6 @@ func TestLastAcceptedBlockNumberAllow(t *testing.T) {
 		t.Fatalf("Block failed verification on VM: %s", err)
 	}
 
-	if status := blk.Status(); status != choices.Processing {
-		t.Fatalf("Expected status of built block to be %s, but found %s", choices.Processing, status)
-	}
-
 	if err := vm.SetPreference(context.Background(), blk.ID()); err != nil {
 		t.Fatal(err)
 	}
@@ -2132,10 +2023,6 @@ func TestBuildSubnetEVMBlock(t *testing.T) {
 	}
 	if minRequiredTip == nil || minRequiredTip.Cmp(big.NewInt(0.05*params.GWei)) < 0 {
 		t.Fatalf("expected minRequiredTip to be at least 0.05 gwei but got %d", minRequiredTip)
-	}
-
-	if status := blk.Status(); status != choices.Accepted {
-		t.Fatalf("Expected status of accepted block to be %s, but found %s", choices.Accepted, status)
 	}
 
 	lastAcceptedID, err := vm.LastAccepted(context.Background())
@@ -3205,10 +3092,6 @@ func TestCrossChainMessagestoVM(t *testing.T) {
 	err = blk1.Verify(context.Background())
 	require.NoError(err)
 
-	if status := blk1.Status(); status != choices.Processing {
-		t.Fatalf("Expected status of built block to be %s, but found %s", choices.Processing, status)
-	}
-
 	err = vm.SetPreference(context.Background(), blk1.ID())
 	require.NoError(err)
 
@@ -3218,10 +3101,6 @@ func TestCrossChainMessagestoVM(t *testing.T) {
 	newHead := <-newTxPoolHeadChan
 	if newHead.Head.Hash() != common.Hash(blk1.ID()) {
 		t.Fatalf("Expected new block to match")
-	}
-
-	if status := blk1.Status(); status != choices.Accepted {
-		t.Fatalf("Expected status of accepted block to be %s, but found %s", choices.Accepted, status)
 	}
 
 	lastAcceptedID, err := vm.LastAccepted(context.Background())
@@ -3250,10 +3129,6 @@ func TestCrossChainMessagestoVM(t *testing.T) {
 	err = blk2.Verify(context.Background())
 	require.NoError(err)
 
-	if status := blk2.Status(); status != choices.Processing {
-		t.Fatalf("Expected status of built block to be %s, but found %s", choices.Processing, status)
-	}
-
 	err = vm.SetPreference(context.Background(), blk2.ID())
 	require.NoError(err)
 
@@ -3263,10 +3138,6 @@ func TestCrossChainMessagestoVM(t *testing.T) {
 	newHead = <-newTxPoolHeadChan
 	if newHead.Head.Hash() != common.Hash(blk2.ID()) {
 		t.Fatalf("Expected new block to match")
-	}
-
-	if status := blk2.Status(); status != choices.Accepted {
-		t.Fatalf("Expected status of accepted block to be %s, but found %s", choices.Accepted, status)
 	}
 
 	lastAcceptedID, err = vm.LastAccepted(context.Background())
