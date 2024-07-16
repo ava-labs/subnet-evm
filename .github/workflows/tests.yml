@@ -9,7 +9,7 @@ on:
   pull_request:
 
 env:
-  min_go_version: "~1.21.11"
+  min_go_version: "~1.21.12"
   grafana_url: https://grafana-experimental.avax-dev.network/d/kBQpRdWnk/avalanche-main-dashboard?orgId=1&refresh=10s&var-filter=is_ephemeral_node%7C%3D%7Cfalse&var-filter=gh_repo%7C%3D%7Cava-labs%2Fsubnet-evm&var-filter=gh_run_id%7C%3D%7C${{ github.run_id }}&var-filter=gh_run_attempt%7C%3D%7C${{ github.run_attempt }}
 
 jobs:
@@ -34,6 +34,9 @@ jobs:
       - name: Run shellcheck
         shell: bash
         run: scripts/shellcheck.sh
+      - name: Run actionlint
+        shell: bash
+        run: scripts/actionlint.sh
 
   unit_test:
     name: Golang Unit Tests (${{ matrix.os }})
@@ -51,7 +54,7 @@ jobs:
       - name: Set timeout on Windows # Windows UT run slower and need a longer timeout
         shell: bash
         if: matrix.os == 'windows-latest'
-        run: echo "TIMEOUT=1200s" >> $GITHUB_ENV
+        run: echo "TIMEOUT=1200s" >> "$GITHUB_ENV"
       - run: go mod download
         shell: bash
       - run: ./scripts/build.sh ./build/subnetevm
