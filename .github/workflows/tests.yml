@@ -95,6 +95,9 @@ jobs:
       - name: Install solc
         shell: bash
         run: sudo add-apt-repository ppa:ethereum/ethereum && sudo apt update && sudo apt install -y solc
+      - name: Install abigen
+        shell: bash
+        run: go install github.com/ethereum/go-ethereum/cmd/abigen
       - name: Generate abigen bindings
         shell: bash
         run: go generate ./contracts/... ./testing/...
