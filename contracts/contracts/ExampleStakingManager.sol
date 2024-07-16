@@ -14,7 +14,7 @@ contract ExampleStakingManager is IStakingManager, Ownable {
   IERC20 public immutable stakingToken;
   IERC20 public immutable rewardsToken;
 
-  uint256 public minStakingDuration; // Minimun duration for staking in seconds.
+  uint256 public minStakingDuration; // Minimum duration for staking in seconds.
   uint256 public minStakingAmount; // Minimum amount for staking.
   bool public stakingEnabled; // Start time of the staking period.s
   uint256 public rewardRate; // Reward rate per second.
