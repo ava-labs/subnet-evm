@@ -31,7 +31,7 @@ func UnpackRoleSetEventData(dataBytes []byte) (Role, error) {
 	}{}
 	err := AllowListABI.UnpackIntoInterface(&eventData, "RoleSet", dataBytes)
 	if err != nil {
-		return Role{}, err
+		return 0, err
 	}
-	return FromBig(eventData.OldRole)
+	return RoleFromBig(eventData.OldRole)
 }

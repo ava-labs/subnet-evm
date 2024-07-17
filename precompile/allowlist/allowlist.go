@@ -41,7 +41,11 @@ var (
 func GetAllowListStatus(state contract.StateDB, precompileAddr common.Address, address common.Address) Role {
 	// Generate the state key for [address]
 	addressKey := common.BytesToHash(address.Bytes())
-	return Role(state.GetState(precompileAddr, addressKey))
+	r, err := RoleFromHash(state.GetState(precompileAddr, addressKey))
+	if err != nil {
+		panic(err) // DO NOT MERGE
+	}
+	return r
 }
 
 // SetAllowListRole sets the permissions of [address] to [role] for the precompile

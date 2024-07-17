@@ -5,56 +5,46 @@ package allowlist
 
 import (
 	"errors"
+	"fmt"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
 )
 
-// 1. NoRole - this is equivalent to common.Hash{} and deletes the key from the DB when set
-// 2. EnabledRole - allowed to call the precompile
-// 3. Admin - allowed to both modify the allowlist and call the precompile
-// 4. Manager - allowed to add and remove only enabled addresses and also call the precompile. (only after Durango)
-var (
-	NoRole      = Role(common.BigToHash(common.Big0))
-	EnabledRole = Role(common.BigToHash(common.Big1))
-	AdminRole   = Role(common.BigToHash(common.Big2))
-	ManagerRole = Role(common.BigToHash(common.Big3))
-	// Roles should be incremented and not changed.
+// Role mirrors the Solidity enum of the same name.
+type Role uint64
 
-	ErrInvalidRole = errors.New("invalid role")
+// Role constants; they MUST be incremented and MUST NOT be reordered.
+const (
+	// NoRole - this is equivalent to common.Hash{} and deletes the key from the DB when set
+	NoRole Role = iota
+	// EnabledRole - allowed to call the precompile
+	EnabledRole
+	// AdminRole - allowed to both modify the allowlist and call the precompile
+	AdminRole
+	// ManagerRole - allowed to add and remove only enabled addresses and also call the precompile. (only after Durango)
+	ManagerRole
+
+	// firstInvalidRole is useful for loops and other upper-bound checks of
+	// Role values. See [Role.IsValid].
+	firstInvalidRole
 )
 
-// Enum constants for valid Role
-type Role common.Hash
+// ErrInvalidRole is returned if an invalid role is encountered. If this error
+// is returned along with a [Role] value, said value MUST NOT be used; this
+// allows functions to return `Role(0), ErrInvalidRole` without worrying about
+// misinterpretation as [NoRole].
+var ErrInvalidRole = errors.New("invalid role")
 
-// IsNoRole returns true if [r] indicates no specific role.
-func (r Role) IsNoRole() bool {
-	switch r {
-	case NoRole:
-		return true
-	default:
-		return false
-	}
-}
-
-// IsAdmin returns true if [r] indicates the permission to modify the allow list.
-func (r Role) IsAdmin() bool {
-	switch r {
-	case AdminRole:
-		return true
-	default:
-		return false
-	}
+// IsValid returns whether or not `r` is a valid value.
+func (r Role) IsValid() bool {
+	return r < firstInvalidRole
 }
 
 // IsEnabled returns true if [r] indicates that it has permission to access the resource.
 func (r Role) IsEnabled() bool {
-	switch r {
-	case AdminRole, EnabledRole, ManagerRole:
-		return true
-	default:
-		return false
-	}
+	return r != NoRole && r.IsValid()
 }
 
 func (r Role) CanModify(from, target Role) bool {
@@ -62,22 +52,33 @@ func (r Role) CanModify(from, target Role) bool {
 	case AdminRole:
 		return true
 	case ManagerRole:
-		return (from == EnabledRole || from == NoRole) && (target == EnabledRole || target == NoRole)
+		return from.canBeManaged() && target.canBeManaged()
 	default:
 		return false
 	}
 }
 
+// canBeManaged returns whether an account with the `Manager` Role can modify
+// another account's Role to or from `r`.
+func (r Role) canBeManaged() bool {
+	return r == EnabledRole || r == NoRole
+}
+
+func (r Role) uint256() *uint256.Int {
+	return uint256.NewInt(uint64(r))
+}
+
 func (r Role) Bytes() []byte {
-	return common.Hash(r).Bytes()
+	b := r.uint256().Bytes32()
+	return b[:]
 }
 
 func (r Role) Big() *big.Int {
-	return common.Hash(r).Big()
+	return r.uint256().ToBig()
 }
 
 func (r Role) Hash() common.Hash {
-	return common.Hash(r)
+	return common.Hash(r.uint256().Bytes32())
 }
 
 func (r Role) GetSetterFunctionName() (string, error) {
@@ -107,16 +108,27 @@ func (r Role) String() string {
 	case AdminRole:
 		return "AdminRole"
 	default:
-		return "UnknownRole"
+		return fmt.Sprintf("UnknownRole[%d]", r)
 	}
 }
 
-func FromBig(b *big.Int) (Role, error) {
-	role := Role(common.BigToHash(b))
-	switch role {
-	case NoRole, EnabledRole, ManagerRole, AdminRole:
-		return role, nil
-	default:
-		return Role{}, ErrInvalidRole
+// A Big value may or may not be representable as a uint64. Such types include
+// [big.Int] and [uint256.Int].
+type Big interface {
+	Uint64() uint64
+	IsUint64() bool
+}
+
+// RoleFromBig converts `u.Uint64()` into a [Role] if `u.IsUint64()` is true.
+func RoleFromBig(b Big) (Role, error) {
+	r := Role(b.Uint64())
+	if !b.IsUint64() || !r.IsValid() {
+		return r, ErrInvalidRole
 	}
+	return r, nil
+}
+
+// RoleFromHash converts `h` into a [Role].
+func RoleFromHash(h common.Hash) (Role, error) {
+	return RoleFromBig(new(uint256.Int).SetBytes32(h[:]))
 }
