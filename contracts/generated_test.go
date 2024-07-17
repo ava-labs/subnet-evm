@@ -8,11 +8,11 @@ import (
 	"math/big"
 	"strings"
 
-	ethereum "github.com/ethereum/go-ethereum"
 	"github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ava-labs/subnet-evm/accounts/abi/bind"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ava-labs/subnet-evm/core/types"
+	"github.com/ava-labs/subnet-evm/interfaces"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/event"
 )
 
@@ -21,7 +21,7 @@ var (
 	_ = errors.New
 	_ = big.NewInt
 	_ = strings.NewReader
-	_ = ethereum.NotFound
+	_ = interfaces.NotFound
 	_ = bind.Bind
 	_ = common.Big1
 	_ = types.BloomLookup
@@ -496,10 +496,10 @@ type AllowListOwnershipTransferredIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -874,10 +874,10 @@ type AllowListTestLogIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -1008,10 +1008,10 @@ type AllowListTestLogAddressIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -1142,10 +1142,10 @@ type AllowListTestLogBytesIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -1276,10 +1276,10 @@ type AllowListTestLogBytes32Iterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -1410,10 +1410,10 @@ type AllowListTestLogIntIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -1544,10 +1544,10 @@ type AllowListTestLogNamedAddressIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -1679,10 +1679,10 @@ type AllowListTestLogNamedBytesIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -1814,10 +1814,10 @@ type AllowListTestLogNamedBytes32Iterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -1949,10 +1949,10 @@ type AllowListTestLogNamedDecimalIntIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -2085,10 +2085,10 @@ type AllowListTestLogNamedDecimalUintIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -2221,10 +2221,10 @@ type AllowListTestLogNamedIntIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -2356,10 +2356,10 @@ type AllowListTestLogNamedStringIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -2491,10 +2491,10 @@ type AllowListTestLogNamedUintIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -2626,10 +2626,10 @@ type AllowListTestLogStringIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -2760,10 +2760,10 @@ type AllowListTestLogUintIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -2894,10 +2894,10 @@ type AllowListTestLogsIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -3404,10 +3404,10 @@ type DSTestLogIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -3538,10 +3538,10 @@ type DSTestLogAddressIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -3672,10 +3672,10 @@ type DSTestLogBytesIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -3806,10 +3806,10 @@ type DSTestLogBytes32Iterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -3940,10 +3940,10 @@ type DSTestLogIntIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -4074,10 +4074,10 @@ type DSTestLogNamedAddressIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -4209,10 +4209,10 @@ type DSTestLogNamedBytesIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -4344,10 +4344,10 @@ type DSTestLogNamedBytes32Iterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -4479,10 +4479,10 @@ type DSTestLogNamedDecimalIntIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -4615,10 +4615,10 @@ type DSTestLogNamedDecimalUintIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -4751,10 +4751,10 @@ type DSTestLogNamedIntIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -4886,10 +4886,10 @@ type DSTestLogNamedStringIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -5021,10 +5021,10 @@ type DSTestLogNamedUintIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -5156,10 +5156,10 @@ type DSTestLogStringIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -5290,10 +5290,10 @@ type DSTestLogUintIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -5424,10 +5424,10 @@ type DSTestLogsIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -6022,10 +6022,10 @@ type ERC20ApprovalIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -6176,10 +6176,10 @@ type ERC20TransferIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -7128,10 +7128,10 @@ type ERC20NativeMinterApprovalIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -7282,10 +7282,10 @@ type ERC20NativeMinterDepositIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -7427,10 +7427,10 @@ type ERC20NativeMinterMintdrawalIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -7572,10 +7572,10 @@ type ERC20NativeMinterOwnershipTransferredIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -7725,10 +7725,10 @@ type ERC20NativeMinterTransferIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -8251,10 +8251,10 @@ type ERC20NativeMinterTestLogIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -8385,10 +8385,10 @@ type ERC20NativeMinterTestLogAddressIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -8519,10 +8519,10 @@ type ERC20NativeMinterTestLogBytesIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -8653,10 +8653,10 @@ type ERC20NativeMinterTestLogBytes32Iterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -8787,10 +8787,10 @@ type ERC20NativeMinterTestLogIntIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -8921,10 +8921,10 @@ type ERC20NativeMinterTestLogNamedAddressIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -9056,10 +9056,10 @@ type ERC20NativeMinterTestLogNamedBytesIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -9191,10 +9191,10 @@ type ERC20NativeMinterTestLogNamedBytes32Iterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -9326,10 +9326,10 @@ type ERC20NativeMinterTestLogNamedDecimalIntIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -9462,10 +9462,10 @@ type ERC20NativeMinterTestLogNamedDecimalUintIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -9598,10 +9598,10 @@ type ERC20NativeMinterTestLogNamedIntIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -9733,10 +9733,10 @@ type ERC20NativeMinterTestLogNamedStringIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -9868,10 +9868,10 @@ type ERC20NativeMinterTestLogNamedUintIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -10003,10 +10003,10 @@ type ERC20NativeMinterTestLogStringIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -10137,10 +10137,10 @@ type ERC20NativeMinterTestLogUintIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -10271,10 +10271,10 @@ type ERC20NativeMinterTestLogsIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -11022,10 +11022,10 @@ type ExampleDeployerListOwnershipTransferredIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -11610,10 +11610,10 @@ type ExampleDeployerListTestLogIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -11744,10 +11744,10 @@ type ExampleDeployerListTestLogAddressIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -11878,10 +11878,10 @@ type ExampleDeployerListTestLogBytesIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -12012,10 +12012,10 @@ type ExampleDeployerListTestLogBytes32Iterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -12146,10 +12146,10 @@ type ExampleDeployerListTestLogIntIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -12280,10 +12280,10 @@ type ExampleDeployerListTestLogNamedAddressIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -12415,10 +12415,10 @@ type ExampleDeployerListTestLogNamedBytesIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -12550,10 +12550,10 @@ type ExampleDeployerListTestLogNamedBytes32Iterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -12685,10 +12685,10 @@ type ExampleDeployerListTestLogNamedDecimalIntIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -12821,10 +12821,10 @@ type ExampleDeployerListTestLogNamedDecimalUintIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -12957,10 +12957,10 @@ type ExampleDeployerListTestLogNamedIntIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -13092,10 +13092,10 @@ type ExampleDeployerListTestLogNamedStringIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -13227,10 +13227,10 @@ type ExampleDeployerListTestLogNamedUintIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -13362,10 +13362,10 @@ type ExampleDeployerListTestLogStringIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -13496,10 +13496,10 @@ type ExampleDeployerListTestLogUintIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -13630,10 +13630,10 @@ type ExampleDeployerListTestLogsIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -14312,10 +14312,10 @@ type ExampleFeeManagerOwnershipTransferredIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -14858,10 +14858,10 @@ type ExampleFeeManagerTestLogIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -14992,10 +14992,10 @@ type ExampleFeeManagerTestLogAddressIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -15126,10 +15126,10 @@ type ExampleFeeManagerTestLogBytesIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -15260,10 +15260,10 @@ type ExampleFeeManagerTestLogBytes32Iterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -15394,10 +15394,10 @@ type ExampleFeeManagerTestLogIntIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -15528,10 +15528,10 @@ type ExampleFeeManagerTestLogNamedAddressIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -15663,10 +15663,10 @@ type ExampleFeeManagerTestLogNamedBytesIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -15798,10 +15798,10 @@ type ExampleFeeManagerTestLogNamedBytes32Iterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -15933,10 +15933,10 @@ type ExampleFeeManagerTestLogNamedDecimalIntIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -16069,10 +16069,10 @@ type ExampleFeeManagerTestLogNamedDecimalUintIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -16205,10 +16205,10 @@ type ExampleFeeManagerTestLogNamedIntIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -16340,10 +16340,10 @@ type ExampleFeeManagerTestLogNamedStringIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -16475,10 +16475,10 @@ type ExampleFeeManagerTestLogNamedUintIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -16610,10 +16610,10 @@ type ExampleFeeManagerTestLogStringIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -16744,10 +16744,10 @@ type ExampleFeeManagerTestLogUintIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -16878,10 +16878,10 @@ type ExampleFeeManagerTestLogsIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -17383,10 +17383,10 @@ type ExampleRewardManagerOwnershipTransferredIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -18013,10 +18013,10 @@ type ExampleRewardManagerTestLogIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -18147,10 +18147,10 @@ type ExampleRewardManagerTestLogAddressIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -18281,10 +18281,10 @@ type ExampleRewardManagerTestLogBytesIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -18415,10 +18415,10 @@ type ExampleRewardManagerTestLogBytes32Iterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -18549,10 +18549,10 @@ type ExampleRewardManagerTestLogIntIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -18683,10 +18683,10 @@ type ExampleRewardManagerTestLogNamedAddressIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -18818,10 +18818,10 @@ type ExampleRewardManagerTestLogNamedBytesIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -18953,10 +18953,10 @@ type ExampleRewardManagerTestLogNamedBytes32Iterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -19088,10 +19088,10 @@ type ExampleRewardManagerTestLogNamedDecimalIntIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -19224,10 +19224,10 @@ type ExampleRewardManagerTestLogNamedDecimalUintIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -19360,10 +19360,10 @@ type ExampleRewardManagerTestLogNamedIntIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -19495,10 +19495,10 @@ type ExampleRewardManagerTestLogNamedStringIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -19630,10 +19630,10 @@ type ExampleRewardManagerTestLogNamedUintIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -19765,10 +19765,10 @@ type ExampleRewardManagerTestLogStringIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -19899,10 +19899,10 @@ type ExampleRewardManagerTestLogUintIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -20033,10 +20033,10 @@ type ExampleRewardManagerTestLogsIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -20611,10 +20611,10 @@ type ExampleTxAllowListOwnershipTransferredIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -21451,10 +21451,10 @@ type ExampleTxAllowListTestLogIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -21585,10 +21585,10 @@ type ExampleTxAllowListTestLogAddressIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -21719,10 +21719,10 @@ type ExampleTxAllowListTestLogBytesIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -21853,10 +21853,10 @@ type ExampleTxAllowListTestLogBytes32Iterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -21987,10 +21987,10 @@ type ExampleTxAllowListTestLogIntIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -22121,10 +22121,10 @@ type ExampleTxAllowListTestLogNamedAddressIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -22256,10 +22256,10 @@ type ExampleTxAllowListTestLogNamedBytesIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -22391,10 +22391,10 @@ type ExampleTxAllowListTestLogNamedBytes32Iterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -22526,10 +22526,10 @@ type ExampleTxAllowListTestLogNamedDecimalIntIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -22662,10 +22662,10 @@ type ExampleTxAllowListTestLogNamedDecimalUintIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -22798,10 +22798,10 @@ type ExampleTxAllowListTestLogNamedIntIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -22933,10 +22933,10 @@ type ExampleTxAllowListTestLogNamedStringIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -23068,10 +23068,10 @@ type ExampleTxAllowListTestLogNamedUintIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -23203,10 +23203,10 @@ type ExampleTxAllowListTestLogStringIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -23337,10 +23337,10 @@ type ExampleTxAllowListTestLogUintIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -23471,10 +23471,10 @@ type ExampleTxAllowListTestLogsIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -23871,10 +23871,10 @@ type IAllowListRoleSetIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -24341,10 +24341,10 @@ type IERC20ApprovalIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -24495,10 +24495,10 @@ type IERC20TransferIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -25049,10 +25049,10 @@ type IERC20MetadataApprovalIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -25203,10 +25203,10 @@ type IERC20MetadataTransferIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -25750,10 +25750,10 @@ type IFeeManagerFeeConfigChangedIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -25896,10 +25896,10 @@ type IFeeManagerRoleSetIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -26346,10 +26346,10 @@ type INativeMinterNativeCoinMintedIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -26500,10 +26500,10 @@ type INativeMinterRoleSetIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -27054,10 +27054,10 @@ type IRewardManagerFeeRecipientsAllowedIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -27198,10 +27198,10 @@ type IRewardManagerRewardAddressChangedIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -27360,10 +27360,10 @@ type IRewardManagerRewardsDisabledIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -27504,10 +27504,10 @@ type IRewardManagerRoleSetIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -27960,10 +27960,10 @@ type IWarpMessengerSendWarpMessageIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
@@ -28553,10 +28553,10 @@ type OwnableOwnershipTransferredIterator struct {
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
 
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
+	logs chan types.Log          // Log channel receiving the found contract events
+	sub  interfaces.Subscription // Subscription for errors, completion and termination
+	done bool                    // Whether the subscription completed delivering logs
+	fail error                   // Occurred error to stop iteration
 }
 
 // Next advances the iterator to the subsequent event, returning whether there
