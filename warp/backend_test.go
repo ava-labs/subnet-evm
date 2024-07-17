@@ -16,7 +16,7 @@ import (
 	"github.com/ava-labs/subnet-evm/warp/warptest"
 	"github.com/stretchr/testify/require"
 )
-pw
+
 var (
 	networkID           uint32 = 54321
 	sourceChainID              = ids.GenerateTestID()
