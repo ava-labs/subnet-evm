@@ -5,86 +5,14 @@ set -euo pipefail
 # Builds docker images for antithesis testing.
 
 # e.g.,
-# ./scripts/build_antithesis_images.sh                                           # Build local images
-# IMAGE_PREFIX=<registry>/<repo> TAG=latest ./scripts/build_antithesis_images.sh # Specify a prefix to enable image push and use a specific tag
+# ./scripts/build_antithesis_images.sh                                                 # Build local images
+# IMAGE_PREFIX=<registry>/<repo> IMAGE_TAG=latest ./scripts/build_antithesis_images.sh # Specify a prefix to enable image push and use a specific tag
 
 # Directory above this script
 SUBNET_EVM_PATH=$( cd "$( dirname "${BASH_SOURCE[0]}" )"; cd .. && pwd )
 
 # Allow configuring the clone path to point to a shared and/or existing clone of the avalanchego repo
 AVALANCHEGO_CLONE_PATH="${AVALANCHEGO_CLONE_PATH:-${SUBNET_EVM_PATH}/avalanchego}"
-
-# Specifying an image prefix will ensure the image is pushed after build
-IMAGE_PREFIX="${IMAGE_PREFIX:-}"
-
-TAG="${TAG:-}"
-if [[ -z "${TAG}" ]]; then
-  # Default to tagging with the commit hash
-  source "${SUBNET_EVM_PATH}"/scripts/constants.sh
-  TAG="${SUBNET_EVM_COMMIT::8}"
-fi
-
-# The dockerfiles don't specify the golang version to minimize the changes required to bump
-# the version. Instead, the golang version is provided as an argument.
-GO_VERSION="$(go list -m -f '{{.GoVersion}}')"
-
-function build_images {
-  local base_image_name=$1
-  local uninstrumented_node_dockerfile=$2
-  local avalanche_node_image=$3
-
-  # Define image names
-  if [[ -n "${IMAGE_PREFIX}" ]]; then
-    base_image_name="${IMAGE_PREFIX}/${base_image_name}"
-  fi
-  local node_image_name="${base_image_name}-node:${TAG}"
-  local workload_image_name="${base_image_name}-workload:${TAG}"
-  local config_image_name="${base_image_name}-config:${TAG}"
-
-  # Define dockerfiles
-  local base_dockerfile="${SUBNET_EVM_PATH}/tests/antithesis/Dockerfile"
-  local node_dockerfile="${base_dockerfile}.node"
-  if [[ "$(go env GOARCH)" == "arm64" ]]; then
-    # Antithesis instrumentation is only supported on amd64. On apple silicon (arm64), the
-    # uninstrumented Dockerfile will be used to build the node image to enable local test
-    # development.
-    node_dockerfile="${uninstrumented_node_dockerfile}"
-  fi
-
-  # Define default build command
-  local docker_cmd="docker buildx build --build-arg GO_VERSION=${GO_VERSION} --build-arg NODE_IMAGE=${node_image_name}"
-  if [[ -n "${IMAGE_PREFIX}" ]]; then
-    # Push images with an image prefix since the prefix defines a registry location
-    docker_cmd="${docker_cmd} --push"
-  fi
-
-  # Build node image first to allow the workload image to be based on it.
-  ${docker_cmd} --build-arg AVALANCHEGO_NODE_IMAGE="${avalanche_node_image}" -t "${node_image_name}" \
-                -f "${node_dockerfile}" "${SUBNET_EVM_PATH}"
-  TARGET_PATH="${SUBNET_EVM_PATH}/build/antithesis"
-  if [[ -d "${TARGET_PATH}" ]]; then
-    # Ensure the target path is empty before generating the compose config
-    rm -r "${TARGET_PATH}"
-  fi
-
-  # Ensure avalanchego and subnet-evm binaries are available to create an initial db state that includes subnets.
-  "${AVALANCHEGO_CLONE_PATH}"/scripts/build.sh
-  PLUGIN_PATH="${TARGET_PATH}"/plugins
-  "${SUBNET_EVM_PATH}"/scripts/build.sh "${PLUGIN_PATH}"/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
-
-  # Generate compose config and db state for the config image
-  TARGET_PATH="${TARGET_PATH}"\
-    IMAGE_TAG="${TAG}"\
-    AVALANCHEGO_PATH="${AVALANCHEGO_CLONE_PATH}/build/avalanchego"\
-    AVALANCHEGO_PLUGIN_DIR="${PLUGIN_PATH}"\
-    go run "${SUBNET_EVM_PATH}/tests/antithesis/gencomposeconfig"
-
-  # Build config image
-  ${docker_cmd} -t "${config_image_name}" -f "${base_dockerfile}.config" "${SUBNET_EVM_PATH}"
-
-  # Build workload image
-  ${docker_cmd} -t "${workload_image_name}" -f "${base_dockerfile}.workload" "${SUBNET_EVM_PATH}"
-}
 
 # Assume it's necessary to build the avalanchego node image from source
 # TODO(marun) Support use of a released node image if using a release version of avalanchego
@@ -105,7 +33,43 @@ fi
 git checkout -B "test-${AVALANCHE_VERSION}" "${AVALANCHE_VERSION}"
 cd "${SUBNET_EVM_PATH}"
 
-# Build avalanchego node image. Supply an empty tag so the tag can be discovered from the hash of the avalanchego repo.
-NODE_ONLY=1 TEST_SETUP=avalanchego TAG='' bash -x "${AVALANCHEGO_CLONE_PATH}"/scripts/build_antithesis_images.sh
+AVALANCHEGO_COMMIT_HASH="$(git --git-dir="${AVALANCHEGO_CLONE_PATH}/.git" rev-parse HEAD)"
+AVALANCHEGO_IMAGE_TAG="${AVALANCHEGO_COMMIT_HASH::8}"
 
-build_images antithesis-subnet-evm "${SUBNET_EVM_PATH}/Dockerfile" "antithesis-avalanchego-node:${AVALANCHE_VERSION::8}"
+# Build avalanchego node image.
+NODE_ONLY=1 TEST_SETUP=avalanchego IMAGE_TAG="${AVALANCHEGO_IMAGE_TAG}" bash -x "${AVALANCHEGO_CLONE_PATH}"/scripts/build_antithesis_images.sh
+
+# Specifying an image prefix will ensure the image is pushed after build
+IMAGE_PREFIX="${IMAGE_PREFIX:-}"
+
+IMAGE_TAG="${IMAGE_TAG:-}"
+if [[ -z "${IMAGE_TAG}" ]]; then
+  # Default to tagging with the commit hash
+  source "${SUBNET_EVM_PATH}"/scripts/constants.sh
+  IMAGE_TAG="${SUBNET_EVM_COMMIT::8}"
+fi
+
+# The dockerfiles don't specify the golang version to minimize the changes required to bump
+# the version. Instead, the golang version is provided as an argument.
+GO_VERSION="$(go list -m -f '{{.GoVersion}}')"
+
+# Import common functions used to build images for antithesis test setups
+# shellcheck source=/dev/null
+source "${AVALANCHEGO_CLONE_PATH}"/scripts/lib_build_antithesis_images.sh
+
+build_antithesis_builder_image "${GO_VERSION}" "antithesis-subnet-evm-builder:${IMAGE_TAG}" "${AVALANCHEGO_CLONE_PATH}" "${SUBNET_EVM_PATH}"
+
+# Ensure avalanchego and subnet-evm binaries are available to create an initial db state that includes subnets.
+"${AVALANCHEGO_CLONE_PATH}"/scripts/build.sh
+PLUGIN_PATH="${SUBNET_EVM_PATH}/build/plugins"
+mkdir -p "${PLUGIN_PATH}"
+"${SUBNET_EVM_PATH}"/scripts/build.sh "${PLUGIN_PATH}/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy"
+
+echo "Generating compose configuration"
+gen_antithesis_compose_config "${IMAGE_TAG}" "${SUBNET_EVM_PATH}" "./tests/antithesis/gencomposeconfig" \
+                              "${SUBNET_EVM_PATH}/build/antithesis" \
+                              "AVALANCHEGO_PATH=${AVALANCHEGO_CLONE_PATH}/build/avalanchego AVALANCHEGO_PLUGIN_DIR=${PLUGIN_PATH}"
+
+build_antithesis_images "${GO_VERSION}" "${IMAGE_PREFIX}" "antithesis-subnet-evm" "${IMAGE_TAG}" \
+                        "${AVALANCHEGO_IMAGE_TAG}" "${SUBNET_EVM_PATH}/tests/antithesis/Dockerfile" \
+                        "${SUBNET_EVM_PATH}/Dockerfile" "${SUBNET_EVM_PATH}"
