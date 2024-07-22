@@ -117,7 +117,7 @@ func TestCheckCompatible(t *testing.T) {
 		},
 		{
 			stored:        TestChainConfig,
-			new:           TestPreSubnetEVMConfig,
+			new:           TestPreSubnetEVMChainConfig,
 			headBlock:     0,
 			headTimestamp: 0,
 			wantErr: &ConfigCompatError{
@@ -129,7 +129,7 @@ func TestCheckCompatible(t *testing.T) {
 		},
 		{
 			stored:        TestChainConfig,
-			new:           TestPreSubnetEVMConfig,
+			new:           TestPreSubnetEVMChainConfig,
 			headBlock:     10,
 			headTimestamp: 100,
 			wantErr: &ConfigCompatError{

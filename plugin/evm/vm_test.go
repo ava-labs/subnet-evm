@@ -77,16 +77,36 @@ var (
 	testAvaxAssetID = ids.ID{1, 2, 3}
 	username        = "Johns"
 	password        = "CjasdjhiPeirbSenfeI13" // #nosec G101
-	// Use chainId: 43111, so that it does not overlap with any Avalanche ChainIDs, which may have their
-	// config overridden in vm.Initialize.
-	genesisJSONPreSubnetEVM = `{"config":{"chainId":43111,"homesteadBlock":0,"eip150Block":0,"eip155Block":0,"eip158Block":0,"byzantiumBlock":0,"constantinopleBlock":0,"petersburgBlock":0,"istanbulBlock":0,"muirGlacierBlock":0,"subnetEVMTimestamp":9999999999,"durangoTimestamp":9999999999,"eUpgradeTimestamp":9999999999},"nonce":"0x0","timestamp":"0x5FCB13D0","extraData":"0x00","gasLimit":"0x7A1200","difficulty":"0x0","mixHash":"0x0000000000000000000000000000000000000000000000000000000000000000","coinbase":"0x0000000000000000000000000000000000000000","alloc":{"0x71562b71999873DB5b286dF957af199Ec94617F7": {"balance":"0x4192927743b88000"}, "0x703c4b2bD70c169f5717101CaeE543299Fc946C7": {"balance":"0x4192927743b88000"}},"number":"0x0","gasUsed":"0x0","parentHash":"0x0000000000000000000000000000000000000000000000000000000000000000"}`
-	genesisJSONSubnetEVM    = `{"config":{"chainId":43111,"homesteadBlock":0,"eip150Block":0,"eip155Block":0,"eip158Block":0,"byzantiumBlock":0,"constantinopleBlock":0,"petersburgBlock":0,"istanbulBlock":0,"muirGlacierBlock":0,"subnetEVMTimestamp":0,"durangoTimestamp":9999999999,"eUpgradeTimestamp":9999999999},"nonce":"0x0","timestamp":"0x5FCB13D0","extraData":"0x00","gasLimit":"0x7A1200","difficulty":"0x0","mixHash":"0x0000000000000000000000000000000000000000000000000000000000000000","coinbase":"0x0000000000000000000000000000000000000000","alloc":{"0x71562b71999873DB5b286dF957af199Ec94617F7": {"balance":"0x4192927743b88000"}, "0x703c4b2bD70c169f5717101CaeE543299Fc946C7": {"balance":"0x4192927743b88000"}},"number":"0x0","gasUsed":"0x0","parentHash":"0x0000000000000000000000000000000000000000000000000000000000000000"}`
-	genesisJSONDurango      = `{"config":{"chainId":43111,"homesteadBlock":0,"eip150Block":0,"eip155Block":0,"eip158Block":0,"byzantiumBlock":0,"constantinopleBlock":0,"petersburgBlock":0,"istanbulBlock":0,"muirGlacierBlock":0,"subnetEVMTimestamp":0,"durangoTimestamp":0,"eUpgradeTimestamp":9999999999},"nonce":"0x0","timestamp":"0x5FCB13D0","extraData":"0x00","gasLimit":"0x7A1200","difficulty":"0x0","mixHash":"0x0000000000000000000000000000000000000000000000000000000000000000","coinbase":"0x0000000000000000000000000000000000000000","alloc":{"0x71562b71999873DB5b286dF957af199Ec94617F7": {"balance":"0x4192927743b88000"}, "0x703c4b2bD70c169f5717101CaeE543299Fc946C7": {"balance":"0x4192927743b88000"}},"number":"0x0","gasUsed":"0x0","parentHash":"0x0000000000000000000000000000000000000000000000000000000000000000"}`
-	genesisJSONEUpgrade     = `{"config":{"chainId":43111,"homesteadBlock":0,"eip150Block":0,"eip155Block":0,"eip158Block":0,"byzantiumBlock":0,"constantinopleBlock":0,"petersburgBlock":0,"istanbulBlock":0,"muirGlacierBlock":0,"subnetEVMTimestamp":0,"durangoTimestamp":0,"eUpgradeTimestamp":0},"nonce":"0x0","timestamp":"0x5FCB13D0","extraData":"0x00","gasLimit":"0x7A1200","difficulty":"0x0","mixHash":"0x0000000000000000000000000000000000000000000000000000000000000000","coinbase":"0x0000000000000000000000000000000000000000","alloc":{"0x71562b71999873DB5b286dF957af199Ec94617F7": {"balance":"0x4192927743b88000"}, "0x703c4b2bD70c169f5717101CaeE543299Fc946C7": {"balance":"0x4192927743b88000"}},"number":"0x0","gasUsed":"0x0","parentHash":"0x0000000000000000000000000000000000000000000000000000000000000000"}`
-	genesisJSONLatest       = genesisJSONEUpgrade
 
 	firstTxAmount  = new(big.Int).Mul(big.NewInt(testMinGasPrice), big.NewInt(21000*100))
 	genesisBalance = new(big.Int).Mul(big.NewInt(testMinGasPrice), big.NewInt(21000*1000))
+
+	genesisJSON = func(cfg *params.ChainConfig) string {
+		g := new(core.Genesis)
+		g.Difficulty = big.NewInt(0)
+		g.GasLimit = 0x7A1200
+
+		// Use chainId: 43111, so that it does not overlap with any Avalanche ChainIDs, which may have their
+		// config overridden in vm.Initialize.
+		cpy := *cfg
+		cpy.ChainID = big.NewInt(43111)
+		g.Config = &cpy
+
+		allocStr := `{"0x71562b71999873DB5b286dF957af199Ec94617F7": {"balance":"0x4192927743b88000"}, "0x703c4b2bD70c169f5717101CaeE543299Fc946C7": {"balance":"0x4192927743b88000"}}`
+		json.Unmarshal([]byte(allocStr), &g.Alloc)
+
+		b, err := json.Marshal(g)
+		if err != nil {
+			panic(err)
+		}
+		return string(b)
+	}
+
+	genesisJSONPreSubnetEVM = genesisJSON(params.TestPreSubnetEVMChainConfig)
+	genesisJSONSubnetEVM    = genesisJSON(params.TestSubnetEVMChainConfig)
+	genesisJSONDurango      = genesisJSON(params.TestDurangoChainConfig)
+	genesisJSONEUpgrade     = genesisJSON(params.TestEUpgradeChainConfig)
+	genesisJSONLatest       = genesisJSONEUpgrade
 )
 
 func init() {
