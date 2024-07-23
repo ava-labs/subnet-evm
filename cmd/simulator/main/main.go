@@ -11,7 +11,7 @@ import (
 
 	"github.com/ava-labs/subnet-evm/cmd/simulator/config"
 	"github.com/ava-labs/subnet-evm/cmd/simulator/load"
-	"github.com/ava-labs/subnet-evm/log"
+	"github.com/ava-labs/subnet-evm/vmlog"
 	gethlog "github.com/ethereum/go-ethereum/log"
 	"github.com/spf13/pflag"
 )
@@ -38,12 +38,12 @@ func main() {
 		os.Exit(0)
 	}
 
-	logLevel, err := log.LvlFromString(v.GetString(config.LogLevelKey))
+	logLevel, err := vmlog.LvlFromString(v.GetString(config.LogLevelKey))
 	if err != nil {
 		fmt.Printf("couldn't parse log level: %s\n", err)
 		os.Exit(1)
 	}
-	gethLogger := gethlog.NewLogger(log.NewTerminalHandlerWithLevel(os.Stderr, logLevel, true))
+	gethLogger := gethlog.NewLogger(vmlog.NewTerminalHandlerWithLevel(os.Stderr, logLevel, true))
 	gethlog.SetDefault(gethLogger)
 
 	config, err := config.BuildConfig(v)

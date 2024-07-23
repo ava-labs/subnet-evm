@@ -10,7 +10,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/ava-labs/subnet-evm/log"
+	"github.com/ava-labs/subnet-evm/vmlog"
 	gethlog "github.com/ethereum/go-ethereum/log"
 	"golang.org/x/exp/slog"
 )
@@ -29,12 +29,12 @@ func InitLogger(alias string, level string, jsonFormat bool, writer io.Writer) (
 	var handler slog.Handler
 	if jsonFormat {
 		chainStr := fmt.Sprintf("%s Chain", alias)
-		handler = log.JSONHandlerWithLevel(writer, logLevel)
+		handler = vmlog.JSONHandlerWithLevel(writer, logLevel)
 		handler = &addContext{Handler: handler, logger: chainStr}
 	} else {
 		useColor := false
 		chainStr := fmt.Sprintf("<%s Chain> ", alias)
-		termHandler := log.NewTerminalHandlerWithLevel(writer, logLevel, useColor)
+		termHandler := vmlog.NewTerminalHandlerWithLevel(writer, logLevel, useColor)
 		termHandler.Prefix = func(r slog.Record) string {
 			file, line := getSource(r)
 			if file != "" {
@@ -61,7 +61,7 @@ func InitLogger(alias string, level string, jsonFormat bool, writer io.Writer) (
 // SetLogLevel sets the log level of initialized log handler.
 func (s *SubnetEVMLogger) SetLogLevel(level string) error {
 	// Set log level
-	logLevel, err := log.LvlFromString(level)
+	logLevel, err := vmlog.LvlFromString(level)
 	if err != nil {
 		return err
 	}
