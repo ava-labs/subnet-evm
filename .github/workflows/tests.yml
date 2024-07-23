@@ -57,7 +57,7 @@ jobs:
         run: echo "TIMEOUT=1200s" >> "$GITHUB_ENV"
       - run: go mod download
         shell: bash
-      - run: ./scripts/build.sh ./build/subnetevm
+      - run: ./scripts/build.sh
         shell: bash
       - run: ./scripts/build_test.sh
         env:
@@ -97,7 +97,7 @@ jobs:
         run: BASEDIR=/tmp/e2e-test AVALANCHEGO_BUILD_PATH=/tmp/e2e-test/avalanchego ./scripts/install_avalanchego_release.sh
       - name: Build Subnet-EVM Plugin Binary
         shell: bash
-        run: ./scripts/build.sh /tmp/e2e-test/avalanchego/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
+        run: ./scripts/build.sh
       - name: Run E2E Precompile Tests
         shell: bash
         run: AVALANCHEGO_BUILD_PATH=/tmp/e2e-test/avalanchego DATA_DIR=/tmp/e2e-test/precompile-data ./scripts/run_ginkgo_precompile.sh
@@ -139,7 +139,7 @@ jobs:
         run: BASEDIR=/tmp/e2e-test AVALANCHEGO_BUILD_PATH=/tmp/e2e-test/avalanchego ./scripts/install_avalanchego_release.sh
       - name: Build Subnet-EVM Plugin Binary
         shell: bash
-        run: ./scripts/build.sh /tmp/e2e-test/avalanchego/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
+        run: ./scripts/build.sh
       - name: Start prometheus
         # Only run for the original repo; a forked repo won't have access to the monitoring credentials
         if: (github.event_name != 'pull_request') || (github.event.pull_request.head.repo.full_name == github.repository)
@@ -200,7 +200,7 @@ jobs:
         run: BASEDIR=/tmp/e2e-test AVALANCHEGO_BUILD_PATH=/tmp/e2e-test/avalanchego ./scripts/install_avalanchego_release.sh
       - name: Build Subnet-EVM Plugin Binary
         shell: bash
-        run: ./scripts/build.sh /tmp/e2e-test/avalanchego/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
+        run: ./scripts/build.sh
       - name: Start prometheus
         # Only run for the original repo; a forked repo won't have access to the monitoring credentials
         if: (github.event_name != 'pull_request') || (github.event.pull_request.head.repo.full_name == github.repository)
