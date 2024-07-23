@@ -206,6 +206,12 @@ func toCallArg(msg interfaces.CallMsg) interface{} {
 	if msg.AccessList != nil {
 		arg["accessList"] = msg.AccessList
 	}
+	if msg.BlobGasFeeCap != nil {
+		arg["maxFeePerBlobGas"] = (*hexutil.Big)(msg.BlobGasFeeCap)
+	}
+	if msg.BlobHashes != nil {
+		arg["blobVersionedHashes"] = msg.BlobHashes
+	}
 	return arg
 }
 

@@ -16,7 +16,6 @@ import (
 	"sync"
 	"time"
 
-	avalanchegoMetrics "github.com/ava-labs/avalanchego/api/metrics"
 	"github.com/ava-labs/avalanchego/network/p2p"
 	"github.com/ava-labs/avalanchego/network/p2p/gossip"
 	"github.com/prometheus/client_golang/prometheus"
@@ -105,6 +104,7 @@ const (
 
 	// Prefixes for metrics gatherers
 	ethMetricsPrefix        = "eth"
+	sdkMetricsPrefix        = "sdk"
 	chainStateMetricsPrefix = "chain_state"
 
 	// p2p app protocols
@@ -230,8 +230,7 @@ type VM struct {
 	validators *p2p.Validators
 
 	// Metrics
-	multiGatherer avalanchegoMetrics.MultiGatherer
-	sdkMetrics    *prometheus.Registry
+	sdkMetrics *prometheus.Registry
 
 	bootstrapped bool
 
@@ -514,22 +513,16 @@ func (vm *VM) Initialize(
 
 func (vm *VM) initializeMetrics() error {
 	vm.sdkMetrics = prometheus.NewRegistry()
-	vm.multiGatherer = avalanchegoMetrics.NewMultiGatherer()
-	// If metrics are enabled, register the default metrics regitry
-	if metrics.Enabled {
-		gatherer := subnetEVMPrometheus.Gatherer(metrics.DefaultRegistry)
-		if err := vm.multiGatherer.Register(ethMetricsPrefix, gatherer); err != nil {
-			return err
-		}
-		if err := vm.multiGatherer.Register("sdk", vm.sdkMetrics); err != nil {
-			return err
-		}
-		// Register [multiGatherer] after registerers have been registered to it
-		if err := vm.ctx.Metrics.Register(vm.multiGatherer); err != nil {
-			return err
-		}
+	// If metrics are enabled, register the default metrics registry
+	if !metrics.Enabled {
+		return nil
 	}
-	return nil
+
+	gatherer := subnetEVMPrometheus.Gatherer(metrics.DefaultRegistry)
+	if err := vm.ctx.Metrics.Register(ethMetricsPrefix, gatherer); err != nil {
+		return err
+	}
+	return vm.ctx.Metrics.Register(sdkMetricsPrefix, vm.sdkMetrics)
 }
 
 func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.Config) error {
@@ -612,7 +605,7 @@ func (vm *VM) initializeStateSyncClient(lastAcceptedHeight uint64) error {
 	// If StateSync is disabled, clear any ongoing summary so that we will not attempt to resume
 	// sync using a snapshot that has been modified by the node running normal operations.
 	if !vm.config.StateSyncEnabled {
-		return vm.StateSyncClient.StateSyncClearOngoingSummary()
+		return vm.StateSyncClient.ClearOngoingSummary()
 	}
 
 	return nil
@@ -654,7 +647,11 @@ func (vm *VM) initChainState(lastAcceptedBlock *types.Block) error {
 	}
 	vm.State = state
 
-	return vm.multiGatherer.Register(chainStateMetricsPrefix, chainStateRegisterer)
+	if !metrics.Enabled {
+		return nil
+	}
+
+	return vm.ctx.Metrics.Register(chainStateMetricsPrefix, chainStateRegisterer)
 }
 
 func (vm *VM) SetState(_ context.Context, state snow.State) error {
@@ -667,6 +664,13 @@ func (vm *VM) SetState(_ context.Context, state snow.State) error {
 		if err := vm.StateSyncClient.Error(); err != nil {
 			return err
 		}
+		// After starting bootstrapping, do not attempt to resume a previous state sync.
+		if err := vm.StateSyncClient.ClearOngoingSummary(); err != nil {
+			return err
+		}
+		// Ensure snapshots are initialized before bootstrapping (i.e., if state sync is skipped).
+		// Note calling this function has no effect if snapshots are already initialized.
+		vm.blockChain.InitializeSnapshots()
 		return nil
 	case snow.NormalOp:
 		// Initialize goroutines related to block building once we enter normal operation as there is no need to handle mempool gossip before this point.
@@ -935,20 +939,21 @@ func (vm *VM) VerifyHeightIndex(context.Context) error {
 	return nil
 }
 
-// GetBlockAtHeight returns the canonical block at [blkHeight].
-// If [blkHeight] is less than the height of the last accepted block, this will return
-// the block accepted at that height. Otherwise, it may return a blkID that has not yet
-// been accepted.
-// Note: the engine assumes that if a block is not found at [blkHeight], then
-// [database.ErrNotFound] will be returned. This indicates that the VM has state synced
-// and does not have all historical blocks available.
-func (vm *VM) GetBlockIDAtHeight(_ context.Context, blkHeight uint64) (ids.ID, error) {
-	ethBlock := vm.blockChain.GetBlockByNumber(blkHeight)
-	if ethBlock == nil {
+// GetBlockAtHeight returns the canonical block at [height].
+// Note: the engine assumes that if a block is not found at [height], then
+// [database.ErrNotFound] will be returned. This indicates that the VM has state
+// synced and does not have all historical blocks available.
+func (vm *VM) GetBlockIDAtHeight(_ context.Context, height uint64) (ids.ID, error) {
+	lastAcceptedBlock := vm.LastAcceptedBlock()
+	if lastAcceptedBlock.Height() < height {
 		return ids.ID{}, database.ErrNotFound
 	}
 
-	return ids.ID(ethBlock.Hash()), nil
+	hash := vm.blockChain.GetCanonicalHash(height)
+	if hash == (common.Hash{}) {
+		return ids.ID{}, database.ErrNotFound
+	}
+	return ids.ID(hash), nil
 }
 
 func (vm *VM) Version(context.Context) (string, error) {
