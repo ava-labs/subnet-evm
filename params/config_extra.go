@@ -9,7 +9,7 @@ import (
 	"math/big"
 
 	"github.com/ava-labs/avalanchego/snow"
-	"github.com/ava-labs/subnet-evm/utils"
+	"github.com/ethereum/go-ethereum/utils"
 )
 
 // UpgradeConfig includes the following configs that may be specified in upgradeBytes:

@@ -23,8 +23,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/utils"
+	"github.com/ethereum/go-ethereum/params"
+	"github.com/ethereum/go-ethereum/utils"
 )
 
 // Forks table defines supported forks and their chain config.

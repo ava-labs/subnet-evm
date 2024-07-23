@@ -6,8 +6,8 @@ package deployerallowlist
 import (
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/core/state"
-	"github.com/ava-labs/subnet-evm/precompile/allowlist"
+	"github.com/ethereum/go-ethereum/core/state"
+	"github.com/ethereum/go-ethereum/precompile/allowlist"
 )
 
 func TestContractDeployerAllowListRun(t *testing.T) {

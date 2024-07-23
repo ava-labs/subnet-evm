@@ -9,10 +9,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/ava-labs/subnet-evm/cmd/simulator/config"
-	"github.com/ava-labs/subnet-evm/cmd/simulator/load"
-	"github.com/ava-labs/subnet-evm/vmlog"
+	"github.com/ethereum/go-ethereum/cmd/simulator/config"
+	"github.com/ethereum/go-ethereum/cmd/simulator/load"
 	gethlog "github.com/ethereum/go-ethereum/log"
+	"github.com/ethereum/go-ethereum/vmlog"
 	"github.com/spf13/pflag"
 )
 

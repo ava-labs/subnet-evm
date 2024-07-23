@@ -10,8 +10,8 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/ava-labs/subnet-evm/vmlog"
 	gethlog "github.com/ethereum/go-ethereum/log"
+	"github.com/ethereum/go-ethereum/vmlog"
 	"golang.org/x/exp/slog"
 )
 
