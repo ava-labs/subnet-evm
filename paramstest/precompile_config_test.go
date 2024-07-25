@@ -30,11 +30,11 @@ func TestVerifyWithChainConfig(t *testing.T) {
 	config.PrecompileUpgrades = []params.PrecompileUpgrade{
 		{
 			// disable TxAllowList at timestamp 4
-			txallowlist.NewDisableConfig(utils.NewUint64(4)),
+			Config: txallowlist.NewDisableConfig(utils.NewUint64(4)),
 		},
 		{
 			// re-enable TxAllowList at timestamp 5
-			txallowlist.NewConfig(utils.NewUint64(5), admins, nil, nil),
+			Config: txallowlist.NewConfig(utils.NewUint64(5), admins, nil, nil),
 		},
 	}
 
