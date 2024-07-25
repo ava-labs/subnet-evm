@@ -264,7 +264,7 @@ func (self *DummyEngine) verifyHeader(chain consensus.ChainHeaderReader, header 
 			return err
 		}
 		if *header.BlobGasUsed > 0 { // VerifyEIP4844Header ensures BlobGasUsed is non-nil
-			return fmt.Errorf("blobs not enabled on avalanche networks: have %d, expected 0", *header.BlobGasUsed)
+			return fmt.Errorf("blobs not enabled on avalanche networks: used %d blob gas, expected 0", *header.BlobGasUsed)
 		}
 	}
 	return nil
