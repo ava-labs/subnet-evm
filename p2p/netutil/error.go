@@ -1,4 +1,4 @@
-// Copyright 2015 The go-ethereum Authors
+// Copyright 2016 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
@@ -14,28 +14,20 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-package eth
+package netutil
 
-import (
-	"github.com/ethereum/go-ethereum/common"
-)
-
-// EthereumAPI provides an API to access Ethereum full node-related information.
-type EthereumAPI struct {
-	e *Ethereum
+// IsTemporaryError checks whether the given error should be considered temporary.
+func IsTemporaryError(err error) bool {
+	tempErr, ok := err.(interface {
+		Temporary() bool
+	})
+	return ok && tempErr.Temporary() || isPacketTooBig(err)
 }
 
-// NewEthereumAPI creates a new Ethereum protocol API for full nodes.
-func NewEthereumAPI(e *Ethereum) *EthereumAPI {
-	return &EthereumAPI{e}
-}
-
-// Etherbase is the address that mining rewards will be sent to.
-func (api *EthereumAPI) Etherbase() (common.Address, error) {
-	return api.e.Etherbase()
-}
-
-// Coinbase is the address that mining rewards will be sent to (alias for Etherbase).
-func (api *EthereumAPI) Coinbase() (common.Address, error) {
-	return api.Etherbase()
+// IsTimeout checks whether the given error is a timeout.
+func IsTimeout(err error) bool {
+	timeoutErr, ok := err.(interface {
+		Timeout() bool
+	})
+	return ok && timeoutErr.Timeout()
 }

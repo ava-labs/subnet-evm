@@ -18,18 +18,22 @@ package gasprice
 
 import (
 	"context"
+	"crypto/sha256"
+	"fmt"
 	"math/big"
 	"testing"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/commontype"
+	"github.com/ethereum/go-ethereum/consensus"
 	"github.com/ethereum/go-ethereum/consensus/dummy"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/crypto/kzg4844"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/precompile/contracts/feemanager"
@@ -89,27 +93,33 @@ func (b *testBackend) teardown() {
 }
 
 func newTestBackendFakerEngine(t *testing.T, config *params.ChainConfig, numBlocks int, genBlocks func(i int, b *core.BlockGen)) *testBackend {
-	var gspec = &core.Genesis{
-		Config: config,
-		Alloc:  types.GenesisAlloc{addr: {Balance: bal}},
-	}
-
-	engine := dummy.NewETHFaker()
+	var (
+		gspec = &core.Genesis{
+			Config: config,
+			Alloc:  types.GenesisAlloc{addr: {Balance: bal}},
+		}
+		// Compute empty blob hash.
+		emptyBlob          = kzg4844.Blob{}
+		emptyBlobCommit, _ = kzg4844.BlobToCommitment(&emptyBlob)
+		emptyBlobVHash     = kzg4844.CalcBlobHashV1(sha256.New(), &emptyBlobCommit)
+	)
+	var engine consensus.Engine = dummy.NewETHFaker()
 
 	// Generate testing blocks
-	_, blocks, _, err := core.GenerateChainWithGenesis(gspec, engine, numBlocks, 0, genBlocks)
+	db, blocks, _, err := core.GenerateChainWithGenesis(gspec, engine, numBlocks, 0, genBlocks)
 	if err != nil {
 		t.Fatal(err)
 	}
 	// Construct testing chain
-	diskdb := rawdb.NewMemoryDatabase()
-	chain, err := core.NewBlockChain(diskdb, core.DefaultCacheConfig, gspec, engine, vm.Config{}, common.Hash{}, false)
+	// XXX: core.CacheConfig{TrieCleanNoPrefetch: true}
+	chain, err := core.NewBlockChain(db, core.DefaultCacheConfig, gspec, engine, vm.Config{}, common.Hash{}, false)
 	if err != nil {
 		t.Fatalf("Failed to create local chain, %v", err)
 	}
-	if _, err := chain.InsertChain(blocks); err != nil {
-		t.Fatalf("Failed to insert chain, %v", err)
+	if i, err := chain.InsertChain(blocks); err != nil {
+		panic(fmt.Errorf("error inserting block %d: %w", i, err))
 	}
+
 	return &testBackend{chain: chain}
 }
 
@@ -118,7 +128,7 @@ func newTestBackendFakerEngine(t *testing.T, config *params.ChainConfig, numBloc
 func newTestBackend(t *testing.T, config *params.ChainConfig, numBlocks int, genBlocks func(i int, b *core.BlockGen)) *testBackend {
 	var gspec = &core.Genesis{
 		Config: config,
-		Alloc:  types.GenesisAlloc{addr: core.GenesisAccount{Balance: bal}},
+		Alloc:  types.GenesisAlloc{addr: types.Account{Balance: bal}},
 	}
 
 	engine := dummy.NewFaker()
@@ -133,9 +143,10 @@ func newTestBackend(t *testing.T, config *params.ChainConfig, numBlocks int, gen
 	if err != nil {
 		t.Fatalf("Failed to create local chain, %v", err)
 	}
-	if _, err := chain.InsertChain(blocks); err != nil {
-		t.Fatalf("Failed to insert chain, %v", err)
+	if i, err := chain.InsertChain(blocks); err != nil {
+		panic(fmt.Errorf("error inserting block %d: %w", i, err))
 	}
+
 	return &testBackend{chain: chain}
 }
 

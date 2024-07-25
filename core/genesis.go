@@ -44,7 +44,7 @@ import (
 
 var errGenesisNoConfig = errors.New("genesis has no chain configuration")
 
-// Deprecated: use types.GenesisAccount instead.
+// Deprecated: use types.Account instead.
 type GenesisAccount = types.Account
 
 // Deprecated: use types.GenesisAlloc instead.
@@ -277,6 +277,7 @@ func (g *Genesis) toBlock(db ethdb.Database, triedb *triedb.Database) *types.Blo
 	// Do custom allocation after airdrop in case an address shows up in standard
 	// allocation
 	for addr, account := range g.Alloc {
+		// XXX: Should be using AddBalance instead of SetBalance (and passing Tracer?)
 		statedb.SetBalance(addr, uint256.MustFromBig(account.Balance))
 		statedb.SetCode(addr, account.Code)
 		statedb.SetNonce(addr, account.Nonce)
@@ -326,7 +327,7 @@ func (g *Genesis) toBlock(db ethdb.Database, triedb *triedb.Database) *types.Blo
 			panic(fmt.Sprintf("unable to commit genesis block: %v", err))
 		}
 	}
-	return types.NewBlock(head, nil, nil, nil, trie.NewStackTrie(nil))
+	return types.NewBlock(head, &types.Body{}, nil, nil, trie.NewStackTrie(nil))
 }
 
 // Commit writes the block and state of a genesis specification to the database.

@@ -469,7 +469,7 @@ func (h *handler) startCallProc(fn func(*callProc)) {
 	}
 }
 
-// handleResponse processes method call responses.
+// handleResponses processes method call responses.
 func (h *handler) handleResponses(batch []*jsonrpcMessage, handleCall func(*jsonrpcMessage)) {
 	var resolvedops []*requestOp
 	handleResp := func(msg *jsonrpcMessage) {
@@ -560,13 +560,13 @@ func (h *handler) handleCallMsg(ctx *callProc, msg *jsonrpcMessage) *jsonrpcMess
 	case msg.isCall():
 		resp := h.handleCall(ctx, msg)
 		var logctx []any
-		logctx = append(logctx, "reqid", idForLog{msg.ID}, "execTime", time.Since(execStart), "procTime", time.Since(procStart), "totalTime", time.Since(callStart))
+		logctx = append(logctx, "reqid", idForLog{msg.ID}, "duration", time.Since(start))
 		if resp.Error != nil {
 			logctx = append(logctx, "err", resp.Error.Message)
 			if resp.Error.Data != nil {
 				logctx = append(logctx, "errdata", formatErrorData(resp.Error.Data))
 			}
-			h.log.Info("Served "+msg.Method, logctx...)
+			h.log.Warn("Served "+msg.Method, logctx...)
 		} else {
 			h.log.Debug("Served "+msg.Method, logctx...)
 		}

@@ -156,7 +156,7 @@ func (i *bbInput) ToBlock() *types.Block {
 	if i.Header.Difficulty != nil {
 		header.Difficulty = i.Header.Difficulty
 	}
-	return types.NewBlockWithHeader(header).WithBody(i.Txs, i.Ommers)
+	return types.NewBlockWithHeader(header).WithBody(types.Body{Transactions: i.Txs, Uncles: i.Ommers})
 }
 
 // SealBlock seals the given block using the configured engine.
@@ -204,7 +204,7 @@ func readInput(ctx *cli.Context) (*bbInput, error) {
 	if headerStr == stdinSelector || ommersStr == stdinSelector || txsStr == stdinSelector || cliqueStr == stdinSelector {
 		decoder := json.NewDecoder(os.Stdin)
 		if err := decoder.Decode(inputData); err != nil {
-			return nil, NewError(ErrorJson, fmt.Errorf("failed unmarshaling stdin: %v", err))
+			return nil, NewError(ErrorJson, fmt.Errorf("failed unmarshalling stdin: %v", err))
 		}
 	}
 	if cliqueStr != stdinSelector && cliqueStr != "" {

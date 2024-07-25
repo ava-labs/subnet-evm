@@ -20,11 +20,13 @@ import (
 	"bytes"
 	"fmt"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/state"
+	"github.com/ethereum/go-ethereum/core/tracing"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/triedb"
 	"github.com/holiman/uint256"
@@ -33,8 +35,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
-
-	"golang.org/x/exp/slices"
 )
 
 var dumper = spew.ConfigState{Indent: "    "}
@@ -76,7 +76,7 @@ func TestAccountRange(t *testing.T) {
 		hash := common.HexToHash(fmt.Sprintf("%x", i))
 		addr := common.BytesToAddress(crypto.Keccak256Hash(hash.Bytes()).Bytes())
 		addrs[i] = addr
-		sdb.SetBalance(addrs[i], uint256.NewInt(1))
+		sdb.SetBalance(addrs[i], uint256.NewInt(1), tracing.BalanceChangeUnspecified)
 		if _, ok := m[addr]; ok {
 			t.Fatalf("bad")
 		} else {

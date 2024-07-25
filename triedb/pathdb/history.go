@@ -21,10 +21,11 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/trie/triestate"
-	"golang.org/x/exp/slices"
+	"golang.org/x/exp/maps"
 )
 
 // State history records the state changes involved in executing a block. The
@@ -62,7 +63,7 @@ import (
 const (
 	accountIndexSize = common.AddressLength + 13 // The length of encoded account index
 	slotIndexSize    = common.HashLength + 5     // The length of encoded slot index
-	historyMetaSize  = 9 + 2*common.HashLength   // The length of fixed size part of meta object
+	historyMetaSize  = 9 + 2*common.HashLength   // The length of encoded history meta
 
 	stateHistoryVersion = uint8(0) // initial version of state history structure.
 )
@@ -188,47 +189,36 @@ func (i *slotIndex) decode(blob []byte) {
 
 // meta describes the meta data of state history object.
 type meta struct {
-	version    uint8            // version tag of history object
-	parent     common.Hash      // prev-state root before the state transition
-	root       common.Hash      // post-state root after the state transition
-	block      uint64           // associated block number
-	incomplete []common.Address // list of address whose storage set is incomplete
+	version uint8       // version tag of history object
+	parent  common.Hash // prev-state root before the state transition
+	root    common.Hash // post-state root after the state transition
+	block   uint64      // associated block number
 }
 
 // encode packs the meta object into byte stream.
 func (m *meta) encode() []byte {
-	buf := make([]byte, historyMetaSize+len(m.incomplete)*common.AddressLength)
+	buf := make([]byte, historyMetaSize)
 	buf[0] = m.version
 	copy(buf[1:1+common.HashLength], m.parent.Bytes())
 	copy(buf[1+common.HashLength:1+2*common.HashLength], m.root.Bytes())
 	binary.BigEndian.PutUint64(buf[1+2*common.HashLength:historyMetaSize], m.block)
-	for i, h := range m.incomplete {
-		copy(buf[i*common.AddressLength+historyMetaSize:], h.Bytes())
-	}
 	return buf[:]
 }
 
 // decode unpacks the meta object from byte stream.
 func (m *meta) decode(blob []byte) error {
 	if len(blob) < 1 {
-		return fmt.Errorf("no version tag")
+		return errors.New("no version tag")
 	}
 	switch blob[0] {
 	case stateHistoryVersion:
-		if len(blob) < historyMetaSize {
+		if len(blob) != historyMetaSize {
 			return fmt.Errorf("invalid state history meta, len: %d", len(blob))
-		}
-		if (len(blob)-historyMetaSize)%common.AddressLength != 0 {
-			return fmt.Errorf("corrupted state history meta, len: %d", len(blob))
 		}
 		m.version = blob[0]
 		m.parent = common.BytesToHash(blob[1 : 1+common.HashLength])
 		m.root = common.BytesToHash(blob[1+common.HashLength : 1+2*common.HashLength])
 		m.block = binary.BigEndian.Uint64(blob[1+2*common.HashLength : historyMetaSize])
-		for pos := historyMetaSize; pos < len(blob); {
-			m.incomplete = append(m.incomplete, common.BytesToAddress(blob[pos:pos+common.AddressLength]))
-			pos += common.AddressLength
-		}
 		return nil
 	default:
 		return fmt.Errorf("unknown version %d", blob[0])
@@ -251,35 +241,22 @@ type history struct {
 // newHistory constructs the state history object with provided state change set.
 func newHistory(root common.Hash, parent common.Hash, block uint64, states *triestate.Set) *history {
 	var (
-		accountList []common.Address
+		accountList = maps.Keys(states.Accounts)
 		storageList = make(map[common.Address][]common.Hash)
-		incomplete  []common.Address
 	)
-	for addr := range states.Accounts {
-		accountList = append(accountList, addr)
-	}
 	slices.SortFunc(accountList, common.Address.Cmp)
 
 	for addr, slots := range states.Storages {
-		slist := make([]common.Hash, 0, len(slots))
-		for slotHash := range slots {
-			slist = append(slist, slotHash)
-		}
+		slist := maps.Keys(slots)
 		slices.SortFunc(slist, common.Hash.Cmp)
 		storageList[addr] = slist
 	}
-	for addr := range states.Incomplete {
-		incomplete = append(incomplete, addr)
-	}
-	slices.SortFunc(incomplete, common.Address.Cmp)
-
 	return &history{
 		meta: &meta{
-			version:    stateHistoryVersion,
-			parent:     parent,
-			root:       root,
-			block:      block,
-			incomplete: incomplete,
+			version: stateHistoryVersion,
+			parent:  parent,
+			root:    root,
+			block:   block,
 		},
 		accounts:    states.Accounts,
 		accountList: accountList,
@@ -398,10 +375,11 @@ func (r *decoder) readAccount(pos int) (accountIndex, []byte, error) {
 func (r *decoder) readStorage(accIndex accountIndex) ([]common.Hash, map[common.Hash][]byte, error) {
 	var (
 		last    common.Hash
-		list    []common.Hash
-		storage = make(map[common.Hash][]byte)
+		count   = int(accIndex.storageSlots)
+		list    = make([]common.Hash, 0, count)
+		storage = make(map[common.Hash][]byte, count)
 	)
-	for j := 0; j < int(accIndex.storageSlots); j++ {
+	for j := 0; j < count; j++ {
 		var (
 			index slotIndex
 			start = (accIndex.storageOffset + uint32(j)) * uint32(slotIndexSize)
@@ -444,9 +422,10 @@ func (r *decoder) readStorage(accIndex accountIndex) ([]common.Hash, map[common.
 // decode deserializes the account and storage data from the provided byte stream.
 func (h *history) decode(accountData, storageData, accountIndexes, storageIndexes []byte) error {
 	var (
-		accounts    = make(map[common.Address][]byte)
+		count       = len(accountIndexes) / accountIndexSize
+		accounts    = make(map[common.Address][]byte, count)
 		storages    = make(map[common.Address]map[common.Hash][]byte)
-		accountList []common.Address
+		accountList = make([]common.Address, 0, count)
 		storageList = make(map[common.Address][]common.Hash)
 
 		r = &decoder{
@@ -459,7 +438,7 @@ func (h *history) decode(accountData, storageData, accountIndexes, storageIndexe
 	if err := r.verify(); err != nil {
 		return err
 	}
-	for i := 0; i < len(accountIndexes)/accountIndexSize; i++ {
+	for i := 0; i < count; i++ {
 		// Resolve account first
 		accIndex, accData, err := r.readAccount(i)
 		if err != nil {

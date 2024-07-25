@@ -18,6 +18,7 @@ linters:
     - unconvert
     - unused
     - whitespace
+    - revive # only certain checks enabled
 
 linters-settings:
   gofmt:

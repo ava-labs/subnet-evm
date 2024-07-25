@@ -204,6 +204,9 @@ func (bc *BlockChain) GetCanonicalHash(number uint64) common.Hash {
 // transaction indexing is already finished. The transaction is not existent
 // from the node's perspective.
 func (bc *BlockChain) GetTransactionLookup(hash common.Hash) (*rawdb.LegacyTxLookupEntry, *types.Transaction, error) {
+	bc.txLookupLock.RLock()
+	defer bc.txLookupLock.RUnlock()
+
 	// Short circuit if the txlookup already in the cache, retrieve otherwise
 	if item, exist := bc.txLookupCache.Get(hash); exist {
 		return item.lookup, item.transaction, nil

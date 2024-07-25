@@ -287,14 +287,17 @@ func (c *ChainConfig) IsIstanbul(num *big.Int) bool {
 	return utils.IsBlockForked(c.IstanbulBlock, num)
 }
 
-// IsCancun returns whether [time] represents a block
-// with a timestamp after the Cancun upgrade time.
+// IsCancun returns whether num is either equal to the Cancun fork time or greater.
 func (c *ChainConfig) IsCancun(num *big.Int, time uint64) bool {
 	return utils.IsTimestampForked(c.CancunTime, time)
 }
 
-// IsVerkle returns whether [time] represents a block
-// with a timestamp after the Verkle upgrade time.
+// IsPrague returns whether time is either equal to the Prague fork time or greater.
+func (c *ChainConfig) IsPrague(num *big.Int, time uint64) bool {
+	return c.IsLondon(num) && isTimestampForked(c.PragueTime, time)
+}
+
+// IsVerkle returns whether time is either equal to the Verkle fork time or greater.
 func (c *ChainConfig) IsVerkle(num *big.Int, time uint64) bool {
 	return utils.IsTimestampForked(c.VerkleTime, time)
 }
@@ -312,6 +315,11 @@ func (r *Rules) PredicaterExists(addr common.Address) bool {
 func (c *ChainConfig) IsPrecompileEnabled(address common.Address, timestamp uint64) bool {
 	config := c.getActivePrecompileConfig(address, timestamp)
 	return config != nil && !config.IsDisabled()
+}
+
+// IsEIP4762 returns whether eip 4762 has been activated at given block.
+func (c *ChainConfig) IsEIP4762(num *big.Int, time uint64) bool {
+	return c.IsVerkle(num, time)
 }
 
 // CheckCompatible checks whether scheduled fork transitions have been imported
@@ -601,7 +609,7 @@ func newTimestampCompatError(what string, storedtime, newtime *uint64) *ConfigCo
 		NewTime:      newtime,
 		RewindToTime: 0,
 	}
-	if rew != nil && *rew > 0 {
+	if rew != nil && *rew != 0 {
 		err.RewindToTime = *rew - 1
 	}
 	return err
@@ -611,20 +619,21 @@ func (err *ConfigCompatError) Error() string {
 	if err.StoredBlock != nil {
 		return fmt.Sprintf("mismatching %s in database (have block %d, want block %d, rewindto block %d)", err.What, err.StoredBlock, err.NewBlock, err.RewindToBlock)
 	}
-	return fmt.Sprintf("mismatching %s in database (have timestamp %s, want timestamp %s, rewindto timestamp %d)", err.What, ptrToString(err.StoredTime), ptrToString(err.NewTime), err.RewindToTime)
-}
-
-func ptrToString(val *uint64) string {
-	if val == nil {
-		return "nil"
+	if err.StoredTime == nil && err.NewTime == nil {
+		return ""
+	} else if err.StoredTime == nil && err.NewTime != nil {
+		return fmt.Sprintf("mismatching %s in database (have timestamp nil, want timestamp %d, rewindto timestamp %d)", err.What, *err.NewTime, err.RewindToTime)
+	} else if err.StoredTime != nil && err.NewTime == nil {
+		return fmt.Sprintf("mismatching %s in database (have timestamp %d, want timestamp nil, rewindto timestamp %d)", err.What, *err.StoredTime, err.RewindToTime)
 	}
-	return fmt.Sprintf("%d", *val)
+	return fmt.Sprintf("mismatching %s in database (have timestamp %d, want timestamp %d, rewindto timestamp %d)", err.What, *err.StoredTime, *err.NewTime, err.RewindToTime)
 }
 
 type EthRules struct {
 	IsHomestead, IsEIP150, IsEIP155, IsEIP158               bool
+	IsEIP2929, IsEIP4762                                    bool
 	IsByzantium, IsConstantinople, IsPetersburg, IsIstanbul bool
-	IsCancun                                                bool
+	IsCancun, IsPrague                                      bool
 	IsVerkle                                                bool
 }
 
@@ -661,6 +670,8 @@ func (r *Rules) IsPrecompileEnabled(addr common.Address) bool {
 	return ok
 }
 
+// 	IsEIP2929, IsEIP4762                                    bool
+
 // Rules ensures c's ChainID is not nil.
 func (c *ChainConfig) rules(num *big.Int, timestamp uint64) Rules {
 	chainID := c.ChainID
@@ -679,7 +690,9 @@ func (c *ChainConfig) rules(num *big.Int, timestamp uint64) Rules {
 			IsPetersburg:     c.IsPetersburg(num),
 			IsIstanbul:       c.IsIstanbul(num),
 			IsCancun:         c.IsCancun(num, timestamp),
+			IsPrague:         c.IsPrague(num, timestamp),
 			IsVerkle:         c.IsVerkle(num, timestamp),
+			IsEIP4762:        c.IsVerkle(num, timestamp),
 		},
 	}
 }

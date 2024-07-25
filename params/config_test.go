@@ -318,3 +318,20 @@ func TestChainConfigMarshalWithUpgrades(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, config, unmarshalled)
 }
+
+func TestTimestampCompatError(t *testing.T) {
+	require.Equal(t, new(ConfigCompatError).Error(), "")
+
+	errWhat := "Shanghai fork timestamp"
+	require.Equal(t, newTimestampCompatError(errWhat, nil, newUint64(1681338455)).Error(),
+		"mismatching Shanghai fork timestamp in database (have timestamp nil, want timestamp 1681338455, rewindto timestamp 1681338454)")
+
+	require.Equal(t, newTimestampCompatError(errWhat, newUint64(1681338455), nil).Error(),
+		"mismatching Shanghai fork timestamp in database (have timestamp 1681338455, want timestamp nil, rewindto timestamp 1681338454)")
+
+	require.Equal(t, newTimestampCompatError(errWhat, newUint64(1681338455), newUint64(600624000)).Error(),
+		"mismatching Shanghai fork timestamp in database (have timestamp 1681338455, want timestamp 600624000, rewindto timestamp 600623999)")
+
+	require.Equal(t, newTimestampCompatError(errWhat, newUint64(0), newUint64(1681338455)).Error(),
+		"mismatching Shanghai fork timestamp in database (have timestamp 0, want timestamp 1681338455, rewindto timestamp 0)")
+}

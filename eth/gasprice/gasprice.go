@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"slices"
 	"sync"
 
 	"github.com/ava-labs/avalanchego/utils/timer/mockable"
@@ -35,7 +36,6 @@ import (
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/precompile/contracts/feemanager"
 	"github.com/ethereum/go-ethereum/rpc"
-	"golang.org/x/exp/slices"
 )
 
 const (

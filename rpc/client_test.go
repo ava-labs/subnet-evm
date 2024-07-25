@@ -711,7 +711,6 @@ func TestClientHTTP(t *testing.T) {
 		errc       = make(chan error, len(results))
 		wantResult = echoResult{"a", 1, new(echoArgs)}
 	)
-	defer client.Close()
 	for i := range results {
 		i := i
 		go func() {

@@ -28,8 +28,12 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"testing"
 	"time"
+
+	"github.com/holiman/uint256"
+	"github.com/stretchr/testify/require"
 
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
@@ -466,9 +470,10 @@ func newTestBackend(t *testing.T, n int, gspec *core.Genesis, engine consensus.E
 func (b testBackend) SuggestGasTipCap(ctx context.Context) (*big.Int, error) {
 	return big.NewInt(0), nil
 }
-func (b testBackend) FeeHistory(ctx context.Context, blockCount uint64, lastBlock rpc.BlockNumber, rewardPercentiles []float64) (*big.Int, [][]*big.Int, []*big.Int, []float64, error) {
-	return nil, nil, nil, nil, nil
+func (b testBackend) FeeHistory(ctx context.Context, blockCount uint64, lastBlock rpc.BlockNumber, rewardPercentiles []float64) (*big.Int, [][]*big.Int, []*big.Int, []float64, []*big.Int, []float64, error) {
+	return nil, nil, nil, nil, nil, nil, nil
 }
+func (b testBackend) BlobBaseFee(ctx context.Context) *big.Int   { return new(big.Int) }
 func (b testBackend) ChainDb() ethdb.Database                    { return b.db }
 func (b testBackend) AccountManager() *accounts.Manager          { return b.accman }
 func (b testBackend) ExtRPCEnabled() bool                        { return false }
@@ -539,7 +544,7 @@ func (b testBackend) StateAndHeaderByNumberOrHash(ctx context.Context, blockNrOr
 	}
 	panic("only implemented for number")
 }
-func (b testBackend) PendingBlockAndReceipts() (*types.Block, types.Receipts) { panic("implement me") }
+func (b testBackend) Pending() (*types.Block, types.Receipts, *state.StateDB) { panic("implement me") }
 func (b testBackend) GetReceipts(ctx context.Context, hash common.Hash) (types.Receipts, error) {
 	header, err := b.HeaderByHash(ctx, hash)
 	if header == nil || err != nil {
@@ -602,9 +607,6 @@ func (b testBackend) SubscribeRemovedLogsEvent(ch chan<- core.RemovedLogsEvent) 
 	panic("implement me")
 }
 func (b testBackend) SubscribeLogsEvent(ch chan<- []*types.Log) event.Subscription {
-	panic("implement me")
-}
-func (b testBackend) SubscribePendingLogsEvent(ch chan<- []*types.Log) event.Subscription {
 	panic("implement me")
 }
 func (b testBackend) BloomStatus() (uint64, uint64) { panic("implement me") }
@@ -749,7 +751,7 @@ func TestEstimateGas(t *testing.T) {
 				From:       &accounts[0].addr,
 				To:         &accounts[1].addr,
 				Value:      (*hexutil.Big)(big.NewInt(1)),
-				BlobHashes: []common.Hash{common.Hash{0x01, 0x22}},
+				BlobHashes: []common.Hash{{0x01, 0x22}},
 				BlobFeeCap: (*hexutil.Big)(big.NewInt(1)),
 			},
 			want: 21000,
@@ -940,7 +942,7 @@ func TestCall(t *testing.T) {
 			call: TransactionArgs{
 				From:       &accounts[1].addr,
 				To:         &randomAccounts[2].addr,
-				BlobHashes: []common.Hash{common.Hash{0x01, 0x22}},
+				BlobHashes: []common.Hash{{0x01, 0x22}},
 				BlobFeeCap: (*hexutil.Big)(big.NewInt(1)),
 			},
 			overrides: StateOverride{
@@ -1040,11 +1042,8 @@ func TestSignBlobTransaction(t *testing.T) {
 	}
 
 	_, err = api.SignTransaction(context.Background(), argsFromTransaction(res.Tx, b.acc.Address))
-	if err == nil {
-		t.Fatalf("should fail on blob transaction")
-	}
-	if !errors.Is(err, errBlobTxNotSupported) {
-		t.Errorf("error mismatch. Have: %v, want: %v", err, errBlobTxNotSupported)
+	if err != nil {
+		t.Fatalf("should not fail on blob transaction")
 	}
 }
 
@@ -1067,7 +1066,7 @@ func TestSendBlobTransaction(t *testing.T) {
 		From:       &b.acc.Address,
 		To:         &to,
 		Value:      (*hexutil.Big)(big.NewInt(1)),
-		BlobHashes: []common.Hash{common.Hash{0x01, 0x22}},
+		BlobHashes: []common.Hash{{0x01, 0x22}},
 	})
 	if err != nil {
 		t.Fatalf("failed to fill tx defaults: %v\n", err)
@@ -1091,7 +1090,8 @@ func TestFillBlobTransaction(t *testing.T) {
 			Config: params.TestChainConfig,
 			Alloc:  types.GenesisAlloc{},
 		}
-		emptyBlob                      = kzg4844.Blob{}
+		emptyBlob                      = new(kzg4844.Blob)
+		emptyBlobs                     = []kzg4844.Blob{*emptyBlob}
 		emptyBlobCommit, _             = kzg4844.BlobToCommitment(emptyBlob)
 		emptyBlobProof, _              = kzg4844.ComputeBlobProof(emptyBlob, emptyBlobCommit)
 		emptyBlobHash      common.Hash = kzg4844.CalcBlobHashV1(sha256.New(), &emptyBlobCommit)
@@ -1174,14 +1174,14 @@ func TestFillBlobTransaction(t *testing.T) {
 				From:        &b.acc.Address,
 				To:          &to,
 				Value:       (*hexutil.Big)(big.NewInt(1)),
-				Blobs:       []kzg4844.Blob{emptyBlob},
+				Blobs:       emptyBlobs,
 				Commitments: []kzg4844.Commitment{emptyBlobCommit},
 				Proofs:      []kzg4844.Proof{emptyBlobProof},
 			},
 			want: &result{
 				Hashes: []common.Hash{emptyBlobHash},
 				Sidecar: &types.BlobTxSidecar{
-					Blobs:       []kzg4844.Blob{emptyBlob},
+					Blobs:       emptyBlobs,
 					Commitments: []kzg4844.Commitment{emptyBlobCommit},
 					Proofs:      []kzg4844.Proof{emptyBlobProof},
 				},
@@ -1194,14 +1194,14 @@ func TestFillBlobTransaction(t *testing.T) {
 				To:          &to,
 				Value:       (*hexutil.Big)(big.NewInt(1)),
 				BlobHashes:  []common.Hash{emptyBlobHash},
-				Blobs:       []kzg4844.Blob{emptyBlob},
+				Blobs:       emptyBlobs,
 				Commitments: []kzg4844.Commitment{emptyBlobCommit},
 				Proofs:      []kzg4844.Proof{emptyBlobProof},
 			},
 			want: &result{
 				Hashes: []common.Hash{emptyBlobHash},
 				Sidecar: &types.BlobTxSidecar{
-					Blobs:       []kzg4844.Blob{emptyBlob},
+					Blobs:       emptyBlobs,
 					Commitments: []kzg4844.Commitment{emptyBlobCommit},
 					Proofs:      []kzg4844.Proof{emptyBlobProof},
 				},
@@ -1214,7 +1214,7 @@ func TestFillBlobTransaction(t *testing.T) {
 				To:          &to,
 				Value:       (*hexutil.Big)(big.NewInt(1)),
 				BlobHashes:  []common.Hash{{0x01, 0x22}},
-				Blobs:       []kzg4844.Blob{emptyBlob},
+				Blobs:       emptyBlobs,
 				Commitments: []kzg4844.Commitment{emptyBlobCommit},
 				Proofs:      []kzg4844.Proof{emptyBlobProof},
 			},
@@ -1226,12 +1226,12 @@ func TestFillBlobTransaction(t *testing.T) {
 				From:  &b.acc.Address,
 				To:    &to,
 				Value: (*hexutil.Big)(big.NewInt(1)),
-				Blobs: []kzg4844.Blob{emptyBlob},
+				Blobs: emptyBlobs,
 			},
 			want: &result{
 				Hashes: []common.Hash{emptyBlobHash},
 				Sidecar: &types.BlobTxSidecar{
-					Blobs:       []kzg4844.Blob{emptyBlob},
+					Blobs:       emptyBlobs,
 					Commitments: []kzg4844.Commitment{emptyBlobCommit},
 					Proofs:      []kzg4844.Proof{emptyBlobProof},
 				},
@@ -1244,7 +1244,7 @@ func TestFillBlobTransaction(t *testing.T) {
 			if len(tc.err) > 0 {
 				if err == nil {
 					t.Fatalf("missing error. want: %s", tc.err)
-				} else if err != nil && err.Error() != tc.err {
+				} else if err.Error() != tc.err {
 					t.Fatalf("error mismatch. want: %s, have: %s", tc.err, err.Error())
 				}
 				return
@@ -1272,10 +1272,14 @@ func TestFillBlobTransaction(t *testing.T) {
 
 func argsFromTransaction(tx *types.Transaction, from common.Address) TransactionArgs {
 	var (
-		gas   = tx.Gas()
-		nonce = tx.Nonce()
-		input = tx.Data()
+		gas        = tx.Gas()
+		nonce      = tx.Nonce()
+		input      = tx.Data()
+		accessList *types.AccessList
 	)
+	if acl := tx.AccessList(); acl != nil {
+		accessList = &acl
+	}
 	return TransactionArgs{
 		From:                 &from,
 		To:                   tx.To(),
@@ -1286,10 +1290,9 @@ func argsFromTransaction(tx *types.Transaction, from common.Address) Transaction
 		Nonce:                (*hexutil.Uint64)(&nonce),
 		Input:                (*hexutil.Bytes)(&input),
 		ChainID:              (*hexutil.Big)(tx.ChainId()),
-		// TODO: impl accessList conversion
-		//AccessList: tx.AccessList(),
-		BlobFeeCap: (*hexutil.Big)(tx.BlobGasFeeCap()),
-		BlobHashes: tx.BlobHashes(),
+		AccessList:           accessList,
+		BlobFeeCap:           (*hexutil.Big)(tx.BlobGasFeeCap()),
+		BlobHashes:           tx.BlobHashes(),
 	}
 }
 
@@ -1348,7 +1351,7 @@ func TestRPCMarshalBlock(t *testing.T) {
 		}
 		txs = append(txs, tx)
 	}
-	block := types.NewBlock(&types.Header{Number: big.NewInt(100)}, txs, nil, nil, blocktest.NewHasher())
+	block := types.NewBlock(&types.Header{Number: big.NewInt(100)}, &types.Body{Transactions: txs}, nil, blocktest.NewHasher())
 
 	var testSuite = []struct {
 		inclTx bool
@@ -1553,7 +1556,7 @@ func TestRPCGetBlockOrHeader(t *testing.T) {
 			Value:    big.NewInt(111),
 			Data:     []byte{0x11, 0x11, 0x11},
 		})
-		pending = types.NewBlock(&types.Header{Number: big.NewInt(11), Time: 42}, []*types.Transaction{tx}, nil, nil, blocktest.NewHasher())
+		pending = types.NewBlock(&types.Header{Number: big.NewInt(11), Time: 42}, &types.Body{Transactions: types.Transactions{tx}}, nil, nil, blocktest.NewHasher())
 	)
 	backend := newTestBackend(t, genBlocks, genesis, dummy.NewCoinbaseFaker(), func(i int, b *core.BlockGen) {
 		// Transfer from account[0] to account[1]
