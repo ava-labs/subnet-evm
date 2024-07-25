@@ -73,6 +73,38 @@ func TestVerifyStateUpgrades(t *testing.T) {
 	}
 }
 
+type upgradeCompatibilityTest struct {
+	configs             []*UpgradeConfig
+	startTimestamps     []uint64
+	expectedErrorString string
+}
+
+func (tt *upgradeCompatibilityTest) run(t *testing.T, chainConfig ChainConfig) {
+	// apply all the upgrade bytes specified in order
+	for i, upgrade := range tt.configs {
+		newCfg := chainConfig
+		newCfg.UpgradeConfig = *upgrade
+
+		err := chainConfig.checkCompatible(&newCfg, nil, tt.startTimestamps[i])
+
+		// if this is not the final upgradeBytes, continue applying
+		// the next upgradeBytes. (only check the result on the last apply)
+		if i != len(tt.configs)-1 {
+			if err != nil {
+				t.Fatalf("expecting checkCompatible call %d to return nil, got %s", i+1, err)
+			}
+			chainConfig = newCfg
+			continue
+		}
+
+		if tt.expectedErrorString != "" {
+			require.ErrorContains(t, err, tt.expectedErrorString)
+		} else {
+			require.Nil(t, err)
+		}
+	}
+}
+
 func TestCheckCompatibleStateUpgrades(t *testing.T) {
 	chainConfig := *TestChainConfig
 	stateUpgrade := map[common.Address]StateUpgradeAccount{

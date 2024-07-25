@@ -156,6 +156,10 @@ func (c *ChainConfig) getActivePrecompileConfig(address common.Address, timestam
 	return configs[len(configs)-1] // return the most recent config
 }
 
+func (c *ChainConfig) GetActivePrecompileConfig(address common.Address, timestamp uint64) precompileconfig.Config {
+	return c.getActivePrecompileConfig(address, timestamp)
+}
+
 // GetActivatingPrecompileConfigs returns all precompile upgrades configured to activate during the
 // state transition from a block with timestamp [from] to a block with timestamp [to].
 func (c *ChainConfig) GetActivatingPrecompileConfigs(address common.Address, from *uint64, to uint64, upgrades []PrecompileUpgrade) []precompileconfig.Config {

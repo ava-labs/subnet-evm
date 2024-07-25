@@ -8,6 +8,7 @@ import (
 	"math/big"
 
 	"github.com/ava-labs/avalanchego/snow"
+	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -17,6 +18,8 @@ type StatefulPrecompiledContract interface {
 	// Run executes the precompiled contract.
 	Run(accessibleState AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error)
 }
+
+type Log = types.Log
 
 // StateDB is the interface for accessing EVM state
 type StateDB interface {
