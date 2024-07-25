@@ -35,7 +35,6 @@ import (
 	"github.com/ava-labs/avalanchego/utils/constants"
 	"github.com/ava-labs/avalanchego/version"
 	"github.com/ava-labs/subnet-evm/commontype"
-	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
@@ -702,7 +701,7 @@ func (c *ChainConfig) Rules(blockNum *big.Int, timestamp uint64) Rules {
 	rules.ActivePrecompiles = make(map[common.Address]precompileconfig.Config)
 	rules.Predicaters = make(map[common.Address]precompileconfig.Predicater)
 	rules.AccepterPrecompiles = make(map[common.Address]precompileconfig.Accepter)
-	for _, module := range modules.RegisteredModules() {
+	for _, module := range precompileconfig.RegisteredModules() {
 		if config := c.getActivePrecompileConfig(module.Address, timestamp); config != nil && !config.IsDisabled() {
 			rules.ActivePrecompiles[module.Address] = config
 			if predicater, ok := config.(precompileconfig.Predicater); ok {

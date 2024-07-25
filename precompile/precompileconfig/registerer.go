@@ -1,14 +1,10 @@
-// (c) 2023, Ava Labs, Inc. All rights reserved.
-// See the file LICENSE for licensing terms.
-
-package modules
+package precompileconfig
 
 import (
 	"fmt"
 	"sort"
 
 	"github.com/ava-labs/subnet-evm/constants"
-	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -67,12 +63,6 @@ func RegisterModule(stm Module) error {
 	}
 	// sort by address to ensure deterministic iteration
 	registeredModules = insertSortedByAddress(registeredModules, stm)
-
-	precompileconfig.RegisterModule(precompileconfig.Module{
-		ConfigKey:    stm.ConfigKey,
-		Address:      stm.Address,
-		Configurator: stm.Configurator,
-	})
 	return nil
 }
 
