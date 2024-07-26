@@ -9,8 +9,7 @@ on:
   pull_request:
 
 env:
-  min_go_version: "~1.21.11"
-  grafana_url: https://grafana-experimental.avax-dev.network/d/kBQpRdWnk/avalanche-main-dashboard?orgId=1&refresh=10s&var-filter=is_ephemeral_node%7C%3D%7Cfalse&var-filter=gh_repo%7C%3D%7Cava-labs%2Fsubnet-evm&var-filter=gh_run_id%7C%3D%7C${{ github.run_id }}&var-filter=gh_run_attempt%7C%3D%7C${{ github.run_attempt }}
+  min_go_version: "~1.21.12"
 
 jobs:
   lint_test:
@@ -34,6 +33,9 @@ jobs:
       - name: Run shellcheck
         shell: bash
         run: scripts/shellcheck.sh
+      - name: Run actionlint
+        shell: bash
+        run: scripts/actionlint.sh
 
   unit_test:
     name: Golang Unit Tests (${{ matrix.os }})
@@ -51,10 +53,10 @@ jobs:
       - name: Set timeout on Windows # Windows UT run slower and need a longer timeout
         shell: bash
         if: matrix.os == 'windows-latest'
-        run: echo "TIMEOUT=1200s" >> $GITHUB_ENV
+        run: echo "TIMEOUT=1200s" >> "$GITHUB_ENV"
       - run: go mod download
         shell: bash
-      - run: ./scripts/build.sh ./build/subnetevm
+      - run: ./scripts/build.sh
         shell: bash
       - run: ./scripts/build_test.sh
         env:
@@ -94,7 +96,7 @@ jobs:
         run: BASEDIR=/tmp/e2e-test AVALANCHEGO_BUILD_PATH=/tmp/e2e-test/avalanchego ./scripts/install_avalanchego_release.sh
       - name: Build Subnet-EVM Plugin Binary
         shell: bash
-        run: ./scripts/build.sh /tmp/e2e-test/avalanchego/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
+        run: ./scripts/build.sh
       - name: Run E2E Precompile Tests
         shell: bash
         run: AVALANCHEGO_BUILD_PATH=/tmp/e2e-test/avalanchego DATA_DIR=/tmp/e2e-test/precompile-data ./scripts/run_ginkgo_precompile.sh
@@ -136,49 +138,20 @@ jobs:
         run: BASEDIR=/tmp/e2e-test AVALANCHEGO_BUILD_PATH=/tmp/e2e-test/avalanchego ./scripts/install_avalanchego_release.sh
       - name: Build Subnet-EVM Plugin Binary
         shell: bash
-        run: ./scripts/build.sh /tmp/e2e-test/avalanchego/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
-      - name: Start prometheus
-        # Only run for the original repo; a forked repo won't have access to the monitoring credentials
-        if: (github.event_name != 'pull_request') || (github.event.pull_request.head.repo.full_name == github.repository)
-        shell: bash
-        run: bash -x ./scripts/run_prometheus.sh
-        env:
-          PROMETHEUS_ID: ${{ secrets.PROMETHEUS_ID }}
-          PROMETHEUS_PASSWORD: ${{ secrets.PROMETHEUS_PASSWORD }}
-      - name: Start promtail
-        if: (github.event_name != 'pull_request') || (github.event.pull_request.head.repo.full_name == github.repository)
-        shell: bash
-        run: bash -x ./scripts/run_promtail.sh
-        env:
-          LOKI_ID: ${{ secrets.LOKI_ID }}
-          LOKI_PASSWORD: ${{ secrets.LOKI_PASSWORD }}
-      - name: Notify of metrics availability
-        if: (github.event_name != 'pull_request') || (github.event.pull_request.head.repo.full_name == github.repository)
-        shell: bash
-        run: .github/workflows/notify-metrics-availability.sh
-        env:
-          GRAFANA_URL: ${{ env.grafana_url }}
-          GH_JOB_ID: ${{ github.job }}
+        run: ./scripts/build.sh
       - name: Run Warp E2E Tests
-        shell: bash
-        run: AVALANCHEGO_BUILD_PATH=/tmp/e2e-test/avalanchego ./scripts/run_ginkgo_warp.sh
-        env:
-          GH_REPO: ${{ github.repository }}
-          GH_WORKFLOW: ${{ github.workflow }}
-          GH_RUN_ID: ${{ github.run_id }}
-          GH_RUN_NUMBER: ${{ github.run_number }}
-          GH_RUN_ATTEMPT: ${{ github.run_attempt }}
-          GH_JOB_ID: ${{ github.job }}
+        uses: ava-labs/avalanchego/.github/actions/run-monitored-tmpnet-cmd@v1-actions
+        with:
+          run: AVALANCHEGO_BUILD_PATH=/tmp/e2e-test/avalanchego ./scripts/run_ginkgo_warp.sh
+          prometheus_id: ${{ secrets.PROMETHEUS_ID || '' }}
+          prometheus_password: ${{ secrets.PROMETHEUS_PASSWORD || '' }}
+          loki_id: ${{ secrets.LOKI_ID || '' }}
+          loki_password: ${{ secrets.LOKI_PASSWORD || '' }}
       - name: Upload tmpnet network dir for warp testing
+        uses: ava-labs/avalanchego/.github/actions/upload-tmpnet-artifact@v1-actions
         if: always()
-        uses: actions/upload-artifact@v4
         with:
           name: warp-tmpnet-data
-          path: |
-            ~/.tmpnet/networks
-            ~/.tmpnet/prometheus/prometheus.log
-            ~/.tmpnet/promtail/promtail.log
-          if-no-files-found: error
   e2e_load:
     name: e2e load tests
     runs-on: ubuntu-latest
@@ -197,49 +170,20 @@ jobs:
         run: BASEDIR=/tmp/e2e-test AVALANCHEGO_BUILD_PATH=/tmp/e2e-test/avalanchego ./scripts/install_avalanchego_release.sh
       - name: Build Subnet-EVM Plugin Binary
         shell: bash
-        run: ./scripts/build.sh /tmp/e2e-test/avalanchego/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
-      - name: Start prometheus
-        # Only run for the original repo; a forked repo won't have access to the monitoring credentials
-        if: (github.event_name != 'pull_request') || (github.event.pull_request.head.repo.full_name == github.repository)
-        shell: bash
-        run: bash -x ./scripts/run_prometheus.sh
-        env:
-          PROMETHEUS_ID: ${{ secrets.PROMETHEUS_ID }}
-          PROMETHEUS_PASSWORD: ${{ secrets.PROMETHEUS_PASSWORD }}
-      - name: Start promtail
-        if: (github.event_name != 'pull_request') || (github.event.pull_request.head.repo.full_name == github.repository)
-        shell: bash
-        run: bash -x ./scripts/run_promtail.sh
-        env:
-          LOKI_ID: ${{ secrets.LOKI_ID }}
-          LOKI_PASSWORD: ${{ secrets.LOKI_PASSWORD }}
-      - name: Notify of metrics availability
-        if: (github.event_name != 'pull_request') || (github.event.pull_request.head.repo.full_name == github.repository)
-        shell: bash
-        run: .github/workflows/notify-metrics-availability.sh
-        env:
-          GRAFANA_URL: ${{ env.grafana_url }}
-          GH_JOB_ID: ${{ github.job }}
+        run: ./scripts/build.sh
       - name: Run E2E Load Tests
-        shell: bash
-        run: AVALANCHEGO_BUILD_PATH=/tmp/e2e-test/avalanchego ./scripts/run_ginkgo_load.sh
-        env:
-          GH_REPO: ${{ github.repository }}
-          GH_WORKFLOW: ${{ github.workflow }}
-          GH_RUN_ID: ${{ github.run_id }}
-          GH_RUN_NUMBER: ${{ github.run_number }}
-          GH_RUN_ATTEMPT: ${{ github.run_attempt }}
-          GH_JOB_ID: ${{ github.job }}
+        uses: ava-labs/avalanchego/.github/actions/run-monitored-tmpnet-cmd@v1-actions
+        with:
+          run: AVALANCHEGO_BUILD_PATH=/tmp/e2e-test/avalanchego ./scripts/run_ginkgo_load.sh
+          prometheus_id: ${{ secrets.PROMETHEUS_ID || '' }}
+          prometheus_password: ${{ secrets.PROMETHEUS_PASSWORD || '' }}
+          loki_id: ${{ secrets.LOKI_ID || '' }}
+          loki_password: ${{ secrets.LOKI_PASSWORD || '' }}
       - name: Upload tmpnet network dir for load testing
+        uses: ava-labs/avalanchego/.github/actions/upload-tmpnet-artifact@v1-actions
         if: always()
-        uses: actions/upload-artifact@v4
         with:
           name: load-tmpnet-data
-          path: |
-            ~/.tmpnet/networks
-            ~/.tmpnet/prometheus/prometheus.log
-            ~/.tmpnet/promtail/promtail.log
-          if-no-files-found: error
   mock_gen:
     name: MockGen Check
     runs-on: ubuntu-latest
