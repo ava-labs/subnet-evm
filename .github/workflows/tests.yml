@@ -138,7 +138,7 @@ jobs:
         run: BASEDIR=/tmp/e2e-test AVALANCHEGO_BUILD_PATH=/tmp/e2e-test/avalanchego ./scripts/install_avalanchego_release.sh
       - name: Build Subnet-EVM Plugin Binary
         shell: bash
-        run: ./scripts/build.sh /tmp/e2e-test/avalanchego/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
+        run: ./scripts/build.sh
       - name: Run Warp E2E Tests
         uses: ava-labs/avalanchego/.github/actions/run-monitored-tmpnet-cmd@v1-actions
         with:
@@ -170,7 +170,7 @@ jobs:
         run: BASEDIR=/tmp/e2e-test AVALANCHEGO_BUILD_PATH=/tmp/e2e-test/avalanchego ./scripts/install_avalanchego_release.sh
       - name: Build Subnet-EVM Plugin Binary
         shell: bash
-        run: ./scripts/build.sh /tmp/e2e-test/avalanchego/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
+        run: ./scripts/build.sh
       - name: Run E2E Load Tests
         uses: ava-labs/avalanchego/.github/actions/run-monitored-tmpnet-cmd@v1-actions
         with:
