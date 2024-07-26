@@ -4094,7 +4094,7 @@ func TestNoBlobsAllowed(t *testing.T) {
 
 	// Verification should fail
 	_, err = vm.ParseBlock(context.Background(), modifiedBlock.Bytes())
-	require.NoError(err)
+	require.ErrorContains(err, "blobs not enabled on avalanche networks")
 	err = modifiedBlock.Verify(context.Background())
 	require.ErrorContains(err, "blobs not enabled on avalanche networks")
 }
