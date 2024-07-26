@@ -31,6 +31,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"time"
 
 	"github.com/ava-labs/avalanchego/utils/constants"
 	"github.com/ava-labs/avalanchego/version"
@@ -70,6 +71,8 @@ var (
 		MaxBlockGasCost:  big.NewInt(1_000_000),
 		BlockGasCostStep: big.NewInt(200_000),
 	}
+
+	InactiveUpgradeTime = time.Date(10000, time.December, 1, 0, 0, 0, 0, time.UTC)
 )
 
 var (
@@ -127,9 +130,13 @@ var (
 		PetersburgBlock:     big.NewInt(0),
 		IstanbulBlock:       big.NewInt(0),
 		MuirGlacierBlock:    big.NewInt(0),
-		NetworkUpgrades:     NetworkUpgrades{},
-		GenesisPrecompiles:  Precompiles{},
-		UpgradeConfig:       UpgradeConfig{},
+		NetworkUpgrades: NetworkUpgrades{
+			SubnetEVMTimestamp: utils.TimeToNewUint64(InactiveUpgradeTime),
+			DurangoTimestamp:   utils.TimeToNewUint64(InactiveUpgradeTime),
+			EUpgradeTimestamp:  utils.TimeToNewUint64(InactiveUpgradeTime),
+		},
+		GenesisPrecompiles: Precompiles{},
+		UpgradeConfig:      UpgradeConfig{},
 	}
 
 	TestSubnetEVMChainConfig = &ChainConfig{
@@ -148,6 +155,8 @@ var (
 		MuirGlacierBlock:    big.NewInt(0),
 		NetworkUpgrades: NetworkUpgrades{
 			SubnetEVMTimestamp: utils.NewUint64(0),
+			DurangoTimestamp:   utils.TimeToNewUint64(InactiveUpgradeTime),
+			EUpgradeTimestamp:  utils.TimeToNewUint64(InactiveUpgradeTime),
 		},
 		GenesisPrecompiles: Precompiles{},
 		UpgradeConfig:      UpgradeConfig{},
@@ -170,6 +179,7 @@ var (
 		NetworkUpgrades: NetworkUpgrades{
 			SubnetEVMTimestamp: utils.NewUint64(0),
 			DurangoTimestamp:   utils.NewUint64(0),
+			EUpgradeTimestamp:  utils.TimeToNewUint64(InactiveUpgradeTime),
 		},
 		GenesisPrecompiles: Precompiles{},
 		UpgradeConfig:      UpgradeConfig{},

@@ -123,7 +123,7 @@ func TestCheckCompatible(t *testing.T) {
 			wantErr: &ConfigCompatError{
 				What:         "SubnetEVM fork block timestamp",
 				StoredTime:   utils.NewUint64(0),
-				NewTime:      nil,
+				NewTime:      TestPreSubnetEVMChainConfig.NetworkUpgrades.SubnetEVMTimestamp,
 				RewindToTime: 0,
 			},
 		},
@@ -135,7 +135,7 @@ func TestCheckCompatible(t *testing.T) {
 			wantErr: &ConfigCompatError{
 				What:         "SubnetEVM fork block timestamp",
 				StoredTime:   utils.NewUint64(0),
-				NewTime:      nil,
+				NewTime:      TestPreSubnetEVMChainConfig.NetworkUpgrades.SubnetEVMTimestamp,
 				RewindToTime: 0,
 			},
 		},

@@ -84,7 +84,8 @@ var (
 	genesisJSON = func(cfg *params.ChainConfig) string {
 		g := new(core.Genesis)
 		g.Difficulty = big.NewInt(0)
-		g.GasLimit = 0x7A1200
+		g.GasLimit = 8000000
+		g.Timestamp = 1607144400 // Sat Dec 05 2020 05:00:00 GMT+0000
 
 		// Use chainId: 43111, so that it does not overlap with any Avalanche ChainIDs, which may have their
 		// config overridden in vm.Initialize.
