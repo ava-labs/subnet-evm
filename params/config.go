@@ -36,7 +36,6 @@ import (
 	"github.com/ava-labs/avalanchego/utils/constants"
 	"github.com/ava-labs/avalanchego/version"
 	"github.com/ava-labs/subnet-evm/commontype"
-	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
@@ -374,7 +373,7 @@ func (r *Rules) PredicaterExists(addr common.Address) bool {
 
 // IsPrecompileEnabled returns whether precompile with [address] is enabled at [timestamp].
 func (c *ChainConfig) IsPrecompileEnabled(address common.Address, timestamp uint64) bool {
-	config := c.getActivePrecompileConfig(address, timestamp)
+	config := c.GetActivePrecompileConfig(address, timestamp)
 	return config != nil && !config.IsDisabled()
 }
 
@@ -759,8 +758,8 @@ func (c *ChainConfig) Rules(blockNum *big.Int, timestamp uint64) Rules {
 	rules.ActivePrecompiles = make(map[common.Address]precompileconfig.Config)
 	rules.Predicaters = make(map[common.Address]precompileconfig.Predicater)
 	rules.AccepterPrecompiles = make(map[common.Address]precompileconfig.Accepter)
-	for _, module := range modules.RegisteredModules() {
-		if config := c.getActivePrecompileConfig(module.Address, timestamp); config != nil && !config.IsDisabled() {
+	for _, module := range RegisteredModules() {
+		if config := c.GetActivePrecompileConfig(module.Address, timestamp); config != nil && !config.IsDisabled() {
 			rules.ActivePrecompiles[module.Address] = config
 			if predicater, ok := config.(precompileconfig.Predicater); ok {
 				rules.Predicaters[module.Address] = predicater
