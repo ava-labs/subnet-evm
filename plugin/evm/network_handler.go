@@ -12,10 +12,10 @@ import (
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
 	syncHandlers "github.com/ava-labs/subnet-evm/sync/handlers"
 	syncStats "github.com/ava-labs/subnet-evm/sync/handlers/stats"
-	"github.com/ava-labs/subnet-evm/trie"
 	"github.com/ava-labs/subnet-evm/warp"
 	warpHandlers "github.com/ava-labs/subnet-evm/warp/handlers"
 	"github.com/ethereum/go-ethereum/ethdb"
+	"github.com/ethereum/go-ethereum/trie"
 )
 
 var _ message.RequestHandler = &networkHandler{}
@@ -35,6 +35,13 @@ func newNetworkHandler(
 	warpBackend warp.Backend,
 	networkCodec codec.Manager,
 ) message.RequestHandler {
+	// XXX: Don't care about the state sync server for now
+	if provider == nil {
+		return &networkHandler{
+			signatureRequestHandler: warpHandlers.NewSignatureRequestHandler(warpBackend, networkCodec),
+		}
+	}
+
 	syncStats := syncStats.NewHandlerStats(metrics.Enabled)
 	return &networkHandler{
 		stateTrieLeafsRequestHandler: syncHandlers.NewLeafsRequestHandler(evmTrieDB, provider, networkCodec, syncStats),

@@ -45,11 +45,11 @@ import (
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/core/txpool"
 	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/core/vm"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/predicate"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/log"
 )
@@ -90,29 +90,27 @@ type worker struct {
 	config      *Config
 	chainConfig *params.ChainConfig
 	engine      consensus.Engine
-	eth         Backend
-	chain       *core.BlockChain
+	txPool      TxPool
+	chain       BlockChain
 
 	// Feeds
 	// TODO remove since this will never be written to
 	pendingLogsFeed event.Feed
 
 	// Subscriptions
-	mux        *event.TypeMux // TODO replace
-	mu         sync.RWMutex   // The lock used to protect the coinbase and extra fields
+	mu         sync.RWMutex // The lock used to protect the coinbase and extra fields
 	coinbase   common.Address
 	clock      *mockable.Clock // Allows us mock the clock for testing
 	beaconRoot *common.Hash    // TODO: set to empty hash, retained for upstream compatibility and future use
 }
 
-func newWorker(config *Config, chainConfig *params.ChainConfig, engine consensus.Engine, eth Backend, mux *event.TypeMux, clock *mockable.Clock) *worker {
+func newWorker(config *Config, chainConfig *params.ChainConfig, engine consensus.Engine, chain BlockChain, txPool TxPool, clock *mockable.Clock) *worker {
 	worker := &worker{
 		config:      config,
 		chainConfig: chainConfig,
 		engine:      engine,
-		eth:         eth,
-		chain:       eth.BlockChain(),
-		mux:         mux,
+		txPool:      txPool,
+		chain:       chain,
 		coinbase:    config.Etherbase,
 		clock:       clock,
 		beaconRoot:  &common.Hash{},
@@ -135,7 +133,7 @@ func (w *worker) commitNewWork(predicateContext *precompileconfig.PredicateConte
 
 	tstart := w.clock.Time()
 	timestamp := uint64(tstart.Unix())
-	parent := w.chain.CurrentBlock()
+	parent := w.chain.CurrentHeader()
 	// Note: in order to support asynchronous block production, blocks are allowed to have
 	// the same timestamp as their parent. This allows more than one block to be produced
 	// per second.
@@ -215,8 +213,8 @@ func (w *worker) commitNewWork(predicateContext *precompileconfig.PredicateConte
 	}
 	if header.ParentBeaconRoot != nil {
 		context := core.NewEVMBlockContext(header, w.chain, nil)
-		vmenv := vm.NewEVM(context, vm.TxContext{}, env.state, w.chainConfig, vm.Config{})
-		core.ProcessBeaconBlockRoot(*header.ParentBeaconRoot, vmenv, env.state)
+		vmenv := core.NewEVM(context, vm.TxContext{}, env.state, w.chainConfig, vm.Config{})
+		core.ProcessBeaconBlockRoot(*header.ParentBeaconRoot, vmenv.EVM, env.state)
 	}
 	// Ensure we always stop prefetcher after block building is complete.
 	defer func() {
@@ -232,11 +230,11 @@ func (w *worker) commitNewWork(predicateContext *precompileconfig.PredicateConte
 		return nil, err
 	}
 
-	pending := w.eth.TxPool().PendingWithBaseFee(true, header.BaseFee)
+	pending := w.txPool.PendingWithBaseFee(true, header.BaseFee)
 
 	// Split the pending transactions into locals and remotes.
 	localTxs, remoteTxs := make(map[common.Address][]*txpool.LazyTransaction), pending
-	for _, account := range w.eth.TxPool().Locals() {
+	for _, account := range w.txPool.Locals() {
 		if txs := remoteTxs[account]; len(txs) > 0 {
 			delete(remoteTxs, account)
 			localTxs[account] = txs
@@ -261,7 +259,7 @@ func (w *worker) createCurrentEnvironment(predicateContext *precompileconfig.Pre
 	if err != nil {
 		return nil, err
 	}
-	state.StartPrefetcher("miner", w.eth.BlockChain().CacheConfig().TriePrefetcherParallelism)
+	state.StartPrefetcher("miner", w.chain.CacheConfig().TriePrefetcherParallelism)
 	return &environment{
 		signer:           types.MakeSigner(w.chainConfig, header.Number, header.Time),
 		state:            state,

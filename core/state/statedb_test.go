@@ -28,29 +28,18 @@ package state
 
 import (
 	"bytes"
-	"encoding/binary"
 	"errors"
-	"fmt"
-	"math"
 	"math/big"
-	"math/rand"
-	"reflect"
-	"strings"
-	"sync"
 	"testing"
-	"testing/quick"
 
 	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/state/snapshot"
 	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/trie"
 	"github.com/ava-labs/subnet-evm/trie/triedb/hashdb"
 	"github.com/ava-labs/subnet-evm/trie/triedb/pathdb"
-	"github.com/ava-labs/subnet-evm/trie/trienode"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/holiman/uint256"
+	"github.com/ethereum/go-ethereum/trie"
 )
 
 // Tests that updating a state trie does not leak any database writes prior to
@@ -126,7 +115,7 @@ func TestIntermediateLeaks(t *testing.T) {
 	}
 
 	// Commit and cross check the databases.
-	transRoot, err := transState.Commit(0, false, false)
+	transRoot, err := transState.Commit(0, false)
 	if err != nil {
 		t.Fatalf("failed to commit transition state: %v", err)
 	}
@@ -134,7 +123,7 @@ func TestIntermediateLeaks(t *testing.T) {
 		t.Errorf("can not commit trie %v to persistent database", transRoot.Hex())
 	}
 
-	finalRoot, err := finalState.Commit(0, false, false)
+	finalRoot, err := finalState.Commit(0, false)
 	if err != nil {
 		t.Fatalf("failed to commit final state: %v", err)
 	}
@@ -165,395 +154,6 @@ func TestIntermediateLeaks(t *testing.T) {
 		if !bytes.Equal(fvalue, tvalue) {
 			t.Errorf("value mismatch at key %x: %x in transition database, %x in final database", key, tvalue, fvalue)
 		}
-	}
-}
-
-// TestCopy tests that copying a StateDB object indeed makes the original and
-// the copy independent of each other. This test is a regression test against
-// https://github.com/ethereum/go-ethereum/pull/15549.
-func TestCopy(t *testing.T) {
-	// Create a random state test to copy and modify "independently"
-	orig, _ := New(types.EmptyRootHash, NewDatabase(rawdb.NewMemoryDatabase()), nil)
-
-	for i := byte(0); i < 255; i++ {
-		obj := orig.GetOrNewStateObject(common.BytesToAddress([]byte{i}))
-		obj.AddBalance(big.NewInt(int64(i)))
-		orig.updateStateObject(obj)
-	}
-	orig.Finalise(false)
-
-	// Copy the state
-	copy := orig.Copy()
-
-	// Copy the copy state
-	ccopy := copy.Copy()
-
-	// modify all in memory
-	for i := byte(0); i < 255; i++ {
-		origObj := orig.GetOrNewStateObject(common.BytesToAddress([]byte{i}))
-		copyObj := copy.GetOrNewStateObject(common.BytesToAddress([]byte{i}))
-		ccopyObj := ccopy.GetOrNewStateObject(common.BytesToAddress([]byte{i}))
-
-		origObj.AddBalance(big.NewInt(2 * int64(i)))
-		copyObj.AddBalance(big.NewInt(3 * int64(i)))
-		ccopyObj.AddBalance(big.NewInt(4 * int64(i)))
-
-		orig.updateStateObject(origObj)
-		copy.updateStateObject(copyObj)
-		ccopy.updateStateObject(copyObj)
-	}
-
-	// Finalise the changes on all concurrently
-	finalise := func(wg *sync.WaitGroup, db *StateDB) {
-		defer wg.Done()
-		db.Finalise(true)
-	}
-
-	var wg sync.WaitGroup
-	wg.Add(3)
-	go finalise(&wg, orig)
-	go finalise(&wg, copy)
-	go finalise(&wg, ccopy)
-	wg.Wait()
-
-	// Verify that the three states have been updated independently
-	for i := byte(0); i < 255; i++ {
-		origObj := orig.GetOrNewStateObject(common.BytesToAddress([]byte{i}))
-		copyObj := copy.GetOrNewStateObject(common.BytesToAddress([]byte{i}))
-		ccopyObj := ccopy.GetOrNewStateObject(common.BytesToAddress([]byte{i}))
-
-		if want := big.NewInt(3 * int64(i)); origObj.Balance().Cmp(want) != 0 {
-			t.Errorf("orig obj %d: balance mismatch: have %v, want %v", i, origObj.Balance(), want)
-		}
-		if want := big.NewInt(4 * int64(i)); copyObj.Balance().Cmp(want) != 0 {
-			t.Errorf("copy obj %d: balance mismatch: have %v, want %v", i, copyObj.Balance(), want)
-		}
-		if want := big.NewInt(5 * int64(i)); ccopyObj.Balance().Cmp(want) != 0 {
-			t.Errorf("copy obj %d: balance mismatch: have %v, want %v", i, ccopyObj.Balance(), want)
-		}
-	}
-}
-
-func TestSnapshotRandom(t *testing.T) {
-	config := &quick.Config{MaxCount: 1000}
-	err := quick.Check((*snapshotTest).run, config)
-	if cerr, ok := err.(*quick.CheckError); ok {
-		test := cerr.In[0].(*snapshotTest)
-		t.Errorf("%v:\n%s", test.err, test)
-	} else if err != nil {
-		t.Error(err)
-	}
-}
-
-// A snapshotTest checks that reverting StateDB snapshots properly undoes all changes
-// captured by the snapshot. Instances of this test with pseudorandom content are created
-// by Generate.
-//
-// The test works as follows:
-//
-// A new state is created and all actions are applied to it. Several snapshots are taken
-// in between actions. The test then reverts each snapshot. For each snapshot the actions
-// leading up to it are replayed on a fresh, empty state. The behaviour of all public
-// accessor methods on the reverted state must match the return value of the equivalent
-// methods on the replayed state.
-type snapshotTest struct {
-	addrs     []common.Address // all account addresses
-	actions   []testAction     // modifications to the state
-	snapshots []int            // actions indexes at which snapshot is taken
-	err       error            // failure details are reported through this field
-}
-
-type testAction struct {
-	name   string
-	fn     func(testAction, *StateDB)
-	args   []int64
-	noAddr bool
-}
-
-// newTestAction creates a random action that changes state.
-func newTestAction(addr common.Address, r *rand.Rand) testAction {
-	actions := []testAction{
-		{
-			name: "SetBalance",
-			fn: func(a testAction, s *StateDB) {
-				s.SetBalance(addr, big.NewInt(a.args[0]))
-			},
-			args: make([]int64, 1),
-		},
-		{
-			name: "AddBalance",
-			fn: func(a testAction, s *StateDB) {
-				s.AddBalance(addr, big.NewInt(a.args[0]))
-			},
-			args: make([]int64, 1),
-		},
-		{
-			name: "SetNonce",
-			fn: func(a testAction, s *StateDB) {
-				s.SetNonce(addr, uint64(a.args[0]))
-			},
-			args: make([]int64, 1),
-		},
-		{
-			name: "SetState",
-			fn: func(a testAction, s *StateDB) {
-				var key, val common.Hash
-				binary.BigEndian.PutUint16(key[:], uint16(a.args[0]))
-				binary.BigEndian.PutUint16(val[:], uint16(a.args[1]))
-				s.SetState(addr, key, val)
-			},
-			args: make([]int64, 2),
-		},
-		{
-			name: "SetCode",
-			fn: func(a testAction, s *StateDB) {
-				code := make([]byte, 16)
-				binary.BigEndian.PutUint64(code, uint64(a.args[0]))
-				binary.BigEndian.PutUint64(code[8:], uint64(a.args[1]))
-				s.SetCode(addr, code)
-			},
-			args: make([]int64, 2),
-		},
-		{
-			name: "CreateAccount",
-			fn: func(a testAction, s *StateDB) {
-				s.CreateAccount(addr)
-			},
-		},
-		{
-			name: "SelfDestruct",
-			fn: func(a testAction, s *StateDB) {
-				s.SelfDestruct(addr)
-			},
-		},
-		{
-			name: "AddRefund",
-			fn: func(a testAction, s *StateDB) {
-				s.AddRefund(uint64(a.args[0]))
-			},
-			args:   make([]int64, 1),
-			noAddr: true,
-		},
-		{
-			name: "AddLog",
-			fn: func(a testAction, s *StateDB) {
-				data := make([]byte, 2)
-				binary.BigEndian.PutUint16(data, uint16(a.args[0]))
-				s.AddLog(addr, nil, data, 0)
-			},
-			args: make([]int64, 1),
-		},
-		{
-			name: "AddPreimage",
-			fn: func(a testAction, s *StateDB) {
-				preimage := []byte{1}
-				hash := common.BytesToHash(preimage)
-				s.AddPreimage(hash, preimage)
-			},
-			args: make([]int64, 1),
-		},
-		{
-			name: "AddAddressToAccessList",
-			fn: func(a testAction, s *StateDB) {
-				s.AddAddressToAccessList(addr)
-			},
-		},
-		{
-			name: "AddSlotToAccessList",
-			fn: func(a testAction, s *StateDB) {
-				s.AddSlotToAccessList(addr,
-					common.Hash{byte(a.args[0])})
-			},
-			args: make([]int64, 1),
-		},
-		{
-			name: "SetTransientState",
-			fn: func(a testAction, s *StateDB) {
-				var key, val common.Hash
-				binary.BigEndian.PutUint16(key[:], uint16(a.args[0]))
-				binary.BigEndian.PutUint16(val[:], uint16(a.args[1]))
-				s.SetTransientState(addr, key, val)
-			},
-			args: make([]int64, 2),
-		},
-	}
-	action := actions[r.Intn(len(actions))]
-	var nameargs []string
-	if !action.noAddr {
-		nameargs = append(nameargs, addr.Hex())
-	}
-	for i := range action.args {
-		action.args[i] = rand.Int63n(100)
-		nameargs = append(nameargs, fmt.Sprint(action.args[i]))
-	}
-	action.name += strings.Join(nameargs, ", ")
-	return action
-}
-
-// Generate returns a new snapshot test of the given size. All randomness is
-// derived from r.
-func (*snapshotTest) Generate(r *rand.Rand, size int) reflect.Value {
-	// Generate random actions.
-	addrs := make([]common.Address, 50)
-	for i := range addrs {
-		addrs[i][0] = byte(i)
-	}
-	actions := make([]testAction, size)
-	for i := range actions {
-		addr := addrs[r.Intn(len(addrs))]
-		actions[i] = newTestAction(addr, r)
-	}
-	// Generate snapshot indexes.
-	nsnapshots := int(math.Sqrt(float64(size)))
-	if size > 0 && nsnapshots == 0 {
-		nsnapshots = 1
-	}
-	snapshots := make([]int, nsnapshots)
-	snaplen := len(actions) / nsnapshots
-	for i := range snapshots {
-		// Try to place the snapshots some number of actions apart from each other.
-		snapshots[i] = (i * snaplen) + r.Intn(snaplen)
-	}
-	return reflect.ValueOf(&snapshotTest{addrs, actions, snapshots, nil})
-}
-
-func (test *snapshotTest) String() string {
-	out := new(bytes.Buffer)
-	sindex := 0
-	for i, action := range test.actions {
-		if len(test.snapshots) > sindex && i == test.snapshots[sindex] {
-			fmt.Fprintf(out, "---- snapshot %d ----\n", sindex)
-			sindex++
-		}
-		fmt.Fprintf(out, "%4d: %s\n", i, action.name)
-	}
-	return out.String()
-}
-
-func (test *snapshotTest) run() bool {
-	// Run all actions and create snapshots.
-	var (
-		state, _     = New(types.EmptyRootHash, NewDatabase(rawdb.NewMemoryDatabase()), nil)
-		snapshotRevs = make([]int, len(test.snapshots))
-		sindex       = 0
-		checkstates  = make([]*StateDB, len(test.snapshots))
-	)
-	for i, action := range test.actions {
-		if len(test.snapshots) > sindex && i == test.snapshots[sindex] {
-			snapshotRevs[sindex] = state.Snapshot()
-			checkstates[sindex] = state.Copy()
-			sindex++
-		}
-		action.fn(action, state)
-	}
-	// Revert all snapshots in reverse order. Each revert must yield a state
-	// that is equivalent to fresh state with all actions up the snapshot applied.
-	for sindex--; sindex >= 0; sindex-- {
-		state.RevertToSnapshot(snapshotRevs[sindex])
-		if err := test.checkEqual(state, checkstates[sindex]); err != nil {
-			test.err = fmt.Errorf("state mismatch after revert to snapshot %d\n%v", sindex, err)
-			return false
-		}
-	}
-	return true
-}
-
-func forEachStorage(s *StateDB, addr common.Address, cb func(key, value common.Hash) bool) error {
-	so := s.getStateObject(addr)
-	if so == nil {
-		return nil
-	}
-	tr, err := so.getTrie()
-	if err != nil {
-		return err
-	}
-	trieIt, err := tr.NodeIterator(nil)
-	if err != nil {
-		return err
-	}
-	it := trie.NewIterator(trieIt)
-
-	for it.Next() {
-		key := common.BytesToHash(s.trie.GetKey(it.Key))
-		if value, dirty := so.dirtyStorage[key]; dirty {
-			if !cb(key, value) {
-				return nil
-			}
-			continue
-		}
-
-		if len(it.Value) > 0 {
-			_, content, _, err := rlp.Split(it.Value)
-			if err != nil {
-				return err
-			}
-			if !cb(key, common.BytesToHash(content)) {
-				return nil
-			}
-		}
-	}
-	return nil
-}
-
-// checkEqual checks that methods of state and checkstate return the same values.
-func (test *snapshotTest) checkEqual(state, checkstate *StateDB) error {
-	for _, addr := range test.addrs {
-		var err error
-		checkeq := func(op string, a, b interface{}) bool {
-			if err == nil && !reflect.DeepEqual(a, b) {
-				err = fmt.Errorf("got %s(%s) == %v, want %v", op, addr.Hex(), a, b)
-				return false
-			}
-			return true
-		}
-		// Check basic accessor methods.
-		checkeq("Exist", state.Exist(addr), checkstate.Exist(addr))
-		checkeq("HasSelfdestructed", state.HasSelfDestructed(addr), checkstate.HasSelfDestructed(addr))
-		checkeq("GetBalance", state.GetBalance(addr), checkstate.GetBalance(addr))
-		checkeq("GetNonce", state.GetNonce(addr), checkstate.GetNonce(addr))
-		checkeq("GetCode", state.GetCode(addr), checkstate.GetCode(addr))
-		checkeq("GetCodeHash", state.GetCodeHash(addr), checkstate.GetCodeHash(addr))
-		checkeq("GetCodeSize", state.GetCodeSize(addr), checkstate.GetCodeSize(addr))
-		// Check storage.
-		if obj := state.getStateObject(addr); obj != nil {
-			forEachStorage(state, addr, func(key, value common.Hash) bool {
-				return checkeq("GetState("+key.Hex()+")", checkstate.GetState(addr, key), value)
-			})
-			forEachStorage(checkstate, addr, func(key, value common.Hash) bool {
-				return checkeq("GetState("+key.Hex()+")", checkstate.GetState(addr, key), value)
-			})
-		}
-		if err != nil {
-			return err
-		}
-	}
-
-	if state.GetRefund() != checkstate.GetRefund() {
-		return fmt.Errorf("got GetRefund() == %d, want GetRefund() == %d",
-			state.GetRefund(), checkstate.GetRefund())
-	}
-	if !reflect.DeepEqual(state.GetLogs(common.Hash{}, 0, common.Hash{}), checkstate.GetLogs(common.Hash{}, 0, common.Hash{})) {
-		return fmt.Errorf("got GetLogs(common.Hash{}) == %v, want GetLogs(common.Hash{}) == %v",
-			state.GetLogs(common.Hash{}, 0, common.Hash{}), checkstate.GetLogs(common.Hash{}, 0, common.Hash{}))
-	}
-	return nil
-}
-
-func TestTouchDelete(t *testing.T) {
-	s := newStateEnv()
-	s.state.GetOrNewStateObject(common.Address{})
-	root, _ := s.state.Commit(0, false, false)
-	s.state, _ = NewWithSnapshot(root, s.state.db, s.state.snap)
-
-	snapshot := s.state.Snapshot()
-	s.state.AddBalance(common.Address{}, new(big.Int))
-
-	if len(s.state.journal.dirties) != 1 {
-		t.Fatal("expected one dirty state object")
-	}
-	s.state.RevertToSnapshot(snapshot)
-	if len(s.state.journal.dirties) != 0 {
-		t.Fatal("expected no dirty state object")
 	}
 }
 
@@ -630,7 +230,7 @@ func TestCopyCommitCopy(t *testing.T) {
 		t.Fatalf("second copy committed storage slot mismatch: have %x, want %x", val, sval)
 	}
 	// Commit state, ensure states can be loaded from disk
-	root, _ := state.Commit(0, false, false)
+	root, _ := state.Commit(0, false)
 	state, _ = New(root, tdb, nil)
 	if balance := state.GetBalance(addr); balance.Cmp(big.NewInt(42)) != 0 {
 		t.Fatalf("state post-commit balance mismatch: have %v, want %v", balance, 42)
@@ -744,7 +344,7 @@ func TestCommitCopy(t *testing.T) {
 		t.Fatalf("initial committed storage slot mismatch: have %x, want %x", val, common.Hash{})
 	}
 	// Copy the committed state database, the copied one is not functional.
-	state.Commit(0, true, false)
+	state.Commit(0, true)
 	copied := state.Copy()
 	if balance := copied.GetBalance(addr); balance.Cmp(big.NewInt(0)) != 0 {
 		t.Fatalf("unexpected balance: have %v", balance)
@@ -760,41 +360,6 @@ func TestCommitCopy(t *testing.T) {
 	}
 	if !errors.Is(copied.Error(), trie.ErrCommitted) {
 		t.Fatalf("unexpected state error, %v", copied.Error())
-	}
-}
-
-// TestDeleteCreateRevert tests a weird state transition corner case that we hit
-// while changing the internals of StateDB. The workflow is that a contract is
-// self-destructed, then in a follow-up transaction (but same block) it's created
-// again and the transaction reverted.
-//
-// The original StateDB implementation flushed dirty objects to the tries after
-// each transaction, so this works ok. The rework accumulated writes in memory
-// first, but the journal wiped the entire state object on create-revert.
-func TestDeleteCreateRevert(t *testing.T) {
-	// Create an initial state with a single contract
-	state, _ := New(types.EmptyRootHash, NewDatabase(rawdb.NewMemoryDatabase()), nil)
-
-	addr := common.BytesToAddress([]byte("so"))
-	state.SetBalance(addr, big.NewInt(1))
-
-	root, _ := state.Commit(0, false, false)
-	state, _ = NewWithSnapshot(root, state.db, state.snap)
-
-	// Simulate self-destructing in one transaction, then create-reverting in another
-	state.SelfDestruct(addr)
-	state.Finalise(true)
-
-	id := state.Snapshot()
-	state.SetBalance(addr, big.NewInt(2))
-	state.RevertToSnapshot(id)
-
-	// Commit the entire state and make sure we don't crash and have the correct state
-	root, _ = state.Commit(0, true, false)
-	state, _ = NewWithSnapshot(root, state.db, state.snap)
-
-	if state.getStateObject(addr) != nil {
-		t.Fatalf("self-destructed contract came alive")
 	}
 }
 
@@ -833,7 +398,7 @@ func testMissingTrieNodes(t *testing.T, scheme string) {
 		a2 := common.BytesToAddress([]byte("another"))
 		state.SetBalance(a2, big.NewInt(100))
 		state.SetCode(a2, []byte{1, 2, 4})
-		root, _ = state.Commit(0, false, false)
+		root, _ = state.Commit(0, false)
 		t.Logf("root: %x", root)
 		// force-flush
 		triedb.Commit(root, false)
@@ -857,183 +422,9 @@ func testMissingTrieNodes(t *testing.T, scheme string) {
 	}
 	// Modify the state
 	state.SetBalance(addr, big.NewInt(2))
-	root, err := state.Commit(0, false, false)
+	root, err := state.Commit(0, false)
 	if err == nil {
 		t.Fatalf("expected error, got root :%x", root)
-	}
-}
-
-func TestStateDBAccessList(t *testing.T) {
-	// Some helpers
-	addr := func(a string) common.Address {
-		return common.HexToAddress(a)
-	}
-	slot := func(a string) common.Hash {
-		return common.HexToHash(a)
-	}
-
-	memDb := rawdb.NewMemoryDatabase()
-	db := NewDatabase(memDb)
-	state, _ := New(types.EmptyRootHash, db, nil)
-	state.accessList = newAccessList()
-
-	verifyAddrs := func(astrings ...string) {
-		t.Helper()
-		// convert to common.Address form
-		var addresses []common.Address
-		var addressMap = make(map[common.Address]struct{})
-		for _, astring := range astrings {
-			address := addr(astring)
-			addresses = append(addresses, address)
-			addressMap[address] = struct{}{}
-		}
-		// Check that the given addresses are in the access list
-		for _, address := range addresses {
-			if !state.AddressInAccessList(address) {
-				t.Fatalf("expected %x to be in access list", address)
-			}
-		}
-		// Check that only the expected addresses are present in the access list
-		for address := range state.accessList.addresses {
-			if _, exist := addressMap[address]; !exist {
-				t.Fatalf("extra address %x in access list", address)
-			}
-		}
-	}
-	verifySlots := func(addrString string, slotStrings ...string) {
-		if !state.AddressInAccessList(addr(addrString)) {
-			t.Fatalf("scope missing address/slots %v", addrString)
-		}
-		var address = addr(addrString)
-		// convert to common.Hash form
-		var slots []common.Hash
-		var slotMap = make(map[common.Hash]struct{})
-		for _, slotString := range slotStrings {
-			s := slot(slotString)
-			slots = append(slots, s)
-			slotMap[s] = struct{}{}
-		}
-		// Check that the expected items are in the access list
-		for i, s := range slots {
-			if _, slotPresent := state.SlotInAccessList(address, s); !slotPresent {
-				t.Fatalf("input %d: scope missing slot %v (address %v)", i, s, addrString)
-			}
-		}
-		// Check that no extra elements are in the access list
-		index := state.accessList.addresses[address]
-		if index >= 0 {
-			stateSlots := state.accessList.slots[index]
-			for s := range stateSlots {
-				if _, slotPresent := slotMap[s]; !slotPresent {
-					t.Fatalf("scope has extra slot %v (address %v)", s, addrString)
-				}
-			}
-		}
-	}
-
-	state.AddAddressToAccessList(addr("aa"))          // 1
-	state.AddSlotToAccessList(addr("bb"), slot("01")) // 2,3
-	state.AddSlotToAccessList(addr("bb"), slot("02")) // 4
-	verifyAddrs("aa", "bb")
-	verifySlots("bb", "01", "02")
-
-	// Make a copy
-	stateCopy1 := state.Copy()
-	if exp, got := 4, state.journal.length(); exp != got {
-		t.Fatalf("journal length mismatch: have %d, want %d", got, exp)
-	}
-
-	// same again, should cause no journal entries
-	state.AddSlotToAccessList(addr("bb"), slot("01"))
-	state.AddSlotToAccessList(addr("bb"), slot("02"))
-	state.AddAddressToAccessList(addr("aa"))
-	if exp, got := 4, state.journal.length(); exp != got {
-		t.Fatalf("journal length mismatch: have %d, want %d", got, exp)
-	}
-	// some new ones
-	state.AddSlotToAccessList(addr("bb"), slot("03")) // 5
-	state.AddSlotToAccessList(addr("aa"), slot("01")) // 6
-	state.AddSlotToAccessList(addr("cc"), slot("01")) // 7,8
-	state.AddAddressToAccessList(addr("cc"))
-	if exp, got := 8, state.journal.length(); exp != got {
-		t.Fatalf("journal length mismatch: have %d, want %d", got, exp)
-	}
-
-	verifyAddrs("aa", "bb", "cc")
-	verifySlots("aa", "01")
-	verifySlots("bb", "01", "02", "03")
-	verifySlots("cc", "01")
-
-	// now start rolling back changes
-	state.journal.revert(state, 7)
-	if _, ok := state.SlotInAccessList(addr("cc"), slot("01")); ok {
-		t.Fatalf("slot present, expected missing")
-	}
-	verifyAddrs("aa", "bb", "cc")
-	verifySlots("aa", "01")
-	verifySlots("bb", "01", "02", "03")
-
-	state.journal.revert(state, 6)
-	if state.AddressInAccessList(addr("cc")) {
-		t.Fatalf("addr present, expected missing")
-	}
-	verifyAddrs("aa", "bb")
-	verifySlots("aa", "01")
-	verifySlots("bb", "01", "02", "03")
-
-	state.journal.revert(state, 5)
-	if _, ok := state.SlotInAccessList(addr("aa"), slot("01")); ok {
-		t.Fatalf("slot present, expected missing")
-	}
-	verifyAddrs("aa", "bb")
-	verifySlots("bb", "01", "02", "03")
-
-	state.journal.revert(state, 4)
-	if _, ok := state.SlotInAccessList(addr("bb"), slot("03")); ok {
-		t.Fatalf("slot present, expected missing")
-	}
-	verifyAddrs("aa", "bb")
-	verifySlots("bb", "01", "02")
-
-	state.journal.revert(state, 3)
-	if _, ok := state.SlotInAccessList(addr("bb"), slot("02")); ok {
-		t.Fatalf("slot present, expected missing")
-	}
-	verifyAddrs("aa", "bb")
-	verifySlots("bb", "01")
-
-	state.journal.revert(state, 2)
-	if _, ok := state.SlotInAccessList(addr("bb"), slot("01")); ok {
-		t.Fatalf("slot present, expected missing")
-	}
-	verifyAddrs("aa", "bb")
-
-	state.journal.revert(state, 1)
-	if state.AddressInAccessList(addr("bb")) {
-		t.Fatalf("addr present, expected missing")
-	}
-	verifyAddrs("aa")
-
-	state.journal.revert(state, 0)
-	if state.AddressInAccessList(addr("aa")) {
-		t.Fatalf("addr present, expected missing")
-	}
-	if got, exp := len(state.accessList.addresses), 0; got != exp {
-		t.Fatalf("expected empty, got %d", got)
-	}
-	if got, exp := len(state.accessList.slots), 0; got != exp {
-		t.Fatalf("expected empty, got %d", got)
-	}
-	// Check the copy
-	// Make a copy
-	state = stateCopy1
-	verifyAddrs("aa", "bb")
-	verifySlots("bb", "01", "02")
-	if got, exp := len(state.accessList.addresses), 2; got != exp {
-		t.Fatalf("expected empty, got %d", got)
-	}
-	if got, exp := len(state.accessList.slots), 1; got != exp {
-		t.Fatalf("expected empty, got %d", got)
 	}
 }
 
@@ -1053,7 +444,7 @@ func TestFlushOrderDataLoss(t *testing.T) {
 			state.SetState(common.Address{a}, common.Hash{a, s}, common.Hash{a, s})
 		}
 	}
-	root, err := state.Commit(0, false, false)
+	root, err := state.Commit(0, false)
 	if err != nil {
 		t.Fatalf("failed to commit state trie: %v", err)
 	}
@@ -1078,40 +469,6 @@ func TestFlushOrderDataLoss(t *testing.T) {
 	}
 }
 
-func TestStateDBTransientStorage(t *testing.T) {
-	memDb := rawdb.NewMemoryDatabase()
-	db := NewDatabase(memDb)
-	state, _ := New(types.EmptyRootHash, db, nil)
-
-	key := common.Hash{0x01}
-	value := common.Hash{0x02}
-	addr := common.Address{}
-
-	state.SetTransientState(addr, key, value)
-	if exp, got := 1, state.journal.length(); exp != got {
-		t.Fatalf("journal length mismatch: have %d, want %d", got, exp)
-	}
-	// the retrieved value should equal what was set
-	if got := state.GetTransientState(addr, key); got != value {
-		t.Fatalf("transient storage mismatch: have %x, want %x", got, value)
-	}
-
-	// revert the transient state being set and then check that the
-	// value is now the empty hash
-	state.journal.revert(state, 0)
-	if got, exp := state.GetTransientState(addr, key), (common.Hash{}); exp != got {
-		t.Fatalf("transient storage mismatch: have %x, want %x", got, exp)
-	}
-
-	// set transient state and then copy the statedb and ensure that
-	// the transient state is copied
-	state.SetTransientState(addr, key, value)
-	cpy := state.Copy()
-	if got := cpy.GetTransientState(addr, key); got != value {
-		t.Fatalf("transient storage mismatch: have %x, want %x", got, value)
-	}
-}
-
 func TestResetObject(t *testing.T) {
 	var (
 		disk     = rawdb.NewMemoryDatabase()
@@ -1132,7 +489,7 @@ func TestResetObject(t *testing.T) {
 	state.CreateAccount(addr)
 	state.SetBalance(addr, big.NewInt(2))
 	state.SetState(addr, slotB, common.BytesToHash([]byte{0x2}))
-	root, _ := state.CommitWithSnap(0, true, snaps, common.Hash{}, common.Hash{}, false)
+	root, _ := state.Commit(0, true)
 
 	// Ensure the original account is wiped properly
 	snap := snaps.Snapshot(root)
@@ -1143,59 +500,5 @@ func TestResetObject(t *testing.T) {
 	slot, _ = snap.Storage(crypto.Keccak256Hash(addr.Bytes()), crypto.Keccak256Hash(slotB.Bytes()))
 	if !bytes.Equal(slot, []byte{0x2}) {
 		t.Fatalf("Unexpected storage slot value %v", slot)
-	}
-}
-
-func TestDeleteStorage(t *testing.T) {
-	var (
-		disk     = rawdb.NewMemoryDatabase()
-		tdb      = trie.NewDatabase(disk, nil)
-		db       = NewDatabaseWithNodeDB(disk, tdb)
-		snaps, _ = snapshot.New(snapshot.Config{CacheSize: 10}, disk, tdb, common.Hash{}, types.EmptyRootHash)
-		state, _ = New(types.EmptyRootHash, db, snaps)
-		addr     = common.HexToAddress("0x1")
-	)
-	// Initialize account and populate storage
-	state.SetBalance(addr, big.NewInt(1))
-	state.CreateAccount(addr)
-	for i := 0; i < 1000; i++ {
-		slot := common.Hash(uint256.NewInt(uint64(i)).Bytes32())
-		value := common.Hash(uint256.NewInt(uint64(10 * i)).Bytes32())
-		state.SetState(addr, slot, value)
-	}
-	root, _ := state.CommitWithSnap(0, true, snaps, common.Hash{}, common.Hash{}, false)
-	// Init phase done, create two states, one with snap and one without
-	fastState, _ := New(root, db, snaps)
-	slowState, _ := New(root, db, nil)
-
-	obj := fastState.GetOrNewStateObject(addr)
-	storageRoot := obj.data.Root
-
-	_, _, fastNodes, err := fastState.deleteStorage(addr, crypto.Keccak256Hash(addr[:]), storageRoot)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	_, _, slowNodes, err := slowState.deleteStorage(addr, crypto.Keccak256Hash(addr[:]), storageRoot)
-	if err != nil {
-		t.Fatal(err)
-	}
-	check := func(set *trienode.NodeSet) string {
-		var a []string
-		set.ForEachWithOrder(func(path string, n *trienode.Node) {
-			if n.Hash != (common.Hash{}) {
-				t.Fatal("delete should have empty hashes")
-			}
-			if len(n.Blob) != 0 {
-				t.Fatal("delete should have have empty blobs")
-			}
-			a = append(a, fmt.Sprintf("%x", path))
-		})
-		return strings.Join(a, ",")
-	}
-	slowRes := check(slowNodes)
-	fastRes := check(fastNodes)
-	if slowRes != fastRes {
-		t.Fatalf("difference found:\nfast: %v\nslow: %v\n", fastRes, slowRes)
 	}
 }

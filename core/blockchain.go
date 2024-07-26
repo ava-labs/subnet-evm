@@ -46,18 +46,18 @@ import (
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/core/state/snapshot"
 	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/core/vm"
 	"github.com/ava-labs/subnet-evm/internal/version"
 	"github.com/ava-labs/subnet-evm/metrics"
 	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/trie"
 	"github.com/ava-labs/subnet-evm/trie/triedb/hashdb"
 	"github.com/ava-labs/subnet-evm/trie/triedb/pathdb"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/lru"
+	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/ethereum/go-ethereum/trie"
 )
 
 var (
@@ -199,6 +199,7 @@ func (c *CacheConfig) triedbConfig() *trie.Config {
 		config.HashDB = &hashdb.Config{
 			CleanCacheSize: c.TrieCleanLimit * 1024 * 1024,
 			StatsPrefix:    trieCleanCacheStatsNamespace,
+			RefCounting:    true,
 		}
 	}
 	if c.StateScheme == rawdb.PathScheme {
@@ -206,6 +207,12 @@ func (c *CacheConfig) triedbConfig() *trie.Config {
 			StateHistory:   c.StateHistory,
 			CleanCacheSize: c.TrieCleanLimit * 1024 * 1024,
 			DirtyCacheSize: c.TrieDirtyLimit * 1024 * 1024,
+		}
+	} else {
+		config.HashDB = &hashdb.Config{
+			CleanCacheSize: c.TrieCleanLimit * 1024 * 1024,
+			StatsPrefix:    trieCleanCacheStatsNamespace,
+			RefCounting:    true,
 		}
 	}
 	return config
@@ -805,15 +812,18 @@ func (bc *BlockChain) loadLastState(lastAcceptedHash common.Hash) error {
 		return fmt.Errorf("could not load last accepted block")
 	}
 
+	// reprocessState is necessary to ensure that the last accepted state is
+	// available. The state may not be available if it was not committed due
+	// to an unclean shutdown.
+	if err := bc.reprocessState(bc.lastAccepted, 2*bc.cacheConfig.CommitInterval); err != nil {
+		return fmt.Errorf("could not reprocess state for last accepted block: %w", err)
+	}
+
 	// This ensures that the head block is updated to the last accepted block on startup
 	if err := bc.setPreference(bc.lastAccepted); err != nil {
 		return fmt.Errorf("failed to set preference to last accepted block while loading last state: %w", err)
 	}
-
-	// reprocessState is necessary to ensure that the last accepted state is
-	// available. The state may not be available if it was not committed due
-	// to an unclean shutdown.
-	return bc.reprocessState(bc.lastAccepted, 2*bc.cacheConfig.CommitInterval)
+	return nil
 }
 
 func (bc *BlockChain) loadGenesisState() error {
@@ -1298,12 +1308,7 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 	// Commit all cached state changes into underlying memory database.
 	// If snapshots are enabled, call CommitWithSnaps to explicitly create a snapshot
 	// diff layer for the block.
-	var err error
-	if bc.snaps == nil {
-		_, err = state.Commit(block.NumberU64(), bc.chainConfig.IsEIP158(block.Number()), true)
-	} else {
-		_, err = state.CommitWithSnap(block.NumberU64(), bc.chainConfig.IsEIP158(block.Number()), bc.snaps, block.Hash(), block.ParentHash(), true)
-	}
+	_, err := state.CommitWithBlockHash(block.NumberU64(), bc.chainConfig.IsEIP158(block.Number()), block.Hash(), block.ParentHash())
 	if err != nil {
 		return err
 	}
@@ -1826,7 +1831,7 @@ func (bc *BlockChain) reprocessBlock(parent *types.Block, current *types.Block) 
 		if snap == nil {
 			return common.Hash{}, fmt.Errorf("failed to get snapshot for parent root: %s", parentRoot)
 		}
-		statedb, err = state.NewWithSnapshot(parentRoot, bc.stateCache, snap)
+		statedb, err = state.NewWithSnapshot(parentRoot, bc.stateCache, bc.snaps, snap)
 	}
 	if err != nil {
 		return common.Hash{}, fmt.Errorf("could not fetch state for (%s: %d): %v", parent.Hash().Hex(), parent.NumberU64(), err)
@@ -1851,12 +1856,7 @@ func (bc *BlockChain) reprocessBlock(parent *types.Block, current *types.Block) 
 	log.Debug("Processed block", "block", current.Hash(), "number", current.NumberU64())
 
 	// Commit all cached state changes into underlying memory database.
-	// If snapshots are enabled, call CommitWithSnaps to explicitly create a snapshot
-	// diff layer for the block.
-	if bc.snaps == nil {
-		return statedb.Commit(current.NumberU64(), bc.chainConfig.IsEIP158(current.Number()), false)
-	}
-	return statedb.CommitWithSnap(current.NumberU64(), bc.chainConfig.IsEIP158(current.Number()), bc.snaps, current.Hash(), current.ParentHash(), false)
+	return statedb.CommitWithBlockHash(current.NumberU64(), bc.chainConfig.IsEIP158(current.Number()), current.Hash(), current.ParentHash())
 }
 
 // initSnapshot instantiates a Snapshot instance and adds it to [bc]
@@ -1917,9 +1917,12 @@ func (bc *BlockChain) reprocessState(current *types.Block, reexec uint64) error 
 	// This may occur if we are running in archive mode where every block's trie is committed on insertion
 	// or during an unclean shutdown.
 	if acceptorTip != (common.Hash{}) {
-		current = bc.GetBlockByHash(acceptorTip)
-		if current == nil {
+		acceptorTipBlock := bc.GetBlockByHash(acceptorTip)
+		if acceptorTipBlock == nil {
 			return fmt.Errorf("failed to get block for acceptor tip %s", acceptorTip)
+		}
+		if acceptorTipBlock.NumberU64() > current.NumberU64() {
+			current = acceptorTipBlock
 		}
 	}
 
@@ -1997,7 +2000,6 @@ func (bc *BlockChain) reprocessState(current *types.Block, reexec uint64) error 
 		// Flatten snapshot if initialized, holding a reference to the state root until the next block
 		// is processed.
 		if err := bc.flattenSnapshot(func() error {
-			triedb.Reference(root, common.Hash{})
 			if previousRoot != (common.Hash{}) {
 				triedb.Dereference(previousRoot)
 			}
@@ -2017,6 +2019,7 @@ func (bc *BlockChain) reprocessState(current *types.Block, reexec uint64) error 
 
 	_, nodes, imgs := triedb.Size()
 	log.Info("Historical state regenerated", "block", current.NumberU64(), "elapsed", time.Since(start), "nodes", nodes, "preimages", imgs)
+	bc.writeHeadBlock(current)
 	if previousRoot != (common.Hash{}) {
 		return triedb.Commit(previousRoot, true)
 	}

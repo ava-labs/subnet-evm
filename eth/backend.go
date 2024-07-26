@@ -45,7 +45,6 @@ import (
 	"github.com/ava-labs/subnet-evm/core/txpool"
 	"github.com/ava-labs/subnet-evm/core/txpool/legacypool"
 	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/core/vm"
 	"github.com/ava-labs/subnet-evm/eth/ethconfig"
 	"github.com/ava-labs/subnet-evm/eth/filters"
 	"github.com/ava-labs/subnet-evm/eth/gasprice"
@@ -57,8 +56,8 @@ import (
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/rpc"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/ethdb"
-	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/log"
 )
 
@@ -91,7 +90,6 @@ type Ethereum struct {
 	// DB interfaces
 	chainDb ethdb.Database // Block chain database
 
-	eventMux       *event.TypeMux
 	engine         consensus.Engine
 	accountManager *accounts.Manager
 
@@ -174,7 +172,6 @@ func New(
 		config:            config,
 		gossiper:          gossiper,
 		chainDb:           chainDb,
-		eventMux:          new(event.TypeMux),
 		accountManager:    stack.AccountManager(),
 		engine:            dummy.NewFakerWithClock(clock),
 		closeBloomHandler: make(chan struct{}),
@@ -248,17 +245,20 @@ func New(
 
 	eth.bloomIndexer.Start(eth.blockchain)
 
+	blockchain := BlockChain(eth.blockchain) // used in initializing the txpool and miner
+	// Uncomment the following to enable the new blobpool
+
 	// config.BlobPool.Datadir = ""
-	// blobPool := blobpool.New(config.BlobPool, &chainWithFinalBlock{eth.blockchain})
+	// blobPool := blobpool.New(config.BlobPool, &chainWithFinalBlock{blockchain})
 
-	legacyPool := legacypool.New(config.TxPool, eth.blockchain)
+	legacyPool := legacypool.New(config.TxPool, blockchain)
 
-	eth.txPool, err = txpool.New(new(big.Int).SetUint64(config.TxPool.PriceLimit), eth.blockchain, []txpool.SubPool{legacyPool}) //, blobPool})
+	eth.txPool, err = txpool.New(new(big.Int).SetUint64(config.TxPool.PriceLimit), blockchain, []txpool.SubPool{legacyPool}) //, blobPool})
 	if err != nil {
 		return nil, err
 	}
 
-	eth.miner = miner.New(eth, &config.Miner, eth.blockchain.Config(), eth.EventMux(), eth.engine, clock)
+	eth.miner = miner.New(blockchain, eth.txPool, &config.Miner, blockchain.Config(), eth.engine, clock)
 
 	allowUnprotectedTxHashes := make(map[common.Hash]struct{})
 	for _, txHash := range config.AllowUnprotectedTxHashes {
@@ -359,7 +359,6 @@ func (s *Ethereum) Miner() *miner.Miner { return s.miner }
 func (s *Ethereum) AccountManager() *accounts.Manager { return s.accountManager }
 func (s *Ethereum) BlockChain() *core.BlockChain      { return s.blockchain }
 func (s *Ethereum) TxPool() *txpool.TxPool            { return s.txPool }
-func (s *Ethereum) EventMux() *event.TypeMux          { return s.eventMux }
 func (s *Ethereum) Engine() consensus.Engine          { return s.engine }
 func (s *Ethereum) ChainDb() ethdb.Database           { return s.chainDb }
 
@@ -393,8 +392,6 @@ func (s *Ethereum) Stop() error {
 
 	s.chainDb.Close()
 	log.Info("Closed chaindb")
-	s.eventMux.Stop()
-	log.Info("Stopped EventMux")
 	return nil
 }
 

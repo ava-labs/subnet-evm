@@ -35,17 +35,15 @@ import (
 	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/trie/trienode"
-	"github.com/ava-labs/subnet-evm/trie/triestate"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/ethereum/go-ethereum/trie/triedb/database"
+	"github.com/ethereum/go-ethereum/trie/trienode"
+	"github.com/ethereum/go-ethereum/trie/triestate"
 )
 
 const (
-	// maxDiffLayers is the maximum diff layers allowed in the layer tree.
-	maxDiffLayers = 128
-
 	// defaultCleanSize is the default memory allowance of clean cache.
 	defaultCleanSize = 16 * 1024 * 1024
 
@@ -95,10 +93,15 @@ type layer interface {
 
 // Config contains the settings for database.
 type Config struct {
+	CommitLag      int    // Number of blocks to keep difflayers ahead of the disk layer
 	StateHistory   uint64 // Number of recent blocks to maintain state history for
 	CleanCacheSize int    // Maximum memory allowance (in bytes) for caching clean nodes
 	DirtyCacheSize int    // Maximum memory allowance (in bytes) for caching dirty nodes
 	ReadOnly       bool   // Flag whether the database is opened in read only mode.
+}
+
+func (c *Config) New(diskdb ethdb.Database) database.PathBackend {
+	return New(diskdb, c)
 }
 
 // sanitize checks the provided user configurations and changes anything that's
@@ -220,7 +223,7 @@ func New(diskdb ethdb.Database, config *Config) *Database {
 }
 
 // Reader retrieves a layer belonging to the given state root.
-func (db *Database) Reader(root common.Hash) (layer, error) {
+func (db *Database) Reader(root common.Hash) (database.Reader, error) {
 	l := db.tree.get(root)
 	if l == nil {
 		return nil, fmt.Errorf("state %#x is not available", root)
@@ -252,7 +255,11 @@ func (db *Database) Update(root common.Hash, parentRoot common.Hash, block uint6
 	// - head-1 layer is paired with HEAD-1 state
 	// - head-127 layer(bottom-most diff layer) is paired with HEAD-127 state
 	// - head-128 layer(disk layer) is paired with HEAD-128 state
-	return db.tree.cap(root, maxDiffLayers)
+	// return db.tree.cap(root, maxDiffLayers)
+
+	// XXX: Need to cap the number of diff layers to prevent memory exhaustion.
+	// (at least some error handling here)
+	return nil
 }
 
 // Commit traverses downwards the layer tree from a specified layer with the
@@ -267,7 +274,7 @@ func (db *Database) Commit(root common.Hash, report bool) error {
 	if err := db.modifyAllowed(); err != nil {
 		return err
 	}
-	return db.tree.cap(root, 0)
+	return db.tree.cap(root, db.config.CommitLag)
 }
 
 // Disable deactivates the database and invalidates all available state layers

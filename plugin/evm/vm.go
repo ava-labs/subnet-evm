@@ -24,14 +24,11 @@ import (
 	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
-	"github.com/ava-labs/subnet-evm/core/txpool"
 	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/eth"
 	"github.com/ava-labs/subnet-evm/eth/ethconfig"
 	"github.com/ava-labs/subnet-evm/metrics"
 	subnetEVMPrometheus "github.com/ava-labs/subnet-evm/metrics/prometheus"
 	"github.com/ava-labs/subnet-evm/miner"
-	"github.com/ava-labs/subnet-evm/node"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/peer"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
@@ -40,17 +37,17 @@ import (
 	"github.com/ava-labs/subnet-evm/rpc"
 	statesyncclient "github.com/ava-labs/subnet-evm/sync/client"
 	"github.com/ava-labs/subnet-evm/sync/client/stats"
-	"github.com/ava-labs/subnet-evm/trie"
 	"github.com/ava-labs/subnet-evm/warp"
 	warpValidators "github.com/ava-labs/subnet-evm/warp/validators"
+	"github.com/ethereum/go-ethereum/trie"
 
 	// Force-load tracer engine to trigger registration
 	//
 	// We must import this package (not referenced elsewhere) so that the native "callTracer"
 	// is added to a map of client-accessible tracers. In geth, this is done
 	// inside of cmd/geth.
-	_ "github.com/ava-labs/subnet-evm/eth/tracers/js"
-	_ "github.com/ava-labs/subnet-evm/eth/tracers/native"
+	_ "github.com/ethereum/go-ethereum/eth/tracers/js"
+	_ "github.com/ethereum/go-ethereum/eth/tracers/native"
 
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	// Force-load precompiles to trigger registration
@@ -186,9 +183,9 @@ type VM struct {
 	ethConfig   ethconfig.Config
 
 	// pointers to eth constructs
-	eth        *eth.Ethereum
-	txPool     *txpool.TxPool
-	blockChain *core.BlockChain
+	eth        Backend
+	txPool     TxPool
+	blockChain BlockChain
 	miner      *miner.Miner
 
 	// [db] is the VM's current database managed by ChainState
@@ -500,7 +497,7 @@ func (vm *VM) Initialize(
 		}
 	}
 
-	if err := vm.initializeChain(lastAcceptedHash, vm.ethConfig); err != nil {
+	if err := vm.initializeChain(lastAcceptedHash); err != nil {
 		return err
 	}
 
@@ -524,35 +521,21 @@ func (vm *VM) initializeMetrics() error {
 	return vm.ctx.Metrics.Register(sdkMetricsPrefix, vm.sdkMetrics)
 }
 
-func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.Config) error {
-	nodecfg := &node.Config{
-		SubnetEVMVersion:      Version,
-		KeyStoreDir:           vm.config.KeystoreDirectory,
-		ExternalSigner:        vm.config.KeystoreExternalSigner,
-		InsecureUnlockAllowed: vm.config.KeystoreInsecureUnlockAllowed,
-	}
-	node, err := node.New(nodecfg)
+func (vm *VM) initializeChain(lastAcceptedHash common.Hash) error {
+	eth, err := vm.createBackend(lastAcceptedHash)
 	if err != nil {
 		return err
 	}
-	vm.eth, err = eth.New(
-		node,
-		&vm.ethConfig,
-		&EthPushGossiper{vm: vm},
-		vm.chaindb,
-		vm.config.EthBackendSettings(),
-		lastAcceptedHash,
-		&vm.clock,
-	)
-	if err != nil {
-		return err
-	}
-	vm.eth.SetEtherbase(ethConfig.Miner.Etherbase)
+	vm.eth = eth
+	vm.eth.SetEtherbase(vm.ethConfig.Miner.Etherbase)
 	vm.txPool = vm.eth.TxPool()
-	vm.txPool.SetMinFee(vm.chainConfig.FeeConfig.MinBaseFee)
-	vm.txPool.SetGasTip(big.NewInt(0))
 	vm.blockChain = vm.eth.BlockChain()
 	vm.miner = vm.eth.Miner()
+
+	// Set the gas parameters for the tx pool to the minimum gas price for the
+	// latest upgrade.
+	vm.txPool.SetMinFee(vm.chainConfig.FeeConfig.MinBaseFee)
+	vm.txPool.SetGasTip(big.NewInt(0))
 
 	vm.eth.Start()
 	return vm.initChainState(vm.blockChain.LastAcceptedBlock())
@@ -800,15 +783,21 @@ func (vm *VM) setAppRequestHandlers() {
 			},
 		},
 	)
-
-	networkHandler := newNetworkHandler(vm.blockChain, vm.chaindb, evmTrieDB, vm.warpBackend, vm.networkCodec)
+	networkHandler := newNetworkHandler(
+		nil, // XXX: don't care about state sync server for now (was vm.blockChain)
+		vm.chaindb,
+		evmTrieDB,
+		vm.warpBackend,
+		vm.networkCodec,
+	)
 	vm.Network.SetRequestHandler(networkHandler)
 }
 
 // setCrossChainAppRequestHandler sets the request handlers for the VM to serve cross chain
 // requests.
 func (vm *VM) setCrossChainAppRequestHandler() {
-	crossChainRequestHandler := message.NewCrossChainHandler(vm.eth.APIBackend, message.CrossChainCodec)
+	// XXX: don't care about cross chain for now
+	crossChainRequestHandler := message.NewCrossChainHandler(nil, message.CrossChainCodec)
 	vm.Network.SetCrossChainRequestHandler(crossChainRequestHandler)
 }
 

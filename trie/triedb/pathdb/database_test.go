@@ -36,12 +36,12 @@ import (
 
 	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/trie/testutil"
-	"github.com/ava-labs/subnet-evm/trie/trienode"
-	"github.com/ava-labs/subnet-evm/trie/triestate"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/ethereum/go-ethereum/trie/testutil"
+	"github.com/ethereum/go-ethereum/trie/trienode"
+	"github.com/ethereum/go-ethereum/trie/triestate"
 	"github.com/stretchr/testify/require"
 )
 
@@ -134,6 +134,9 @@ func newTester(t *testing.T, historyLimit uint64) *tester {
 		root, nodes, states := obj.generate(parent)
 		if err := db.Update(root, parent, uint64(i), nodes, states); err != nil {
 			panic(fmt.Errorf("failed to update state changes, err: %w", err))
+		}
+		if err := db.tree.cap(root, 128); err != nil {
+			panic(fmt.Errorf("failed to cap state changes, err: %w", err))
 		}
 		obj.roots = append(obj.roots, root)
 	}

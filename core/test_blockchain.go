@@ -95,7 +95,8 @@ func copyMemDB(db ethdb.Database) (ethdb.Database, error) {
 	iter := db.NewIterator(nil, nil)
 	defer iter.Release()
 	for iter.Next() {
-		if err := newDB.Put(iter.Key(), iter.Value()); err != nil {
+		k, v := common.CopyBytes(iter.Key()), common.CopyBytes(iter.Value())
+		if err := newDB.Put(k, v); err != nil {
 			return nil, err
 		}
 	}

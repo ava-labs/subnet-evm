@@ -9,7 +9,6 @@ import (
 
 	"github.com/ava-labs/avalanchego/utils/timer"
 	"github.com/ava-labs/subnet-evm/core"
-	"github.com/ava-labs/subnet-evm/core/txpool"
 	"github.com/ava-labs/subnet-evm/params"
 
 	"github.com/ava-labs/avalanchego/snow"
@@ -27,7 +26,7 @@ type blockBuilder struct {
 	ctx         *snow.Context
 	chainConfig *params.ChainConfig
 
-	txPool *txpool.TxPool
+	txPool TxPool
 
 	shutdownChan <-chan struct{}
 	shutdownWg   *sync.WaitGroup

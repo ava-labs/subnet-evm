@@ -30,20 +30,12 @@ package miner
 import (
 	"github.com/ava-labs/avalanchego/utils/timer/mockable"
 	"github.com/ava-labs/subnet-evm/consensus"
-	"github.com/ava-labs/subnet-evm/core"
-	"github.com/ava-labs/subnet-evm/core/txpool"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/event"
 )
-
-// Backend wraps all methods required for mining.
-type Backend interface {
-	BlockChain() *core.BlockChain
-	TxPool() *txpool.TxPool
-}
 
 // Config is the configuration parameters of mining.
 type Config struct {
@@ -54,9 +46,9 @@ type Miner struct {
 	worker *worker
 }
 
-func New(eth Backend, config *Config, chainConfig *params.ChainConfig, mux *event.TypeMux, engine consensus.Engine, clock *mockable.Clock) *Miner {
+func New(chain BlockChain, txPool TxPool, config *Config, chainConfig *params.ChainConfig, engine consensus.Engine, clock *mockable.Clock) *Miner {
 	return &Miner{
-		worker: newWorker(config, chainConfig, engine, eth, mux, clock),
+		worker: newWorker(config, chainConfig, engine, chain, txPool, clock),
 	}
 }
 

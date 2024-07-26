@@ -38,11 +38,11 @@ import (
 	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/core/vm"
 	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/trie"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/ethdb"
+	"github.com/ethereum/go-ethereum/trie"
 )
 
 // BlockGen creates blocks for testing.
@@ -109,9 +109,9 @@ func (b *BlockGen) SetParentBeaconRoot(root common.Hash) {
 	b.header.ParentBeaconRoot = &root
 	var (
 		blockContext = NewEVMBlockContext(b.header, b.cm, &b.header.Coinbase)
-		vmenv        = vm.NewEVM(blockContext, vm.TxContext{}, b.statedb, b.cm.config, vm.Config{})
+		vmenv        = NewEVM(blockContext, vm.TxContext{}, b.statedb, b.cm.config, vm.Config{})
 	)
-	ProcessBeaconBlockRoot(root, vmenv, b.statedb)
+	ProcessBeaconBlockRoot(root, vmenv.EVM, b.statedb)
 }
 
 // addTx adds a transaction to the generated block. If no coinbase has
@@ -299,7 +299,7 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 		}
 
 		// Write state changes to db
-		root, err := statedb.Commit(b.header.Number.Uint64(), config.IsEIP158(b.header.Number), false)
+		root, err := statedb.Commit(b.header.Number.Uint64(), config.IsEIP158(b.header.Number))
 		if err != nil {
 			panic(fmt.Sprintf("state write error: %v", err))
 		}

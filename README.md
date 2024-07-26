@@ -7,7 +7,7 @@
 Each blockchain is an instance of a Virtual Machine (VM), much like an object in an object-oriented language is an instance of a class.
 That is, the VM defines the behavior of the blockchain.
 
-Subnet EVM is the [Virtual Machine (VM)](https://docs.avax.network/learn/avalanche/virtual-machines) that defines the Subnet Contract Chains. Subnet EVM is a simplified version of [Coreth VM (C-Chain)](https://github.com/ava-labs/coreth).
+Subnet EVM is the [Virtual Machine (VM)](https://docs.avax.network/learn/avalanche/virtual-machines) that defines the Subnet Contract Chains. Subnet EVM is a simplified version of [Coreth VM (C-Chain)](https://github.com/ava-labs/subnet-evm).
 
 This chain implements the Ethereum Virtual Machine and supports Solidity smart contracts as well as most other Ethereum client functionality.
 
@@ -76,7 +76,7 @@ The Subnet EVM supports the following API namespaces:
 - `debug`
 
 Only the `eth` namespace is enabled by default.
-Subnet EVM is a simplified version of [Coreth VM (C-Chain)](https://github.com/ava-labs/coreth).
+Subnet EVM is a simplified version of [Coreth VM (C-Chain)](https://github.com/ava-labs/subnet-evm).
 Full documentation for the C-Chain's API can be found [here](https://docs.avax.network/apis/avalanchego/apis/c-chain).
 
 ## Compatibility

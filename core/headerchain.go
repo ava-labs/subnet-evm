@@ -205,8 +205,6 @@ func (hc *HeaderChain) Config() *params.ChainConfig { return hc.config }
 // Engine retrieves the header chain's consensus engine.
 func (hc *HeaderChain) Engine() consensus.Engine { return hc.engine }
 
-// GetBlock implements consensus.ChainReader, and returns nil for every input as
-// a header chain does not have blocks available for retrieval.
-func (hc *HeaderChain) GetBlock(hash common.Hash, number uint64) *types.Block {
-	return nil
+func (hc *HeaderChain) PutAcceptedHeader(number uint64, header *types.Header) {
+	hc.acceptedNumberCache.Put(number, header)
 }
