@@ -4065,3 +4065,44 @@ func TestParentBeaconRootBlock(t *testing.T) {
 		})
 	}
 }
+
+func TestNoBlobsAllowed(t *testing.T) {
+	require := require.New(t)
+	importAmount := uint64(1000000000)
+	issuer, vm, _, _, _ := GenesisVMWithUTXOs(t, true, genesisJSONCancun, "", "", map[ids.ShortID]uint64{
+		testShortIDAddrs[0]: importAmount,
+	})
+	defer func() { require.NoError(vm.Shutdown(context.Background())) }()
+
+	// Build a valid block in Cancun
+	importTx, err := vm.newImportTx(vm.ctx.XChainID, testEthAddrs[0], initialBaseFee, []*secp256k1.PrivateKey{testKeys[0]})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := vm.mempool.AddLocalTx(importTx); err != nil {
+		t.Fatal(err)
+	}
+	<-issuer
+	blk, err := vm.BuildBlock(context.Background())
+	if err != nil {
+		t.Fatalf("Failed to build block with import transaction: %s", err)
+	}
+
+	// Modify the block to have a non-zero blob gas
+	ethBlock := blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
+	header := types.CopyHeader(ethBlock.Header())
+	blobGasUsed := uint64(params.BlobTxBlobGasPerBlob)
+	header.BlobGasUsed = &blobGasUsed
+	modifiedEthBlock := types.NewBlockWithExtData(
+		header, nil, nil, nil, new(trie.Trie), ethBlock.ExtData(), false)
+	modifiedBlock, err := vm.newBlock(modifiedEthBlock)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Verification should fail
+	_, err = vm.ParseBlock(context.Background(), modifiedBlock.Bytes())
+	require.NoError(err)
+	err = modifiedBlock.Verify(context.Background())
+	require.ErrorContains(err, "blobs not enabled on avalanche networks")
+}
