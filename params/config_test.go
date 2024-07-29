@@ -37,8 +37,10 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/contracts/nativeminter"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/rewardmanager"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/txallowlist"
+	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -172,6 +174,7 @@ func TestConfigRules(t *testing.T) {
 
 func TestConfigUnmarshalJSON(t *testing.T) {
 	require := require.New(t)
+	assert := assert.New(t)
 
 	testRewardManagerConfig := rewardmanager.NewConfig(
 		utils.NewUint64(1671542573),
@@ -217,6 +220,13 @@ func TestConfigUnmarshalJSON(t *testing.T) {
 
 	require.Equal(c.ChainID, big.NewInt(43214))
 	require.Equal(c.AllowFeeRecipients, true)
+
+	for _, config := range []precompileconfig.Config{testRewardManagerConfig, testContractNativeMinterConfig} {
+		_, ok := c.LazyUnmarshalData[config.Key()]
+		assert.Truef(ok, "%T.LazyUnmarshalData[%q] not unmarshalled", c)
+	}
+
+	return
 
 	rewardManagerConfig, ok := c.GenesisPrecompiles[rewardmanager.ConfigKey]
 	require.True(ok)

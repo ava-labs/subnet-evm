@@ -10,6 +10,7 @@ import (
 
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/subnet-evm/utils"
+	"go.pennock.tech/swallowjson"
 )
 
 // UpgradeConfig includes the following configs that may be specified in upgradeBytes:
@@ -36,27 +37,17 @@ type AvalancheContext struct {
 // This is a custom unmarshaler to handle the Precompiles field.
 // Precompiles was presented as an inline object in the JSON.
 // This custom unmarshaler ensures backwards compatibility with the old format.
+// TODO(arr4n) update this method comment DO NOT MERGE
 func (c *ChainConfig) UnmarshalJSON(data []byte) error {
-	// Alias ChainConfig to avoid recursion
-	type _ChainConfig ChainConfig
-	tmp := _ChainConfig{}
-	if err := json.Unmarshal(data, &tmp); err != nil {
-		return err
-	}
-
-	// At this point we have populated all fields except PrecompileUpgrade
-	*c = ChainConfig(tmp)
-
-	// Unmarshal inlined PrecompileUpgrade
-	return json.Unmarshal(data, &c.GenesisPrecompiles)
+	return swallowjson.UnmarshalWith(c, "LazyUnmarshalData", data)
 }
 
 // MarshalJSON returns the JSON encoding of c.
 // This is a custom marshaler to handle the Precompiles field.
-func (c ChainConfig) MarshalJSON() ([]byte, error) {
+func (c *ChainConfig) MarshalJSON() ([]byte, error) {
 	// Alias ChainConfig to avoid recursion
 	type _ChainConfig ChainConfig
-	tmp, err := json.Marshal(_ChainConfig(c))
+	tmp, err := json.Marshal((*_ChainConfig)(c))
 	if err != nil {
 		return nil, err
 	}
