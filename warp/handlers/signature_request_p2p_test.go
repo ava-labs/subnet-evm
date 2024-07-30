@@ -38,13 +38,20 @@ func TestMessageSignatureHandlerP2P(t *testing.T) {
 	backend, err := warp.NewBackend(snowCtx.NetworkID, snowCtx.ChainID, warpSigner, warptest.EmptyBlockClient, database, 100, [][]byte{offchainMessage.Bytes()})
 	require.NoError(t, err)
 
-	msg, err := avalancheWarp.NewUnsignedMessage(snowCtx.NetworkID, snowCtx.ChainID, []byte("test"))
+	offchainPayload, err := payload.NewAddressedCall([]byte{0, 0, 0}, []byte("test"))
+	require.NoError(t, err)
+	msg, err := avalancheWarp.NewUnsignedMessage(snowCtx.NetworkID, snowCtx.ChainID, offchainPayload.Bytes())
 	require.NoError(t, err)
 	messageID := msg.ID()
 	require.NoError(t, backend.AddMessage(msg))
 	signature, err := backend.GetMessageSignature(messageID)
 	require.NoError(t, err)
 	offchainSignature, err := backend.GetMessageSignature(offchainMessage.ID())
+	require.NoError(t, err)
+
+	unknownPayload, err := payload.NewAddressedCall([]byte{0, 0, 0}, []byte("unknown message"))
+	require.NoError(t, err)
+	unknownMessage, err := avalancheWarp.NewUnsignedMessage(snowCtx.NetworkID, snowCtx.ChainID, unknownPayload.Bytes())
 	require.NoError(t, err)
 
 	tests := map[string]struct {
@@ -80,7 +87,7 @@ func TestMessageSignatureHandlerP2P(t *testing.T) {
 		},
 		"unknown message": {
 			setup: func() (request sdk.SignatureRequest, expectedResponse []byte) {
-				return sdk.SignatureRequest{Message: []byte("unknown message")}, nil
+				return sdk.SignatureRequest{Message: unknownMessage.Bytes()}, nil
 			},
 			verifyStats: func(t *testing.T, stats *handlerStats) {
 				require.EqualValues(t, 1, stats.messageSignatureRequest.Snapshot().Count())
@@ -149,6 +156,16 @@ func TestBlockSignatureHandlerP2P(t *testing.T) {
 	require.NoError(t, err)
 	unknownBlockID := ids.GenerateTestID()
 
+	toMessageBytes := func(id ids.ID) []byte {
+		idPayload, err := payload.NewHash(id)
+		require.NoError(t, err)
+
+		msg, err := avalancheWarp.NewUnsignedMessage(snowCtx.NetworkID, snowCtx.ChainID, idPayload.Bytes())
+		require.NoError(t, err)
+
+		return msg.Bytes()
+	}
+
 	tests := map[string]struct {
 		setup       func() (request sdk.SignatureRequest, expectedResponse []byte)
 		verifyStats func(t *testing.T, stats *handlerStats)
@@ -156,7 +173,7 @@ func TestBlockSignatureHandlerP2P(t *testing.T) {
 	}{
 		"known block": {
 			setup: func() (request sdk.SignatureRequest, expectedResponse []byte) {
-				return sdk.SignatureRequest{Message: blkID[:]}, signature[:]
+				return sdk.SignatureRequest{Message: toMessageBytes(blkID)}, signature[:]
 			},
 			verifyStats: func(t *testing.T, stats *handlerStats) {
 				require.EqualValues(t, 0, stats.messageSignatureRequest.Snapshot().Count())
@@ -169,7 +186,7 @@ func TestBlockSignatureHandlerP2P(t *testing.T) {
 		},
 		"unknown block": {
 			setup: func() (request sdk.SignatureRequest, expectedResponse []byte) {
-				return sdk.SignatureRequest{Message: unknownBlockID[:]}, nil
+				return sdk.SignatureRequest{Message: toMessageBytes(unknownBlockID)}, nil
 			},
 			verifyStats: func(t *testing.T, stats *handlerStats) {
 				require.EqualValues(t, 0, stats.messageSignatureRequest.Snapshot().Count())

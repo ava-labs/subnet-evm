@@ -14,6 +14,7 @@ import (
 	"github.com/ava-labs/avalanchego/snow/engine/common"
 	"github.com/ava-labs/avalanchego/utils/crypto/bls"
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
+	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
 	"github.com/ava-labs/subnet-evm/warp"
 	"google.golang.org/protobuf/proto"
 )
@@ -59,27 +60,45 @@ func (s *SignatureRequestHandlerP2P) AppRequest(
 		}
 	}
 
-	var (
-		sig [bls.SignatureLen]byte
-		err error
-	)
-	if len(req.Message) == ids.IDLen {
-		// Treat requests with 32-byte [message] as a block hash.
-		var blockID ids.ID
-		copy(blockID[:], req.Message)
-		sig, err = s.GetBlockSignature(blockID)
+	unsignedMessage, err := avalancheWarp.ParseUnsignedMessage(req.Message)
+	if err != nil {
+		return nil, &common.AppError{
+			Code:    ErrFailedToParse,
+			Message: "failed to parse unsigned message: " + err.Error(),
+		}
+	}
+	parsed, err := payload.Parse(unsignedMessage.Payload)
+	if err != nil {
+		return nil, &common.AppError{
+			Code:    ErrFailedToParse,
+			Message: "failed to parse payload: " + err.Error(),
+		}
+	}
+
+	var sig [bls.SignatureLen]byte
+	switch p := parsed.(type) {
+	case *payload.AddressedCall:
+		// Note we pass the unsigned message ID to GetMessageSignature since
+		// that is what the backend expects.
+		// However, we verify the types and format of the payload to ensure
+		// the message conforms to the ACP-118 spec.
+		sig, err = s.GetMessageSignature(unsignedMessage.ID())
+		if err != nil {
+			s.stats.IncMessageSignatureMiss()
+		} else {
+			s.stats.IncMessageSignatureHit()
+		}
+	case *payload.Hash:
+		sig, err = s.GetBlockSignature(p.Hash)
 		if err != nil {
 			s.stats.IncBlockSignatureMiss()
 		} else {
 			s.stats.IncBlockSignatureHit()
 		}
-	} else {
-		// Otherwise, treat the request as an unsigned warp message.
-		sig, err = s.GetMessageSignature(req.Message)
-		if err != nil {
-			s.stats.IncMessageSignatureMiss()
-		} else {
-			s.stats.IncMessageSignatureHit()
+	default:
+		return nil, &common.AppError{
+			Code:    ErrFailedToParse,
+			Message: "unknown payload type",
 		}
 	}
 	if err != nil {
@@ -102,7 +121,7 @@ func (s *SignatureRequestHandlerP2P) AppRequest(
 	return respBytes, nil
 }
 
-func (s *SignatureRequestHandlerP2P) GetMessageSignature(message []byte) ([bls.SignatureLen]byte, error) {
+func (s *SignatureRequestHandlerP2P) GetMessageSignature(messageID ids.ID) ([bls.SignatureLen]byte, error) {
 	startTime := time.Now()
 	s.stats.IncMessageSignatureRequest()
 
@@ -111,12 +130,6 @@ func (s *SignatureRequestHandlerP2P) GetMessageSignature(message []byte) ([bls.S
 		s.stats.UpdateMessageSignatureRequestTime(time.Since(startTime))
 	}()
 
-	unsignedMessage, err := avalancheWarp.ParseUnsignedMessage(message)
-	if err != nil {
-		return [bls.SignatureLen]byte{}, err
-	}
-
-	messageID := unsignedMessage.ID()
 	return s.backend.GetMessageSignature(messageID)
 }
 
