@@ -12,6 +12,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ava-labs/subnet-evm/rpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -131,7 +132,7 @@ func (s *BlockChainAPI) GetActivePrecompilesAt(ctx context.Context, blockTimesta
 		timestamp = *blockTimestamp
 	}
 
-	return s.b.ChainConfig().EnabledStatefulPrecompiles(timestamp)
+	return modules.EnabledStatefulPrecompiles(s.b.ChainConfig(), timestamp)
 }
 
 type ActivePrecompilesResult struct {
