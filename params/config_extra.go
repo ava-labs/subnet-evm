@@ -45,6 +45,9 @@ func (c *ChainConfig) UnmarshalJSON(data []byte) error {
 // MarshalJSON returns the JSON encoding of c.
 // This is a custom marshaler to handle the Precompiles field.
 func (c *ChainConfig) MarshalJSON() ([]byte, error) {
+
+	// TODO refactor this (DO NOT MERGE)
+
 	// Alias ChainConfig to avoid recursion
 	type _ChainConfig ChainConfig
 	tmp, err := json.Marshal((*_ChainConfig)(c))
