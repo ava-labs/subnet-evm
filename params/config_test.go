@@ -23,7 +23,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ava-labs/subnet-evm/utils"
+	"github.com/ethereum/go-ethereum/utils"
 )
 
 func TestCheckCompatible(t *testing.T) {

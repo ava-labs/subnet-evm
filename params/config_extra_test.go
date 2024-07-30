@@ -8,12 +8,12 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/precompile/contracts/nativeminter"
-	"github.com/ava-labs/subnet-evm/precompile/contracts/rewardmanager"
-	"github.com/ava-labs/subnet-evm/precompile/contracts/txallowlist"
-	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/params"
+	"github.com/ethereum/go-ethereum/precompile/contracts/nativeminter"
+	"github.com/ethereum/go-ethereum/precompile/contracts/rewardmanager"
+	"github.com/ethereum/go-ethereum/precompile/contracts/txallowlist"
+	"github.com/ethereum/go-ethereum/utils"
 	"github.com/stretchr/testify/require"
 )
 

@@ -4,8 +4,8 @@
 package params
 
 import (
-	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/precompile/precompileconfig"
 )
 
 var RegisteredModules = func() []Module { return nil }
