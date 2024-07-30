@@ -48,7 +48,7 @@ func TestCallFlatStop(t *testing.T) {
 	})
 
 	tracer.OnTxStart(&tracing.VMContext{
-		ChainConfig: params.MainnetChainConfig,
+		ChainConfig: params.TestChainConfig,
 	}, tx, common.Address{})
 
 	tracer.OnEnter(0, byte(vm.CALL), common.Address{}, common.Address{}, nil, 0, big.NewInt(0))

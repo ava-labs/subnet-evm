@@ -336,11 +336,30 @@ func (sf *subfetcher) schedule(keys [][]byte, read bool) {
 	for _, key := range keys {
 		// Check if keys already seen
 		sk := string(key)
-		if _, ok := sf.seen[sk]; ok {
-			sf.dups++
-			continue
+		if read {
+			if _, ok := sf.seenRead[sk]; ok {
+				sf.dupsRead++
+				continue
+			}
+			if _, ok := sf.seenWrite[sk]; ok {
+				sf.dupsCross++
+				continue
+			}
+		} else {
+			if _, ok := sf.seenRead[sk]; ok {
+				sf.dupsCross++
+				continue
+			}
+			if _, ok := sf.seenWrite[sk]; ok {
+				sf.dupsWrite++
+				continue
+			}
 		}
-		sf.seen[sk] = struct{}{}
+		if read {
+			sf.seenRead[sk] = struct{}{}
+		} else {
+			sf.seenWrite[sk] = struct{}{}
+		}
 		key := key // closure for the append below
 		tasks = append(tasks, &subfetcherTask{read: read, key: key})
 	}
@@ -477,7 +496,7 @@ func newTrieOrchestrator(sf *subfetcher) *trieOrchestrator {
 			return nil
 		}
 	} else {
-		base, err := sf.db.OpenStorageTrie(sf.state, sf.addr, sf.root, nil)
+		base, err = sf.db.OpenStorageTrie(sf.state, sf.addr, sf.root, nil)
 		if err != nil {
 			log.Warn("Trie prefetcher failed opening trie", "root", sf.root, "err", err)
 			return nil
@@ -519,7 +538,7 @@ func (to *trieOrchestrator) skipCount() int {
 	return to.skips
 }
 
-func (to *trieOrchestrator) enqueueTasks(tasks [][]byte) {
+func (to *trieOrchestrator) enqueueTasks(tasks []*subfetcherTask) {
 	to.taskLock.Lock()
 	defer to.taskLock.Unlock()
 
@@ -601,40 +620,18 @@ func (to *trieOrchestrator) processTasks() {
 			fTask := tasks[i]
 			f := func() {
 				// XXX: double check
-				task := fTask
+				var (
+					task = fTask
+					err  error
+				)
 				// Perform task
-				key := string(task.key)
-				if task.read {
-					if _, ok := sf.seenRead[key]; ok {
-						sf.dupsRead++
-						continue
-					}
-					if _, ok := sf.seenWrite[key]; ok {
-						sf.dupsCross++
-						continue
-					}
-				} else {
-					if _, ok := sf.seenRead[key]; ok {
-						sf.dupsCross++
-						continue
-					}
-					if _, ok := sf.seenWrite[key]; ok {
-						sf.dupsWrite++
-						continue
-					}
-				}
 				if len(task.key) == common.AddressLength {
-					_, err = to.trie.GetAccount(common.BytesToAddress(task.key))
+					_, err = t.GetAccount(common.BytesToAddress(task.key))
 				} else {
-					_, err = to.trie.GetStorage(sf.addr, task.key)
+					_, err = t.GetStorage(to.sf.addr, task.key)
 				}
 				if err != nil {
 					log.Error("Trie prefetcher failed fetching", "root", to.sf.root, "err", err)
-				}
-				if task.read {
-					to.seenRead[key] = struct{}{}
-				} else {
-					to.seenWrite[key] = struct{}{}
 				}
 				to.processingTasks.Done()
 

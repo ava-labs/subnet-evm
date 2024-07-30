@@ -1594,8 +1594,10 @@ func TestUncleBlock(t *testing.T) {
 
 	uncleEthBlock := types.NewBlock(
 		uncleBlockHeader,
-		blkDEthBlock.Transactions(),
-		uncles,
+		&types.Body{
+			Transactions: blkDEthBlock.Transactions(),
+			Uncles:       uncles,
+		},
 		nil,
 		trie.NewStackTrie(nil),
 	)
@@ -1648,8 +1650,7 @@ func TestEmptyBlock(t *testing.T) {
 
 	emptyEthBlock := types.NewBlock(
 		types.CopyHeader(ethBlock.Header()),
-		nil,
-		nil,
+		&types.Body{},
 		nil,
 		new(trie.Trie),
 	)
@@ -1917,8 +1918,7 @@ func TestFutureBlock(t *testing.T) {
 	modifiedHeader.Time = modifiedTime
 	modifiedBlock := types.NewBlock(
 		modifiedHeader,
-		internalBlkA.ethBlock.Transactions(),
-		nil,
+		&types.Body{Transactions: internalBlkA.ethBlock.Transactions()},
 		nil,
 		trie.NewStackTrie(nil),
 	)
@@ -2730,8 +2730,7 @@ func TestAllowFeeRecipientDisabled(t *testing.T) {
 	modifiedHeader.Coinbase = common.HexToAddress("0x0123456789") // set non-blackhole address by force
 	modifiedBlock := types.NewBlock(
 		modifiedHeader,
-		internalBlk.ethBlock.Transactions(),
-		nil,
+		&types.Body{Transactions: internalBlk.ethBlock.Transactions()},
 		nil,
 		trie.NewStackTrie(nil),
 	)

@@ -32,7 +32,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/consensus"
-	"github.com/ethereum/go-ethereum/consensus/beacon"
 	"github.com/ethereum/go-ethereum/consensus/dummy"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/rawdb"
@@ -45,6 +44,7 @@ import (
 	"github.com/ethereum/go-ethereum/internal/ethapi"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -1028,11 +1028,12 @@ func TestTraceChain(t *testing.T) {
 func newTestMergedBackend(t *testing.T, n int, gspec *core.Genesis, generator func(i int, b *core.BlockGen)) *testBackend {
 	backend := &testBackend{
 		chainConfig: gspec.Config,
-		engine:      beacon.NewFaker(),
+		engine:      dummy.NewFaker(),
 		chaindb:     rawdb.NewMemoryDatabase(),
 	}
 	// Generate blocks for testing
-	_, blocks, _ := core.GenerateChainWithGenesis(gspec, backend.engine, n, generator)
+	_, blocks, _, err := core.GenerateChainWithGenesis(gspec, backend.engine, n, 10, generator)
+	require.NoError(t, err)
 
 	// Import the canonical chain
 	cacheConfig := &core.CacheConfig{
@@ -1058,7 +1059,7 @@ func TestTraceBlockWithBasefee(t *testing.T) {
 	accounts := newAccounts(1)
 	target := common.HexToAddress("0x1111111111111111111111111111111111111111")
 	genesis := &core.Genesis{
-		Config: params.AllDevChainProtocolChanges,
+		Config: params.TestSubnetEVMConfig,
 		Alloc: types.GenesisAlloc{
 			accounts[0].addr: {Balance: big.NewInt(1 * params.Ether)},
 			target: {Nonce: 1, Code: []byte{

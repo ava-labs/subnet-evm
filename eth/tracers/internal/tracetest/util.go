@@ -44,7 +44,7 @@ func (c *callContext) toBlockContext(genesis *core.Genesis) vm.BlockContext {
 		Difficulty:  (*big.Int)(c.Difficulty),
 		GasLimit:    uint64(c.GasLimit),
 	}
-	if genesis.Config.IsLondon(context.BlockNumber) {
+	if genesis.Config.IsSubnetEVM(context.Time) {
 		context.BaseFee = (*big.Int)(c.BaseFee)
 	}
 	if genesis.ExcessBlobGas != nil && genesis.BlobGasUsed != nil {

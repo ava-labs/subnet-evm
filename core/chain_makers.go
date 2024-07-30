@@ -285,7 +285,7 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 			gen(i, b)
 		}
 
-		body := types.Body{Transactions: b.txs, Uncles: b.uncles, Withdrawals: b.withdrawals}
+		body := types.Body{Transactions: b.txs, Uncles: b.uncles}
 		block, err := b.engine.FinalizeAndAssemble(cm, b.header, parent.Header(), statedb, &body, b.receipts)
 		if err != nil {
 			return nil, nil, fmt.Errorf("Failed to finalize and assemble block at index %d: %w", i, err)
@@ -373,8 +373,9 @@ func GenerateVerkleChain(config *params.ChainConfig, parent *types.Block, engine
 	cm := newChainMaker(parent, config, engine)
 
 	genblock := func(i int, parent *types.Block, triedb *triedb.Database, statedb *state.StateDB) (*types.Block, types.Receipts) {
+		gap := uint64(10) // TODO: make this configurable
 		b := &BlockGen{i: i, cm: cm, parent: parent, statedb: statedb, engine: engine}
-		b.header = cm.makeHeader(parent, statedb, b.engine)
+		b.header = cm.makeHeader(parent, gap, statedb, b.engine)
 
 		// TODO uncomment when proof generation is merged
 		// Save pre state for proof generation
@@ -396,15 +397,14 @@ func GenerateVerkleChain(config *params.ChainConfig, parent *types.Block, engine
 		body := &types.Body{
 			Transactions: b.txs,
 			Uncles:       b.uncles,
-			Withdrawals:  b.withdrawals,
 		}
-		block, err := b.engine.FinalizeAndAssemble(cm, b.header, statedb, body, b.receipts)
+		block, err := b.engine.FinalizeAndAssemble(cm, b.header, parent.Header(), statedb, body, b.receipts)
 		if err != nil {
 			panic(err)
 		}
 
 		// Write state changes to db
-		root, err := statedb.Commit(b.header.Number.Uint64(), config.IsEIP158(b.header.Number))
+		root, err := statedb.Commit(b.header.Number.Uint64(), config.IsEIP158(b.header.Number), false)
 		if err != nil {
 			panic(fmt.Sprintf("state write error: %v", err))
 		}

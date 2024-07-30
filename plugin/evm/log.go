@@ -7,12 +7,12 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"runtime"
 	"strings"
 
 	gethlog "github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/vmlog"
-	"golang.org/x/exp/slog"
 )
 
 type SubnetEVMLogger struct {

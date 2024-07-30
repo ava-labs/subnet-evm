@@ -70,7 +70,7 @@ type simClient struct {
 // Backend is a simulated blockchain. You can use it to test your contracts or
 // other code that interacts with the Ethereum chain.
 type Backend struct {
-	node   *node.Node
+	eth    *eth.Ethereum
 	client simClient
 	clock  *mockable.Clock
 	server *rpc.Server

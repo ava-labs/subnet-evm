@@ -3,13 +3,12 @@ package vmlog
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"math"
 	"os"
 	"runtime"
 	"strings"
 	"time"
-
-	"golang.org/x/exp/slog"
 )
 
 const errorKey = "LOG_ERROR"

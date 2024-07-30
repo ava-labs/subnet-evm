@@ -336,7 +336,7 @@ func opExtCodeCopyEIP4762(pc *uint64, interpreter *EVMInterpreter, scope *ScopeC
 	statelessGas := interpreter.evm.AccessEvents.CodeChunksRangeGas(addr, copyOffset, nonPaddedCopyLength, uint64(len(contract.Code)), false)
 	if !scope.Contract.UseGas(statelessGas, interpreter.evm.Config.Tracer, tracing.GasChangeUnspecified) {
 		scope.Contract.Gas = 0
-		return nil, ErrOutOfGas
+		return nil, vmerrs.ErrOutOfGas
 	}
 	scope.Memory.Set(memOffset.Uint64(), length.Uint64(), paddedCodeCopy)
 
@@ -362,7 +362,7 @@ func opPush1EIP4762(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext
 			statelessGas := interpreter.evm.AccessEvents.CodeChunksRangeGas(contractAddr, *pc+1, uint64(1), uint64(len(scope.Contract.Code)), false)
 			if !scope.Contract.UseGas(statelessGas, interpreter.evm.Config.Tracer, tracing.GasChangeUnspecified) {
 				scope.Contract.Gas = 0
-				return nil, ErrOutOfGas
+				return nil, vmerrs.ErrOutOfGas
 			}
 		}
 	} else {
@@ -390,7 +390,7 @@ func makePushEIP4762(size uint64, pushByteSize int) executionFunc {
 			statelessGas := interpreter.evm.AccessEvents.CodeChunksRangeGas(contractAddr, uint64(start), uint64(pushByteSize), uint64(len(scope.Contract.Code)), false)
 			if !scope.Contract.UseGas(statelessGas, interpreter.evm.Config.Tracer, tracing.GasChangeUnspecified) {
 				scope.Contract.Gas = 0
-				return nil, ErrOutOfGas
+				return nil, vmerrs.ErrOutOfGas
 			}
 		}
 

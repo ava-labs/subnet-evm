@@ -20,6 +20,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/params"
+	"github.com/ethereum/go-ethereum/vmerrs"
 )
 
 func gasSStore4762(evm *EVM, contract *Contract, stack *Stack, mem *Memory, memorySize uint64) (uint64, error) {
@@ -153,7 +154,7 @@ func gasExtCodeCopyEIP4762(evm *EVM, contract *Contract, stack *Stack, mem *Memo
 	var overflow bool
 	// We charge (cold-warm), since 'warm' is already charged as constantGas
 	if gas, overflow = math.SafeAdd(gas, wgas); overflow {
-		return 0, ErrGasUintOverflow
+		return 0, vmerrs.ErrGasUintOverflow
 	}
 	return gas, nil
 }

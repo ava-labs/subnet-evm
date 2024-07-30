@@ -17,6 +17,7 @@
 package t8ntool
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"math/big"
@@ -390,4 +391,17 @@ func rlpHash(x interface{}) (h common.Hash) {
 	rlp.Encode(hw, x)
 	hw.Sum(h[:0])
 	return h
+}
+
+func writeTraceResult(tracer *tracers.Tracer, f io.WriteCloser) error {
+	defer f.Close()
+	result, err := tracer.GetResult()
+	if err != nil || result == nil {
+		return err
+	}
+	err = json.NewEncoder(f).Encode(result)
+	if err != nil {
+		return err
+	}
+	return nil
 }

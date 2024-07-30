@@ -396,8 +396,8 @@ func (self *DummyEngine) Finalize(chain consensus.ChainHeaderReader, block *type
 	return nil
 }
 
-func (self *DummyEngine) FinalizeAndAssemble(chain consensus.ChainHeaderReader, header *types.Header, parent *types.Header, state *state.StateDB, txs []*types.Transaction,
-	uncles []*types.Header, receipts []*types.Receipt,
+func (self *DummyEngine) FinalizeAndAssemble(chain consensus.ChainHeaderReader, header *types.Header, parent *types.Header, state *state.StateDB,
+	body *types.Body, receipts []*types.Receipt,
 ) (*types.Block, error) {
 	if chain.Config().IsSubnetEVM(header.Time) {
 		// we use the parent to determine the fee config
@@ -419,7 +419,7 @@ func (self *DummyEngine) FinalizeAndAssemble(chain consensus.ChainHeaderReader, 
 		if err := self.verifyBlockFee(
 			header.BaseFee,
 			header.BlockGasCost,
-			txs,
+			body.Transactions,
 			receipts,
 		); err != nil {
 			return nil, err
@@ -429,9 +429,7 @@ func (self *DummyEngine) FinalizeAndAssemble(chain consensus.ChainHeaderReader, 
 	header.Root = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
 
 	// Header seems complete, assemble into a block and return
-	return types.NewBlock(
-		header, txs, uncles, receipts, trie.NewStackTrie(nil),
-	), nil
+	return types.NewBlock(header, body, receipts, trie.NewStackTrie(nil)), nil
 }
 
 func (self *DummyEngine) CalcDifficulty(chain consensus.ChainHeaderReader, time uint64, parent *types.Header) *big.Int {

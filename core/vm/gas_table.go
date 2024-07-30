@@ -316,7 +316,7 @@ func gasCreateEip3860(evm *EVM, contract *Contract, stack *Stack, mem *Memory, m
 		return 0, vmerrs.ErrGasUintOverflow
 	}
 	if size > params.MaxInitCodeSize {
-		return 0, fmt.Errorf("%w: size %d", ErrMaxInitCodeSizeExceeded, size)
+		return 0, fmt.Errorf("%w: size %d", vmerrs.ErrMaxInitCodeSizeExceeded, size)
 	}
 	// Since size <= params.MaxInitCodeSize, these multiplication cannot overflow
 	moreGas := params.InitCodeWordGas * ((size + 31) / 32)
@@ -335,7 +335,7 @@ func gasCreate2Eip3860(evm *EVM, contract *Contract, stack *Stack, mem *Memory, 
 		return 0, vmerrs.ErrGasUintOverflow
 	}
 	if size > params.MaxInitCodeSize {
-		return 0, fmt.Errorf("%w: size %d", ErrMaxInitCodeSizeExceeded, size)
+		return 0, fmt.Errorf("%w: size %d", vmerrs.ErrMaxInitCodeSizeExceeded, size)
 	}
 	// Since size <= params.MaxInitCodeSize, these multiplication cannot overflow
 	moreGas := (params.InitCodeWordGas + params.Keccak256WordGas) * ((size + 31) / 32)
@@ -399,7 +399,7 @@ func gasCall(evm *EVM, contract *Contract, stack *Stack, mem *Memory, memorySize
 		if transfersValue {
 			gas, overflow = math.SafeAdd(gas, evm.AccessEvents.ValueTransferGas(contract.Address(), address))
 			if overflow {
-				return 0, ErrGasUintOverflow
+				return 0, vmerrs.ErrGasUintOverflow
 			}
 		}
 	}
@@ -435,7 +435,7 @@ func gasCallCode(evm *EVM, contract *Contract, stack *Stack, mem *Memory, memory
 		if transfersValue {
 			gas, overflow = math.SafeAdd(gas, evm.AccessEvents.ValueTransferGas(contract.Address(), address))
 			if overflow {
-				return 0, ErrGasUintOverflow
+				return 0, vmerrs.ErrGasUintOverflow
 			}
 		}
 	}

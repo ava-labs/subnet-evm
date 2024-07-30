@@ -29,8 +29,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/consensus/beacon"
-	"github.com/ethereum/go-ethereum/consensus/ethash"
+	"github.com/ethereum/go-ethereum/consensus/dummy"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -38,6 +37,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/eth/tracers"
 	"github.com/ethereum/go-ethereum/params"
+	"github.com/stretchr/testify/require"
 
 	// Force-load live packages, to trigger registration
 	_ "github.com/ethereum/go-ethereum/eth/tracers/live"
@@ -69,16 +69,16 @@ func emptyBlockGenerationFunc(b *core.BlockGen) {}
 
 func TestSupplyOmittedFields(t *testing.T) {
 	var (
-		config = *params.MergedTestChainConfig
+		config = *params.TestChainConfig
 		gspec  = &core.Genesis{
 			Config: &config,
 		}
 	)
 
-	gspec.Config.TerminalTotalDifficulty = big.NewInt(0)
+	// gspec.Config.TerminalTotalDifficulty = big.NewInt(0)
 
 	out, _, err := testSupplyTracer(t, gspec, func(b *core.BlockGen) {
-		b.SetPoS()
+		//b.SetPoS()
 	})
 	if err != nil {
 		t.Fatalf("failed to test supply tracer: %v", err)
@@ -102,7 +102,7 @@ func TestSupplyGenesisAlloc(t *testing.T) {
 		addr2   = crypto.PubkeyToAddress(key2.PublicKey)
 		eth1    = new(big.Int).Mul(common.Big1, big.NewInt(params.Ether))
 
-		config = *params.AllEthashProtocolChanges
+		config = *params.TestSubnetEVMConfig
 
 		gspec = &core.Genesis{
 			Config: &config,
@@ -134,7 +134,7 @@ func TestSupplyGenesisAlloc(t *testing.T) {
 
 func TestSupplyRewards(t *testing.T) {
 	var (
-		config = *params.AllEthashProtocolChanges
+		config = *params.TestSubnetEVMConfig
 
 		gspec = &core.Genesis{
 			Config: &config,
@@ -162,7 +162,7 @@ func TestSupplyRewards(t *testing.T) {
 
 func TestSupplyEip1559Burn(t *testing.T) {
 	var (
-		config = *params.AllEthashProtocolChanges
+		config = *params.TestSubnetEVMConfig
 
 		aa = common.HexToAddress("0x000000000000000000000000000000000000aaaa")
 		// A sender who makes transactions, has some eth1
@@ -173,7 +173,7 @@ func TestSupplyEip1559Burn(t *testing.T) {
 
 		gspec = &core.Genesis{
 			Config:  &config,
-			BaseFee: big.NewInt(params.InitialBaseFee),
+			BaseFee: big.NewInt(params.TestInitialBaseFee),
 			Alloc: types.GenesisAlloc{
 				addr1: {Balance: eth1},
 			},
@@ -222,45 +222,6 @@ func TestSupplyEip1559Burn(t *testing.T) {
 	compareAsJSON(t, expected, actual)
 }
 
-func TestSupplyWithdrawals(t *testing.T) {
-	var (
-		config = *params.MergedTestChainConfig
-		gspec  = &core.Genesis{
-			Config: &config,
-		}
-	)
-
-	withdrawalsBlockGenerationFunc := func(b *core.BlockGen) {
-		b.SetPoS()
-
-		b.AddWithdrawal(&types.Withdrawal{
-			Validator: 42,
-			Address:   common.Address{0xee},
-			Amount:    1337,
-		})
-	}
-
-	out, chain, err := testSupplyTracer(t, gspec, withdrawalsBlockGenerationFunc)
-	if err != nil {
-		t.Fatalf("failed to test supply tracer: %v", err)
-	}
-
-	var (
-		head     = chain.CurrentBlock()
-		expected = supplyInfo{
-			Issuance: &supplyInfoIssuance{
-				Withdrawals: (*hexutil.Big)(big.NewInt(1337000000000)),
-			},
-			Number:     1,
-			Hash:       head.Hash(),
-			ParentHash: head.ParentHash,
-		}
-		actual = out[expected.Number]
-	)
-
-	compareAsJSON(t, expected, actual)
-}
-
 // Tests fund retrieval after contract's selfdestruct.
 // Contract A calls contract B which selfdestructs, but B receives eth1
 // after the selfdestruct opcode executes from Contract A.
@@ -280,7 +241,7 @@ func TestSupplySelfdestruct(t *testing.T) {
 
 		gspec = &core.Genesis{
 			Config:  &config,
-			BaseFee: big.NewInt(params.InitialBaseFee),
+			BaseFee: big.NewInt(params.TestInitialBaseFee),
 			Alloc: types.GenesisAlloc{
 				addr1: {Balance: eth1},
 				aa: {
@@ -297,12 +258,12 @@ func TestSupplySelfdestruct(t *testing.T) {
 		}
 	)
 
-	gspec.Config.TerminalTotalDifficulty = big.NewInt(0)
+	//gspec.Config.TerminalTotalDifficulty = big.NewInt(0)
 
 	signer := types.LatestSigner(gspec.Config)
 
 	testBlockGenerationFunc := func(b *core.BlockGen) {
-		b.SetPoS()
+		//b.SetPoS()
 
 		txdata := &types.LegacyTx{
 			Nonce:    0,
@@ -358,7 +319,7 @@ func TestSupplySelfdestruct(t *testing.T) {
 
 	// 2. Test post Cancun
 	cancunTime := uint64(0)
-	gspec.Config.ShanghaiTime = &cancunTime
+	//gspec.Config.ShanghaiTime = &cancunTime
 	gspec.Config.CancunTime = &cancunTime
 
 	postCancunOutput, postCancunChain, err := testSupplyTracer(t, gspec, testBlockGenerationFunc)
@@ -479,12 +440,12 @@ func TestSupplySelfdestructItselfAndRevert(t *testing.T) {
 		}
 	)
 
-	gspec.Config.TerminalTotalDifficulty = big.NewInt(0)
+	//gspec.Config.TerminalTotalDifficulty = big.NewInt(0)
 
 	signer := types.LatestSigner(gspec.Config)
 
 	testBlockGenerationFunc := func(b *core.BlockGen) {
-		b.SetPoS()
+		//b.SetPoS()
 
 		txdata := &types.LegacyTx{
 			Nonce:    0,
@@ -545,7 +506,7 @@ func TestSupplySelfdestructItselfAndRevert(t *testing.T) {
 
 func testSupplyTracer(t *testing.T, genesis *core.Genesis, gen func(*core.BlockGen)) ([]supplyInfo, *core.BlockChain, error) {
 	var (
-		engine = beacon.New(ethash.NewFaker())
+		engine = dummy.NewFaker() //beacon.New(ethash.NewFaker())
 	)
 
 	traceOutputPath := filepath.ToSlash(t.TempDir())
@@ -563,10 +524,11 @@ func testSupplyTracer(t *testing.T, genesis *core.Genesis, gen func(*core.BlockG
 	}
 	defer chain.Stop()
 
-	_, blocks, _ := core.GenerateChainWithGenesis(genesis, engine, 1, func(i int, b *core.BlockGen) {
+	_, blocks, _, err := core.GenerateChainWithGenesis(genesis, engine, 1, 10, func(i int, b *core.BlockGen) {
 		b.SetCoinbase(common.Address{1})
 		gen(b)
 	})
+	require.NoError(t, err)
 
 	if n, err := chain.InsertChain(blocks); err != nil {
 		return nil, chain, fmt.Errorf("block %d: failed to insert into chain: %v", n, err)

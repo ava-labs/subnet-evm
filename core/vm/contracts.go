@@ -51,7 +51,7 @@ type PrecompiledContract interface {
 
 // PrecompiledContractsHomestead contains the default set of pre-compiled Ethereum
 // contracts used in the Frontier and Homestead releases.
-var PrecompiledContractsHomestead = map[common.Address]PrecompiledContract{
+var PrecompiledContractsHomestead = map[common.Address]contract.StatefulPrecompiledContract{
 	common.BytesToAddress([]byte{0x1}): newWrappedPrecompiledContract(&ecrecover{}),
 	common.BytesToAddress([]byte{0x2}): newWrappedPrecompiledContract(&sha256hash{}),
 	common.BytesToAddress([]byte{0x3}): newWrappedPrecompiledContract(&ripemd160hash{}),
@@ -60,7 +60,7 @@ var PrecompiledContractsHomestead = map[common.Address]PrecompiledContract{
 
 // PrecompiledContractsByzantium contains the default set of pre-compiled Ethereum
 // contracts used in the Byzantium release.
-var PrecompiledContractsByzantium = map[common.Address]PrecompiledContract{
+var PrecompiledContractsByzantium = map[common.Address]contract.StatefulPrecompiledContract{
 	common.BytesToAddress([]byte{0x1}): newWrappedPrecompiledContract(&ecrecover{}),
 	common.BytesToAddress([]byte{0x2}): newWrappedPrecompiledContract(&sha256hash{}),
 	common.BytesToAddress([]byte{0x3}): newWrappedPrecompiledContract(&ripemd160hash{}),
@@ -73,7 +73,7 @@ var PrecompiledContractsByzantium = map[common.Address]PrecompiledContract{
 
 // PrecompiledContractsIstanbul contains the default set of pre-compiled Ethereum
 // contracts used in the Istanbul release.
-var PrecompiledContractsIstanbul = map[common.Address]PrecompiledContract{
+var PrecompiledContractsIstanbul = map[common.Address]contract.StatefulPrecompiledContract{
 	common.BytesToAddress([]byte{0x1}): newWrappedPrecompiledContract(&ecrecover{}),
 	common.BytesToAddress([]byte{0x2}): newWrappedPrecompiledContract(&sha256hash{}),
 	common.BytesToAddress([]byte{0x3}): newWrappedPrecompiledContract(&ripemd160hash{}),
@@ -87,7 +87,7 @@ var PrecompiledContractsIstanbul = map[common.Address]PrecompiledContract{
 
 // PrecompiledContractsBerlin contains the default set of pre-compiled Ethereum
 // contracts used in the Berlin release.
-var PrecompiledContractsBerlin = map[common.Address]PrecompiledContract{
+var PrecompiledContractsBerlin = map[common.Address]contract.StatefulPrecompiledContract{
 	common.BytesToAddress([]byte{0x1}): newWrappedPrecompiledContract(&ecrecover{}),
 	common.BytesToAddress([]byte{0x2}): newWrappedPrecompiledContract(&sha256hash{}),
 	common.BytesToAddress([]byte{0x3}): newWrappedPrecompiledContract(&ripemd160hash{}),
@@ -101,7 +101,7 @@ var PrecompiledContractsBerlin = map[common.Address]PrecompiledContract{
 
 // PrecompiledContractsCancun contains the default set of pre-compiled Ethereum
 // contracts used in the Cancun release.
-var PrecompiledContractsCancun = map[common.Address]PrecompiledContract{
+var PrecompiledContractsCancun = map[common.Address]contract.StatefulPrecompiledContract{
 	common.BytesToAddress([]byte{0x1}): newWrappedPrecompiledContract(&ecrecover{}),
 	common.BytesToAddress([]byte{0x2}): newWrappedPrecompiledContract(&sha256hash{}),
 	common.BytesToAddress([]byte{0x3}): newWrappedPrecompiledContract(&ripemd160hash{}),
@@ -116,26 +116,26 @@ var PrecompiledContractsCancun = map[common.Address]PrecompiledContract{
 
 // PrecompiledContractsPrague contains the set of pre-compiled Ethereum
 // contracts used in the Prague release.
-var PrecompiledContractsPrague = map[common.Address]PrecompiledContract{
-	common.BytesToAddress([]byte{0x01}): newWrappedPrecompiledContract(&ecrecover{},
-	common.BytesToAddress([]byte{0x02}): newWrappedPrecompiledContract(&sha256hash{},
-	common.BytesToAddress([]byte{0x03}): newWrappedPrecompiledContract(&ripemd160hash{},
-	common.BytesToAddress([]byte{0x04}): newWrappedPrecompiledContract(&dataCopy{},
-	common.BytesToAddress([]byte{0x05}): newWrappedPrecompiledContract(&bigModExp{eip2565: true},
-	common.BytesToAddress([]byte{0x06}): newWrappedPrecompiledContract(&bn256AddIstanbul{},
-	common.BytesToAddress([]byte{0x07}): newWrappedPrecompiledContract(&bn256ScalarMulIstanbul{},
-	common.BytesToAddress([]byte{0x08}): newWrappedPrecompiledContract(&bn256PairingIstanbul{},
-	common.BytesToAddress([]byte{0x09}): newWrappedPrecompiledContract(&blake2F{},
-	common.BytesToAddress([]byte{0x0a}): newWrappedPrecompiledContract(&kzgPointEvaluation{},
-	common.BytesToAddress([]byte{0x0b}): newWrappedPrecompiledContract(&bls12381G1Add{},
-	common.BytesToAddress([]byte{0x0c}): newWrappedPrecompiledContract(&bls12381G1Mul{},
-	common.BytesToAddress([]byte{0x0d}): newWrappedPrecompiledContract(&bls12381G1MultiExp{},
-	common.BytesToAddress([]byte{0x0e}): newWrappedPrecompiledContract(&bls12381G2Add{},
-	common.BytesToAddress([]byte{0x0f}): newWrappedPrecompiledContract(&bls12381G2Mul{},
-	common.BytesToAddress([]byte{0x10}): newWrappedPrecompiledContract(&bls12381G2MultiExp{},
-	common.BytesToAddress([]byte{0x11}): newWrappedPrecompiledContract(&bls12381Pairing{},
-	common.BytesToAddress([]byte{0x12}): newWrappedPrecompiledContract(&bls12381MapG1{},
-	common.BytesToAddress([]byte{0x13}): newWrappedPrecompiledContract(&bls12381MapG2{},
+var PrecompiledContractsPrague = map[common.Address]contract.StatefulPrecompiledContract{
+	common.BytesToAddress([]byte{0x01}): newWrappedPrecompiledContract(&ecrecover{}),
+	common.BytesToAddress([]byte{0x02}): newWrappedPrecompiledContract(&sha256hash{}),
+	common.BytesToAddress([]byte{0x03}): newWrappedPrecompiledContract(&ripemd160hash{}),
+	common.BytesToAddress([]byte{0x04}): newWrappedPrecompiledContract(&dataCopy{}),
+	common.BytesToAddress([]byte{0x05}): newWrappedPrecompiledContract(&bigModExp{eip2565: true}),
+	common.BytesToAddress([]byte{0x06}): newWrappedPrecompiledContract(&bn256AddIstanbul{}),
+	common.BytesToAddress([]byte{0x07}): newWrappedPrecompiledContract(&bn256ScalarMulIstanbul{}),
+	common.BytesToAddress([]byte{0x08}): newWrappedPrecompiledContract(&bn256PairingIstanbul{}),
+	common.BytesToAddress([]byte{0x09}): newWrappedPrecompiledContract(&blake2F{}),
+	common.BytesToAddress([]byte{0x0a}): newWrappedPrecompiledContract(&kzgPointEvaluation{}),
+	common.BytesToAddress([]byte{0x0b}): newWrappedPrecompiledContract(&bls12381G1Add{}),
+	common.BytesToAddress([]byte{0x0c}): newWrappedPrecompiledContract(&bls12381G1Mul{}),
+	common.BytesToAddress([]byte{0x0d}): newWrappedPrecompiledContract(&bls12381G1MultiExp{}),
+	common.BytesToAddress([]byte{0x0e}): newWrappedPrecompiledContract(&bls12381G2Add{}),
+	common.BytesToAddress([]byte{0x0f}): newWrappedPrecompiledContract(&bls12381G2Mul{}),
+	common.BytesToAddress([]byte{0x10}): newWrappedPrecompiledContract(&bls12381G2MultiExp{}),
+	common.BytesToAddress([]byte{0x11}): newWrappedPrecompiledContract(&bls12381Pairing{}),
+	common.BytesToAddress([]byte{0x12}): newWrappedPrecompiledContract(&bls12381MapG1{}),
+	common.BytesToAddress([]byte{0x13}): newWrappedPrecompiledContract(&bls12381MapG2{}),
 }
 
 var PrecompiledContractsBLS = PrecompiledContractsPrague

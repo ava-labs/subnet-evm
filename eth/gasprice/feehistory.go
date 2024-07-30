@@ -22,11 +22,8 @@ import (
 	"fmt"
 	"math/big"
 	"slices"
-	"slices"
-	"sync/atomic"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/consensus/misc/eip1559"
 	"github.com/ethereum/go-ethereum/consensus/misc/eip4844"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
@@ -41,8 +38,8 @@ var (
 )
 
 const (
-		// maxQueryLimit is the max number of requested percentiles.
-		maxQueryLimit = 100
+	// maxQueryLimit is the max number of requested percentiles.
+	maxQueryLimit = 100
 )
 
 // txGasAndReward is sorted in ascending order based on reward
@@ -57,7 +54,7 @@ type slimBlock struct {
 	BaseFee  *big.Int
 	Txs      []txGasAndReward
 
-	BlobBaseFee, NextBlobBaseFee	  *big.Int
+	BlobBaseFee, NextBlobBaseFee *big.Int
 }
 
 // processBlock prepares a [slimBlock] from a retrieved block and list of
@@ -78,7 +75,7 @@ func processBlock(block *types.Block, receipts types.Receipts) *slimBlock {
 		return a.reward.Cmp(b.reward)
 	})
 	sb.Txs = sorter
-	
+
 	// XXX: patch up
 	// Fill in blob base fee and next blob base fee.
 	if excessBlobGas := bf.header.ExcessBlobGas; excessBlobGas != nil {
@@ -113,7 +110,7 @@ func (sb *slimBlock) processPercentiles(percentiles []float64) ([]*big.Int, *big
 		for i := range reward {
 			reward[i] = new(big.Int)
 		}
-		return reward, sb.BaseFee, gasUsedRatio, 
+		return reward, sb.BaseFee, gasUsedRatio
 	}
 
 	// sb transactions are already sorted by tip, so we don't need to re-sort
@@ -230,7 +227,7 @@ func (oracle *Oracle) FeeHistory(ctx context.Context, blocks uint64, unresolvedL
 	for blockNumber := oldestBlock; blockNumber < oldestBlock+blocks; blockNumber++ {
 		// Check if the context has errored
 		if err := ctx.Err(); err != nil {
-			return common.Big0, nil, nil, nil, nil, nil,err
+			return common.Big0, nil, nil, nil, nil, nil, err
 		}
 
 		i := blockNumber - oldestBlock

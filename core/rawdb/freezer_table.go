@@ -21,4 +21,8 @@ import "errors"
 var (
 	// errNotSupported is returned if the database doesn't support the required operation.
 	errNotSupported = errors.New("this operation is not supported")
+
+	// errOutOfBounds is returned if the item requested is not contained within the
+	// freezer table.
+	errOutOfBounds = errors.New("out of bounds")
 )

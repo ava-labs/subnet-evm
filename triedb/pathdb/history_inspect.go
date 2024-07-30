@@ -122,30 +122,3 @@ func storageHistory(freezer ethdb.AncientReader, address common.Address, slot co
 		stats.Origins = append(stats.Origins, blob)
 	})
 }
-
-// historyRange returns the block number range of local state histories.
-func historyRange(freezer ethdb.AncientReader) (uint64, uint64, error) {
-	// Load the id of the first history object in local store.
-	tail, err := freezer.Tail()
-	if err != nil {
-		return 0, 0, err
-	}
-	first := tail + 1
-
-	// Load the id of the last history object in local store.
-	head, err := freezer.Ancients()
-	if err != nil {
-		return 0, 0, err
-	}
-	last := head - 1
-
-	fh, err := readHistory(freezer, first)
-	if err != nil {
-		return 0, 0, err
-	}
-	lh, err := readHistory(freezer, last)
-	if err != nil {
-		return 0, 0, err
-	}
-	return fh.meta.block, lh.meta.block, nil
-}

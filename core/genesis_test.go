@@ -328,7 +328,7 @@ func TestGenesisWriteUpgradesRegression(t *testing.T) {
 		GasLimit:   8_000_000,
 		Extra:      nil,
 		Time:       timestamp,
-	}, nil, nil, nil, trie.NewStackTrie(nil))
+	}, &types.Body{}, nil, trie.NewStackTrie(nil))
 	rawdb.WriteBlock(db, lastAcceptedBlock)
 
 	// Attempt restart after the chain has advanced past the activation of the precompile upgrade.

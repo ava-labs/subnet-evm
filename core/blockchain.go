@@ -37,6 +37,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/state/snapshot"
+	"github.com/ethereum/go-ethereum/core/stateless"
 	"github.com/ethereum/go-ethereum/core/tracing"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
@@ -396,16 +397,13 @@ func NewBlockChain(
 		quit:                make(chan struct{}),
 		acceptedLogsCache:   NewFIFOCache[common.Hash, [][]*types.Log](cacheConfig.AcceptedCacheSize),
 	}
-	var err error
-	bc.hc, err = NewHeaderChain(db, chainConfig, engine, bc.insertStopped)
+	bc.hc, err = NewHeaderChain(db, chainConfig, cacheConfig, engine)
 	if err != nil {
 		return nil, err
 	}
 	bc.flushInterval.Store(int64(cacheConfig.TrieTimeLimit))
-	bc.forker = NewForkChoice(bc, shouldPreserve)
 	bc.stateCache = state.NewDatabaseWithNodeDB(bc.db, bc.triedb)
 	bc.validator = NewBlockValidator(chainConfig, bc)
-	bc.prefetcher = newStatePrefetcher(chainConfig, bc.hc)
 	bc.processor = NewStateProcessor(chainConfig, bc.hc)
 
 	bc.genesisBlock = bc.GetBlockByNumber(0)
@@ -754,10 +752,10 @@ func (bc *BlockChain) loadGenesisState() error {
 		if block := bc.CurrentBlock(); block.Number.Uint64() == 0 {
 			alloc, err := getGenesisState(bc.db, block.Hash())
 			if err != nil {
-				return nil, fmt.Errorf("failed to get genesis state: %w", err)
+				return fmt.Errorf("failed to get genesis state: %w", err)
 			}
 			if alloc == nil {
-				return nil, errors.New("live blockchain tracer requires genesis alloc to be set")
+				return errors.New("live blockchain tracer requires genesis alloc to be set")
 			}
 			bc.logger.OnGenesisBlock(bc.genesisBlock, alloc)
 		}
@@ -1222,7 +1220,7 @@ func (bc *BlockChain) writeBlockAndSetHead(block *types.Block, receipts []*types
 
 // writeBlockWithState writes the block and all associated state to the database,
 // but it expects the chain mutex to be held.
-func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.Receipt, state *state.StateDB) error {
+func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.Receipt, statedb *state.StateDB) error {
 	// Irrelevant of the canonical status, write the block itself to the database.
 	//
 	// Note all the components of block(hash->number map, header, body, receipts)
@@ -1393,9 +1391,60 @@ func (bc *BlockChain) insertBlock(block *types.Block, writes bool) error {
 	}
 	blockStateInitTimer.Inc(time.Since(substart).Milliseconds())
 
-	// Enable prefetching to pull in trie node paths while processing transactions
-	statedb.StartPrefetcher("chain", bc.cacheConfig.TriePrefetcherParallelism)
+	// If we are past Byzantium, enable prefetching to pull in trie node paths
+	// while processing transactions. Before Byzantium the prefetcher is mostly
+	// useless due to the intermediate root hashing after each transaction.
+	if bc.chainConfig.IsByzantium(block.Number()) {
+		var witness *stateless.Witness
+		if bc.vmConfig.EnableWitnessCollection {
+			witness, err = stateless.NewWitness(bc, block)
+			if err != nil {
+				return err
+			}
+		}
+		statedb.StartPrefetcher("chain", witness, bc.cacheConfig.TriePrefetcherParallelism)
+	}
 	activeState = statedb
+
+	// The traced section of block import.
+	_, err = bc.processBlock(block, parent, statedb, start, writes)
+	if err != nil {
+		return err
+	}
+
+	log.Debug("Inserted new block", "number", block.Number(), "hash", block.Hash(),
+		"parentHash", block.ParentHash(),
+		"uncles", len(block.Uncles()), "txs", len(block.Transactions()), "gas", block.GasUsed(),
+		"elapsed", common.PrettyDuration(time.Since(start)),
+		"root", block.Root(), "baseFeePerGas", block.BaseFee(), "blockGasCost", block.BlockGasCost(),
+	)
+	return nil
+}
+
+// blockProcessingResult is a summary of block processing
+// used for updating the stats.
+type blockProcessingResult struct {
+	usedGas  uint64
+	procTime time.Duration
+}
+
+// processBlock executes and validates the given block. If there was no error
+// it writes the block and associated state to database.
+func (bc *BlockChain) processBlock(block *types.Block, parent *types.Header, statedb *state.StateDB, start time.Time, writes bool) (_ *blockProcessingResult, blockEndErr error) {
+	if bc.logger != nil && bc.logger.OnBlockStart != nil {
+		td := block.Number()
+		bc.logger.OnBlockStart(tracing.BlockEvent{
+			Block:     block,
+			TD:        td,
+			Finalized: bc.LastAcceptedBlock().Header(),
+			Safe:      bc.LastAcceptedBlock().Header(),
+		})
+	}
+	if bc.logger != nil && bc.logger.OnBlockEnd != nil {
+		defer func() {
+			bc.logger.OnBlockEnd(blockEndErr)
+		}()
+	}
 
 	// Process block using the parent state as reference point
 	pstart := time.Now()
@@ -1405,17 +1454,25 @@ func (bc *BlockChain) insertBlock(block *types.Block, writes bool) error {
 	}
 	if err != nil {
 		bc.reportBlock(block, receipts, err)
-		return err
+		return nil, err
 	}
 	ptime := time.Since(pstart)
 
 	// Validate the state using the default validator
 	vstart := time.Now()
-	if err := bc.validator.ValidateState(block, statedb, receipts, usedGas); err != nil {
+	if err := bc.validator.ValidateState(block, statedb, receipts, usedGas, false); err != nil {
 		bc.reportBlock(block, receipts, err)
-		return err
+		return nil, err
 	}
 	vtime := time.Since(vstart)
+
+	if witness := statedb.Witness(); witness != nil {
+		if err = bc.validator.ValidateWitness(witness, block.ReceiptHash(), block.Root()); err != nil {
+			bc.reportBlock(block, receipts, err)
+			return nil, fmt.Errorf("cross verification failed: %v", err)
+		}
+	}
+	proctime := time.Since(start) // processing + validation
 
 	// Update the metrics touched during block processing and validation
 	accountReadTimer.Inc(statedb.AccountReads.Milliseconds())                  // Account reads are complete(in processing)
@@ -1425,8 +1482,7 @@ func (bc *BlockChain) insertBlock(block *types.Block, writes bool) error {
 	accountUpdateTimer.Inc(statedb.AccountUpdates.Milliseconds())              // Account updates are complete(in validation)
 	storageUpdateTimer.Inc(statedb.StorageUpdates.Milliseconds())              // Storage updates are complete(in validation)
 	accountHashTimer.Inc(statedb.AccountHashes.Milliseconds())                 // Account hashes are complete(in validation)
-	storageHashTimer.Inc(statedb.StorageHashes.Milliseconds())                 // Storage hashes are complete(in validation)
-	triehash := statedb.AccountHashes + statedb.StorageHashes                  // The time spent on tries hashing
+	triehash := statedb.AccountHashes                                          // The time spent on tries hashing
 	trieUpdate := statedb.AccountUpdates + statedb.StorageUpdates              // The time spent on tries update
 	trieRead := statedb.SnapshotAccountReads + statedb.AccountReads            // The time spent on account read
 	trieRead += statedb.SnapshotStorageReads + statedb.StorageReads            // The time spent on storage read
@@ -1438,7 +1494,7 @@ func (bc *BlockChain) insertBlock(block *types.Block, writes bool) error {
 	// or the state trie to disk.
 	// Note: in pruning mode, this prevents us from generating a reference to the state root.
 	if !writes {
-		return nil
+		return &blockProcessingResult{usedGas: usedGas, procTime: proctime}, nil
 	}
 
 	// Write the block to the chain and get the status.
@@ -1447,7 +1503,7 @@ func (bc *BlockChain) insertBlock(block *types.Block, writes bool) error {
 	// later in verification, since that would cause the referenced root to never be dereferenced.
 	wstart := time.Now()
 	if err := bc.writeBlockAndSetHead(block, receipts, logs, statedb); err != nil {
-		return err
+		return nil, err
 	}
 	// Update the metrics touched during block commit
 	accountCommitTimer.Inc(statedb.AccountCommits.Milliseconds())   // Account commits are complete, we can mark them
@@ -1457,18 +1513,12 @@ func (bc *BlockChain) insertBlock(block *types.Block, writes bool) error {
 	blockWriteTimer.Inc((time.Since(wstart) - statedb.AccountCommits - statedb.StorageCommits - statedb.SnapshotCommits - statedb.TrieDBCommits).Milliseconds())
 	blockInsertTimer.Inc(time.Since(start).Milliseconds())
 
-	log.Debug("Inserted new block", "number", block.Number(), "hash", block.Hash(),
-		"parentHash", block.ParentHash(),
-		"uncles", len(block.Uncles()), "txs", len(block.Transactions()), "gas", block.GasUsed(),
-		"elapsed", common.PrettyDuration(time.Since(start)),
-		"root", block.Root(), "baseFeePerGas", block.BaseFee(), "blockGasCost", block.BlockGasCost(),
-	)
-
 	processedBlockGasUsedCounter.Inc(int64(block.GasUsed()))
 	processedTxsCounter.Inc(int64(block.Transactions().Len()))
 	processedLogsCounter.Inc(int64(len(logs)))
 	blockInsertCount.Inc(1)
-	return nil
+
+	return &blockProcessingResult{usedGas: usedGas, procTime: proctime}, nil
 }
 
 // collectUnflattenedLogs collects the logs that were generated or removed during
@@ -1783,21 +1833,8 @@ func (bc *BlockChain) reprocessBlock(parent *types.Block, current *types.Block) 
 		return common.Hash{}, fmt.Errorf("could not fetch state for (%s: %d): %v", parent.Hash().Hex(), parent.NumberU64(), err)
 	}
 
-	// Enable prefetching to pull in trie node paths while processing transactions
-	statedb.StartPrefetcher("chain", bc.cacheConfig.TriePrefetcherParallelism)
-	defer func() {
-		statedb.StopPrefetcher()
-	}()
-
-	// Process previously stored block
-	receipts, _, usedGas, err := bc.processor.Process(current, parent.Header(), statedb, vm.Config{})
-	if err != nil {
-		return common.Hash{}, fmt.Errorf("failed to re-process block (%s: %d): %v", current.Hash().Hex(), current.NumberU64(), err)
-	}
-
-	// Validate the state using the default validator
-	if err := bc.validator.ValidateState(current, statedb, receipts, usedGas); err != nil {
-		return common.Hash{}, fmt.Errorf("failed to validate state while re-processing block (%s: %d): %v", current.Hash().Hex(), current.NumberU64(), err)
+	if _, err := bc.processBlock(current, parent.Header(), statedb, time.Now(), false); err != nil {
+		return common.Hash{}, err
 	}
 	log.Debug("Processed block", "block", current.Hash(), "number", current.NumberU64())
 

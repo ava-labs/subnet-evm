@@ -19,8 +19,7 @@ package core
 import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/lru"
-	"github.com/ethereum/go-ethereum/consensus/beacon"
-	"github.com/ethereum/go-ethereum/consensus/ethash"
+	"github.com/ethereum/go-ethereum/consensus/dummy"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/stateless"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -52,13 +51,13 @@ func ExecuteStateless(config *params.ChainConfig, witness *stateless.Witness) (c
 		config:      config,
 		chainDb:     memdb,
 		headerCache: lru.NewCache[common.Hash, *types.Header](256),
-		engine:      beacon.New(ethash.NewFaker()),
+		engine:      dummy.NewFaker(), // beacon.New(ethash.NewFaker()),
 	}
 	processor := NewStateProcessor(config, chain)
 	validator := NewBlockValidator(config, nil) // No chain, we only validate the state, not the block
-
+	parent := chain.GetHeaderByHash(witness.Block.ParentHash())
 	// Run the stateless blocks processing and self-validate certain fields
-	receipts, _, usedGas, err := processor.Process(witness.Block, db, vm.Config{})
+	receipts, _, usedGas, err := processor.Process(witness.Block, parent, db, vm.Config{})
 	if err != nil {
 		return common.Hash{}, common.Hash{}, err
 	}

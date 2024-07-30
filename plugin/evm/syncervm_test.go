@@ -539,9 +539,8 @@ func patchBlock(blk *types.Block, root common.Hash, db ethdb.Database) *types.Bl
 	header := blk.Header()
 	header.Root = root
 	receipts := rawdb.ReadRawReceipts(db, blk.Hash(), blk.NumberU64())
-	newBlk := types.NewBlock(
-		header, blk.Transactions(), blk.Uncles(), receipts, trie.NewStackTrie(nil),
-	)
+	body := &types.Body{Transactions: blk.Transactions(), Uncles: blk.Uncles()}
+	newBlk := types.NewBlock(header, body, receipts, trie.NewStackTrie(nil))
 	rawdb.WriteBlock(db, newBlk)
 	rawdb.WriteCanonicalHash(db, newBlk.Hash(), newBlk.NumberU64())
 	return newBlk

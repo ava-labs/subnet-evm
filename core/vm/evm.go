@@ -280,7 +280,7 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 			wgas := evm.AccessEvents.AddAccount(addr, false)
 			if gas < wgas {
 				evm.StateDB.RevertToSnapshot(snapshot)
-				return nil, 0, ErrOutOfGas
+				return nil, 0, vmerrs.ErrOutOfGas
 			}
 			gas -= wgas
 		}
@@ -411,7 +411,7 @@ func (evm *EVM) DelegateCall(caller ContractRef, addr common.Address, input []by
 	}
 	// Fail if we're trying to execute above the call depth limit
 	if evm.depth > int(params.CallCreateDepth) {
-		return nil, gas, ErrDepth
+		return nil, gas, vmerrs.ErrDepth
 	}
 	var snapshot = evm.StateDB.Snapshot()
 
@@ -600,7 +600,7 @@ func (evm *EVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 	// Charge the contract creation init gas in verkle mode
 	if evm.chainRules.IsEIP4762 {
 		if !contract.UseGas(evm.AccessEvents.ContractCreateInitGas(address, value.Sign() != 0), evm.Config.Tracer, tracing.GasChangeWitnessContractInit) {
-			err = ErrOutOfGas
+			err = vmerrs.ErrOutOfGas
 		}
 	}
 
@@ -698,7 +698,7 @@ func (evm *EVM) captureEnd(depth int, startGas uint64, leftOverGas uint64, ret [
 	if err != nil {
 		reverted = true
 	}
-	if !evm.chainRules.IsHomestead && errors.Is(err, ErrCodeStoreOutOfGas) {
+	if !evm.chainRules.IsHomestead && errors.Is(err, vmerrs.ErrCodeStoreOutOfGas) {
 		reverted = false
 	}
 	if tracer.OnExit != nil {
@@ -713,7 +713,6 @@ func (evm *EVM) GetVMContext() *tracing.VMContext {
 		Coinbase:    evm.Context.Coinbase,
 		BlockNumber: evm.Context.BlockNumber,
 		Time:        evm.Context.Time,
-		Random:      evm.Context.Random,
 		GasPrice:    evm.TxContext.GasPrice,
 		ChainConfig: evm.ChainConfig(),
 		StateDB:     evm.StateDB,
