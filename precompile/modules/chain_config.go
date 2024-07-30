@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/big"
+	"reflect"
+	"strings"
 
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
@@ -11,11 +14,51 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
-func InitChainConfig(c *params.ChainConfig) error {
-	if c.GenesisPrecompiles == nil {
-		c.GenesisPrecompiles = make(params.Precompiles)
+var TestChainRules = ChainConfigRules(params.TestChainConfig, new(big.Int), 0)
+
+type ChainConfig interface {
+	*params.ChainConfig | *params.ChainConfigWithUpgradesJSON
+}
+
+func UnmarshalChainConfigJSON[T ChainConfig](data []byte, c T) error {
+	// Circumvent the custom UnmarshalJSON(), which always errors to force use of this function
+	type cc *params.ChainConfig
+	var (
+		dest        cc
+		upgrades    *params.UpgradeConfig
+		upgradesKey string
+	)
+	switch c := any(c).(type) {
+	case *params.ChainConfig:
+		dest = cc(c)
+	case *params.ChainConfigWithUpgradesJSON:
+		dest = cc(&c.ChainConfig)
+
+		upgrades = &c.UpgradeConfig
+		fld, ok := reflect.TypeOf(c).Elem().FieldByName("UpgradeConfig")
+		if !ok {
+			return fmt.Errorf("TODO: DO NOT MERGE")
+		}
+		upgradesKey = strings.Split(fld.Tag.Get("json"), ",")[0]
 	}
-	for key, raw := range c.LazyUnmarshalData {
+	if err := json.Unmarshal(data, dest); err != nil {
+		return err
+	}
+
+	byKey := make(map[string]json.RawMessage)
+	if err := json.Unmarshal(data, &byKey); err != nil {
+		return err
+	}
+	if upgrades != nil && len(byKey[upgradesKey]) > 0 {
+		if err := UnmarshalUpgradeConfigJSON(byKey[upgradesKey], upgrades); err != nil {
+			return err
+		}
+	}
+
+	if dest.GenesisPrecompiles == nil {
+		dest.GenesisPrecompiles = make(params.Precompiles)
+	}
+	for key, raw := range byKey {
 		mod, ok := GetPrecompileModule(key)
 		if !ok {
 			continue
@@ -25,19 +68,21 @@ func InitChainConfig(c *params.ChainConfig) error {
 		if err := json.Unmarshal(raw, conf); err != nil {
 			return fmt.Errorf("unmarshal %T: %v", conf, err)
 		}
-		c.GenesisPrecompiles[key] = conf
+		dest.GenesisPrecompiles[key] = conf
 	}
 	return nil
 }
 
-func InitChainRules(c *params.ChainConfig, r *params.Rules, timestamp uint64) {
+func ChainConfigRules(c *params.ChainConfig, blockNum *big.Int, timestamp uint64) params.Rules {
+	r := c.RulesDoNotCallDirectly(blockNum, timestamp)
+
 	// Initialize the stateful precompiles that should be enabled at [blockTimestamp].
 	r.ActivePrecompiles = make(map[common.Address]precompileconfig.Config)
 	r.Predicaters = make(map[common.Address]precompileconfig.Predicater)
 	r.AccepterPrecompiles = make(map[common.Address]precompileconfig.Accepter)
 
 	for _, module := range RegisteredModules() {
-		if config := getActivePrecompileConfig(c, module.Address, timestamp); config != nil && !config.IsDisabled() {
+		if config := GetActivePrecompileConfig(c, module.Address, timestamp); config != nil && !config.IsDisabled() {
 			r.ActivePrecompiles[module.Address] = config
 			if predicater, ok := config.(precompileconfig.Predicater); ok {
 				r.Predicaters[module.Address] = predicater
@@ -47,9 +92,11 @@ func InitChainRules(c *params.ChainConfig, r *params.Rules, timestamp uint64) {
 			}
 		}
 	}
+
+	return r
 }
 
-func getActivePrecompileConfig(c *params.ChainConfig, address common.Address, timestamp uint64) precompileconfig.Config {
+func GetActivePrecompileConfig(c *params.ChainConfig, address common.Address, timestamp uint64) precompileconfig.Config {
 	configs := GetActivatingPrecompileConfigs(c, address, nil, timestamp, c.PrecompileUpgrades)
 	if len(configs) == 0 {
 		return nil
@@ -150,7 +197,7 @@ func newTimestampCompatError(what string, storedtime, newtime *uint64) *params.C
 func EnabledStatefulPrecompiles(c *params.ChainConfig, blockTimestamp uint64) params.Precompiles {
 	statefulPrecompileConfigs := make(params.Precompiles)
 	for _, module := range RegisteredModules() {
-		if config := getActivePrecompileConfig(c, module.Address, blockTimestamp); config != nil && !config.IsDisabled() {
+		if config := GetActivePrecompileConfig(c, module.Address, blockTimestamp); config != nil && !config.IsDisabled() {
 			statefulPrecompileConfigs[module.ConfigKey] = config
 		}
 	}
@@ -158,9 +205,66 @@ func EnabledStatefulPrecompiles(c *params.ChainConfig, blockTimestamp uint64) pa
 	return statefulPrecompileConfigs
 }
 
-type PrecompileUpgrade struct {
-	precompileconfig.Config // TODO: DO NOT MERGE
+func UnmarshalUpgradeConfigJSON(data []byte, u *params.UpgradeConfig) error {
+	raw := make(map[string]json.RawMessage)
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+
+	var precompileJSON json.RawMessage
+
+	skip := reflect.TypeOf([]params.PrecompileUpgrade{})
+	v := reflect.ValueOf(u).Elem()
+	for i := 0; i < v.NumField(); i++ {
+		fld := v.Type().FieldByIndex([]int{i})
+		fldVal := v.Field(i)
+
+		tag, ok := fld.Tag.Lookup(`json`)
+		if !ok {
+			continue
+		}
+		msg, ok := raw[strings.Split(tag, ",")[0]]
+		if !ok {
+			continue
+		}
+		if fld.Type == skip {
+			precompileJSON = msg
+			continue
+		}
+
+		var dest any
+		switch fldVal.Kind() {
+		case reflect.Pointer:
+			if fldVal.IsNil() {
+				fldVal.Set(reflect.New(fldVal.Type().Elem()))
+			}
+			dest = fldVal.Interface()
+		case reflect.Slice:
+			dest = fldVal.Addr().Interface()
+		default:
+			return fmt.Errorf("%s", fldVal.Kind()) // DO NOT MERGE
+		}
+
+		if err := json.Unmarshal(msg, dest); err != nil {
+			return err
+		}
+	}
+
+	if len(precompileJSON) > 0 {
+		var upgrades []precompileUpgrade
+		if err := json.Unmarshal(precompileJSON, &upgrades); err != nil {
+			return err
+		}
+		u.PrecompileUpgrades = make([]params.PrecompileUpgrade, len(upgrades))
+		for i := range upgrades {
+			u.PrecompileUpgrades[i] = params.PrecompileUpgrade(upgrades[i])
+		}
+	}
+
+	return nil
 }
+
+type precompileUpgrade params.PrecompileUpgrade
 
 var errNoKey = errors.New("PrecompileUpgrade cannot be empty")
 
@@ -168,7 +272,7 @@ var errNoKey = errors.New("PrecompileUpgrade cannot be empty")
 // based on the key. Keys are defined in each precompile module, and registered in
 // precompile/registry/registry.go.
 // Ex: {"feeManagerConfig": {...}} where "feeManagerConfig" is the key
-func (u *PrecompileUpgrade) UnmarshalJSON(data []byte) error {
+func (u *precompileUpgrade) UnmarshalJSON(data []byte) error {
 	raw := make(map[string]json.RawMessage)
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return err
@@ -193,16 +297,8 @@ func (u *PrecompileUpgrade) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// MarshalJSON marshal the precompile config into json based on the precompile key.
-// Ex: {"feeManagerConfig": {...}} where "feeManagerConfig" is the key
-func (u *PrecompileUpgrade) MarshalJSON() ([]byte, error) {
-	res := make(map[string]precompileconfig.Config)
-	res[u.Key()] = u.Config
-	return json.Marshal(res)
-}
-
 // IsPrecompileEnabled returns whether precompile with [address] is enabled at [timestamp].
 func IsPrecompileEnabled(c *params.ChainConfig, address common.Address, timestamp uint64) bool {
-	config := getActivePrecompileConfig(c, address, timestamp)
+	config := GetActivePrecompileConfig(c, address, timestamp)
 	return config != nil && !config.IsDisabled()
 }

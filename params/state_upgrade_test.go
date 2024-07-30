@@ -1,17 +1,19 @@
 // (c) 2022, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-package params
+package params_test
 
 import (
-	"encoding/json"
 	"math/big"
 	"testing"
 
+	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/stretchr/testify/require"
+
+	. "github.com/ava-labs/subnet-evm/params"
 )
 
 func TestVerifyStateUpgrades(t *testing.T) {
@@ -181,7 +183,6 @@ func TestUnmarshalStateUpgradeJSON(t *testing.T) {
 		},
 	}
 	var unmarshaledConfig UpgradeConfig
-	err := json.Unmarshal(jsonBytes, &unmarshaledConfig)
-	require.NoError(t, err)
+	require.NoError(t, modules.UnmarshalUpgradeConfigJSON(jsonBytes, &unmarshaledConfig))
 	require.Equal(t, upgradeConfig, unmarshaledConfig)
 }

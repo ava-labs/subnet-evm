@@ -24,7 +24,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-package params
+package params_test
 
 import (
 	"encoding/json"
@@ -37,11 +37,12 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/contracts/nativeminter"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/rewardmanager"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/txallowlist"
-	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
+	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	. "github.com/ava-labs/subnet-evm/params"
 )
 
 func TestCheckCompatible(t *testing.T) {
@@ -159,22 +160,21 @@ func TestConfigRules(t *testing.T) {
 	}
 
 	var stamp uint64
-	if r := c.Rules(big.NewInt(0), stamp); r.IsSubnetEVM {
+	if r := modules.ChainConfigRules(c, big.NewInt(0), stamp); r.IsSubnetEVM {
 		t.Errorf("expected %v to not be subnet-evm", stamp)
 	}
 	stamp = 500
-	if r := c.Rules(big.NewInt(0), stamp); !r.IsSubnetEVM {
+	if r := modules.ChainConfigRules(c, big.NewInt(0), stamp); !r.IsSubnetEVM {
 		t.Errorf("expected %v to be subnet-evm", stamp)
 	}
 	stamp = math.MaxInt64
-	if r := c.Rules(big.NewInt(0), stamp); !r.IsSubnetEVM {
+	if r := modules.ChainConfigRules(c, big.NewInt(0), stamp); !r.IsSubnetEVM {
 		t.Errorf("expected %v to be subnet-evm", stamp)
 	}
 }
 
 func TestConfigUnmarshalJSON(t *testing.T) {
 	require := require.New(t)
-	assert := assert.New(t)
 
 	testRewardManagerConfig := rewardmanager.NewConfig(
 		utils.NewUint64(1671542573),
@@ -214,19 +214,11 @@ func TestConfigUnmarshalJSON(t *testing.T) {
 		}
 	}
 	`)
-	c := ChainConfig{}
-	err := json.Unmarshal(config, &c)
-	require.NoError(err)
+	c := &ChainConfig{}
+	require.NoError(modules.UnmarshalChainConfigJSON(config, c))
 
 	require.Equal(c.ChainID, big.NewInt(43214))
 	require.Equal(c.AllowFeeRecipients, true)
-
-	for _, config := range []precompileconfig.Config{testRewardManagerConfig, testContractNativeMinterConfig} {
-		_, ok := c.LazyUnmarshalData[config.Key()]
-		assert.Truef(ok, "%T.LazyUnmarshalData[%q] not unmarshalled", c)
-	}
-
-	return
 
 	rewardManagerConfig, ok := c.GenesisPrecompiles[rewardmanager.ConfigKey]
 	require.True(ok)
@@ -240,14 +232,13 @@ func TestConfigUnmarshalJSON(t *testing.T) {
 	// Marshal and unmarshal again and check that the result is the same
 	marshaled, err := json.Marshal(c)
 	require.NoError(err)
-	c2 := ChainConfig{}
-	err = json.Unmarshal(marshaled, &c2)
-	require.NoError(err)
+	c2 := &ChainConfig{}
+	require.NoError(modules.UnmarshalChainConfigJSON(marshaled, c2))
 	require.Equal(c, c2)
 }
 
 func TestActivePrecompiles(t *testing.T) {
-	config := ChainConfig{
+	config := &ChainConfig{
 		UpgradeConfig: UpgradeConfig{
 			PrecompileUpgrades: []PrecompileUpgrade{
 				{
@@ -260,10 +251,10 @@ func TestActivePrecompiles(t *testing.T) {
 		},
 	}
 
-	rules0 := config.Rules(common.Big0, 0)
+	rules0 := modules.ChainConfigRules(config, common.Big0, 0)
 	require.True(t, rules0.IsPrecompileEnabled(nativeminter.Module.Address))
 
-	rules1 := config.Rules(common.Big0, 1)
+	rules1 := modules.ChainConfigRules(config, common.Big0, 1)
 	require.False(t, rules1.IsPrecompileEnabled(nativeminter.Module.Address))
 }
 
@@ -334,7 +325,6 @@ func TestChainConfigMarshalWithUpgrades(t *testing.T) {
 	require.JSONEq(t, expectedJSON, string(result))
 
 	var unmarshalled ChainConfigWithUpgradesJSON
-	err = json.Unmarshal(result, &unmarshalled)
-	require.NoError(t, err)
+	require.NoError(t, modules.UnmarshalChainConfigJSON(result, &unmarshalled))
 	require.Equal(t, config, unmarshalled)
 }

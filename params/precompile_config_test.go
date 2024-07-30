@@ -1,7 +1,7 @@
 // (c) 2022 Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-package params
+package params_test
 
 import (
 	"encoding/json"
@@ -14,9 +14,12 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/contracts/nativeminter"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/rewardmanager"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/txallowlist"
+	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
+
+	. "github.com/ava-labs/subnet-evm/params"
 )
 
 func TestVerifyWithChainConfig(t *testing.T) {
@@ -72,7 +75,7 @@ func TestVerifyWithChainConfigAtNilTimestamp(t *testing.T) {
 		// this does NOT enable the precompile, so it should be upgradeable.
 		{Config: txallowlist.NewConfig(nil, nil, nil, nil)},
 	}
-	require.False(t, config.IsPrecompileEnabled(txallowlist.ContractAddress, 0)) // check the precompile is not enabled.
+	require.False(t, modules.IsPrecompileEnabled(config, txallowlist.ContractAddress, 0)) // check the precompile is not enabled.
 	config.PrecompileUpgrades = []PrecompileUpgrade{
 		{
 			// enable TxAllowList at timestamp 5
@@ -270,16 +273,16 @@ func TestGetPrecompileConfig(t *testing.T) {
 		deployerallowlist.ConfigKey: deployerallowlist.NewConfig(utils.NewUint64(10), nil, nil, nil),
 	}
 
-	deployerConfig := config.getActivePrecompileConfig(deployerallowlist.ContractAddress, 0)
+	deployerConfig := modules.GetActivePrecompileConfig(config, deployerallowlist.ContractAddress, 0)
 	require.Nil(deployerConfig)
 
-	deployerConfig = config.getActivePrecompileConfig(deployerallowlist.ContractAddress, 10)
+	deployerConfig = modules.GetActivePrecompileConfig(config, deployerallowlist.ContractAddress, 10)
 	require.NotNil(deployerConfig)
 
-	deployerConfig = config.getActivePrecompileConfig(deployerallowlist.ContractAddress, 11)
+	deployerConfig = modules.GetActivePrecompileConfig(config, deployerallowlist.ContractAddress, 11)
 	require.NotNil(deployerConfig)
 
-	txAllowListConfig := config.getActivePrecompileConfig(txallowlist.ContractAddress, 0)
+	txAllowListConfig := modules.GetActivePrecompileConfig(config, txallowlist.ContractAddress, 0)
 	require.Nil(txAllowListConfig)
 }
 
@@ -288,6 +291,12 @@ func TestPrecompileUpgradeUnmarshalJSON(t *testing.T) {
 
 	upgradeBytes := []byte(`
 			{
+				"networkUpgradeOverrides": {
+					"durangoTimestamp": 314159
+				},
+				"stateUpgrades": [
+					{"blockTimestamp": 142857}
+				],
 				"precompileUpgrades": [
 					{
 						"rewardManagerConfig": {
@@ -311,8 +320,7 @@ func TestPrecompileUpgradeUnmarshalJSON(t *testing.T) {
 	`)
 
 	var upgradeConfig UpgradeConfig
-	err := json.Unmarshal(upgradeBytes, &upgradeConfig)
-	require.NoError(err)
+	require.NoError(modules.UnmarshalUpgradeConfigJSON(upgradeBytes, &upgradeConfig))
 
 	require.Len(upgradeConfig.PrecompileUpgrades, 2)
 
@@ -337,7 +345,6 @@ func TestPrecompileUpgradeUnmarshalJSON(t *testing.T) {
 	upgradeBytes2, err := json.Marshal(upgradeConfig)
 	require.NoError(err)
 	var upgradeConfig2 UpgradeConfig
-	err = json.Unmarshal(upgradeBytes2, &upgradeConfig2)
-	require.NoError(err)
+	require.NoError(modules.UnmarshalUpgradeConfigJSON(upgradeBytes2, &upgradeConfig2))
 	require.Equal(upgradeConfig, upgradeConfig2)
 }

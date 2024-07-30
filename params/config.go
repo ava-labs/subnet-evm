@@ -206,8 +206,6 @@ var (
 		GenesisPrecompiles: Precompiles{},
 		UpgradeConfig:      UpgradeConfig{},
 	}
-
-	TestRules = TestChainConfig.Rules(new(big.Int), 0)
 )
 
 // ChainConfig is the core config which determines the blockchain settings.
@@ -244,12 +242,8 @@ type ChainConfig struct {
 	FeeConfig          commontype.FeeConfig `json:"feeConfig"`                    // Set the configuration for the dynamic fee algorithm
 	AllowFeeRecipients bool                 `json:"allowFeeRecipients,omitempty"` // Allows fees to be collected by block builders.
 
-	// LazyUnmarshalData carries all raw JSON data, provided when unmarshalling this instance, that didn't have a struct
-	// field into which it could be unmarshalled. It is used to lazily unmarshal the GenesisPrecompiles and avoid
-	// importing the `precompiles/modules` package as that would result in a circular dependency.
-	LazyUnmarshalData  map[string]json.RawMessage `json:"-"`
-	GenesisPrecompiles Precompiles                `json:"-"` // Config for enabling precompiles from genesis. JSON encode/decode will be handled by the custom marshaler/unmarshaler.
-	UpgradeConfig      `json:"-"`                 // Config specified in upgradeBytes (avalanche network upgrades or enable/disabling precompiles). Skip encoding/decoding directly into ChainConfig.
+	GenesisPrecompiles Precompiles `json:"-"` // Config for enabling precompiles from genesis. JSON encode/decode will be handled by the custom marshaler/unmarshaler.
+	UpgradeConfig      `json:"-"`  // Config specified in upgradeBytes (avalanche network upgrades or enable/disabling precompiles). Skip encoding/decoding directly into ChainConfig.
 }
 
 // Description returns a human-readable description of ChainConfig.
@@ -749,14 +743,10 @@ func (c *ChainConfig) rules(num *big.Int, timestamp uint64) Rules {
 
 // Rules returns the Avalanche modified rules to support Avalanche
 // network upgrades
-func (c *ChainConfig) Rules(blockNum *big.Int, timestamp uint64) Rules {
-	rules := c.rules(blockNum, timestamp)
-
-	rules.AvalancheRules = c.GetAvalancheRules(timestamp)
-
-	// TODO document the need to call InitChainRules (DO NOT MERGE)
-
-	return rules
+func (c *ChainConfig) RulesDoNotCallDirectly(blockNum *big.Int, timestamp uint64) Rules {
+	r := c.rules(blockNum, timestamp)
+	r.AvalancheRules = c.GetAvalancheRules(timestamp)
+	return r
 }
 
 // GetFeeConfig returns the original FeeConfig contained in the genesis ChainConfig.
