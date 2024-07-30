@@ -240,7 +240,7 @@ func TestCopyWithDirtyJournal(t *testing.T) {
 		obj.data.Root = common.HexToHash("0xdeadbeef")
 		orig.updateStateObject(obj)
 	}
-	root, _ := orig.Commit(0, true)
+	root, _ := orig.Commit(0, true, false)
 	orig, _ = New(root, db, nil)
 
 	// modify all in memory without finalizing
@@ -291,7 +291,7 @@ func TestCopyObjectState(t *testing.T) {
 			t.Fatalf("Error in test itself, the 'done' flag should not be set before Commit, have %v want %v", have, want)
 		}
 	}
-	orig.Commit(0, true)
+	orig.Commit(0, true, false)
 	for _, op := range cpy.mutations {
 		if have, want := op.applied, false; have != want {
 			t.Fatalf("Error: original state affected copy, have %v want %v", have, want)

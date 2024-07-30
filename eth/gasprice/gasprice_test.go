@@ -18,7 +18,6 @@ package gasprice
 
 import (
 	"context"
-	"crypto/sha256"
 	"fmt"
 	"math/big"
 	"testing"
@@ -33,7 +32,6 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/crypto/kzg4844"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/precompile/contracts/feemanager"
@@ -98,10 +96,6 @@ func newTestBackendFakerEngine(t *testing.T, config *params.ChainConfig, numBloc
 			Config: config,
 			Alloc:  types.GenesisAlloc{addr: {Balance: bal}},
 		}
-		// Compute empty blob hash.
-		emptyBlob          = kzg4844.Blob{}
-		emptyBlobCommit, _ = kzg4844.BlobToCommitment(&emptyBlob)
-		emptyBlobVHash     = kzg4844.CalcBlobHashV1(sha256.New(), &emptyBlobCommit)
 	)
 	var engine consensus.Engine = dummy.NewETHFaker()
 

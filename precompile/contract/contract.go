@@ -7,13 +7,14 @@ import (
 	"fmt"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/tracing"
 )
 
 const (
 	SelectorLen = 4
 )
 
-type RunStatefulPrecompileFunc func(accessibleState AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error)
+type RunStatefulPrecompileFunc func(accessibleState AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, tracers *tracing.Hooks, readOnly bool) (ret []byte, remainingGas uint64, err error)
 
 // ActivationFunc defines a function that is used to determine if a function is active
 // The return value is whether or not the function is active
@@ -81,10 +82,10 @@ func NewStatefulPrecompileContract(fallback RunStatefulPrecompileFunc, functions
 
 // Run selects the function using the 4 byte function selector at the start of the input and executes the underlying function on the
 // given arguments.
-func (s *statefulPrecompileWithFunctionSelectors) Run(accessibleState AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
+func (s *statefulPrecompileWithFunctionSelectors) Run(accessibleState AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, tracers *tracing.Hooks, readOnly bool) (ret []byte, remainingGas uint64, err error) {
 	// If there is no input data present, call the fallback function if present.
 	if len(input) == 0 && s.fallback != nil {
-		return s.fallback(accessibleState, caller, addr, nil, suppliedGas, readOnly)
+		return s.fallback(accessibleState, caller, addr, nil, suppliedGas, tracers, readOnly)
 	}
 
 	// Otherwise, an unexpected input size will result in an error.
@@ -105,5 +106,5 @@ func (s *statefulPrecompileWithFunctionSelectors) Run(accessibleState Accessible
 		return nil, suppliedGas, fmt.Errorf("invalid non-activated function selector %#x", selector)
 	}
 
-	return function.execute(accessibleState, caller, addr, functionInput, suppliedGas, readOnly)
+	return function.execute(accessibleState, caller, addr, functionInput, suppliedGas, tracers, readOnly)
 }

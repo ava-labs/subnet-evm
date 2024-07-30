@@ -10,6 +10,7 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/tracing"
 	"github.com/ethereum/go-ethereum/precompile/contract"
 	"github.com/ethereum/go-ethereum/vmerrs"
 )
@@ -83,7 +84,7 @@ func UnpackModifyAllowListInput(input []byte, r Role, useStrictMode bool) (commo
 // createAllowListRoleSetter returns an execution function for setting the allow list status of the input address argument to [role].
 // This execution function is speciifc to [precompileAddr].
 func createAllowListRoleSetter(precompileAddr common.Address, role Role) contract.RunStatefulPrecompileFunc {
-	return func(evm contract.AccessibleState, callerAddr, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
+	return func(evm contract.AccessibleState, callerAddr, addr common.Address, input []byte, suppliedGas uint64, tracers *tracing.Hooks, readOnly bool) (ret []byte, remainingGas uint64, err error) {
 		if remainingGas, err = contract.DeductGas(suppliedGas, ModifyAllowListGasCost); err != nil {
 			return nil, 0, err
 		}
@@ -154,7 +155,7 @@ func PackReadAllowListOutput(roleNumber *big.Int) ([]byte, error) {
 // The execution function parses the input into a single address and returns the 32 byte hash that specifies the
 // designated role of that address
 func createReadAllowList(precompileAddr common.Address) contract.RunStatefulPrecompileFunc {
-	return func(evm contract.AccessibleState, callerAddr common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
+	return func(evm contract.AccessibleState, callerAddr common.Address, addr common.Address, input []byte, suppliedGas uint64, tracers *tracing.Hooks, readOnly bool) (ret []byte, remainingGas uint64, err error) {
 		if remainingGas, err = contract.DeductGas(suppliedGas, ReadAllowListGasCost); err != nil {
 			return nil, 0, err
 		}

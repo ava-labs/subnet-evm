@@ -7,6 +7,7 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/tracing"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/holiman/uint256"
 )
@@ -30,8 +31,8 @@ func upgradeAccount(account common.Address, upgrade params.StateUpgradeAccount, 
 	}
 
 	if upgrade.BalanceChange != nil {
-		balanceChange, _ := uint256.FromBig((*big.Int)(upgrade.BalanceChange)) // XXX: do we need to check overflow?
-		state.AddBalance(account, balanceChange)
+		balanceChange, _ := uint256.FromBig((*big.Int)(upgrade.BalanceChange))  // XXX: do we need to check overflow?
+		state.AddBalance(account, balanceChange, tracing.BalanceChangeTransfer) // XXX: what should the reason be?
 	}
 	if len(upgrade.Code) != 0 {
 		// if the nonce is 0, set the nonce to 1 as we would when deploying a contract at

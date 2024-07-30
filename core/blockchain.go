@@ -401,10 +401,10 @@ func NewBlockChain(
 	if err != nil {
 		return nil, err
 	}
-	bc.flushInterval.Store(int64(cacheConfig.TrieTimeLimit))
+	// XXX: flushInterval?
 	bc.stateCache = state.NewDatabaseWithNodeDB(bc.db, bc.triedb)
 	bc.validator = NewBlockValidator(chainConfig, bc)
-	bc.processor = NewStateProcessor(chainConfig, bc.hc)
+	bc.processor = NewStateProcessor(chainConfig, bc)
 
 	bc.genesisBlock = bc.GetBlockByNumber(0)
 	if bc.genesisBlock == nil {
@@ -417,7 +417,7 @@ func NewBlockChain(
 	bc.stateManager = NewTrieWriter(bc.triedb, cacheConfig)
 
 	// Re-generate current block state if it is missing
-	if err := bc.loadLastState(lastAcceptedHash); err != nil {
+	if err := bc.loadLastState(lastAcceptedHash, genesis); err != nil {
 		return nil, err
 	}
 
@@ -682,10 +682,10 @@ func (bc *BlockChain) SenderCacher() *TxSenderCacher {
 
 // loadLastState loads the last known chain state from the database. This method
 // assumes that the chain manager mutex is held.
-func (bc *BlockChain) loadLastState(lastAcceptedHash common.Hash) error {
+func (bc *BlockChain) loadLastState(lastAcceptedHash common.Hash, genesis *Genesis) error {
 	// Initialize genesis state
 	if lastAcceptedHash == (common.Hash{}) {
-		return bc.loadGenesisState()
+		return bc.loadGenesisState(genesis)
 	}
 
 	// Restore the last known head block
@@ -730,7 +730,7 @@ func (bc *BlockChain) loadLastState(lastAcceptedHash common.Hash) error {
 	return bc.reprocessState(bc.lastAccepted, 2*bc.cacheConfig.CommitInterval)
 }
 
-func (bc *BlockChain) loadGenesisState() error {
+func (bc *BlockChain) loadGenesisState(genesis *Genesis) error {
 	// Prepare the genesis block and reinitialise the chain
 	batch := bc.db.NewBatch()
 	rawdb.WriteBlock(batch, bc.genesisBlock)
@@ -746,19 +746,10 @@ func (bc *BlockChain) loadGenesisState() error {
 	bc.hc.SetCurrentHeader(bc.genesisBlock.Header())
 
 	if bc.logger != nil && bc.logger.OnBlockchainInit != nil {
-		bc.logger.OnBlockchainInit(chainConfig)
+		bc.logger.OnBlockchainInit(bc.chainConfig)
 	}
 	if bc.logger != nil && bc.logger.OnGenesisBlock != nil {
-		if block := bc.CurrentBlock(); block.Number.Uint64() == 0 {
-			alloc, err := getGenesisState(bc.db, block.Hash())
-			if err != nil {
-				return fmt.Errorf("failed to get genesis state: %w", err)
-			}
-			if alloc == nil {
-				return errors.New("live blockchain tracer requires genesis alloc to be set")
-			}
-			bc.logger.OnGenesisBlock(bc.genesisBlock, alloc)
-		}
+		bc.logger.OnGenesisBlock(bc.genesisBlock, genesis.Alloc)
 	}
 	return nil
 }

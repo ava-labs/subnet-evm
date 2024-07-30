@@ -179,56 +179,6 @@ func New(diskdb ethdb.Database, config *Config, isVerkle bool) *Database {
 	return db
 }
 
-// nolint: unused
-// repairHistory truncates leftover state history objects, which may occur due
-// to an unclean shutdown or other unexpected reasons.
-func (db *Database) repairHistory() error {
-	// Open the freezer for state history. This mechanism ensures that
-	// only one database instance can be opened at a time to prevent
-	// accidental mutation.
-	ancient, err := db.diskdb.AncientDatadir()
-	if err != nil {
-		// TODO error out if ancient store is disabled. A tons of unit tests
-		// disable the ancient store thus the error here will immediately fail
-		// all of them. Fix the tests first.
-		return nil
-	}
-	freezer, err := rawdb.NewStateFreezer(ancient, db.readOnly)
-	if err != nil {
-		log.Crit("Failed to open state history freezer", "err", err)
-	}
-	db.freezer = freezer
-
-	// Reset the entire state histories if the trie database is not initialized
-	// yet. This action is necessary because these state histories are not
-	// expected to exist without an initialized trie database.
-	id := db.tree.bottom().stateID()
-	if id == 0 {
-		frozen, err := db.freezer.Ancients()
-		if err != nil {
-			log.Crit("Failed to retrieve head of state history", "err", err)
-		}
-		if frozen != 0 {
-			err := db.freezer.Reset()
-			if err != nil {
-				log.Crit("Failed to reset state histories", "err", err)
-			}
-			log.Info("Truncated extraneous state history")
-		}
-		return nil
-	}
-	// Truncate the extra state histories above in freezer in case it's not
-	// aligned with the disk layer. It might happen after a unclean shutdown.
-	pruned, err := truncateFromHead(db.diskdb, db.freezer, id)
-	if err != nil {
-		log.Crit("Failed to truncate extra state histories", "err", err)
-	}
-	if pruned != 0 {
-		log.Warn("Truncated extra state histories", "number", pruned)
-	}
-	return nil
-}
-
 // Update adds a new layer into the tree, if that can be linked to an existing
 // old parent. It is disallowed to insert a disk layer (the origin of all). Apart
 // from that this function will flatten the extra diff layers at bottom into disk
@@ -349,7 +299,7 @@ func (db *Database) Enable(root common.Hash) error {
 // Recover rollbacks the database to a specified historical point.
 // The state is supported as the rollback destination only if it's
 // canonical state and the corresponding trie histories are existent.
-func (db *Database) Recover(root common.Hash, loader triestate.TrieLoader) error {
+func (db *Database) Recover(root common.Hash) error {
 	// NOTE(freezer): This is disabled since we do not have a freezer.
 	return errors.New("state rollback is non-supported")
 }
@@ -466,7 +416,7 @@ func (db *Database) modifyAllowed() error {
 // End: State ID of the last history for the query. 0 implies the last available
 // object is selected as the ending point. Note end is included in the query.
 func (db *Database) AccountHistory(address common.Address, start, end uint64) (*HistoryStats, error) {
-	return accountHistory(db.freezer, address, start, end)
+	return nil, errors.New("AccountHistory not supported")
 }
 
 // StorageHistory inspects the storage history within the specified range.
@@ -479,11 +429,11 @@ func (db *Database) AccountHistory(address common.Address, start, end uint64) (*
 //
 // Note, slot refers to the hash of the raw slot key.
 func (db *Database) StorageHistory(address common.Address, slot common.Hash, start uint64, end uint64) (*HistoryStats, error) {
-	return storageHistory(db.freezer, address, slot, start, end)
+	return nil, errors.New("StorageHistory not supported")
 }
 
 // HistoryRange returns the block numbers associated with earliest and latest
 // state history in the local store.
 func (db *Database) HistoryRange() (uint64, uint64, error) {
-	return historyRange(db.freezer)
+	return 0, 0, errors.New("HistoryRange not supported")
 }

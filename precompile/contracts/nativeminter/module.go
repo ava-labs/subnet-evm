@@ -8,6 +8,7 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/tracing"
 	"github.com/ethereum/go-ethereum/precompile/contract"
 	"github.com/ethereum/go-ethereum/precompile/modules"
 	"github.com/ethereum/go-ethereum/precompile/precompileconfig"
@@ -54,8 +55,8 @@ func (*configurator) Configure(chainConfig precompileconfig.ChainConfig, cfg pre
 	for to, amount := range config.InitialMint {
 		if amount != nil {
 			amountBig := (*big.Int)(amount)
-			amountU256, _ := uint256.FromBig(amountBig) // XXX: should we check overflow?
-			state.AddBalance(to, amountU256)
+			amountU256, _ := uint256.FromBig(amountBig)                     // XXX: should we check overflow?
+			state.AddBalance(to, amountU256, tracing.BalanceChangeTransfer) // XXX: what is the appropriate tracing reason here? do we need a new one?
 		}
 	}
 

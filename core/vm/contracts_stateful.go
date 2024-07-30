@@ -27,6 +27,6 @@ func (w *wrappedPrecompiledContract) Run(accessibleState contract.AccessibleStat
 }
 
 // RunStatefulPrecompiledContract confirms runs [precompile] with the specified parameters.
-func RunStatefulPrecompiledContract(precompile contract.StatefulPrecompiledContract, accessibleState contract.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
-	return precompile.Run(accessibleState, caller, addr, input, suppliedGas, readOnly)
+func RunStatefulPrecompiledContract(precompile contract.StatefulPrecompiledContract, accessibleState contract.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, tracer *tracing.Hooks, readOnly bool) (ret []byte, remainingGas uint64, err error) {
+	return precompile.Run(accessibleState, caller, addr, input, suppliedGas, tracer, readOnly)
 }

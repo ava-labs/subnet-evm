@@ -1043,7 +1043,7 @@ func newTestMergedBackend(t *testing.T, n int, gspec *core.Genesis, generator fu
 		SnapshotLimit:     0,
 		TrieDirtyDisabled: true, // Archive mode
 	}
-	chain, err := core.NewBlockChain(backend.chaindb, cacheConfig, gspec, nil, backend.engine, vm.Config{}, nil, nil)
+	chain, err := core.NewBlockChain(backend.chaindb, cacheConfig, gspec, backend.engine, vm.Config{}, common.Hash{}, false)
 	if err != nil {
 		t.Fatalf("failed to create tester chain: %v", err)
 	}
@@ -1059,7 +1059,7 @@ func TestTraceBlockWithBasefee(t *testing.T) {
 	accounts := newAccounts(1)
 	target := common.HexToAddress("0x1111111111111111111111111111111111111111")
 	genesis := &core.Genesis{
-		Config: params.TestSubnetEVMConfig,
+		Config: params.TestSubnetEVMChainConfig,
 		Alloc: types.GenesisAlloc{
 			accounts[0].addr: {Balance: big.NewInt(1 * params.Ether)},
 			target: {Nonce: 1, Code: []byte{

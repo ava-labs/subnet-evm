@@ -22,6 +22,7 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/consensus"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
@@ -33,17 +34,22 @@ import (
 	"github.com/ethereum/go-ethereum/stateupgrade"
 )
 
+type chainContext interface {
+	ChainContext
+	consensus.ChainHeaderReader
+}
+
 // StateProcessor is a basic Processor, which takes care of transitioning
 // state from one point to another.
 //
 // StateProcessor implements Processor.
 type StateProcessor struct {
 	config *params.ChainConfig // Chain configuration options
-	chain  *HeaderChain        // Canonical header chain
+	chain  chainContext        // Canonical header chain
 }
 
 // NewStateProcessor initialises a new StateProcessor.
-func NewStateProcessor(config *params.ChainConfig, chain *HeaderChain) *StateProcessor {
+func NewStateProcessor(config *params.ChainConfig, chain chainContext) *StateProcessor {
 	return &StateProcessor{
 		config: config,
 		chain:  chain,
@@ -100,7 +106,7 @@ func (p *StateProcessor) Process(block *types.Block, parent *types.Header, state
 		allLogs = append(allLogs, receipt.Logs...)
 	}
 	// Finalize the block, applying any consensus engine specific extras (e.g. block rewards)
-	if err := p.chain.engine.Finalize(p.chain, block, parent, statedb, receipts); err != nil {
+	if err := p.chain.Engine().Finalize(p.chain, block, parent, statedb, receipts); err != nil {
 		return nil, nil, 0, fmt.Errorf("engine finalization check failed: %w", err)
 	}
 

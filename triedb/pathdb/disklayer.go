@@ -160,8 +160,7 @@ func (dl *diskLayer) commit(bottom *diffLayer, force bool) (*diskLayer, error) {
 	// the state history but without flushing the corresponding states(journal),
 	// the stored state history will be truncated from head in the next restart.
 	var (
-		overflow bool
-		oldest   uint64
+		oldest uint64
 	)
 	// NOTE(freezer): This is disabled since we do not have a freezer.
 	// if dl.db.freezer != nil {
@@ -209,14 +208,14 @@ func (dl *diskLayer) commit(bottom *diffLayer, force bool) (*diskLayer, error) {
 	}
 	// To remove outdated history objects from the end, we set the 'tail' parameter
 	// to 'oldest-1' due to the offset between the freezer index and the history ID.
-	if overflow {
-		// NOTE(freezer): This is disabled since we do not have a freezer.
-		// 	pruned, err := truncateFromTail(ndl.db.diskdb, ndl.db.freezer, oldest-1)
-		// 	if err != nil {
-		// 		return nil, err
-		// 	}
-		// 	log.Debug("Pruned state history", "items", pruned, "tailid", oldest)
-	}
+	// NOTE(freezer): This is disabled since we do not have a freezer.
+	//if overflow {
+	// 	pruned, err := truncateFromTail(ndl.db.diskdb, ndl.db.freezer, oldest-1)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// 	log.Debug("Pruned state history", "items", pruned, "tailid", oldest)
+	//}
 	return ndl, nil
 }
 

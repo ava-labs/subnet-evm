@@ -1389,9 +1389,9 @@ func (s *StateDB) commitAndFlush(block uint64, deleteEmptyObjects bool, snaps *s
 			// - head layer is paired with HEAD state
 			// - head-1 layer is paired with HEAD-1 state
 			// - head-127 layer(bottom-most diff layer) is paired with HEAD-127 state
-			if err := snaps.Cap(ret.root, TriesInMemory); err != nil {
-				log.Warn("Failed to cap snapshot tree", "root", ret.root, "layers", TriesInMemory, "err", err)
-			}
+			// if err := snaps.Cap(ret.root, TriesInMemory); err != nil {
+			// 	log.Warn("Failed to cap snapshot tree", "root", ret.root, "layers", TriesInMemory, "err", err)
+			// }
 			s.SnapshotCommits += time.Since(start)
 		}
 		// If trie database is enabled, commit the state update as a new layer

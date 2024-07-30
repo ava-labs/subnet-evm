@@ -140,8 +140,8 @@ func newWithNode(stack *node.Node, conf *eth.Config, blockPeriod uint64) (*Backe
 		}
 	}
 	return &Backend{
-		node:   stack,
-		client: simClient{ethclient.NewClient(stack.Attach())},
+		eth:    backend,
+		client: simClient{ethclient.NewClient(rpc.DialInProc(server))},
 		clock:  clock,
 		server: server,
 	}, nil

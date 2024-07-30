@@ -12,6 +12,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/commontype"
+	"github.com/ethereum/go-ethereum/core/tracing"
 	"github.com/ethereum/go-ethereum/precompile/contract"
 	"github.com/ethereum/go-ethereum/precompile/modules"
 	"github.com/ethereum/go-ethereum/precompile/precompileconfig"
@@ -59,6 +60,7 @@ type PrecompileRunparams struct {
 	Caller          common.Address
 	ContractAddress common.Address
 	Input           []byte
+	Tracer          *tracing.Hooks
 	SuppliedGas     uint64
 	ReadOnly        bool
 }
@@ -67,7 +69,7 @@ func (test PrecompileTest) Run(t *testing.T, module modules.Module, state contra
 	runParams := test.setup(t, module, state)
 
 	if runParams.Input != nil {
-		ret, remainingGas, err := module.Contract.Run(runParams.AccessibleState, runParams.Caller, runParams.ContractAddress, runParams.Input, runParams.SuppliedGas, runParams.ReadOnly)
+		ret, remainingGas, err := module.Contract.Run(runParams.AccessibleState, runParams.Caller, runParams.ContractAddress, runParams.Input, runParams.SuppliedGas, runParams.Tracer, runParams.ReadOnly)
 		if len(test.ExpectedErr) != 0 {
 			require.ErrorContains(t, err, test.ExpectedErr)
 		} else {
@@ -148,7 +150,7 @@ func (test PrecompileTest) Bench(b *testing.B, module modules.Module, state cont
 	stateDB := runParams.AccessibleState.GetStateDB()
 	snapshot := stateDB.Snapshot()
 
-	ret, remainingGas, err := module.Contract.Run(runParams.AccessibleState, runParams.Caller, runParams.ContractAddress, runParams.Input, runParams.SuppliedGas, runParams.ReadOnly)
+	ret, remainingGas, err := module.Contract.Run(runParams.AccessibleState, runParams.Caller, runParams.ContractAddress, runParams.Input, runParams.SuppliedGas, runParams.Tracer, runParams.ReadOnly)
 	if len(test.ExpectedErr) != 0 {
 		require.ErrorContains(b, err, test.ExpectedErr)
 	} else {
@@ -171,7 +173,7 @@ func (test PrecompileTest) Bench(b *testing.B, module modules.Module, state cont
 		snapshot = stateDB.Snapshot()
 
 		// Ignore return values for benchmark
-		_, _, _ = module.Contract.Run(runParams.AccessibleState, runParams.Caller, runParams.ContractAddress, runParams.Input, runParams.SuppliedGas, runParams.ReadOnly)
+		_, _, _ = module.Contract.Run(runParams.AccessibleState, runParams.Caller, runParams.ContractAddress, runParams.Input, runParams.SuppliedGas, runParams.Tracer, runParams.ReadOnly)
 	}
 	b.StopTimer()
 
@@ -188,7 +190,7 @@ func (test PrecompileTest) Bench(b *testing.B, module modules.Module, state cont
 	// Execute the test one final time to ensure that if our RevertToSnapshot logic breaks such that each run is actually failing or resulting in unexpected behavior
 	// the benchmark should catch the error here.
 	stateDB.RevertToSnapshot(snapshot)
-	ret, remainingGas, err = module.Contract.Run(runParams.AccessibleState, runParams.Caller, runParams.ContractAddress, runParams.Input, runParams.SuppliedGas, runParams.ReadOnly)
+	ret, remainingGas, err = module.Contract.Run(runParams.AccessibleState, runParams.Caller, runParams.ContractAddress, runParams.Input, runParams.SuppliedGas, runParams.Tracer, runParams.ReadOnly)
 	if len(test.ExpectedErr) != 0 {
 		require.ErrorContains(b, err, test.ExpectedErr)
 	} else {

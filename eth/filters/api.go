@@ -224,9 +224,6 @@ func (api *FilterAPI) NewAcceptedTransactions(ctx context.Context, fullTx *bool)
 			case <-rpcSub.Err():
 				acceptedTxSub.Unsubscribe()
 				return
-			case <-notifier.Closed():
-				acceptedTxSub.Unsubscribe()
-				return
 			}
 		}
 	}()

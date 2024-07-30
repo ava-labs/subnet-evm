@@ -102,7 +102,7 @@ func TestSupplyGenesisAlloc(t *testing.T) {
 		addr2   = crypto.PubkeyToAddress(key2.PublicKey)
 		eth1    = new(big.Int).Mul(common.Big1, big.NewInt(params.Ether))
 
-		config = *params.TestSubnetEVMConfig
+		config = *params.TestSubnetEVMChainConfig
 
 		gspec = &core.Genesis{
 			Config: &config,
@@ -134,7 +134,7 @@ func TestSupplyGenesisAlloc(t *testing.T) {
 
 func TestSupplyRewards(t *testing.T) {
 	var (
-		config = *params.TestSubnetEVMConfig
+		config = *params.TestSubnetEVMChainConfig
 
 		gspec = &core.Genesis{
 			Config: &config,
@@ -162,7 +162,7 @@ func TestSupplyRewards(t *testing.T) {
 
 func TestSupplyEip1559Burn(t *testing.T) {
 	var (
-		config = *params.TestSubnetEVMConfig
+		config = *params.TestSubnetEVMChainConfig
 
 		aa = common.HexToAddress("0x000000000000000000000000000000000000aaaa")
 		// A sender who makes transactions, has some eth1
@@ -518,7 +518,7 @@ func testSupplyTracer(t *testing.T, genesis *core.Genesis, gen func(*core.BlockG
 		return nil, nil, fmt.Errorf("failed to create call tracer: %v", err)
 	}
 
-	chain, err := core.NewBlockChain(rawdb.NewMemoryDatabase(), core.DefaultCacheConfigWithScheme(rawdb.PathScheme), genesis, nil, engine, vm.Config{Tracer: tracer}, nil, nil)
+	chain, err := core.NewBlockChain(rawdb.NewMemoryDatabase(), core.DefaultCacheConfigWithScheme(rawdb.PathScheme), genesis, engine, vm.Config{Tracer: tracer}, common.Hash{}, false)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create tester chain: %v", err)
 	}

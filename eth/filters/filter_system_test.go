@@ -197,11 +197,6 @@ func (b *testBackend) ServiceFilter(ctx context.Context, session *bloombits.Matc
 	}()
 }
 
-func (b *testBackend) setPending(block *types.Block, receipts types.Receipts) {
-	b.pendingBlock = block
-	b.pendingReceipts = receipts
-}
-
 func newTestFilterSystem(t testing.TB, db ethdb.Database, cfg Config) (*testBackend, *FilterSystem) {
 	backend := &testBackend{db: db}
 	sys := NewFilterSystem(backend, cfg)

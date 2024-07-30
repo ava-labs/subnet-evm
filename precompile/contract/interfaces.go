@@ -15,10 +15,6 @@ import (
 	"github.com/holiman/uint256"
 )
 
-// BalanceChangeReason is used to indicate the reason for a balance change, useful
-// for tracing and reporting.
-type BalanceChangeReason byte
-
 type Log = types.Log
 
 // StatefulPrecompiledContract is the interface for executing a precompiled contract
@@ -36,7 +32,7 @@ type StateDB interface {
 	GetNonce(common.Address) uint64
 
 	GetBalance(common.Address) *uint256.Int
-	AddBalance(common.Address, *uint256.Int, BalanceChangeReason)
+	AddBalance(common.Address, *uint256.Int, tracing.BalanceChangeReason)
 
 	CreateAccount(common.Address)
 	Exist(common.Address) bool
