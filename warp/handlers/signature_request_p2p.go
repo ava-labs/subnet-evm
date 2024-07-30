@@ -5,6 +5,7 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/ava-labs/avalanchego/codec"
@@ -98,7 +99,7 @@ func (s *SignatureRequestHandlerP2P) AppRequest(
 	default:
 		return nil, &common.AppError{
 			Code:    ErrFailedToParse,
-			Message: "unknown payload type",
+			Message: fmt.Sprintf("unknown payload type: %T", p),
 		}
 	}
 	if err != nil {
