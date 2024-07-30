@@ -153,9 +153,9 @@ func TestCreateGas(t *testing.T) {
 				config.ExtraEips = []int{3860}
 			}
 
-			// Note: we use TestSubnetEVMConfig instead of AllEthashProtocolChanges (upstream)
+			// Note: we use TestSubnetEVMChainConfig instead of AllEthashProtocolChanges (upstream)
 			// because it is the last fork before the activation of EIP-3860
-			vmenv := NewEVM(vmctx, TxContext{}, statedb, params.TestSubnetEVMConfig, config)
+			vmenv := NewEVM(vmctx, TxContext{}, statedb, params.TestSubnetEVMChainConfig, config)
 			var startGas = uint64(testGas)
 			ret, gas, err := vmenv.Call(AccountRef(common.Address{}), address, nil, startGas, new(uint256.Int))
 			if err != nil {

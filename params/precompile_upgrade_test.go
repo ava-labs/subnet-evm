@@ -1,12 +1,13 @@
 // (c) 2022, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-package params
+package params_test
 
 import (
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/precompile/contracts/deployerallowlist"
 	"github.com/ethereum/go-ethereum/precompile/contracts/txallowlist"
 	"github.com/ethereum/go-ethereum/utils"
@@ -15,20 +16,20 @@ import (
 
 func TestVerifyUpgradeConfig(t *testing.T) {
 	admins := []common.Address{{1}}
-	chainConfig := *TestChainConfig
-	chainConfig.GenesisPrecompiles = Precompiles{
+	chainConfig := *params.TestChainConfig
+	chainConfig.GenesisPrecompiles = params.Precompiles{
 		txallowlist.ConfigKey: txallowlist.NewConfig(utils.NewUint64(1), admins, nil, nil),
 	}
 
 	type test struct {
-		upgrades            []PrecompileUpgrade
+		upgrades            []params.PrecompileUpgrade
 		expectedErrorString string
 	}
 
 	tests := map[string]test{
 		"upgrade bytes conflicts with genesis (re-enable without disable)": {
 			expectedErrorString: "disable should be [true]",
-			upgrades: []PrecompileUpgrade{
+			upgrades: []params.PrecompileUpgrade{
 				{
 					Config: txallowlist.NewConfig(utils.NewUint64(2), admins, nil, nil),
 				},
@@ -36,7 +37,7 @@ func TestVerifyUpgradeConfig(t *testing.T) {
 		},
 		"upgrade bytes conflicts with genesis (disable before enable)": {
 			expectedErrorString: "config block timestamp (0) <= previous timestamp (1) of same key",
-			upgrades: []PrecompileUpgrade{
+			upgrades: []params.PrecompileUpgrade{
 				{
 					Config: txallowlist.NewDisableConfig(utils.NewUint64(0)),
 				},
@@ -44,7 +45,7 @@ func TestVerifyUpgradeConfig(t *testing.T) {
 		},
 		"upgrade bytes conflicts with genesis (disable same time as enable)": {
 			expectedErrorString: "config block timestamp (1) <= previous timestamp (1) of same key",
-			upgrades: []PrecompileUpgrade{
+			upgrades: []params.PrecompileUpgrade{
 				{
 					Config: txallowlist.NewDisableConfig(utils.NewUint64(1)),
 				},
@@ -72,8 +73,8 @@ func TestVerifyUpgradeConfig(t *testing.T) {
 
 func TestCheckCompatibleUpgradeConfigs(t *testing.T) {
 	admins := []common.Address{{1}}
-	chainConfig := *TestChainConfig
-	chainConfig.GenesisPrecompiles = Precompiles{
+	chainConfig := *params.TestChainConfig
+	chainConfig.GenesisPrecompiles = params.Precompiles{
 		txallowlist.ConfigKey:       txallowlist.NewConfig(utils.NewUint64(1), admins, nil, nil),
 		deployerallowlist.ConfigKey: deployerallowlist.NewConfig(utils.NewUint64(10), admins, nil, nil),
 	}
@@ -81,9 +82,9 @@ func TestCheckCompatibleUpgradeConfigs(t *testing.T) {
 	tests := map[string]upgradeCompatibilityTest{
 		"disable and re-enable": {
 			startTimestamps: []uint64{5},
-			configs: []*UpgradeConfig{
+			configs: []*params.UpgradeConfig{
 				{
-					PrecompileUpgrades: []PrecompileUpgrade{
+					PrecompileUpgrades: []params.PrecompileUpgrade{
 						{
 							Config: txallowlist.NewDisableConfig(utils.NewUint64(6)),
 						},
@@ -96,9 +97,9 @@ func TestCheckCompatibleUpgradeConfigs(t *testing.T) {
 		},
 		"disable and re-enable, reschedule upgrade before it happens": {
 			startTimestamps: []uint64{5, 6},
-			configs: []*UpgradeConfig{
+			configs: []*params.UpgradeConfig{
 				{
-					PrecompileUpgrades: []PrecompileUpgrade{
+					PrecompileUpgrades: []params.PrecompileUpgrade{
 						{
 							Config: txallowlist.NewDisableConfig(utils.NewUint64(6)),
 						},
@@ -108,7 +109,7 @@ func TestCheckCompatibleUpgradeConfigs(t *testing.T) {
 					},
 				},
 				{
-					PrecompileUpgrades: []PrecompileUpgrade{
+					PrecompileUpgrades: []params.PrecompileUpgrade{
 						{
 							Config: txallowlist.NewDisableConfig(utils.NewUint64(6)),
 						},
@@ -122,9 +123,9 @@ func TestCheckCompatibleUpgradeConfigs(t *testing.T) {
 		"disable and re-enable, reschedule upgrade after it happens": {
 			expectedErrorString: "mismatching PrecompileUpgrade",
 			startTimestamps:     []uint64{5, 8},
-			configs: []*UpgradeConfig{
+			configs: []*params.UpgradeConfig{
 				{
-					PrecompileUpgrades: []PrecompileUpgrade{
+					PrecompileUpgrades: []params.PrecompileUpgrade{
 						{
 							Config: txallowlist.NewDisableConfig(utils.NewUint64(6)),
 						},
@@ -134,7 +135,7 @@ func TestCheckCompatibleUpgradeConfigs(t *testing.T) {
 					},
 				},
 				{
-					PrecompileUpgrades: []PrecompileUpgrade{
+					PrecompileUpgrades: []params.PrecompileUpgrade{
 						{
 							Config: txallowlist.NewDisableConfig(utils.NewUint64(6)),
 						},
@@ -147,9 +148,9 @@ func TestCheckCompatibleUpgradeConfigs(t *testing.T) {
 		},
 		"disable and re-enable, cancel upgrade before it happens": {
 			startTimestamps: []uint64{5, 6},
-			configs: []*UpgradeConfig{
+			configs: []*params.UpgradeConfig{
 				{
-					PrecompileUpgrades: []PrecompileUpgrade{
+					PrecompileUpgrades: []params.PrecompileUpgrade{
 						{
 							Config: txallowlist.NewDisableConfig(utils.NewUint64(6)),
 						},
@@ -159,7 +160,7 @@ func TestCheckCompatibleUpgradeConfigs(t *testing.T) {
 					},
 				},
 				{
-					PrecompileUpgrades: []PrecompileUpgrade{
+					PrecompileUpgrades: []params.PrecompileUpgrade{
 						{
 							Config: txallowlist.NewDisableConfig(utils.NewUint64(6)),
 						},
@@ -170,9 +171,9 @@ func TestCheckCompatibleUpgradeConfigs(t *testing.T) {
 		"disable and re-enable, cancel upgrade after it happens": {
 			expectedErrorString: "mismatching missing PrecompileUpgrade",
 			startTimestamps:     []uint64{5, 8},
-			configs: []*UpgradeConfig{
+			configs: []*params.UpgradeConfig{
 				{
-					PrecompileUpgrades: []PrecompileUpgrade{
+					PrecompileUpgrades: []params.PrecompileUpgrade{
 						{
 							Config: txallowlist.NewDisableConfig(utils.NewUint64(6)),
 						},
@@ -182,7 +183,7 @@ func TestCheckCompatibleUpgradeConfigs(t *testing.T) {
 					},
 				},
 				{
-					PrecompileUpgrades: []PrecompileUpgrade{
+					PrecompileUpgrades: []params.PrecompileUpgrade{
 						{
 							Config: txallowlist.NewDisableConfig(utils.NewUint64(6)),
 						},
@@ -193,9 +194,9 @@ func TestCheckCompatibleUpgradeConfigs(t *testing.T) {
 		"disable and re-enable, change upgrade config after upgrade not allowed": {
 			expectedErrorString: "mismatching PrecompileUpgrade",
 			startTimestamps:     []uint64{5, 8},
-			configs: []*UpgradeConfig{
+			configs: []*params.UpgradeConfig{
 				{
-					PrecompileUpgrades: []PrecompileUpgrade{
+					PrecompileUpgrades: []params.PrecompileUpgrade{
 						{
 							Config: txallowlist.NewDisableConfig(utils.NewUint64(6)),
 						},
@@ -205,7 +206,7 @@ func TestCheckCompatibleUpgradeConfigs(t *testing.T) {
 					},
 				},
 				{
-					PrecompileUpgrades: []PrecompileUpgrade{
+					PrecompileUpgrades: []params.PrecompileUpgrade{
 						{
 							Config: txallowlist.NewDisableConfig(utils.NewUint64(6)),
 						},
@@ -219,9 +220,9 @@ func TestCheckCompatibleUpgradeConfigs(t *testing.T) {
 		},
 		"disable and re-enable, identical upgrade config should be accepted": {
 			startTimestamps: []uint64{5, 8},
-			configs: []*UpgradeConfig{
+			configs: []*params.UpgradeConfig{
 				{
-					PrecompileUpgrades: []PrecompileUpgrade{
+					PrecompileUpgrades: []params.PrecompileUpgrade{
 						{
 							Config: txallowlist.NewDisableConfig(utils.NewUint64(6)),
 						},
@@ -231,7 +232,7 @@ func TestCheckCompatibleUpgradeConfigs(t *testing.T) {
 					},
 				},
 				{
-					PrecompileUpgrades: []PrecompileUpgrade{
+					PrecompileUpgrades: []params.PrecompileUpgrade{
 						{
 							Config: txallowlist.NewDisableConfig(utils.NewUint64(6)),
 						},
@@ -245,9 +246,9 @@ func TestCheckCompatibleUpgradeConfigs(t *testing.T) {
 		"retroactively enabling upgrades is not allowed": {
 			expectedErrorString: "cannot retroactively enable PrecompileUpgrade[1] in database (have timestamp nil, want timestamp 5, rewindto timestamp 4)",
 			startTimestamps:     []uint64{6},
-			configs: []*UpgradeConfig{
+			configs: []*params.UpgradeConfig{
 				{
-					PrecompileUpgrades: []PrecompileUpgrade{
+					PrecompileUpgrades: []params.PrecompileUpgrade{
 						{
 							Config: txallowlist.NewDisableConfig(utils.NewUint64(5)),
 						},
@@ -268,18 +269,18 @@ func TestCheckCompatibleUpgradeConfigs(t *testing.T) {
 }
 
 type upgradeCompatibilityTest struct {
-	configs             []*UpgradeConfig
+	configs             []*params.UpgradeConfig
 	startTimestamps     []uint64
 	expectedErrorString string
 }
 
-func (tt *upgradeCompatibilityTest) run(t *testing.T, chainConfig ChainConfig) {
+func (tt *upgradeCompatibilityTest) run(t *testing.T, chainConfig params.ChainConfig) {
 	// apply all the upgrade bytes specified in order
 	for i, upgrade := range tt.configs {
 		newCfg := chainConfig
 		newCfg.UpgradeConfig = *upgrade
 
-		err := chainConfig.checkCompatible(&newCfg, nil, tt.startTimestamps[i])
+		err := chainConfig.CheckCompatible(&newCfg, 0, tt.startTimestamps[i])
 
 		// if this is not the final upgradeBytes, continue applying
 		// the next upgradeBytes. (only check the result on the last apply)

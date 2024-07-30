@@ -1,7 +1,7 @@
 // (c) 2022, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-package params
+package params_test
 
 import (
 	"encoding/json"
@@ -10,31 +10,32 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
+	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/utils"
 	"github.com/stretchr/testify/require"
 )
 
 func TestVerifyStateUpgrades(t *testing.T) {
-	modifiedAccounts := map[common.Address]StateUpgradeAccount{
+	modifiedAccounts := map[common.Address]params.StateUpgradeAccount{
 		{1}: {
 			BalanceChange: (*math.HexOrDecimal256)(common.Big1),
 		},
 	}
 	tests := []struct {
 		name          string
-		upgrades      []StateUpgrade
+		upgrades      []params.StateUpgrade
 		expectedError string
 	}{
 		{
 			name: "valid upgrade",
-			upgrades: []StateUpgrade{
+			upgrades: []params.StateUpgrade{
 				{BlockTimestamp: utils.NewUint64(1), StateUpgradeAccounts: modifiedAccounts},
 				{BlockTimestamp: utils.NewUint64(2), StateUpgradeAccounts: modifiedAccounts},
 			},
 		},
 		{
 			name: "upgrade block timestamp is not strictly increasing",
-			upgrades: []StateUpgrade{
+			upgrades: []params.StateUpgrade{
 				{BlockTimestamp: utils.NewUint64(1), StateUpgradeAccounts: modifiedAccounts},
 				{BlockTimestamp: utils.NewUint64(1), StateUpgradeAccounts: modifiedAccounts},
 			},
@@ -42,7 +43,7 @@ func TestVerifyStateUpgrades(t *testing.T) {
 		},
 		{
 			name: "upgrade block timestamp decreases",
-			upgrades: []StateUpgrade{
+			upgrades: []params.StateUpgrade{
 				{BlockTimestamp: utils.NewUint64(2), StateUpgradeAccounts: modifiedAccounts},
 				{BlockTimestamp: utils.NewUint64(1), StateUpgradeAccounts: modifiedAccounts},
 			},
@@ -50,7 +51,7 @@ func TestVerifyStateUpgrades(t *testing.T) {
 		},
 		{
 			name: "upgrade block timestamp is zero",
-			upgrades: []StateUpgrade{
+			upgrades: []params.StateUpgrade{
 				{BlockTimestamp: utils.NewUint64(0), StateUpgradeAccounts: modifiedAccounts},
 			},
 			expectedError: "config block timestamp (0) must be greater than 0",
@@ -59,7 +60,7 @@ func TestVerifyStateUpgrades(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			require := require.New(t)
-			baseConfig := *TestChainConfig
+			baseConfig := *params.TestChainConfig
 			config := &baseConfig
 			config.StateUpgrades = tt.upgrades
 
@@ -74,25 +75,25 @@ func TestVerifyStateUpgrades(t *testing.T) {
 }
 
 func TestCheckCompatibleStateUpgrades(t *testing.T) {
-	chainConfig := *TestChainConfig
-	stateUpgrade := map[common.Address]StateUpgradeAccount{
+	chainConfig := *params.TestChainConfig
+	stateUpgrade := map[common.Address]params.StateUpgradeAccount{
 		{1}: {BalanceChange: (*math.HexOrDecimal256)(common.Big1)},
 	}
-	differentStateUpgrade := map[common.Address]StateUpgradeAccount{
+	differentStateUpgrade := map[common.Address]params.StateUpgradeAccount{
 		{2}: {BalanceChange: (*math.HexOrDecimal256)(common.Big1)},
 	}
 
 	tests := map[string]upgradeCompatibilityTest{
 		"reschedule upgrade before it happens": {
 			startTimestamps: []uint64{5, 6},
-			configs: []*UpgradeConfig{
+			configs: []*params.UpgradeConfig{
 				{
-					StateUpgrades: []StateUpgrade{
+					StateUpgrades: []params.StateUpgrade{
 						{BlockTimestamp: utils.NewUint64(6), StateUpgradeAccounts: stateUpgrade},
 					},
 				},
 				{
-					StateUpgrades: []StateUpgrade{
+					StateUpgrades: []params.StateUpgrade{
 						{BlockTimestamp: utils.NewUint64(6), StateUpgradeAccounts: stateUpgrade},
 					},
 				},
@@ -101,15 +102,15 @@ func TestCheckCompatibleStateUpgrades(t *testing.T) {
 		"modify upgrade after it happens not allowed": {
 			expectedErrorString: "mismatching StateUpgrade",
 			startTimestamps:     []uint64{5, 8},
-			configs: []*UpgradeConfig{
+			configs: []*params.UpgradeConfig{
 				{
-					StateUpgrades: []StateUpgrade{
+					StateUpgrades: []params.StateUpgrade{
 						{BlockTimestamp: utils.NewUint64(6), StateUpgradeAccounts: stateUpgrade},
 						{BlockTimestamp: utils.NewUint64(7), StateUpgradeAccounts: stateUpgrade},
 					},
 				},
 				{
-					StateUpgrades: []StateUpgrade{
+					StateUpgrades: []params.StateUpgrade{
 						{BlockTimestamp: utils.NewUint64(6), StateUpgradeAccounts: stateUpgrade},
 						{BlockTimestamp: utils.NewUint64(7), StateUpgradeAccounts: differentStateUpgrade},
 					},
@@ -118,15 +119,15 @@ func TestCheckCompatibleStateUpgrades(t *testing.T) {
 		},
 		"cancel upgrade before it happens": {
 			startTimestamps: []uint64{5, 6},
-			configs: []*UpgradeConfig{
+			configs: []*params.UpgradeConfig{
 				{
-					StateUpgrades: []StateUpgrade{
+					StateUpgrades: []params.StateUpgrade{
 						{BlockTimestamp: utils.NewUint64(6), StateUpgradeAccounts: stateUpgrade},
 						{BlockTimestamp: utils.NewUint64(7), StateUpgradeAccounts: stateUpgrade},
 					},
 				},
 				{
-					StateUpgrades: []StateUpgrade{
+					StateUpgrades: []params.StateUpgrade{
 						{BlockTimestamp: utils.NewUint64(6), StateUpgradeAccounts: stateUpgrade},
 					},
 				},
@@ -135,9 +136,9 @@ func TestCheckCompatibleStateUpgrades(t *testing.T) {
 		"retroactively enabling upgrades is not allowed": {
 			expectedErrorString: "cannot retroactively enable StateUpgrade[0] in database (have timestamp nil, want timestamp 5, rewindto timestamp 4)",
 			startTimestamps:     []uint64{6},
-			configs: []*UpgradeConfig{
+			configs: []*params.UpgradeConfig{
 				{
-					StateUpgrades: []StateUpgrade{
+					StateUpgrades: []params.StateUpgrade{
 						{BlockTimestamp: utils.NewUint64(5), StateUpgradeAccounts: stateUpgrade},
 					},
 				},
@@ -168,11 +169,11 @@ func TestUnmarshalStateUpgradeJSON(t *testing.T) {
 		}`,
 	)
 
-	upgradeConfig := UpgradeConfig{
-		StateUpgrades: []StateUpgrade{
+	upgradeConfig := params.UpgradeConfig{
+		StateUpgrades: []params.StateUpgrade{
 			{
 				BlockTimestamp: utils.NewUint64(1677608400),
-				StateUpgradeAccounts: map[common.Address]StateUpgradeAccount{
+				StateUpgradeAccounts: map[common.Address]params.StateUpgradeAccount{
 					common.HexToAddress("0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"): {
 						BalanceChange: (*math.HexOrDecimal256)(big.NewInt(100)),
 					},
@@ -180,7 +181,7 @@ func TestUnmarshalStateUpgradeJSON(t *testing.T) {
 			},
 		},
 	}
-	var unmarshaledConfig UpgradeConfig
+	var unmarshaledConfig params.UpgradeConfig
 	err := json.Unmarshal(jsonBytes, &unmarshaledConfig)
 	require.NoError(t, err)
 	require.Equal(t, upgradeConfig, unmarshaledConfig)
