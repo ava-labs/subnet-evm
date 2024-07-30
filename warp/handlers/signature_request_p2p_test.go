@@ -226,7 +226,7 @@ func TestBlockSignatureHandlerP2P(t *testing.T) {
 			err = proto.Unmarshal(responseBytes, &response)
 			require.NoError(t, err, "error unmarshalling SignatureResponse")
 
-			require.Equal(t, expectedResponse, response.Signature[:])
+			require.Equal(t, expectedResponse, response.Signature)
 		})
 	}
 }
