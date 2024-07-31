@@ -34,10 +34,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ava-labs/subnet-evm/params/paramsjson"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/nativeminter"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/rewardmanager"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/txallowlist"
-	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
@@ -216,7 +216,7 @@ func TestConfigUnmarshalJSON(t *testing.T) {
 	}
 	`)
 	c := &ChainConfig{}
-	require.NoError(modules.UnmarshalChainConfigJSON(config, c))
+	require.NoError(paramsjson.Unmarshal(config, c))
 
 	require.Equal(c.ChainID, big.NewInt(43214))
 	require.Equal(c.AllowFeeRecipients, true)
@@ -234,7 +234,7 @@ func TestConfigUnmarshalJSON(t *testing.T) {
 	marshaled, err := json.Marshal(c)
 	require.NoError(err)
 	c2 := &ChainConfig{}
-	require.NoError(modules.UnmarshalChainConfigJSON(marshaled, c2))
+	require.NoError(paramsjson.Unmarshal(marshaled, c2))
 	require.Equal(c, c2)
 }
 
@@ -332,6 +332,6 @@ func TestChainConfigMarshalWithUpgrades(t *testing.T) {
 	require.JSONEq(t, expectedJSON, string(result))
 
 	var unmarshalled ChainConfigWithUpgradesJSON
-	require.NoError(t, modules.UnmarshalChainConfigJSON(result, &unmarshalled))
+	require.NoError(t, paramsjson.Unmarshal(result, &unmarshalled))
 	require.Equal(t, config, unmarshalled)
 }
