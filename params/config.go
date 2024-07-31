@@ -757,7 +757,7 @@ func (c *ChainConfig) Rules(blockNum *big.Int, timestamp uint64) Rules {
 		}
 
 		addr := c.PrecompileAddresses[cfg.Key()]
-		if cfg == nil || cfg.IsDisabled() {
+		if cfg.IsDisabled() {
 			delete(r.ActivePrecompiles, addr)
 		} else {
 			r.ActivePrecompiles[addr] = cfg
