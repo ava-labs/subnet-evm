@@ -206,6 +206,8 @@ var (
 		GenesisPrecompiles: Precompiles{},
 		UpgradeConfig:      UpgradeConfig{},
 	}
+
+	TestChainRules = TestChainConfig.Rules(new(big.Int), 0)
 )
 
 // ChainConfig is the core config which determines the blockchain settings.
@@ -242,8 +244,9 @@ type ChainConfig struct {
 	FeeConfig          commontype.FeeConfig `json:"feeConfig"`                    // Set the configuration for the dynamic fee algorithm
 	AllowFeeRecipients bool                 `json:"allowFeeRecipients,omitempty"` // Allows fees to be collected by block builders.
 
-	GenesisPrecompiles Precompiles `json:"-"` // Config for enabling precompiles from genesis. JSON encode/decode will be handled by the custom marshaler/unmarshaler.
-	UpgradeConfig      `json:"-"`  // Config specified in upgradeBytes (avalanche network upgrades or enable/disabling precompiles). Skip encoding/decoding directly into ChainConfig.
+	GenesisPrecompiles  Precompiles               `json:"-"` // Config for enabling precompiles from genesis. JSON encode/decode will be handled by the custom marshaler/unmarshaler.
+	PrecompileAddresses map[string]common.Address `json:"-"`
+	UpgradeConfig       `json:"-"`                // Config specified in upgradeBytes (avalanche network upgrades or enable/disabling precompiles). Skip encoding/decoding directly into ChainConfig.
 }
 
 // Description returns a human-readable description of ChainConfig.
@@ -743,9 +746,42 @@ func (c *ChainConfig) rules(num *big.Int, timestamp uint64) Rules {
 
 // Rules returns the Avalanche modified rules to support Avalanche
 // network upgrades
-func (c *ChainConfig) RulesDoNotCallDirectly(blockNum *big.Int, timestamp uint64) Rules {
+func (c *ChainConfig) Rules(blockNum *big.Int, timestamp uint64) Rules {
 	r := c.rules(blockNum, timestamp)
 	r.AvalancheRules = c.GetAvalancheRules(timestamp)
+
+	r.ActivePrecompiles = make(map[common.Address]precompileconfig.Config)
+	update := func(cfg precompileconfig.Config) {
+		if !utils.IsForkTransition(cfg.Timestamp(), nil, timestamp) {
+			return
+		}
+
+		addr := c.PrecompileAddresses[cfg.Key()]
+		if cfg == nil || cfg.IsDisabled() {
+			delete(r.ActivePrecompiles, addr)
+		} else {
+			r.ActivePrecompiles[addr] = cfg
+		}
+	}
+
+	for _, c := range c.GenesisPrecompiles {
+		update(c)
+	}
+	for _, u := range c.PrecompileUpgrades {
+		update(u)
+	}
+
+	r.Predicaters = make(map[common.Address]precompileconfig.Predicater)
+	r.AccepterPrecompiles = make(map[common.Address]precompileconfig.Accepter)
+	for addr, config := range r.ActivePrecompiles {
+		if p, ok := config.(precompileconfig.Predicater); ok {
+			r.Predicaters[addr] = p
+		}
+		if a, ok := config.(precompileconfig.Accepter); ok {
+			r.AccepterPrecompiles[addr] = a
+		}
+	}
+
 	return r
 }
 

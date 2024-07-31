@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"math/big"
 	"reflect"
 	"strings"
 
@@ -13,8 +12,6 @@ import (
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 )
-
-var TestChainRules = ChainConfigRules(params.TestChainConfig, new(big.Int), 0)
 
 type ChainConfig interface {
 	*params.ChainConfig | *params.ChainConfigWithUpgradesJSON
@@ -45,6 +42,10 @@ func UnmarshalChainConfigJSON[T ChainConfig](data []byte, c T) error {
 		return err
 	}
 
+	if dest.PrecompileAddresses == nil {
+		dest.PrecompileAddresses = make(map[string]common.Address)
+	}
+
 	byKey := make(map[string]json.RawMessage)
 	if err := json.Unmarshal(data, &byKey); err != nil {
 		return err
@@ -52,6 +53,16 @@ func UnmarshalChainConfigJSON[T ChainConfig](data []byte, c T) error {
 	if upgrades != nil && len(byKey[upgradesKey]) > 0 {
 		if err := UnmarshalUpgradeConfigJSON(byKey[upgradesKey], upgrades); err != nil {
 			return err
+		}
+		for _, u := range upgrades.PrecompileUpgrades {
+			mod, ok := GetPrecompileModule(u.Key())
+			if !ok {
+				return fmt.Errorf("TODO: DO NOT MERGE")
+			}
+			if a, ok := dest.PrecompileAddresses[u.Key()]; ok && a != mod.Address {
+				return fmt.Errorf("TODO: DO NOT MERGE")
+			}
+			dest.PrecompileAddresses[u.Key()] = mod.Address
 		}
 	}
 
@@ -69,39 +80,14 @@ func UnmarshalChainConfigJSON[T ChainConfig](data []byte, c T) error {
 			return fmt.Errorf("unmarshal %T: %v", conf, err)
 		}
 		dest.GenesisPrecompiles[key] = conf
-	}
-	return nil
-}
 
-func ChainConfigRules(c *params.ChainConfig, blockNum *big.Int, timestamp uint64) params.Rules {
-	r := c.RulesDoNotCallDirectly(blockNum, timestamp)
-
-	// Initialize the stateful precompiles that should be enabled at [blockTimestamp].
-	r.ActivePrecompiles = make(map[common.Address]precompileconfig.Config)
-	r.Predicaters = make(map[common.Address]precompileconfig.Predicater)
-	r.AccepterPrecompiles = make(map[common.Address]precompileconfig.Accepter)
-
-	for _, module := range RegisteredModules() {
-		if config := GetActivePrecompileConfig(c, module.Address, timestamp); config != nil && !config.IsDisabled() {
-			r.ActivePrecompiles[module.Address] = config
-			if predicater, ok := config.(precompileconfig.Predicater); ok {
-				r.Predicaters[module.Address] = predicater
-			}
-			if precompileAccepter, ok := config.(precompileconfig.Accepter); ok {
-				r.AccepterPrecompiles[module.Address] = precompileAccepter
-			}
+		if a, ok := dest.PrecompileAddresses[key]; ok && a != mod.Address {
+			return fmt.Errorf("TODO: DO NOT MERGE")
 		}
+		dest.PrecompileAddresses[key] = mod.Address
 	}
 
-	return r
-}
-
-func GetActivePrecompileConfig(c *params.ChainConfig, address common.Address, timestamp uint64) precompileconfig.Config {
-	configs := GetActivatingPrecompileConfigs(c, address, nil, timestamp, c.PrecompileUpgrades)
-	if len(configs) == 0 {
-		return nil
-	}
-	return configs[len(configs)-1] // return the most recent config
+	return nil
 }
 
 func GetActivatingPrecompileConfigs(c *params.ChainConfig, address common.Address, from *uint64, to uint64, upgrades []params.PrecompileUpgrade) []precompileconfig.Config {
@@ -110,7 +96,7 @@ func GetActivatingPrecompileConfigs(c *params.ChainConfig, address common.Addres
 	if !ok {
 		return nil
 	}
-	configs := make([]precompileconfig.Config, 0)
+	var configs []precompileconfig.Config
 	key := module.ConfigKey
 	// First check the embedded [upgrade] for precompiles configured
 	// in the genesis chain config.
@@ -129,6 +115,14 @@ func GetActivatingPrecompileConfigs(c *params.ChainConfig, address common.Addres
 		}
 	}
 	return configs
+}
+
+func GetActivePrecompileConfig(c *params.ChainConfig, address common.Address, timestamp uint64) precompileconfig.Config {
+	configs := GetActivatingPrecompileConfigs(c, address, nil, timestamp, c.PrecompileUpgrades)
+	if len(configs) == 0 {
+		return nil
+	}
+	return configs[len(configs)-1] // return the most recent config
 }
 
 // CheckPrecompilesCompatible checks if [precompileUpgrades] are compatible with [c] at [headTimestamp].

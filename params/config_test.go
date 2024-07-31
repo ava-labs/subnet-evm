@@ -40,6 +40,7 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	. "github.com/ava-labs/subnet-evm/params"
@@ -160,15 +161,15 @@ func TestConfigRules(t *testing.T) {
 	}
 
 	var stamp uint64
-	if r := modules.ChainConfigRules(c, big.NewInt(0), stamp); r.IsSubnetEVM {
+	if r := c.Rules(big.NewInt(0), stamp); r.IsSubnetEVM {
 		t.Errorf("expected %v to not be subnet-evm", stamp)
 	}
 	stamp = 500
-	if r := modules.ChainConfigRules(c, big.NewInt(0), stamp); !r.IsSubnetEVM {
+	if r := c.Rules(big.NewInt(0), stamp); !r.IsSubnetEVM {
 		t.Errorf("expected %v to be subnet-evm", stamp)
 	}
 	stamp = math.MaxInt64
-	if r := modules.ChainConfigRules(c, big.NewInt(0), stamp); !r.IsSubnetEVM {
+	if r := c.Rules(big.NewInt(0), stamp); !r.IsSubnetEVM {
 		t.Errorf("expected %v to be subnet-evm", stamp)
 	}
 }
@@ -239,6 +240,9 @@ func TestConfigUnmarshalJSON(t *testing.T) {
 
 func TestActivePrecompiles(t *testing.T) {
 	config := &ChainConfig{
+		PrecompileAddresses: map[string]common.Address{
+			nativeminter.ConfigKey: nativeminter.ContractAddress,
+		},
 		UpgradeConfig: UpgradeConfig{
 			PrecompileUpgrades: []PrecompileUpgrade{
 				{
@@ -251,11 +255,11 @@ func TestActivePrecompiles(t *testing.T) {
 		},
 	}
 
-	rules0 := modules.ChainConfigRules(config, common.Big0, 0)
-	require.True(t, rules0.IsPrecompileEnabled(nativeminter.Module.Address))
+	rules0 := config.Rules(common.Big0, 0)
+	assert.True(t, rules0.IsPrecompileEnabled(nativeminter.Module.Address))
 
-	rules1 := modules.ChainConfigRules(config, common.Big0, 1)
-	require.False(t, rules1.IsPrecompileEnabled(nativeminter.Module.Address))
+	rules1 := config.Rules(common.Big0, 1)
+	assert.False(t, rules1.IsPrecompileEnabled(nativeminter.Module.Address))
 }
 
 func TestChainConfigMarshalWithUpgrades(t *testing.T) {
@@ -278,6 +282,9 @@ func TestChainConfigMarshalWithUpgrades(t *testing.T) {
 				DurangoTimestamp:   utils.NewUint64(0),
 			},
 			GenesisPrecompiles: Precompiles{},
+			PrecompileAddresses: map[string]common.Address{
+				txallowlist.Module.ConfigKey: txallowlist.ContractAddress,
+			},
 		},
 		UpgradeConfig: UpgradeConfig{
 			PrecompileUpgrades: []PrecompileUpgrade{
