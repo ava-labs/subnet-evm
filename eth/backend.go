@@ -234,19 +234,7 @@ func New(
 		}
 		vmConfig.Tracer = t
 	}
-	// Override the chain config with provided settings.
-	var overrides core.ChainOverrides
-	if config.OverrideCancun != nil {
-		overrides.OverrideCancun = config.OverrideCancun
-	}
-	if config.OverrideVerkle != nil {
-		overrides.OverrideVerkle = config.OverrideVerkle
-	}
-	// TODO (MariusVanDerWijden) get rid of shouldPreserve in a follow-up PR
-	shouldPreserve := func(header *types.Header) bool {
-		return false
-	}
-	// XXX: what is shouldPreserve in upstream?
+	// XXX: what is shouldPreserve in upstream (seems unneeded here)?
 	eth.blockchain, err = core.NewBlockChain(chainDb, cacheConfig, config.Genesis, eth.engine, vmConfig, lastAcceptedHash, config.SkipUpgradeCheck)
 	if err != nil {
 		return nil, err
@@ -273,7 +261,7 @@ func New(
 		return nil, err
 	}
 
-	eth.miner = miner.New(eth, &config.Miner, eth.blockchain.Config(), eth.EventMux(), eth.engine, clock)
+	eth.miner = miner.New(eth, config.Miner, eth.engine, clock)
 
 	allowUnprotectedTxHashes := make(map[common.Hash]struct{})
 	for _, txHash := range config.AllowUnprotectedTxHashes {

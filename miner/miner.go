@@ -18,18 +18,14 @@
 package miner
 
 import (
-	"fmt"
-	"math/big"
 	"sync"
 
 	"github.com/ava-labs/avalanchego/utils/timer/mockable"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/consensus"
 	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/txpool"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/precompile/precompileconfig"
 )
@@ -55,71 +51,59 @@ type Miner struct {
 	engine      consensus.Engine
 	txpool      *txpool.TxPool
 	chain       *core.BlockChain
-	pending     *pending
-	pendingMu   sync.Mutex // Lock protects the pending block
-}
 
-// XXX: need to fix this file
-func New(eth Backend, config *Config, chainConfig *params.ChainConfig, mux *event.TypeMux, engine consensus.Engine, clock *mockable.Clock) *Miner {
-	return &Miner{
-		worker: newWorker(config, chainConfig, engine, eth, mux, clock),
-	}
+	mu         sync.RWMutex
+	coinbase   common.Address
+	clock      *mockable.Clock // Allows us mock the clock for testing
+	beaconRoot *common.Hash    // TODO: set to empty hash, retained for upstream compatibility and future use
 }
 
 func (miner *Miner) SetEtherbase(addr common.Address) {
-	miner.worker.setEtherbase(addr)
+	miner.mu.Lock()
+	defer miner.mu.Unlock()
+	miner.coinbase = addr
 }
 
 func (miner *Miner) GenerateBlock(predicateContext *precompileconfig.PredicateContext) (*types.Block, error) {
-	return miner.worker.commitNewWork(predicateContext)
+	return miner.commitNewWork(predicateContext)
 }
 
 // New creates a new miner with provided config.
-func New(eth Backend, config Config, engine consensus.Engine) *Miner {
+func New(eth Backend, config Config, engine consensus.Engine, clock *mockable.Clock) *Miner {
 	return &Miner{
 		config:      &config,
 		chainConfig: eth.BlockChain().Config(),
 		engine:      engine,
 		txpool:      eth.TxPool(),
 		chain:       eth.BlockChain(),
-		pending:     &pending{},
+		clock:       clock,
 	}
 }
 
-// Pending returns the currently pending block and associated receipts, logs
-// and statedb. The returned values can be nil in case the pending block is
-// not initialized.
-func (miner *Miner) Pending() (*types.Block, types.Receipts, *state.StateDB) {
-	pending := miner.getPending()
-	if pending == nil {
-		return nil, nil, nil
-	}
-	return pending.block, pending.receipts, pending.stateDB.Copy()
-}
+// XXX
+// // SetExtra sets the content used to initialize the block extra field.
+// func (miner *Miner) SetExtra(extra []byte) error {
+// if uint64(len(extra)) > params.MaximumExtraDataSize {
+// return fmt.Errorf("extra exceeds max length. %d > %v", len(extra), params.MaximumExtraDataSize)
+// }
+// miner.confMu.Lock()
+// miner.config.ExtraData = extra
+// miner.confMu.Unlock()
+// return nil
+// }
 
-// SetExtra sets the content used to initialize the block extra field.
-func (miner *Miner) SetExtra(extra []byte) error {
-	if uint64(len(extra)) > params.MaximumExtraDataSize {
-		return fmt.Errorf("extra exceeds max length. %d > %v", len(extra), params.MaximumExtraDataSize)
-	}
-	miner.confMu.Lock()
-	miner.config.ExtraData = extra
-	miner.confMu.Unlock()
-	return nil
-}
+// // SetGasCeil sets the gaslimit to strive for when mining blocks post 1559.
+// // For pre-1559 blocks, it sets the ceiling.
+// func (miner *Miner) SetGasCeil(ceil uint64) {
+// miner.confMu.Lock()
+// miner.config.GasCeil = ceil
+// miner.confMu.Unlock()
+// }
 
-// SetGasCeil sets the gaslimit to strive for when mining blocks post 1559.
-// For pre-1559 blocks, it sets the ceiling.
-func (miner *Miner) SetGasCeil(ceil uint64) {
-	miner.confMu.Lock()
-	miner.config.GasCeil = ceil
-	miner.confMu.Unlock()
-}
-
-// SetGasTip sets the minimum gas tip for inclusion.
-func (miner *Miner) SetGasTip(tip *big.Int) error {
-	miner.confMu.Lock()
-	miner.config.GasPrice = tip
-	miner.confMu.Unlock()
-	return nil
-}
+// // SetGasTip sets the minimum gas tip for inclusion.
+// func (miner *Miner) SetGasTip(tip *big.Int) error {
+// miner.confMu.Lock()
+// miner.config.GasPrice = tip
+// miner.confMu.Unlock()
+// return nil
+// }

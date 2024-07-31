@@ -111,12 +111,6 @@ func newTriePrefetcher(db Database, root common.Hash, namespace string, noreads 
 // to all of them. Depending on the async parameter, the method will either block
 // until all subfetchers spin down, or return immediately.
 func (p *triePrefetcher) terminate(async bool) {
-	// XXX: Is this needed??
-	// If the prefetcher is an inactive one, bail out
-	if p.fetches != nil {
-		return
-	}
-
 	// Collect stats from all fetchers
 	var (
 		storageFetchers int64
@@ -136,7 +130,7 @@ func (p *triePrefetcher) terminate(async bool) {
 
 			if fetcher.root != p.root {
 				storageFetchers++
-				oseen := int64(len(fetcher.seen))
+				oseen := int64(len(fetcher.seenRead) + len(fetcher.seenWrite)) // XXX: Is this metric useful?
 				if oseen > largestLoad {
 					largestLoad = oseen
 				}
@@ -228,7 +222,8 @@ func (p *triePrefetcher) prefetch(owner common.Hash, root common.Hash, addr comm
 		fetcher = newSubfetcher(p, owner, root, addr)
 		p.fetchers[id] = fetcher
 	}
-	return fetcher.schedule(keys, read)
+	fetcher.schedule(keys, read)
+	return nil
 }
 
 // trie returns the trie matching the root hash, blocking until the fetcher of
@@ -239,7 +234,6 @@ func (p *triePrefetcher) trie(owner common.Hash, root common.Hash) Trie {
 	fetcher := p.fetchers[p.trieID(owner, root)]
 	if fetcher == nil {
 		log.Error("Prefetcher missed to load trie", "owner", owner, "root", root)
-		p.deliveryMissMeter.Mark(1)
 		return nil
 	}
 
@@ -373,8 +367,10 @@ func (sf *subfetcher) schedule(keys [][]byte, read bool) {
 	sf.to.enqueueTasks(tasks)
 }
 
-// peek tries to retrieve a deep copy of the fetcher's trie in whatever form it
-// is currently.
+// peek retrieves the fetcher's trie, populated with any pre-fetched data. The
+// returned trie will be a shallow copy, so modifying it will break subsequent
+// peeks for the original data. The method will block until all the scheduled
+// data has been loaded and the fethcer terminated.
 func (sf *subfetcher) peek() Trie {
 	if sf.to == nil {
 		return nil
@@ -385,54 +381,22 @@ func (sf *subfetcher) peek() Trie {
 // wait must only be called if [triePrefetcher] has not been closed. If this happens,
 // workers will not finish.
 func (sf *subfetcher) wait() {
-	// XXX: gotta fix this method
 	if sf.to == nil {
 		// Unable to open trie
 		return
 	}
 	sf.to.wait()
-	sf.lock.Unlock()
-
-	// Notify the background thread to execute scheduled tasks
-	select {
-	case sf.wake <- struct{}{}:
-		// Wake signal sent
-	default:
-		// Wake signal not sent as a previous one is already queued
-	}
-	return nil
-}
-
-// wait blocks until the subfetcher terminates. This method is used to block on
-// an async termination before accessing internal fields from the fetcher.
-func (sf *subfetcher) wait() {
-	<-sf.term
-}
-
-// peek retrieves the fetcher's trie, populated with any pre-fetched data. The
-// returned trie will be a shallow copy, so modifying it will break subsequent
-// peeks for the original data. The method will block until all the scheduled
-// data has been loaded and the fethcer terminated.
-func (sf *subfetcher) peek() Trie {
-	// Block until the fetcher terminates, then retrieve the trie
-	sf.wait()
-	return sf.trie
 }
 
 // terminate requests the subfetcher to stop accepting new tasks and spin down
 // as soon as everything is loaded. Depending on the async parameter, the method
 // will either block until all disk loads finish or return immediately.
 func (sf *subfetcher) terminate(async bool) {
-	// XXX: Used to call 	sf.to.abort() here after nil check
-	select {
-	case <-sf.stop:
-	default:
-		close(sf.stop)
-	}
-	if async {
+	if sf.to == nil {
+		// Unable to open trie
 		return
 	}
-	<-sf.term
+	sf.to.abort(async)
 }
 
 func (sf *subfetcher) skips() int {
@@ -479,7 +443,7 @@ type trieOrchestrator struct {
 	loopTerm chan struct{}
 
 	copies      int
-	copyChan    chan Trie
+	copyChan    chan Trie // XXX: seems the copy chan was removed in upstream, check if it should be removed here
 	copySpawner chan struct{}
 }
 
@@ -528,7 +492,7 @@ func (to *trieOrchestrator) copyBase() Trie {
 	to.baseLock.Lock()
 	defer to.baseLock.Unlock()
 
-	return to.sf.db.CopyTrie(to.base)
+	return to.sf.db.CopyTrie(to.base) // XXX: does this need to be a deep copy?
 }
 
 func (to *trieOrchestrator) skipCount() int {
@@ -687,7 +651,7 @@ func (to *trieOrchestrator) wait() {
 // is called, it is not necessary to call [wait].
 //
 // It is safe to call abort multiple times.
-func (to *trieOrchestrator) abort() {
+func (to *trieOrchestrator) abort(async bool) {
 	// Prevent more tasks from being enqueued
 	to.stopAcceptingTasks()
 
@@ -695,6 +659,10 @@ func (to *trieOrchestrator) abort() {
 	to.stopOnce.Do(func() {
 		close(to.stop)
 	})
+	if async {
+		// XXX: is this necessary/correct?
+		return
+	}
 	<-to.loopTerm
 
 	// Capture any dangling pending tasks (processTasks

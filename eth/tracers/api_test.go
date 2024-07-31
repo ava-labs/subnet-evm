@@ -27,7 +27,6 @@ import (
 	"slices"
 	"sync/atomic"
 	"testing"
-	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -1037,11 +1036,11 @@ func newTestMergedBackend(t *testing.T, n int, gspec *core.Genesis, generator fu
 
 	// Import the canonical chain
 	cacheConfig := &core.CacheConfig{
-		TrieCleanLimit:    256,
-		TrieDirtyLimit:    256,
-		TrieTimeLimit:     5 * time.Minute,
-		SnapshotLimit:     0,
-		TrieDirtyDisabled: true, // Archive mode
+		TrieCleanLimit: 256,
+		TrieDirtyLimit: 256,
+		// TrieTimeLimit:     5 * time.Minute,
+		SnapshotLimit: 0,
+		// TrieDirtyDisabled: true, // Archive mode
 	}
 	chain, err := core.NewBlockChain(backend.chaindb, cacheConfig, gspec, backend.engine, vm.Config{}, common.Hash{}, false)
 	if err != nil {

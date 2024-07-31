@@ -54,7 +54,7 @@ type slimBlock struct {
 	BaseFee  *big.Int
 	Txs      []txGasAndReward
 
-	BlobBaseFee, NextBlobBaseFee *big.Int
+	BlobGasUsed, ExcessBlobGas *uint64
 }
 
 // processBlock prepares a [slimBlock] from a retrieved block and list of
@@ -75,32 +75,31 @@ func processBlock(block *types.Block, receipts types.Receipts) *slimBlock {
 		return a.reward.Cmp(b.reward)
 	})
 	sb.Txs = sorter
-
-	// XXX: patch up
-	// Fill in blob base fee and next blob base fee.
-	if excessBlobGas := bf.header.ExcessBlobGas; excessBlobGas != nil {
-		bf.results.blobBaseFee = eip4844.CalcBlobFee(*excessBlobGas)
-		bf.results.nextBlobBaseFee = eip4844.CalcBlobFee(eip4844.CalcExcessBlobGas(*excessBlobGas, *bf.header.BlobGasUsed))
-	} else {
-		bf.results.blobBaseFee = new(big.Int)
-		bf.results.nextBlobBaseFee = new(big.Int)
-	}
-	// Compute gas used ratio for normal and blob gas.
-	bf.results.gasUsedRatio = float64(bf.header.GasUsed) / float64(bf.header.GasLimit)
-	if blobGasUsed := bf.header.BlobGasUsed; blobGasUsed != nil {
-		bf.results.blobGasUsedRatio = float64(*blobGasUsed) / params.MaxBlobGasPerBlock
-	}
-
+	sb.BlobGasUsed, sb.ExcessBlobGas = block.BlobGasUsed(), block.ExcessBlobGas()
 	return &sb
 }
 
 // processPercentiles returns baseFee, gasUsedRatio, and optionally reward percentiles (if any are
 // requested)
-func (sb *slimBlock) processPercentiles(percentiles []float64) ([]*big.Int, *big.Int, float64, *big.Int, *big.Int, float64) {
-	gasUsedRatio := float64(sb.GasUsed) / float64(sb.GasLimit)
+func (sb *slimBlock) processPercentiles(percentiles []float64) ([]*big.Int, *big.Int, float64, *big.Int, float64) {
+	// XXX: what happens to the next block's base fee here?
+	// Fill in blob base fee and next blob base fee.
+	blobBaseFee := new(big.Int)
+	if excessBlobGas := sb.ExcessBlobGas; excessBlobGas != nil {
+		blobBaseFee = eip4844.CalcBlobFee(*excessBlobGas)
+	}
+
+	// Compute gas used ratio for normal and blob gas.
+	var (
+		gasUsedRatio     = float64(sb.GasUsed) / float64(sb.GasLimit)
+		blobGasUsedRatio float64
+	)
+	if blobGasUsed := sb.BlobGasUsed; blobGasUsed != nil {
+		blobGasUsedRatio = float64(*blobGasUsed) / params.MaxBlobGasPerBlock
+	}
 	if len(percentiles) == 0 {
 		// rewards were not requested
-		return nil, sb.BaseFee, gasUsedRatio
+		return nil, sb.BaseFee, gasUsedRatio, blobBaseFee, blobGasUsedRatio
 	}
 
 	txLen := len(sb.Txs)
@@ -110,7 +109,7 @@ func (sb *slimBlock) processPercentiles(percentiles []float64) ([]*big.Int, *big
 		for i := range reward {
 			reward[i] = new(big.Int)
 		}
-		return reward, sb.BaseFee, gasUsedRatio
+		return reward, sb.BaseFee, gasUsedRatio, blobBaseFee, blobGasUsedRatio
 	}
 
 	// sb transactions are already sorted by tip, so we don't need to re-sort
@@ -124,7 +123,7 @@ func (sb *slimBlock) processPercentiles(percentiles []float64) ([]*big.Int, *big
 		}
 		reward[i] = sb.Txs[txIndex].reward
 	}
-	return reward, sb.BaseFee, gasUsedRatio
+	return reward, sb.BaseFee, gasUsedRatio, blobBaseFee, blobGasUsedRatio
 }
 
 // resolveBlockRange resolves the specified block range to absolute block numbers while also
@@ -190,9 +189,9 @@ func (oracle *Oracle) FeeHistory(ctx context.Context, blocks uint64, unresolvedL
 	if blocks < 1 {
 		return common.Big0, nil, nil, nil, nil, nil, nil // returning with no data and no error means there are no retrievable blocks
 	}
-	maxFeeHistory := oracle.maxHeaderHistory
+	maxFeeHistory := oracle.maxCallBlockHistory // XXX: rename to maxHeaderHistory ?
 	if len(rewardPercentiles) != 0 {
-		maxFeeHistory = oracle.maxBlockHistory
+		maxFeeHistory = oracle.maxCallBlockHistory
 	}
 	if len(rewardPercentiles) > maxQueryLimit {
 		return common.Big0, nil, nil, nil, nil, nil, fmt.Errorf("%w: over the query limit %d", errInvalidPercentile, maxQueryLimit)
@@ -217,10 +216,10 @@ func (oracle *Oracle) FeeHistory(ctx context.Context, blocks uint64, unresolvedL
 
 	var (
 		reward           = make([][]*big.Int, blocks)
-		baseFee          = make([]*big.Int, blocks+1)
+		baseFee          = make([]*big.Int, blocks)
 		gasUsedRatio     = make([]float64, blocks)
 		blobGasUsedRatio = make([]float64, blocks)
-		blobBaseFee      = make([]*big.Int, blocks+1)
+		blobBaseFee      = make([]*big.Int, blocks)
 		firstMissing     = blocks
 	)
 
@@ -237,24 +236,24 @@ func (oracle *Oracle) FeeHistory(ctx context.Context, blocks uint64, unresolvedL
 		} else {
 			block, err := oracle.backend.BlockByNumber(ctx, rpc.BlockNumber(blockNumber))
 			if err != nil {
-				return common.Big0, nil, nil, nil, err
+				return common.Big0, nil, nil, nil, nil, nil, err
 			}
 			// getting no block and no error means we are requesting into the future (might happen because of a reorg)
 			if block == nil {
 				if i == 0 {
-					return common.Big0, nil, nil, nil, nil
+					return common.Big0, nil, nil, nil, nil, nil, nil
 				}
 				firstMissing = i
 				break
 			}
 			receipts, err := oracle.backend.GetReceipts(ctx, block.Hash())
 			if err != nil {
-				return common.Big0, nil, nil, nil, err
+				return common.Big0, nil, nil, nil, nil, nil, err
 			}
 			sb = processBlock(block, receipts)
 			oracle.historyCache.Add(blockNumber, sb)
 		}
-		reward[i], baseFee[i], gasUsedRatio[i], blobBaseFee[i], blobGasUsed[i] = sb.processPercentiles(rewardPercentiles)
+		reward[i], baseFee[i], gasUsedRatio[i], blobBaseFee[i], blobGasUsedRatio[i] = sb.processPercentiles(rewardPercentiles)
 	}
 	if len(rewardPercentiles) != 0 {
 		reward = reward[:firstMissing]

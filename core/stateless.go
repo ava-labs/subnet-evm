@@ -53,7 +53,9 @@ func ExecuteStateless(config *params.ChainConfig, witness *stateless.Witness) (c
 		headerCache: lru.NewCache[common.Hash, *types.Header](256),
 		engine:      dummy.NewFaker(), // beacon.New(ethash.NewFaker()),
 	}
-	processor := NewStateProcessor(config, chain)
+	// XXX: Cannot support stateless exeuction because of state dependency of fee config
+	wrapped := &WithFeeConfig{chain, config.FeeConfig, common.Address{}, nil}
+	processor := NewStateProcessor(config, wrapped)
 	validator := NewBlockValidator(config, nil) // No chain, we only validate the state, not the block
 	parent := chain.GetHeaderByHash(witness.Block.ParentHash())
 	// Run the stateless blocks processing and self-validate certain fields
