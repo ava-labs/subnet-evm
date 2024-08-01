@@ -207,7 +207,7 @@ var (
 		UpgradeConfig:      UpgradeConfig{},
 	}
 
-	TestChainRules = TestChainConfig.Rules(new(big.Int), 0)
+	TestRules = TestChainConfig.Rules(new(big.Int), 0)
 )
 
 // ChainConfig is the core config which determines the blockchain settings.
