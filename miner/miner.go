@@ -76,7 +76,9 @@ func New(eth Backend, config Config, engine consensus.Engine, clock *mockable.Cl
 		engine:      engine,
 		txpool:      eth.TxPool(),
 		chain:       eth.BlockChain(),
+		coinbase:    config.Etherbase,
 		clock:       clock,
+		beaconRoot:  &common.Hash{},
 	}
 }
 

@@ -743,6 +743,7 @@ func (c *ChainConfig) rules(num *big.Int, timestamp uint64) Rules {
 	if chainID == nil {
 		chainID = new(big.Int)
 	}
+	isVerkle := c.IsVerkle(num, timestamp)
 	return Rules{
 		ChainID: new(big.Int).Set(chainID),
 		EthRules: EthRules{
@@ -754,10 +755,11 @@ func (c *ChainConfig) rules(num *big.Int, timestamp uint64) Rules {
 			IsConstantinople: c.IsConstantinople(num),
 			IsPetersburg:     c.IsPetersburg(num),
 			IsIstanbul:       c.IsIstanbul(num),
+			IsEIP2929:        c.IsIstanbul(num) && !isVerkle, // XXX: In upstream this is Berlin.
 			IsCancun:         c.IsCancun(num, timestamp),
 			IsPrague:         c.IsPrague(num, timestamp),
-			IsVerkle:         c.IsVerkle(num, timestamp),
-			IsEIP4762:        c.IsVerkle(num, timestamp),
+			IsVerkle:         isVerkle,
+			IsEIP4762:        isVerkle,
 		},
 	}
 }

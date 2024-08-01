@@ -393,12 +393,12 @@ func TestDatabaseRollback(t *testing.T) {
 		// if err := tester.db.Recover(parent); err != nil {
 		// 	t.Fatalf("Failed to revert db, err: %v", err)
 		// }
+		// if i > 0 {
+		// 	if err := tester.verifyState(parent); err != nil {
+		// 		t.Fatalf("Failed to verify state, err: %v", err)
+		// 	}
+		// }
 		require.ErrorContains(t, tester.db.Recover(parent), "state rollback is non-supported")
-		if i > 0 {
-			if err := tester.verifyState(parent); err != nil {
-				t.Fatalf("Failed to verify state, err: %v", err)
-			}
-		}
 	}
 	// NOTE(freezer): This is disabled since we do not have a freezer.
 	// if tester.db.tree.len() != 1 {

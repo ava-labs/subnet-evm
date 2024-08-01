@@ -23,13 +23,10 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"sync"
 	"time"
 
-	"github.com/ava-labs/avalanchego/utils/timer/mockable"
 	"github.com/ava-labs/avalanchego/utils/units"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/consensus"
 	"github.com/ethereum/go-ethereum/consensus/dummy"
 	"github.com/ethereum/go-ethereum/consensus/misc/eip4844"
 	"github.com/ethereum/go-ethereum/core"
@@ -37,7 +34,6 @@ import (
 	"github.com/ethereum/go-ethereum/core/txpool"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
-	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/precompile/precompileconfig"
@@ -73,50 +69,6 @@ type environment struct {
 	predicateResults *predicate.Results
 
 	start time.Time // Time that block building began
-}
-
-// worker is the main object which takes care of submitting new work to consensus engine
-// and gathering the sealing result.
-type worker struct {
-	config      *Config
-	chainConfig *params.ChainConfig
-	engine      consensus.Engine
-	eth         Backend
-	chain       *core.BlockChain
-
-	// Feeds
-	// TODO remove since this will never be written to
-	pendingLogsFeed event.Feed
-
-	// Subscriptions
-	mux        *event.TypeMux // TODO replace
-	mu         sync.RWMutex   // The lock used to protect the coinbase and extra fields
-	coinbase   common.Address
-	clock      *mockable.Clock // Allows us mock the clock for testing
-	beaconRoot *common.Hash    // TODO: set to empty hash, retained for upstream compatibility and future use
-}
-
-func newWorker(config *Config, chainConfig *params.ChainConfig, engine consensus.Engine, eth Backend, mux *event.TypeMux, clock *mockable.Clock) *worker {
-	worker := &worker{
-		config:      config,
-		chainConfig: chainConfig,
-		engine:      engine,
-		eth:         eth,
-		chain:       eth.BlockChain(),
-		mux:         mux,
-		coinbase:    config.Etherbase,
-		clock:       clock,
-		beaconRoot:  &common.Hash{},
-	}
-
-	return worker
-}
-
-// setEtherbase sets the etherbase used to initialize the block coinbase field.
-func (w *worker) setEtherbase(addr common.Address) {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-	w.coinbase = addr
 }
 
 // TODO: rename to `prepareWork` to match upstream?
