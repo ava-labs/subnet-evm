@@ -1376,24 +1376,24 @@ func (s *StateDB) commitAndFlush(block uint64, deleteEmptyObjects bool, snaps *s
 			return nil, err
 		}
 	}
-	if !ret.empty() {
-		// If snapshotting is enabled, update the snapshot tree with this new version
-		if snaps != nil {
-			s.snap = nil
+	// If snapshotting is enabled, update the snapshot tree with this new version
+	if snaps != nil {
+		s.snap = nil
 
-			start := time.Now()
-			if err := snaps.Update(blockHash, ret.root, parentHash, ret.destructs, ret.accounts, ret.storages); err != nil {
-				log.Warn("Failed to update snapshot tree", "from", ret.originRoot, "to", ret.root, "err", err)
-			}
-			// Keep 128 diff layers in the memory, persistent layer is 129th.
-			// - head layer is paired with HEAD state
-			// - head-1 layer is paired with HEAD-1 state
-			// - head-127 layer(bottom-most diff layer) is paired with HEAD-127 state
-			// if err := snaps.Cap(ret.root, TriesInMemory); err != nil {
-			// 	log.Warn("Failed to cap snapshot tree", "root", ret.root, "layers", TriesInMemory, "err", err)
-			// }
-			s.SnapshotCommits += time.Since(start)
+		start := time.Now()
+		if err := snaps.Update(blockHash, ret.root, parentHash, ret.destructs, ret.accounts, ret.storages); err != nil {
+			log.Warn("Failed to update snapshot tree", "from", ret.originRoot, "to", ret.root, "err", err)
 		}
+		// Keep 128 diff layers in the memory, persistent layer is 129th.
+		// - head layer is paired with HEAD state
+		// - head-1 layer is paired with HEAD-1 state
+		// - head-127 layer(bottom-most diff layer) is paired with HEAD-127 state
+		// if err := snaps.Cap(ret.root, TriesInMemory); err != nil {
+		// 	log.Warn("Failed to cap snapshot tree", "root", ret.root, "layers", TriesInMemory, "err", err)
+		// }
+		s.SnapshotCommits += time.Since(start)
+	}
+	if !ret.empty() {
 		// If trie database is enabled, commit the state update as a new layer
 		if db := s.db.TrieDB(); db != nil {
 			start := time.Now()
