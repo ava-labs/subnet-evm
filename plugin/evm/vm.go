@@ -43,6 +43,7 @@ import (
 	statesyncclient "github.com/ava-labs/subnet-evm/sync/client"
 	"github.com/ava-labs/subnet-evm/sync/client/stats"
 	"github.com/ava-labs/subnet-evm/warp"
+	"github.com/ava-labs/subnet-evm/warp/handlers"
 	warpValidators "github.com/ava-labs/subnet-evm/warp/validators"
 
 	// Force-load tracer engine to trigger registration
@@ -105,9 +106,6 @@ const (
 	ethMetricsPrefix        = "eth"
 	sdkMetricsPrefix        = "sdk"
 	chainStateMetricsPrefix = "chain_state"
-
-	// p2p app protocols
-	ethTxGossipProtocol = 0x0
 
 	// gossip constants
 	pushGossipDiscardedElements          = 16_384
@@ -514,7 +512,7 @@ func (vm *VM) Initialize(
 
 	go vm.ctx.Log.RecoverAndPanic(vm.startContinuousProfiler)
 
-	vm.initializeStateSyncServer()
+	vm.initializeHandlers()
 	return vm.initializeStateSyncClient(lastAcceptedHeight)
 }
 
@@ -618,12 +616,16 @@ func (vm *VM) initializeStateSyncClient(lastAcceptedHeight uint64) error {
 	return nil
 }
 
-// initializeStateSyncServer should be called after [vm.chain] is initialized.
-func (vm *VM) initializeStateSyncServer() {
+// initializeHandlers should be called after [vm.chain] is initialized.
+func (vm *VM) initializeHandlers() {
 	vm.StateSyncServer = NewStateSyncServer(&stateSyncServerConfig{
 		Chain:            vm.blockChain,
 		SyncableInterval: vm.config.StateSyncCommitInterval,
 	})
+
+	// Add p2p warp message warpHandler
+	warpHandler := handlers.NewSignatureRequestHandlerP2P(vm.warpBackend, vm.networkCodec)
+	vm.Network.AddHandler(p2p.SignatureRequestHandlerID, warpHandler)
 
 	vm.setAppRequestHandlers()
 	vm.setCrossChainAppRequestHandler()
@@ -695,7 +697,7 @@ func (vm *VM) initBlockBuilding() error {
 	vm.cancel = cancel
 
 	ethTxGossipMarshaller := GossipEthTxMarshaller{}
-	ethTxGossipClient := vm.Network.NewClient(ethTxGossipProtocol, p2p.WithValidatorSampling(vm.validators))
+	ethTxGossipClient := vm.Network.NewClient(p2p.TxGossipHandlerID, p2p.WithValidatorSampling(vm.validators))
 	ethTxGossipMetrics, err := gossip.NewMetrics(vm.sdkMetrics, ethTxGossipNamespace)
 	if err != nil {
 		return fmt.Errorf("failed to initialize eth tx gossip metrics: %w", err)
@@ -759,7 +761,7 @@ func (vm *VM) initBlockBuilding() error {
 		)
 	}
 
-	if err := vm.Network.AddHandler(ethTxGossipProtocol, vm.ethTxGossipHandler); err != nil {
+	if err := vm.Network.AddHandler(p2p.TxGossipHandlerID, vm.ethTxGossipHandler); err != nil {
 		return err
 	}
 
