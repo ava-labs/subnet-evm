@@ -33,8 +33,8 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/ava-labs/avalanchego/upgrade"
 	"github.com/ava-labs/avalanchego/utils/constants"
-	"github.com/ava-labs/avalanchego/version"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/utils"
@@ -55,8 +55,7 @@ var (
 
 	DynamicFeeExtraDataSize        = 80
 	RollupWindow            uint64 = 10
-
-	DefaultGenesisTime = version.DefaultUpgradeTime
+	DefaultGenesisTime             = time.Date(2020, time.December, 5, 5, 0, 0, 0, time.UTC)
 
 	DefaultFeeConfig = commontype.FeeConfig{
 		GasLimit:        big.NewInt(8_000_000),
@@ -109,7 +108,7 @@ var (
 		PetersburgBlock:     big.NewInt(0),
 		IstanbulBlock:       big.NewInt(0),
 		MuirGlacierBlock:    big.NewInt(0),
-		CancunTime:          utils.TimeToNewUint64(version.GetEUpgradeTime(constants.UnitTestID)),
+		CancunTime:          utils.TimeToNewUint64(upgrade.GetConfig(constants.UnitTestID).EtnaTime),
 		NetworkUpgrades:     getDefaultNetworkUpgrades(constants.UnitTestID),
 		GenesisPrecompiles:  Precompiles{},
 		UpgradeConfig:       UpgradeConfig{},
