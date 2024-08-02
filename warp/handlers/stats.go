@@ -6,7 +6,7 @@ package handlers
 import (
 	"time"
 
-	"github.com/ethereum/go-ethereum/metrics"
+	"github.com/ava-labs/subnet-evm/metrics"
 )
 
 type handlerStats struct {

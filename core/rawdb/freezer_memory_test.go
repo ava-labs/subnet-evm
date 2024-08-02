@@ -19,7 +19,7 @@ package rawdb
 import (
 	"testing"
 
-	"github.com/ethereum/go-ethereum/core/rawdb/ancienttest"
+	"github.com/ava-labs/subnet-evm/core/rawdb/ancienttest"
 	"github.com/ethereum/go-ethereum/ethdb"
 )
 

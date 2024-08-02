@@ -19,16 +19,16 @@ package triedb
 import (
 	"errors"
 
+	"github.com/ava-labs/subnet-evm/core/rawdb"
+	"github.com/ava-labs/subnet-evm/trie"
+	"github.com/ava-labs/subnet-evm/trie/trienode"
+	"github.com/ava-labs/subnet-evm/trie/triestate"
+	"github.com/ava-labs/subnet-evm/triedb/database"
+	"github.com/ava-labs/subnet-evm/triedb/hashdb"
+	"github.com/ava-labs/subnet-evm/triedb/pathdb"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/trie"
-	"github.com/ethereum/go-ethereum/trie/trienode"
-	"github.com/ethereum/go-ethereum/trie/triestate"
-	"github.com/ethereum/go-ethereum/triedb/database"
-	"github.com/ethereum/go-ethereum/triedb/hashdb"
-	"github.com/ethereum/go-ethereum/triedb/pathdb"
 )
 
 // Config defines all necessary options for database.

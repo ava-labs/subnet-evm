@@ -33,8 +33,8 @@ import (
 	"slices"
 	"strconv"
 
+	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/rlp"
 )
 

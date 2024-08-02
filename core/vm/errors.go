@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/ethereum/go-ethereum/vmerrs"
+	"github.com/ava-labs/subnet-evm/vmerrs"
 )
 
 // List evm execution errors

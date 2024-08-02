@@ -6,8 +6,8 @@ package contract
 import (
 	"fmt"
 
+	"github.com/ava-labs/subnet-evm/core/tracing"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/tracing"
 )
 
 const (

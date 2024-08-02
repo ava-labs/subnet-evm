@@ -8,9 +8,9 @@ package state
 import (
 	"testing"
 
+	"github.com/ava-labs/subnet-evm/core/rawdb"
+	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/rawdb"
-	"github.com/ethereum/go-ethereum/precompile/contract"
 	"github.com/stretchr/testify/require"
 )
 

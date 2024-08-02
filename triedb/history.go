@@ -19,8 +19,8 @@ package triedb
 import (
 	"errors"
 
+	"github.com/ava-labs/subnet-evm/triedb/pathdb"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/triedb/pathdb"
 )
 
 // AccountHistory inspects the account history within the specified range.

@@ -6,7 +6,7 @@ package params
 import (
 	"encoding/json"
 
-	"github.com/ethereum/go-ethereum/precompile/precompileconfig"
+	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 )
 
 type Precompiles map[string]precompileconfig.Config

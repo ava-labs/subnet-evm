@@ -21,8 +21,8 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/ava-labs/subnet-evm/internal/testrand"
 	"github.com/ethereum/go-ethereum/ethdb"
-	"github.com/ethereum/go-ethereum/internal/testrand"
 )
 
 // TestAncientSuite runs a suite of tests against an ancient database

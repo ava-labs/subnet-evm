@@ -19,9 +19,9 @@ package state
 import (
 	"testing"
 
+	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/trie/utils"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/params"
-	"github.com/ethereum/go-ethereum/trie/utils"
 )
 
 var (

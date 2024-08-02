@@ -6,8 +6,8 @@ package stateupgrade
 import (
 	"math/big"
 
+	"github.com/ava-labs/subnet-evm/core/tracing"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/tracing"
 	"github.com/holiman/uint256"
 )
 

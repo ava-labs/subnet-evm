@@ -19,7 +19,7 @@ package core
 import (
 	"sync"
 
-	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ava-labs/subnet-evm/core/types"
 )
 
 // txSenderCacherRequest is a request for recovering transaction senders with a

@@ -22,7 +22,7 @@ package core
 import (
 	"testing"
 
-	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ava-labs/subnet-evm/core/types"
 )
 
 // verifyNoGaps checks that there are no gaps after the initial set of blocks in

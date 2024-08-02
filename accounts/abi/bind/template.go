@@ -19,7 +19,7 @@ package bind
 import (
 	_ "embed"
 
-	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ava-labs/subnet-evm/accounts/abi"
 )
 
 // tmplData is the data structure required to fill the binding template.

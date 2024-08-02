@@ -19,12 +19,12 @@ package vm
 import (
 	"fmt"
 
+	"github.com/ava-labs/subnet-evm/core/tracing"
+	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
-	"github.com/ethereum/go-ethereum/core/tracing"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/vmerrs"
 	"github.com/holiman/uint256"
 )
 

@@ -8,8 +8,8 @@ package testutils
 import (
 	"testing"
 
-	"github.com/ethereum/go-ethereum/commontype"
-	"github.com/ethereum/go-ethereum/precompile/precompileconfig"
+	"github.com/ava-labs/subnet-evm/commontype"
+	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
