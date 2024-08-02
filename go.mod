@@ -4,7 +4,7 @@ go 1.21.12
 
 require (
 	github.com/VictoriaMetrics/fastcache v1.12.2
-	github.com/ava-labs/avalanchego v1.11.11-0.20240802012823-22a1f1d55cf0
+	github.com/ava-labs/avalanchego v1.11.11-0.20240802024441-fdadc08156dc
 	github.com/cespare/cp v0.1.0
 	github.com/consensys/gnark-crypto v0.12.1
 	github.com/crate-crypto/go-ipa v0.0.0-20240223125850-b1e8a79f509c
@@ -55,7 +55,7 @@ require (
 require (
 	github.com/DataDog/zstd v1.5.2 // indirect
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
-	github.com/ava-labs/coreth v0.13.8-0.20240802012434-da45add077c0 // indirect
+	github.com/ava-labs/coreth v0.13.8-0.20240802023737-496c1262c269 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bits-and-blooms/bitset v1.10.0 // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.3.2 // indirect
