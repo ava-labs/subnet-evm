@@ -27,6 +27,16 @@ linters:
 linters-settings:
   gofmt:
     simplify: true
+  revive:
+    enable-all-rules: false
+    # here we enable specific useful rules
+    # see https://golangci-lint.run/usage/linters/#revive for supported rules
+    rules:
+      - name: receiver-naming
+        severity: warning
+        disabled: false
+        exclude: [""]
+
   goconst:
     min-len: 3 # minimum length of string constant
     min-occurrences: 6 # minimum number of occurrences
