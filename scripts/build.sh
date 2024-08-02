@@ -19,7 +19,7 @@ source "$SUBNET_EVM_PATH"/scripts/constants.sh
 if [[ $# -eq 1 ]]; then
     BINARY_PATH=$1
 elif [[ $# -eq 0 ]]; then
-    BINARY_PATH="${SUBNET_EVM_PATH}/build/subnet-evm"
+    BINARY_PATH="$DEFAULT_PLUGIN_DIR/$DEFAULT_VM_ID"
 else
     echo "Invalid arguments to build subnet-evm. Requires zero (default binary path) or one argument to specify the binary path."
     exit 1
