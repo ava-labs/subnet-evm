@@ -69,7 +69,6 @@ var (
 	accountUpdateTimer       = metrics.NewRegisteredCounter("chain/account/updates", nil)
 	accountCommitTimer       = metrics.NewRegisteredCounter("chain/account/commits", nil)
 	storageReadTimer         = metrics.NewRegisteredCounter("chain/storage/reads", nil)
-	storageHashTimer         = metrics.NewRegisteredCounter("chain/storage/hashes", nil)
 	storageUpdateTimer       = metrics.NewRegisteredCounter("chain/storage/updates", nil)
 	storageCommitTimer       = metrics.NewRegisteredCounter("chain/storage/commits", nil)
 	snapshotAccountReadTimer = metrics.NewRegisteredCounter("chain/snapshot/account/reads", nil)
