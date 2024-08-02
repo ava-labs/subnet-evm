@@ -86,7 +86,7 @@ func TestSupplyOmittedFields(t *testing.T) {
 
 	expected := supplyInfo{
 		Number:     0,
-		Hash:       common.HexToHash("0x52f276d96f0afaaf2c3cb358868bdc2779c4b0cb8de3e7e5302e247c0b66a703"),
+		Hash:       common.HexToHash("0x74dd5d404823f342fb3d372ea289565e5b1ff25d07e48a59db8130c5f61e941a"),
 		ParentHash: common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
 	}
 	actual := out[expected.Number]
@@ -118,7 +118,7 @@ func TestSupplyGenesisAlloc(t *testing.T) {
 			GenesisAlloc: (*hexutil.Big)(new(big.Int).Mul(common.Big2, big.NewInt(params.Ether))),
 		},
 		Number:     0,
-		Hash:       common.HexToHash("0xbcc9466e9fc6a8b56f4b29ca353a421ff8b51a0c1a58ca4743b427605b08f2ca"),
+		Hash:       common.HexToHash("0xe606ce99f3b5c7aa01f960569b736de15a7c6a9a0b3b511b827ae606a0ef68cd"),
 		ParentHash: common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
 	}
 
@@ -142,12 +142,13 @@ func TestSupplyRewards(t *testing.T) {
 	)
 
 	expected := supplyInfo{
-		Issuance: &supplyInfoIssuance{
-			Reward: (*hexutil.Big)(new(big.Int).Mul(common.Big2, big.NewInt(params.Ether))),
-		},
+		// XXX: No issuance in avalanche, maybe should test some other "issuance" (import/export?)
+		// Issuance: &supplyInfoIssuance{
+		// 	Reward: (*hexutil.Big)(new(big.Int).Mul(common.Big2, big.NewInt(params.Ether))),
+		// },
 		Number:     1,
-		Hash:       common.HexToHash("0xcbb08370505be503dafedc4e96d139ea27aba3cbc580148568b8a307b3f51052"),
-		ParentHash: common.HexToHash("0xadeda0a83e337b6c073e3f0e9a17531a04009b397a9588c093b628f21b8bc5a3"),
+		Hash:       common.HexToHash("0x4d558ca29a197f903a34056341e5ba69246ef8928d79563c90b7d52f364aec25"),
+		ParentHash: common.HexToHash("0x74dd5d404823f342fb3d372ea289565e5b1ff25d07e48a59db8130c5f61e941a"),
 	}
 
 	out, _, err := testSupplyTracer(t, gspec, emptyBlockGenerationFunc)
@@ -161,9 +162,9 @@ func TestSupplyRewards(t *testing.T) {
 }
 
 func TestSupplyEip1559Burn(t *testing.T) {
+	config := *params.TestSubnetEVMChainConfig
+	config.FeeConfig.MinBaseFee = big.NewInt(1)
 	var (
-		config = *params.TestSubnetEVMChainConfig
-
 		aa = common.HexToAddress("0x000000000000000000000000000000000000aaaa")
 		// A sender who makes transactions, has some eth1
 		key1, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
@@ -202,13 +203,13 @@ func TestSupplyEip1559Burn(t *testing.T) {
 		t.Fatalf("failed to test supply tracer: %v", err)
 	}
 	var (
-		head     = chain.CurrentBlock()
-		reward   = new(big.Int).Mul(common.Big2, big.NewInt(params.Ether))
+		head = chain.CurrentBlock()
+		// reward   = new(big.Int).Mul(common.Big2, big.NewInt(params.Ether))
 		burn     = new(big.Int).Mul(big.NewInt(21000), head.BaseFee)
 		expected = supplyInfo{
-			Issuance: &supplyInfoIssuance{
-				Reward: (*hexutil.Big)(reward),
-			},
+			// Issuance: &supplyInfoIssuance{
+			// 	Reward: (*hexutil.Big)(reward),
+			// },
 			Burn: &supplyInfoBurn{
 				EIP1559: (*hexutil.Big)(burn),
 			},
@@ -228,9 +229,12 @@ func TestSupplyEip1559Burn(t *testing.T) {
 // Because Contract B is removed only at the end of the transaction
 // the ether sent in between is burnt before Cancun hard fork.
 func TestSupplySelfdestruct(t *testing.T) {
+	config := *params.TestChainConfig
+	config.EUpgradeTimestamp = nil
+	config.DurangoTimestamp = nil
+	config.CancunTime = nil
+	config.FeeConfig.MinBaseFee = big.NewInt(1)
 	var (
-		config = *params.TestChainConfig
-
 		aa      = common.HexToAddress("0x1111111111111111111111111111111111111111")
 		bb      = common.HexToAddress("0x2222222222222222222222222222222222222222")
 		dad     = common.HexToAddress("0x0000000000000000000000000000000000000dad")
@@ -305,7 +309,8 @@ func TestSupplySelfdestruct(t *testing.T) {
 	// Check live trace output
 	expected := supplyInfo{
 		Burn: &supplyInfoBurn{
-			EIP1559: (*hexutil.Big)(big.NewInt(55289500000000)),
+			// EIP1559: (*hexutil.Big)(big.NewInt(55289500000000)),
+			EIP1559: (*hexutil.Big)(big.NewInt(0xf6d4)), // Modified to match avalanche fee calculation
 			Misc:    (*hexutil.Big)(big.NewInt(5000000000)),
 		},
 		Number:     1,
@@ -320,6 +325,7 @@ func TestSupplySelfdestruct(t *testing.T) {
 	// 2. Test post Cancun
 	cancunTime := uint64(0)
 	//gspec.Config.ShanghaiTime = &cancunTime
+	gspec.Config.DurangoTimestamp = &cancunTime
 	gspec.Config.CancunTime = &cancunTime
 
 	postCancunOutput, postCancunChain, err := testSupplyTracer(t, gspec, testBlockGenerationFunc)
@@ -346,7 +352,8 @@ func TestSupplySelfdestruct(t *testing.T) {
 	head = postCancunChain.CurrentBlock()
 	expected = supplyInfo{
 		Burn: &supplyInfoBurn{
-			EIP1559: (*hexutil.Big)(big.NewInt(55289500000000)),
+			// EIP1559: (*hexutil.Big)(big.NewInt(55289500000000)),
+			EIP1559: (*hexutil.Big)(big.NewInt(0xf6d4)), // Modified to match avalanche fee calculation
 		},
 		Number:     1,
 		Hash:       head.Hash(),
@@ -366,9 +373,9 @@ func TestSupplySelfdestruct(t *testing.T) {
 //   - Contract D calls C and reverts (Burn amount of C
 //     has to be reverted as well).
 func TestSupplySelfdestructItselfAndRevert(t *testing.T) {
+	config := *params.TestChainConfig
+	config.FeeConfig.MinBaseFee = big.NewInt(1)
 	var (
-		config = *params.TestChainConfig
-
 		aa      = common.HexToAddress("0x1111111111111111111111111111111111111111")
 		bb      = common.HexToAddress("0x2222222222222222222222222222222222222222")
 		cc      = common.HexToAddress("0x3333333333333333333333333333333333333333")

@@ -25,6 +25,7 @@ import (
 	"github.com/ethereum/go-ethereum/consensus"
 	"github.com/ethereum/go-ethereum/consensus/dummy"
 	"github.com/ethereum/go-ethereum/consensus/misc/eip4844"
+	"github.com/ethereum/go-ethereum/constants"
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
@@ -474,7 +475,7 @@ func GenerateBadBlock(parent *types.Block, engine consensus.Engine, txs types.Tr
 
 var (
 	code                            = common.FromHex(`6060604052600a8060106000396000f360606040526008565b00`)
-	rules                           = params.EthRules{IsHomestead: true, IsEIP2028: true, IsEIP3860: true}
+	rules                           = params.EthRules{IsHomestead: true, IsIstanbul: true, IsEIP2028: true, IsEIP3860: true}
 	intrinsicContractCreationGas, _ = IntrinsicGas(code, nil, true, params.Rules{EthRules: rules})
 	// A contract creation that calls EXTCODECOPY in the constructor. Used to ensure that the witness
 	// will not contain that copied data.
@@ -484,6 +485,8 @@ var (
 )
 
 func TestProcessVerkle(t *testing.T) {
+	feeConfig := params.DefaultFeeConfig
+	feeConfig.MinBaseFee = big.NewInt(1)
 	var (
 		config = &params.ChainConfig{
 			ChainID:             big.NewInt(1),
@@ -502,6 +505,7 @@ func TestProcessVerkle(t *testing.T) {
 			VerkleTime: u64(0),
 			// TODO uncomment when proof generation is merged
 			// ProofInBlocks:                 true,
+			FeeConfig: feeConfig,
 		}
 		signer     = types.LatestSigner(config)
 		testKey, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
@@ -534,6 +538,7 @@ func TestProcessVerkle(t *testing.T) {
 		txCost1*2 + txCost2 + contractCreationCost + codeWithExtCodeCopyGas,
 	}
 	_, chain, _, _, _ := GenerateVerkleChainWithGenesis(gspec, dummy.NewFaker(), 2, func(i int, gen *BlockGen) {
+		gen.SetCoinbase(constants.BlackholeAddr)
 		//gen.SetPoS()
 
 		// TODO need to check that the tx cost provided is the exact amount used (no remaining left-over)
@@ -568,6 +573,11 @@ func TestProcessVerkle(t *testing.T) {
 		}
 		if b.Hash() != chain[i].Hash() {
 			t.Fatalf("block #%d not found at expected height", b.NumberU64())
+		}
+		for j, tx := range b.Transactions() {
+			t.Logf(
+				"gas used for tx %d in block #%d: %d\n", j, b.NumberU64(), tx.Gas(),
+			)
 		}
 		if b.GasUsed() != blockGasUsagesExpected[i] {
 			t.Fatalf("expected block #%d txs to use %d, got %d\n", b.NumberU64(), blockGasUsagesExpected[i], b.GasUsed())

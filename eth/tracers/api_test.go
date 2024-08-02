@@ -32,6 +32,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/consensus"
 	"github.com/ethereum/go-ethereum/consensus/dummy"
+	"github.com/ethereum/go-ethereum/constants"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/state"
@@ -1071,6 +1072,7 @@ func TestTraceBlockWithBasefee(t *testing.T) {
 	var txHash common.Hash
 	var baseFee = new(big.Int)
 	backend := newTestMergedBackend(t, genBlocks, genesis, func(i int, b *core.BlockGen) {
+		b.SetCoinbase(constants.BlackholeAddr)
 		tx, _ := types.SignTx(types.NewTx(&types.LegacyTx{
 			Nonce:    uint64(i),
 			To:       &target,

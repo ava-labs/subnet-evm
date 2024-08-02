@@ -155,6 +155,7 @@ func GetChainConfig(forkString string) (baseConfig *params.ChainConfig, eips []i
 		"ArrowGlacier": "SubnetEVM",
 		"GrayGlacier":  "SubnetEVM",
 		"Merge":        "SubnetEVM",
+		"Paris":        "SubnetEVM",
 	}
 	if alias, ok := forkAliases[baseName]; ok {
 		baseName = alias

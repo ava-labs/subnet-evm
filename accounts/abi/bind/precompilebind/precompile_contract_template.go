@@ -33,6 +33,7 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/core/tracing"
 	{{- if .Contract.AllowList}}
 	"github.com/ethereum/go-ethereum/precompile/allowlist"
 	{{- end}}
@@ -223,7 +224,7 @@ func Unpack{{capitalise .Normalized.Name}}Output(output []byte)({{$bindedType}},
 }
 {{end}}
 
-func {{decapitalise .Normalized.Name}}(accessibleState contract.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
+func {{decapitalise .Normalized.Name}}(accessibleState contract.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, tracers *tracing.Hooks, readOnly bool) (ret []byte, remainingGas uint64, err error) {
 	if remainingGas, err = contract.DeductGas(suppliedGas, {{.Normalized.Name}}GasCost); err != nil {
 		return nil, 0, err
 	}
@@ -288,7 +289,7 @@ func {{decapitalise .Normalized.Name}}(accessibleState contract.AccessibleState,
 {{- with .Contract.Fallback}}
 // {{decapitalise $contract.Type}}Fallback executed if a function identifier does not match any of the available functions in a smart contract.
 // This function cannot take an input or return an output.
-func {{decapitalise $contract.Type}}Fallback (accessibleState contract.AccessibleState, caller common.Address, addr common.Address, _ []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
+func {{decapitalise $contract.Type}}Fallback (accessibleState contract.AccessibleState, caller common.Address, addr common.Address, _ []byte, suppliedGas uint64, tracers *tracing.Hooks, readOnly bool) (ret []byte, remainingGas uint64, err error) {
 	if remainingGas, err = contract.DeductGas(suppliedGas, {{$contract.Type}}FallbackGasCost); err != nil {
 		return nil, 0, err
 	}

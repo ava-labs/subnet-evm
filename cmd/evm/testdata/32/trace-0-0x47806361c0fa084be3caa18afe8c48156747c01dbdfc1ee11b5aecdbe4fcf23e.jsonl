@@ -48,14 +48,14 @@
 {"pc":43,"op":253,"gas":"0x65ed8","gasCost":"0x0","memSize":32,"stack":[],"depth":2,"refund":0,"opName":"REVERT","error":"execution reverted"}
 {"output":"0000000000000000000000000000000000000000000000000000000000000010","gasUsed":"0x2e44","error":"execution reverted"}
 {"pc":69,"op":96,"gas":"0x67976","gasCost":"0x3","memSize":0,"stack":["0x0"],"depth":1,"refund":0,"opName":"PUSH1"}
-{"pc":71,"op":85,"gas":"0x67973","gasCost":"0x1388","memSize":0,"stack":["0x0","0x2"],"depth":1,"refund":4800,"opName":"SSTORE"}
-{"pc":72,"op":61,"gas":"0x665eb","gasCost":"0x2","memSize":0,"stack":[],"depth":1,"refund":4800,"opName":"RETURNDATASIZE"}
-{"pc":73,"op":96,"gas":"0x665e9","gasCost":"0x3","memSize":0,"stack":["0x20"],"depth":1,"refund":4800,"opName":"PUSH1"}
-{"pc":75,"op":96,"gas":"0x665e6","gasCost":"0x3","memSize":0,"stack":["0x20","0x0"],"depth":1,"refund":4800,"opName":"PUSH1"}
-{"pc":77,"op":62,"gas":"0x665e3","gasCost":"0x9","memSize":0,"stack":["0x20","0x0","0x0"],"depth":1,"refund":4800,"opName":"RETURNDATACOPY"}
-{"pc":78,"op":96,"gas":"0x665da","gasCost":"0x3","memSize":32,"stack":[],"depth":1,"refund":4800,"opName":"PUSH1"}
-{"pc":80,"op":81,"gas":"0x665d7","gasCost":"0x3","memSize":32,"stack":["0x0"],"depth":1,"refund":4800,"opName":"MLOAD"}
-{"pc":81,"op":96,"gas":"0x665d4","gasCost":"0x3","memSize":32,"stack":["0x10"],"depth":1,"refund":4800,"opName":"PUSH1"}
-{"pc":83,"op":85,"gas":"0x665d1","gasCost":"0x1388","memSize":32,"stack":["0x10","0x3"],"depth":1,"refund":4800,"opName":"SSTORE"}
-{"pc":84,"op":0,"gas":"0x65249","gasCost":"0x0","memSize":32,"stack":[],"depth":1,"refund":4800,"opName":"STOP"}
+{"pc":71,"op":85,"gas":"0x67973","gasCost":"0x1388","memSize":0,"stack":["0x0","0x2"],"depth":1,"refund":0,"opName":"SSTORE"}
+{"pc":72,"op":61,"gas":"0x665eb","gasCost":"0x2","memSize":0,"stack":[],"depth":1,"refund":0,"opName":"RETURNDATASIZE"}
+{"pc":73,"op":96,"gas":"0x665e9","gasCost":"0x3","memSize":0,"stack":["0x20"],"depth":1,"refund":0,"opName":"PUSH1"}
+{"pc":75,"op":96,"gas":"0x665e6","gasCost":"0x3","memSize":0,"stack":["0x20","0x0"],"depth":1,"refund":0,"opName":"PUSH1"}
+{"pc":77,"op":62,"gas":"0x665e3","gasCost":"0x9","memSize":0,"stack":["0x20","0x0","0x0"],"depth":1,"refund":0,"opName":"RETURNDATACOPY"}
+{"pc":78,"op":96,"gas":"0x665da","gasCost":"0x3","memSize":32,"stack":[],"depth":1,"refund":0,"opName":"PUSH1"}
+{"pc":80,"op":81,"gas":"0x665d7","gasCost":"0x3","memSize":32,"stack":["0x0"],"depth":1,"refund":0,"opName":"MLOAD"}
+{"pc":81,"op":96,"gas":"0x665d4","gasCost":"0x3","memSize":32,"stack":["0x10"],"depth":1,"refund":0,"opName":"PUSH1"}
+{"pc":83,"op":85,"gas":"0x665d1","gasCost":"0x1388","memSize":32,"stack":["0x10","0x3"],"depth":1,"refund":0,"opName":"SSTORE"}
+{"pc":84,"op":0,"gas":"0x65249","gasCost":"0x0","memSize":32,"stack":[],"depth":1,"refund":0,"opName":"STOP"}
 {"output":"","gasUsed":"0xfccf"}

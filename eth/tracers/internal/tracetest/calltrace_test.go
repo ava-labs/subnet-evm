@@ -248,7 +248,7 @@ func benchTracer(tracerName string, test *callTracerTest, b *testing.B) {
 
 func TestInternals(t *testing.T) {
 	var (
-		config    = params.TestChainConfig
+		config    = params.TestPreSubnetEVMChainConfig // params.MainnetChainConfig in upstream
 		to        = common.HexToAddress("0x00000000000000000000000000000000deadbeef")
 		originHex = "0x71562b71999873db5b286df957af199ec94617f7"
 		origin    = common.HexToAddress(originHex)

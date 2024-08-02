@@ -661,7 +661,7 @@ func (to *trieOrchestrator) abort(async bool) {
 	})
 	if async {
 		// XXX: is this necessary/correct?
-		return
+		// return
 	}
 	<-to.loopTerm
 

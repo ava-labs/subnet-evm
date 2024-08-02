@@ -1384,6 +1384,8 @@ func (bc *BlockChain) insertBlock(block *types.Block, writes bool) error {
 	}
 	blockStateInitTimer.Inc(time.Since(substart).Milliseconds())
 
+	statedb.SetLogger(bc.logger)
+
 	// If we are past Byzantium, enable prefetching to pull in trie node paths
 	// while processing transactions. Before Byzantium the prefetcher is mostly
 	// useless due to the intermediate root hashing after each transaction.
