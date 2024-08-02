@@ -17,6 +17,7 @@
 package state
 
 import (
+	"errors"
 	"sync"
 	"time"
 
@@ -26,8 +27,14 @@ import (
 	"github.com/ethereum/go-ethereum/utils"
 )
 
-// triePrefetchMetricsPrefix is the prefix under which to publish the metrics.
-const triePrefetchMetricsPrefix = "trie/prefetch/"
+var (
+	// triePrefetchMetricsPrefix is the prefix under which to publish the metrics.
+	triePrefetchMetricsPrefix = "trie/prefetch/"
+
+	// errTerminated is returned if a fetcher is attempted to be operated after it
+	// has already terminated.
+	errTerminated = errors.New("fetcher is already terminated")
+)
 
 // triePrefetcher is an active prefetcher, which receives accounts or storage
 // items and does trie-loading of them. The goal is to get as much useful content
@@ -37,35 +44,42 @@ const triePrefetchMetricsPrefix = "trie/prefetch/"
 type triePrefetcher struct {
 	db       Database               // Database to fetch trie nodes through
 	root     common.Hash            // Root hash of the account trie for metrics
-	fetches  map[string]Trie        // Partially or fully fetched tries. Only populated for inactive copies.
 	fetchers map[string]*subfetcher // Subfetchers for each trie
+	term     chan struct{}          // Channel to signal interruption
+	noreads  bool                   // Whether to ignore state-read-only prefetch requests
 
-	maxConcurrency int
-	workers        *utils.BoundedWorkers
-
-	subfetcherWorkersMeter metrics.Meter
-	subfetcherWaitTimer    metrics.Counter
-	subfetcherCopiesMeter  metrics.Meter
-
-	accountLoadMeter  metrics.Meter
-	accountDupMeter   metrics.Meter
-	accountSkipMeter  metrics.Meter
-	accountWasteMeter metrics.Meter
-
+	// added by avalanche
+	maxConcurrency          int
+	workers                 *utils.BoundedWorkers
+	subfetcherWorkersMeter  metrics.Meter
+	subfetcherWaitTimer     metrics.Counter
+	subfetcherCopiesMeter   metrics.Meter
 	storageFetchersMeter    metrics.Meter
-	storageLoadMeter        metrics.Meter
 	storageLargestLoadMeter metrics.Meter
-	storageDupMeter         metrics.Meter
-	storageSkipMeter        metrics.Meter
-	storageWasteMeter       metrics.Meter
+
+	accountLoadReadMeter  metrics.Meter
+	accountLoadWriteMeter metrics.Meter
+	accountDupReadMeter   metrics.Meter
+	accountDupWriteMeter  metrics.Meter
+	accountDupCrossMeter  metrics.Meter
+	accountWasteMeter     metrics.Meter
+
+	storageLoadReadMeter  metrics.Meter
+	storageLoadWriteMeter metrics.Meter
+	storageDupReadMeter   metrics.Meter
+	storageDupWriteMeter  metrics.Meter
+	storageDupCrossMeter  metrics.Meter
+	storageWasteMeter     metrics.Meter
 }
 
-func newTriePrefetcher(db Database, root common.Hash, namespace string, maxConcurrency int) *triePrefetcher {
+func newTriePrefetcher(db Database, root common.Hash, namespace string, noreads bool, maxConcurrency int) *triePrefetcher {
 	prefix := triePrefetchMetricsPrefix + namespace
 	return &triePrefetcher{
 		db:       db,
 		root:     root,
 		fetchers: make(map[string]*subfetcher), // Active prefetchers use the fetchers map
+		term:     make(chan struct{}),
+		noreads:  noreads,
 
 		maxConcurrency: maxConcurrency,
 		workers:        utils.NewBoundedWorkers(maxConcurrency), // Scale up as needed to [maxConcurrency]
@@ -74,64 +88,56 @@ func newTriePrefetcher(db Database, root common.Hash, namespace string, maxConcu
 		subfetcherWaitTimer:    metrics.GetOrRegisterCounter(prefix+"/subfetcher/wait", nil),
 		subfetcherCopiesMeter:  metrics.GetOrRegisterMeter(prefix+"/subfetcher/copies", nil),
 
-		accountLoadMeter:  metrics.GetOrRegisterMeter(prefix+"/account/load", nil),
-		accountDupMeter:   metrics.GetOrRegisterMeter(prefix+"/account/dup", nil),
-		accountSkipMeter:  metrics.GetOrRegisterMeter(prefix+"/account/skip", nil),
-		accountWasteMeter: metrics.GetOrRegisterMeter(prefix+"/account/waste", nil),
-
 		storageFetchersMeter:    metrics.GetOrRegisterMeter(prefix+"/storage/fetchers", nil),
-		storageLoadMeter:        metrics.GetOrRegisterMeter(prefix+"/storage/load", nil),
 		storageLargestLoadMeter: metrics.GetOrRegisterMeter(prefix+"/storage/lload", nil),
-		storageDupMeter:         metrics.GetOrRegisterMeter(prefix+"/storage/dup", nil),
-		storageSkipMeter:        metrics.GetOrRegisterMeter(prefix+"/storage/skip", nil),
-		storageWasteMeter:       metrics.GetOrRegisterMeter(prefix+"/storage/waste", nil),
+
+		accountLoadReadMeter:  metrics.GetOrRegisterMeter(prefix+"/account/load/read", nil),
+		accountLoadWriteMeter: metrics.GetOrRegisterMeter(prefix+"/account/load/write", nil),
+		accountDupReadMeter:   metrics.GetOrRegisterMeter(prefix+"/account/dup/read", nil),
+		accountDupWriteMeter:  metrics.GetOrRegisterMeter(prefix+"/account/dup/write", nil),
+		accountDupCrossMeter:  metrics.GetOrRegisterMeter(prefix+"/account/dup/cross", nil),
+		accountWasteMeter:     metrics.GetOrRegisterMeter(prefix+"/account/waste", nil),
+
+		storageLoadReadMeter:  metrics.GetOrRegisterMeter(prefix+"/storage/load/read", nil),
+		storageLoadWriteMeter: metrics.GetOrRegisterMeter(prefix+"/storage/load/write", nil),
+		storageDupReadMeter:   metrics.GetOrRegisterMeter(prefix+"/storage/dup/read", nil),
+		storageDupWriteMeter:  metrics.GetOrRegisterMeter(prefix+"/storage/dup/write", nil),
+		storageDupCrossMeter:  metrics.GetOrRegisterMeter(prefix+"/storage/dup/cross", nil),
+		storageWasteMeter:     metrics.GetOrRegisterMeter(prefix+"/storage/waste", nil),
 	}
 }
 
-// close iterates over all the subfetchers, aborts any that were left spinning
-// and reports the stats to the metrics subsystem.
-func (p *triePrefetcher) close() {
-	// If the prefetcher is an inactive one, bail out
-	if p.fetches != nil {
-		return
-	}
-
+// terminate iterates over all the subfetchers and issues a termination request
+// to all of them. Depending on the async parameter, the method will either block
+// until all subfetchers spin down, or return immediately.
+func (p *triePrefetcher) terminate(async bool) {
 	// Collect stats from all fetchers
 	var (
 		storageFetchers int64
 		largestLoad     int64
 	)
-	for _, fetcher := range p.fetchers {
-		fetcher.abort() // safe to call multiple times (should be a no-op on happy path)
 
+	// Short circuit if the fetcher is already closed
+	select {
+	case <-p.term:
+		return
+	default:
+	}
+	// Terminate all sub-fetchers, sync or async, depending on the request
+	for _, fetcher := range p.fetchers {
 		if metrics.Enabled {
 			p.subfetcherCopiesMeter.Mark(int64(fetcher.copies()))
 
-			if fetcher.root == p.root {
-				p.accountLoadMeter.Mark(int64(len(fetcher.seen)))
-				p.accountDupMeter.Mark(int64(fetcher.dups))
-				p.accountSkipMeter.Mark(int64(fetcher.skips()))
-
-				for _, key := range fetcher.used {
-					delete(fetcher.seen, string(key))
-				}
-				p.accountWasteMeter.Mark(int64(len(fetcher.seen)))
-			} else {
+			if fetcher.root != p.root {
 				storageFetchers++
-				oseen := int64(len(fetcher.seen))
+				oseen := int64(len(fetcher.seenRead) + len(fetcher.seenWrite)) // XXX: Is this metric useful?
 				if oseen > largestLoad {
 					largestLoad = oseen
 				}
-				p.storageLoadMeter.Mark(oseen)
-				p.storageDupMeter.Mark(int64(fetcher.dups))
-				p.storageSkipMeter.Mark(int64(fetcher.skips()))
-
-				for _, key := range fetcher.used {
-					delete(fetcher.seen, string(key))
-				}
-				p.storageWasteMeter.Mark(int64(len(fetcher.seen)))
 			}
 		}
+		// XXX: untangle this loop from the metrics if possible
+		fetcher.terminate(async)
 	}
 	if metrics.Enabled {
 		p.storageFetchersMeter.Mark(storageFetchers)
@@ -147,89 +153,91 @@ func (p *triePrefetcher) close() {
 		p.subfetcherWorkersMeter.Mark(workersUsed)
 	}
 
-	// Clear out all fetchers (will crash on a second call, deliberate)
-	p.fetchers = nil
+	close(p.term)
 }
 
-// copy creates a deep-but-inactive copy of the trie prefetcher. Any trie data
-// already loaded will be copied over, but no goroutines will be started. This
-// is mostly used in the miner which creates a copy of it's actively mutated
-// state to be sealed while it may further mutate the state.
-func (p *triePrefetcher) copy() *triePrefetcher {
-	copy := &triePrefetcher{
-		db:      p.db,
-		root:    p.root,
-		fetches: make(map[string]Trie), // Active prefetchers use the fetchers map
-
-		subfetcherWorkersMeter: p.subfetcherWorkersMeter,
-		subfetcherWaitTimer:    p.subfetcherWaitTimer,
-		subfetcherCopiesMeter:  p.subfetcherCopiesMeter,
-
-		accountLoadMeter:  p.accountLoadMeter,
-		accountDupMeter:   p.accountDupMeter,
-		accountSkipMeter:  p.accountSkipMeter,
-		accountWasteMeter: p.accountWasteMeter,
-
-		storageFetchersMeter:    p.storageFetchersMeter,
-		storageLoadMeter:        p.storageLoadMeter,
-		storageLargestLoadMeter: p.storageLargestLoadMeter,
-		storageDupMeter:         p.storageDupMeter,
-		storageSkipMeter:        p.storageSkipMeter,
-		storageWasteMeter:       p.storageWasteMeter,
-	}
-	// If the prefetcher is already a copy, duplicate the data
-	if p.fetches != nil {
-		for root, fetch := range p.fetches {
-			if fetch == nil {
-				continue
-			}
-			copy.fetches[root] = p.db.CopyTrie(fetch)
-		}
-		return copy
-	}
-	// Otherwise we're copying an active fetcher, retrieve the current states
-	for id, fetcher := range p.fetchers {
-		copy.fetches[id] = fetcher.peek()
-	}
-	return copy
-}
-
-// prefetch schedules a batch of trie items to prefetch.
-func (p *triePrefetcher) prefetch(owner common.Hash, root common.Hash, addr common.Address, keys [][]byte) {
-	// If the prefetcher is an inactive one, bail out
-	if p.fetches != nil {
+// report aggregates the pre-fetching and usage metrics and reports them.
+func (p *triePrefetcher) report() {
+	if !metrics.Enabled {
 		return
 	}
+	for _, fetcher := range p.fetchers {
+		fetcher.wait() // ensure the fetcher's idle before poking in its internals
 
-	// Active fetcher, schedule the retrievals
+		if fetcher.root == p.root {
+			p.accountLoadReadMeter.Mark(int64(len(fetcher.seenRead)))
+			p.accountLoadWriteMeter.Mark(int64(len(fetcher.seenWrite)))
+
+			p.accountDupReadMeter.Mark(int64(fetcher.dupsRead))
+			p.accountDupWriteMeter.Mark(int64(fetcher.dupsWrite))
+			p.accountDupCrossMeter.Mark(int64(fetcher.dupsCross))
+
+			for _, key := range fetcher.used {
+				delete(fetcher.seenRead, string(key))
+				delete(fetcher.seenWrite, string(key))
+			}
+			p.accountWasteMeter.Mark(int64(len(fetcher.seenRead) + len(fetcher.seenWrite)))
+		} else {
+			p.storageLoadReadMeter.Mark(int64(len(fetcher.seenRead)))
+			p.storageLoadWriteMeter.Mark(int64(len(fetcher.seenWrite)))
+
+			p.storageDupReadMeter.Mark(int64(fetcher.dupsRead))
+			p.storageDupWriteMeter.Mark(int64(fetcher.dupsWrite))
+			p.storageDupCrossMeter.Mark(int64(fetcher.dupsCross))
+
+			for _, key := range fetcher.used {
+				delete(fetcher.seenRead, string(key))
+				delete(fetcher.seenWrite, string(key))
+			}
+			p.storageWasteMeter.Mark(int64(len(fetcher.seenRead) + len(fetcher.seenWrite)))
+		}
+	}
+}
+
+// prefetch schedules a batch of trie items to prefetch. After the prefetcher is
+// closed, all the following tasks scheduled will not be executed and an error
+// will be returned.
+//
+// prefetch is called from two locations:
+//
+//  1. Finalize of the state-objects storage roots. This happens at the end
+//     of every transaction, meaning that if several transactions touches
+//     upon the same contract, the parameters invoking this method may be
+//     repeated.
+//  2. Finalize of the main account trie. This happens only once per block.
+func (p *triePrefetcher) prefetch(owner common.Hash, root common.Hash, addr common.Address, keys [][]byte, read bool) error {
+	// If the state item is only being read, but reads are disabled, return
+	if read && p.noreads {
+		return nil
+	}
+	// Ensure the subfetcher is still alive
+	select {
+	case <-p.term:
+		return errTerminated
+	default:
+	}
 	id := p.trieID(owner, root)
 	fetcher := p.fetchers[id]
 	if fetcher == nil {
 		fetcher = newSubfetcher(p, owner, root, addr)
 		p.fetchers[id] = fetcher
 	}
-	fetcher.schedule(keys)
+	fetcher.schedule(keys, read)
+	return nil
 }
 
-// trie returns the trie matching the root hash, or nil if the prefetcher doesn't
-// have it.
+// trie returns the trie matching the root hash, blocking until the fetcher of
+// the given trie terminates. If no fetcher exists for the request, nil will be
+// returned.
 func (p *triePrefetcher) trie(owner common.Hash, root common.Hash) Trie {
-	// If the prefetcher is inactive, return from existing deep copies
-	id := p.trieID(owner, root)
-	if p.fetches != nil {
-		trie := p.fetches[id]
-		if trie == nil {
-			return nil
-		}
-		return p.db.CopyTrie(trie)
-	}
-
-	// Otherwise the prefetcher is active, bail if no trie was prefetched for this root
-	fetcher := p.fetchers[id]
+	// Bail if no trie was prefetched for this root
+	fetcher := p.fetchers[p.trieID(owner, root)]
 	if fetcher == nil {
+		log.Error("Prefetcher missed to load trie", "owner", owner, "root", root)
 		return nil
 	}
 
+	// XXX: verify this code is still correct
 	// Wait for the fetcher to finish and shutdown orchestrator, if it exists
 	start := time.Now()
 	fetcher.wait()
@@ -237,18 +245,15 @@ func (p *triePrefetcher) trie(owner common.Hash, root common.Hash) Trie {
 		p.subfetcherWaitTimer.Inc(time.Since(start).Milliseconds())
 	}
 
-	// Return a copy of one of the prefetched tries
-	trie := fetcher.peek()
-	if trie == nil {
-		return nil
-	}
-	return trie
+	// Subfetcher exists, retrieve its trie
+	return fetcher.peek()
 }
 
 // used marks a batch of state items used to allow creating statistics as to
-// how useful or wasteful the prefetcher is.
+// how useful or wasteful the fetcher is.
 func (p *triePrefetcher) used(owner common.Hash, root common.Hash, used [][]byte) {
 	if fetcher := p.fetchers[p.trieID(owner, root)]; fetcher != nil {
+		fetcher.wait() // ensure the fetcher's idle before poking in its internals
 		fetcher.used = used
 	}
 }
@@ -276,22 +281,35 @@ type subfetcher struct {
 
 	to *trieOrchestrator // Orchestrate concurrent fetching of a single trie
 
-	seen map[string]struct{} // Tracks the entries already loaded
-	dups int                 // Number of duplicate preload tasks
-	used [][]byte            // Tracks the entries used in the end
+	seenRead  map[string]struct{} // Tracks the entries already loaded via read operations
+	seenWrite map[string]struct{} // Tracks the entries already loaded via write operations
+
+	dupsRead  int // Number of duplicate preload tasks via reads only
+	dupsWrite int // Number of duplicate preload tasks via writes only
+	dupsCross int // Number of duplicate preload tasks via read-write-crosses
+
+	used [][]byte // Tracks the entries used in the end
+}
+
+// subfetcherTask is a trie path to prefetch, tagged with whether it originates
+// from a read or a write request.
+type subfetcherTask struct {
+	read bool
+	key  []byte
 }
 
 // newSubfetcher creates a goroutine to prefetch state items belonging to a
 // particular root hash.
 func newSubfetcher(p *triePrefetcher, owner common.Hash, root common.Hash, addr common.Address) *subfetcher {
 	sf := &subfetcher{
-		p:     p,
-		db:    p.db,
-		state: p.root,
-		owner: owner,
-		root:  root,
-		addr:  addr,
-		seen:  make(map[string]struct{}),
+		p:         p,
+		db:        p.db,
+		state:     p.root,
+		owner:     owner,
+		root:      root,
+		addr:      addr,
+		seenRead:  make(map[string]struct{}),
+		seenWrite: make(map[string]struct{}),
 	}
 	sf.to = newTrieOrchestrator(sf)
 	if sf.to != nil {
@@ -306,18 +324,38 @@ func newSubfetcher(p *triePrefetcher, owner common.Hash, root common.Hash, addr 
 // This should never block, so an array is used instead of a channel.
 //
 // This is not thread-safe.
-func (sf *subfetcher) schedule(keys [][]byte) {
+func (sf *subfetcher) schedule(keys [][]byte, read bool) {
 	// Append the tasks to the current queue
-	tasks := make([][]byte, 0, len(keys))
+	tasks := make([]*subfetcherTask, 0, len(keys))
 	for _, key := range keys {
 		// Check if keys already seen
 		sk := string(key)
-		if _, ok := sf.seen[sk]; ok {
-			sf.dups++
-			continue
+		if read {
+			if _, ok := sf.seenRead[sk]; ok {
+				sf.dupsRead++
+				continue
+			}
+			if _, ok := sf.seenWrite[sk]; ok {
+				sf.dupsCross++
+				continue
+			}
+		} else {
+			if _, ok := sf.seenRead[sk]; ok {
+				sf.dupsCross++
+				continue
+			}
+			if _, ok := sf.seenWrite[sk]; ok {
+				sf.dupsWrite++
+				continue
+			}
 		}
-		sf.seen[sk] = struct{}{}
-		tasks = append(tasks, key)
+		if read {
+			sf.seenRead[sk] = struct{}{}
+		} else {
+			sf.seenWrite[sk] = struct{}{}
+		}
+		key := key // closure for the append below
+		tasks = append(tasks, &subfetcherTask{read: read, key: key})
 	}
 
 	// After counting keys, exit if they can't be prefetched
@@ -329,8 +367,10 @@ func (sf *subfetcher) schedule(keys [][]byte) {
 	sf.to.enqueueTasks(tasks)
 }
 
-// peek tries to retrieve a deep copy of the fetcher's trie in whatever form it
-// is currently.
+// peek retrieves the fetcher's trie, populated with any pre-fetched data. The
+// returned trie will be a shallow copy, so modifying it will break subsequent
+// peeks for the original data. The method will block until all the scheduled
+// data has been loaded and the fethcer terminated.
 func (sf *subfetcher) peek() Trie {
 	if sf.to == nil {
 		return nil
@@ -348,12 +388,15 @@ func (sf *subfetcher) wait() {
 	sf.to.wait()
 }
 
-func (sf *subfetcher) abort() {
+// terminate requests the subfetcher to stop accepting new tasks and spin down
+// as soon as everything is loaded. Depending on the async parameter, the method
+// will either block until all disk loads finish or return immediately.
+func (sf *subfetcher) terminate(async bool) {
 	if sf.to == nil {
 		// Unable to open trie
 		return
 	}
-	sf.to.abort()
+	sf.to.abort(async)
 }
 
 func (sf *subfetcher) skips() int {
@@ -389,7 +432,7 @@ type trieOrchestrator struct {
 
 	tasksAllowed bool
 	skips        int // number of tasks skipped
-	pendingTasks [][]byte
+	pendingTasks []*subfetcherTask
 	taskLock     sync.Mutex
 
 	processingTasks sync.WaitGroup
@@ -400,7 +443,7 @@ type trieOrchestrator struct {
 	loopTerm chan struct{}
 
 	copies      int
-	copyChan    chan Trie
+	copyChan    chan Trie // XXX: seems the copy chan was removed in upstream, check if it should be removed here
 	copySpawner chan struct{}
 }
 
@@ -417,8 +460,6 @@ func newTrieOrchestrator(sf *subfetcher) *trieOrchestrator {
 			return nil
 		}
 	} else {
-		// The trie argument can be nil as verkle doesn't support prefetching
-		// yet. TODO FIX IT(rjl493456442), otherwise code will panic here.
 		base, err = sf.db.OpenStorageTrie(sf.state, sf.addr, sf.root, nil)
 		if err != nil {
 			log.Warn("Trie prefetcher failed opening trie", "root", sf.root, "err", err)
@@ -451,7 +492,7 @@ func (to *trieOrchestrator) copyBase() Trie {
 	to.baseLock.Lock()
 	defer to.baseLock.Unlock()
 
-	return to.sf.db.CopyTrie(to.base)
+	return to.sf.db.CopyTrie(to.base) // XXX: does this need to be a deep copy?
 }
 
 func (to *trieOrchestrator) skipCount() int {
@@ -461,7 +502,7 @@ func (to *trieOrchestrator) skipCount() int {
 	return to.skips
 }
 
-func (to *trieOrchestrator) enqueueTasks(tasks [][]byte) {
+func (to *trieOrchestrator) enqueueTasks(tasks []*subfetcherTask) {
 	to.taskLock.Lock()
 	defer to.taskLock.Unlock()
 
@@ -542,12 +583,16 @@ func (to *trieOrchestrator) processTasks() {
 			// Enqueue work, unless stopped.
 			fTask := tasks[i]
 			f := func() {
+				// XXX: double check
+				var (
+					task = fTask
+					err  error
+				)
 				// Perform task
-				var err error
-				if len(fTask) == common.AddressLength {
-					_, err = t.GetAccount(common.BytesToAddress(fTask))
+				if len(task.key) == common.AddressLength {
+					_, err = t.GetAccount(common.BytesToAddress(task.key))
 				} else {
-					_, err = t.GetStorage(to.sf.addr, fTask)
+					_, err = t.GetStorage(to.sf.addr, task.key)
 				}
 				if err != nil {
 					log.Error("Trie prefetcher failed fetching", "root", to.sf.root, "err", err)
@@ -606,7 +651,7 @@ func (to *trieOrchestrator) wait() {
 // is called, it is not necessary to call [wait].
 //
 // It is safe to call abort multiple times.
-func (to *trieOrchestrator) abort() {
+func (to *trieOrchestrator) abort(async bool) {
 	// Prevent more tasks from being enqueued
 	to.stopAcceptingTasks()
 
@@ -614,6 +659,10 @@ func (to *trieOrchestrator) abort() {
 	to.stopOnce.Do(func() {
 		close(to.stop)
 	})
+	if async {
+		// XXX: is this necessary/correct?
+		return
+	}
 	<-to.loopTerm
 
 	// Capture any dangling pending tasks (processTasks

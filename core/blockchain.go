@@ -37,6 +37,8 @@ import (
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/state/snapshot"
+	"github.com/ethereum/go-ethereum/core/stateless"
+	"github.com/ethereum/go-ethereum/core/tracing"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/ethdb"
@@ -184,8 +186,11 @@ type CacheConfig struct {
 }
 
 // triedbConfig derives the configures for trie database.
-func (c *CacheConfig) triedbConfig() *triedb.Config {
-	config := &triedb.Config{Preimages: c.Preimages}
+func (c *CacheConfig) triedbConfig(isVerkle bool) *triedb.Config {
+	config := &triedb.Config{
+		Preimages: c.Preimages,
+		IsVerkle:  isVerkle,
+	}
 	if c.StateScheme == rawdb.HashScheme {
 		config.HashDB = &hashdb.Config{
 			CleanCacheSize: c.TrieCleanLimit * 1024 * 1024,
@@ -268,6 +273,7 @@ type BlockChain struct {
 	blockProcFeed     event.Feed
 	txAcceptedFeed    event.Feed
 	scope             event.SubscriptionScope
+	genesis           *Genesis
 	genesisBlock      *types.Block
 
 	// This mutex synchronizes chain write operations.
@@ -279,17 +285,19 @@ type BlockChain struct {
 	bodyCache           *lru.Cache[common.Hash, *types.Body]              // Cache for the most recent block bodies
 	receiptsCache       *lru.Cache[common.Hash, []*types.Receipt]         // Cache for the most recent receipts per block
 	blockCache          *lru.Cache[common.Hash, *types.Block]             // Cache for the most recent entire blocks
-	txLookupCache       *lru.Cache[common.Hash, txLookup]                 // Cache for the most recent transaction lookup data.
 	badBlocks           *lru.Cache[common.Hash, *badBlock]                // Cache for bad blocks
 	feeConfigCache      *lru.Cache[common.Hash, *cacheableFeeConfig]      // Cache for the most recent feeConfig lookup data.
 	coinbaseConfigCache *lru.Cache[common.Hash, *cacheableCoinbaseConfig] // Cache for the most recent coinbaseConfig lookup data.
 
-	stopping atomic.Bool // false if chain is running, true when stopped
+	stopping      atomic.Bool // false if chain is running, true when stopped
+	txLookupLock  sync.RWMutex
+	txLookupCache *lru.Cache[common.Hash, txLookup]
 
 	engine    consensus.Engine
 	validator Validator // Block and state validator interface
 	processor Processor // Block transaction processor interface
 	vmConfig  vm.Config
+	logger    *tracing.Hooks
 
 	lastAccepted *types.Block // Prevents reorgs past this height
 
@@ -350,7 +358,7 @@ func NewBlockChain(
 		return nil, errCacheConfigNotSpecified
 	}
 	// Open trie database with provided config
-	triedb := triedb.NewDatabase(db, cacheConfig.triedbConfig())
+	triedb := triedb.NewDatabase(db, cacheConfig.triedbConfig(genesis != nil && genesis.IsVerkle()))
 
 	// Setup the genesis block, commit the provided genesis specification
 	// to database if the genesis block is not present yet, or load the
@@ -384,19 +392,22 @@ func NewBlockChain(
 		coinbaseConfigCache: lru.NewCache[common.Hash, *cacheableCoinbaseConfig](coinbaseConfigCacheLimit),
 		engine:              engine,
 		vmConfig:            vmConfig,
+		logger:              vmConfig.Tracer,
 		senderCacher:        NewTxSenderCacher(runtime.NumCPU()),
 		acceptorQueue:       make(chan *types.Block, cacheConfig.AcceptorQueueLimit),
 		quit:                make(chan struct{}),
 		acceptedLogsCache:   NewFIFOCache[common.Hash, [][]*types.Log](cacheConfig.AcceptedCacheSize),
+		genesis:             genesis,
 	}
-	bc.stateCache = state.NewDatabaseWithNodeDB(bc.db, bc.triedb)
-	bc.validator = NewBlockValidator(chainConfig, bc, engine)
-	bc.processor = NewStateProcessor(chainConfig, bc, engine)
-
 	bc.hc, err = NewHeaderChain(db, chainConfig, cacheConfig, engine)
 	if err != nil {
 		return nil, err
 	}
+	// XXX: flushInterval?
+	bc.stateCache = state.NewDatabaseWithNodeDB(bc.db, bc.triedb)
+	bc.validator = NewBlockValidator(chainConfig, bc)
+	bc.processor = NewStateProcessor(chainConfig, bc)
+
 	bc.genesisBlock = bc.GetBlockByNumber(0)
 	if bc.genesisBlock == nil {
 		return nil, ErrNoGenesis
@@ -408,7 +419,7 @@ func NewBlockChain(
 	bc.stateManager = NewTrieWriter(bc.triedb, cacheConfig)
 
 	// Re-generate current block state if it is missing
-	if err := bc.loadLastState(lastAcceptedHash); err != nil {
+	if err := bc.loadLastState(lastAcceptedHash, genesis); err != nil {
 		return nil, err
 	}
 
@@ -673,10 +684,10 @@ func (bc *BlockChain) SenderCacher() *TxSenderCacher {
 
 // loadLastState loads the last known chain state from the database. This method
 // assumes that the chain manager mutex is held.
-func (bc *BlockChain) loadLastState(lastAcceptedHash common.Hash) error {
+func (bc *BlockChain) loadLastState(lastAcceptedHash common.Hash, genesis *Genesis) error {
 	// Initialize genesis state
 	if lastAcceptedHash == (common.Hash{}) {
-		return bc.loadGenesisState()
+		return bc.loadGenesisState(genesis)
 	}
 
 	// Restore the last known head block
@@ -721,7 +732,7 @@ func (bc *BlockChain) loadLastState(lastAcceptedHash common.Hash) error {
 	return bc.reprocessState(bc.lastAccepted, 2*bc.cacheConfig.CommitInterval)
 }
 
-func (bc *BlockChain) loadGenesisState() error {
+func (bc *BlockChain) loadGenesisState(genesis *Genesis) error {
 	// Prepare the genesis block and reinitialise the chain
 	batch := bc.db.NewBatch()
 	rawdb.WriteBlock(batch, bc.genesisBlock)
@@ -735,6 +746,13 @@ func (bc *BlockChain) loadGenesisState() error {
 	bc.currentBlock.Store(bc.genesisBlock.Header())
 	bc.hc.SetGenesis(bc.genesisBlock.Header())
 	bc.hc.SetCurrentHeader(bc.genesisBlock.Header())
+
+	if bc.logger != nil && bc.logger.OnBlockchainInit != nil {
+		bc.logger.OnBlockchainInit(bc.chainConfig)
+	}
+	if bc.logger != nil && bc.logger.OnGenesisBlock != nil {
+		bc.logger.OnGenesisBlock(bc.genesisBlock, genesis.Alloc)
+	}
 	return nil
 }
 
@@ -966,6 +984,10 @@ func (bc *BlockChain) Stop() {
 		log.Error("Failed to Shutdown state manager", "err", err)
 	}
 	log.Info("State manager shut down", "t", time.Since(start))
+	// Allow tracers to clean-up and release resources.
+	if bc.logger != nil && bc.logger.OnClose != nil {
+		bc.logger.OnClose()
+	}
 	// Close the trie database, release all the held resources as the last step.
 	if err := bc.triedb.Close(); err != nil {
 		log.Error("Failed to close trie database", "err", err)
@@ -1191,7 +1213,7 @@ func (bc *BlockChain) writeBlockAndSetHead(block *types.Block, receipts []*types
 
 // writeBlockWithState writes the block and all associated state to the database,
 // but it expects the chain mutex to be held.
-func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.Receipt, state *state.StateDB) error {
+func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.Receipt, statedb *state.StateDB) error {
 	// Irrelevant of the canonical status, write the block itself to the database.
 	//
 	// Note all the components of block(hash->number map, header, body, receipts)
@@ -1199,7 +1221,7 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 	blockBatch := bc.db.NewBatch()
 	rawdb.WriteBlock(blockBatch, block)
 	rawdb.WriteReceipts(blockBatch, block.Hash(), block.NumberU64(), receipts)
-	rawdb.WritePreimages(blockBatch, state.Preimages())
+	rawdb.WritePreimages(blockBatch, statedb.Preimages())
 	if err := blockBatch.Write(); err != nil {
 		log.Crit("Failed to write block into disk", "err", err)
 	}
@@ -1209,9 +1231,9 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 	// diff layer for the block.
 	var err error
 	if bc.snaps == nil {
-		_, err = state.Commit(block.NumberU64(), bc.chainConfig.IsEIP158(block.Number()), true)
+		_, err = statedb.Commit(block.NumberU64(), bc.chainConfig.IsEIP158(block.Number()), true)
 	} else {
-		_, err = state.CommitWithSnap(block.NumberU64(), bc.chainConfig.IsEIP158(block.Number()), bc.snaps, block.Hash(), block.ParentHash(), true)
+		_, err = statedb.CommitWithSnap(block.NumberU64(), bc.chainConfig.IsEIP158(block.Number()), bc.snaps, block.Hash(), block.ParentHash(), true)
 	}
 	if err != nil {
 		return err
@@ -1362,9 +1384,60 @@ func (bc *BlockChain) insertBlock(block *types.Block, writes bool) error {
 	}
 	blockStateInitTimer.Inc(time.Since(substart).Milliseconds())
 
-	// Enable prefetching to pull in trie node paths while processing transactions
-	statedb.StartPrefetcher("chain", bc.cacheConfig.TriePrefetcherParallelism)
+	// If we are past Byzantium, enable prefetching to pull in trie node paths
+	// while processing transactions. Before Byzantium the prefetcher is mostly
+	// useless due to the intermediate root hashing after each transaction.
+	if bc.chainConfig.IsByzantium(block.Number()) {
+		var witness *stateless.Witness
+		if bc.vmConfig.EnableWitnessCollection {
+			witness, err = stateless.NewWitness(bc, block)
+			if err != nil {
+				return err
+			}
+		}
+		statedb.StartPrefetcher("chain", witness, bc.cacheConfig.TriePrefetcherParallelism)
+	}
 	activeState = statedb
+
+	// The traced section of block import.
+	_, err = bc.processBlock(block, parent, statedb, start, writes)
+	if err != nil {
+		return err
+	}
+
+	log.Debug("Inserted new block", "number", block.Number(), "hash", block.Hash(),
+		"parentHash", block.ParentHash(),
+		"uncles", len(block.Uncles()), "txs", len(block.Transactions()), "gas", block.GasUsed(),
+		"elapsed", common.PrettyDuration(time.Since(start)),
+		"root", block.Root(), "baseFeePerGas", block.BaseFee(), "blockGasCost", block.BlockGasCost(),
+	)
+	return nil
+}
+
+// blockProcessingResult is a summary of block processing
+// used for updating the stats.
+type blockProcessingResult struct {
+	usedGas  uint64
+	procTime time.Duration
+}
+
+// processBlock executes and validates the given block. If there was no error
+// it writes the block and associated state to database.
+func (bc *BlockChain) processBlock(block *types.Block, parent *types.Header, statedb *state.StateDB, start time.Time, writes bool) (_ *blockProcessingResult, blockEndErr error) {
+	if bc.logger != nil && bc.logger.OnBlockStart != nil {
+		td := block.Number()
+		bc.logger.OnBlockStart(tracing.BlockEvent{
+			Block:     block,
+			TD:        td,
+			Finalized: bc.LastAcceptedBlock().Header(),
+			Safe:      bc.LastAcceptedBlock().Header(),
+		})
+	}
+	if bc.logger != nil && bc.logger.OnBlockEnd != nil {
+		defer func() {
+			bc.logger.OnBlockEnd(blockEndErr)
+		}()
+	}
 
 	// Process block using the parent state as reference point
 	pstart := time.Now()
@@ -1374,17 +1447,25 @@ func (bc *BlockChain) insertBlock(block *types.Block, writes bool) error {
 	}
 	if err != nil {
 		bc.reportBlock(block, receipts, err)
-		return err
+		return nil, err
 	}
 	ptime := time.Since(pstart)
 
 	// Validate the state using the default validator
 	vstart := time.Now()
-	if err := bc.validator.ValidateState(block, statedb, receipts, usedGas); err != nil {
+	if err := bc.validator.ValidateState(block, statedb, receipts, usedGas, false); err != nil {
 		bc.reportBlock(block, receipts, err)
-		return err
+		return nil, err
 	}
 	vtime := time.Since(vstart)
+
+	if witness := statedb.Witness(); witness != nil {
+		if err = bc.validator.ValidateWitness(witness, block.ReceiptHash(), block.Root()); err != nil {
+			bc.reportBlock(block, receipts, err)
+			return nil, fmt.Errorf("cross verification failed: %v", err)
+		}
+	}
+	proctime := time.Since(start) // processing + validation
 
 	// Update the metrics touched during block processing and validation
 	accountReadTimer.Inc(statedb.AccountReads.Milliseconds())                  // Account reads are complete(in processing)
@@ -1394,8 +1475,7 @@ func (bc *BlockChain) insertBlock(block *types.Block, writes bool) error {
 	accountUpdateTimer.Inc(statedb.AccountUpdates.Milliseconds())              // Account updates are complete(in validation)
 	storageUpdateTimer.Inc(statedb.StorageUpdates.Milliseconds())              // Storage updates are complete(in validation)
 	accountHashTimer.Inc(statedb.AccountHashes.Milliseconds())                 // Account hashes are complete(in validation)
-	storageHashTimer.Inc(statedb.StorageHashes.Milliseconds())                 // Storage hashes are complete(in validation)
-	triehash := statedb.AccountHashes + statedb.StorageHashes                  // The time spent on tries hashing
+	triehash := statedb.AccountHashes                                          // The time spent on tries hashing
 	trieUpdate := statedb.AccountUpdates + statedb.StorageUpdates              // The time spent on tries update
 	trieRead := statedb.SnapshotAccountReads + statedb.AccountReads            // The time spent on account read
 	trieRead += statedb.SnapshotStorageReads + statedb.StorageReads            // The time spent on storage read
@@ -1407,7 +1487,7 @@ func (bc *BlockChain) insertBlock(block *types.Block, writes bool) error {
 	// or the state trie to disk.
 	// Note: in pruning mode, this prevents us from generating a reference to the state root.
 	if !writes {
-		return nil
+		return &blockProcessingResult{usedGas: usedGas, procTime: proctime}, nil
 	}
 
 	// Write the block to the chain and get the status.
@@ -1416,7 +1496,7 @@ func (bc *BlockChain) insertBlock(block *types.Block, writes bool) error {
 	// later in verification, since that would cause the referenced root to never be dereferenced.
 	wstart := time.Now()
 	if err := bc.writeBlockAndSetHead(block, receipts, logs, statedb); err != nil {
-		return err
+		return nil, err
 	}
 	// Update the metrics touched during block commit
 	accountCommitTimer.Inc(statedb.AccountCommits.Milliseconds())   // Account commits are complete, we can mark them
@@ -1426,18 +1506,12 @@ func (bc *BlockChain) insertBlock(block *types.Block, writes bool) error {
 	blockWriteTimer.Inc((time.Since(wstart) - statedb.AccountCommits - statedb.StorageCommits - statedb.SnapshotCommits - statedb.TrieDBCommits).Milliseconds())
 	blockInsertTimer.Inc(time.Since(start).Milliseconds())
 
-	log.Debug("Inserted new block", "number", block.Number(), "hash", block.Hash(),
-		"parentHash", block.ParentHash(),
-		"uncles", len(block.Uncles()), "txs", len(block.Transactions()), "gas", block.GasUsed(),
-		"elapsed", common.PrettyDuration(time.Since(start)),
-		"root", block.Root(), "baseFeePerGas", block.BaseFee(), "blockGasCost", block.BlockGasCost(),
-	)
-
 	processedBlockGasUsedCounter.Inc(int64(block.GasUsed()))
 	processedTxsCounter.Inc(int64(block.Transactions().Len()))
 	processedLogsCounter.Inc(int64(len(logs)))
 	blockInsertCount.Inc(1)
-	return nil
+
+	return &blockProcessingResult{usedGas: usedGas, procTime: proctime}, nil
 }
 
 // collectUnflattenedLogs collects the logs that were generated or removed during
@@ -1552,14 +1626,14 @@ func (bc *BlockChain) reorg(oldHead *types.Header, newHead *types.Block) error {
 	} else {
 		log.Debug("Preference change (rewind to ancestor) occurred", "oldnum", oldHead.Number, "oldhash", oldHead.Hash(), "newnum", newHead.Number(), "newhash", newHead.Hash())
 	}
-	// Reset the tx lookup cache in case to clear stale txlookups.
-	// This is done before writing any new chain data to avoid the
-	// weird scenario that canonical chain is changed while the
-	// stale lookups are still cached.
-	bc.txLookupCache.Purge()
+	// Acquire the tx-lookup lock before mutation. This step is essential
+	// as the txlookups should be changed atomically, and all subsequent
+	// reads should be blocked until the mutation is complete.
+	bc.txLookupLock.Lock()
 
-	// Insert the new chain(except the head block(reverse order)),
-	// taking care of the proper incremental order.
+	// Insert the new chain segment in incremental order, from the old
+	// to the new. The new chain head (newChain[0]) is not inserted here,
+	// as it will be handled separately outside of this function
 	for i := len(newChain) - 1; i >= 1; i-- {
 		// Insert the block in the canonical way, re-writing history
 		bc.writeHeadBlock(newChain[i])
@@ -1582,6 +1656,11 @@ func (bc *BlockChain) reorg(oldHead *types.Header, newHead *types.Block) error {
 	if err := indexesBatch.Write(); err != nil {
 		log.Crit("Failed to delete useless indexes", "err", err)
 	}
+	// Reset the tx lookup cache to clear stale txlookup cache.
+	bc.txLookupCache.Purge()
+
+	// Release the tx-lookup lock after mutation.
+	bc.txLookupLock.Unlock()
 
 	// Send out events for logs from the old canon chain, and 'reborn'
 	// logs from the new canon chain. The number of logs can be very
@@ -1747,21 +1826,8 @@ func (bc *BlockChain) reprocessBlock(parent *types.Block, current *types.Block) 
 		return common.Hash{}, fmt.Errorf("could not fetch state for (%s: %d): %v", parent.Hash().Hex(), parent.NumberU64(), err)
 	}
 
-	// Enable prefetching to pull in trie node paths while processing transactions
-	statedb.StartPrefetcher("chain", bc.cacheConfig.TriePrefetcherParallelism)
-	defer func() {
-		statedb.StopPrefetcher()
-	}()
-
-	// Process previously stored block
-	receipts, _, usedGas, err := bc.processor.Process(current, parent.Header(), statedb, vm.Config{})
-	if err != nil {
-		return common.Hash{}, fmt.Errorf("failed to re-process block (%s: %d): %v", current.Hash().Hex(), current.NumberU64(), err)
-	}
-
-	// Validate the state using the default validator
-	if err := bc.validator.ValidateState(current, statedb, receipts, usedGas); err != nil {
-		return common.Hash{}, fmt.Errorf("failed to validate state while re-processing block (%s: %d): %v", current.Hash().Hex(), current.NumberU64(), err)
+	if _, err := bc.processBlock(current, parent.Header(), statedb, time.Now(), false); err != nil {
+		return common.Hash{}, err
 	}
 	log.Debug("Processed block", "block", current.Hash(), "number", current.NumberU64())
 
@@ -2149,7 +2215,7 @@ func (bc *BlockChain) ResetToStateSyncedBlock(block *types.Block) error {
 	lastAcceptedHash := block.Hash()
 	bc.stateCache = state.NewDatabaseWithNodeDB(bc.db, bc.triedb)
 
-	if err := bc.loadLastState(lastAcceptedHash); err != nil {
+	if err := bc.loadLastState(lastAcceptedHash, bc.genesis); err != nil {
 		return err
 	}
 	// Create the state manager

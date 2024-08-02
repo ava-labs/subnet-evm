@@ -5,6 +5,7 @@ package vm
 
 import (
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/tracing"
 	"github.com/ethereum/go-ethereum/precompile/contract"
 )
 
@@ -21,11 +22,11 @@ func newWrappedPrecompiledContract(p PrecompiledContract) contract.StatefulPreco
 }
 
 // Run implements the StatefulPrecompiledContract interface
-func (w *wrappedPrecompiledContract) Run(accessibleState contract.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
-	return RunPrecompiledContract(w.p, input, suppliedGas)
+func (w *wrappedPrecompiledContract) Run(accessibleState contract.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, logger *tracing.Hooks, readOnly bool) (ret []byte, remainingGas uint64, err error) {
+	return RunPrecompiledContract(w.p, input, suppliedGas, logger)
 }
 
 // RunStatefulPrecompiledContract confirms runs [precompile] with the specified parameters.
-func RunStatefulPrecompiledContract(precompile contract.StatefulPrecompiledContract, accessibleState contract.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
-	return precompile.Run(accessibleState, caller, addr, input, suppliedGas, readOnly)
+func RunStatefulPrecompiledContract(precompile contract.StatefulPrecompiledContract, accessibleState contract.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, tracer *tracing.Hooks, readOnly bool) (ret []byte, remainingGas uint64, err error) {
+	return precompile.Run(accessibleState, caller, addr, input, suppliedGas, tracer, readOnly)
 }

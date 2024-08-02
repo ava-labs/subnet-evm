@@ -19,10 +19,9 @@ package snapshot
 import (
 	"encoding/binary"
 	"fmt"
+	"log/slog"
 	"math"
 	"time"
-
-	"golang.org/x/exp/slog"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
@@ -39,7 +38,7 @@ type generatorStats struct {
 	storage  common.StorageSize // Total account and storage slot size(generation or recovery)
 }
 
-// Info creates an contextual info-level log with the given message and the context pulled
+// Log creates a contextual log with the given message and the context pulled
 // from the internally maintained statistics.
 func (gs *generatorStats) Info(msg string, root common.Hash, marker []byte) {
 	gs.log(log.LvlInfo, msg, root, marker)

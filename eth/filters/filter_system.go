@@ -65,8 +65,6 @@ type Backend interface {
 	SubscribeLogsEvent(ch chan<- []*types.Log) event.Subscription
 	SubscribeAcceptedLogsEvent(ch chan<- []*types.Log) event.Subscription
 
-	SubscribePendingLogsEvent(ch chan<- []*types.Log) event.Subscription
-
 	SubscribeAcceptedTransactionEvent(ch chan<- core.NewTxsEvent) event.Subscription
 
 	BloomStatus() (uint64, uint64)
@@ -119,10 +117,6 @@ const (
 	LogsSubscription
 	// AcceptedLogsSubscription queries for new or removed (chain reorg) logs
 	AcceptedLogsSubscription
-	// PendingLogsSubscription queries for logs in pending blocks
-	PendingLogsSubscription
-	// MinedAndPendingLogsSubscription queries for logs in mined and pending blocks.
-	MinedAndPendingLogsSubscription
 	// PendingTransactionsSubscription queries for pending transactions entering
 	// the pending state
 	PendingTransactionsSubscription
@@ -171,7 +165,6 @@ type EventSystem struct {
 	logsSub          event.Subscription // Subscription for new log event
 	logsAcceptedSub  event.Subscription // Subscription for new accepted log event
 	rmLogsSub        event.Subscription // Subscription for removed log event
-	pendingLogsSub   event.Subscription // Subscription for pending log event
 	chainSub         event.Subscription // Subscription for new chain event
 	chainAcceptedSub event.Subscription // Subscription for new chain accepted event
 	txsAcceptedSub   event.Subscription // Subscription for new accepted txs
@@ -182,7 +175,6 @@ type EventSystem struct {
 	txsCh           chan core.NewTxsEvent      // Channel to receive new transactions event
 	logsCh          chan []*types.Log          // Channel to receive new log event
 	logsAcceptedCh  chan []*types.Log          // Channel to receive new accepted log event
-	pendingLogsCh   chan []*types.Log          // Channel to receive new log event
 	rmLogsCh        chan core.RemovedLogsEvent // Channel to receive removed log event
 	chainCh         chan core.ChainEvent       // Channel to receive new chain event
 	chainAcceptedCh chan core.ChainEvent       // Channel to receive new chain accepted event
@@ -205,7 +197,6 @@ func NewEventSystem(sys *FilterSystem) *EventSystem {
 		logsCh:          make(chan []*types.Log, logsChanSize),
 		logsAcceptedCh:  make(chan []*types.Log, logsChanSize),
 		rmLogsCh:        make(chan core.RemovedLogsEvent, rmLogsChanSize),
-		pendingLogsCh:   make(chan []*types.Log, logsChanSize),
 		chainCh:         make(chan core.ChainEvent, chainEvChanSize),
 		chainAcceptedCh: make(chan core.ChainEvent, chainEvChanSize),
 		txsAcceptedCh:   make(chan core.NewTxsEvent, txChanSize),
@@ -218,11 +209,10 @@ func NewEventSystem(sys *FilterSystem) *EventSystem {
 	m.rmLogsSub = m.backend.SubscribeRemovedLogsEvent(m.rmLogsCh)
 	m.chainSub = m.backend.SubscribeChainEvent(m.chainCh)
 	m.chainAcceptedSub = m.backend.SubscribeChainAcceptedEvent(m.chainAcceptedCh)
-	m.pendingLogsSub = m.backend.SubscribePendingLogsEvent(m.pendingLogsCh)
 	m.txsAcceptedSub = m.backend.SubscribeAcceptedTransactionEvent(m.txsAcceptedCh)
 
 	// Make sure none of the subscriptions are empty
-	if m.txsSub == nil || m.logsSub == nil || m.logsAcceptedSub == nil || m.rmLogsSub == nil || m.chainSub == nil || m.chainAcceptedSub == nil || m.pendingLogsSub == nil || m.txsAcceptedSub == nil {
+	if m.txsSub == nil || m.logsSub == nil || m.logsAcceptedSub == nil || m.rmLogsSub == nil || m.chainSub == nil || m.chainAcceptedSub == nil || m.txsAcceptedSub == nil {
 		log.Crit("Subscribe for event system failed")
 	}
 
@@ -294,10 +284,11 @@ func (es *EventSystem) SubscribeLogs(crit interfaces.FilterQuery, logs chan []*t
 		to = rpc.BlockNumber(crit.ToBlock.Int64())
 	}
 
-	// only interested in pending logs
-	if from == rpc.PendingBlockNumber && to == rpc.PendingBlockNumber {
-		return es.subscribePendingLogs(crit, logs), nil
+	// Pending logs are not supported anymore.
+	if from == rpc.PendingBlockNumber || to == rpc.PendingBlockNumber {
+		return nil, errPendingLogsUnsupported
 	}
+
 	// only interested in new mined logs
 	if from == rpc.LatestBlockNumber && to == rpc.LatestBlockNumber {
 		return es.subscribeLogs(crit, logs), nil
@@ -305,10 +296,6 @@ func (es *EventSystem) SubscribeLogs(crit interfaces.FilterQuery, logs chan []*t
 	// only interested in mined logs within a specific block range
 	if from >= 0 && to >= 0 && to >= from {
 		return es.subscribeLogs(crit, logs), nil
-	}
-	// interested in mined logs from a specific block number, new logs and pending logs
-	if from >= rpc.LatestBlockNumber && to == rpc.PendingBlockNumber {
-		return es.subscribeMinedPendingLogs(crit, logs), nil
 	}
 	// interested in logs from a specific block number to new mined blocks
 	if from >= 0 && to == rpc.LatestBlockNumber {
@@ -357,46 +344,12 @@ func (es *EventSystem) subscribeAcceptedLogs(crit interfaces.FilterQuery, logs c
 	return es.subscribe(sub)
 }
 
-// subscribeMinedPendingLogs creates a subscription that returned mined and
-// pending logs that match the given criteria.
-func (es *EventSystem) subscribeMinedPendingLogs(crit interfaces.FilterQuery, logs chan []*types.Log) *Subscription {
-	sub := &subscription{
-		id:        rpc.NewID(),
-		typ:       MinedAndPendingLogsSubscription,
-		logsCrit:  crit,
-		created:   time.Now(),
-		logs:      logs,
-		txs:       make(chan []*types.Transaction),
-		headers:   make(chan *types.Header),
-		installed: make(chan struct{}),
-		err:       make(chan error),
-	}
-	return es.subscribe(sub)
-}
-
 // subscribeLogs creates a subscription that will write all logs matching the
 // given criteria to the given logs channel.
 func (es *EventSystem) subscribeLogs(crit interfaces.FilterQuery, logs chan []*types.Log) *Subscription {
 	sub := &subscription{
 		id:        rpc.NewID(),
 		typ:       LogsSubscription,
-		logsCrit:  crit,
-		created:   time.Now(),
-		logs:      logs,
-		txs:       make(chan []*types.Transaction),
-		headers:   make(chan *types.Header),
-		installed: make(chan struct{}),
-		err:       make(chan error),
-	}
-	return es.subscribe(sub)
-}
-
-// subscribePendingLogs creates a subscription that writes contract event logs for
-// transactions that enter the transaction pool.
-func (es *EventSystem) subscribePendingLogs(crit interfaces.FilterQuery, logs chan []*types.Log) *Subscription {
-	sub := &subscription{
-		id:        rpc.NewID(),
-		typ:       PendingLogsSubscription,
 		logsCrit:  crit,
 		created:   time.Now(),
 		logs:      logs,
@@ -498,18 +451,6 @@ func (es *EventSystem) handleAcceptedLogs(filters filterIndex, ev []*types.Log) 
 	}
 }
 
-func (es *EventSystem) handlePendingLogs(filters filterIndex, ev []*types.Log) {
-	if len(ev) == 0 {
-		return
-	}
-	for _, f := range filters[PendingLogsSubscription] {
-		matchedLogs := filterLogs(ev, nil, f.logsCrit.ToBlock, f.logsCrit.Addresses, f.logsCrit.Topics)
-		if len(matchedLogs) > 0 {
-			f.logs <- matchedLogs
-		}
-	}
-}
-
 func (es *EventSystem) handleTxsEvent(filters filterIndex, ev core.NewTxsEvent, accepted bool) {
 	for _, f := range filters[PendingTransactionsSubscription] {
 		f.txs <- ev.Txs
@@ -541,7 +482,6 @@ func (es *EventSystem) eventLoop() {
 		es.logsSub.Unsubscribe()
 		es.logsAcceptedSub.Unsubscribe()
 		es.rmLogsSub.Unsubscribe()
-		es.pendingLogsSub.Unsubscribe()
 		es.chainSub.Unsubscribe()
 		es.chainAcceptedSub.Unsubscribe()
 		es.txsAcceptedSub.Unsubscribe()
@@ -562,8 +502,6 @@ func (es *EventSystem) eventLoop() {
 			es.handleAcceptedLogs(index, ev)
 		case ev := <-es.rmLogsCh:
 			es.handleLogs(index, ev.Logs)
-		case ev := <-es.pendingLogsCh:
-			es.handlePendingLogs(index, ev)
 		case ev := <-es.chainCh:
 			es.handleChainEvent(index, ev)
 		case ev := <-es.chainAcceptedCh:
@@ -572,23 +510,11 @@ func (es *EventSystem) eventLoop() {
 			es.handleTxsEvent(index, ev, true)
 
 		case f := <-es.install:
-			if f.typ == MinedAndPendingLogsSubscription {
-				// the type are logs and pending logs subscriptions
-				index[LogsSubscription][f.id] = f
-				index[PendingLogsSubscription][f.id] = f
-			} else {
-				index[f.typ][f.id] = f
-			}
+			index[f.typ][f.id] = f
 			close(f.installed)
 
 		case f := <-es.uninstall:
-			if f.typ == MinedAndPendingLogsSubscription {
-				// the type are logs and pending logs subscriptions
-				delete(index[LogsSubscription], f.id)
-				delete(index[PendingLogsSubscription], f.id)
-			} else {
-				delete(index[f.typ], f.id)
-			}
+			delete(index[f.typ], f.id)
 			close(f.err)
 
 		// System stopped

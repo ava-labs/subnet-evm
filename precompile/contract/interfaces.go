@@ -9,14 +9,18 @@ import (
 
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/tracing"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/precompile/precompileconfig"
 	"github.com/holiman/uint256"
 )
 
+type Log = types.Log
+
 // StatefulPrecompiledContract is the interface for executing a precompiled contract
 type StatefulPrecompiledContract interface {
 	// Run executes the precompiled contract.
-	Run(accessibleState AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error)
+	Run(accessibleState AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, logger *tracing.Hooks, readOnly bool) (ret []byte, remainingGas uint64, err error)
 }
 
 // StateDB is the interface for accessing EVM state
@@ -28,7 +32,7 @@ type StateDB interface {
 	GetNonce(common.Address) uint64
 
 	GetBalance(common.Address) *uint256.Int
-	AddBalance(common.Address, *uint256.Int)
+	AddBalance(common.Address, *uint256.Int, tracing.BalanceChangeReason)
 
 	CreateAccount(common.Address)
 	Exist(common.Address) bool

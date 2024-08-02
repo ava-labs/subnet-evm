@@ -203,6 +203,42 @@ var Forks = map[string]*params.ChainConfig{
 			DurangoTimestamp:   utils.NewUint64(0),
 		},
 	},
+	"Prague": {
+		ChainID:             big.NewInt(1),
+		HomesteadBlock:      big.NewInt(0),
+		EIP150Block:         big.NewInt(0),
+		EIP155Block:         big.NewInt(0),
+		EIP158Block:         big.NewInt(0),
+		ByzantiumBlock:      big.NewInt(0),
+		ConstantinopleBlock: big.NewInt(0),
+		PetersburgBlock:     big.NewInt(0),
+		IstanbulBlock:       big.NewInt(0),
+		MuirGlacierBlock:    big.NewInt(0),
+		CancunTime:          utils.NewUint64(0),
+		PragueTime:          utils.NewUint64(0),
+		NetworkUpgrades: params.NetworkUpgrades{
+			SubnetEVMTimestamp: utils.NewUint64(0),
+			DurangoTimestamp:   utils.NewUint64(0),
+		},
+	},
+	"CancunToPragueAtTime15k": {
+		ChainID:             big.NewInt(1),
+		HomesteadBlock:      big.NewInt(0),
+		EIP150Block:         big.NewInt(0),
+		EIP155Block:         big.NewInt(0),
+		EIP158Block:         big.NewInt(0),
+		ByzantiumBlock:      big.NewInt(0),
+		ConstantinopleBlock: big.NewInt(0),
+		PetersburgBlock:     big.NewInt(0),
+		IstanbulBlock:       big.NewInt(0),
+		MuirGlacierBlock:    big.NewInt(0),
+		CancunTime:          utils.NewUint64(0),
+		PragueTime:          utils.NewUint64(15_000),
+		NetworkUpgrades: params.NetworkUpgrades{
+			SubnetEVMTimestamp: utils.NewUint64(0),
+			DurangoTimestamp:   utils.NewUint64(0),
+		},
+	},
 }
 
 // AvailableForks returns the set of defined fork names

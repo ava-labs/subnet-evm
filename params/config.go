@@ -21,12 +21,12 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"time"
 
 	"github.com/ava-labs/avalanchego/utils/constants"
 	"github.com/ava-labs/avalanchego/version"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/commontype"
-	"github.com/ethereum/go-ethereum/precompile/modules"
 	"github.com/ethereum/go-ethereum/precompile/precompileconfig"
 	"github.com/ethereum/go-ethereum/utils"
 )
@@ -60,6 +60,8 @@ var (
 		MaxBlockGasCost:  big.NewInt(1_000_000),
 		BlockGasCostStep: big.NewInt(200_000),
 	}
+
+	InactiveUpgradeTime = time.Date(10000, time.December, 1, 0, 0, 0, 0, time.UTC)
 )
 
 var (
@@ -103,7 +105,30 @@ var (
 		UpgradeConfig:       UpgradeConfig{},
 	}
 
-	TestSubnetEVMConfig = &ChainConfig{
+	TestPreSubnetEVMChainConfig = &ChainConfig{
+		AvalancheContext:    AvalancheContext{utils.TestSnowContext()},
+		ChainID:             big.NewInt(1),
+		FeeConfig:           DefaultFeeConfig,
+		AllowFeeRecipients:  false,
+		HomesteadBlock:      big.NewInt(0),
+		EIP150Block:         big.NewInt(0),
+		EIP155Block:         big.NewInt(0),
+		EIP158Block:         big.NewInt(0),
+		ByzantiumBlock:      big.NewInt(0),
+		ConstantinopleBlock: big.NewInt(0),
+		PetersburgBlock:     big.NewInt(0),
+		IstanbulBlock:       big.NewInt(0),
+		MuirGlacierBlock:    big.NewInt(0),
+		NetworkUpgrades: NetworkUpgrades{
+			SubnetEVMTimestamp: utils.TimeToNewUint64(InactiveUpgradeTime),
+			DurangoTimestamp:   utils.TimeToNewUint64(InactiveUpgradeTime),
+			EUpgradeTimestamp:  utils.TimeToNewUint64(InactiveUpgradeTime),
+		},
+		GenesisPrecompiles: Precompiles{},
+		UpgradeConfig:      UpgradeConfig{},
+	}
+
+	TestSubnetEVMChainConfig = &ChainConfig{
 		AvalancheContext:    AvalancheContext{utils.TestSnowContext()},
 		ChainID:             big.NewInt(1),
 		FeeConfig:           DefaultFeeConfig,
@@ -119,12 +144,14 @@ var (
 		MuirGlacierBlock:    big.NewInt(0),
 		NetworkUpgrades: NetworkUpgrades{
 			SubnetEVMTimestamp: utils.NewUint64(0),
+			DurangoTimestamp:   utils.TimeToNewUint64(InactiveUpgradeTime),
+			EUpgradeTimestamp:  utils.TimeToNewUint64(InactiveUpgradeTime),
 		},
 		GenesisPrecompiles: Precompiles{},
 		UpgradeConfig:      UpgradeConfig{},
 	}
 
-	TestPreSubnetEVMConfig = &ChainConfig{
+	TestDurangoChainConfig = &ChainConfig{
 		AvalancheContext:    AvalancheContext{utils.TestSnowContext()},
 		ChainID:             big.NewInt(1),
 		FeeConfig:           DefaultFeeConfig,
@@ -138,9 +165,36 @@ var (
 		PetersburgBlock:     big.NewInt(0),
 		IstanbulBlock:       big.NewInt(0),
 		MuirGlacierBlock:    big.NewInt(0),
-		NetworkUpgrades:     NetworkUpgrades{},
-		GenesisPrecompiles:  Precompiles{},
-		UpgradeConfig:       UpgradeConfig{},
+		NetworkUpgrades: NetworkUpgrades{
+			SubnetEVMTimestamp: utils.NewUint64(0),
+			DurangoTimestamp:   utils.NewUint64(0),
+			EUpgradeTimestamp:  utils.TimeToNewUint64(InactiveUpgradeTime),
+		},
+		GenesisPrecompiles: Precompiles{},
+		UpgradeConfig:      UpgradeConfig{},
+	}
+
+	TestEUpgradeChainConfig = &ChainConfig{
+		AvalancheContext:    AvalancheContext{utils.TestSnowContext()},
+		ChainID:             big.NewInt(1),
+		FeeConfig:           DefaultFeeConfig,
+		AllowFeeRecipients:  false,
+		HomesteadBlock:      big.NewInt(0),
+		EIP150Block:         big.NewInt(0),
+		EIP155Block:         big.NewInt(0),
+		EIP158Block:         big.NewInt(0),
+		ByzantiumBlock:      big.NewInt(0),
+		ConstantinopleBlock: big.NewInt(0),
+		PetersburgBlock:     big.NewInt(0),
+		IstanbulBlock:       big.NewInt(0),
+		MuirGlacierBlock:    big.NewInt(0),
+		NetworkUpgrades: NetworkUpgrades{
+			SubnetEVMTimestamp: utils.NewUint64(0),
+			DurangoTimestamp:   utils.NewUint64(0),
+			EUpgradeTimestamp:  utils.NewUint64(0),
+		},
+		GenesisPrecompiles: Precompiles{},
+		UpgradeConfig:      UpgradeConfig{},
 	}
 
 	TestRules = TestChainConfig.Rules(new(big.Int), 0)
@@ -167,9 +221,10 @@ type ChainConfig struct {
 	IstanbulBlock       *big.Int `json:"istanbulBlock,omitempty"`       // Istanbul switch block (nil = no fork, 0 = already on istanbul)
 	MuirGlacierBlock    *big.Int `json:"muirGlacierBlock,omitempty"`    // Eip-2384 (bomb delay) switch block (nil = no fork, 0 = already activated)
 
-	// Cancun activates the Cancun upgrade from Ethereum. (nil = no fork, 0 = already activated)
-	CancunTime *uint64 `json:"cancunTime,omitempty"`
-	// Verkle activates the Verkle upgrade from Ethereum. (nil = no fork, 0 = already activated)
+	// TODO: add back ShanghaiTime
+	//ShanghaiTime *uint64 `json:"shanghaiTime,omitempty"` // Shanghai switch time (nil = no fork, 0 = already on shanghai)
+	CancunTime *uint64 `json:"cancunTime,omitempty"` // Cancun switch time (nil = no fork, 0 = already on cancun)
+	PragueTime *uint64 `json:"pragueTime,omitempty"` // Prague switch time (nil = no fork, 0 = already on prague)
 	VerkleTime *uint64 `json:"verkleTime,omitempty"` // Verkle switch time (nil = no fork, 0 = already on verkle)
 
 	NetworkUpgrades // Config for timestamps that enable network upgrades. Skip encoding/decoding directly into ChainConfig.
@@ -287,14 +342,17 @@ func (c *ChainConfig) IsIstanbul(num *big.Int) bool {
 	return utils.IsBlockForked(c.IstanbulBlock, num)
 }
 
-// IsCancun returns whether [time] represents a block
-// with a timestamp after the Cancun upgrade time.
+// IsCancun returns whether num is either equal to the Cancun fork time or greater.
 func (c *ChainConfig) IsCancun(num *big.Int, time uint64) bool {
 	return utils.IsTimestampForked(c.CancunTime, time)
 }
 
-// IsVerkle returns whether [time] represents a block
-// with a timestamp after the Verkle upgrade time.
+// IsPrague returns whether time is either equal to the Prague fork time or greater.
+func (c *ChainConfig) IsPrague(num *big.Int, time uint64) bool {
+	return utils.IsTimestampForked(c.PragueTime, time)
+}
+
+// IsVerkle returns whether time is either equal to the Verkle fork time or greater.
 func (c *ChainConfig) IsVerkle(num *big.Int, time uint64) bool {
 	return utils.IsTimestampForked(c.VerkleTime, time)
 }
@@ -310,8 +368,13 @@ func (r *Rules) PredicaterExists(addr common.Address) bool {
 
 // IsPrecompileEnabled returns whether precompile with [address] is enabled at [timestamp].
 func (c *ChainConfig) IsPrecompileEnabled(address common.Address, timestamp uint64) bool {
-	config := c.getActivePrecompileConfig(address, timestamp)
+	config := c.GetActivePrecompileConfig(address, timestamp)
 	return config != nil && !config.IsDisabled()
+}
+
+// IsEIP4762 returns whether eip 4762 has been activated at given block.
+func (c *ChainConfig) IsEIP4762(num *big.Int, time uint64) bool {
+	return c.IsVerkle(num, time)
 }
 
 // CheckCompatible checks whether scheduled fork transitions have been imported
@@ -489,9 +552,11 @@ func (c *ChainConfig) checkCompatible(newcfg *ChainConfig, height *big.Int, time
 	if isForkBlockIncompatible(c.MuirGlacierBlock, newcfg.MuirGlacierBlock, height) {
 		return newBlockCompatError("Muir Glacier fork block", c.MuirGlacierBlock, newcfg.MuirGlacierBlock)
 	}
-
 	if isForkTimestampIncompatible(c.CancunTime, newcfg.CancunTime, time) {
 		return newTimestampCompatError("Cancun fork block timestamp", c.CancunTime, c.CancunTime)
+	}
+	if isForkTimestampIncompatible(c.VerkleTime, newcfg.VerkleTime, time) {
+		return newTimestampCompatError("Verkle fork block timestamp", c.VerkleTime, newcfg.VerkleTime)
 	}
 
 	// Check avalanche network upgrades
@@ -601,7 +666,7 @@ func newTimestampCompatError(what string, storedtime, newtime *uint64) *ConfigCo
 		NewTime:      newtime,
 		RewindToTime: 0,
 	}
-	if rew != nil && *rew > 0 {
+	if rew != nil && *rew != 0 {
 		err.RewindToTime = *rew - 1
 	}
 	return err
@@ -611,7 +676,14 @@ func (err *ConfigCompatError) Error() string {
 	if err.StoredBlock != nil {
 		return fmt.Sprintf("mismatching %s in database (have block %d, want block %d, rewindto block %d)", err.What, err.StoredBlock, err.NewBlock, err.RewindToBlock)
 	}
-	return fmt.Sprintf("mismatching %s in database (have timestamp %s, want timestamp %s, rewindto timestamp %d)", err.What, ptrToString(err.StoredTime), ptrToString(err.NewTime), err.RewindToTime)
+	if err.StoredTime == nil && err.NewTime == nil {
+		return ""
+	} else if err.StoredTime == nil && err.NewTime != nil {
+		return fmt.Sprintf("mismatching %s in database (have timestamp nil, want timestamp %d, rewindto timestamp %d)", err.What, *err.NewTime, err.RewindToTime)
+	} else if err.StoredTime != nil && err.NewTime == nil {
+		return fmt.Sprintf("mismatching %s in database (have timestamp %d, want timestamp nil, rewindto timestamp %d)", err.What, *err.StoredTime, err.RewindToTime)
+	}
+	return fmt.Sprintf("mismatching %s in database (have timestamp %d, want timestamp %d, rewindto timestamp %d)", err.What, *err.StoredTime, *err.NewTime, err.RewindToTime)
 }
 
 func ptrToString(val *uint64) string {
@@ -623,8 +695,10 @@ func ptrToString(val *uint64) string {
 
 type EthRules struct {
 	IsHomestead, IsEIP150, IsEIP155, IsEIP158               bool
+	IsEIP2929, IsEIP4762                                    bool
+	IsEIP2028, IsEIP3860                                    bool
 	IsByzantium, IsConstantinople, IsPetersburg, IsIstanbul bool
-	IsCancun                                                bool
+	IsCancun, IsPrague                                      bool
 	IsVerkle                                                bool
 }
 
@@ -661,6 +735,8 @@ func (r *Rules) IsPrecompileEnabled(addr common.Address) bool {
 	return ok
 }
 
+// 	IsEIP2929, IsEIP4762                                    bool
+
 // Rules ensures c's ChainID is not nil.
 func (c *ChainConfig) rules(num *big.Int, timestamp uint64) Rules {
 	chainID := c.ChainID
@@ -679,7 +755,9 @@ func (c *ChainConfig) rules(num *big.Int, timestamp uint64) Rules {
 			IsPetersburg:     c.IsPetersburg(num),
 			IsIstanbul:       c.IsIstanbul(num),
 			IsCancun:         c.IsCancun(num, timestamp),
+			IsPrague:         c.IsPrague(num, timestamp),
 			IsVerkle:         c.IsVerkle(num, timestamp),
+			IsEIP4762:        c.IsVerkle(num, timestamp),
 		},
 	}
 }
@@ -695,8 +773,8 @@ func (c *ChainConfig) Rules(blockNum *big.Int, timestamp uint64) Rules {
 	rules.ActivePrecompiles = make(map[common.Address]precompileconfig.Config)
 	rules.Predicaters = make(map[common.Address]precompileconfig.Predicater)
 	rules.AccepterPrecompiles = make(map[common.Address]precompileconfig.Accepter)
-	for _, module := range modules.RegisteredModules() {
-		if config := c.getActivePrecompileConfig(module.Address, timestamp); config != nil && !config.IsDisabled() {
+	for _, module := range RegisteredModules() {
+		if config := c.GetActivePrecompileConfig(module.Address, timestamp); config != nil && !config.IsDisabled() {
 			rules.ActivePrecompiles[module.Address] = config
 			if predicater, ok := config.(precompileconfig.Predicater); ok {
 				rules.Predicaters[module.Address] = predicater

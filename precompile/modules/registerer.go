@@ -9,6 +9,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/constants"
+	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/utils"
 )
 
@@ -32,6 +33,20 @@ var (
 		},
 	}
 )
+
+func init() {
+	params.RegisteredModules = func() []params.Module {
+		modules := make([]params.Module, len(registeredModules))
+		for i, stm := range registeredModules {
+			modules[i] = params.Module{
+				ConfigKey:  stm.ConfigKey,
+				Address:    stm.Address,
+				MakeConfig: stm.MakeConfig,
+			}
+		}
+		return modules
+	}
+}
 
 // ReservedAddress returns true if [addr] is in a reserved range for custom precompiles
 func ReservedAddress(addr common.Address) bool {

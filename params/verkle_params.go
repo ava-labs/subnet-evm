@@ -1,4 +1,4 @@
-// Copyright 2015 The go-ethereum Authors
+// Copyright 2023 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
@@ -14,28 +14,23 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-package eth
+package params
 
-import (
-	"github.com/ethereum/go-ethereum/common"
+// Verkle tree EIP: costs associated to witness accesses
+var (
+	WitnessBranchReadCost  uint64 = 1900
+	WitnessChunkReadCost   uint64 = 200
+	WitnessBranchWriteCost uint64 = 3000
+	WitnessChunkWriteCost  uint64 = 500
+	WitnessChunkFillCost   uint64 = 6200
 )
 
-// EthereumAPI provides an API to access Ethereum full node-related information.
-type EthereumAPI struct {
-	e *Ethereum
-}
-
-// NewEthereumAPI creates a new Ethereum protocol API for full nodes.
-func NewEthereumAPI(e *Ethereum) *EthereumAPI {
-	return &EthereumAPI{e}
-}
-
-// Etherbase is the address that mining rewards will be sent to.
-func (api *EthereumAPI) Etherbase() (common.Address, error) {
-	return api.e.Etherbase()
-}
-
-// Coinbase is the address that mining rewards will be sent to (alias for Etherbase).
-func (api *EthereumAPI) Coinbase() (common.Address, error) {
-	return api.Etherbase()
+// ClearVerkleWitnessCosts sets all witness costs to 0, which is necessary
+// for historical block replay simulations.
+func ClearVerkleWitnessCosts() {
+	WitnessBranchReadCost = 0
+	WitnessChunkReadCost = 0
+	WitnessBranchWriteCost = 0
+	WitnessChunkWriteCost = 0
+	WitnessChunkFillCost = 0
 }

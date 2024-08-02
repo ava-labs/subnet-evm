@@ -60,7 +60,7 @@ func TestSetupGenesis(t *testing.T) {
 }
 
 func testSetupGenesis(t *testing.T, scheme string) {
-	preSubnetConfig := *params.TestPreSubnetEVMConfig
+	preSubnetConfig := *params.TestPreSubnetEVMChainConfig
 	preSubnetConfig.SubnetEVMTimestamp = utils.NewUint64(100)
 	var (
 		customghash = common.HexToHash("0x4a12fe7bf8d40d152d7e9de22337b115186a4662aa3a97217b36146202bbfc66")
@@ -328,7 +328,7 @@ func TestGenesisWriteUpgradesRegression(t *testing.T) {
 		GasLimit:   8_000_000,
 		Extra:      nil,
 		Time:       timestamp,
-	}, nil, nil, nil, trie.NewStackTrie(nil))
+	}, &types.Body{}, nil, trie.NewStackTrie(nil))
 	rawdb.WriteBlock(db, lastAcceptedBlock)
 
 	// Attempt restart after the chain has advanced past the activation of the precompile upgrade.
@@ -371,7 +371,7 @@ func TestVerkleGenesisCommit(t *testing.T) {
 		},
 	}
 
-	expected := common.Hex2Bytes("14398d42be3394ff8d50681816a4b7bf8d8283306f577faba2d5bc57498de23b")
+	expected := common.FromHex("14398d42be3394ff8d50681816a4b7bf8d8283306f577faba2d5bc57498de23b")
 	got := genesis.ToBlock().Root().Bytes()
 	if !bytes.Equal(got, expected) {
 		t.Fatalf("invalid genesis state root, expected %x, got %x", expected, got)
@@ -381,7 +381,7 @@ func TestVerkleGenesisCommit(t *testing.T) {
 	triedb := triedb.NewDatabase(db, &triedb.Config{IsVerkle: true, PathDB: pathdb.Defaults})
 	block := genesis.MustCommit(db, triedb)
 	if !bytes.Equal(block.Root().Bytes(), expected) {
-		t.Fatalf("invalid genesis state root, expected %x, got %x", expected, got)
+		t.Fatalf("invalid genesis state root, expected %x, got %x", expected, block.Root())
 	}
 
 	// Test that the trie is verkle
@@ -389,7 +389,7 @@ func TestVerkleGenesisCommit(t *testing.T) {
 		t.Fatalf("expected trie to be verkle")
 	}
 
-	if !rawdb.ExistsAccountTrieNode(db, nil) {
+	if !rawdb.HasAccountTrieNode(db, nil) {
 		t.Fatal("could not find node")
 	}
 }

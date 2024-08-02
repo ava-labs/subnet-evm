@@ -57,7 +57,7 @@ func (n *Node) AccountManager() *accounts.Manager {
 	return n.accman
 }
 
-// RegisterAPIs registers the APIs a service provides on the node.
+// APIs returns the APIs the node provides.
 func (n *Node) APIs() []rpc.API {
 	return n.apis()
 }

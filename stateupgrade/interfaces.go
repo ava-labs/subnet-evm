@@ -7,6 +7,7 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/tracing"
 	"github.com/holiman/uint256"
 )
 
@@ -14,7 +15,7 @@ import (
 type StateDB interface {
 	SetState(common.Address, common.Hash, common.Hash)
 	SetCode(common.Address, []byte)
-	AddBalance(common.Address, *uint256.Int)
+	AddBalance(common.Address, *uint256.Int, tracing.BalanceChangeReason)
 
 	GetNonce(common.Address) uint64
 	SetNonce(common.Address, uint64)
