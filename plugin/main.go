@@ -9,6 +9,8 @@ import (
 	"github.com/ava-labs/avalanchego/version"
 	"github.com/ava-labs/subnet-evm/plugin/evm"
 	"github.com/ava-labs/subnet-evm/plugin/runner"
+
+	_ "github.com/ava-labs/subnet-evm/params/paramsjson" // registers JSON unmarshalers to avoid circular dependency
 )
 
 func main() {
