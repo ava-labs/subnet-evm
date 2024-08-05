@@ -43,7 +43,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	. "github.com/ava-labs/subnet-evm/params"
-	_ "github.com/ava-labs/subnet-evm/params/paramsjson" // registers JSON unmarshalers to avoid circular dependency with precompile/modules
+	_ "github.com/ava-labs/subnet-evm/params/paramsjson" // registers JSON unmarshalers to avoid circular dependency
 )
 
 func TestCheckCompatible(t *testing.T) {

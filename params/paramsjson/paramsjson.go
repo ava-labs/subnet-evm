@@ -2,7 +2,8 @@
 // on the `modules` package. This avoids `params` depending on `modules`, even
 // transitively, which would result in a circular dependency.
 //
-// The [Unmarshal] function is a drop-in replacement for [json.Unmarshal].
+// Typically there is no need to call this package directly. It should instead
+// be blank _ imported to register its unmarshallers, similarly to SQL drivers.
 package paramsjson
 
 import (
