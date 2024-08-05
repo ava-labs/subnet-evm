@@ -44,6 +44,8 @@ func NewDisableConfig(blockTimestamp *uint64) *Config {
 
 func (*Config) Key() string { return ConfigKey }
 
+func (*Config) Address() common.Address { return ContractAddress }
+
 // Equal returns true if [cfg] is a [*ContractDeployerAllowListConfig] and it has been configured identical to [c].
 func (c *Config) Equal(cfg precompileconfig.Config) bool {
 	// typecast before comparison

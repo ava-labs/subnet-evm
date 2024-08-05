@@ -240,9 +240,6 @@ func TestConfigUnmarshalJSON(t *testing.T) {
 
 func TestActivePrecompiles(t *testing.T) {
 	config := &ChainConfig{
-		PrecompileAddresses: map[string]common.Address{
-			nativeminter.ConfigKey: nativeminter.ContractAddress,
-		},
 		UpgradeConfig: UpgradeConfig{
 			PrecompileUpgrades: []PrecompileUpgrade{
 				{
@@ -282,9 +279,6 @@ func TestChainConfigMarshalWithUpgrades(t *testing.T) {
 				DurangoTimestamp:   utils.NewUint64(0),
 			},
 			GenesisPrecompiles: Precompiles{},
-			PrecompileAddresses: map[string]common.Address{
-				txallowlist.Module.ConfigKey: txallowlist.ContractAddress,
-			},
 		},
 		UpgradeConfig: UpgradeConfig{
 			PrecompileUpgrades: []PrecompileUpgrade{

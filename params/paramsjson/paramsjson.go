@@ -15,7 +15,6 @@ import (
 
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/modules"
-	"github.com/ethereum/go-ethereum/common"
 )
 
 func init() {
@@ -72,9 +71,6 @@ func unmarshalChainConfig(data []byte, cc *params.ChainConfig, upgrades *params.
 	if cc.GenesisPrecompiles == nil {
 		cc.GenesisPrecompiles = make(params.Precompiles)
 	}
-	if cc.PrecompileAddresses == nil {
-		cc.PrecompileAddresses = make(map[string]common.Address)
-	}
 	for fld, buf := range byField {
 		switch mod, ok := modules.GetPrecompileModule(fld); {
 		case ok:
@@ -83,39 +79,14 @@ func unmarshalChainConfig(data []byte, cc *params.ChainConfig, upgrades *params.
 				return err
 			}
 			cc.GenesisPrecompiles[mod.ConfigKey] = conf
-			if err := addPrecompileAddress(cc, mod); err != nil {
-				return err
-			}
 
 		case fld == upgradesJSONField && upgrades != nil:
 			if err := unmarshalUpgradeConfig(buf, upgrades); err != nil {
 				return err
 			}
-			for _, u := range upgrades.PrecompileUpgrades {
-				if err := addPrecompileAddressByKey(cc, u.Key()); err != nil {
-					return err
-				}
-			}
 		}
 	}
 
-	return nil
-}
-
-func addPrecompileAddressByKey(cc *params.ChainConfig, key string) error {
-	mod, ok := modules.GetPrecompileModule(key)
-	if !ok {
-		return fmt.Errorf("module %q not found", key)
-	}
-	return addPrecompileAddress(cc, mod)
-}
-
-func addPrecompileAddress(cc *params.ChainConfig, mod modules.Module) error {
-	key := mod.ConfigKey
-	if a, ok := cc.PrecompileAddresses[key]; ok && a != mod.Address {
-		return fmt.Errorf("conflicting addresses for module %q: %v and %v", key, a, mod.Address)
-	}
-	cc.PrecompileAddresses[key] = mod.Address
 	return nil
 }
 

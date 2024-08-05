@@ -19,6 +19,8 @@ import (
 type Config interface {
 	// Key returns the unique key for the stateful precompile.
 	Key() string
+	// Address returns the address at which the precompile should be made available.
+	Address() common.Address
 	// Timestamp returns the timestamp at which this stateful precompile should be enabled.
 	// 1) 0 indicates that the precompile should be enabled from genesis.
 	// 2) n indicates that the precompile should be enabled in the first block with timestamp >= [n].

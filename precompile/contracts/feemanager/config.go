@@ -50,6 +50,8 @@ func NewDisableConfig(blockTimestamp *uint64) *Config {
 // This should be the same key as used in the precompile module.
 func (*Config) Key() string { return ConfigKey }
 
+func (*Config) Address() common.Address { return ContractAddress }
+
 // Equal returns true if [cfg] is a [*FeeManagerConfig] and it has been configured identical to [c].
 func (c *Config) Equal(cfg precompileconfig.Config) bool {
 	// typecast before comparison

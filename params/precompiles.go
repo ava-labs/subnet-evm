@@ -7,5 +7,4 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 )
 
-// TODO(arr4n): can this be removed? DO NOT MERGE
 type Precompiles map[string]precompileconfig.Config

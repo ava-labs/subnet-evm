@@ -244,9 +244,8 @@ type ChainConfig struct {
 	FeeConfig          commontype.FeeConfig `json:"feeConfig"`                    // Set the configuration for the dynamic fee algorithm
 	AllowFeeRecipients bool                 `json:"allowFeeRecipients,omitempty"` // Allows fees to be collected by block builders.
 
-	GenesisPrecompiles  Precompiles               `json:"-"` // Config for enabling precompiles from genesis. JSON encode/decode will be handled by the custom marshaler/unmarshaler.
-	PrecompileAddresses map[string]common.Address `json:"-"`
-	UpgradeConfig       `json:"-"`                // Config specified in upgradeBytes (avalanche network upgrades or enable/disabling precompiles). Skip encoding/decoding directly into ChainConfig.
+	GenesisPrecompiles Precompiles `json:"-"` // Config for enabling precompiles from genesis. JSON encode/decode will be handled by the custom marshaler/unmarshaler.
+	UpgradeConfig      `json:"-"`  // Config specified in upgradeBytes (avalanche network upgrades or enable/disabling precompiles). Skip encoding/decoding directly into ChainConfig.
 }
 
 // Description returns a human-readable description of ChainConfig.
@@ -756,11 +755,10 @@ func (c *ChainConfig) Rules(blockNum *big.Int, timestamp uint64) Rules {
 			return
 		}
 
-		addr := c.PrecompileAddresses[cfg.Key()]
 		if cfg.IsDisabled() {
-			delete(r.ActivePrecompiles, addr)
+			delete(r.ActivePrecompiles, cfg.Address())
 		} else {
-			r.ActivePrecompiles[addr] = cfg
+			r.ActivePrecompiles[cfg.Address()] = cfg
 		}
 	}
 
