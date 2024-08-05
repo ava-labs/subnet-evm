@@ -4,10 +4,10 @@
 package params_test
 
 import (
+	"encoding/json"
 	"math/big"
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/params/paramsjson"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
@@ -183,6 +183,6 @@ func TestUnmarshalStateUpgradeJSON(t *testing.T) {
 		},
 	}
 	var unmarshaledConfig UpgradeConfig
-	require.NoError(t, paramsjson.Unmarshal(jsonBytes, &unmarshaledConfig))
+	require.NoError(t, json.Unmarshal(jsonBytes, &unmarshaledConfig))
 	require.Equal(t, upgradeConfig, unmarshaledConfig)
 }

@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/ava-labs/subnet-evm/commontype"
-	"github.com/ava-labs/subnet-evm/params/paramsjson"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/deployerallowlist"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/feemanager"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/nativeminter"
@@ -321,7 +320,7 @@ func TestPrecompileUpgradeUnmarshalJSON(t *testing.T) {
 	`)
 
 	var upgradeConfig UpgradeConfig
-	require.NoError(paramsjson.Unmarshal(upgradeBytes, &upgradeConfig))
+	require.NoError(json.Unmarshal(upgradeBytes, &upgradeConfig))
 
 	require.Len(upgradeConfig.PrecompileUpgrades, 2)
 
@@ -346,6 +345,6 @@ func TestPrecompileUpgradeUnmarshalJSON(t *testing.T) {
 	upgradeBytes2, err := json.Marshal(upgradeConfig)
 	require.NoError(err)
 	var upgradeConfig2 UpgradeConfig
-	require.NoError(paramsjson.Unmarshal(upgradeBytes2, &upgradeConfig2))
+	require.NoError(json.Unmarshal(upgradeBytes2, &upgradeConfig2))
 	require.Equal(upgradeConfig, upgradeConfig2)
 }
