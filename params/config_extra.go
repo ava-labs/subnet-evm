@@ -6,7 +6,6 @@ package params
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"math/big"
 
 	"github.com/ava-labs/avalanchego/snow"
@@ -33,30 +32,12 @@ type AvalancheContext struct {
 	SnowCtx *snow.Context
 }
 
-func (u *UpgradeConfig) UnmarshalJSON([]byte) error {
-	return fmt.Errorf("do not unmarshal %T JSON directly; use modules.UnmarshalUpgradeConfigJSON()", u)
-}
-
-func (u *PrecompileUpgrade) UnmarshalJSON([]byte) error {
-	return fmt.Errorf("do not unmarshal %T JSON directly; use modules.UnmarshalPrecompileUpgradeJSON()", u)
-}
-
 // MarshalJSON marshal the precompile config into json based on the precompile key.
 // Ex: {"feeManagerConfig": {...}} where "feeManagerConfig" is the key
 func (u *PrecompileUpgrade) MarshalJSON() ([]byte, error) {
 	res := make(map[string]precompileconfig.Config)
 	res[u.Key()] = u.Config
 	return json.Marshal(res)
-}
-
-// UnmarshalJSON parses the JSON-encoded data and stores the result in the
-// object pointed to by c.
-// This is a custom unmarshaler to handle the Precompiles field.
-// Precompiles was presented as an inline object in the JSON.
-// This custom unmarshaler ensures backwards compatibility with the old format.
-// TODO(arr4n) update this method comment DO NOT MERGE
-func (c *ChainConfig) UnmarshalJSON([]byte) error {
-	return fmt.Errorf("do not unmarshal %T JSON directly; use modules.UnmarshalChainConfigJSON()", c)
 }
 
 // MarshalJSON returns the JSON encoding of c.
@@ -128,25 +109,6 @@ func (cu ChainConfigWithUpgradesJSON) MarshalJSON() ([]byte, error) {
 	mergedJSON = append(mergedJSON, ',')
 	mergedJSON = append(mergedJSON, upgradeJSON[1:]...)
 	return mergedJSON, nil
-}
-
-func (cu *ChainConfigWithUpgradesJSON) UnmarshalJSON(input []byte) error {
-	var cc ChainConfig
-	if err := json.Unmarshal(input, &cc); err != nil {
-		return err
-	}
-
-	type upgrades struct {
-		UpgradeConfig UpgradeConfig `json:"upgrades"`
-	}
-
-	var u upgrades
-	if err := json.Unmarshal(input, &u); err != nil {
-		return err
-	}
-	cu.ChainConfig = cc
-	cu.UpgradeConfig = u.UpgradeConfig
-	return nil
 }
 
 // ToWithUpgradesJSON converts the ChainConfig to ChainConfigWithUpgradesJSON with upgrades explicitly displayed.

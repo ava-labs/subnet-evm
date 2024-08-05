@@ -17,6 +17,12 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
+func init() {
+	// The parameters of RegisterJSONUmarshalers are all generic but the
+	// specific types are unambiguous so we don't need to specify them here.
+	params.RegisterJSONUnmarshalers(Unmarshal, Unmarshal, Unmarshal, Unmarshal)
+}
+
 // An Unmarshaler can have JSON unmarshalled into it by [Unmarshal].
 type Unmarshaler interface {
 	*params.ChainConfig | *params.ChainConfigWithUpgradesJSON | *params.UpgradeConfig | *params.PrecompileUpgrade
@@ -145,6 +151,9 @@ func unmarshalUpgradeConfig(data []byte, uc *params.UpgradeConfig) error {
 				fldVal.Set(reflect.New(fld.Type.Elem()))
 			}
 			jsonInto = fldVal.Interface()
+
+		default:
+			return fmt.Errorf("unsupported field %T.%s", uc, fld.Name)
 		}
 
 		if err := json.Unmarshal(byField[jsonFld], jsonInto); err != nil {
@@ -178,7 +187,6 @@ func (u *precompileUpgrade) UnmarshalJSON(data []byte) error {
 			return err
 		}
 		u.Config = config
-
-		return nil
 	}
+	return nil
 }
