@@ -38,9 +38,9 @@ func TestMessageSignatureHandler(t *testing.T) {
 	require.NoError(t, err)
 	messageID := msg.ID()
 	require.NoError(t, backend.AddMessage(msg))
-	signature, err := backend.GetMessageSignature(messageID)
+	signature, err := backend.GetMessageSignatureByID(messageID)
 	require.NoError(t, err)
-	offchainSignature, err := backend.GetMessageSignature(offchainMessage.ID())
+	offchainSignature, err := backend.GetMessageSignatureByID(offchainMessage.ID())
 	require.NoError(t, err)
 
 	unknownMessageID := ids.GenerateTestID()

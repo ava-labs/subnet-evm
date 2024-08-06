@@ -112,7 +112,7 @@ func TestSendWarpMessage(t *testing.T) {
 	unsignedMessageID := unsignedMessage.ID()
 
 	// Verify the signature cannot be fetched before the block is accepted
-	_, err = vm.warpBackend.GetMessageSignature(unsignedMessageID)
+	_, err = vm.warpBackend.GetMessageSignatureByID(unsignedMessageID)
 	require.Error(err)
 	_, err = vm.warpBackend.GetBlockSignature(blk.ID())
 	require.Error(err)
@@ -122,7 +122,7 @@ func TestSendWarpMessage(t *testing.T) {
 	vm.blockChain.DrainAcceptorQueue()
 
 	// Verify the message signature after accepting the block.
-	rawSignatureBytes, err := vm.warpBackend.GetMessageSignature(unsignedMessageID)
+	rawSignatureBytes, err := vm.warpBackend.GetMessageSignatureByID(unsignedMessageID)
 	require.NoError(err)
 	blsSignature, err := bls.SignatureFromBytes(rawSignatureBytes[:])
 	require.NoError(err)
@@ -595,7 +595,7 @@ func TestMessageSignatureRequestsToVM(t *testing.T) {
 	// Add the known message and get its signature to confirm.
 	err = vm.warpBackend.AddMessage(warpMessage)
 	require.NoError(t, err)
-	signature, err := vm.warpBackend.GetMessageSignature(warpMessage.ID())
+	signature, err := vm.warpBackend.GetMessageSignatureByID(warpMessage.ID())
 	require.NoError(t, err)
 
 	tests := map[string]struct {

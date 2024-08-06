@@ -60,7 +60,7 @@ func TestClearDB(t *testing.T) {
 		err = backend.AddMessage(unsignedMsg)
 		require.NoError(t, err)
 		// ensure that the message was added
-		_, err = backend.GetMessageSignature(messageID)
+		_, err = backend.GetMessageSignatureByID(messageID)
 		require.NoError(t, err)
 	}
 
@@ -75,7 +75,7 @@ func TestClearDB(t *testing.T) {
 
 	// ensure all messages have been deleted
 	for _, messageID := range messageIDs {
-		_, err := backend.GetMessageSignature(messageID)
+		_, err := backend.GetMessageSignatureByID(messageID)
 		require.ErrorContains(t, err, "failed to get warp message")
 	}
 }
@@ -95,7 +95,7 @@ func TestAddAndGetValidMessage(t *testing.T) {
 
 	// Verify that a signature is returned successfully, and compare to expected signature.
 	messageID := testUnsignedMessage.ID()
-	signature, err := backend.GetMessageSignature(messageID)
+	signature, err := backend.GetMessageSignatureByID(messageID)
 	require.NoError(t, err)
 
 	expectedSig, err := warpSigner.Sign(testUnsignedMessage)
@@ -114,7 +114,7 @@ func TestAddAndGetUnknownMessage(t *testing.T) {
 
 	// Try getting a signature for a message that was not added.
 	messageID := testUnsignedMessage.ID()
-	_, err = backend.GetMessageSignature(messageID)
+	_, err = backend.GetMessageSignatureByID(messageID)
 	require.Error(t, err)
 }
 
@@ -163,7 +163,7 @@ func TestZeroSizedCache(t *testing.T) {
 
 	// Verify that a signature is returned successfully, and compare to expected signature.
 	messageID := testUnsignedMessage.ID()
-	signature, err := backend.GetMessageSignature(messageID)
+	signature, err := backend.GetMessageSignatureByID(messageID)
 	require.NoError(t, err)
 
 	expectedSig, err := warpSigner.Sign(testUnsignedMessage)
@@ -192,7 +192,7 @@ func TestOffChainMessages(t *testing.T) {
 				require.NoError(err)
 				require.Equal(testUnsignedMessage.Bytes(), msg.Bytes())
 
-				signature, err := b.GetMessageSignature(testUnsignedMessage.ID())
+				signature, err := b.GetMessageSignatureByID(testUnsignedMessage.ID())
 				require.NoError(err)
 				expectedSignatureBytes, err := warpSigner.Sign(msg)
 				require.NoError(err)

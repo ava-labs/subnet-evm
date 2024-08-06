@@ -28,6 +28,10 @@ const (
 	ErrFailedToMarshal
 )
 
+type AddressedCallHandler interface {
+	GetMessageSignature(*avalancheWarp.UnsignedMessage) ([bls.SignatureLen]byte, error)
+}
+
 // SignatureRequestHandlerP2P serves warp signature requests using the p2p
 // framework from avalanchego. It is a peer.RequestHandler for
 // message.MessageSignatureRequest.
@@ -35,6 +39,8 @@ type SignatureRequestHandlerP2P struct {
 	backend warp.Backend
 	codec   codec.Manager
 	stats   *handlerStats
+
+	addressedPayloadHandlers []AddressedCallHandler
 }
 
 func NewSignatureRequestHandlerP2P(backend warp.Backend, codec codec.Manager) *SignatureRequestHandlerP2P {
@@ -43,6 +49,10 @@ func NewSignatureRequestHandlerP2P(backend warp.Backend, codec codec.Manager) *S
 		codec:   codec,
 		stats:   newStats(),
 	}
+}
+
+func (s *SignatureRequestHandlerP2P) AddAddressedCallHandler(handler AddressedCallHandler) {
+	s.addressedPayloadHandlers = append(s.addressedPayloadHandlers, handler)
 }
 
 func (s *SignatureRequestHandlerP2P) AppRequest(
@@ -79,11 +89,7 @@ func (s *SignatureRequestHandlerP2P) AppRequest(
 	var sig [bls.SignatureLen]byte
 	switch p := parsed.(type) {
 	case *payload.AddressedCall:
-		// Note we pass the unsigned message ID to GetMessageSignature since
-		// that is what the backend expects.
-		// However, we verify the types and format of the payload to ensure
-		// the message conforms to the ACP-118 spec.
-		sig, err = s.GetMessageSignature(unsignedMessage.ID())
+		sig, err = s.GetMessageSignature(unsignedMessage)
 		if err != nil {
 			s.stats.IncMessageSignatureMiss()
 		} else {
@@ -122,7 +128,7 @@ func (s *SignatureRequestHandlerP2P) AppRequest(
 	return respBytes, nil
 }
 
-func (s *SignatureRequestHandlerP2P) GetMessageSignature(messageID ids.ID) ([bls.SignatureLen]byte, error) {
+func (s *SignatureRequestHandlerP2P) GetMessageSignature(message *avalancheWarp.UnsignedMessage) ([bls.SignatureLen]byte, error) {
 	startTime := time.Now()
 	s.stats.IncMessageSignatureRequest()
 
@@ -131,7 +137,7 @@ func (s *SignatureRequestHandlerP2P) GetMessageSignature(messageID ids.ID) ([bls
 		s.stats.UpdateMessageSignatureRequestTime(time.Since(startTime))
 	}()
 
-	return s.backend.GetMessageSignature(messageID)
+	return s.backend.GetMessageSignature(message)
 }
 
 func (s *SignatureRequestHandlerP2P) GetBlockSignature(blockID ids.ID) ([bls.SignatureLen]byte, error) {

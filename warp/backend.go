@@ -30,14 +30,28 @@ type BlockClient interface {
 	GetAcceptedBlock(ctx context.Context, blockID ids.ID) (snowman.Block, error)
 }
 
+type MessageValidator interface {
+	// If the validator returns nil, the message is considered valid and the
+	// backend will sign it.
+	ValidateMessage(*avalancheWarp.UnsignedMessage) error
+}
+
 // Backend tracks signature-eligible warp messages and provides an interface to fetch them.
 // The backend is also used to query for warp message signatures by the signature request handler.
 type Backend interface {
 	// AddMessage signs [unsignedMessage] and adds it to the warp backend database
 	AddMessage(unsignedMessage *avalancheWarp.UnsignedMessage) error
 
-	// GetMessageSignature returns the signature of the requested message hash.
-	GetMessageSignature(messageID ids.ID) ([bls.SignatureLen]byte, error)
+	// AddMessageValidator adds a validator to the backend. The backend will sign
+	// messages that pass any of the validators, in addition to those known in the db.
+	AddMessageValidator(validator MessageValidator)
+
+	// GetMessageSignatureByID returns the signature of the requested message.
+	GetMessageSignature(message *avalancheWarp.UnsignedMessage) ([bls.SignatureLen]byte, error)
+
+	// GetMessageSignatureByID returns the signature of the requested message hash.
+	// TODO: should we deprecate this method?
+	GetMessageSignatureByID(messageID ids.ID) ([bls.SignatureLen]byte, error)
 
 	// GetBlockSignature returns the signature of the requested message hash.
 	GetBlockSignature(blockID ids.ID) ([bls.SignatureLen]byte, error)
@@ -62,6 +76,7 @@ type backend struct {
 	blockSignatureCache       *cache.LRU[ids.ID, [bls.SignatureLen]byte]
 	messageCache              *cache.LRU[ids.ID, *avalancheWarp.UnsignedMessage]
 	offchainAddressedCallMsgs map[ids.ID]*avalancheWarp.UnsignedMessage
+	messageValidators         []MessageValidator
 }
 
 // NewBackend creates a new Backend, and initializes the signature cache and message tracking database.
@@ -86,6 +101,10 @@ func NewBackend(
 		offchainAddressedCallMsgs: make(map[ids.ID]*avalancheWarp.UnsignedMessage),
 	}
 	return b, b.initOffChainMessages(offchainMessages)
+}
+
+func (b *backend) AddMessageValidator(validator MessageValidator) {
+	b.messageValidators = append(b.messageValidators, validator)
 }
 
 func (b *backend) initOffChainMessages(offchainMessages [][]byte) error {
@@ -142,15 +161,23 @@ func (b *backend) AddMessage(unsignedMessage *avalancheWarp.UnsignedMessage) err
 	return nil
 }
 
-func (b *backend) GetMessageSignature(messageID ids.ID) ([bls.SignatureLen]byte, error) {
+func (b *backend) GetMessageSignature(unsignedMessage *avalancheWarp.UnsignedMessage) ([bls.SignatureLen]byte, error) {
+	messageID := unsignedMessage.ID()
+
 	log.Debug("Getting warp message from backend", "messageID", messageID)
 	if sig, ok := b.messageSignatureCache.Get(messageID); ok {
 		return sig, nil
 	}
 
-	unsignedMessage, err := b.GetMessage(messageID)
+	var err error
+	for _, v := range append(b.messageValidators, b) {
+		err := v.ValidateMessage(unsignedMessage)
+		if err == nil {
+			break
+		}
+	}
 	if err != nil {
-		return [bls.SignatureLen]byte{}, fmt.Errorf("failed to get warp message %s from db: %w", messageID.String(), err)
+		return [bls.SignatureLen]byte{}, fmt.Errorf("failed to validate warp message: %w", err)
 	}
 
 	var signature [bls.SignatureLen]byte
@@ -162,6 +189,23 @@ func (b *backend) GetMessageSignature(messageID ids.ID) ([bls.SignatureLen]byte,
 	copy(signature[:], sig)
 	b.messageSignatureCache.Put(messageID, signature)
 	return signature, nil
+}
+
+func (b *backend) ValidateMessage(unsignedMessage *avalancheWarp.UnsignedMessage) error {
+	messageID := unsignedMessage.ID()
+	_, err := b.GetMessage(messageID)
+	if err != nil {
+		return fmt.Errorf("failed to get warp message %s from db: %w", messageID.String(), err)
+	}
+	return nil
+}
+
+func (b *backend) GetMessageSignatureByID(messageID ids.ID) ([bls.SignatureLen]byte, error) {
+	unsignedMessage, err := b.GetMessage(messageID)
+	if err != nil {
+		return [bls.SignatureLen]byte{}, fmt.Errorf("failed to get warp message %s: %w", messageID, err)
+	}
+	return b.GetMessageSignature(unsignedMessage)
 }
 
 func (b *backend) GetBlockSignature(blockID ids.ID) ([bls.SignatureLen]byte, error) {

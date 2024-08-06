@@ -45,7 +45,7 @@ func (s *SignatureRequestHandler) OnMessageSignatureRequest(ctx context.Context,
 		s.stats.UpdateMessageSignatureRequestTime(time.Since(startTime))
 	}()
 
-	signature, err := s.backend.GetMessageSignature(signatureRequest.MessageID)
+	signature, err := s.backend.GetMessageSignatureByID(signatureRequest.MessageID)
 	if err != nil {
 		log.Debug("Unknown warp signature requested", "messageID", signatureRequest.MessageID)
 		s.stats.IncMessageSignatureMiss()

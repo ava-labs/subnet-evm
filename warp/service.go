@@ -51,7 +51,7 @@ func (a *API) GetMessage(ctx context.Context, messageID ids.ID) (hexutil.Bytes, 
 
 // GetMessageSignature returns the BLS signature associated with a messageID.
 func (a *API) GetMessageSignature(ctx context.Context, messageID ids.ID) (hexutil.Bytes, error) {
-	signature, err := a.backend.GetMessageSignature(messageID)
+	signature, err := a.backend.GetMessageSignatureByID(messageID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get signature for message %s with error %w", messageID, err)
 	}
