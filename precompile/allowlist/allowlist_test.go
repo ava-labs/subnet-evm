@@ -25,8 +25,10 @@ type dummyConfig struct {
 	AllowListConfig
 }
 
-func (d *dummyConfig) Key() string      { return "dummy" }
-func (d *dummyConfig) IsDisabled() bool { return false }
+func (*dummyConfig) Key() string             { return "dummy" }
+func (*dummyConfig) Address() common.Address { return dummyAddr }
+func (*dummyConfig) IsDisabled() bool        { return false }
+
 func (d *dummyConfig) Verify(chainConfig precompileconfig.ChainConfig) error {
 	return d.AllowListConfig.Verify(chainConfig, d.Upgrade)
 }
