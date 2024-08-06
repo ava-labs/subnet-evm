@@ -167,7 +167,7 @@ func (b *backend) GetMessageSignature(unsignedMessage *avalancheWarp.UnsignedMes
 
 	var err error
 	for _, v := range append(b.messageValidators, b) {
-		err := v.ValidateMessage(unsignedMessage)
+		err = v.ValidateMessage(unsignedMessage)
 		if err == nil {
 			break
 		}
