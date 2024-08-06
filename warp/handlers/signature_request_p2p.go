@@ -39,8 +39,6 @@ type SignatureRequestHandlerP2P struct {
 	backend warp.Backend
 	codec   codec.Manager
 	stats   *handlerStats
-
-	addressedPayloadHandlers []AddressedCallHandler
 }
 
 func NewSignatureRequestHandlerP2P(backend warp.Backend, codec codec.Manager) *SignatureRequestHandlerP2P {
@@ -49,10 +47,6 @@ func NewSignatureRequestHandlerP2P(backend warp.Backend, codec codec.Manager) *S
 		codec:   codec,
 		stats:   newStats(),
 	}
-}
-
-func (s *SignatureRequestHandlerP2P) AddAddressedCallHandler(handler AddressedCallHandler) {
-	s.addressedPayloadHandlers = append(s.addressedPayloadHandlers, handler)
 }
 
 func (s *SignatureRequestHandlerP2P) AppRequest(

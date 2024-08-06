@@ -46,7 +46,7 @@ type Backend interface {
 	// messages that pass any of the validators, in addition to those known in the db.
 	AddMessageValidator(validator MessageValidator)
 
-	// GetMessageSignatureByID returns the signature of the requested message.
+	// GetMessageSignature returns the signature of the requested message.
 	GetMessageSignature(message *avalancheWarp.UnsignedMessage) ([bls.SignatureLen]byte, error)
 
 	// GetMessageSignatureByID returns the signature of the requested message hash.
