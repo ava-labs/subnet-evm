@@ -215,7 +215,6 @@ var (
 // ChainConfig is stored in the database on a per block basis. This means
 // that any network, identified by its genesis block, can have its own
 // set of configuration options.
-// TODO document the need to call InitChainConfig (DO NOT MERGE)
 type ChainConfig struct {
 	ChainID *big.Int `json:"chainId"` // chainId identifies the current chain and is used for replay protection
 
@@ -370,6 +369,12 @@ func (r *Rules) PredicatersExist() bool {
 func (r *Rules) PredicaterExists(addr common.Address) bool {
 	_, PredicaterExists := r.Predicaters[addr]
 	return PredicaterExists
+}
+
+// IsPrecompileEnabled returns whether precompile with [address] is enabled at [timestamp].
+func (c *ChainConfig) IsPrecompileEnabled(address common.Address, timestamp uint64) bool {
+	config := c.GetActivePrecompileConfig(address, timestamp)
+	return config != nil && !config.IsDisabled()
 }
 
 // CheckCompatible checks whether scheduled fork transitions have been imported
