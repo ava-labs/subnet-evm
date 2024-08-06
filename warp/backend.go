@@ -49,10 +49,6 @@ type Backend interface {
 	// GetMessageSignature returns the signature of the requested message.
 	GetMessageSignature(message *avalancheWarp.UnsignedMessage) ([bls.SignatureLen]byte, error)
 
-	// GetMessageSignatureByID returns the signature of the requested message hash.
-	// TODO: should we deprecate this method?
-	GetMessageSignatureByID(messageID ids.ID) ([bls.SignatureLen]byte, error)
-
 	// GetBlockSignature returns the signature of the requested message hash.
 	GetBlockSignature(blockID ids.ID) ([bls.SignatureLen]byte, error)
 
@@ -198,14 +194,6 @@ func (b *backend) ValidateMessage(unsignedMessage *avalancheWarp.UnsignedMessage
 		return fmt.Errorf("failed to get warp message %s from db: %w", messageID.String(), err)
 	}
 	return nil
-}
-
-func (b *backend) GetMessageSignatureByID(messageID ids.ID) ([bls.SignatureLen]byte, error) {
-	unsignedMessage, err := b.GetMessage(messageID)
-	if err != nil {
-		return [bls.SignatureLen]byte{}, fmt.Errorf("failed to get warp message %s: %w", messageID, err)
-	}
-	return b.GetMessageSignature(unsignedMessage)
 }
 
 func (b *backend) GetBlockSignature(blockID ids.ID) ([bls.SignatureLen]byte, error) {
