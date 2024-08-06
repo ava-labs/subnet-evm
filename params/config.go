@@ -754,32 +754,20 @@ func (c *ChainConfig) Rules(blockNum *big.Int, timestamp uint64) Rules {
 	r.AvalancheRules = c.GetAvalancheRules(timestamp)
 
 	r.ActivePrecompiles = make(map[common.Address]precompileconfig.Config)
-	update := func(cfg precompileconfig.Config) {
-		if !utils.IsForkTransition(cfg.Timestamp(), nil, timestamp) {
-			return
-		}
-
-		if cfg.IsDisabled() {
-			delete(r.ActivePrecompiles, cfg.Address())
-		} else {
-			r.ActivePrecompiles[cfg.Address()] = cfg
-		}
-	}
-
-	for _, c := range c.GenesisPrecompiles {
-		update(c)
-	}
-	for _, u := range c.PrecompileUpgrades {
-		update(u)
-	}
-
 	r.Predicaters = make(map[common.Address]precompileconfig.Predicater)
 	r.AccepterPrecompiles = make(map[common.Address]precompileconfig.Accepter)
-	for addr, config := range r.ActivePrecompiles {
-		if p, ok := config.(precompileconfig.Predicater); ok {
+
+	for _, addr := range c.allPrecompileAddresses() {
+		cfg := c.getActivePrecompileConfig(addr, timestamp)
+		if cfg == nil || cfg.IsDisabled() {
+			continue
+		}
+		r.ActivePrecompiles[addr] = cfg
+
+		if p, ok := cfg.(precompileconfig.Predicater); ok {
 			r.Predicaters[addr] = p
 		}
-		if a, ok := config.(precompileconfig.Accepter); ok {
+		if a, ok := cfg.(precompileconfig.Accepter); ok {
 			r.AccepterPrecompiles[addr] = a
 		}
 	}

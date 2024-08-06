@@ -133,12 +133,9 @@ func (c *ChainConfig) GetActivatingPrecompileConfigs(address common.Address, fro
 			configs = append(configs, pc)
 		}
 	}
-	// First check the embedded [upgrade] for precompiles configured
-	// in the genesis chain config.
 	for _, p := range c.GenesisPrecompiles {
 		maybeAppend(p)
 	}
-	// Loop over all upgrades checking for the requested precompile config.
 	for _, upgrade := range upgrades {
 		maybeAppend(upgrade.Config)
 	}
