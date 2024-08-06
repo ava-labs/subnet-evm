@@ -373,7 +373,7 @@ func (r *Rules) PredicaterExists(addr common.Address) bool {
 
 // IsPrecompileEnabled returns whether precompile with [address] is enabled at [timestamp].
 func (c *ChainConfig) IsPrecompileEnabled(address common.Address, timestamp uint64) bool {
-	config := c.GetActivePrecompileConfig(address, timestamp)
+	config := c.getActivePrecompileConfig(address, timestamp)
 	return config != nil && !config.IsDisabled()
 }
 

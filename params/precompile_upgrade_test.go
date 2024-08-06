@@ -276,13 +276,11 @@ type upgradeCompatibilityTest struct {
 }
 
 func (tt *upgradeCompatibilityTest) run(t *testing.T, chainConfig ChainConfig) {
-	t.Skip("DO NOT MERGE")
 	// apply all the upgrade bytes specified in order
 	for i, upgrade := range tt.configs {
 		newCfg := chainConfig
 		newCfg.UpgradeConfig = *upgrade
 
-		// TODO: decide on correct height as was originally nil when calling internal method; ?math.MaxUint64
 		err := chainConfig.CheckCompatible(&newCfg, 0, tt.startTimestamps[i])
 
 		// if this is not the final upgradeBytes, continue applying

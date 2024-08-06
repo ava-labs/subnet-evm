@@ -216,7 +216,8 @@ func TestConfigUnmarshalJSON(t *testing.T) {
 	}
 	`)
 	c := &ChainConfig{}
-	require.NoError(json.Unmarshal(config, c))
+	err := json.Unmarshal(config, c)
+	require.NoError(err)
 
 	require.Equal(c.ChainID, big.NewInt(43214))
 	require.Equal(c.AllowFeeRecipients, true)
@@ -234,7 +235,8 @@ func TestConfigUnmarshalJSON(t *testing.T) {
 	marshaled, err := json.Marshal(c)
 	require.NoError(err)
 	c2 := &ChainConfig{}
-	require.NoError(json.Unmarshal(marshaled, c2))
+	err = json.Unmarshal(marshaled, c2)
+	require.NoError(err)
 	require.Equal(c, c2)
 }
 
@@ -326,6 +328,7 @@ func TestChainConfigMarshalWithUpgrades(t *testing.T) {
 	require.JSONEq(t, expectedJSON, string(result))
 
 	var unmarshalled ChainConfigWithUpgradesJSON
-	require.NoError(t, json.Unmarshal(result, &unmarshalled))
+	err = json.Unmarshal(result, &unmarshalled)
+	require.NoError(t, err)
 	require.Equal(t, config, unmarshalled)
 }

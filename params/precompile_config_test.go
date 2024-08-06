@@ -14,7 +14,6 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/contracts/nativeminter"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/rewardmanager"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/txallowlist"
-	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
@@ -75,7 +74,7 @@ func TestVerifyWithChainConfigAtNilTimestamp(t *testing.T) {
 		// this does NOT enable the precompile, so it should be upgradeable.
 		{Config: txallowlist.NewConfig(nil, nil, nil, nil)},
 	}
-	require.False(t, modules.IsPrecompileEnabled(config, txallowlist.ContractAddress, 0)) // check the precompile is not enabled.
+	require.False(t, config.IsPrecompileEnabled(txallowlist.ContractAddress, 0)) // check the precompile is not enabled.
 	config.PrecompileUpgrades = []PrecompileUpgrade{
 		{
 			// enable TxAllowList at timestamp 5
@@ -273,17 +272,17 @@ func TestGetPrecompileConfig(t *testing.T) {
 		deployerallowlist.ConfigKey: deployerallowlist.NewConfig(utils.NewUint64(10), nil, nil, nil),
 	}
 
-	deployerConfig := modules.GetActivePrecompileConfig(config, deployerallowlist.ContractAddress, 0)
-	require.Nil(deployerConfig)
+	deployerConfig := config.GetActivatingPrecompileConfigs(deployerallowlist.ContractAddress, nil, 0, config.PrecompileUpgrades)
+	require.Len(deployerConfig, 0)
 
-	deployerConfig = modules.GetActivePrecompileConfig(config, deployerallowlist.ContractAddress, 10)
-	require.NotNil(deployerConfig)
+	deployerConfig = config.GetActivatingPrecompileConfigs(deployerallowlist.ContractAddress, nil, 10, config.PrecompileUpgrades)
+	require.GreaterOrEqual(len(deployerConfig), 1)
 
-	deployerConfig = modules.GetActivePrecompileConfig(config, deployerallowlist.ContractAddress, 11)
-	require.NotNil(deployerConfig)
+	deployerConfig = config.GetActivatingPrecompileConfigs(deployerallowlist.ContractAddress, nil, 11, config.PrecompileUpgrades)
+	require.GreaterOrEqual(len(deployerConfig), 1)
 
-	txAllowListConfig := modules.GetActivePrecompileConfig(config, txallowlist.ContractAddress, 0)
-	require.Nil(txAllowListConfig)
+	txAllowListConfig := config.GetActivatingPrecompileConfigs(txallowlist.ContractAddress, nil, 0, config.PrecompileUpgrades)
+	require.Len(txAllowListConfig, 0)
 }
 
 func TestPrecompileUpgradeUnmarshalJSON(t *testing.T) {

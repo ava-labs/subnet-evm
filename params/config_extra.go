@@ -33,12 +33,10 @@ type AvalancheContext struct {
 
 // MarshalJSON returns the JSON encoding of c.
 // This is a custom marshaler to handle the Precompiles field.
-func (c *ChainConfig) MarshalJSON() ([]byte, error) {
-	// TODO refactor this (DO NOT MERGE)
-
+func (c ChainConfig) MarshalJSON() ([]byte, error) {
 	// Alias ChainConfig to avoid recursion
 	type _ChainConfig ChainConfig
-	tmp, err := json.Marshal((*_ChainConfig)(c))
+	tmp, err := json.Marshal(_ChainConfig(c))
 	if err != nil {
 		return nil, err
 	}
