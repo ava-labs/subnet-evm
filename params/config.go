@@ -559,11 +559,10 @@ func (c *ChainConfig) checkCompatible(newcfg *ChainConfig, height *big.Int, time
 		return err
 	}
 
-	// TODO: DO NOT MERGE
 	// Check that the precompiles on the new config are compatible with the existing precompile config.
-	// if err := c.CheckPrecompilesCompatible(newcfg.PrecompileUpgrades, time); err != nil {
-	// 	return err
-	// }
+	if err := c.CheckPrecompilesCompatible(newcfg.PrecompileUpgrades, time); err != nil {
+		return err
+	}
 
 	// Check that the state upgrades on the new config are compatible with the existing state upgrade config.
 	if err := c.CheckStateUpgradesCompatible(newcfg.StateUpgrades, time); err != nil {

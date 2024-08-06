@@ -6,11 +6,13 @@ package params
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math/big"
 
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/utils"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 // UpgradeConfig includes the following configs that may be specified in upgradeBytes:
@@ -157,4 +159,127 @@ func (c *ChainConfig) SetEVMUpgrades(avalancheUpgrades NetworkUpgrades) {
 	if avalancheUpgrades.EUpgradeTimestamp != nil {
 		c.CancunTime = utils.NewUint64(*avalancheUpgrades.EUpgradeTimestamp)
 	}
+}
+
+func (c *ChainConfig) GetActivePrecompileConfig(address common.Address, timestamp uint64) precompileconfig.Config {
+	configs := c.GetActivatingPrecompileConfigs(address, nil, timestamp, c.PrecompileUpgrades)
+	if len(configs) == 0 {
+		return nil
+	}
+	return configs[len(configs)-1] // return the most recent config
+}
+
+func (c *ChainConfig) GetActivatingPrecompileConfigs(address common.Address, from *uint64, to uint64, upgrades []PrecompileUpgrade) []precompileconfig.Config {
+	var configs []precompileconfig.Config
+	maybeAppend := func(pc precompileconfig.Config) {
+		if pc.Address() == address && utils.IsForkTransition(pc.Timestamp(), from, to) {
+			configs = append(configs, pc)
+		}
+	}
+	// First check the embedded [upgrade] for precompiles configured
+	// in the genesis chain config.
+	for _, p := range c.GenesisPrecompiles {
+		maybeAppend(p)
+	}
+	// Loop over all upgrades checking for the requested precompile config.
+	for _, upgrade := range upgrades {
+		maybeAppend(upgrade.Config)
+	}
+	return configs
+}
+
+// IsPrecompileEnabled returns whether precompile with [address] is enabled at [timestamp].
+func (c *ChainConfig) IsPrecompileEnabled(address common.Address, timestamp uint64) bool {
+	config := c.GetActivePrecompileConfig(address, timestamp)
+	return config != nil && !config.IsDisabled()
+}
+
+func (c *ChainConfig) allPrecompileAddresses(extra ...PrecompileUpgrade) map[string]common.Address {
+	all := make(map[string]common.Address)
+	add := func(pc precompileconfig.Config) {
+		if a, ok := all[pc.Key()]; ok && a != pc.Address() {
+			panic("DO NOT MERGE")
+		}
+		all[pc.Key()] = pc.Address()
+	}
+
+	for _, p := range c.GenesisPrecompiles {
+		add(p)
+	}
+	for _, p := range c.PrecompileUpgrades {
+		add(p)
+	}
+	for _, p := range extra {
+		add(p)
+	}
+	return all
+}
+
+// CheckPrecompilesCompatible checks if [precompileUpgrades] are compatible with [c] at [headTimestamp].
+// Returns a ConfigCompatError if upgrades already activated at [headTimestamp] are missing from
+// [precompileUpgrades]. Upgrades not already activated may be modified or absent from [precompileUpgrades].
+// Returns nil if [precompileUpgrades] is compatible with [c].
+// Assumes given timestamp is the last accepted block timestamp.
+// This ensures that as long as the node has not accepted a block with a different rule set it will allow a
+// new upgrade to be applied as long as it activates after the last accepted block.
+func (c *ChainConfig) CheckPrecompilesCompatible(precompileUpgrades []PrecompileUpgrade, time uint64) *ConfigCompatError {
+	addrs := c.allPrecompileAddresses(precompileUpgrades...)
+	for _, a := range addrs {
+		if err := c.checkPrecompileCompatible(a, precompileUpgrades, time); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// checkPrecompileCompatible verifies that the precompile specified by [address] is compatible between [c]
+// and [precompileUpgrades] at [headTimestamp].
+// Returns an error if upgrades already activated at [headTimestamp] are missing from [precompileUpgrades].
+// Upgrades that have already gone into effect cannot be modified or absent from [precompileUpgrades].
+func (c *ChainConfig) checkPrecompileCompatible(address common.Address, precompileUpgrades []PrecompileUpgrade, time uint64) *ConfigCompatError {
+	// All active upgrades (from nil to [lastTimestamp]) must match.
+	activeUpgrades := c.GetActivatingPrecompileConfigs(address, nil, time, c.PrecompileUpgrades)
+	newUpgrades := c.GetActivatingPrecompileConfigs(address, nil, time, precompileUpgrades)
+
+	// Check activated upgrades are still present.
+	for i, upgrade := range activeUpgrades {
+		if len(newUpgrades) <= i {
+			// missing upgrade
+			return newTimestampCompatError(
+				fmt.Sprintf("missing PrecompileUpgrade[%d]", i),
+				upgrade.Timestamp(),
+				nil,
+			)
+		}
+		// All upgrades that have activated must be identical.
+		if !upgrade.Equal(newUpgrades[i]) {
+			return newTimestampCompatError(
+				fmt.Sprintf("PrecompileUpgrade[%d]", i),
+				upgrade.Timestamp(),
+				newUpgrades[i].Timestamp(),
+			)
+		}
+	}
+	// then, make sure newUpgrades does not have additional upgrades
+	// that are already activated. (cannot perform retroactive upgrade)
+	if len(newUpgrades) > len(activeUpgrades) {
+		return newTimestampCompatError(
+			fmt.Sprintf("cannot retroactively enable PrecompileUpgrade[%d]", len(activeUpgrades)),
+			nil,
+			newUpgrades[len(activeUpgrades)].Timestamp(), // this indexes to the first element in newUpgrades after the end of activeUpgrades
+		)
+	}
+
+	return nil
+}
+
+// EnabledStatefulPrecompiles returns current stateful precompile configs that are enabled at [blockTimestamp].
+func (c *ChainConfig) EnabledStatefulPrecompiles(blockTimestamp uint64) Precompiles {
+	statefulPrecompileConfigs := make(Precompiles)
+	for key, addr := range c.allPrecompileAddresses() {
+		if config := c.GetActivePrecompileConfig(addr, blockTimestamp); config != nil && !config.IsDisabled() {
+			statefulPrecompileConfigs[key] = config
+		}
+	}
+	return statefulPrecompileConfigs
 }
