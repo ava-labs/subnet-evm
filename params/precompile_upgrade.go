@@ -150,8 +150,7 @@ func (c *ChainConfig) GetActivatingPrecompileConfigs(address common.Address, fro
 // This ensures that as long as the node has not accepted a block with a different rule set it will allow a
 // new upgrade to be applied as long as it activates after the last accepted block.
 func (c *ChainConfig) CheckPrecompilesCompatible(precompileUpgrades []PrecompileUpgrade, time uint64) *ConfigCompatError {
-	addrs := c.allPrecompileAddressesPlus(precompileUpgrades...)
-	for _, a := range addrs {
+	for _, a := range c.allPrecompileAddressesPlus(precompileUpgrades...) {
 		if err := c.checkPrecompileCompatible(a, precompileUpgrades, time); err != nil {
 			return err
 		}
