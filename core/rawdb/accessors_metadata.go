@@ -35,6 +35,14 @@ import (
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
+
+	// This side-effect import goes against recommendations for not using blank
+	// imports in libraries: https://google.github.io/styleguide/go/decisions#import-blank-import-_
+	// This is deliberate because the ReadChainConfig() method only logs errors
+	// and doesn't bubble them up; this caused hours of problems in development!
+	// The described cons of using a blank import here are _far_ outweighed by
+	// the benefits.
+	_ "github.com/ava-labs/subnet-evm/params/paramsjson" // registers JSON unmarshalers to avoid circular dependency
 )
 
 // ReadDatabaseVersion retrieves the version number of the database.

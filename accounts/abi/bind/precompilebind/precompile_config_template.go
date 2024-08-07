@@ -15,9 +15,9 @@ import (
 	{{- if .Contract.AllowList}}
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 
-	"github.com/ethereum/go-ethereum/common"
 	{{- end}}
-
+	
+	"github.com/ethereum/go-ethereum/common"
 )
 
 var _ precompileconfig.Config = &Config{}
@@ -62,6 +62,10 @@ func NewDisableConfig(blockTimestamp *uint64) *Config {
 // Key returns the key for the {{.Contract.Type}} precompileconfig.
 // This should be the same key as used in the precompile module.
 func (*Config) Key() string { return ConfigKey }
+
+// Address returns the address for the {{.Contract.Type}} precompileconfig.
+// This should be the same key as used in the precompile module.
+func (*Config) Address() common.Address { return ContractAddress }
 
 // Verify tries to verify Config and returns an error accordingly.
 func (c *Config) Verify(chainConfig precompileconfig.ChainConfig) error {

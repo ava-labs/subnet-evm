@@ -150,7 +150,7 @@ func (c *ChainConfig) GetActivatingPrecompileConfigs(address common.Address, fro
 // This ensures that as long as the node has not accepted a block with a different rule set it will allow a
 // new upgrade to be applied as long as it activates after the last accepted block.
 func (c *ChainConfig) CheckPrecompilesCompatible(precompileUpgrades []PrecompileUpgrade, time uint64) *ConfigCompatError {
-	addrs := c.allPrecompileAddresses(precompileUpgrades...)
+	addrs := c.allPrecompileAddressesPlus(precompileUpgrades...)
 	for _, a := range addrs {
 		if err := c.checkPrecompileCompatible(a, precompileUpgrades, time); err != nil {
 			return err
@@ -211,10 +211,17 @@ func (c *ChainConfig) EnabledStatefulPrecompiles(blockTimestamp uint64) Precompi
 	return statefulPrecompileConfigs
 }
 
-// allPrecompileAddresses returns a mapping from precompile config key to
+// allPrecompileAddresses is equivalent to allPrecompileAddressesPlus() without
+// any arguments. The two methods are differentiated to improve readability at
+// the call sites.
+func (c *ChainConfig) allPrecompileAddresses() map[string]common.Address {
+	return c.allPrecompileAddressesPlus()
+}
+
+// allPrecompileAddressesPlus returns a mapping from precompile config key to
 // address for all precompiles defined in [ChainConfig.GenesisPrecompiles],
-// [ChainConfig.UpgradeConfig.PrecompileUpgrades], and the `extra` upgrades.
-func (c *ChainConfig) allPrecompileAddresses(extra ...PrecompileUpgrade) map[string]common.Address {
+// [ChainConfig.UpgradeConfig.PrecompileUpgrades], plus the `extra` upgrades.
+func (c *ChainConfig) allPrecompileAddressesPlus(extra ...PrecompileUpgrade) map[string]common.Address {
 	all := make(map[string]common.Address)
 	add := func(pc precompileconfig.Config) {
 		if a, ok := all[pc.Key()]; ok && a != pc.Address() {

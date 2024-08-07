@@ -272,14 +272,16 @@ func TestGetPrecompileConfig(t *testing.T) {
 		deployerallowlist.ConfigKey: deployerallowlist.NewConfig(utils.NewUint64(10), nil, nil, nil),
 	}
 
-	deployerConfig := config.GetActivatingPrecompileConfigs(deployerallowlist.ContractAddress, nil, 0, config.PrecompileUpgrades)
-	require.Len(deployerConfig, 0)
+	configs := config.GetActivatingPrecompileConfigs(deployerallowlist.ContractAddress, nil, 0, config.PrecompileUpgrades)
+	require.Len(configs, 0)
 
-	deployerConfig = config.GetActivatingPrecompileConfigs(deployerallowlist.ContractAddress, nil, 10, config.PrecompileUpgrades)
-	require.GreaterOrEqual(len(deployerConfig), 1)
+	configs = config.GetActivatingPrecompileConfigs(deployerallowlist.ContractAddress, nil, 10, config.PrecompileUpgrades)
+	require.GreaterOrEqual(len(configs), 1)
+	require.NotNil(configs[len(configs)-1])
 
-	deployerConfig = config.GetActivatingPrecompileConfigs(deployerallowlist.ContractAddress, nil, 11, config.PrecompileUpgrades)
-	require.GreaterOrEqual(len(deployerConfig), 1)
+	configs = config.GetActivatingPrecompileConfigs(deployerallowlist.ContractAddress, nil, 11, config.PrecompileUpgrades)
+	require.GreaterOrEqual(len(configs), 1)
+	require.NotNil(configs[len(configs)-1])
 
 	txAllowListConfig := config.GetActivatingPrecompileConfigs(txallowlist.ContractAddress, nil, 0, config.PrecompileUpgrades)
 	require.Len(txAllowListConfig, 0)
