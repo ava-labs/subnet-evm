@@ -5,6 +5,7 @@ package params_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"testing"
 
@@ -290,20 +291,28 @@ func TestGetPrecompileConfig(t *testing.T) {
 func TestPrecompileUpgradeUnmarshalJSON(t *testing.T) {
 	require := require.New(t)
 
-	upgradeBytes := []byte(`
+	const (
+		durangoTimestamp       = 314159
+		stateUpgradeTimestamp  = 142857
+		rewardManagerTimestamp = 1671542573
+		rewardManagerAdmin     = "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
+		nativeMinterTimestamp  = 1671543172
+	)
+
+	upgradeBytes := []byte(fmt.Sprintf(`
 			{
 				"networkUpgradeOverrides": {
-					"durangoTimestamp": 314159
+					"durangoTimestamp": %d
 				},
 				"stateUpgrades": [
-					{"blockTimestamp": 142857}
+					{"blockTimestamp": %d}
 				],
 				"precompileUpgrades": [
 					{
 						"rewardManagerConfig": {
-							"blockTimestamp": 1671542573,
+							"blockTimestamp": %d,
 							"adminAddresses": [
-								"0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
+								%q
 							],
 							"initialRewardConfig": {
 								"allowFeeRecipients": true
@@ -312,40 +321,47 @@ func TestPrecompileUpgradeUnmarshalJSON(t *testing.T) {
 					},
 					{
 						"contractNativeMinterConfig": {
-							"blockTimestamp": 1671543172,
+							"blockTimestamp": %d,
 							"disable": false
 						}
 					}
 				]
 			}
-	`)
+	`, durangoTimestamp, stateUpgradeTimestamp, rewardManagerTimestamp, rewardManagerAdmin, nativeMinterTimestamp))
 
 	var upgradeConfig UpgradeConfig
-	require.NoError(json.Unmarshal(upgradeBytes, &upgradeConfig))
+	err := json.Unmarshal(upgradeBytes, &upgradeConfig)
+	require.NoError(err)
 
-	require.Len(upgradeConfig.PrecompileUpgrades, 2)
-
-	rewardManagerConf := upgradeConfig.PrecompileUpgrades[0]
-	require.Equal(rewardManagerConf.Key(), rewardmanager.ConfigKey)
-	testRewardManagerConfig := rewardmanager.NewConfig(
-		utils.NewUint64(1671542573),
-		[]common.Address{common.HexToAddress("0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC")},
-		nil,
-		nil,
-		&rewardmanager.InitialRewardConfig{
-			AllowFeeRecipients: true,
-		})
-	require.True(rewardManagerConf.Equal(testRewardManagerConfig))
-
-	nativeMinterConfig := upgradeConfig.PrecompileUpgrades[1]
-	require.Equal(nativeMinterConfig.Key(), nativeminter.ConfigKey)
-	expectedNativeMinterConfig := nativeminter.NewConfig(utils.NewUint64(1671543172), nil, nil, nil, nil)
-	require.True(nativeMinterConfig.Equal(expectedNativeMinterConfig))
+	want := UpgradeConfig{
+		NetworkUpgradeOverrides: &NetworkUpgrades{
+			DurangoTimestamp: utils.NewUint64(durangoTimestamp),
+		},
+		StateUpgrades: []StateUpgrade{{
+			BlockTimestamp: utils.NewUint64(stateUpgradeTimestamp),
+		}},
+		PrecompileUpgrades: []PrecompileUpgrade{
+			{
+				rewardmanager.NewConfig(
+					utils.NewUint64(rewardManagerTimestamp),
+					[]common.Address{common.HexToAddress(rewardManagerAdmin)}, nil, nil,
+					&rewardmanager.InitialRewardConfig{
+						AllowFeeRecipients: true,
+					},
+				),
+			},
+			{
+				nativeminter.NewConfig(utils.NewUint64(nativeMinterTimestamp), nil, nil, nil, nil),
+			},
+		},
+	}
+	require.Equal(want, upgradeConfig)
 
 	// Marshal and unmarshal again and check that the result is the same
 	upgradeBytes2, err := json.Marshal(upgradeConfig)
 	require.NoError(err)
 	var upgradeConfig2 UpgradeConfig
-	require.NoError(json.Unmarshal(upgradeBytes2, &upgradeConfig2))
+	err = json.Unmarshal(upgradeBytes2, &upgradeConfig2)
+	require.NoError(err)
 	require.Equal(upgradeConfig, upgradeConfig2)
 }
