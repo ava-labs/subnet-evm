@@ -2,8 +2,8 @@
 // on the `modules` package. This avoids `params` depending on `modules`, even
 // transitively, which would result in a circular dependency.
 //
-// Typically there is no need to call this package directly. It should instead
-// be blank _ imported to register its unmarshallers, similarly to SQL drivers.
+// This package doesn't export any identifiers. It should instead be blank _
+// imported to register its unmarshallers, similarly to SQL drivers.
 package paramsjson
 
 import (
@@ -18,46 +18,34 @@ import (
 )
 
 func init() {
-	// The parameters of RegisterJSONUmarshalers are all generic but the
-	// specific types are unambiguous so we don't need to specify them here.
-	params.RegisterJSONUnmarshalers(Unmarshal, Unmarshal, Unmarshal, Unmarshal)
+	params.RegisterJSONUnmarshalers(
+		unmarshalChainConfig,
+		unmarshalChainConfigWithUpgrades,
+		unmarshalUpgradeConfig,
+		func(data []byte, v *params.PrecompileUpgrade) error {
+			return json.Unmarshal(data, (*precompileUpgrade)(v))
+		},
+	)
 }
 
-// An Unmarshaler can have JSON unmarshalled into it by [Unmarshal].
-type Unmarshaler interface {
-	*params.ChainConfig | *params.ChainConfigWithUpgradesJSON | *params.UpgradeConfig | *params.PrecompileUpgrade
+func unmarshalChainConfig(data []byte, v *params.ChainConfig) error {
+	return unmarshalChainConfigAndUpgrades(data, v, nil, "")
 }
 
-// Unmarshal is a drop-in replacement for [json.Unmarshal].
-func Unmarshal[T Unmarshaler](data []byte, v T) error {
-	switch v := any(v).(type) {
-	case *params.ChainConfig:
-		return unmarshalChainConfig(data, v, nil, "")
+func unmarshalChainConfigWithUpgrades(data []byte, v *params.ChainConfigWithUpgradesJSON) error {
+	const fldName = "UpgradeConfig"
+	_ = v.UpgradeConfig // if changing this then change the line above too
 
-	case *params.ChainConfigWithUpgradesJSON:
-		const fldName = "UpgradeConfig"
-
-		tStruct := reflect.TypeOf(v).Elem()
-		fld, ok := tStruct.FieldByName(fldName)
-		if !ok {
-			// If this happens then the constant `fldName` is of a different name to the actual struct field used below.
-			return fmt.Errorf("BUG: %T(%v).FieldByName(%q) returned false", tStruct, tStruct, fldName)
-		}
-		return unmarshalChainConfig(data, &v.ChainConfig, &v.UpgradeConfig, strings.Split(fld.Tag.Get("json"), ",")[0])
-
-	case *params.UpgradeConfig:
-		return unmarshalUpgradeConfig(data, v)
-
-	case *params.PrecompileUpgrade:
-		return json.Unmarshal(data, (*precompileUpgrade)(v))
-
-	default:
-		// If this happens then the Unmarshaler interface has been modified but the above cases haven't been.
-		return fmt.Errorf("unsupported type %T", v)
+	tStruct := reflect.TypeOf(v).Elem()
+	fld, ok := tStruct.FieldByName(fldName)
+	if !ok {
+		// If this happens then the constant `fldName` is of a different name to the actual struct field used below.
+		return fmt.Errorf("BUG: %T(%v).FieldByName(%q) returned false", tStruct, tStruct, fldName)
 	}
+	return unmarshalChainConfigAndUpgrades(data, &v.ChainConfig, &v.UpgradeConfig, strings.Split(fld.Tag.Get("json"), ",")[0])
 }
 
-func unmarshalChainConfig(data []byte, cc *params.ChainConfig, upgrades *params.UpgradeConfig, upgradesJSONField string) error {
+func unmarshalChainConfigAndUpgrades(data []byte, cc *params.ChainConfig, upgrades *params.UpgradeConfig, upgradesJSONField string) error {
 	type withoutMethods *params.ChainConfig // circumvents UnmarshalJSON() method, which always returns an error
 	if err := json.Unmarshal(data, withoutMethods(cc)); err != nil {
 		return err
