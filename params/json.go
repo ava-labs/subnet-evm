@@ -2,8 +2,6 @@ package params
 
 import (
 	"fmt"
-	"runtime"
-	"strings"
 )
 
 // A JSONUnmarshaler is a type-safe function for unmarshalling a JSON buffer
@@ -17,7 +15,7 @@ var jsonUmarshalers struct {
 	pu JSONUnmarshaler[*PrecompileUpgrade]
 }
 
-// RegisterJSONUnmarshalers registers the JSON unmarshalling functions for
+// MustRegisterJSONUnmarshalers registers the JSON unmarshalling functions for
 // various types. This allows their unmarshalling behaviour to be injected by
 // the [params/paramsjson] package, which can't be directly imported as it would
 // result in a circular dependency.
@@ -25,27 +23,33 @@ var jsonUmarshalers struct {
 // This function SHOULD NOT be called directly. Instead, blank import the
 // [params/paramsjson] package, which registers unmarshalers in its init()
 // function.
-func RegisterJSONUnmarshalers(
+//
+// MustRegisterJSONUnmarshalers panics if any functions are nil or if called
+// more than once.
+func MustRegisterJSONUnmarshalers(
 	cc JSONUnmarshaler[*ChainConfig],
 	cu JSONUnmarshaler[*ChainConfigWithUpgradesJSON],
 	uc JSONUnmarshaler[*UpgradeConfig],
 	pu JSONUnmarshaler[*PrecompileUpgrade],
 ) {
-	pc, _, _, ok := runtime.Caller(0)
-	if !ok {
-		_ = ok
-	}
-	if fn := runtime.FuncForPC(pc).Name(); !strings.HasPrefix(fn, "github.com/ava-labs/subnet-evm/params/paramsjson.") {
-		_ = fn
-	}
 	if jsonUmarshalers.cc != nil {
 		panic("JSON unmarshalers already registered")
 	}
+	panicIfNil(cc)
+	panicIfNil(cu)
+	panicIfNil(uc)
+	panicIfNil(pu)
 
 	jsonUmarshalers.cc = cc
 	jsonUmarshalers.cu = cu
 	jsonUmarshalers.uc = uc
 	jsonUmarshalers.pu = pu
+}
+
+func panicIfNil[T any](fn JSONUnmarshaler[T]) {
+	if fn == nil {
+		panic(fmt.Sprintf("registering nil %T", fn))
+	}
 }
 
 func unmarshalJSON[T any](u JSONUnmarshaler[T], data []byte, v T) error {

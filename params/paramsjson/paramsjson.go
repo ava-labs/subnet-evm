@@ -18,7 +18,7 @@ import (
 )
 
 func init() {
-	params.RegisterJSONUnmarshalers(
+	params.MustRegisterJSONUnmarshalers(
 		unmarshalChainConfig,
 		unmarshalChainConfigWithUpgrades,
 		unmarshalUpgradeConfig,
