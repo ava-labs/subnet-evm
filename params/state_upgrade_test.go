@@ -1,7 +1,7 @@
 // (c) 2022, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-package params
+package params_test
 
 import (
 	"encoding/json"
@@ -12,6 +12,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/stretchr/testify/require"
+
+	. "github.com/ava-labs/subnet-evm/params"
 )
 
 func TestVerifyStateUpgrades(t *testing.T) {

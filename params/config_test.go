@@ -24,7 +24,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-package params
+package params_test
 
 import (
 	"encoding/json"
@@ -40,6 +40,8 @@ import (
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
+
+	. "github.com/ava-labs/subnet-evm/params"
 )
 
 func TestCheckCompatible(t *testing.T) {

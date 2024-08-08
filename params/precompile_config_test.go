@@ -1,7 +1,7 @@
 // (c) 2022 Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-package params
+package params_test
 
 import (
 	"encoding/json"
@@ -17,6 +17,8 @@ import (
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
+
+	. "github.com/ava-labs/subnet-evm/params"
 )
 
 func TestVerifyWithChainConfig(t *testing.T) {
@@ -270,17 +272,19 @@ func TestGetPrecompileConfig(t *testing.T) {
 		deployerallowlist.ConfigKey: deployerallowlist.NewConfig(utils.NewUint64(10), nil, nil, nil),
 	}
 
-	deployerConfig := config.getActivePrecompileConfig(deployerallowlist.ContractAddress, 0)
-	require.Nil(deployerConfig)
+	configs := config.GetActivatingPrecompileConfigs(deployerallowlist.ContractAddress, nil, 0, config.PrecompileUpgrades)
+	require.Len(configs, 0)
 
-	deployerConfig = config.getActivePrecompileConfig(deployerallowlist.ContractAddress, 10)
-	require.NotNil(deployerConfig)
+	configs = config.GetActivatingPrecompileConfigs(deployerallowlist.ContractAddress, nil, 10, config.PrecompileUpgrades)
+	require.GreaterOrEqual(len(configs), 1)
+	require.NotNil(configs[len(configs)-1])
 
-	deployerConfig = config.getActivePrecompileConfig(deployerallowlist.ContractAddress, 11)
-	require.NotNil(deployerConfig)
+	configs = config.GetActivatingPrecompileConfigs(deployerallowlist.ContractAddress, nil, 11, config.PrecompileUpgrades)
+	require.GreaterOrEqual(len(configs), 1)
+	require.NotNil(configs[len(configs)-1])
 
-	txAllowListConfig := config.getActivePrecompileConfig(txallowlist.ContractAddress, 0)
-	require.Nil(txAllowListConfig)
+	txAllowListConfig := config.GetActivatingPrecompileConfigs(txallowlist.ContractAddress, nil, 0, config.PrecompileUpgrades)
+	require.Len(txAllowListConfig, 0)
 }
 
 func TestPrecompileUpgradeUnmarshalJSON(t *testing.T) {

@@ -1,7 +1,7 @@
 // (c) 2022, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-package params
+package params_test
 
 import (
 	"testing"
@@ -11,6 +11,8 @@ import (
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
+
+	. "github.com/ava-labs/subnet-evm/params"
 )
 
 func TestVerifyUpgradeConfig(t *testing.T) {
@@ -279,7 +281,7 @@ func (tt *upgradeCompatibilityTest) run(t *testing.T, chainConfig ChainConfig) {
 		newCfg := chainConfig
 		newCfg.UpgradeConfig = *upgrade
 
-		err := chainConfig.checkCompatible(&newCfg, nil, tt.startTimestamps[i])
+		err := chainConfig.CheckCompatible(&newCfg, 0, tt.startTimestamps[i])
 
 		// if this is not the final upgradeBytes, continue applying
 		// the next upgradeBytes. (only check the result on the last apply)
