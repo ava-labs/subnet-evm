@@ -18,6 +18,7 @@ AVALANCHEGO_CLONE_PATH="${AVALANCHEGO_CLONE_PATH:-${SUBNET_EVM_PATH}/avalanchego
 # TODO(marun) Support use of a released node image if using a release version of avalanchego
 
 source "${SUBNET_EVM_PATH}"/scripts/versions.sh
+source "${SUBNET_EVM_PATH}"/scripts/constants.sh
 
 echo "checking out target avalanchego version ${AVALANCHE_VERSION}"
 if [[ -d "${AVALANCHEGO_CLONE_PATH}" ]]; then
@@ -36,8 +37,10 @@ cd "${SUBNET_EVM_PATH}"
 AVALANCHEGO_COMMIT_HASH="$(git --git-dir="${AVALANCHEGO_CLONE_PATH}/.git" rev-parse HEAD)"
 AVALANCHEGO_IMAGE_TAG="${AVALANCHEGO_COMMIT_HASH::8}"
 
-# Build avalanchego node image.
-NODE_ONLY=1 TEST_SETUP=avalanchego IMAGE_TAG="${AVALANCHEGO_IMAGE_TAG}" bash -x "${AVALANCHEGO_CLONE_PATH}"/scripts/build_antithesis_images.sh
+# Build avalanchego node image in the clone path
+pushd "${AVALANCHEGO_CLONE_PATH}" > /dev/null
+  NODE_ONLY=1 TEST_SETUP=avalanchego IMAGE_TAG="${AVALANCHEGO_IMAGE_TAG}" bash -x "${AVALANCHEGO_CLONE_PATH}"/scripts/build_antithesis_images.sh
+popd > /dev/null
 
 # Specifying an image prefix will ensure the image is pushed after build
 IMAGE_PREFIX="${IMAGE_PREFIX:-}"
@@ -61,14 +64,12 @@ build_antithesis_builder_image "${GO_VERSION}" "antithesis-subnet-evm-builder:${
 
 # Ensure avalanchego and subnet-evm binaries are available to create an initial db state that includes subnets.
 "${AVALANCHEGO_CLONE_PATH}"/scripts/build.sh
-PLUGIN_PATH="${SUBNET_EVM_PATH}/build/plugins"
-mkdir -p "${PLUGIN_PATH}"
-"${SUBNET_EVM_PATH}"/scripts/build.sh "${PLUGIN_PATH}/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy"
+"${SUBNET_EVM_PATH}"/scripts/build.sh
 
 echo "Generating compose configuration"
 gen_antithesis_compose_config "${IMAGE_TAG}" "${SUBNET_EVM_PATH}" "./tests/antithesis/gencomposeconfig" \
                               "${SUBNET_EVM_PATH}/build/antithesis" \
-                              "AVALANCHEGO_PATH=${AVALANCHEGO_CLONE_PATH}/build/avalanchego AVALANCHEGO_PLUGIN_DIR=${PLUGIN_PATH}"
+                              "AVALANCHEGO_PATH=${AVALANCHEGO_CLONE_PATH}/build/avalanchego AVALANCHEGO_PLUGIN_DIR=${DEFAULT_PLUGIN_DIR}"
 
 build_antithesis_images "${GO_VERSION}" "${IMAGE_PREFIX}" "antithesis-subnet-evm" "${IMAGE_TAG}" \
                         "${AVALANCHEGO_IMAGE_TAG}" "${SUBNET_EVM_PATH}/tests/antithesis/Dockerfile" \
