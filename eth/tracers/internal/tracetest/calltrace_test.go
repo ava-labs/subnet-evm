@@ -383,7 +383,7 @@ func TestInternals(t *testing.T) {
 				}, false, rawdb.HashScheme)
 			defer state.Close()
 
-			evm := vm.NewEVM(context, txContext, state.StateDB, params.TestPreSubnetEVMConfig, vm.Config{Tracer: tc.tracer})
+			evm := vm.NewEVM(context, txContext, state.StateDB, params.TestPreSubnetEVMChainConfig, vm.Config{Tracer: tc.tracer})
 			msg := &core.Message{
 				To:                &to,
 				From:              origin,

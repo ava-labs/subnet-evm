@@ -43,6 +43,7 @@ import (
 	statesyncclient "github.com/ava-labs/subnet-evm/sync/client"
 	"github.com/ava-labs/subnet-evm/sync/client/stats"
 	"github.com/ava-labs/subnet-evm/warp"
+	"github.com/ava-labs/subnet-evm/warp/handlers"
 	warpValidators "github.com/ava-labs/subnet-evm/warp/validators"
 
 	// Force-load tracer engine to trigger registration
@@ -70,7 +71,6 @@ import (
 	"github.com/ava-labs/avalanchego/database/versiondb"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow"
-	"github.com/ava-labs/avalanchego/snow/choices"
 	"github.com/ava-labs/avalanchego/snow/consensus/snowman"
 	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
 	"github.com/ava-labs/avalanchego/utils/perms"
@@ -106,9 +106,6 @@ const (
 	ethMetricsPrefix        = "eth"
 	sdkMetricsPrefix        = "sdk"
 	chainStateMetricsPrefix = "chain_state"
-
-	// p2p app protocols
-	ethTxGossipProtocol = 0x0
 
 	// gossip constants
 	pushGossipDiscardedElements          = 16_384
@@ -489,7 +486,15 @@ func (vm *VM) Initialize(
 	for i, hexMsg := range vm.config.WarpOffChainMessages {
 		offchainWarpMessages[i] = []byte(hexMsg)
 	}
-	vm.warpBackend, err = warp.NewBackend(vm.ctx.NetworkID, vm.ctx.ChainID, vm.ctx.WarpSigner, vm, vm.warpDB, warpSignatureCacheSize, offchainWarpMessages)
+	vm.warpBackend, err = warp.NewBackend(
+		vm.ctx.NetworkID,
+		vm.ctx.ChainID,
+		vm.ctx.WarpSigner,
+		vm,
+		vm.warpDB,
+		warpSignatureCacheSize,
+		offchainWarpMessages,
+	)
 	if err != nil {
 		return err
 	}
@@ -507,7 +512,7 @@ func (vm *VM) Initialize(
 
 	go vm.ctx.Log.RecoverAndPanic(vm.startContinuousProfiler)
 
-	vm.initializeStateSyncServer()
+	vm.initializeHandlers()
 	return vm.initializeStateSyncClient(lastAcceptedHeight)
 }
 
@@ -611,12 +616,16 @@ func (vm *VM) initializeStateSyncClient(lastAcceptedHeight uint64) error {
 	return nil
 }
 
-// initializeStateSyncServer should be called after [vm.chain] is initialized.
-func (vm *VM) initializeStateSyncServer() {
+// initializeHandlers should be called after [vm.chain] is initialized.
+func (vm *VM) initializeHandlers() {
 	vm.StateSyncServer = NewStateSyncServer(&stateSyncServerConfig{
 		Chain:            vm.blockChain,
 		SyncableInterval: vm.config.StateSyncCommitInterval,
 	})
+
+	// Add p2p warp message warpHandler
+	warpHandler := handlers.NewSignatureRequestHandlerP2P(vm.warpBackend, vm.networkCodec)
+	vm.Network.AddHandler(p2p.SignatureRequestHandlerID, warpHandler)
 
 	vm.setAppRequestHandlers()
 	vm.setCrossChainAppRequestHandler()
@@ -624,14 +633,12 @@ func (vm *VM) initializeStateSyncServer() {
 
 func (vm *VM) initChainState(lastAcceptedBlock *types.Block) error {
 	block := vm.newBlock(lastAcceptedBlock)
-	block.status = choices.Accepted
 
 	config := &chain.Config{
 		DecidedCacheSize:      decidedCacheSize,
 		MissingCacheSize:      missingCacheSize,
 		UnverifiedCacheSize:   unverifiedCacheSize,
 		BytesToIDCacheSize:    bytesToIDCacheSize,
-		GetBlockIDAtHeight:    vm.GetBlockIDAtHeight,
 		GetBlock:              vm.getBlock,
 		UnmarshalBlock:        vm.parseBlock,
 		BuildBlock:            vm.buildBlock,
@@ -690,7 +697,7 @@ func (vm *VM) initBlockBuilding() error {
 	vm.cancel = cancel
 
 	ethTxGossipMarshaller := GossipEthTxMarshaller{}
-	ethTxGossipClient := vm.Network.NewClient(ethTxGossipProtocol, p2p.WithValidatorSampling(vm.validators))
+	ethTxGossipClient := vm.Network.NewClient(p2p.TxGossipHandlerID, p2p.WithValidatorSampling(vm.validators))
 	ethTxGossipMetrics, err := gossip.NewMetrics(vm.sdkMetrics, ethTxGossipNamespace)
 	if err != nil {
 		return fmt.Errorf("failed to initialize eth tx gossip metrics: %w", err)
@@ -754,7 +761,7 @@ func (vm *VM) initBlockBuilding() error {
 		)
 	}
 
-	if err := vm.Network.AddHandler(ethTxGossipProtocol, vm.ethTxGossipHandler); err != nil {
+	if err := vm.Network.AddHandler(p2p.TxGossipHandlerID, vm.ethTxGossipHandler); err != nil {
 		return err
 	}
 
@@ -918,6 +925,27 @@ func (vm *VM) getBlock(_ context.Context, id ids.ID) (snowman.Block, error) {
 	}
 	// Note: the status of block is set by ChainState
 	return vm.newBlock(ethBlock), nil
+}
+
+// GetAcceptedBlock attempts to retrieve block [blkID] from the VM. This method
+// only returns accepted blocks.
+func (vm *VM) GetAcceptedBlock(ctx context.Context, blkID ids.ID) (snowman.Block, error) {
+	blk, err := vm.GetBlock(ctx, blkID)
+	if err != nil {
+		return nil, err
+	}
+
+	height := blk.Height()
+	acceptedBlkID, err := vm.GetBlockIDAtHeight(ctx, height)
+	if err != nil {
+		return nil, err
+	}
+
+	if acceptedBlkID != blkID {
+		// The provided block is not accepted.
+		return nil, database.ErrNotFound
+	}
+	return blk, nil
 }
 
 // SetPreference sets what the current tail of the chain is
