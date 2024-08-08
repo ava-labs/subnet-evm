@@ -5,66 +5,98 @@ package main
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"crypto/rand"
+	"fmt"
 	"log"
 	"math/big"
-	"os"
+	"path/filepath"
 	"time"
 
-	"github.com/ava-labs/avalanchego/genesis"
+	"github.com/antithesishq/antithesis-sdk-go/assert"
+	"github.com/antithesishq/antithesis-sdk-go/lifecycle"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/stretchr/testify/require"
+
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/tests/antithesis"
 	"github.com/ava-labs/avalanchego/tests/fixture/tmpnet"
-	"github.com/ava-labs/avalanchego/utils/crypto/secp256k1"
-	"github.com/ava-labs/avalanchego/utils/set"
+
+	"github.com/ava-labs/subnet-evm/core/types"
+	"github.com/ava-labs/subnet-evm/ethclient"
+	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/tests"
+	"github.com/ava-labs/subnet-evm/tests/utils"
+
+	ago_tests "github.com/ava-labs/avalanchego/tests"
 )
 
 const NumKeys = 5
 
 func main() {
-	c, err := antithesis.NewConfig(os.Args)
-	if err != nil {
-		log.Fatalf("invalid config: %s", err)
-	}
+	tc := ago_tests.NewTestContext()
+	defer tc.Cleanup()
+	require := require.New(tc)
 
-	ctx := context.Background()
-	antithesis.AwaitHealthyNodes(ctx, c.URIs)
+	c := antithesis.NewConfigWithSubnets(
+		tc,
+		// TODO(marun) Centralize network configuration for all test types
+		utils.NewTmpnetNetwork(
+			"antithesis-subnet-evm",
+			nil,
+			tmpnet.FlagsMap{},
+		),
+		func(nodes ...*tmpnet.Node) []*tmpnet.Subnet {
+			repoRootPath := tests.GetRepoRootPath("tests/antithesis")
+			genesisPath := filepath.Join(repoRootPath, "tests/load/genesis/genesis.json")
+			return []*tmpnet.Subnet{
+				utils.NewTmpnetSubnet("subnet-evm", genesisPath, utils.DefaultChainConfig, nodes...),
+			}
+		},
+	)
+	ctx := ago_tests.DefaultNotifyContext(c.Duration, tc.DeferCleanup)
 
-	if len(c.ChainIDs) != 1 {
-		log.Fatalf("expected 1 chainID, saw %d", len(c.ChainIDs))
-	}
+	require.Len(c.ChainIDs, 1)
+	log.Printf("CHAIN IDS: %v", c.ChainIDs)
 	chainID, err := ids.FromString(c.ChainIDs[0])
-	if err != nil {
-		log.Fatalf("failed to parse chainID: %s", err)
-	}
+	require.NoError(err, "failed to parse chainID")
 
+	genesisClient, err := ethclient.Dial(getChainURI(c.URIs[0], chainID.String()))
+	require.NoError(err, "failed to dial chain")
+	genesisKey := tmpnet.HardhatKey.ToECDSA()
 	genesisWorkload := &workload{
-		id:      0,
-		chainID: chainID,
-		key:     genesis.VMRQKey,
-		addrs:   set.Of(tmpnet.HardhatKey.Address()),
-		uris:    c.URIs,
+		id:     0,
+		client: genesisClient,
+		key:    genesisKey,
+		uris:   c.URIs,
 	}
 
 	workloads := make([]*workload, NumKeys)
 	workloads[0] = genesisWorkload
 
+	initialAmount := uint64(1_000_000_000_000_000)
 	for i := 1; i < NumKeys; i++ {
-		key, err := secp256k1.NewPrivateKey()
-		if err != nil {
-			log.Fatalf("failed to generate key: %s", err)
-		}
+		key, err := crypto.GenerateKey()
+		require.NoError(err, "failed to generate key")
 
-		// TODO(marun) Transfer funds to the new key
+		require.NoError(transferFunds(ctx, genesisClient, genesisKey, crypto.PubkeyToAddress(key.PublicKey), initialAmount))
+
+		client, err := ethclient.Dial(getChainURI(c.URIs[i], chainID.String()))
+		require.NoError(err, "failed to dial chain")
 
 		workloads[i] = &workload{
-			id:      i,
-			chainID: chainID,
-			key:     key,
-			addrs:   set.Of(key.Address()),
-			uris:    c.URIs,
+			id:     i,
+			client: client,
+			key:    key,
+			uris:   c.URIs,
 		}
 	}
+
+	lifecycle.SetupComplete(map[string]any{
+		"msg":        "initialized workers",
+		"numWorkers": NumKeys,
+	})
 
 	for _, w := range workloads[1:] {
 		go w.run(ctx)
@@ -73,28 +105,43 @@ func main() {
 }
 
 type workload struct {
-	id      int
-	chainID ids.ID
-	key     *secp256k1.PrivateKey
-	addrs   set.Set[ids.ShortID]
-	uris    []string
+	id     int
+	client ethclient.Client
+	key    *ecdsa.PrivateKey
+	uris   []string
 }
 
 func (w *workload) run(ctx context.Context) {
+	// TODO(marun) Replace with avalanchego's StoppedTimer
 	timer := time.NewTimer(0)
 	if !timer.Stop() {
 		<-timer.C
 	}
 
-	// TODO(marun) Check initial balance
+	tc := ago_tests.NewTestContext()
+	defer tc.Cleanup()
+	require := require.New(tc)
 
+	balance, err := w.client.BalanceAt(ctx, crypto.PubkeyToAddress(w.key.PublicKey), nil)
+	require.NoError(err, "failed to fetch balance")
+	assert.Reachable("worker starting", map[string]any{
+		"worker":  w.id,
+		"balance": balance,
+	})
+
+	// TODO(marun) What should this value be?
+	txAmount := uint64(10000)
 	for {
-		// TODO(marun) Exercise evm operations
+		// TODO(marun) Exercise a wider variety of transactions
+		recipientEthAddress := crypto.PubkeyToAddress(w.key.PublicKey)
+		err := transferFunds(ctx, w.client, w.key, recipientEthAddress, txAmount)
+		if err != nil {
+			log.Printf("failed to transfer funds: %s", err)
+		}
+		// TODO(marun) Verify the transaction
 
 		val, err := rand.Int(rand.Reader, big.NewInt(int64(time.Second)))
-		if err != nil {
-			log.Fatalf("failed to read randomness: %s", err)
-		}
+		require.NoError(err, "failed to read randomness")
 
 		timer.Reset(time.Duration(val.Int64()))
 		select {
@@ -103,4 +150,48 @@ func (w *workload) run(ctx context.Context) {
 		case <-timer.C:
 		}
 	}
+}
+
+func getChainURI(nodeURI string, blockchainID string) string {
+	return fmt.Sprintf("%s/ext/bc/%s/rpc", nodeURI, blockchainID)
+}
+
+func transferFunds(ctx context.Context, client ethclient.Client, key *ecdsa.PrivateKey, recipientAddress common.Address, txAmount uint64) error {
+	chainID, err := client.ChainID(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to fetch chainID: %w", err)
+	}
+	acceptedNonce, err := client.AcceptedNonceAt(ctx, crypto.PubkeyToAddress(key.PublicKey))
+	if err != nil {
+		return fmt.Errorf("failed to fetch accepted nonce: %w", err)
+	}
+	gasTipCap, err := client.SuggestGasTipCap(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to fetch suggested gas tip: %w", err)
+	}
+	gasFeeCap, err := client.EstimateBaseFee(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to fetch estimated base fee: %w", err)
+	}
+	signer := types.LatestSignerForChainID(chainID)
+
+	tx, err := types.SignNewTx(key, signer, &types.DynamicFeeTx{
+		ChainID:   chainID,
+		Nonce:     acceptedNonce,
+		GasTipCap: gasTipCap,
+		GasFeeCap: gasFeeCap,
+		Gas:       params.TxGas,
+		To:        &recipientAddress,
+		Value:     big.NewInt(int64(txAmount)),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to format transaction: %w", err)
+	}
+	log.Printf("sending transaction with ID: %s\n", tx.Hash())
+	err = client.SendTransaction(ctx, tx)
+	if err != nil {
+		return fmt.Errorf("failed to send transaction: %w", err)
+	}
+	// TODO(marun) wait for receipt
+	return nil
 }
