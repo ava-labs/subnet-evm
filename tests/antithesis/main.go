@@ -78,7 +78,7 @@ func main() {
 
 	initialAmount := uint64(1_000_000_000_000_000)
 	for i := 1; i < NumKeys; i++ {
-		key, err := crypto.GenerateKey()
+		key, err := crypto.ToECDSA(crypto.Keccak256([]byte{uint8(i)}))
 		require.NoError(err, "failed to generate key")
 
 		require.NoError(transferFunds(ctx, genesisClient, genesisKey, crypto.PubkeyToAddress(key.PublicKey), initialAmount))
