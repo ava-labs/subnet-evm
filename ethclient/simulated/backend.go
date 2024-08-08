@@ -270,7 +270,7 @@ func (n *Backend) Fork(parentHash common.Hash) error {
 // AdjustTime changes the block timestamp and creates a new block.
 // It can only be called on empty blocks.
 func (n *Backend) AdjustTime(adjustment time.Duration) error {
-	_, err := n.buildBlock(false, uint64(adjustment)) // XXX: shouldn't the granularity be in seconds?
+	_, err := n.buildBlock(false, uint64(adjustment))
 	return err
 }
 

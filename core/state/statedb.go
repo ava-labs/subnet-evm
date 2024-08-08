@@ -338,7 +338,7 @@ func (s *StateDB) GetBalance(addr common.Address) *uint256.Int {
 	if stateObject != nil {
 		return stateObject.Balance()
 	}
-	return common.U2560 // XXX: verify we don't need to make a copy of this
+	return common.U2560
 }
 
 // GetNonce retrieves the nonce from the given address or 0 if object not found

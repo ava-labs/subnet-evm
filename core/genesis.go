@@ -27,7 +27,7 @@
 package core
 
 import (
-	_ "embed" // XXX: why is this import here?
+	_ "embed"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -91,7 +91,6 @@ type Genesis struct {
 	BlobGasUsed   *uint64     `json:"blobGasUsed"`   // EIP-4844
 }
 
-// XXX: why is BaseFee/Alloc ordered differently compared to upstream?
 // field type overrides for gencodec
 type genesisSpecMarshaling struct {
 	Nonce         math.HexOrDecimal64
