@@ -23,6 +23,7 @@ import (
 	"github.com/ava-labs/avalanchego/tests/antithesis"
 	"github.com/ava-labs/avalanchego/tests/fixture/tmpnet"
 
+	"github.com/ava-labs/subnet-evm/accounts/abi/bind"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/ethclient"
 	"github.com/ava-labs/subnet-evm/params"
@@ -82,7 +83,7 @@ func main() {
 
 		require.NoError(transferFunds(ctx, genesisClient, genesisKey, crypto.PubkeyToAddress(key.PublicKey), initialAmount))
 
-		client, err := ethclient.Dial(getChainURI(c.URIs[i], chainID.String()))
+		client, err := ethclient.Dial(getChainURI(c.URIs[i%len(c.URIs)], chainID.String()))
 		require.NoError(err, "failed to dial chain")
 
 		workloads[i] = &workload{
@@ -138,7 +139,6 @@ func (w *workload) run(ctx context.Context) {
 		if err != nil {
 			log.Printf("failed to transfer funds: %s", err)
 		}
-		// TODO(marun) Verify the transaction
 
 		val, err := rand.Int(rand.Reader, big.NewInt(int64(time.Second)))
 		require.NoError(err, "failed to read randomness")
@@ -187,11 +187,18 @@ func transferFunds(ctx context.Context, client ethclient.Client, key *ecdsa.Priv
 	if err != nil {
 		return fmt.Errorf("failed to format transaction: %w", err)
 	}
-	log.Printf("sending transaction with ID: %s\n", tx.Hash())
+
+	log.Printf("sending transaction with ID %s and nonce %d\n", tx.Hash(), acceptedNonce)
 	err = client.SendTransaction(ctx, tx)
 	if err != nil {
 		return fmt.Errorf("failed to send transaction: %w", err)
 	}
-	// TODO(marun) wait for receipt
+
+	log.Printf("waiting for acceptance of transaction with ID %s\n", tx.Hash())
+	if _, err := bind.WaitMined(ctx, client, tx); err != nil {
+		return fmt.Errorf("failed to wait for receipt: %v", err)
+	}
+	log.Printf("confirmed acceptance of transaction with ID %s\n", tx.Hash())
+
 	return nil
 }
