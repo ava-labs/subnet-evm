@@ -31,6 +31,7 @@ import (
 	"github.com/ava-labs/subnet-evm/tests/utils"
 
 	ago_tests "github.com/ava-labs/avalanchego/tests"
+	timerpkg "github.com/ava-labs/avalanchego/utils/timer"
 )
 
 const NumKeys = 5
@@ -113,11 +114,7 @@ type workload struct {
 }
 
 func (w *workload) run(ctx context.Context) {
-	// TODO(marun) Replace with avalanchego's StoppedTimer
-	timer := time.NewTimer(0)
-	if !timer.Stop() {
-		<-timer.C
-	}
+	timer := timerpkg.StoppedTimer()
 
 	tc := ago_tests.NewTestContext()
 	defer tc.Cleanup()
