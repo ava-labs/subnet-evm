@@ -1,12 +1,15 @@
-// (c) 2023, Ava Labs, Inc. All rights reserved.
+// (c) 2023-2024, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-package precompileconfig
+// Package interfaces defines the interfaces used in building and running
+// stateful precompiles.
+package interfaces
 
 import (
 	"math/big"
 
 	"github.com/ava-labs/avalanchego/snow"
+	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -46,7 +49,7 @@ type AccessibleState interface {
 	GetStateDB() StateDB
 	GetBlockContext() BlockContext
 	GetSnowContext() *snow.Context
-	GetChainConfig() ChainConfig
+	GetChainConfig() precompileconfig.ChainConfig
 }
 
 // ConfigurationBlockContext defines the interface required to configure a precompile.
@@ -63,10 +66,10 @@ type BlockContext interface {
 }
 
 type Configurator interface {
-	MakeConfig() Config
+	MakeConfig() precompileconfig.Config
 	Configure(
-		chainConfig ChainConfig,
-		precompileconfig Config,
+		chainConfig precompileconfig.ChainConfig,
+		precompileconfig precompileconfig.Config,
 		state StateDB,
 		blockContext ConfigurationBlockContext,
 	) error

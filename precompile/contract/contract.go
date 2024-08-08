@@ -7,7 +7,7 @@ import (
 	"fmt"
 
 	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
+	"github.com/ava-labs/subnet-evm/precompile/interfaces"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -16,15 +16,15 @@ var _ *types.Transaction = nil
 
 // Temporary type aliases for proof-of-concept only. This allows all other code
 // to work as expected, requiring only the `modules` package to change to a
-// direct dependency on `precompileconfig`. As seen above, this allows importing
+// direct dependency on `interfaces`. As seen above, this allows importing
 // of `types`.
 type (
-	StatefulPrecompiledContract = precompileconfig.StatefulPrecompiledContract
-	StateDB                     = precompileconfig.StateDB
-	AccessibleState             = precompileconfig.AccessibleState
-	ConfigurationBlockContext   = precompileconfig.ConfigurationBlockContext
-	Configurator                = precompileconfig.Configurator
-	BlockContext                = precompileconfig.BlockContext
+	StatefulPrecompiledContract = interfaces.StatefulPrecompiledContract
+	StateDB                     = interfaces.StateDB
+	AccessibleState             = interfaces.AccessibleState
+	ConfigurationBlockContext   = interfaces.ConfigurationBlockContext
+	Configurator                = interfaces.Configurator
+	BlockContext                = interfaces.BlockContext
 )
 
 const (

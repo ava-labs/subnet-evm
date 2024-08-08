@@ -6,7 +6,7 @@ package modules
 import (
 	"bytes"
 
-	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
+	"github.com/ava-labs/subnet-evm/precompile/interfaces"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -17,9 +17,9 @@ type Module struct {
 	Address common.Address
 	// Contract returns a thread-safe singleton that can be used as the StatefulPrecompiledContract when
 	// this config is enabled.
-	Contract precompileconfig.StatefulPrecompiledContract
+	Contract interfaces.StatefulPrecompiledContract
 	// Configurator is used to configure the stateful precompile when the config is enabled.
-	precompileconfig.Configurator
+	interfaces.Configurator
 }
 
 type moduleArray []Module
