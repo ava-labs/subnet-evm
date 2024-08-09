@@ -34,7 +34,6 @@ import (
 
 	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/state"
-	"github.com/ava-labs/subnet-evm/core/state/snapshot"
 	"github.com/ava-labs/subnet-evm/core/vm"
 	"github.com/ava-labs/subnet-evm/eth/tracers/logger"
 	"github.com/ava-labs/subnet-evm/tests"
@@ -74,11 +73,11 @@ func stateTestCmd(ctx *cli.Context) error {
 		cfg.Tracer = logger.NewJSONLogger(config, os.Stderr)
 
 	case ctx.Bool(DebugFlag.Name):
-		cfg.Tracer = logger.NewStructLogger(config)
+		cfg.Tracer = logger.NewStructLogger(config).Hooks()
 	}
 	// Load the test content from the input file
 	if len(ctx.Args().First()) != 0 {
-		return runStateTest(ctx.Args().First(), cfg, ctx.Bool(MachineFlag.Name), ctx.Bool(DumpFlag.Name))
+		return runStateTest(ctx.Args().First(), cfg, ctx.Bool(DumpFlag.Name))
 	}
 	// Read filenames from stdin and execute back-to-back
 	scanner := bufio.NewScanner(os.Stdin)
@@ -87,7 +86,7 @@ func stateTestCmd(ctx *cli.Context) error {
 		if len(fname) == 0 {
 			return nil
 		}
-		if err := runStateTest(fname, cfg, ctx.Bool(MachineFlag.Name), ctx.Bool(DumpFlag.Name)); err != nil {
+		if err := runStateTest(fname, cfg, ctx.Bool(DumpFlag.Name)); err != nil {
 			return err
 		}
 	}
@@ -95,31 +94,30 @@ func stateTestCmd(ctx *cli.Context) error {
 }
 
 // runStateTest loads the state-test given by fname, and executes the test.
-func runStateTest(fname string, cfg vm.Config, jsonOut, dump bool) error {
+func runStateTest(fname string, cfg vm.Config, dump bool) error {
 	src, err := os.ReadFile(fname)
 	if err != nil {
 		return err
 	}
-	var tests map[string]tests.StateTest
-	if err := json.Unmarshal(src, &tests); err != nil {
+	var testsByName map[string]tests.StateTest
+	if err := json.Unmarshal(src, &testsByName); err != nil {
 		return err
 	}
+
 	// Iterate over all the tests, run them and aggregate the results
-	results := make([]StatetestResult, 0, len(tests))
-	for key, test := range tests {
+	results := make([]StatetestResult, 0, len(testsByName))
+	for key, test := range testsByName {
 		for _, st := range test.Subtests() {
 			// Run the test and aggregate the result
 			result := &StatetestResult{Name: key, Fork: st.Fork, Pass: true}
-			test.Run(st, cfg, false, rawdb.HashScheme, func(err error, snaps *snapshot.Tree, statedb *state.StateDB) {
+			test.Run(st, cfg, false, rawdb.HashScheme, func(err error, tstate *tests.StateTestState) {
 				var root common.Hash
-				if statedb != nil {
-					root = statedb.IntermediateRoot(false)
+				if tstate.StateDB != nil {
+					root = tstate.StateDB.IntermediateRoot(false)
 					result.Root = &root
-					if jsonOut {
-						fmt.Fprintf(os.Stderr, "{\"stateRoot\": \"%#x\"}\n", root)
-					}
+					fmt.Fprintf(os.Stderr, "{\"stateRoot\": \"%#x\"}\n", root)
 					if dump { // Dump any state to aid debugging
-						cpy, _ := state.New(root, statedb.Database(), nil)
+						cpy, _ := state.New(root, tstate.StateDB.Database(), nil)
 						dump := cpy.RawDump(nil)
 						result.State = &dump
 					}

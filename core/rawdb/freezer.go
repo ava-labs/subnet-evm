@@ -16,6 +16,22 @@
 
 package rawdb
 
+import "errors"
+
+var (
+	// errReadOnly is returned if the freezer is opened in read only mode. All the
+	// mutations are disallowed.
+	errReadOnly = errors.New("read only")
+
+	// errOutOrderInsertion is returned if the user attempts to inject out-of-order
+	// binary blobs into the freezer.
+	errOutOrderInsertion = errors.New("the append operation is out-order")
+
+	// errUnknownTable is returned if the user attempts to read from a table that is
+	// not tracked by the freezer.
+	errUnknownTable = errors.New("unknown table")
+)
+
 // convertLegacyFn takes a raw freezer entry in an older format and
 // returns it in the new format.
 type convertLegacyFn = func([]byte) ([]byte, error)

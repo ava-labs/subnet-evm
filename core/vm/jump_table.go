@@ -65,6 +65,7 @@ var (
 	subnetEVMInstructionSet        = newSubnetEVMInstructionSet()
 	durangoInstructionSet          = newDurangoInstructionSet()
 	cancunInstructionSet           = newCancunInstructionSet()
+	verkleInstructionSet           = newVerkleInstructionSet()
 )
 
 // JumpTable contains the EVM opcodes supported at a given fork.
@@ -86,6 +87,12 @@ func validate(jt JumpTable) JumpTable {
 		}
 	}
 	return jt
+}
+
+func newVerkleInstructionSet() JumpTable {
+	instructionSet := newCancunInstructionSet()
+	enable4762(&instructionSet)
+	return validate(instructionSet)
 }
 
 func newCancunInstructionSet() JumpTable {
@@ -112,7 +119,7 @@ func newDurangoInstructionSet() JumpTable {
 // constantinople, istanbul, petersburg, subnet-evm instructions.
 func newSubnetEVMInstructionSet() JumpTable {
 	instructionSet := newIstanbulInstructionSet()
-	enable2929(&instructionSet)
+	enable2929(&instructionSet) // Gas cost increases for state access opcodes https://eips.ethereum.org/EIPS/eip-2929
 	enable3198(&instructionSet) // Base fee opcode https://eips.ethereum.org/EIPS/eip-3198
 	return validate(instructionSet)
 }

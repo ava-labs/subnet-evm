@@ -6,14 +6,16 @@ package stateupgrade
 import (
 	"math/big"
 
+	"github.com/ava-labs/subnet-evm/core/tracing"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
 )
 
 // StateDB is the interface for accessing EVM state in state upgrades
 type StateDB interface {
 	SetState(common.Address, common.Hash, common.Hash)
 	SetCode(common.Address, []byte)
-	AddBalance(common.Address, *big.Int)
+	AddBalance(common.Address, *uint256.Int, tracing.BalanceChangeReason)
 
 	GetNonce(common.Address) uint64
 	SetNonce(common.Address, uint64)

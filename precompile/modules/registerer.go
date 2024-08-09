@@ -8,6 +8,7 @@ import (
 	"sort"
 
 	"github.com/ava-labs/subnet-evm/constants"
+	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -32,6 +33,20 @@ var (
 		},
 	}
 )
+
+func init() {
+	params.RegisteredModules = func() []params.Module {
+		modules := make([]params.Module, len(registeredModules))
+		for i, stm := range registeredModules {
+			modules[i] = params.Module{
+				ConfigKey:  stm.ConfigKey,
+				Address:    stm.Address,
+				MakeConfig: stm.MakeConfig,
+			}
+		}
+		return modules
+	}
+}
 
 // ReservedAddress returns true if [addr] is in a reserved range for custom precompiles
 func ReservedAddress(addr common.Address) bool {

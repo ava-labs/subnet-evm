@@ -20,7 +20,7 @@ var (
 type Database struct{ database.Database }
 
 // Stat implements ethdb.Database
-func (db Database) Stat(string) (string, error) { return "", database.ErrNotFound }
+func (db Database) Stat() (string, error) { return "", database.ErrNotFound }
 
 // NewBatch implements ethdb.Database
 func (db Database) NewBatch() ethdb.Batch { return Batch{db.Database.NewBatch()} }

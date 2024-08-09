@@ -1521,8 +1521,10 @@ func TestUncleBlock(t *testing.T) {
 
 	uncleEthBlock := types.NewBlock(
 		uncleBlockHeader,
-		blkDEthBlock.Transactions(),
-		uncles,
+		&types.Body{
+			Transactions: blkDEthBlock.Transactions(),
+			Uncles:       uncles,
+		},
 		nil,
 		trie.NewStackTrie(nil),
 	)
@@ -1575,8 +1577,7 @@ func TestEmptyBlock(t *testing.T) {
 
 	emptyEthBlock := types.NewBlock(
 		types.CopyHeader(ethBlock.Header()),
-		nil,
-		nil,
+		&types.Body{},
 		nil,
 		new(trie.Trie),
 	)
@@ -1833,8 +1834,7 @@ func TestFutureBlock(t *testing.T) {
 	modifiedHeader.Time = modifiedTime
 	modifiedBlock := types.NewBlock(
 		modifiedHeader,
-		internalBlkA.ethBlock.Transactions(),
-		nil,
+		&types.Body{Transactions: internalBlkA.ethBlock.Transactions()},
 		nil,
 		trie.NewStackTrie(nil),
 	)
@@ -2638,8 +2638,7 @@ func TestAllowFeeRecipientDisabled(t *testing.T) {
 	modifiedHeader.Coinbase = common.HexToAddress("0x0123456789") // set non-blackhole address by force
 	modifiedBlock := types.NewBlock(
 		modifiedHeader,
-		internalBlk.ethBlock.Transactions(),
-		nil,
+		&types.Body{Transactions: internalBlk.ethBlock.Transactions()},
 		nil,
 		trie.NewStackTrie(nil),
 	)
@@ -2706,7 +2705,7 @@ func TestAllowFeeRecipientEnabled(t *testing.T) {
 	}
 
 	balance := blkState.GetBalance(etherBase)
-	require.Equal(t, 1, balance.Cmp(common.Big0))
+	require.Equal(t, 1, balance.Cmp(common.U2560))
 }
 
 func TestRewardManagerPrecompileSetRewardAddress(t *testing.T) {
@@ -2796,7 +2795,7 @@ func TestRewardManagerPrecompileSetRewardAddress(t *testing.T) {
 	require.NoError(t, err)
 
 	balance := blkState.GetBalance(testAddr)
-	require.Equal(t, 1, balance.Cmp(common.Big0))
+	require.Equal(t, 1, balance.Cmp(common.U2560))
 
 	// Test Case: Disable reward manager
 	// This should revert back to enabling fee recipients
@@ -2934,7 +2933,7 @@ func TestRewardManagerPrecompileAllowFeeRecipients(t *testing.T) {
 	require.NoError(t, err)
 
 	balance := blkState.GetBalance(etherBase)
-	require.Equal(t, 1, balance.Cmp(common.Big0))
+	require.Equal(t, 1, balance.Cmp(common.U2560))
 
 	// Test Case: Disable reward manager
 	// This should revert back to burning fees

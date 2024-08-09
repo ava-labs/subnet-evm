@@ -28,11 +28,13 @@ package gasprice
 
 import (
 	"context"
+	"fmt"
 	"math/big"
 	"testing"
 	"time"
 
 	"github.com/ava-labs/subnet-evm/commontype"
+	"github.com/ava-labs/subnet-evm/consensus"
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
@@ -99,27 +101,31 @@ func (b *testBackend) teardown() {
 }
 
 func newTestBackendFakerEngine(t *testing.T, config *params.ChainConfig, numBlocks int, genBlocks func(i int, b *core.BlockGen)) *testBackend {
-	var gspec = &core.Genesis{
-		Config: config,
-		Alloc:  core.GenesisAlloc{addr: core.GenesisAccount{Balance: bal}},
-	}
-
-	engine := dummy.NewETHFaker()
+	var (
+		gspec = &core.Genesis{
+			Config: config,
+			Alloc:  types.GenesisAlloc{addr: {Balance: bal}},
+		}
+	)
+	var engine consensus.Engine = dummy.NewETHFaker()
 
 	// Generate testing blocks
-	_, blocks, _, err := core.GenerateChainWithGenesis(gspec, engine, numBlocks, 0, genBlocks)
+	db, blocks, _, err := core.GenerateChainWithGenesis(gspec, engine, numBlocks, 0, genBlocks)
 	if err != nil {
 		t.Fatal(err)
 	}
 	// Construct testing chain
+	// XXX
 	diskdb := rawdb.NewMemoryDatabase()
-	chain, err := core.NewBlockChain(diskdb, core.DefaultCacheConfig, gspec, engine, vm.Config{}, common.Hash{}, false)
+	_ = db
+	chain, err := core.NewBlockChain(diskdb, core.DefaultCacheConfig, gspec, engine, vm.Config{}, gspec.ToBlock().Hash(), false)
 	if err != nil {
 		t.Fatalf("Failed to create local chain, %v", err)
 	}
-	if _, err := chain.InsertChain(blocks); err != nil {
-		t.Fatalf("Failed to insert chain, %v", err)
+	if i, err := chain.InsertChain(blocks); err != nil {
+		panic(fmt.Errorf("error inserting block %d: %w", i, err))
 	}
+
 	return &testBackend{chain: chain}
 }
 
@@ -128,7 +134,7 @@ func newTestBackendFakerEngine(t *testing.T, config *params.ChainConfig, numBloc
 func newTestBackend(t *testing.T, config *params.ChainConfig, numBlocks int, genBlocks func(i int, b *core.BlockGen)) *testBackend {
 	var gspec = &core.Genesis{
 		Config: config,
-		Alloc:  core.GenesisAlloc{addr: core.GenesisAccount{Balance: bal}},
+		Alloc:  types.GenesisAlloc{addr: types.Account{Balance: bal}},
 	}
 
 	engine := dummy.NewFaker()
@@ -143,9 +149,10 @@ func newTestBackend(t *testing.T, config *params.ChainConfig, numBlocks int, gen
 	if err != nil {
 		t.Fatalf("Failed to create local chain, %v", err)
 	}
-	if _, err := chain.InsertChain(blocks); err != nil {
-		t.Fatalf("Failed to insert chain, %v", err)
+	if i, err := chain.InsertChain(blocks); err != nil {
+		panic(fmt.Errorf("error inserting block %d: %w", i, err))
 	}
+
 	return &testBackend{chain: chain}
 }
 

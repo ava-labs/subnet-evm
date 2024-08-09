@@ -28,6 +28,7 @@ package vm
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/vmerrs"
@@ -321,8 +322,11 @@ func gasCreateEip3860(evm *EVM, contract *Contract, stack *Stack, mem *Memory, m
 		return 0, err
 	}
 	size, overflow := stack.Back(2).Uint64WithOverflow()
-	if overflow || size > params.MaxInitCodeSize {
+	if overflow {
 		return 0, vmerrs.ErrGasUintOverflow
+	}
+	if size > params.MaxInitCodeSize {
+		return 0, fmt.Errorf("%w: size %d", vmerrs.ErrMaxInitCodeSizeExceeded, size)
 	}
 	// Since size <= params.MaxInitCodeSize, these multiplication cannot overflow
 	moreGas := params.InitCodeWordGas * ((size + 31) / 32)
@@ -337,8 +341,11 @@ func gasCreate2Eip3860(evm *EVM, contract *Contract, stack *Stack, mem *Memory, 
 		return 0, err
 	}
 	size, overflow := stack.Back(2).Uint64WithOverflow()
-	if overflow || size > params.MaxInitCodeSize {
+	if overflow {
 		return 0, vmerrs.ErrGasUintOverflow
+	}
+	if size > params.MaxInitCodeSize {
+		return 0, fmt.Errorf("%w: size %d", vmerrs.ErrMaxInitCodeSizeExceeded, size)
 	}
 	// Since size <= params.MaxInitCodeSize, these multiplication cannot overflow
 	moreGas := (params.InitCodeWordGas + params.Keccak256WordGas) * ((size + 31) / 32)
@@ -387,7 +394,7 @@ func gasCall(evm *EVM, contract *Contract, stack *Stack, mem *Memory, memorySize
 	} else if !evm.StateDB.Exist(address) {
 		gas += params.CallNewAccountGas
 	}
-	if transfersValue {
+	if transfersValue && !evm.chainRules.IsEIP4762 {
 		gas += params.CallValueTransferGas
 	}
 	memoryGas, err := memoryGasCost(mem, memorySize)
@@ -398,7 +405,14 @@ func gasCall(evm *EVM, contract *Contract, stack *Stack, mem *Memory, memorySize
 	if gas, overflow = math.SafeAdd(gas, memoryGas); overflow {
 		return 0, vmerrs.ErrGasUintOverflow
 	}
-
+	if evm.chainRules.IsEIP4762 {
+		if transfersValue {
+			gas, overflow = math.SafeAdd(gas, evm.AccessEvents.ValueTransferGas(contract.Address(), address))
+			if overflow {
+				return 0, vmerrs.ErrGasUintOverflow
+			}
+		}
+	}
 	evm.callGasTemp, err = callGas(evm.chainRules.IsEIP150, contract.Gas, gas, stack.Back(0))
 	if err != nil {
 		return 0, err
@@ -406,6 +420,7 @@ func gasCall(evm *EVM, contract *Contract, stack *Stack, mem *Memory, memorySize
 	if gas, overflow = math.SafeAdd(gas, evm.callGasTemp); overflow {
 		return 0, vmerrs.ErrGasUintOverflow
 	}
+
 	return gas, nil
 }
 
@@ -418,11 +433,21 @@ func gasCallCode(evm *EVM, contract *Contract, stack *Stack, mem *Memory, memory
 		gas      uint64
 		overflow bool
 	)
-	if stack.Back(2).Sign() != 0 {
+	if stack.Back(2).Sign() != 0 && !evm.chainRules.IsEIP4762 {
 		gas += params.CallValueTransferGas
 	}
 	if gas, overflow = math.SafeAdd(gas, memoryGas); overflow {
 		return 0, vmerrs.ErrGasUintOverflow
+	}
+	if evm.chainRules.IsEIP4762 {
+		address := common.Address(stack.Back(1).Bytes20())
+		transfersValue := !stack.Back(2).IsZero()
+		if transfersValue {
+			gas, overflow = math.SafeAdd(gas, evm.AccessEvents.ValueTransferGas(contract.Address(), address))
+			if overflow {
+				return 0, vmerrs.ErrGasUintOverflow
+			}
+		}
 	}
 	evm.callGasTemp, err = callGas(evm.chainRules.IsEIP150, contract.Gas, gas, stack.Back(0))
 	if err != nil {

@@ -28,16 +28,15 @@
 package eth
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
-	"math/big"
 	"sync"
 	"time"
 
 	"github.com/ava-labs/avalanchego/utils/timer/mockable"
 	"github.com/ava-labs/subnet-evm/accounts"
 	"github.com/ava-labs/subnet-evm/consensus"
-	"github.com/ava-labs/subnet-evm/consensus/dummy"
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/bloombits"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
@@ -131,6 +130,7 @@ func New(
 	chainDb ethdb.Database,
 	settings Settings,
 	lastAcceptedHash common.Hash,
+	engine consensus.Engine,
 	clock *mockable.Clock,
 ) (*Ethereum, error) {
 	if chainDb == nil {
@@ -176,7 +176,7 @@ func New(
 		chainDb:           chainDb,
 		eventMux:          new(event.TypeMux),
 		accountManager:    stack.AccountManager(),
-		engine:            dummy.NewFakerWithClock(clock),
+		engine:            engine,
 		closeBloomHandler: make(chan struct{}),
 		networkID:         networkID,
 		etherbase:         config.Miner.Etherbase,
@@ -203,6 +203,7 @@ func New(
 	var (
 		vmConfig = vm.Config{
 			EnablePreimageRecording: config.EnablePreimageRecording,
+			EnableWitnessCollection: config.EnableWitnessCollection,
 		}
 		cacheConfig = &core.CacheConfig{
 			TrieCleanLimit:                  config.TrieCleanCache,
@@ -232,6 +233,18 @@ func New(
 	if err := eth.precheckPopulateMissingTries(); err != nil {
 		return nil, err
 	}
+	if config.VMTrace != "" {
+		var traceConfig json.RawMessage
+		if config.VMTraceJsonConfig != "" {
+			traceConfig = json.RawMessage(config.VMTraceJsonConfig)
+		}
+		t, err := tracers.LiveDirectory.New(config.VMTrace, traceConfig)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create tracer %s: %v", config.VMTrace, err)
+		}
+		vmConfig.Tracer = t
+	}
+	// XXX: what is shouldPreserve in upstream (seems unneeded here)?
 	eth.blockchain, err = core.NewBlockChain(chainDb, cacheConfig, config.Genesis, eth.engine, vmConfig, lastAcceptedHash, config.SkipUpgradeCheck)
 	if err != nil {
 		return nil, err
@@ -253,12 +266,12 @@ func New(
 
 	legacyPool := legacypool.New(config.TxPool, eth.blockchain)
 
-	eth.txPool, err = txpool.New(new(big.Int).SetUint64(config.TxPool.PriceLimit), eth.blockchain, []txpool.SubPool{legacyPool}) //, blobPool})
+	eth.txPool, err = txpool.New(config.TxPool.PriceLimit, eth.blockchain, []txpool.SubPool{legacyPool}) //, blobPool})
 	if err != nil {
 		return nil, err
 	}
 
-	eth.miner = miner.New(eth, &config.Miner, eth.blockchain.Config(), eth.EventMux(), eth.engine, clock)
+	eth.miner = miner.New(eth, config.Miner, eth.engine, clock)
 
 	allowUnprotectedTxHashes := make(map[common.Hash]struct{})
 	for _, txHash := range config.AllowUnprotectedTxHashes {
@@ -311,10 +324,6 @@ func (s *Ethereum) APIs() []rpc.API {
 	// Append all the local APIs and return
 	return append(apis, []rpc.API{
 		{
-			Namespace: "eth",
-			Service:   NewEthereumAPI(s),
-			Name:      "eth",
-		}, {
 			Namespace: "eth",
 			Service:   filters.NewFilterAPI(filterSystem),
 			Name:      "eth-filter",

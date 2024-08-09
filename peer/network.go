@@ -139,6 +139,9 @@ func NewNetwork(p2pNetwork *p2p.Network, appSender common.AppSender, codec codec
 func (n *network) SendAppRequestAny(ctx context.Context, minVersion *version.Application, request []byte, handler message.ResponseHandler) (ids.NodeID, error) {
 	// Take a slot from total [activeAppRequests] and block until a slot becomes available.
 	if err := n.activeAppRequests.Acquire(ctx, 1); err != nil {
+		if errors.Is(err, context.Canceled) {
+			return ids.EmptyNodeID, err
+		}
 		return ids.EmptyNodeID, errAcquiringSemaphore
 	}
 
@@ -160,6 +163,9 @@ func (n *network) SendAppRequest(ctx context.Context, nodeID ids.NodeID, request
 
 	// Take a slot from total [activeAppRequests] and block until a slot becomes available.
 	if err := n.activeAppRequests.Acquire(ctx, 1); err != nil {
+		if errors.Is(err, context.Canceled) {
+			return err
+		}
 		return errAcquiringSemaphore
 	}
 
@@ -231,6 +237,9 @@ func (n *network) sendAppRequest(ctx context.Context, nodeID ids.NodeID, request
 func (n *network) SendCrossChainRequest(ctx context.Context, chainID ids.ID, request []byte, handler message.ResponseHandler) error {
 	// Take a slot from total [activeCrossChainRequests] and block until a slot becomes available.
 	if err := n.activeCrossChainRequests.Acquire(ctx, 1); err != nil {
+		if errors.Is(err, context.Canceled) {
+			return err
+		}
 		return errAcquiringSemaphore
 	}
 

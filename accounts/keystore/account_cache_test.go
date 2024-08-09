@@ -33,6 +33,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"testing"
 	"time"
 
@@ -40,7 +41,6 @@ import (
 	"github.com/cespare/cp"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/ethereum/go-ethereum/common"
-	"golang.org/x/exp/slices"
 )
 
 var (
@@ -96,7 +96,7 @@ func waitForAccounts(wantAccounts []accounts.Account, ks *KeyStore) error {
 func TestWatchNewFile(t *testing.T) {
 	t.Parallel()
 
-	dir, ks := tmpKeyStore(t, false)
+	dir, ks := tmpKeyStore(t)
 
 	// Ensure the watcher is started before adding any files.
 	ks.Accounts()
@@ -335,7 +335,8 @@ func TestUpdatedKeyfileContents(t *testing.T) {
 	t.Parallel()
 
 	// Create a temporary keystore to test with
-	dir := filepath.Join(os.TempDir(), fmt.Sprintf("eth-keystore-watch-test-%d-%d", os.Getpid(), rand.Int()))
+	dir := t.TempDir()
+
 	ks := NewKeyStore(dir, LightScryptN, LightScryptP)
 
 	list := ks.Accounts()
@@ -345,9 +346,7 @@ func TestUpdatedKeyfileContents(t *testing.T) {
 	if !waitWatcherStart(ks) {
 		t.Fatal("keystore watcher didn't start in time")
 	}
-	// Create the directory and copy a key file into it.
-	os.MkdirAll(dir, 0700)
-	defer os.RemoveAll(dir)
+	// Copy a key file into it
 	file := filepath.Join(dir, "aaa")
 
 	// Place one of our testfiles in there

@@ -42,13 +42,14 @@ import (
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/state"
+	"github.com/ava-labs/subnet-evm/core/tracing"
 	"github.com/ava-labs/subnet-evm/core/vm"
 	"github.com/ava-labs/subnet-evm/core/vm/runtime"
 	"github.com/ava-labs/subnet-evm/eth/tracers/logger"
 	"github.com/ava-labs/subnet-evm/internal/flags"
 	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/trie"
-	"github.com/ava-labs/subnet-evm/trie/triedb/hashdb"
+	"github.com/ava-labs/subnet-evm/triedb"
+	"github.com/ava-labs/subnet-evm/triedb/hashdb"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/urfave/cli/v2"
 )
@@ -126,7 +127,7 @@ func runCmd(ctx *cli.Context) error {
 	}
 
 	var (
-		tracer      vm.EVMLogger
+		tracer      *tracing.Hooks
 		debugLogger *logger.StructLogger
 		statedb     *state.StateDB
 		chainConfig *params.ChainConfig
@@ -140,7 +141,7 @@ func runCmd(ctx *cli.Context) error {
 		tracer = logger.NewJSONLogger(logconfig, os.Stdout)
 	} else if ctx.Bool(DebugFlag.Name) {
 		debugLogger = logger.NewStructLogger(logconfig)
-		tracer = debugLogger
+		tracer = debugLogger.Hooks()
 	} else {
 		debugLogger = logger.NewStructLogger(logconfig)
 	}
@@ -158,7 +159,7 @@ func runCmd(ctx *cli.Context) error {
 	}
 
 	db := rawdb.NewMemoryDatabase()
-	triedb := trie.NewDatabase(db, &trie.Config{
+	triedb := triedb.NewDatabase(db, &triedb.Config{
 		Preimages: preimages,
 		HashDB:    hashdb.Defaults,
 	})
@@ -281,8 +282,17 @@ func runCmd(ctx *cli.Context) error {
 	output, leftOverGas, stats, err := timedExec(bench, execFunc)
 
 	if ctx.Bool(DumpFlag.Name) {
-		statedb.Commit(genesisConfig.Number, true, false)
-		fmt.Println(string(statedb.Dump(nil)))
+		root, err := statedb.Commit(genesisConfig.Number, true, false)
+		if err != nil {
+			fmt.Printf("Failed to commit changes %v\n", err)
+			return err
+		}
+		dumpdb, err := state.New(root, sdb, nil)
+		if err != nil {
+			fmt.Printf("Failed to open statedb %v\n", err)
+			return err
+		}
+		fmt.Println(string(dumpdb.Dump(nil)))
 	}
 
 	if ctx.Bool(DebugFlag.Name) {

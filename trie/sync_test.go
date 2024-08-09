@@ -37,7 +37,7 @@ import (
 )
 
 // makeTestTrie create a sample test trie to test node-wise reconstruction.
-func makeTestTrie(scheme string) (ethdb.Database, *Database, *StateTrie, map[string][]byte) {
+func makeTestTrie(scheme string) (ethdb.Database, *testDb, *StateTrie, map[string][]byte) {
 	// Create an empty trie
 	db := rawdb.NewMemoryDatabase()
 	triedb := newTestDatabase(db, scheme)
@@ -62,11 +62,11 @@ func makeTestTrie(scheme string) (ethdb.Database, *Database, *StateTrie, map[str
 			trie.MustUpdate(key, val)
 		}
 	}
-	root, nodes, _ := trie.Commit(false)
-	if err := triedb.Update(root, types.EmptyRootHash, 0, trienode.NewWithNodeSet(nodes), nil); err != nil {
+	root, nodes := trie.Commit(false)
+	if err := triedb.Update(root, types.EmptyRootHash, trienode.NewWithNodeSet(nodes)); err != nil {
 		panic(fmt.Errorf("failed to commit db %v", err))
 	}
-	if err := triedb.Commit(root, false); err != nil {
+	if err := triedb.Commit(root); err != nil {
 		panic(err)
 	}
 	// Re-create the trie based on the new state

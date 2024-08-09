@@ -32,6 +32,7 @@ import (
 	"io"
 	"math/big"
 	"reflect"
+	"slices"
 	"sync/atomic"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -67,7 +68,7 @@ func (n *BlockNonce) UnmarshalText(input []byte) error {
 }
 
 //go:generate go run github.com/fjl/gencodec -type Header -field-override headerMarshaling -out gen_header_json.go
-//go:generate go run github.com/ethereum/go-ethereum/rlp/rlpgen -type Header -out gen_header_rlp.go
+//go:generate go run github.com/ava-labs/subnet-evm/rlp/rlpgen -type Header -out gen_header_rlp.go
 
 // Header represents a block header in the Ethereum blockchain.
 type Header struct {
@@ -178,8 +179,8 @@ type Block struct {
 	transactions Transactions
 
 	// caches
-	hash atomic.Value
-	size atomic.Value
+	hash atomic.Pointer[common.Hash]
+	size atomic.Uint64
 }
 
 // "external" block encoding. used for eth protocol, etc.
@@ -192,15 +193,18 @@ type extblock struct {
 // NewBlock creates a new block. The input data is copied, changes to header and to the
 // field values will not affect the block.
 //
-// The values of TxHash, UncleHash, ReceiptHash and Bloom in header
-// are ignored and set to values derived from the given txs, uncles
-// and receipts.
-func NewBlock(
-	header *Header, txs []*Transaction, uncles []*Header, receipts []*Receipt, hasher TrieHasher,
-) *Block {
-	b := &Block{header: CopyHeader(header)}
+// The body elements and the receipts are used to recompute and overwrite the
+// relevant portions of the header.
+func NewBlock(header *Header, body *Body, receipts []*Receipt, hasher TrieHasher) *Block {
+	if body == nil {
+		body = &Body{}
+	}
+	var (
+		b      = NewBlockWithHeader(header)
+		txs    = body.Transactions
+		uncles = body.Uncles
+	)
 
-	// TODO: panic if len(txs) != len(receipts)
 	if len(txs) == 0 {
 		b.header.TxHash = EmptyTxsHash
 	} else {
@@ -368,8 +372,8 @@ func (b *Block) BlockGasCost() *big.Int {
 // Size returns the true RLP encoded storage size of the block, either by encoding
 // and returning it, or returning a previously cached value.
 func (b *Block) Size() uint64 {
-	if size := b.size.Load(); size != nil {
-		return size.(uint64)
+	if size := b.size.Load(); size > 0 {
+		return size
 	}
 	c := writeCounter(0)
 	rlp.Encode(&c, b)
@@ -408,16 +412,16 @@ func (b *Block) WithSeal(header *Header) *Block {
 	}
 }
 
-// WithBody returns a copy of the block with the given transaction and uncle contents.
-func (b *Block) WithBody(transactions []*Transaction, uncles []*Header) *Block {
+// WithBody returns a new block with the original header and a deep copy of the
+// provided body.
+func (b *Block) WithBody(body Body) *Block {
 	block := &Block{
 		header:       b.header,
-		transactions: make([]*Transaction, len(transactions)),
-		uncles:       make([]*Header, len(uncles)),
+		transactions: slices.Clone(body.Transactions),
+		uncles:       make([]*Header, len(body.Uncles)),
 	}
-	copy(block.transactions, transactions)
-	for i := range uncles {
-		block.uncles[i] = CopyHeader(uncles[i])
+	for i := range body.Uncles {
+		block.uncles[i] = CopyHeader(body.Uncles[i])
 	}
 	return block
 }
@@ -426,11 +430,11 @@ func (b *Block) WithBody(transactions []*Transaction, uncles []*Header) *Block {
 // The hash is computed on the first call and cached thereafter.
 func (b *Block) Hash() common.Hash {
 	if hash := b.hash.Load(); hash != nil {
-		return hash.(common.Hash)
+		return *hash
 	}
-	v := b.header.Hash()
-	b.hash.Store(v)
-	return v
+	h := b.header.Hash()
+	b.hash.Store(&h)
+	return h
 }
 
 type Blocks []*Block

@@ -28,8 +28,10 @@ package core
 
 import (
 	"github.com/ava-labs/subnet-evm/core/state"
+	"github.com/ava-labs/subnet-evm/core/stateless"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/core/vm"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 // Validator is an interface which defines the standard for block validation. It
@@ -41,7 +43,10 @@ type Validator interface {
 
 	// ValidateState validates the given statedb and optionally the receipts and
 	// gas used.
-	ValidateState(block *types.Block, state *state.StateDB, receipts types.Receipts, usedGas uint64) error
+	ValidateState(block *types.Block, state *state.StateDB, receipts types.Receipts, usedGas uint64, stateless bool) error
+
+	// ValidateWitness cross validates a block execution with stateless remote clients.
+	ValidateWitness(witness *stateless.Witness, receiptRoot common.Hash, stateRoot common.Hash) error
 }
 
 // Processor is an interface for processing blocks using a given initial state.

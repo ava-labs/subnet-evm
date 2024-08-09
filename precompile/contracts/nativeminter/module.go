@@ -7,10 +7,12 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ava-labs/subnet-evm/core/tracing"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
 )
 
 var _ contract.Configurator = &configurator{}
@@ -52,8 +54,9 @@ func (*configurator) Configure(chainConfig precompileconfig.ChainConfig, cfg pre
 	}
 	for to, amount := range config.InitialMint {
 		if amount != nil {
-			bigIntAmount := (*big.Int)(amount)
-			state.AddBalance(to, bigIntAmount)
+			amountBig := (*big.Int)(amount)
+			amountU256, _ := uint256.FromBig(amountBig)                     // XXX: should we check overflow?
+			state.AddBalance(to, amountU256, tracing.BalanceChangeTransfer) // XXX: what is the appropriate tracing reason here? do we need a new one?
 		}
 	}
 

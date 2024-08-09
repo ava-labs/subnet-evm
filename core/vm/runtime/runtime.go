@@ -37,6 +37,7 @@ import (
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/holiman/uint256"
 )
 
 // Config is a basic type specifying certain configuration flags for running
@@ -66,6 +67,9 @@ type Config struct {
 // sets defaults on the config
 func setDefaults(cfg *Config) {
 	if cfg.ChainConfig == nil {
+		var (
+			cancunTime = uint64(0)
+		)
 		cfg.ChainConfig = &params.ChainConfig{
 			ChainID:             big.NewInt(1),
 			HomesteadBlock:      new(big.Int),
@@ -80,9 +84,9 @@ func setDefaults(cfg *Config) {
 			NetworkUpgrades: params.NetworkUpgrades{
 				SubnetEVMTimestamp: new(uint64),
 			},
+			CancunTime: &cancunTime,
 		}
 	}
-
 	if cfg.Difficulty == nil {
 		cfg.Difficulty = new(big.Int)
 	}
@@ -131,6 +135,9 @@ func Execute(code, input []byte, cfg *Config) ([]byte, *state.StateDB, error) {
 		sender  = vm.AccountRef(cfg.Origin)
 		rules   = cfg.ChainConfig.Rules(vmenv.Context.BlockNumber, vmenv.Context.Time)
 	)
+	if cfg.EVMConfig.Tracer != nil && cfg.EVMConfig.Tracer.OnTxStart != nil {
+		cfg.EVMConfig.Tracer.OnTxStart(vmenv.GetVMContext(), types.NewTx(&types.LegacyTx{To: &address, Data: input, Value: cfg.Value, Gas: cfg.GasLimit}), cfg.Origin)
+	}
 	// Execute the preparatory steps for state transition which includes:
 	// - prepare accessList(post-berlin)
 	// - reset transient storage(eip 1153)
@@ -145,7 +152,7 @@ func Execute(code, input []byte, cfg *Config) ([]byte, *state.StateDB, error) {
 		common.BytesToAddress([]byte("contract")),
 		input,
 		cfg.GasLimit,
-		cfg.Value,
+		uint256.MustFromBig(cfg.Value),
 	)
 	return ret, cfg.State, err
 }
@@ -165,6 +172,9 @@ func Create(input []byte, cfg *Config) ([]byte, common.Address, uint64, error) {
 		sender = vm.AccountRef(cfg.Origin)
 		rules  = cfg.ChainConfig.Rules(vmenv.Context.BlockNumber, vmenv.Context.Time)
 	)
+	if cfg.EVMConfig.Tracer != nil && cfg.EVMConfig.Tracer.OnTxStart != nil {
+		cfg.EVMConfig.Tracer.OnTxStart(vmenv.GetVMContext(), types.NewTx(&types.LegacyTx{Data: input, Value: cfg.Value, Gas: cfg.GasLimit}), cfg.Origin)
+	}
 	// Execute the preparatory steps for state transition which includes:
 	// - prepare accessList(post-berlin)
 	// - reset transient storage(eip 1153)
@@ -175,7 +185,7 @@ func Create(input []byte, cfg *Config) ([]byte, common.Address, uint64, error) {
 		sender,
 		input,
 		cfg.GasLimit,
-		cfg.Value,
+		uint256.MustFromBig(cfg.Value),
 	)
 	return code, address, leftOverGas, err
 }
@@ -190,10 +200,13 @@ func Call(address common.Address, input []byte, cfg *Config) ([]byte, uint64, er
 
 	var (
 		vmenv   = NewEnv(cfg)
-		sender  = cfg.State.GetOrNewStateObject(cfg.Origin)
+		sender  = vm.AccountRef(cfg.Origin)
 		statedb = cfg.State
 		rules   = cfg.ChainConfig.Rules(vmenv.Context.BlockNumber, vmenv.Context.Time)
 	)
+	if cfg.EVMConfig.Tracer != nil && cfg.EVMConfig.Tracer.OnTxStart != nil {
+		cfg.EVMConfig.Tracer.OnTxStart(vmenv.GetVMContext(), types.NewTx(&types.LegacyTx{To: &address, Data: input, Value: cfg.Value, Gas: cfg.GasLimit}), cfg.Origin)
+	}
 	// Execute the preparatory steps for state transition which includes:
 	// - prepare accessList(post-berlin)
 	// - reset transient storage(eip 1153)
@@ -205,7 +218,7 @@ func Call(address common.Address, input []byte, cfg *Config) ([]byte, uint64, er
 		address,
 		input,
 		cfg.GasLimit,
-		cfg.Value,
+		uint256.MustFromBig(cfg.Value),
 	)
 	return ret, leftOverGas, err
 }

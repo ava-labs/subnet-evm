@@ -51,10 +51,10 @@ func TestHandlePrecompileAccept(t *testing.T) {
 			},
 		},
 	}
+	txs := []*types.Transaction{types.NewTx(&types.LegacyTx{})}
 	ethBlock := types.NewBlock(
 		&types.Header{Number: big.NewInt(1)},
-		[]*types.Transaction{types.NewTx(&types.LegacyTx{})},
-		nil,
+		&types.Body{Transactions: txs},
 		[]*types.Receipt{receipt},
 		trie.NewStackTrie(nil),
 	)

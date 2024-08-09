@@ -31,7 +31,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
-	"golang.org/x/crypto/sha3"
 )
 
 // hasher is a type used for the trie Hash operation. A hasher has some
@@ -48,7 +47,7 @@ var hasherPool = sync.Pool{
 	New: func() interface{} {
 		return &hasher{
 			tmp:    make([]byte, 0, 550), // cap is as large as a full fullNode.
-			sha:    sha3.NewLegacyKeccak256().(crypto.KeccakState),
+			sha:    crypto.NewKeccakState(),
 			encbuf: rlp.NewEncoderBuffer(nil),
 		}
 	},

@@ -71,7 +71,7 @@ func NewTrieToSync(sync *stateSync, root common.Hash, account common.Hash, syncT
 		root:         root,
 		account:      account,
 		batch:        batch,
-		stackTrie:    trie.NewStackTrie(&trie.StackTrieOptions{Writer: writeFn}),
+		stackTrie:    trie.NewStackTrie(writeFn),
 		isMainTrie:   (root == sync.root),
 		task:         syncTask,
 		segmentsDone: make(map[int]struct{}),
@@ -218,7 +218,7 @@ func (t *trieToSync) segmentFinished(ctx context.Context, idx int) error {
 
 	// when the trie is finished, this hashes any remaining nodes in the stack
 	// trie and creates the root
-	actualRoot := t.stackTrie.Commit()
+	actualRoot := t.stackTrie.Hash()
 	if actualRoot != t.root {
 		return fmt.Errorf("unexpected root, expected=%s, actual=%s, account=%s", t.root, actualRoot, t.account)
 	}

@@ -9,10 +9,12 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ava-labs/subnet-evm/core/tracing"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
 )
 
 const (
@@ -75,7 +77,7 @@ func UnpackMintNativeCoinInput(input []byte, useStrictMode bool) (common.Address
 
 // mintNativeCoin checks if the caller is permissioned for minting operation.
 // The execution function parses the [input] into native coin amount and receiver address.
-func mintNativeCoin(accessibleState contract.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
+func mintNativeCoin(accessibleState contract.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, tracers *tracing.Hooks, readOnly bool) (ret []byte, remainingGas uint64, err error) {
 	if remainingGas, err = contract.DeductGas(suppliedGas, MintGasCost); err != nil {
 		return nil, 0, err
 	}
@@ -117,7 +119,8 @@ func mintNativeCoin(accessibleState contract.AccessibleState, caller common.Addr
 		stateDB.CreateAccount(to)
 	}
 
-	stateDB.AddBalance(to, amount)
+	amountU256, _ := uint256.FromBig(amount)                          // XXX: should we check overflow?
+	stateDB.AddBalance(to, amountU256, tracing.BalanceChangeTransfer) // XXX: what is the appropriate tracing reason here? do we need a new one?
 	// Return an empty output and the remaining gas
 	return []byte{}, remainingGas, nil
 }

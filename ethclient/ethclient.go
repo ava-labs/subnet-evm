@@ -279,7 +279,11 @@ func (ec *client) getBlock(ctx context.Context, method string, args ...interface
 		}
 		txs[i] = tx.tx
 	}
-	return types.NewBlockWithHeader(head).WithBody(txs, uncles), nil
+	return types.NewBlockWithHeader(head).WithBody(
+		types.Body{
+			Transactions: txs,
+			Uncles:       uncles,
+		}), nil
 }
 
 // HeaderByHash returns the block header with the given hash.
@@ -395,10 +399,8 @@ func (ec *client) TransactionInBlock(ctx context.Context, blockHash common.Hash,
 func (ec *client) TransactionReceipt(ctx context.Context, txHash common.Hash) (*types.Receipt, error) {
 	var r *types.Receipt
 	err := ec.c.CallContext(ctx, &r, "eth_getTransactionReceipt", txHash)
-	if err == nil {
-		if r == nil {
-			return nil, interfaces.NotFound
-		}
+	if err == nil && r == nil {
+		return nil, interfaces.NotFound
 	}
 	return r, err
 }

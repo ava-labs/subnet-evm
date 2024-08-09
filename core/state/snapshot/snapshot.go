@@ -37,7 +37,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/metrics"
-	"github.com/ava-labs/subnet-evm/trie"
+	"github.com/ava-labs/subnet-evm/triedb"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/log"
@@ -186,7 +186,7 @@ type Config struct {
 type Tree struct {
 	config Config              // Snapshots configurations
 	diskdb ethdb.KeyValueStore // Persistent database to store the snapshot
-	triedb *trie.Database      // In-memory cache to access the trie through
+	triedb *triedb.Database    // In-memory cache to access the trie through
 	// Collection of all known layers
 	// blockHash -> snapshot
 	blockLayers map[common.Hash]snapshot
@@ -208,7 +208,7 @@ type Tree struct {
 // If the snapshot is missing or the disk layer is broken, the snapshot will be
 // reconstructed using both the existing data and the state trie.
 // The repair happens on a background thread.
-func New(config Config, diskdb ethdb.KeyValueStore, triedb *trie.Database, blockHash, root common.Hash) (*Tree, error) {
+func New(config Config, diskdb ethdb.KeyValueStore, triedb *triedb.Database, blockHash, root common.Hash) (*Tree, error) {
 	// Create a new, empty snapshot tree
 	snap := &Tree{
 		config:      config,
@@ -744,6 +744,9 @@ func diffToDisk(bottom *diffLayer) (*diskLayer, bool, error) {
 
 // Release releases resources
 func (t *Tree) Release() {
+	t.lock.RLock()
+	defer t.lock.RUnlock()
+
 	if dl := t.disklayer(); dl != nil {
 		dl.Release()
 	}
@@ -891,13 +894,15 @@ func (t *Tree) disklayer() *diskLayer {
 	case *diskLayer:
 		return layer
 	case *diffLayer:
+		layer.lock.RLock()
+		defer layer.lock.RUnlock()
 		return layer.origin
 	default:
 		panic(fmt.Sprintf("%T: undefined layer", snap))
 	}
 }
 
-// diskRoot is a internal helper function to return the disk layer root.
+// diskRoot is an internal helper function to return the disk layer root.
 // The lock of snapTree is assumed to be held already.
 func (t *Tree) diskRoot() common.Hash {
 	disklayer := t.disklayer()
@@ -910,8 +915,8 @@ func (t *Tree) diskRoot() common.Hash {
 // generating is an internal helper function which reports whether the snapshot
 // is still under the construction.
 func (t *Tree) generating() (bool, error) {
-	t.lock.Lock()
-	defer t.lock.Unlock()
+	t.lock.RLock()
+	defer t.lock.RUnlock()
 
 	layer := t.disklayer()
 	if layer == nil {
@@ -922,10 +927,10 @@ func (t *Tree) generating() (bool, error) {
 	return layer.genMarker != nil, nil
 }
 
-// DiskRoot is a external helper function to return the disk layer root.
+// DiskRoot is an external helper function to return the disk layer root.
 func (t *Tree) DiskRoot() common.Hash {
-	t.lock.Lock()
-	defer t.lock.Unlock()
+	t.lock.RLock()
+	defer t.lock.RUnlock()
 
 	return t.diskRoot()
 }
