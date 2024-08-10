@@ -24,7 +24,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-package params
+package params_test
 
 import (
 	"encoding/json"
@@ -39,7 +39,11 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/contracts/txallowlist"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	. "github.com/ava-labs/subnet-evm/params"
+	_ "github.com/ava-labs/subnet-evm/params/paramsjson" // registers JSON unmarshalers to avoid circular dependency
 )
 
 func TestCheckCompatible(t *testing.T) {
@@ -211,8 +215,8 @@ func TestConfigUnmarshalJSON(t *testing.T) {
 		}
 	}
 	`)
-	c := ChainConfig{}
-	err := json.Unmarshal(config, &c)
+	c := &ChainConfig{}
+	err := json.Unmarshal(config, c)
 	require.NoError(err)
 
 	require.Equal(c.ChainID, big.NewInt(43214))
@@ -230,14 +234,14 @@ func TestConfigUnmarshalJSON(t *testing.T) {
 	// Marshal and unmarshal again and check that the result is the same
 	marshaled, err := json.Marshal(c)
 	require.NoError(err)
-	c2 := ChainConfig{}
-	err = json.Unmarshal(marshaled, &c2)
+	c2 := &ChainConfig{}
+	err = json.Unmarshal(marshaled, c2)
 	require.NoError(err)
 	require.Equal(c, c2)
 }
 
 func TestActivePrecompiles(t *testing.T) {
-	config := ChainConfig{
+	config := &ChainConfig{
 		UpgradeConfig: UpgradeConfig{
 			PrecompileUpgrades: []PrecompileUpgrade{
 				{
@@ -251,10 +255,10 @@ func TestActivePrecompiles(t *testing.T) {
 	}
 
 	rules0 := config.Rules(common.Big0, 0)
-	require.True(t, rules0.IsPrecompileEnabled(nativeminter.Module.Address))
+	assert.True(t, rules0.IsPrecompileEnabled(nativeminter.Module.Address))
 
 	rules1 := config.Rules(common.Big0, 1)
-	require.False(t, rules1.IsPrecompileEnabled(nativeminter.Module.Address))
+	assert.False(t, rules1.IsPrecompileEnabled(nativeminter.Module.Address))
 }
 
 func TestChainConfigMarshalWithUpgrades(t *testing.T) {

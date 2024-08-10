@@ -25,6 +25,8 @@ import (
 	"github.com/go-cmd/cmd"
 	"github.com/onsi/ginkgo/v2"
 	"github.com/stretchr/testify/require"
+
+	_ "github.com/ava-labs/subnet-evm/params/paramsjson" // registers JSON unmarshalers to avoid circular dependency
 )
 
 type SubnetSuite struct {

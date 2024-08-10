@@ -90,6 +90,8 @@ func NewDisableConfig(blockTimestamp *uint64) *Config {
 // This should be the same key as used in the precompile module.
 func (*Config) Key() string { return ConfigKey }
 
+func (*Config) Address() common.Address { return ContractAddress }
+
 // Verify tries to verify Config and returns an error accordingly.
 func (c *Config) Verify(chainConfig precompileconfig.ChainConfig) error {
 	if c.InitialRewardConfig != nil {

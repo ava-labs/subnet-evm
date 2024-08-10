@@ -1,10 +1,11 @@
 // (c) 2022 Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-package params
+package params_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"testing"
 
@@ -17,6 +18,8 @@ import (
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
+
+	. "github.com/ava-labs/subnet-evm/params"
 )
 
 func TestVerifyWithChainConfig(t *testing.T) {
@@ -270,30 +273,46 @@ func TestGetPrecompileConfig(t *testing.T) {
 		deployerallowlist.ConfigKey: deployerallowlist.NewConfig(utils.NewUint64(10), nil, nil, nil),
 	}
 
-	deployerConfig := config.getActivePrecompileConfig(deployerallowlist.ContractAddress, 0)
-	require.Nil(deployerConfig)
+	configs := config.GetActivatingPrecompileConfigs(deployerallowlist.ContractAddress, nil, 0, config.PrecompileUpgrades)
+	require.Len(configs, 0)
 
-	deployerConfig = config.getActivePrecompileConfig(deployerallowlist.ContractAddress, 10)
-	require.NotNil(deployerConfig)
+	configs = config.GetActivatingPrecompileConfigs(deployerallowlist.ContractAddress, nil, 10, config.PrecompileUpgrades)
+	require.GreaterOrEqual(len(configs), 1)
+	require.NotNil(configs[len(configs)-1])
 
-	deployerConfig = config.getActivePrecompileConfig(deployerallowlist.ContractAddress, 11)
-	require.NotNil(deployerConfig)
+	configs = config.GetActivatingPrecompileConfigs(deployerallowlist.ContractAddress, nil, 11, config.PrecompileUpgrades)
+	require.GreaterOrEqual(len(configs), 1)
+	require.NotNil(configs[len(configs)-1])
 
-	txAllowListConfig := config.getActivePrecompileConfig(txallowlist.ContractAddress, 0)
-	require.Nil(txAllowListConfig)
+	txAllowListConfig := config.GetActivatingPrecompileConfigs(txallowlist.ContractAddress, nil, 0, config.PrecompileUpgrades)
+	require.Len(txAllowListConfig, 0)
 }
 
 func TestPrecompileUpgradeUnmarshalJSON(t *testing.T) {
 	require := require.New(t)
 
-	upgradeBytes := []byte(`
+	const (
+		durangoTimestamp       = 314159
+		stateUpgradeTimestamp  = 142857
+		rewardManagerTimestamp = 1671542573
+		rewardManagerAdmin     = "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
+		nativeMinterTimestamp  = 1671543172
+	)
+
+	upgradeBytes := []byte(fmt.Sprintf(`
 			{
+				"networkUpgradeOverrides": {
+					"durangoTimestamp": %d
+				},
+				"stateUpgrades": [
+					{"blockTimestamp": %d}
+				],
 				"precompileUpgrades": [
 					{
 						"rewardManagerConfig": {
-							"blockTimestamp": 1671542573,
+							"blockTimestamp": %d,
 							"adminAddresses": [
-								"0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
+								%q
 							],
 							"initialRewardConfig": {
 								"allowFeeRecipients": true
@@ -302,36 +321,41 @@ func TestPrecompileUpgradeUnmarshalJSON(t *testing.T) {
 					},
 					{
 						"contractNativeMinterConfig": {
-							"blockTimestamp": 1671543172,
+							"blockTimestamp": %d,
 							"disable": false
 						}
 					}
 				]
 			}
-	`)
+	`, durangoTimestamp, stateUpgradeTimestamp, rewardManagerTimestamp, rewardManagerAdmin, nativeMinterTimestamp))
 
 	var upgradeConfig UpgradeConfig
 	err := json.Unmarshal(upgradeBytes, &upgradeConfig)
 	require.NoError(err)
 
-	require.Len(upgradeConfig.PrecompileUpgrades, 2)
-
-	rewardManagerConf := upgradeConfig.PrecompileUpgrades[0]
-	require.Equal(rewardManagerConf.Key(), rewardmanager.ConfigKey)
-	testRewardManagerConfig := rewardmanager.NewConfig(
-		utils.NewUint64(1671542573),
-		[]common.Address{common.HexToAddress("0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC")},
-		nil,
-		nil,
-		&rewardmanager.InitialRewardConfig{
-			AllowFeeRecipients: true,
-		})
-	require.True(rewardManagerConf.Equal(testRewardManagerConfig))
-
-	nativeMinterConfig := upgradeConfig.PrecompileUpgrades[1]
-	require.Equal(nativeMinterConfig.Key(), nativeminter.ConfigKey)
-	expectedNativeMinterConfig := nativeminter.NewConfig(utils.NewUint64(1671543172), nil, nil, nil, nil)
-	require.True(nativeMinterConfig.Equal(expectedNativeMinterConfig))
+	want := UpgradeConfig{
+		NetworkUpgradeOverrides: &NetworkUpgrades{
+			DurangoTimestamp: utils.NewUint64(durangoTimestamp),
+		},
+		StateUpgrades: []StateUpgrade{{
+			BlockTimestamp: utils.NewUint64(stateUpgradeTimestamp),
+		}},
+		PrecompileUpgrades: []PrecompileUpgrade{
+			{
+				rewardmanager.NewConfig(
+					utils.NewUint64(rewardManagerTimestamp),
+					[]common.Address{common.HexToAddress(rewardManagerAdmin)}, nil, nil,
+					&rewardmanager.InitialRewardConfig{
+						AllowFeeRecipients: true,
+					},
+				),
+			},
+			{
+				nativeminter.NewConfig(utils.NewUint64(nativeMinterTimestamp), nil, nil, nil, nil),
+			},
+		},
+	}
+	require.Equal(want, upgradeConfig)
 
 	// Marshal and unmarshal again and check that the result is the same
 	upgradeBytes2, err := json.Marshal(upgradeConfig)

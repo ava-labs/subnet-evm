@@ -5,16 +5,12 @@ package params
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 
-	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 )
-
-var errNoKey = errors.New("PrecompileUpgrade cannot be empty")
 
 // PrecompileUpgrade is a helper struct embedded in UpgradeConfig.
 // It is used to unmarshal the json into the correct precompile config type
@@ -22,35 +18,6 @@ var errNoKey = errors.New("PrecompileUpgrade cannot be empty")
 // precompile/registry/registry.go.
 type PrecompileUpgrade struct {
 	precompileconfig.Config
-}
-
-// UnmarshalJSON unmarshals the json into the correct precompile config type
-// based on the key. Keys are defined in each precompile module, and registered in
-// precompile/registry/registry.go.
-// Ex: {"feeManagerConfig": {...}} where "feeManagerConfig" is the key
-func (u *PrecompileUpgrade) UnmarshalJSON(data []byte) error {
-	raw := make(map[string]json.RawMessage)
-	if err := json.Unmarshal(data, &raw); err != nil {
-		return err
-	}
-	if len(raw) == 0 {
-		return errNoKey
-	}
-	if len(raw) > 1 {
-		return fmt.Errorf("PrecompileUpgrade must have exactly one key, got %d", len(raw))
-	}
-	for key, value := range raw {
-		module, ok := modules.GetPrecompileModule(key)
-		if !ok {
-			return fmt.Errorf("unknown precompile config: %s", key)
-		}
-		config := module.MakeConfig()
-		if err := json.Unmarshal(value, config); err != nil {
-			return err
-		}
-		u.Config = config
-	}
-	return nil
 }
 
 // MarshalJSON marshal the precompile config into json based on the precompile key.
@@ -160,28 +127,17 @@ func (c *ChainConfig) getActivePrecompileConfig(address common.Address, timestam
 // GetActivatingPrecompileConfigs returns all precompile upgrades configured to activate during the
 // state transition from a block with timestamp [from] to a block with timestamp [to].
 func (c *ChainConfig) GetActivatingPrecompileConfigs(address common.Address, from *uint64, to uint64, upgrades []PrecompileUpgrade) []precompileconfig.Config {
-	// Get key from address.
-	module, ok := modules.GetPrecompileModuleByAddress(address)
-	if !ok {
-		return nil
-	}
-	configs := make([]precompileconfig.Config, 0)
-	key := module.ConfigKey
-	// First check the embedded [upgrade] for precompiles configured
-	// in the genesis chain config.
-	if config, ok := c.GenesisPrecompiles[key]; ok {
-		if utils.IsForkTransition(config.Timestamp(), from, to) {
-			configs = append(configs, config)
+	var configs []precompileconfig.Config
+	maybeAppend := func(pc precompileconfig.Config) {
+		if pc.Address() == address && utils.IsForkTransition(pc.Timestamp(), from, to) {
+			configs = append(configs, pc)
 		}
 	}
-	// Loop over all upgrades checking for the requested precompile config.
+	for _, p := range c.GenesisPrecompiles {
+		maybeAppend(p)
+	}
 	for _, upgrade := range upgrades {
-		if upgrade.Key() == key {
-			// Check if the precompile activates in the specified range.
-			if utils.IsForkTransition(upgrade.Timestamp(), from, to) {
-				configs = append(configs, upgrade.Config)
-			}
-		}
+		maybeAppend(upgrade.Config)
 	}
 	return configs
 }
@@ -194,12 +150,11 @@ func (c *ChainConfig) GetActivatingPrecompileConfigs(address common.Address, fro
 // This ensures that as long as the node has not accepted a block with a different rule set it will allow a
 // new upgrade to be applied as long as it activates after the last accepted block.
 func (c *ChainConfig) CheckPrecompilesCompatible(precompileUpgrades []PrecompileUpgrade, time uint64) *ConfigCompatError {
-	for _, module := range modules.RegisteredModules() {
-		if err := c.checkPrecompileCompatible(module.Address, precompileUpgrades, time); err != nil {
+	for _, a := range c.allPrecompileAddressesPlus(precompileUpgrades...) {
+		if err := c.checkPrecompileCompatible(a, precompileUpgrades, time); err != nil {
 			return err
 		}
 	}
-
 	return nil
 }
 
@@ -247,11 +202,41 @@ func (c *ChainConfig) checkPrecompileCompatible(address common.Address, precompi
 // EnabledStatefulPrecompiles returns current stateful precompile configs that are enabled at [blockTimestamp].
 func (c *ChainConfig) EnabledStatefulPrecompiles(blockTimestamp uint64) Precompiles {
 	statefulPrecompileConfigs := make(Precompiles)
-	for _, module := range modules.RegisteredModules() {
-		if config := c.getActivePrecompileConfig(module.Address, blockTimestamp); config != nil && !config.IsDisabled() {
-			statefulPrecompileConfigs[module.ConfigKey] = config
+	for key, addr := range c.allPrecompileAddresses() {
+		if config := c.getActivePrecompileConfig(addr, blockTimestamp); config != nil && !config.IsDisabled() {
+			statefulPrecompileConfigs[key] = config
 		}
 	}
-
 	return statefulPrecompileConfigs
+}
+
+// allPrecompileAddresses is equivalent to allPrecompileAddressesPlus() without
+// any arguments. The two methods are differentiated to improve readability at
+// the call sites.
+func (c *ChainConfig) allPrecompileAddresses() map[string]common.Address {
+	return c.allPrecompileAddressesPlus()
+}
+
+// allPrecompileAddressesPlus returns a mapping from precompile config key to
+// address for all precompiles defined in [ChainConfig.GenesisPrecompiles],
+// [ChainConfig.UpgradeConfig.PrecompileUpgrades], plus the `extra` upgrades.
+func (c *ChainConfig) allPrecompileAddressesPlus(extra ...PrecompileUpgrade) map[string]common.Address {
+	all := make(map[string]common.Address)
+	add := func(pc precompileconfig.Config) {
+		if a, ok := all[pc.Key()]; ok && a != pc.Address() {
+			panic("DO NOT MERGE")
+		}
+		all[pc.Key()] = pc.Address()
+	}
+
+	for _, p := range c.GenesisPrecompiles {
+		add(p)
+	}
+	for _, p := range c.UpgradeConfig.PrecompileUpgrades {
+		add(p.Config)
+	}
+	for _, p := range extra {
+		add(p.Config)
+	}
+	return all
 }

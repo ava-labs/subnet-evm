@@ -1,4 +1,4 @@
-// (c) 2019-2020, Ava Labs, Inc. All rights reserved.
+// (c) 2019-2024, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package feemanager
@@ -49,6 +49,8 @@ func NewDisableConfig(blockTimestamp *uint64) *Config {
 // Key returns the key for the FeeManager precompileconfig.
 // This should be the same key as used in the precompile module.
 func (*Config) Key() string { return ConfigKey }
+
+func (*Config) Address() common.Address { return ContractAddress }
 
 // Equal returns true if [cfg] is a [*FeeManagerConfig] and it has been configured identical to [c].
 func (c *Config) Equal(cfg precompileconfig.Config) bool {

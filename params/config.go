@@ -36,7 +36,6 @@ import (
 	"github.com/ava-labs/avalanchego/utils/constants"
 	"github.com/ava-labs/avalanchego/version"
 	"github.com/ava-labs/subnet-evm/commontype"
-	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
@@ -751,27 +750,29 @@ func (c *ChainConfig) rules(num *big.Int, timestamp uint64) Rules {
 // Rules returns the Avalanche modified rules to support Avalanche
 // network upgrades
 func (c *ChainConfig) Rules(blockNum *big.Int, timestamp uint64) Rules {
-	rules := c.rules(blockNum, timestamp)
+	r := c.rules(blockNum, timestamp)
+	r.AvalancheRules = c.GetAvalancheRules(timestamp)
 
-	rules.AvalancheRules = c.GetAvalancheRules(timestamp)
+	r.ActivePrecompiles = make(map[common.Address]precompileconfig.Config)
+	r.Predicaters = make(map[common.Address]precompileconfig.Predicater)
+	r.AccepterPrecompiles = make(map[common.Address]precompileconfig.Accepter)
 
-	// Initialize the stateful precompiles that should be enabled at [blockTimestamp].
-	rules.ActivePrecompiles = make(map[common.Address]precompileconfig.Config)
-	rules.Predicaters = make(map[common.Address]precompileconfig.Predicater)
-	rules.AccepterPrecompiles = make(map[common.Address]precompileconfig.Accepter)
-	for _, module := range modules.RegisteredModules() {
-		if config := c.getActivePrecompileConfig(module.Address, timestamp); config != nil && !config.IsDisabled() {
-			rules.ActivePrecompiles[module.Address] = config
-			if predicater, ok := config.(precompileconfig.Predicater); ok {
-				rules.Predicaters[module.Address] = predicater
-			}
-			if precompileAccepter, ok := config.(precompileconfig.Accepter); ok {
-				rules.AccepterPrecompiles[module.Address] = precompileAccepter
-			}
+	for _, addr := range c.allPrecompileAddresses() {
+		cfg := c.getActivePrecompileConfig(addr, timestamp)
+		if cfg == nil || cfg.IsDisabled() {
+			continue
+		}
+		r.ActivePrecompiles[addr] = cfg
+
+		if p, ok := cfg.(precompileconfig.Predicater); ok {
+			r.Predicaters[addr] = p
+		}
+		if a, ok := cfg.(precompileconfig.Accepter); ok {
+			r.AccepterPrecompiles[addr] = a
 		}
 	}
 
-	return rules
+	return r
 }
 
 // GetFeeConfig returns the original FeeConfig contained in the genesis ChainConfig.

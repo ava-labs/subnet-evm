@@ -92,6 +92,20 @@ func (m *MockConfig) EXPECT() *MockConfigMockRecorder {
 	return m.recorder
 }
 
+// Address mocks base method.
+func (m *MockConfig) Address() common.Address {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Address")
+	ret0, _ := ret[0].(common.Address)
+	return ret0
+}
+
+// Address indicates an expected call of Address.
+func (mr *MockConfigMockRecorder) Address() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Address", reflect.TypeOf((*MockConfig)(nil).Address))
+}
+
 // Equal mocks base method.
 func (m *MockConfig) Equal(arg0 Config) bool {
 	m.ctrl.T.Helper()

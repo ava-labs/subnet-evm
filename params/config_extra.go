@@ -31,26 +31,6 @@ type AvalancheContext struct {
 	SnowCtx *snow.Context
 }
 
-// UnmarshalJSON parses the JSON-encoded data and stores the result in the
-// object pointed to by c.
-// This is a custom unmarshaler to handle the Precompiles field.
-// Precompiles was presented as an inline object in the JSON.
-// This custom unmarshaler ensures backwards compatibility with the old format.
-func (c *ChainConfig) UnmarshalJSON(data []byte) error {
-	// Alias ChainConfig to avoid recursion
-	type _ChainConfig ChainConfig
-	tmp := _ChainConfig{}
-	if err := json.Unmarshal(data, &tmp); err != nil {
-		return err
-	}
-
-	// At this point we have populated all fields except PrecompileUpgrade
-	*c = ChainConfig(tmp)
-
-	// Unmarshal inlined PrecompileUpgrade
-	return json.Unmarshal(data, &c.GenesisPrecompiles)
-}
-
 // MarshalJSON returns the JSON encoding of c.
 // This is a custom marshaler to handle the Precompiles field.
 func (c ChainConfig) MarshalJSON() ([]byte, error) {
@@ -117,25 +97,6 @@ func (cu ChainConfigWithUpgradesJSON) MarshalJSON() ([]byte, error) {
 	mergedJSON = append(mergedJSON, ',')
 	mergedJSON = append(mergedJSON, upgradeJSON[1:]...)
 	return mergedJSON, nil
-}
-
-func (cu *ChainConfigWithUpgradesJSON) UnmarshalJSON(input []byte) error {
-	var cc ChainConfig
-	if err := json.Unmarshal(input, &cc); err != nil {
-		return err
-	}
-
-	type upgrades struct {
-		UpgradeConfig UpgradeConfig `json:"upgrades"`
-	}
-
-	var u upgrades
-	if err := json.Unmarshal(input, &u); err != nil {
-		return err
-	}
-	cu.ChainConfig = cc
-	cu.UpgradeConfig = u.UpgradeConfig
-	return nil
 }
 
 // ToWithUpgradesJSON converts the ChainConfig to ChainConfigWithUpgradesJSON with upgrades explicitly displayed.
