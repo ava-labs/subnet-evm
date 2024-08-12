@@ -16,6 +16,7 @@ SUBNET_EVM_PATH=$( cd "$( dirname "${BASH_SOURCE[0]}" )"; cd ../.. && pwd )
 source "$SUBNET_EVM_PATH"/scripts/versions.sh
 
 # Set the vm id if provided
+VM_ID="meq3bv7qCMZZ69L8xZRLwyKnWp6chRwyscq8VPtHWignRQVVF" # echo subnet
 if [[ $# -eq 1 ]]; then
     VM_ID=$1
 fi
