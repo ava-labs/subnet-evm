@@ -3,6 +3,7 @@
 # ============= Setting up base Stage ================
 # Set required AVALANCHE_VERSION parameter in build image script
 ARG AVALANCHE_VERSION
+ARG VM_ID
 
 # ============= Compilation Stage ================
 FROM golang:1.21.12-bullseye AS builder
@@ -32,4 +33,4 @@ RUN export SUBNET_EVM_COMMIT=$SUBNET_EVM_COMMIT && export CURRENT_BRANCH=$CURREN
 FROM avaplatform/avalanchego:$AVALANCHE_VERSION AS builtImage
 
 # Copy the evm binary into the correct location in the container
-COPY --from=builder /build/build/subnet-evm /avalanchego/build/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
+COPY --from=builder /build/build/subnet-evm /avalanchego/build/plugins/$VM_ID
