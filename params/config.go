@@ -57,7 +57,7 @@ var (
 	DynamicFeeExtraDataSize        = 80
 	RollupWindow            uint64 = 10
 
-	DefaultGenesisTime = time.Date(2020, time.December, 5, 5, 0, 0, 0, time.UTC)
+	DefaultGenesisTime = upgrade.InitiallyActiveTime
 
 	DefaultFeeConfig = commontype.FeeConfig{
 		GasLimit:        big.NewInt(8_000_000),
