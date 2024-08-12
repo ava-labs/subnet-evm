@@ -91,7 +91,7 @@ var (
 		ConstantinopleBlock: big.NewInt(0),
 		PetersburgBlock:     big.NewInt(0),
 		IstanbulBlock:       big.NewInt(0),
-		MuirGlacierBlock:    big.NewInt(0),
+		MuirGlacierBlock:    big.NewInt(0),                                  // XXX: Should this include Cancun time?
 		NetworkUpgrades:     getDefaultNetworkUpgrades(constants.MainnetID), // This can be changed to correct network (local, test) via VM.
 		GenesisPrecompiles:  Precompiles{},
 	}
@@ -133,7 +133,7 @@ var (
 		NetworkUpgrades: NetworkUpgrades{
 			SubnetEVMTimestamp: utils.TimeToNewUint64(InactiveUpgradeTime),
 			DurangoTimestamp:   utils.TimeToNewUint64(InactiveUpgradeTime),
-			EUpgradeTimestamp:  utils.TimeToNewUint64(InactiveUpgradeTime),
+			EtnaTimestamp:      utils.TimeToNewUint64(InactiveUpgradeTime),
 		},
 		GenesisPrecompiles: Precompiles{},
 		UpgradeConfig:      UpgradeConfig{},
@@ -156,7 +156,7 @@ var (
 		NetworkUpgrades: NetworkUpgrades{
 			SubnetEVMTimestamp: utils.NewUint64(0),
 			DurangoTimestamp:   utils.TimeToNewUint64(InactiveUpgradeTime),
-			EUpgradeTimestamp:  utils.TimeToNewUint64(InactiveUpgradeTime),
+			EtnaTimestamp:      utils.TimeToNewUint64(InactiveUpgradeTime),
 		},
 		GenesisPrecompiles: Precompiles{},
 		UpgradeConfig:      UpgradeConfig{},
@@ -179,13 +179,13 @@ var (
 		NetworkUpgrades: NetworkUpgrades{
 			SubnetEVMTimestamp: utils.NewUint64(0),
 			DurangoTimestamp:   utils.NewUint64(0),
-			EUpgradeTimestamp:  utils.TimeToNewUint64(InactiveUpgradeTime),
+			EtnaTimestamp:      utils.TimeToNewUint64(InactiveUpgradeTime),
 		},
 		GenesisPrecompiles: Precompiles{},
 		UpgradeConfig:      UpgradeConfig{},
 	}
 
-	TestEUpgradeChainConfig = &ChainConfig{
+	TestEtnaChainConfig = &ChainConfig{
 		AvalancheContext:    AvalancheContext{utils.TestSnowContext()},
 		ChainID:             big.NewInt(1),
 		FeeConfig:           DefaultFeeConfig,
@@ -202,7 +202,7 @@ var (
 		NetworkUpgrades: NetworkUpgrades{
 			SubnetEVMTimestamp: utils.NewUint64(0),
 			DurangoTimestamp:   utils.NewUint64(0),
-			EUpgradeTimestamp:  utils.NewUint64(0),
+			EtnaTimestamp:      utils.NewUint64(0),
 		},
 		GenesisPrecompiles: Precompiles{},
 		UpgradeConfig:      UpgradeConfig{},
@@ -272,7 +272,8 @@ func (c *ChainConfig) Description() string {
 	}
 
 	banner += "Hard forks (timestamp based):\n"
-	banner += fmt.Sprintf(" - Cancun Timestamp:              @%-10v (https://github.com/ava-labs/avalanchego/releases/tag/v1.12.0)\n", ptrToString(c.CancunTime))
+	banner += fmt.Sprintf(" - Cancun Timestamp:              @%-10v (https://github.com/ava-labs/avalanchego/releases/tag/v1.12.0)\n", ptrToString(c.CancunTime)) /// XXX: should we link the ethereum execution spec here instead
+	banner += fmt.Sprintf(" - Verkle Timestamp:              @%-10v", ptrToString(c.VerkleTime))
 
 	banner += "Avalanche Upgrades (timestamp based):\n"
 	banner += c.NetworkUpgrades.Description()
@@ -691,6 +692,7 @@ type EthRules struct {
 	IsHomestead, IsEIP150, IsEIP155, IsEIP158               bool
 	IsByzantium, IsConstantinople, IsPetersburg, IsIstanbul bool
 	IsCancun                                                bool
+	IsVerkle                                                bool
 }
 
 // Rules wraps ChainConfig and is merely syntactic sugar or can be used for functions
@@ -744,6 +746,7 @@ func (c *ChainConfig) rules(num *big.Int, timestamp uint64) Rules {
 			IsPetersburg:     c.IsPetersburg(num),
 			IsIstanbul:       c.IsIstanbul(num),
 			IsCancun:         c.IsCancun(num, timestamp),
+			IsVerkle:         c.IsVerkle(num, timestamp),
 		},
 	}
 }

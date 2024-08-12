@@ -179,11 +179,11 @@ func TestIndexTransactions(t *testing.T) {
 	indexTransactionsForTesting(chainDb, 0, 5, nil, nil)
 	verify(0, 11, true, 0)
 
-	UnindexTransactions(chainDb, 0, 5, nil)
+	UnindexTransactions(chainDb, 0, 5, nil, false)
 	verify(5, 11, true, 5)
 	verify(0, 5, false, 5)
 
-	UnindexTransactions(chainDb, 5, 11, nil)
+	UnindexTransactions(chainDb, 5, 11, nil, false)
 	verify(0, 11, false, 11)
 
 	// Testing corner cases

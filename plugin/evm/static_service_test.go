@@ -10,6 +10,7 @@ import (
 
 	"github.com/ava-labs/avalanchego/utils/formatting"
 	"github.com/ava-labs/subnet-evm/core"
+	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/stretchr/testify/assert"
 )
@@ -25,7 +26,7 @@ func TestBuildGenesis(t *testing.T) {
 	}
 
 	// add test allocs
-	testAlloc := core.GenesisAlloc{
+	testAlloc := types.GenesisAlloc{
 		testEthAddrs[0]: core.GenesisAccount{Balance: genesisBalance},
 		testEthAddrs[1]: core.GenesisAccount{Balance: genesisBalance},
 	}
@@ -63,7 +64,7 @@ func TestDecodeGenesis(t *testing.T) {
 	}
 
 	// add test allocs
-	testAlloc := core.GenesisAlloc{
+	testAlloc := types.GenesisAlloc{
 		testEthAddrs[0]: core.GenesisAccount{Balance: genesisBalance},
 		testEthAddrs[1]: core.GenesisAccount{Balance: genesisBalance},
 	}

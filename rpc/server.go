@@ -62,6 +62,7 @@ type Server struct {
 	run                atomic.Bool
 	batchItemLimit     int
 	batchResponseLimit int
+	httpBodyLimit      int
 }
 
 // NewServer creates a new server instance with no registered handlers.
@@ -73,6 +74,7 @@ func NewServer(maximumDuration time.Duration) *Server {
 	server := &Server{
 		idgen:           randomIDGenerator(),
 		codecs:          make(map[ServerCodec]struct{}),
+		httpBodyLimit:   defaultBodyLimit,
 		maximumDuration: maximumDuration,
 	}
 	server.run.Store(true)
@@ -92,6 +94,13 @@ func NewServer(maximumDuration time.Duration) *Server {
 func (s *Server) SetBatchLimits(itemLimit, maxResponseSize int) {
 	s.batchItemLimit = itemLimit
 	s.batchResponseLimit = maxResponseSize
+}
+
+// SetHTTPBodyLimit sets the size limit for HTTP requests.
+//
+// This method should be called before processing any requests via ServeHTTP.
+func (s *Server) SetHTTPBodyLimit(limit int) {
+	s.httpBodyLimit = limit
 }
 
 // RegisterName creates a service for the given receiver type under the given name. When no

@@ -107,8 +107,8 @@ var (
 	genesisJSONPreSubnetEVM = genesisJSON(params.TestPreSubnetEVMChainConfig)
 	genesisJSONSubnetEVM    = genesisJSON(params.TestSubnetEVMChainConfig)
 	genesisJSONDurango      = genesisJSON(params.TestDurangoChainConfig)
-	genesisJSONEUpgrade     = genesisJSON(params.TestEUpgradeChainConfig)
-	genesisJSONLatest       = genesisJSONEUpgrade
+	genesisJSONEtna         = genesisJSON(params.TestEtnaChainConfig)
+	genesisJSONLatest       = genesisJSONEtna
 )
 
 func init() {
@@ -2709,7 +2709,7 @@ func TestAllowFeeRecipientEnabled(t *testing.T) {
 	}
 
 	balance := blkState.GetBalance(etherBase)
-	require.Equal(t, 1, balance.Cmp(common.Big0))
+	require.Equal(t, 1, balance.Cmp(common.U2560))
 }
 
 func TestRewardManagerPrecompileSetRewardAddress(t *testing.T) {
@@ -2799,7 +2799,7 @@ func TestRewardManagerPrecompileSetRewardAddress(t *testing.T) {
 	require.NoError(t, err)
 
 	balance := blkState.GetBalance(testAddr)
-	require.Equal(t, 1, balance.Cmp(common.Big0))
+	require.Equal(t, 1, balance.Cmp(common.U2560))
 
 	// Test Case: Disable reward manager
 	// This should revert back to enabling fee recipients
@@ -2937,7 +2937,7 @@ func TestRewardManagerPrecompileAllowFeeRecipients(t *testing.T) {
 	require.NoError(t, err)
 
 	balance := blkState.GetBalance(etherBase)
-	require.Equal(t, 1, balance.Cmp(common.Big0))
+	require.Equal(t, 1, balance.Cmp(common.U2560))
 
 	// Test Case: Disable reward manager
 	// This should revert back to burning fees
@@ -3226,20 +3226,20 @@ func TestParentBeaconRootBlock(t *testing.T) {
 		},
 		{
 			name:          "non-empty parent beacon root in E-Upgrade (Cancun)",
-			genesisJSON:   genesisJSONEUpgrade,
+			genesisJSON:   genesisJSONEtna,
 			beaconRoot:    &common.Hash{0x01},
 			expectedError: true,
 			errString:     "expected empty hash",
 		},
 		{
 			name:          "empty parent beacon root in E-Upgrade (Cancun)",
-			genesisJSON:   genesisJSONEUpgrade,
+			genesisJSON:   genesisJSONEtna,
 			beaconRoot:    &common.Hash{},
 			expectedError: false,
 		},
 		{
 			name:          "nil parent beacon root in E-Upgrade (Cancun)",
-			genesisJSON:   genesisJSONEUpgrade,
+			genesisJSON:   genesisJSONEtna,
 			beaconRoot:    nil,
 			expectedError: true,
 			errString:     "header is missing parentBeaconRoot",

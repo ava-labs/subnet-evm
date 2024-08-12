@@ -86,7 +86,7 @@ func TestMakeTopics(t *testing.T) {
 				{big.NewInt(math.MinInt64)},
 			}},
 			[][]common.Hash{
-				{MaxHash},
+				{common.MaxHash},
 				{common.HexToHash("ffffffffffffffffffffffffffffffffffffffffffffffff8000000000000000")},
 			},
 			false,
