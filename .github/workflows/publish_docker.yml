@@ -27,4 +27,4 @@ jobs:
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
           DOCKER_PASS: ${{ secrets.DOCKER_PASS }}
           DOCKER_REPO: "avaplatform/subnet-evm"
-        run: .github/workflows/publish_docker_image.sh {{ $inputs.vm_id }}
+        run: .github/workflows/publish_docker_image.sh ${{ inputs.vm_id }}
