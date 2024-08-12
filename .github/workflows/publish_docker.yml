@@ -8,6 +8,14 @@ on:
     branches:
       - master
 
+  workflow_call:
+    inputs:
+      vm_id:
+        description: 'The ID of the VM (binary dst in Docker image)'
+        default: ''
+        required: false
+        type: string
+
 jobs:
   publish_docker_image:
     name: Publish Docker Image
@@ -19,4 +27,4 @@ jobs:
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
           DOCKER_PASS: ${{ secrets.DOCKER_PASS }}
           DOCKER_REPO: "avaplatform/subnet-evm"
-        run: .github/workflows/publish_docker_image.sh
+        run: .github/workflows/publish_docker_image.sh {{ $inputs.vm_id }}
