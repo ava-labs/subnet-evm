@@ -66,8 +66,8 @@ type AvalancheContext struct {
 	SnowCtx *snow.Context
 }
 
-// SetEVMUpgrades sets the mapped upgrades  Avalanche > EVM upgrades) for the chain config.
-func (c *ChainConfig) SetEVMUpgrades(avalancheUpgrades NetworkUpgrades) {
+// SetEthUpgrades sets the mapped upgrades  Avalanche > EVM upgrades) for the chain config.
+func (c *ChainConfig) SetEthUpgrades(avalancheUpgrades NetworkUpgrades) {
 	if avalancheUpgrades.EtnaTimestamp != nil {
 		c.CancunTime = utils.NewUint64(*avalancheUpgrades.EtnaTimestamp)
 	}
