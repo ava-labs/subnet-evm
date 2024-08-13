@@ -2,11 +2,9 @@ package log
 
 import (
 	"context"
-	"fmt"
 	"math"
 	"os"
 	"runtime"
-	"strings"
 	"time"
 
 	"golang.org/x/exp/slog"
@@ -37,27 +35,6 @@ const (
 	LvlInfo  = LevelInfo
 	LvlDebug = LevelDebug
 )
-
-// LvlFromString returns the appropriate Lvl from a string name.
-// Useful for parsing command line args and configuration files.
-func LvlFromString(lvlString string) (slog.Level, error) {
-	switch strings.ToLower(lvlString) {
-	case "trace", "trce":
-		return LevelTrace, nil
-	case "debug", "dbug":
-		return LevelDebug, nil
-	case "info":
-		return LevelInfo, nil
-	case "warn":
-		return LevelWarn, nil
-	case "error", "eror":
-		return LevelError, nil
-	case "crit":
-		return LevelCrit, nil
-	default:
-		return LvlDebug, fmt.Errorf("unknown level: %v", lvlString)
-	}
-}
 
 // convert from old Geth verbosity level constants
 // to levels defined by slog
@@ -94,13 +71,13 @@ func LevelAlignedString(l slog.Level) string {
 	case slog.LevelDebug:
 		return "DEBUG"
 	case slog.LevelInfo:
-		return "INFO"
+		return "INFO "
 	case slog.LevelWarn:
-		return "WARN"
+		return "WARN "
 	case slog.LevelError:
 		return "ERROR"
 	case LevelCrit:
-		return "CRIT"
+		return "CRIT "
 	default:
 		return "unknown level"
 	}

@@ -1,4 +1,3 @@
-
 package log
 
 import (
@@ -55,11 +54,6 @@ func (h *TerminalHandler) format(buf []byte, r slog.Record, usecolor bool) []byt
 	}
 	b := bytes.NewBuffer(buf)
 
-	// Note the timestamp is moved before the log level compared to upstream
-	b.WriteString("[")
-	writeTimeTermFormat(b, r.Time)
-	b.WriteString("] ")
-
 	if color != "" { // Start color
 		b.WriteString(color)
 		b.WriteString(LevelAlignedString(r.Level))
@@ -67,14 +61,9 @@ func (h *TerminalHandler) format(buf []byte, r slog.Record, usecolor bool) []byt
 	} else {
 		b.WriteString(LevelAlignedString(r.Level))
 	}
-
-	b.WriteByte(' ')
-
-	// Prefix is added compared to upstream
-	if h.Prefix != nil {
-		b.WriteString(h.Prefix(r))
-	}
-
+	b.WriteString("[")
+	writeTimeTermFormat(b, r.Time)
+	b.WriteString("] ")
 	b.WriteString(msg)
 
 	// try to justify the log output for short messages
@@ -93,7 +82,7 @@ func (h *TerminalHandler) formatAttributes(buf *bytes.Buffer, r slog.Record, col
 	// tmp is a temporary buffer we use, until bytes.Buffer.AvailableBuffer() (1.21)
 	// can be used.
 	var tmp = make([]byte, 40)
-	writeAttr := func(attr slog.Attr, _, last bool) {
+	writeAttr := func(attr slog.Attr, first, last bool) {
 		buf.WriteByte(' ')
 
 		if color != "" {

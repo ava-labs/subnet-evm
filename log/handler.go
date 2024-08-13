@@ -39,7 +39,7 @@ func (h *discardHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 type TerminalHandler struct {
 	mu       sync.Mutex
 	wr       io.Writer
-	lvl      slog.Leveler
+	lvl      slog.Level
 	useColor bool
 	attrs    []slog.Attr
 	// fieldPadding is a map with maximum field value lengths seen until now
@@ -47,9 +47,6 @@ type TerminalHandler struct {
 	fieldPadding map[string]int
 
 	buf []byte
-
-	// Prefix returns a string that is output before each log message.
-	Prefix func(r slog.Record) string
 }
 
 // NewTerminalHandler returns a handler which formats log records at all levels optimized for human readability on
@@ -67,7 +64,7 @@ func NewTerminalHandler(wr io.Writer, useColor bool) *TerminalHandler {
 
 // NewTerminalHandlerWithLevel returns the same handler as NewTerminalHandler but only outputs
 // records which are less than or equal to the specified verbosity level.
-func NewTerminalHandlerWithLevel(wr io.Writer, lvl slog.Leveler, useColor bool) *TerminalHandler {
+func NewTerminalHandlerWithLevel(wr io.Writer, lvl slog.Level, useColor bool) *TerminalHandler {
 	return &TerminalHandler{
 		wr:           wr,
 		lvl:          lvl,
@@ -86,7 +83,7 @@ func (h *TerminalHandler) Handle(_ context.Context, r slog.Record) error {
 }
 
 func (h *TerminalHandler) Enabled(_ context.Context, level slog.Level) bool {
-	return level >= h.lvl.Level()
+	return level >= h.lvl
 }
 
 func (h *TerminalHandler) WithGroup(name string) slog.Handler {
@@ -110,17 +107,16 @@ func (t *TerminalHandler) ResetFieldPadding() {
 	t.mu.Unlock()
 }
 
+type leveler struct{ minLevel slog.Level }
+
+func (l *leveler) Level() slog.Level {
+	return l.minLevel
+}
+
 // JSONHandler returns a handler which prints records in JSON format.
 func JSONHandler(wr io.Writer) slog.Handler {
 	return slog.NewJSONHandler(wr, &slog.HandlerOptions{
 		ReplaceAttr: builtinReplaceJSON,
-	})
-}
-
-func JSONHandlerWithLevel(wr io.Writer, level slog.Leveler) slog.Handler {
-	return slog.NewJSONHandler(wr, &slog.HandlerOptions{
-		ReplaceAttr: builtinReplaceJSON,
-		Level:       level,
 	})
 }
 
@@ -136,10 +132,10 @@ func LogfmtHandler(wr io.Writer) slog.Handler {
 
 // LogfmtHandlerWithLevel returns the same handler as LogfmtHandler but it only outputs
 // records which are less than or equal to the specified verbosity level.
-func LogfmtHandlerWithLevel(wr io.Writer, level slog.Leveler) slog.Handler {
+func LogfmtHandlerWithLevel(wr io.Writer, level slog.Level) slog.Handler {
 	return slog.NewTextHandler(wr, &slog.HandlerOptions{
 		ReplaceAttr: builtinReplaceLogfmt,
-		Level:       level,
+		Level:       &leveler{level},
 	})
 }
 
@@ -156,14 +152,14 @@ func builtinReplace(_ []string, attr slog.Attr, logfmt bool) slog.Attr {
 	case slog.TimeKey:
 		if attr.Value.Kind() == slog.KindTime {
 			if logfmt {
-				return slog.String("timestamp", attr.Value.Time().Format(timeFormat))
+				return slog.String("t", attr.Value.Time().Format(timeFormat))
 			} else {
-				return slog.Attr{Key: "timestamp", Value: attr.Value}
+				return slog.Attr{Key: "t", Value: attr.Value}
 			}
 		}
 	case slog.LevelKey:
 		if l, ok := attr.Value.Any().(slog.Level); ok {
-			attr = slog.Any("level", LevelString(l))
+			attr = slog.Any("lvl", LevelString(l))
 			return attr
 		}
 	}
