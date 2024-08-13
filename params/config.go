@@ -25,11 +25,11 @@ import (
 
 	"github.com/ava-labs/avalanchego/upgrade"
 	"github.com/ava-labs/avalanchego/utils/constants"
-	"github.com/ava-labs/subnet-evm/commontype"
-	"github.com/ava-labs/subnet-evm/precompile/modules"
-	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
-	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/commontype"
+	"github.com/ethereum/go-ethereum/precompile/modules"
+	"github.com/ethereum/go-ethereum/precompile/precompileconfig"
+	"github.com/ethereum/go-ethereum/utils"
 )
 
 const maxJSONLen = 64 * 1024 * 1024 // 64MB

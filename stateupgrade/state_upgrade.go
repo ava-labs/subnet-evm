@@ -6,8 +6,8 @@ package stateupgrade
 import (
 	"math/big"
 
-	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/params"
 )
 
 // Configure applies the state upgrade to the state.

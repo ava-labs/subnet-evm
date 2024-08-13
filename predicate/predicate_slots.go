@@ -4,10 +4,10 @@
 package predicate
 
 import (
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/params"
+	"github.com/ethereum/go-ethereum/utils"
 )
 
 // PreparePredicateStorageSlots populates the the predicate storage slots of a transaction's access list

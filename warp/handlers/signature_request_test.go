@@ -12,10 +12,10 @@ import (
 	"github.com/ava-labs/avalanchego/utils/crypto/bls"
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
-	"github.com/ava-labs/subnet-evm/plugin/evm/message"
-	"github.com/ava-labs/subnet-evm/utils"
-	"github.com/ava-labs/subnet-evm/warp"
-	"github.com/ava-labs/subnet-evm/warp/warptest"
+	"github.com/ethereum/go-ethereum/plugin/evm/message"
+	"github.com/ethereum/go-ethereum/utils"
+	"github.com/ethereum/go-ethereum/warp"
+	"github.com/ethereum/go-ethereum/warp/warptest"
 	"github.com/stretchr/testify/require"
 )
 
