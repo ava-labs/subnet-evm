@@ -2,19 +2,18 @@ name: Publish Docker Image
 
 on:
   workflow_dispatch:
-  push:
-    tags:
-      - "*"
-    branches:
-      - master
-
-  workflow_call:
     inputs:
       vm_id:
         description: 'The ID of the VM (binary dst in Docker image)'
         default: ''
         required: false
         type: string
+
+  push:
+    tags:
+      - "*"
+    branches:
+      - master
 
 jobs:
   publish_docker_image:
