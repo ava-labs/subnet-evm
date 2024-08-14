@@ -935,7 +935,7 @@ func (bc *BlockChain) stopWithoutSaving() {
 	}
 
 	log.Info("Closing quit channel")
-	close(bc.quit) // XXX: Why is this closed before [scope] but it's opposite upstream?
+	close(bc.quit)
 	// Wait for accepted feed to process all remaining items
 	log.Info("Stopping Acceptor")
 	start := time.Now()

@@ -30,7 +30,7 @@ func upgradeAccount(account common.Address, upgrade params.StateUpgradeAccount, 
 	}
 
 	if upgrade.BalanceChange != nil {
-		balanceChange, _ := uint256.FromBig((*big.Int)(upgrade.BalanceChange)) // XXX: do we need to check overflow?
+		balanceChange, _ := uint256.FromBig((*big.Int)(upgrade.BalanceChange))
 		state.AddBalance(account, balanceChange)
 	}
 	if len(upgrade.Code) != 0 {

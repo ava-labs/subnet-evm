@@ -31,7 +31,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// XXX: These tests are moved from blockchain_test.go here.
 // Should we try to use the TestTxIndexer from upstream here instead
 // or move this test to a new file eg, blockchain_extra_test.go?
 func TestTransactionIndices(t *testing.T) {

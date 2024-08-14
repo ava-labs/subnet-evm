@@ -97,7 +97,6 @@ func NewBackend(alloc types.GenesisAlloc, options ...func(nodeConf *node.Config,
 	ethConf.AllowUnfinalizedQueries = true
 	ethConf.Miner.Etherbase = constants.BlackholeAddr
 	ethConf.Miner.AllowDuplicateBlocks = true
-	ethConf.GPO.MinPrice = new(big.Int).SetUint64(ethConf.TxPool.PriceLimit) // XXX: this constraint should be enforced
 	ethConf.TxPool.NoLocals = true
 
 	for _, option := range options {

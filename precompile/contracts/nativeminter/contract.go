@@ -118,7 +118,7 @@ func mintNativeCoin(accessibleState contract.AccessibleState, caller common.Addr
 		stateDB.CreateAccount(to)
 	}
 
-	amountU256, _ := uint256.FromBig(amount) // XXX: should we check overflow?
+	amountU256, _ := uint256.FromBig(amount)
 	stateDB.AddBalance(to, amountU256)
 	// Return an empty output and the remaining gas
 	return []byte{}, remainingGas, nil

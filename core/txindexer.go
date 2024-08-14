@@ -65,7 +65,7 @@ func newTxIndexer(limit uint64, chain *BlockChain) *txIndexer {
 	}
 	chain.wg.Add(1)
 	var (
-		headCh = make(chan ChainEvent, 1) // XXX: Buffered to avoid locking up the event feed
+		headCh = make(chan ChainEvent, 1)
 		sub    = chain.SubscribeChainAcceptedEvent(headCh)
 	)
 	go func() {

@@ -56,7 +56,7 @@ var (
 		ConstantinopleBlock: big.NewInt(0),
 		PetersburgBlock:     big.NewInt(0),
 		IstanbulBlock:       big.NewInt(0),
-		MuirGlacierBlock:    big.NewInt(0),                                  // XXX: Should this include Cancun time?
+		MuirGlacierBlock:    big.NewInt(0),
 		NetworkUpgrades:     getDefaultNetworkUpgrades(constants.MainnetID), // This can be changed to correct network (local, test) via VM.
 		GenesisPrecompiles:  Precompiles{},
 	}
@@ -236,7 +236,7 @@ func (c *ChainConfig) Description() string {
 	}
 
 	banner += "Hard forks (timestamp based):\n"
-	banner += fmt.Sprintf(" - Cancun Timestamp:              @%-10v (https://github.com/ava-labs/avalanchego/releases/tag/v1.12.0)\n", ptrToString(c.CancunTime)) /// XXX: should we link the ethereum execution spec here instead
+	banner += fmt.Sprintf(" - Cancun Timestamp:              @%-10v (https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/cancun.md)\n", ptrToString(c.CancunTime))
 	banner += fmt.Sprintf(" - Verkle Timestamp:              @%-10v", ptrToString(c.VerkleTime))
 
 	banner += "Avalanche Upgrades (timestamp based):\n"
