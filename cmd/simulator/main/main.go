@@ -11,9 +11,9 @@ import (
 
 	"github.com/ethereum/go-ethereum/cmd/simulator/config"
 	"github.com/ethereum/go-ethereum/cmd/simulator/load"
-	"github.com/ethereum/go-ethereum/log"
 	gethlog "github.com/ethereum/go-ethereum/log"
 	"github.com/spf13/pflag"
+	"golang.org/x/exp/slog"
 )
 
 func main() {
@@ -38,12 +38,14 @@ func main() {
 		os.Exit(0)
 	}
 
-	logLevel, err := log.LvlFromString(v.GetString(config.LogLevelKey))
-	if err != nil {
+	var logLevel slog.Level
+	if err := logLevel.UnmarshalText([]byte(v.GetString(config.LogLevelKey))); err != nil {
 		fmt.Printf("couldn't parse log level: %s\n", err)
 		os.Exit(1)
 	}
-	gethLogger := gethlog.NewLogger(log.NewTerminalHandlerWithLevel(os.Stderr, logLevel, true))
+
+	handler := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: logLevel})
+	gethLogger := gethlog.NewLogger(handler)
 	gethlog.SetDefault(gethLogger)
 
 	config, err := config.BuildConfig(v)
