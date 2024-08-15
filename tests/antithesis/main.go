@@ -134,6 +134,9 @@ func (w *workload) run(ctx context.Context) {
 		recipientEthAddress := crypto.PubkeyToAddress(w.key.PublicKey)
 		err := transferFunds(ctx, w.client, w.key, recipientEthAddress, txAmount)
 		if err != nil {
+			// Log the error and continue since the problem may be
+			// transient. require.NoError is only for errors that should stop
+			// execution.
 			log.Printf("failed to transfer funds: %s", err)
 		}
 
