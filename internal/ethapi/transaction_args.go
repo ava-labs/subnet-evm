@@ -216,11 +216,11 @@ func (args *TransactionArgs) setSubnetEVMFeeDefault(ctx context.Context, head *t
 		// Set the max fee to be 2 times larger than the previous block's base fee.
 		// The additional slack allows the tx to not become invalidated if the base
 		// fee is rising.
-		gasFeeCap := new(big.Int).Add(
-			(*big.Int)(args.MaxPriorityFeePerGas),
+		val := new(big.Int).Add(
+			args.MaxPriorityFeePerGas.ToInt(),
 			new(big.Int).Mul(head.BaseFee, big.NewInt(2)),
 		)
-		args.MaxFeePerGas = (*hexutil.Big)(gasFeeCap)
+		args.MaxFeePerGas = (*hexutil.Big)(val)
 	}
 	// Both EIP-1559 fee parameters are now set; sanity check them.
 	if args.MaxFeePerGas.ToInt().Cmp(args.MaxPriorityFeePerGas.ToInt()) < 0 {
