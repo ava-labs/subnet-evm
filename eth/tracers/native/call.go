@@ -35,7 +35,6 @@ import (
 	"github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ava-labs/subnet-evm/core/vm"
 	"github.com/ava-labs/subnet-evm/eth/tracers"
-	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/log"
@@ -91,7 +90,7 @@ func (f *callFrame) processOutput(output []byte, err error) {
 	if f.Type == vm.CREATE || f.Type == vm.CREATE2 {
 		f.To = nil
 	}
-	if !errors.Is(err, vmerrs.ErrExecutionReverted) || len(output) == 0 {
+	if !errors.Is(err, vm.ErrExecutionReverted) || len(output) == 0 {
 		return
 	}
 	f.Output = output

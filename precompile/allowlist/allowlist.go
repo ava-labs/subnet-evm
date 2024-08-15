@@ -10,8 +10,8 @@ import (
 	"math/big"
 
 	"github.com/ava-labs/subnet-evm/precompile/contract"
-	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/vm"
 )
 
 // AllowList is an abstraction that allows other precompiles to manage
@@ -97,7 +97,7 @@ func createAllowListRoleSetter(precompileAddr common.Address, role Role) contrac
 		}
 
 		if readOnly {
-			return nil, remainingGas, vmerrs.ErrWriteProtection
+			return nil, remainingGas, vm.ErrWriteProtection
 		}
 
 		stateDB := evm.GetStateDB()

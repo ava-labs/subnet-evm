@@ -39,9 +39,9 @@ import (
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
+	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/holiman/uint256"
 )
@@ -917,7 +917,7 @@ func TestOpMCopy(t *testing.T) {
 		} else {
 			var overflow bool
 			if memorySize, overflow = math.SafeMul(toWordSize(memSize), 32); overflow {
-				t.Error(vmerrs.ErrGasUintOverflow)
+				t.Error(vm.ErrGasUintOverflow)
 			}
 		}
 		// and the dynamic cost

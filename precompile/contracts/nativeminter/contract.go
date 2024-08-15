@@ -11,8 +11,8 @@ import (
 
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
-	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/holiman/uint256"
 )
 
@@ -82,7 +82,7 @@ func mintNativeCoin(accessibleState contract.AccessibleState, caller common.Addr
 	}
 
 	if readOnly {
-		return nil, remainingGas, vmerrs.ErrWriteProtection
+		return nil, remainingGas, vm.ErrWriteProtection
 	}
 
 	useStrictMode := !contract.IsDurangoActivated(accessibleState)

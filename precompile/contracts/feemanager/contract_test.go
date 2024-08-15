@@ -13,8 +13,8 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/precompile/testutils"
-	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
@@ -260,7 +260,7 @@ var (
 			},
 			SuppliedGas: SetFeeConfigGasCost,
 			ReadOnly:    true,
-			ExpectedErr: vmerrs.ErrWriteProtection.Error(),
+			ExpectedErr: vm.ErrWriteProtection.Error(),
 		},
 		"readOnly setFeeConfig with allow role fails": {
 			Caller:     allowlist.TestEnabledAddr,
@@ -273,7 +273,7 @@ var (
 			},
 			SuppliedGas: SetFeeConfigGasCost,
 			ReadOnly:    true,
-			ExpectedErr: vmerrs.ErrWriteProtection.Error(),
+			ExpectedErr: vm.ErrWriteProtection.Error(),
 		},
 		"readOnly setFeeConfig with admin role fails": {
 			Caller:     allowlist.TestAdminAddr,
@@ -286,7 +286,7 @@ var (
 			},
 			SuppliedGas: SetFeeConfigGasCost,
 			ReadOnly:    true,
-			ExpectedErr: vmerrs.ErrWriteProtection.Error(),
+			ExpectedErr: vm.ErrWriteProtection.Error(),
 		},
 		"insufficient gas setFeeConfig from admin": {
 			Caller:     allowlist.TestAdminAddr,
@@ -299,7 +299,7 @@ var (
 			},
 			SuppliedGas: SetFeeConfigGasCost - 1,
 			ReadOnly:    false,
-			ExpectedErr: vmerrs.ErrOutOfGas.Error(),
+			ExpectedErr: vm.ErrOutOfGas.Error(),
 		},
 		"set config with extra padded bytes should fail before Durango": {
 			Caller:     allowlist.TestEnabledAddr,

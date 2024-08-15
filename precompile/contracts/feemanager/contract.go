@@ -13,8 +13,8 @@ import (
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
-	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/vm"
 )
 
 const (
@@ -210,7 +210,7 @@ func setFeeConfig(accessibleState contract.AccessibleState, caller common.Addres
 	}
 
 	if readOnly {
-		return nil, remainingGas, vmerrs.ErrWriteProtection
+		return nil, remainingGas, vm.ErrWriteProtection
 	}
 
 	// do not use strict mode after Durango

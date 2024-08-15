@@ -33,11 +33,11 @@ import (
 	"math/big"
 
 	"github.com/ava-labs/subnet-evm/accounts/abi"
+	"github.com/ava-labs/subnet-evm/core/vm"
 	{{- if .Contract.AllowList}}
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	{{- end}}
 	"github.com/ava-labs/subnet-evm/precompile/contract"
-	"github.com/ava-labs/subnet-evm/vmerrs"
 
 	_ "embed"
 
@@ -67,7 +67,7 @@ var (
 	_ = abi.JSON
 	_ = errors.New
 	_ = big.NewInt
-	_ = vmerrs.ErrOutOfGas
+	_ = vm.ErrOutOfGas
 	_ = common.Big0
 )
 
@@ -230,7 +230,7 @@ func {{decapitalise .Normalized.Name}}(accessibleState contract.AccessibleState,
 
 	{{- if not .Original.IsConstant}}
 	if readOnly {
-		return nil, remainingGas, vmerrs.ErrWriteProtection
+		return nil, remainingGas, vm.ErrWriteProtection
 	}
  	{{- end}}
 
@@ -294,7 +294,7 @@ func {{decapitalise $contract.Type}}Fallback (accessibleState contract.Accessibl
 	}
 
 	if readOnly {
-		return nil, remainingGas, vmerrs.ErrWriteProtection
+		return nil, remainingGas, vm.ErrWriteProtection
 	}
 
 	{{- if $contract.AllowList}}
