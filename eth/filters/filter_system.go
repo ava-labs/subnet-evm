@@ -526,7 +526,7 @@ func (es *EventSystem) handleTxsEvent(filters filterIndex, ev core.NewTxsEvent) 
 	}
 }
 
-func (es *EventSystem) handleAcceptedTxsEvent(filters filterIndex, ev core.NewTxsEvent) {
+func (es *EventSystem) handleTxsAcceptedEvent(filters filterIndex, ev core.NewTxsEvent) {
 	for _, f := range filters[AcceptedTransactionsSubscription] {
 		f.txs <- ev.Txs
 	}
@@ -580,7 +580,7 @@ func (es *EventSystem) eventLoop() {
 		case ev := <-es.chainAcceptedCh:
 			es.handleChainAcceptedEvent(index, ev)
 		case ev := <-es.txsAcceptedCh:
-			es.handleAcceptedTxsEvent(index, ev)
+			es.handleTxsAcceptedEvent(index, ev)
 
 		case f := <-es.install:
 			if f.typ == MinedAndPendingLogsSubscription {
