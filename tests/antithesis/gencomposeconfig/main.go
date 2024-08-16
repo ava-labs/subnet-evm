@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/ava-labs/avalanchego/config"
 	"github.com/ava-labs/avalanchego/tests/antithesis"
 	"github.com/ava-labs/avalanchego/tests/fixture/tmpnet"
 
@@ -28,6 +29,11 @@ func main() {
 
 	// Create a network with a subnet-evm subnet
 	network := tmpnet.LocalNetworkOrPanic()
+	network.DefaultFlags = tmpnet.FlagsMap{
+		// Path to the plugin dir on subnet-evm node images that will be run by docker compose.
+		// TODO(marun) Ideally this gets set to the avalanchego default plugin dir.
+		config.PluginDirKey: "/avalanchego/build/plugins",
+	}
 	network.Subnets = []*tmpnet.Subnet{
 		utils.NewTmpnetSubnet("subnet-evm", genesisPath, utils.DefaultChainConfig, network.Nodes...),
 	}
