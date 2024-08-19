@@ -14,7 +14,8 @@ import (
 
 	"github.com/ava-labs/avalanchego/snow"
 	commonEng "github.com/ava-labs/avalanchego/snow/engine/common"
-	"github.com/ava-labs/avalanchego/version"
+	"github.com/ava-labs/avalanchego/snow/engine/enginetest"
+	"github.com/ava-labs/avalanchego/upgrade"
 	"github.com/ava-labs/avalanchego/vms/components/chain"
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/types"
@@ -32,12 +33,12 @@ import (
 )
 
 var (
-	DefaultEUpgradeTime = uint64(version.GetEUpgradeTime(testNetworkID).Unix())
+	DefaultEtnaTime = uint64(upgrade.GetConfig(testNetworkID).EtnaTime.Unix())
 )
 
 func TestVMUpgradeBytesPrecompile(t *testing.T) {
 	// Make a TxAllowListConfig upgrade at genesis and convert it to JSON to apply as upgradeBytes.
-	enableAllowListTimestamp := params.DefaultGenesisTime // enable at default genesis time
+	enableAllowListTimestamp := upgrade.InitiallyActiveTime // enable at initial time
 	upgradeConfig := &params.UpgradeConfig{
 		PrecompileUpgrades: []params.PrecompileUpgrade{
 			{
@@ -183,7 +184,7 @@ func TestNetworkUpgradesOverriden(t *testing.T) {
 
 	vm := &VM{}
 	ctx, dbManager, genesisBytes, issuer, _ := setupGenesis(t, string(genesisBytes))
-	appSender := &commonEng.SenderTest{T: t}
+	appSender := &enginetest.Sender{T: t}
 	appSender.CantSendAppGossip = true
 	appSender.SendAppGossipF = func(context.Context, commonEng.SendConfig, []byte) error { return nil }
 	err = vm.Initialize(
@@ -212,7 +213,7 @@ func TestNetworkUpgradesOverriden(t *testing.T) {
 	require.False(t, vm.chainConfig.IsSubnetEVM(0))
 	require.True(t, vm.chainConfig.IsSubnetEVM(2))
 	require.False(t, vm.chainConfig.IsDurango(0))
-	require.False(t, vm.chainConfig.IsDurango(uint64(version.DefaultUpgradeTime.Unix())))
+	require.False(t, vm.chainConfig.IsDurango(uint64(upgrade.InitiallyActiveTime.Unix())))
 	require.True(t, vm.chainConfig.IsDurango(1607144402))
 }
 
@@ -256,7 +257,7 @@ func TestVMStateUpgrade(t *testing.T) {
 		Code:          upgradedCode,
 	}
 
-	upgradeTimestamp := params.DefaultGenesisTime.Add(10 * time.Hour)
+	upgradeTimestamp := upgrade.InitiallyActiveTime.Add(10 * time.Hour)
 	upgradeBytesJSON := fmt.Sprintf(
 		`{
 			"stateUpgrades": [
@@ -334,19 +335,19 @@ func TestVMEupgradeActivatesCancun(t *testing.T) {
 		check       func(*testing.T, *VM) // function to check the VM state
 	}{
 		{
-			name:        "EUpgrade activates Cancun",
-			genesisJSON: genesisJSONEUpgrade,
+			name:        "Etna activates Cancun",
+			genesisJSON: genesisJSONEtna,
 			check: func(t *testing.T, vm *VM) {
-				require.True(t, vm.chainConfig.IsCancun(common.Big0, DefaultEUpgradeTime))
+				require.True(t, vm.chainConfig.IsCancun(common.Big0, DefaultEtnaTime))
 			},
 		},
 		{
-			name:        "Later EUpgrade activates Cancun",
+			name:        "Later Etna activates Cancun",
 			genesisJSON: genesisJSONDurango,
 			upgradeJSON: func() string {
 				upgrade := &params.UpgradeConfig{
 					NetworkUpgradeOverrides: &params.NetworkUpgrades{
-						EUpgradeTimestamp: utils.NewUint64(DefaultEUpgradeTime + 2),
+						EtnaTimestamp: utils.NewUint64(DefaultEtnaTime + 2),
 					},
 				}
 				b, err := json.Marshal(upgrade)
@@ -354,17 +355,17 @@ func TestVMEupgradeActivatesCancun(t *testing.T) {
 				return string(b)
 			}(),
 			check: func(t *testing.T, vm *VM) {
-				require.False(t, vm.chainConfig.IsCancun(common.Big0, DefaultEUpgradeTime))
-				require.True(t, vm.chainConfig.IsCancun(common.Big0, DefaultEUpgradeTime+2))
+				require.False(t, vm.chainConfig.IsCancun(common.Big0, DefaultEtnaTime))
+				require.True(t, vm.chainConfig.IsCancun(common.Big0, DefaultEtnaTime+2))
 			},
 		},
 		{
-			name:        "Changed EUpgrade changes Cancun",
-			genesisJSON: genesisJSONEUpgrade,
+			name:        "Changed Etna changes Cancun",
+			genesisJSON: genesisJSONEtna,
 			upgradeJSON: func() string {
 				upgrade := &params.UpgradeConfig{
 					NetworkUpgradeOverrides: &params.NetworkUpgrades{
-						EUpgradeTimestamp: utils.NewUint64(DefaultEUpgradeTime + 2),
+						EtnaTimestamp: utils.NewUint64(DefaultEtnaTime + 2),
 					},
 				}
 				b, err := json.Marshal(upgrade)
@@ -372,8 +373,8 @@ func TestVMEupgradeActivatesCancun(t *testing.T) {
 				return string(b)
 			}(),
 			check: func(t *testing.T, vm *VM) {
-				require.False(t, vm.chainConfig.IsCancun(common.Big0, DefaultEUpgradeTime))
-				require.True(t, vm.chainConfig.IsCancun(common.Big0, DefaultEUpgradeTime+2))
+				require.False(t, vm.chainConfig.IsCancun(common.Big0, DefaultEtnaTime))
+				require.True(t, vm.chainConfig.IsCancun(common.Big0, DefaultEtnaTime+2))
 			},
 		},
 	}

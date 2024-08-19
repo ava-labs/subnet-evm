@@ -18,7 +18,9 @@ import (
 	"github.com/ava-labs/avalanchego/proto/pb/sdk"
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/avalanchego/snow/engine/common"
+	"github.com/ava-labs/avalanchego/snow/engine/enginetest"
 	"github.com/ava-labs/avalanchego/snow/validators"
+	"github.com/ava-labs/avalanchego/snow/validators/validatorstest"
 	agoUtils "github.com/ava-labs/avalanchego/utils"
 	"github.com/ava-labs/avalanchego/utils/logging"
 	"github.com/ava-labs/avalanchego/utils/set"
@@ -35,10 +37,10 @@ func TestEthTxGossip(t *testing.T) {
 	require := require.New(t)
 	ctx := context.Background()
 	snowCtx := utils.TestSnowContext()
-	validatorState := &validators.TestState{}
+	validatorState := &validatorstest.State{}
 	snowCtx.ValidatorState = validatorState
 
-	responseSender := &common.FakeSender{
+	responseSender := &enginetest.SenderStub{
 		SentAppResponse: make(chan []byte, 1),
 	}
 	vm := &VM{
@@ -54,7 +56,7 @@ func TestEthTxGossip(t *testing.T) {
 		nil,
 		make(chan common.Message),
 		nil,
-		&common.SenderTest{},
+		&enginetest.Sender{},
 	))
 	require.NoError(vm.SetState(ctx, snow.NormalOp))
 
@@ -63,13 +65,13 @@ func TestEthTxGossip(t *testing.T) {
 	}()
 
 	// sender for the peer requesting gossip from [vm]
-	peerSender := &common.FakeSender{
+	peerSender := &enginetest.SenderStub{
 		SentAppRequest: make(chan []byte, 1),
 	}
 
 	network, err := p2p.NewNetwork(logging.NoLog{}, peerSender, prometheus.NewRegistry(), "")
 	require.NoError(err)
-	client := network.NewClient(ethTxGossipProtocol)
+	client := network.NewClient(p2p.TxGossipHandlerID)
 
 	// we only accept gossip requests from validators
 	requestingNodeID := ids.GenerateTestNodeID()
@@ -153,7 +155,7 @@ func TestEthTxPushGossipOutbound(t *testing.T) {
 	require := require.New(t)
 	ctx := context.Background()
 	snowCtx := utils.TestSnowContext()
-	snowCtx.ValidatorState = &validators.TestState{
+	snowCtx.ValidatorState = &validatorstest.State{
 		GetCurrentHeightF: func(context.Context) (uint64, error) {
 			return 0, nil
 		},
@@ -161,7 +163,7 @@ func TestEthTxPushGossipOutbound(t *testing.T) {
 			return nil, nil
 		},
 	}
-	sender := &common.FakeSender{
+	sender := &enginetest.SenderStub{
 		SentAppGossip: make(chan []byte, 1),
 	}
 
@@ -201,7 +203,7 @@ func TestEthTxPushGossipOutbound(t *testing.T) {
 
 	// we should get a message that has the protocol prefix and the gossip
 	// message
-	require.Equal(byte(ethTxGossipProtocol), sent[0])
+	require.Equal(byte(p2p.TxGossipHandlerID), sent[0])
 	require.NoError(proto.Unmarshal(sent[1:], got))
 
 	marshaller := GossipEthTxMarshaller{}
@@ -217,7 +219,7 @@ func TestEthTxPushGossipInbound(t *testing.T) {
 	ctx := context.Background()
 	snowCtx := utils.TestSnowContext()
 
-	sender := &common.SenderTest{}
+	sender := &enginetest.Sender{}
 	vm := &VM{
 		ethTxPullGossiper: gossip.NoOpGossiper{},
 	}
@@ -259,7 +261,7 @@ func TestEthTxPushGossipInbound(t *testing.T) {
 	inboundGossipBytes, err := proto.Marshal(inboundGossip)
 	require.NoError(err)
 
-	inboundGossipMsg := append(binary.AppendUvarint(nil, ethTxGossipProtocol), inboundGossipBytes...)
+	inboundGossipMsg := append(binary.AppendUvarint(nil, p2p.TxGossipHandlerID), inboundGossipBytes...)
 	require.NoError(vm.AppGossip(ctx, ids.EmptyNodeID, inboundGossipMsg))
 
 	require.True(vm.txPool.Has(signedTx.Hash()))

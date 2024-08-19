@@ -19,8 +19,8 @@ import (
 	"github.com/ava-labs/avalanchego/database/prefixdb"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow"
-	"github.com/ava-labs/avalanchego/snow/choices"
 	commonEng "github.com/ava-labs/avalanchego/snow/engine/common"
+	"github.com/ava-labs/avalanchego/snow/engine/enginetest"
 	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
 	"github.com/ava-labs/avalanchego/utils/set"
 
@@ -125,7 +125,7 @@ func TestStateSyncToggleEnabledToDisabled(t *testing.T) {
 	test.expectedErr = nil
 
 	syncDisabledVM := &VM{}
-	appSender := &commonEng.SenderTest{T: t}
+	appSender := &enginetest.Sender{T: t}
 	appSender.SendAppGossipF = func(context.Context, commonEng.SendConfig, []byte) error { return nil }
 	appSender.SendAppRequestF = func(ctx context.Context, nodeSet set.Set[ids.NodeID], requestID uint32, request []byte) error {
 		nodeID, hasItem := nodeSet.Pop()
@@ -308,7 +308,6 @@ func createSyncServerAndClientVMs(t *testing.T, test syncTest, numBlocks int) *s
 	require.NoError(err)
 	internalBlock, err := serverVM.parseBlock(context.Background(), blockBytes)
 	require.NoError(err)
-	internalBlock.(*Block).SetStatus(choices.Accepted)
 	require.NoError(serverVM.State.SetLastAcceptedBlock(internalBlock))
 
 	// patch syncableInterval for test
@@ -370,7 +369,7 @@ func createSyncServerAndClientVMs(t *testing.T, test syncTest, numBlocks int) *s
 // off of a server VM.
 type syncVMSetup struct {
 	serverVM        *VM
-	serverAppSender *commonEng.SenderTest
+	serverAppSender *enginetest.Sender
 
 	fundedAccounts map[*keystore.Key]*types.StateAccount
 

@@ -11,7 +11,6 @@ import (
 	"github.com/ava-labs/avalanchego/cache"
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/avalanchego/snow/choices"
 	"github.com/ava-labs/avalanchego/snow/consensus/snowman"
 	"github.com/ava-labs/avalanchego/utils/crypto/bls"
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
@@ -28,7 +27,7 @@ var (
 const batchSize = ethdb.IdealBatchSize
 
 type BlockClient interface {
-	GetBlock(ctx context.Context, blockID ids.ID) (snowman.Block, error)
+	GetAcceptedBlock(ctx context.Context, blockID ids.ID) (snowman.Block, error)
 }
 
 // Backend tracks signature-eligible warp messages and provides an interface to fetch them.
@@ -44,6 +43,8 @@ type Backend interface {
 	GetBlockSignature(blockID ids.ID) ([bls.SignatureLen]byte, error)
 
 	// GetMessage retrieves the [unsignedMessage] from the warp backend database if available
+	// TODO: After E-Upgrade, the backend no longer needs to store the mapping from messageHash
+	// to unsignedMessage (and this method can be removed).
 	GetMessage(messageHash ids.ID) (*avalancheWarp.UnsignedMessage, error)
 
 	// Clear clears the entire db
@@ -169,12 +170,9 @@ func (b *backend) GetBlockSignature(blockID ids.ID) ([bls.SignatureLen]byte, err
 		return sig, nil
 	}
 
-	block, err := b.blockClient.GetBlock(context.TODO(), blockID)
+	_, err := b.blockClient.GetAcceptedBlock(context.TODO(), blockID)
 	if err != nil {
 		return [bls.SignatureLen]byte{}, fmt.Errorf("failed to get block %s: %w", blockID, err)
-	}
-	if block.Status() != choices.Accepted {
-		return [bls.SignatureLen]byte{}, fmt.Errorf("block %s was not accepted", blockID)
 	}
 
 	var signature [bls.SignatureLen]byte
