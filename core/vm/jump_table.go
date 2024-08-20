@@ -107,8 +107,32 @@ func newSubnetEVMInstructionSet() JumpTable {
 	return validate(instructionSet)
 }
 
+<<<<<<< HEAD
 // newIstanbulInstructionSet returns the frontier,
 // homestead, byzantium, constantinople and petersburg instructions.
+||||||| bc0be1b10
+// newBerlinInstructionSet returns the frontier, homestead, byzantium,
+// constantinople, istanbul, petersburg and berlin instructions.
+func newBerlinInstructionSet() JumpTable {
+	instructionSet := newIstanbulInstructionSet()
+	enable2929(&instructionSet) // Access lists for trie accesses https://eips.ethereum.org/EIPS/eip-2929
+	return validate(instructionSet)
+}
+
+// newIstanbulInstructionSet returns the frontier, homestead, byzantium,
+// constantinople, istanbul and petersburg instructions.
+=======
+// newBerlinInstructionSet returns the frontier, homestead, byzantium,
+// constantinople, istanbul, petersburg and berlin instructions.
+func newBerlinInstructionSet() JumpTable {
+	instructionSet := newIstanbulInstructionSet()
+	enable2929(&instructionSet) // Gas cost increases for state access opcodes https://eips.ethereum.org/EIPS/eip-2929
+	return validate(instructionSet)
+}
+
+// newIstanbulInstructionSet returns the frontier, homestead, byzantium,
+// constantinople, istanbul and petersburg instructions.
+>>>>>>> 2bd6bd01d2e8561dd7fc21b631f4a34ac16627a1
 func newIstanbulInstructionSet() JumpTable {
 	instructionSet := newConstantinopleInstructionSet()
 

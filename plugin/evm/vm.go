@@ -35,7 +35,7 @@ import (
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/peer"
 	"github.com/ethereum/go-ethereum/plugin/evm/message"
-	"github.com/ethereum/go-ethereum/trie/triedb/hashdb"
+	"github.com/ethereum/go-ethereum/triedb/hashdb"
 
 	"github.com/ethereum/go-ethereum/rpc"
 	statesyncclient "github.com/ethereum/go-ethereum/sync/client"

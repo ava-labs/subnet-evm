@@ -19,7 +19,6 @@ package state
 import (
 	"bytes"
 	"encoding/json"
-	"math/big"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -27,7 +26,8 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethdb"
-	"github.com/ethereum/go-ethereum/trie"
+	"github.com/ethereum/go-ethereum/triedb"
+	"github.com/holiman/uint256"
 )
 
 type stateEnv struct {
@@ -43,19 +43,19 @@ func newStateEnv() *stateEnv {
 
 func TestIterativeDump(t *testing.T) {
 	db := rawdb.NewMemoryDatabase()
-	tdb := NewDatabaseWithConfig(db, &trie.Config{Preimages: true})
+	tdb := NewDatabaseWithConfig(db, &triedb.Config{Preimages: true})
 	sdb, _ := New(types.EmptyRootHash, tdb, nil)
 	s := &stateEnv{db: db, state: sdb}
 
 	// generate a few entries
-	obj1 := s.state.GetOrNewStateObject(common.BytesToAddress([]byte{0x01}))
-	obj1.AddBalance(big.NewInt(22))
-	obj2 := s.state.GetOrNewStateObject(common.BytesToAddress([]byte{0x01, 0x02}))
+	obj1 := s.state.getOrNewStateObject(common.BytesToAddress([]byte{0x01}))
+	obj1.AddBalance(uint256.NewInt(22))
+	obj2 := s.state.getOrNewStateObject(common.BytesToAddress([]byte{0x01, 0x02}))
 	obj2.SetCode(crypto.Keccak256Hash([]byte{3, 3, 3, 3, 3, 3, 3}), []byte{3, 3, 3, 3, 3, 3, 3})
-	obj3 := s.state.GetOrNewStateObject(common.BytesToAddress([]byte{0x02}))
-	obj3.SetBalance(big.NewInt(44))
-	obj4 := s.state.GetOrNewStateObject(common.BytesToAddress([]byte{0x00}))
-	obj4.AddBalance(big.NewInt(1337))
+	obj3 := s.state.getOrNewStateObject(common.BytesToAddress([]byte{0x02}))
+	obj3.SetBalance(uint256.NewInt(44))
+	obj4 := s.state.getOrNewStateObject(common.BytesToAddress([]byte{0x00}))
+	obj4.AddBalance(uint256.NewInt(1337))
 
 	// write some of them to the trie
 	s.state.updateStateObject(obj1)

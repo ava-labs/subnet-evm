@@ -18,6 +18,8 @@
 package miner
 
 import (
+	"math/big"
+
 	"github.com/ava-labs/avalanchego/utils/timer/mockable"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/consensus"
@@ -49,6 +51,11 @@ func New(eth Backend, config *Config, chainConfig *params.ChainConfig, mux *even
 	return &Miner{
 		worker: newWorker(config, chainConfig, engine, eth, mux, clock),
 	}
+}
+
+func (miner *Miner) SetGasTip(tip *big.Int) error {
+	miner.worker.setGasTip(tip)
+	return nil
 }
 
 func (miner *Miner) SetEtherbase(addr common.Address) {

@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -420,6 +421,44 @@ func InspectDatabase(db ethdb.Database, keyPrefix, keyStart []byte) error {
 		log.Error("Database contains unaccounted data", "size", unaccounted.size, "count", unaccounted.count)
 	}
 	return nil
+}
+
+// printChainMetadata prints out chain metadata to stderr.
+func printChainMetadata(db ethdb.KeyValueStore) {
+	fmt.Fprintf(os.Stderr, "Chain metadata\n")
+	for _, v := range ReadChainMetadata(db) {
+		fmt.Fprintf(os.Stderr, "  %s\n", strings.Join(v, ": "))
+	}
+	fmt.Fprintf(os.Stderr, "\n\n")
+}
+
+// ReadChainMetadata returns a set of key/value pairs that contains information
+// about the database chain status. This can be used for diagnostic purposes
+// when investigating the state of the node.
+func ReadChainMetadata(db ethdb.KeyValueStore) [][]string {
+	pp := func(val *uint64) string {
+		if val == nil {
+			return "<nil>"
+		}
+		return fmt.Sprintf("%d (%#x)", *val, *val)
+	}
+	data := [][]string{
+		{"databaseVersion", pp(ReadDatabaseVersion(db))},
+		{"headBlockHash", fmt.Sprintf("%v", ReadHeadBlockHash(db))},
+		{"headFastBlockHash", fmt.Sprintf("%v", ReadHeadFastBlockHash(db))},
+		{"headHeaderHash", fmt.Sprintf("%v", ReadHeadHeaderHash(db))},
+		{"lastPivotNumber", pp(ReadLastPivotNumber(db))},
+		{"len(snapshotSyncStatus)", fmt.Sprintf("%d bytes", len(ReadSnapshotSyncStatus(db)))},
+		{"snapshotDisabled", fmt.Sprintf("%v", ReadSnapshotDisabled(db))},
+		{"snapshotJournal", fmt.Sprintf("%d bytes", len(ReadSnapshotJournal(db)))},
+		{"snapshotRecoveryNumber", pp(ReadSnapshotRecoveryNumber(db))},
+		{"snapshotRoot", fmt.Sprintf("%v", ReadSnapshotRoot(db))},
+		{"txIndexTail", pp(ReadTxIndexTail(db))},
+	}
+	if b := ReadSkeletonSyncStatus(db); b != nil {
+		data = append(data, []string{"SkeletonSyncStatus", string(b)})
+	}
+	return data
 }
 
 // ClearPrefix removes all keys in db that begin with prefix and match an

@@ -16,6 +16,8 @@
 
 package simulated
 
+// DO NOT MERGE: this is a direct copy of @darioush's
+
 import (
 	"errors"
 	"math/big"
@@ -23,6 +25,7 @@ import (
 
 	"github.com/ava-labs/avalanchego/utils/timer/mockable"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/consensus/dummy"
 	"github.com/ethereum/go-ethereum/constants"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/rawdb"
@@ -42,24 +45,6 @@ type fakePushGossiper struct{}
 
 func (*fakePushGossiper) Add(*types.Transaction) {}
 
-// ChainID is the chain ID for the simulated [Backend].
-const ChainID = 1337
-
-// Backend is a simulated blockchain. You can use it to test your contracts or
-// other code that interacts with the Ethereum chain.
-type Backend struct {
-	eth    *eth.Ethereum
-	client simClient
-	clock  *mockable.Clock
-	server *rpc.Server
-}
-
-// simClient wraps ethclient. This exists to prevent extracting ethclient.Client
-// from the Client interface returned by Backend.
-type simClient struct {
-	ethclient.Client
-}
-
 // Client exposes the methods provided by the Ethereum RPC client.
 type Client interface {
 	interfaces.BlockNumberReader
@@ -78,51 +63,74 @@ type Client interface {
 	interfaces.ChainIDReader
 }
 
-// New creates a new binding backend using a simulated blockchain
-// for testing purposes.
+// simClient wraps ethclient. This exists to prevent extracting ethclient.Client
+// from the Client interface returned by Backend.
+type simClient struct {
+	ethclient.Client
+}
+
+// Backend is a simulated blockchain. You can use it to test your contracts or
+// other code that interacts with the Ethereum chain.
+type Backend struct {
+	eth    *eth.Ethereum
+	client simClient
+	clock  *mockable.Clock
+	server *rpc.Server
+}
+
+// NewBackend creates a new simulated blockchain that can be used as a backend for
+// contract bindings in unit tests.
+//
 // A simulated backend always uses chainID 1337.
-func New(alloc core.GenesisAlloc, gasLimit uint64) *Backend {
+func NewBackend(alloc types.GenesisAlloc, options ...func(nodeConf *node.Config, ethConf *ethconfig.Config)) *Backend {
 	chainConfig := *params.TestChainConfig
-	chainConfig.ChainID = big.NewInt(ChainID)
-	chainConfig.FeeConfig.GasLimit.SetUint64(gasLimit)
+	chainConfig.ChainID = big.NewInt(1337)
 
-	// Setup the node object
-	stack, err := node.New(&node.Config{})
-	if err != nil {
-		// This should never happen, if it does, please open an issue
-		panic(err)
-	}
+	// Create the default configurations for the outer node shell and the Ethereum
+	// service to mutate with the options afterwards
+	nodeConf := node.DefaultConfig
 
-	// Setup ethereum
-	conf := ethconfig.NewDefaultConfig()
-	conf.Genesis = &core.Genesis{
+	ethConf := ethconfig.DefaultConfig
+	ethConf.Genesis = &core.Genesis{
 		Config:   &chainConfig,
-		GasLimit: gasLimit,
+		GasLimit: chainConfig.FeeConfig.GasLimit.Uint64(),
 		Alloc:    alloc,
 	}
-	conf.AllowUnfinalizedQueries = true
-	conf.Miner.Etherbase = constants.BlackholeAddr
-	conf.Miner.TestOnlyAllowDuplicateBlocks = true
-	conf.GPO.MinPrice = new(big.Int).SetUint64(conf.TxPool.PriceLimit) // XXX: this constraint should be enforced
-	conf.TxPool.NoLocals = true
+	ethConf.AllowUnfinalizedQueries = true
+	ethConf.Miner.Etherbase = constants.BlackholeAddr
+	ethConf.Miner.AllowDuplicateBlocks = true
+	ethConf.TxPool.NoLocals = true
 
-	sim, err := newWithNode(stack, &conf, 0)
+	for _, option := range options {
+		option(&nodeConf, &ethConf)
+	}
+	// Assemble the Ethereum stack to run the chain with
+	stack, err := node.New(&nodeConf)
 	if err != nil {
-		// This should never happen, if it does, please open an issue
-		panic(err)
+		panic(err) // this should never happen
+	}
+	sim, err := newWithNode(stack, &ethConf, 0)
+	if err != nil {
+		panic(err) // this should never happen
 	}
 	return sim
 }
 
-// newWithNode sets up a simulated backend on an existing node
-// this allows users to do persistent simulations.
-// The provided node must not be started and will be started by newWithNode
+// newWithNode sets up a simulated backend on an existing node. The provided node
+// must not be started and will be started by this method.
 func newWithNode(stack *node.Node, conf *eth.Config, blockPeriod uint64) (*Backend, error) {
-	chainDB := rawdb.NewMemoryDatabase()
+	chaindb := rawdb.NewMemoryDatabase()
 	clock := &mockable.Clock{}
 	clock.Set(time.Unix(0, 0))
 
-	backend, err := eth.New(stack, conf, &fakePushGossiper{}, chainDB, eth.Settings{}, common.Hash{}, clock)
+	engine := dummy.NewFakerWithModeAndClock(
+		dummy.Mode{ModeSkipCoinbase: true}, clock,
+	)
+
+	backend, err := eth.New(
+		stack, conf, &fakePushGossiper{}, chaindb, eth.Settings{}, common.Hash{},
+		engine, clock,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -145,7 +153,6 @@ func newWithNode(stack *node.Node, conf *eth.Config, blockPeriod uint64) (*Backe
 func (n *Backend) Close() error {
 	if n.client.Client != nil {
 		n.client.Close()
-		n.client = simClient{}
 	}
 	n.server.Stop()
 	return nil
@@ -164,10 +171,9 @@ func (n *Backend) buildBlock(accept bool, gap uint64) (common.Hash, error) {
 	chain := n.eth.BlockChain()
 	parent := chain.CurrentBlock()
 
-	// TODO: uncomment once geth v1.13.11 has been pulled
-	// if err := n.eth.TxPool().Sync(); err != nil {
-	// 	return common.Hash{}, err
-	// }
+	if err := n.eth.TxPool().Sync(); err != nil {
+		return common.Hash{}, err
+	}
 
 	n.clock.Set(time.Unix(int64(parent.Time+gap), 0))
 	block, err := n.eth.Miner().GenerateBlock(nil)
