@@ -569,23 +569,6 @@ func (c *ChainConfig) checkCompatible(newcfg *ChainConfig, height *big.Int, time
 	return nil
 }
 
-// LatestFork returns the latest time-based fork that would be active for the given time.
-func (c *ChainConfig) LatestFork(time uint64) forks.Fork {
-	// Assume last non-time-based fork has passed.
-	london := c.LondonBlock
-
-	switch {
-	case c.IsPrague(london, time):
-		return forks.Prague
-	case c.IsCancun(london, time):
-		return forks.Cancun
-	case c.IsShanghai(london, time):
-		return forks.Shanghai
-	default:
-		return forks.Paris
-	}
-}
-
 // isForkBlockIncompatible returns true if a fork scheduled at block s1 cannot be
 // rescheduled to block s2 because head is already past the fork.
 func isForkBlockIncompatible(s1, s2, head *big.Int) bool {
@@ -739,8 +722,6 @@ func (c *ChainConfig) rules(num *big.Int, timestamp uint64) Rules {
 	if chainID == nil {
 		chainID = new(big.Int)
 	}
-	// disallow setting Merge out of order
-	isMerge = isMerge && c.IsLondon(num)
 	return Rules{
 		ChainID: new(big.Int).Set(chainID),
 		EthRules: EthRules{
