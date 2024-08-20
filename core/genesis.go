@@ -456,7 +456,7 @@ func GenesisBlockForTesting(db ethdb.Database, addr common.Address, balance *big
 		Alloc:   GenesisAlloc{addr: {Balance: balance}},
 		BaseFee: big.NewInt(params.TestMaxBaseFee),
 	}
-	return g.MustCommit(db, trie.NewDatabase(db, trie.HashDefaults))
+	return g.MustCommit(db, triedb.NewDatabase(db, triedb.HashDefaults))
 }
 
 // ReadBlockByHash reads the block with the given hash from the database.

@@ -15,6 +15,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/trie"
 	"github.com/ethereum/go-ethereum/trie/trienode"
+	"github.com/ethereum/go-ethereum/triedb"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethdb"
@@ -26,7 +27,7 @@ import (
 // Returns the root of the generated trie, the slice of keys inserted into the trie in lexicographical
 // order, and the slice of corresponding values.
 // GenerateTrie reads from [rand] and the caller should call rand.Seed(n) for deterministic results
-func GenerateTrie(t *testing.T, trieDB *trie.Database, numKeys int, keySize int) (common.Hash, [][]byte, [][]byte) {
+func GenerateTrie(t *testing.T, trieDB *triedb.Database, numKeys int, keySize int) (common.Hash, [][]byte, [][]byte) {
 	if keySize < wrappers.LongLen+1 {
 		t.Fatal("key size must be at least 9 bytes (8 bytes for uint64 and 1 random byte)")
 	}
@@ -36,7 +37,7 @@ func GenerateTrie(t *testing.T, trieDB *trie.Database, numKeys int, keySize int)
 // FillTrie fills a given trie with [numKeys] number of keys, each of size [keySize]
 // returns inserted keys and values
 // FillTrie reads from [rand] and the caller should call rand.Seed(n) for deterministic results
-func FillTrie(t *testing.T, start, numKeys int, keySize int, trieDB *trie.Database, root common.Hash) (common.Hash, [][]byte, [][]byte) {
+func FillTrie(t *testing.T, start, numKeys int, keySize int, trieDB *triedb.Database, root common.Hash) (common.Hash, [][]byte, [][]byte) {
 	testTrie, err := trie.New(trie.TrieID(root), trieDB)
 	if err != nil {
 		t.Fatalf("error creating trie: %v", err)
@@ -75,7 +76,7 @@ func FillTrie(t *testing.T, start, numKeys int, keySize int, trieDB *trie.Databa
 
 // AssertTrieConsistency ensures given trieDB [a] and [b] both have the same
 // non-empty trie at [root]. (all key/value pairs must be equal)
-func AssertTrieConsistency(t testing.TB, root common.Hash, a, b *trie.Database, onLeaf func(key, val []byte) error) {
+func AssertTrieConsistency(t testing.TB, root common.Hash, a, b *triedb.Database, onLeaf func(key, val []byte) error) {
 	trieA, err := trie.New(trie.TrieID(root), a)
 	if err != nil {
 		t.Fatalf("error creating trieA, root=%s, err=%v", root, err)
@@ -144,7 +145,7 @@ func CorruptTrie(t *testing.T, diskdb ethdb.Batcher, tr *trie.Trie, n int) {
 // [onAccount] is called if non-nil (so the caller can modify the account before it is stored in the secure trie).
 // returns the new trie root and a map of funded keys to StateAccount structs.
 func FillAccounts(
-	t *testing.T, trieDB *trie.Database, root common.Hash, numAccounts int,
+	t *testing.T, trieDB *triedb.Database, root common.Hash, numAccounts int,
 	onAccount func(*testing.T, int, types.StateAccount) types.StateAccount,
 ) (common.Hash, map[*keystore.Key]*types.StateAccount) {
 	var (
