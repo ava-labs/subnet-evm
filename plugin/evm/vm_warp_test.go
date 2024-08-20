@@ -461,13 +461,9 @@ func testReceiveWarpMessage(
 
 	vm.ctx.SubnetID = ids.GenerateTestID()
 	vm.ctx.NetworkID = testNetworkID
-	sourceChainID := vm.ctx.ChainID
-	if fromPrimary {
-		sourceChainID = testCChainID
-	}
 	unsignedMessage, err := avalancheWarp.NewUnsignedMessage(
 		vm.ctx.NetworkID,
-		sourceChainID,
+		vm.ctx.ChainID,
 		addressedPayload.Bytes(),
 	)
 	require.NoError(err)
@@ -518,7 +514,7 @@ func testReceiveWarpMessage(
 
 	vm.ctx.ValidatorState = &validatorstest.State{
 		GetSubnetIDF: func(ctx context.Context, chainID ids.ID) (ids.ID, error) {
-			if sourceChainID == testCChainID {
+			if fromPrimary {
 				return constants.PrimaryNetworkID, nil
 			}
 			return vm.ctx.SubnetID, nil
