@@ -1020,18 +1020,7 @@ func (vm *VM) CreateHandlers(context.Context) (map[string]http.Handler, error) {
 	}
 
 	if vm.config.WarpAPIEnabled {
-		requirePrimaryNetworkSigners := func() bool {
-			warpCfgIntf, ok := vm.currentRules().ActivePrecompiles[warpcontract.ContractAddress]
-			if !ok {
-				return false
-			}
-			warpCfg, ok := warpCfgIntf.(*warpcontract.Config)
-			if !ok {
-				return false
-			}
-			return warpCfg.RequirePrimaryNetworkSigners
-		}
-		validatorsState := warpValidators.NewState(vm.ctx, requirePrimaryNetworkSigners)
+		validatorsState := warpValidators.NewState(vm.ctx, vm.requirePrimaryNetworkSigners)
 		if err := handler.RegisterName("warp", warp.NewAPI(vm.ctx.NetworkID, vm.ctx.SubnetID, vm.ctx.ChainID, validatorsState, vm.warpBackend, vm.client)); err != nil {
 			return nil, err
 		}
@@ -1083,6 +1072,18 @@ func (vm *VM) GetCurrentNonce(address common.Address) (uint64, error) {
 func (vm *VM) currentRules() params.Rules {
 	header := vm.eth.APIBackend.CurrentHeader()
 	return vm.chainConfig.Rules(header.Number, header.Time)
+}
+
+// requirePrimaryNetworkSigners returns true if warp messages from the primary
+// network must be signed by the primary network validators.
+// This is necessary when the subnet is not validating the primary network.
+func (vm *VM) requirePrimaryNetworkSigners() bool {
+	switch c := vm.currentRules().ActivePrecompiles[warpcontract.ContractAddress].(type) {
+	case *warpcontract.Config:
+		return c.RequirePrimaryNetworkSigners
+	default: // includes nil due to non-presence
+		return false
+	}
 }
 
 func (vm *VM) startContinuousProfiler() {

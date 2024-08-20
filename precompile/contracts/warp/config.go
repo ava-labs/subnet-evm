@@ -53,22 +53,18 @@ type Config struct {
 
 // NewConfig returns a config for a network upgrade at [blockTimestamp] that enables
 // Warp with the given quorum numerator.
-func NewConfig(blockTimestamp *uint64, quorumNumerator uint64) *Config {
+func NewConfig(blockTimestamp *uint64, quorumNumerator uint64, requirePrimaryNetworkSigners bool) *Config {
 	return &Config{
-		Upgrade:         precompileconfig.Upgrade{BlockTimestamp: blockTimestamp},
-		QuorumNumerator: quorumNumerator,
+		Upgrade:                      precompileconfig.Upgrade{BlockTimestamp: blockTimestamp},
+		QuorumNumerator:              quorumNumerator,
+		RequirePrimaryNetworkSigners: requirePrimaryNetworkSigners,
 	}
-}
-
-func (c *Config) WithRequirePrimaryNetworkSigners(requirePrimaryNetworkSigners bool) *Config {
-	c.RequirePrimaryNetworkSigners = requirePrimaryNetworkSigners
-	return c
 }
 
 // NewDefaultConfig returns a config for a network upgrade at [blockTimestamp] that enables
 // Warp with the default quorum numerator (0 denotes using the default).
 func NewDefaultConfig(blockTimestamp *uint64) *Config {
-	return NewConfig(blockTimestamp, 0)
+	return NewConfig(blockTimestamp, 0, false)
 }
 
 // NewDisableConfig returns config for a network upgrade at [blockTimestamp]

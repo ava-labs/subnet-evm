@@ -47,6 +47,20 @@ var (
 	exampleWarpABI string
 )
 
+type warpMsgFrom int
+
+const (
+	fromSubnet warpMsgFrom = iota
+	fromPrimary
+)
+
+type useWarpMsgSigners int
+
+const (
+	signersSubnet useWarpMsgSigners = iota
+	signersPrimary
+)
+
 func TestSendWarpMessage(t *testing.T) {
 	require := require.New(t)
 	genesis := &core.Genesis{}
@@ -406,6 +420,8 @@ func TestReceiveWarpMessage(t *testing.T) {
 	genesis := &core.Genesis{}
 	require.NoError(genesis.UnmarshalJSON([]byte(genesisJSONDurango)))
 	genesis.Config.GenesisPrecompiles = params.Precompiles{
+		// Note that warp is enabled without RequirePrimaryNetworkSigners
+		// by default in the genesis configuration.
 		warp.ConfigKey: warp.NewDefaultConfig(utils.TimeToNewUint64(upgrade.InitiallyActiveTime)),
 	}
 	genesisJSON, err := genesis.MarshalJSON()
@@ -417,7 +433,11 @@ func TestReceiveWarpMessage(t *testing.T) {
 
 	// re-enable warp with RequirePrimaryNetworkSigners
 	reEnableTime := disableTime.Add(10 * time.Second)
-	reEnableConfig := warp.NewDefaultConfig(utils.TimeToNewUint64(reEnableTime)).WithRequirePrimaryNetworkSigners(true)
+	reEnableConfig := warp.NewConfig(
+		utils.TimeToNewUint64(reEnableTime),
+		0,    // QuorumNumerator
+		true, // RequirePrimaryNetworkSigners
+	)
 
 	upgradeConfig := params.UpgradeConfig{
 		PrecompileUpgrades: []params.PrecompileUpgrade{
@@ -434,21 +454,23 @@ func TestReceiveWarpMessage(t *testing.T) {
 		require.NoError(vm.Shutdown(context.Background()))
 	}()
 
-	// Subnet messages should use subnet signers
-	testReceiveWarpMessage(t, issuer, vm, false, false, upgrade.InitiallyActiveTime)
+	testReceiveWarpMessage(t, issuer, vm, fromSubnet, signersSubnet, upgrade.InitiallyActiveTime)
+
+	// Build the next block with a 2 second delay. Fees will be high if the gap is too short.
+	blockTime := upgrade.InitiallyActiveTime.Add(2 * time.Second)
+	require.True(blockTime.Before(disableTime))
 
 	// At genesis, primary network messages should use subnet signers
-	blockTime := upgrade.InitiallyActiveTime.Add(2 * time.Second) // for fees
-	require.True(blockTime.Before(disableTime))
-	testReceiveWarpMessage(t, issuer, vm, true, false, blockTime)
+	testReceiveWarpMessage(t, issuer, vm, fromPrimary, signersSubnet, blockTime)
 
-	// After re-enabled, primary network messages should use primary signers
-	testReceiveWarpMessage(t, issuer, vm, true, true, reEnableTime)
+	// After re-enabled with the modified configuration, primary network messages
+	// should use primary signers.
+	testReceiveWarpMessage(t, issuer, vm, fromPrimary, signersPrimary, reEnableTime)
 }
 
 func testReceiveWarpMessage(
 	t *testing.T, issuer chan commonEng.Message, vm *VM,
-	fromPrimary, usePrimarySigners bool,
+	msgFrom warpMsgFrom, useSigners useWarpMsgSigners,
 	blockTime time.Time,
 ) {
 	require := require.New(t)
@@ -487,18 +509,16 @@ func testReceiveWarpMessage(
 		}
 	}
 
-	var (
-		primarySigners = []signer{
-			newSigner(constants.PrimaryNetworkID, 50),
-			newSigner(constants.PrimaryNetworkID, 50),
-		}
-		subnetSigners = []signer{
-			newSigner(vm.ctx.SubnetID, 50),
-			newSigner(vm.ctx.SubnetID, 50),
-		}
-	)
+	primarySigners := []signer{
+		newSigner(constants.PrimaryNetworkID, 50),
+		newSigner(constants.PrimaryNetworkID, 50),
+	}
+	subnetSigners := []signer{
+		newSigner(vm.ctx.SubnetID, 50),
+		newSigner(vm.ctx.SubnetID, 50),
+	}
 	signers := subnetSigners
-	if usePrimarySigners {
+	if useSigners == signersPrimary {
 		signers = primarySigners
 	}
 
@@ -514,7 +534,7 @@ func testReceiveWarpMessage(
 
 	vm.ctx.ValidatorState = &validatorstest.State{
 		GetSubnetIDF: func(ctx context.Context, chainID ids.ID) (ids.ID, error) {
-			if fromPrimary {
+			if msgFrom == fromPrimary {
 				return constants.PrimaryNetworkID, nil
 			}
 			return vm.ctx.SubnetID, nil
@@ -523,22 +543,20 @@ func testReceiveWarpMessage(
 			if height < minimumValidPChainHeight {
 				return nil, getValidatorSetTestErr
 			}
-			toValidatorOutput := func(signers []signer) map[ids.NodeID]*validators.GetValidatorOutput {
-				vdrOutput := make(map[ids.NodeID]*validators.GetValidatorOutput)
-				for _, s := range signers {
-					vdrOutput[s.nodeID] = &validators.GetValidatorOutput{
-						NodeID:    s.nodeID,
-						PublicKey: bls.PublicFromSecretKey(s.secret),
-						Weight:    s.weight,
-					}
-				}
-				return vdrOutput
-			}
-			validators := subnetSigners
+			signers := subnetSigners
 			if subnetID == constants.PrimaryNetworkID {
-				validators = primarySigners
+				signers = primarySigners
 			}
-			return toValidatorOutput(validators), nil
+
+			vdrOutput := make(map[ids.NodeID]*validators.GetValidatorOutput)
+			for _, s := range signers {
+				vdrOutput[s.nodeID] = &validators.GetValidatorOutput{
+					NodeID:    s.nodeID,
+					PublicKey: bls.PublicFromSecretKey(s.secret),
+					Weight:    s.weight,
+				}
+			}
+			return vdrOutput, nil
 		},
 	}
 
@@ -601,6 +619,9 @@ func testReceiveWarpMessage(
 	require.True(ok)
 	results, err := predicate.ParseResults(headerPredicateResultsBytes)
 	require.NoError(err)
+
+	// Predicate results encode the index of invalid warp messages in a bitset.
+	// An empty bitset indicates success.
 	txResultsBytes := results.GetResults(
 		getVerifiedWarpMessageTx.Hash(),
 		warp.ContractAddress,
