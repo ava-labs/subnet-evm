@@ -34,6 +34,7 @@ import (
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/precompile/allowlist"
 	"github.com/ethereum/go-ethereum/precompile/contracts/deployerallowlist"
+	"github.com/ethereum/go-ethereum/trie"
 	"github.com/ethereum/go-ethereum/triedb"
 	"github.com/ethereum/go-ethereum/triedb/pathdb"
 	"github.com/ethereum/go-ethereum/utils"
@@ -336,7 +337,7 @@ func TestGenesisWriteUpgradesRegression(t *testing.T) {
 		GasLimit:   8_000_000,
 		Extra:      nil,
 		Time:       timestamp,
-	}, nil, nil, nil, triedb.NewStackTrie(nil))
+	}, nil, nil, nil, trie.NewStackTrie(nil))
 	rawdb.WriteBlock(db, lastAcceptedBlock)
 
 	// Attempt restart after the chain has advanced past the activation of the precompile upgrade.

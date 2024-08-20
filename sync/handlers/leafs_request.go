@@ -21,6 +21,7 @@ import (
 	"github.com/ethereum/go-ethereum/sync/handlers/stats"
 	"github.com/ethereum/go-ethereum/sync/syncutils"
 	"github.com/ethereum/go-ethereum/trie"
+	"github.com/ethereum/go-ethereum/triedb"
 	"github.com/ethereum/go-ethereum/utils"
 )
 
@@ -41,14 +42,14 @@ const (
 // LeafsRequestHandler is a peer.RequestHandler for types.LeafsRequest
 // serving requested trie data
 type LeafsRequestHandler struct {
-	trieDB           *trie.Database
+	trieDB           *triedb.Database
 	snapshotProvider SnapshotProvider
 	codec            codec.Manager
 	stats            stats.LeafsRequestHandlerStats
 	pool             sync.Pool
 }
 
-func NewLeafsRequestHandler(trieDB *trie.Database, snapshotProvider SnapshotProvider, codec codec.Manager, syncerStats stats.LeafsRequestHandlerStats) *LeafsRequestHandler {
+func NewLeafsRequestHandler(trieDB *triedb.Database, snapshotProvider SnapshotProvider, codec codec.Manager, syncerStats stats.LeafsRequestHandlerStats) *LeafsRequestHandler {
 	return &LeafsRequestHandler{
 		trieDB:           trieDB,
 		snapshotProvider: snapshotProvider,

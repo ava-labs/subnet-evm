@@ -40,6 +40,7 @@ import (
 	statesyncclient "github.com/ethereum/go-ethereum/sync/client"
 	"github.com/ethereum/go-ethereum/sync/statesync"
 	"github.com/ethereum/go-ethereum/trie"
+	"github.com/ethereum/go-ethereum/triedb"
 )
 
 func TestSkipStateSync(t *testing.T) {
@@ -296,7 +297,7 @@ func createSyncServerAndClientVMs(t *testing.T, test syncTest, numBlocks int) *s
 	}, nil)
 
 	// make some accounts
-	trieDB := trie.NewDatabase(serverVM.chaindb, nil)
+	trieDB := triedb.NewDatabase(serverVM.chaindb, nil)
 	root, accounts := statesync.FillAccountsWithOverlappingStorage(t, trieDB, types.EmptyRootHash, 1000, 16)
 
 	// patch serverVM's lastAcceptedBlock to have the new root

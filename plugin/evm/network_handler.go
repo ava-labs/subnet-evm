@@ -13,7 +13,7 @@ import (
 	"github.com/ethereum/go-ethereum/plugin/evm/message"
 	syncHandlers "github.com/ethereum/go-ethereum/sync/handlers"
 	syncStats "github.com/ethereum/go-ethereum/sync/handlers/stats"
-	"github.com/ethereum/go-ethereum/trie"
+	"github.com/ethereum/go-ethereum/triedb"
 	"github.com/ethereum/go-ethereum/warp"
 	warpHandlers "github.com/ethereum/go-ethereum/warp/handlers"
 )
@@ -31,7 +31,7 @@ type networkHandler struct {
 func newNetworkHandler(
 	provider syncHandlers.SyncDataProvider,
 	diskDB ethdb.KeyValueReader,
-	evmTrieDB *trie.Database,
+	evmTrieDB *triedb.Database,
 	warpBackend warp.Backend,
 	networkCodec codec.Manager,
 ) message.RequestHandler {
