@@ -281,21 +281,21 @@ func (g *Genesis) IsVerkle() bool {
 // ToBlock returns the genesis block according to genesis specification.
 func (g *Genesis) ToBlock() *types.Block {
 	db := rawdb.NewMemoryDatabase()
-	return g.toBlock(db, trie.NewDatabase(db, g.trieConfig()))
+	return g.toBlock(db, triedb.NewDatabase(db, g.trieConfig()))
 }
 
-func (g *Genesis) trieConfig() *trie.Config {
+func (g *Genesis) trieConfig() *triedb.Config {
 	if !g.IsVerkle() {
 		return nil
 	}
-	return &trie.Config{
+	return &triedb.Config{
 		PathDB:   pathdb.Defaults,
 		IsVerkle: true,
 	}
 }
 
 // TODO: migrate this function to "flush" for more similarity with upstream.
-func (g *Genesis) toBlock(db ethdb.Database, triedb *trie.Database) *types.Block {
+func (g *Genesis) toBlock(db ethdb.Database, triedb *triedb.Database) *types.Block {
 	statedb, err := state.New(types.EmptyRootHash, state.NewDatabaseWithNodeDB(db, triedb), nil)
 	if err != nil {
 		panic(err)
