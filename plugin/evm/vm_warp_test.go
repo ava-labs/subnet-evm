@@ -594,7 +594,6 @@ func testReceiveWarpMessage(
 
 	block2, err := vm.BuildBlockWithContext(context.Background(), validProposerCtx)
 	require.NoError(err)
-	require.NoError(vm.SetPreference(context.Background(), block2.ID()))
 
 	// Require the block was built with a successful predicate result
 	ethBlock := block2.(*chain.BlockWrapper).Block.(*Block).ethBlock
@@ -615,6 +614,7 @@ func testReceiveWarpMessage(
 	require.NoError(err)
 	require.True(shouldVerifyWithCtx)
 	require.NoError(block2VerifyWithCtx.VerifyWithContext(context.Background(), validProposerCtx))
+	require.NoError(vm.SetPreference(context.Background(), block2.ID()))
 
 	// Verify the block with another valid context with identical predicate results
 	require.NoError(block2VerifyWithCtx.VerifyWithContext(context.Background(), &block.Context{
