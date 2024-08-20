@@ -168,7 +168,7 @@ func makeCallVariantGasCallEIP2929(oldCalculator gasFunc) gasFunc {
 
 		var overflow bool
 		if gas, overflow = math.SafeAdd(gas, coldCost); overflow {
-			return 0, ErrGasUintOverflow
+			return 0, vmerrs.ErrGasUintOverflow
 		}
 		return gas, nil
 	}
