@@ -13,11 +13,13 @@ import (
 	_ "embed"
 
 	"github.com/ava-labs/avalanchego/ids"
+	commonEng "github.com/ava-labs/avalanchego/snow/engine/common"
 	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
 	"github.com/ava-labs/avalanchego/snow/validators"
 	"github.com/ava-labs/avalanchego/snow/validators/validatorstest"
 	"github.com/ava-labs/avalanchego/upgrade"
 	avagoUtils "github.com/ava-labs/avalanchego/utils"
+	"github.com/ava-labs/avalanchego/utils/constants"
 	"github.com/ava-labs/avalanchego/utils/crypto/bls"
 	"github.com/ava-labs/avalanchego/utils/set"
 	"github.com/ava-labs/avalanchego/vms/components/chain"
@@ -408,43 +410,107 @@ func TestReceiveWarpMessage(t *testing.T) {
 	}
 	genesisJSON, err := genesis.MarshalJSON()
 	require.NoError(err)
-	issuer, vm, _, _ := GenesisVM(t, true, string(genesisJSON), "", "")
+
+	// disable warp so we can re-enable it with RequirePrimaryNetworkSigners
+	disableTime := upgrade.InitiallyActiveTime.Add(10 * time.Second)
+	disableConfig := warp.NewDisableConfig(utils.TimeToNewUint64(disableTime))
+
+	// re-enable warp with RequirePrimaryNetworkSigners
+	reEnableTime := disableTime.Add(10 * time.Second)
+	reEnableConfig := warp.NewDefaultConfig(utils.TimeToNewUint64(reEnableTime)).WithRequirePrimaryNetworkSigners(true)
+
+	upgradeConfig := params.UpgradeConfig{
+		PrecompileUpgrades: []params.PrecompileUpgrade{
+			{Config: disableConfig},
+			{Config: reEnableConfig},
+		},
+	}
+	upgradeBytes, err := json.Marshal(upgradeConfig)
+	require.NoError(err)
+
+	issuer, vm, _, _ := GenesisVM(t, true, string(genesisJSON), "", string(upgradeBytes))
 
 	defer func() {
 		require.NoError(vm.Shutdown(context.Background()))
 	}()
 
-	acceptedLogsChan := make(chan []*types.Log, 10)
-	logsSub := vm.eth.APIBackend.SubscribeAcceptedLogsEvent(acceptedLogsChan)
-	defer logsSub.Unsubscribe()
+	// Subnet messages should use subnet signers
+	testReceiveWarpMessage(t, issuer, vm, false, false, upgrade.InitiallyActiveTime)
 
+	/// At genesis, primary network messages should use subnet signers
+	blockTime := upgrade.InitiallyActiveTime.Add(2 * time.Second) // for fees
+	require.True(blockTime.Before(disableTime))
+	testReceiveWarpMessage(t, issuer, vm, true, false, blockTime)
+
+	// After re-enabled, primary network messages should use primary signers
+	testReceiveWarpMessage(t, issuer, vm, true, true, reEnableTime)
+}
+
+func testReceiveWarpMessage(
+	t *testing.T, issuer chan commonEng.Message, vm *VM,
+	fromPrimary, usePrimarySigners bool,
+	blockTime time.Time,
+) {
+	require := require.New(t)
 	payloadData := avagoUtils.RandomBytes(100)
-
 	addressedPayload, err := payload.NewAddressedCall(
 		testEthAddrs[0].Bytes(),
 		payloadData,
 	)
 	require.NoError(err)
+
+	vm.ctx.SubnetID = ids.GenerateTestID()
+	vm.ctx.NetworkID = testNetworkID
+	sourceChainID := vm.ctx.ChainID
+	if fromPrimary {
+		sourceChainID = testCChainID
+	}
 	unsignedMessage, err := avalancheWarp.NewUnsignedMessage(
 		vm.ctx.NetworkID,
-		vm.ctx.ChainID,
+		sourceChainID,
 		addressedPayload.Bytes(),
 	)
 	require.NoError(err)
 
-	nodeID1 := ids.GenerateTestNodeID()
-	blsSecretKey1, err := bls.NewSecretKey()
-	require.NoError(err)
-	blsPublicKey1 := bls.PublicFromSecretKey(blsSecretKey1)
-	blsSignature1 := bls.Sign(blsSecretKey1, unsignedMessage.Bytes())
+	type signer struct {
+		networkID ids.ID
+		nodeID    ids.NodeID
+		secret    *bls.SecretKey
+		signature *bls.Signature
+		weight    uint64
+	}
+	newSigner := func(networkID ids.ID, weight uint64) signer {
+		secret, err := bls.NewSecretKey()
+		require.NoError(err)
+		return signer{
+			networkID: networkID,
+			nodeID:    ids.GenerateTestNodeID(),
+			secret:    secret,
+			signature: bls.Sign(secret, unsignedMessage.Bytes()),
+			weight:    weight,
+		}
+	}
 
-	nodeID2 := ids.GenerateTestNodeID()
-	blsSecretKey2, err := bls.NewSecretKey()
-	require.NoError(err)
-	blsPublicKey2 := bls.PublicFromSecretKey(blsSecretKey2)
-	blsSignature2 := bls.Sign(blsSecretKey2, unsignedMessage.Bytes())
+	var (
+		primarySigners = []signer{
+			newSigner(constants.PrimaryNetworkID, 50),
+			newSigner(constants.PrimaryNetworkID, 50),
+		}
+		subnetSigners = []signer{
+			newSigner(vm.ctx.SubnetID, 50),
+			newSigner(vm.ctx.SubnetID, 50),
+		}
+	)
+	signers := subnetSigners
+	if usePrimarySigners {
+		signers = primarySigners
+	}
 
-	blsAggregatedSignature, err := bls.AggregateSignatures([]*bls.Signature{blsSignature1, blsSignature2})
+	blsSignatures := make([]*bls.Signature, len(signers))
+	for i := range signers {
+		blsSignatures[i] = signers[i].signature
+	}
+	blsAggregatedSignature, err := bls.AggregateSignatures(blsSignatures)
 	require.NoError(err)
 
 	minimumValidPChainHeight := uint64(10)
@@ -452,30 +518,38 @@ func TestReceiveWarpMessage(t *testing.T) {
 
 	vm.ctx.ValidatorState = &validatorstest.State{
 		GetSubnetIDF: func(ctx context.Context, chainID ids.ID) (ids.ID, error) {
-			return ids.Empty, nil
+			if sourceChainID == testCChainID {
+				return constants.PrimaryNetworkID, nil
+			}
+			return vm.ctx.SubnetID, nil
 		},
 		GetValidatorSetF: func(ctx context.Context, height uint64, subnetID ids.ID) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
 			if height < minimumValidPChainHeight {
 				return nil, getValidatorSetTestErr
 			}
-			return map[ids.NodeID]*validators.GetValidatorOutput{
-				nodeID1: {
-					NodeID:    nodeID1,
-					PublicKey: blsPublicKey1,
-					Weight:    50,
-				},
-				nodeID2: {
-					NodeID:    nodeID2,
-					PublicKey: blsPublicKey2,
-					Weight:    50,
-				},
-			}, nil
+			toValidatorOutput := func(signers []signer) map[ids.NodeID]*validators.GetValidatorOutput {
+				vdrOutput := make(map[ids.NodeID]*validators.GetValidatorOutput)
+				for _, s := range signers {
+					vdrOutput[s.nodeID] = &validators.GetValidatorOutput{
+						NodeID:    s.nodeID,
+						PublicKey: bls.PublicFromSecretKey(s.secret),
+						Weight:    s.weight,
+					}
+				}
+				return vdrOutput
+			}
+			validators := subnetSigners
+			if subnetID == constants.PrimaryNetworkID {
+				validators = primarySigners
+			}
+			return toValidatorOutput(validators), nil
 		},
 	}
 
 	signersBitSet := set.NewBits()
-	signersBitSet.Add(0)
-	signersBitSet.Add(1)
+	for i := range signers {
+		signersBitSet.Add(i)
+	}
 
 	warpSignature := &avalancheWarp.BitSetSignature{
 		Signers: signersBitSet.Bytes(),
@@ -495,7 +569,7 @@ func TestReceiveWarpMessage(t *testing.T) {
 	getVerifiedWarpMessageTx, err := types.SignTx(
 		predicate.NewPredicateTx(
 			vm.chainConfig.ChainID,
-			0,
+			vm.txPool.Nonce(testEthAddrs[0]),
 			&warp.Module.Address,
 			1_000_000,
 			big.NewInt(225*params.GWei),
@@ -519,11 +593,25 @@ func TestReceiveWarpMessage(t *testing.T) {
 	validProposerCtx := &block.Context{
 		PChainHeight: minimumValidPChainHeight,
 	}
-	vm.clock.Set(vm.clock.Time().Add(2 * time.Second))
+	vm.clock.Set(blockTime)
 	<-issuer
 
 	block2, err := vm.BuildBlockWithContext(context.Background(), validProposerCtx)
 	require.NoError(err)
+	require.NoError(vm.SetPreference(context.Background(), block2.ID()))
+
+	// Require the block was built with a successful predicate result
+	ethBlock := block2.(*chain.BlockWrapper).Block.(*Block).ethBlock
+	headerPredicateResultsBytes, ok := predicate.GetPredicateResultBytes(ethBlock.Extra())
+	require.True(ok)
+	results, err := predicate.ParseResults(headerPredicateResultsBytes)
+	require.NoError(err)
+	txResultsBytes := results.GetResults(
+		getVerifiedWarpMessageTx.Hash(),
+		warp.ContractAddress,
+	)
+	bitset := set.BitsFromBytes(txResultsBytes)
+	require.Zero(bitset.Len()) // Empty bitset indicates success
 
 	block2VerifyWithCtx, ok := block2.(block.WithVerifyContext)
 	require.True(ok)
@@ -531,7 +619,6 @@ func TestReceiveWarpMessage(t *testing.T) {
 	require.NoError(err)
 	require.True(shouldVerifyWithCtx)
 	require.NoError(block2VerifyWithCtx.VerifyWithContext(context.Background(), validProposerCtx))
-	require.NoError(vm.SetPreference(context.Background(), block2.ID()))
 
 	// Verify the block with another valid context with identical predicate results
 	require.NoError(block2VerifyWithCtx.VerifyWithContext(context.Background(), &block.Context{
@@ -548,7 +635,6 @@ func TestReceiveWarpMessage(t *testing.T) {
 	require.NoError(block2.Accept(context.Background()))
 	vm.blockChain.DrainAcceptorQueue()
 
-	ethBlock := block2.(*chain.BlockWrapper).Block.(*Block).ethBlock
 	verifiedMessageReceipts := vm.blockChain.GetReceiptsByHash(ethBlock.Hash())
 	require.Len(verifiedMessageReceipts, 1)
 	verifiedMessageTxReceipt := verifiedMessageReceipts[0]
