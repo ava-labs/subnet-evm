@@ -497,7 +497,6 @@ func (vm *VM) Initialize(
 	if err != nil {
 		return err
 	}
-	vm.warpBackend.AddMessageValidator(&handlers.ValidatorUptimeHandler{})
 
 	// clear warpdb on initialization if config enabled
 	if vm.config.PruneWarpDB {
