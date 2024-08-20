@@ -74,7 +74,7 @@ func TestClearDB(t *testing.T) {
 	// ensure all messages have been deleted
 	for _, message := range messages {
 		_, err := backend.GetMessageSignature(message)
-		require.ErrorContains(t, err, "failed to get warp message")
+		require.ErrorContains(t, err, "failed to validate warp message")
 	}
 }
 
