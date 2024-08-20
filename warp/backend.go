@@ -31,21 +31,11 @@ type BlockClient interface {
 	GetAcceptedBlock(ctx context.Context, blockID ids.ID) (snowman.Block, error)
 }
 
-type MessageValidator interface {
-	// If the validator returns nil, the message is considered valid and the
-	// backend will sign it.
-	ValidateMessage(*avalancheWarp.UnsignedMessage) error
-}
-
 // Backend tracks signature-eligible warp messages and provides an interface to fetch them.
 // The backend is also used to query for warp message signatures by the signature request handler.
 type Backend interface {
 	// AddMessage signs [unsignedMessage] and adds it to the warp backend database
 	AddMessage(unsignedMessage *avalancheWarp.UnsignedMessage) error
-
-	// AddMessageValidator adds a validator to the backend. The backend will sign
-	// messages that pass any of the validators, in addition to those known in the db.
-	AddMessageValidator(validator MessageValidator)
 
 	// GetMessageSignature returns the signature of the requested message.
 	GetMessageSignature(message *avalancheWarp.UnsignedMessage) ([bls.SignatureLen]byte, error)
@@ -73,7 +63,6 @@ type backend struct {
 	blockSignatureCache       *cache.LRU[ids.ID, [bls.SignatureLen]byte]
 	messageCache              *cache.LRU[ids.ID, *avalancheWarp.UnsignedMessage]
 	offchainAddressedCallMsgs map[ids.ID]*avalancheWarp.UnsignedMessage
-	messageValidators         []MessageValidator
 }
 
 // NewBackend creates a new Backend, and initializes the signature cache and message tracking database.
@@ -98,10 +87,6 @@ func NewBackend(
 		offchainAddressedCallMsgs: make(map[ids.ID]*avalancheWarp.UnsignedMessage),
 	}
 	return b, b.initOffChainMessages(offchainMessages)
-}
-
-func (b *backend) AddMessageValidator(validator MessageValidator) {
-	b.messageValidators = append(b.messageValidators, validator)
 }
 
 func (b *backend) initOffChainMessages(offchainMessages [][]byte) error {
