@@ -311,7 +311,7 @@ func (g *Genesis) toBlock(db ethdb.Database, triedb *triedb.Database) *types.Blo
 			panic(err)
 		}
 		for _, alloc := range airdrop {
-			statedb.SetBalance(alloc.Address, g.AirdropAmount)
+			statedb.SetBalance(alloc.Address, uint256.MustFromBig(g.AirdropAmount))
 		}
 		log.Debug(
 			"applied airdrop allocation",
@@ -343,7 +343,7 @@ func (g *Genesis) toBlock(db ethdb.Database, triedb *triedb.Database) *types.Blo
 	// Do custom allocation after airdrop in case an address shows up in standard
 	// allocation
 	for addr, account := range g.Alloc {
-		statedb.SetBalance(addr, account.Balance)
+		statedb.SetBalance(addr, uint256.MustFromBig(account.Balance))
 		statedb.SetCode(addr, account.Code)
 		statedb.SetNonce(addr, account.Nonce)
 		for key, value := range account.Storage {

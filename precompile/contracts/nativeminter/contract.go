@@ -13,6 +13,7 @@ import (
 	"github.com/ethereum/go-ethereum/precompile/allowlist"
 	"github.com/ethereum/go-ethereum/precompile/contract"
 	"github.com/ethereum/go-ethereum/vmerrs"
+	"github.com/holiman/uint256"
 )
 
 const (
@@ -23,7 +24,7 @@ const (
 
 type MintNativeCoinInput struct {
 	Addr   common.Address
-	Amount *big.Int
+	Amount *uint256.Int
 }
 
 var (
@@ -59,7 +60,7 @@ func PackMintNativeCoin(address common.Address, amount *big.Int) ([]byte, error)
 // UnpackMintNativeCoinInput attempts to unpack [input] as address and amount.
 // assumes that [input] does not include selector (omits first 4 func signature bytes)
 // if [useStrictMode] is true, it will return an error if the length of [input] is not [mintInputLen]
-func UnpackMintNativeCoinInput(input []byte, useStrictMode bool) (common.Address, *big.Int, error) {
+func UnpackMintNativeCoinInput(input []byte, useStrictMode bool) (common.Address, *uint256.Int, error) {
 	// Initially we had this check to ensure that the input was the correct length.
 	// However solidity does not always pack the input to the correct length, and allows
 	// for extra padding bytes to be added to the end of the input. Therefore, we have removed

@@ -11,6 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/precompile/contract"
 	"github.com/ethereum/go-ethereum/precompile/modules"
 	"github.com/ethereum/go-ethereum/precompile/precompileconfig"
+	"github.com/holiman/uint256"
 )
 
 var _ contract.Configurator = &configurator{}
@@ -52,8 +53,11 @@ func (*configurator) Configure(chainConfig precompileconfig.ChainConfig, cfg pre
 	}
 	for to, amount := range config.InitialMint {
 		if amount != nil {
-			bigIntAmount := (*big.Int)(amount)
-			state.AddBalance(to, bigIntAmount)
+			uintAmount, over := uint256.FromBig((*big.Int)(amount))
+			if over {
+				return fmt.Errorf("%T.InitialMint amount %v overflows 256 bits", config, amount)
+			}
+			state.AddBalance(to, uintAmount)
 		}
 	}
 

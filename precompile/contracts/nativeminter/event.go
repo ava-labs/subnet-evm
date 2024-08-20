@@ -5,10 +5,9 @@
 package nativeminter
 
 import (
-	"math/big"
-
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/precompile/contract"
+	"github.com/holiman/uint256"
 )
 
 const (
@@ -20,14 +19,14 @@ const (
 
 // PackNativeCoinMintedEvent packs the event into the appropriate arguments for NativeCoinMinted.
 // It returns topic hashes and the encoded non-indexed data.
-func PackNativeCoinMintedEvent(sender common.Address, recipient common.Address, amount *big.Int) ([]common.Hash, []byte, error) {
+func PackNativeCoinMintedEvent(sender common.Address, recipient common.Address, amount *uint256.Int) ([]common.Hash, []byte, error) {
 	return NativeMinterABI.PackEvent("NativeCoinMinted", sender, recipient, amount)
 }
 
 // UnpackNativeCoinMintedEventData attempts to unpack non-indexed [dataBytes].
-func UnpackNativeCoinMintedEventData(dataBytes []byte) (*big.Int, error) {
+func UnpackNativeCoinMintedEventData(dataBytes []byte) (*uint256.Int, error) {
 	var eventData = struct {
-		Amount *big.Int
+		Amount *uint256.Int
 	}{}
 	err := NativeMinterABI.UnpackIntoInterface(&eventData, "NativeCoinMinted", dataBytes)
 	return eventData.Amount, err
