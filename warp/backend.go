@@ -15,6 +15,7 @@ import (
 	"github.com/ava-labs/avalanchego/utils/crypto/bls"
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
+	"github.com/ava-labs/subnet-evm/warp/messages"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/log"
 )
@@ -165,14 +166,7 @@ func (b *backend) GetMessageSignature(unsignedMessage *avalancheWarp.UnsignedMes
 		return sig, nil
 	}
 
-	var err error
-	for _, v := range append(b.messageValidators, b) {
-		err = v.ValidateMessage(unsignedMessage)
-		if err == nil {
-			break
-		}
-	}
-	if err != nil {
+	if err := b.ValidateMessage(unsignedMessage); err != nil {
 		return [bls.SignatureLen]byte{}, fmt.Errorf("failed to validate warp message: %w", err)
 	}
 
@@ -188,10 +182,32 @@ func (b *backend) GetMessageSignature(unsignedMessage *avalancheWarp.UnsignedMes
 }
 
 func (b *backend) ValidateMessage(unsignedMessage *avalancheWarp.UnsignedMessage) error {
-	messageID := unsignedMessage.ID()
-	_, err := b.GetMessage(messageID)
+	// Known on-chain messages should be signed
+	if _, err := b.GetMessage(unsignedMessage.ID()); err == nil {
+		return nil
+	}
+
+	// Try to parse the payload as an AddressedCall
+	addressedCall, err := payload.ParseAddressedCall(unsignedMessage.Payload)
 	if err != nil {
-		return fmt.Errorf("failed to get warp message %s from db: %w", messageID.String(), err)
+		return fmt.Errorf("failed to parse unknown message as AddressedCall: %w", err)
+	}
+
+	// Further, parse the payload to see if it is a known type.
+	parsed, err := messages.Parse(addressedCall.Payload)
+	if err != nil {
+		return fmt.Errorf("failed to parse unknown message: %w", err)
+	}
+
+	// Check if the message is a known type that can be signed on demand
+	signable, ok := parsed.(messages.Signable)
+	if !ok {
+		return fmt.Errorf("parsed message is not Signable: %T", signable)
+	}
+
+	// Check if the message should be signed according to its type
+	if err := signable.VerifyMesssage(addressedCall.SourceAddress); err != nil {
+		return fmt.Errorf("failed to verify Signable message: %w", err)
 	}
 	return nil
 }
