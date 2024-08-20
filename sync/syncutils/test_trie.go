@@ -6,7 +6,6 @@ package syncutils
 import (
 	cryptoRand "crypto/rand"
 	"encoding/binary"
-	"math/big"
 	"math/rand"
 	"testing"
 
@@ -20,6 +19,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -149,8 +149,8 @@ func FillAccounts(
 	onAccount func(*testing.T, int, types.StateAccount) types.StateAccount,
 ) (common.Hash, map[*keystore.Key]*types.StateAccount) {
 	var (
-		minBalance  = big.NewInt(3000000000000000000)
-		randBalance = big.NewInt(1000000000000000000)
+		minBalance  = uint256.NewInt(3000000000000000000)
+		randBalance = uint256.NewInt(1000000000000000000)
 		maxNonce    = 10
 		accounts    = make(map[*keystore.Key]*types.StateAccount, numAccounts)
 	)
@@ -163,7 +163,7 @@ func FillAccounts(
 	for i := 0; i < numAccounts; i++ {
 		acc := types.StateAccount{
 			Nonce:    uint64(rand.Intn(maxNonce)),
-			Balance:  new(big.Int).Add(minBalance, randBalance),
+			Balance:  new(uint256.Int).Add(minBalance, randBalance),
 			CodeHash: types.EmptyCodeHash[:],
 			Root:     types.EmptyRootHash,
 		}

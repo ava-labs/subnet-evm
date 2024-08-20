@@ -497,7 +497,11 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 		ret, st.gasRemaining, vmerr = st.evm.Call(sender, st.to(), msg.Data, st.gasRemaining, value)
 	}
 	gasRefund := st.refundGas(rules.IsSubnetEVM)
-	st.state.AddBalance(st.evm.Context.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), msg.GasPrice))
+	gasPrice, over := uint256.FromBig(msg.GasPrice)
+	if over {
+		return nil, fmt.Errorf("%T.GasPrice %v overflows 256 bits", msg, msg.GasPrice)
+	}
+	st.state.AddBalance(st.evm.Context.Coinbase, new(uint256.Int).Mul(uint256.NewInt(st.gasUsed()), gasPrice))
 
 	return &ExecutionResult{
 		UsedGas:     st.gasUsed(),

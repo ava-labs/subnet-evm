@@ -23,6 +23,7 @@ import (
 	"github.com/ethereum/go-ethereum/precompile/contracts/deployerallowlist"
 	"github.com/ethereum/go-ethereum/precompile/contracts/feemanager"
 	"github.com/ethereum/go-ethereum/utils"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -202,10 +203,10 @@ func TestInsertChainAcceptSingleBlock(t *testing.T, create func(db ethdb.Databas
 	)
 
 	// Ensure that key1 has some funds in the genesis block.
-	genesisBalance := big.NewInt(1000000)
+	genesisBalance := uint256.NewInt(1000000)
 	gspec := &Genesis{
 		Config: &params.ChainConfig{HomesteadBlock: new(big.Int)},
-		Alloc:  GenesisAlloc{addr1: {Balance: genesisBalance}},
+		Alloc:  GenesisAlloc{addr1: {Balance: genesisBalance.ToBig()}},
 	}
 	blockchain, err := create(chainDB, gspec, common.Hash{})
 	if err != nil {
@@ -238,9 +239,9 @@ func TestInsertChainAcceptSingleBlock(t *testing.T, create func(db ethdb.Databas
 		if nonce != 1 {
 			return fmt.Errorf("expected nonce addr1: 1, found nonce: %d", nonce)
 		}
-		transferredFunds := big.NewInt(10000)
+		transferredFunds := uint256.NewInt(10000)
 		balance1 := sdb.GetBalance(addr1)
-		expectedBalance1 := new(big.Int).Sub(genesisBalance, transferredFunds)
+		expectedBalance1 := new(uint256.Int).Sub(genesisBalance, transferredFunds)
 		if balance1.Cmp(expectedBalance1) != 0 {
 			return fmt.Errorf("expected addr1 balance: %d, found balance: %d", expectedBalance1, balance1)
 		}
@@ -271,10 +272,10 @@ func TestInsertLongForkedChain(t *testing.T, create func(db ethdb.Database, gspe
 	)
 
 	// Ensure that key1 has some funds in the genesis block.
-	genesisBalance := big.NewInt(1000000000)
+	genesisBalance := uint256.NewInt(1000000000)
 	gspec := &Genesis{
 		Config: &params.ChainConfig{HomesteadBlock: new(big.Int)},
-		Alloc:  GenesisAlloc{addr1: {Balance: genesisBalance}},
+		Alloc:  GenesisAlloc{addr1: {Balance: genesisBalance.ToBig()}},
 	}
 
 	blockchain, err := create(chainDB, gspec, common.Hash{})
@@ -405,8 +406,8 @@ func TestInsertLongForkedChain(t *testing.T, create func(db ethdb.Database, gspe
 			return fmt.Errorf("expected addr1 nonce: 129, found nonce %d", nonce1)
 		}
 		balance1 := sdb.GetBalance(addr1)
-		transferredFunds := new(big.Int).Mul(big.NewInt(129), big.NewInt(10000))
-		expectedBalance := new(big.Int).Sub(genesisBalance, transferredFunds)
+		transferredFunds := uint256.NewInt(129 * 10_000)
+		expectedBalance := new(uint256.Int).Sub(genesisBalance, transferredFunds)
 		if balance1.Cmp(expectedBalance) != 0 {
 			return fmt.Errorf("expected addr1 balance: %d, found balance: %d", expectedBalance, balance1)
 		}
@@ -434,10 +435,10 @@ func TestAcceptNonCanonicalBlock(t *testing.T, create func(db ethdb.Database, gs
 	)
 
 	// Ensure that key1 has some funds in the genesis block.
-	genesisBalance := big.NewInt(1000000000)
+	genesisBalance := uint256.NewInt(1000000000)
 	gspec := &Genesis{
 		Config: &params.ChainConfig{HomesteadBlock: new(big.Int)},
-		Alloc:  GenesisAlloc{addr1: {Balance: genesisBalance}},
+		Alloc:  GenesisAlloc{addr1: {Balance: genesisBalance.ToBig()}},
 	}
 
 	blockchain, err := create(chainDB, gspec, common.Hash{})
@@ -512,8 +513,8 @@ func TestAcceptNonCanonicalBlock(t *testing.T, create func(db ethdb.Database, gs
 			return fmt.Errorf("expected addr1 nonce: 1, found nonce: %d", nonce1)
 		}
 		balance1 := sdb.GetBalance(addr1)
-		transferredFunds := big.NewInt(5000)
-		expectedBalance := new(big.Int).Sub(genesisBalance, transferredFunds)
+		transferredFunds := uint256.NewInt(5000)
+		expectedBalance := new(uint256.Int).Sub(genesisBalance, transferredFunds)
 		if balance1.Cmp(expectedBalance) != 0 {
 			return fmt.Errorf("expected balance1: %d, found balance: %d", expectedBalance, balance1)
 		}
@@ -541,10 +542,10 @@ func TestSetPreferenceRewind(t *testing.T, create func(db ethdb.Database, gspec 
 	)
 
 	// Ensure that key1 has some funds in the genesis block.
-	genesisBalance := big.NewInt(1000000000)
+	genesisBalance := uint256.NewInt(1000000000)
 	gspec := &Genesis{
 		Config: &params.ChainConfig{HomesteadBlock: new(big.Int)},
-		Alloc:  GenesisAlloc{addr1: {Balance: genesisBalance}},
+		Alloc:  GenesisAlloc{addr1: {Balance: genesisBalance.ToBig()}},
 	}
 
 	blockchain, err := create(chainDB, gspec, common.Hash{})
@@ -614,7 +615,7 @@ func TestSetPreferenceRewind(t *testing.T, create func(db ethdb.Database, gspec 
 			return fmt.Errorf("expected addr2 nonce: 0, found nonce: %d", nonce2)
 		}
 		balance2 := sdb.GetBalance(addr2)
-		if balance2.Cmp(big.NewInt(0)) != 0 {
+		if balance2.Cmp(uint256.NewInt(0)) != 0 {
 			return fmt.Errorf("expected addr2 balance: 0, found balance %d", balance2)
 		}
 		return nil
@@ -639,9 +640,9 @@ func TestSetPreferenceRewind(t *testing.T, create func(db ethdb.Database, gspec 
 		if nonce != 1 {
 			return fmt.Errorf("expected addr1 nonce: 1, found nonce: %d", nonce)
 		}
-		transferredFunds := big.NewInt(10000)
+		transferredFunds := uint256.NewInt(10000)
 		balance1 := sdb.GetBalance(addr1)
-		expectedBalance1 := new(big.Int).Sub(genesisBalance, transferredFunds)
+		expectedBalance1 := new(uint256.Int).Sub(genesisBalance, transferredFunds)
 		if balance1.Cmp(expectedBalance1) != 0 {
 			return fmt.Errorf("expected addr1 balance: %d, found balance %d", expectedBalance1, balance1)
 		}
@@ -673,12 +674,12 @@ func TestBuildOnVariousStages(t *testing.T, create func(db ethdb.Database, gspec
 	)
 
 	// Ensure that key1 has some funds in the genesis block.
-	genesisBalance := big.NewInt(1000000)
+	genesisBalance := uint256.NewInt(1000000)
 	gspec := &Genesis{
 		Config: &params.ChainConfig{HomesteadBlock: new(big.Int)},
 		Alloc: GenesisAlloc{
-			addr1: {Balance: genesisBalance},
-			addr3: {Balance: genesisBalance},
+			addr1: {Balance: genesisBalance.ToBig()},
+			addr3: {Balance: genesisBalance.ToBig()},
 		},
 	}
 
@@ -693,10 +694,10 @@ func TestBuildOnVariousStages(t *testing.T, create func(db ethdb.Database, gspec
 	genDB, chain1, _, err := GenerateChainWithGenesis(gspec, blockchain.engine, 20, 10, func(i int, gen *BlockGen) {
 		// Send all funds back and forth between the two accounts
 		if i%2 == 0 {
-			tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr1), addr2, genesisBalance, params.TxGas, nil, nil), signer, key1)
+			tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr1), addr2, genesisBalance.ToBig(), params.TxGas, nil, nil), signer, key1)
 			gen.AddTx(tx)
 		} else {
-			tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr2), addr1, genesisBalance, params.TxGas, nil, nil), signer, key2)
+			tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr2), addr1, genesisBalance.ToBig(), params.TxGas, nil, nil), signer, key2)
 			gen.AddTx(tx)
 		}
 	})
@@ -707,10 +708,10 @@ func TestBuildOnVariousStages(t *testing.T, create func(db ethdb.Database, gspec
 	chain2, _, err := GenerateChain(gspec.Config, chain1[9], blockchain.engine, genDB, 10, 10, func(i int, gen *BlockGen) {
 		// Send all funds back and forth between the two accounts
 		if i%2 == 0 {
-			tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr3), addr2, genesisBalance, params.TxGas, nil, nil), signer, key3)
+			tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr3), addr2, genesisBalance.ToBig(), params.TxGas, nil, nil), signer, key3)
 			gen.AddTx(tx)
 		} else {
-			tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr2), addr3, genesisBalance, params.TxGas, nil, nil), signer, key2)
+			tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr2), addr3, genesisBalance.ToBig(), params.TxGas, nil, nil), signer, key2)
 			gen.AddTx(tx)
 		}
 	})
@@ -723,10 +724,10 @@ func TestBuildOnVariousStages(t *testing.T, create func(db ethdb.Database, gspec
 	chain3, _, err := GenerateChain(gspec.Config, chain1[4], blockchain.engine, genDB, 10, 10, func(i int, gen *BlockGen) {
 		// Send all funds back and forth between accounts 2 and 3.
 		if i%2 == 0 {
-			tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr2), addr3, genesisBalance, params.TxGas, nil, nil), signer, key2)
+			tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr2), addr3, genesisBalance.ToBig(), params.TxGas, nil, nil), signer, key2)
 			gen.AddTx(tx)
 		} else {
-			tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr3), addr2, genesisBalance, params.TxGas, nil, nil), signer, key3)
+			tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr3), addr2, genesisBalance.ToBig(), params.TxGas, nil, nil), signer, key3)
 			gen.AddTx(tx)
 		}
 	})
@@ -812,7 +813,7 @@ func TestBuildOnVariousStages(t *testing.T, create func(db ethdb.Database, gspec
 		}
 
 		balance3 := sdb.GetBalance(addr3)
-		expectedBalance3 := common.Big0
+		expectedBalance3 := uint256.NewInt(0)
 		if balance3.Cmp(expectedBalance3) != 0 {
 			return fmt.Errorf("expected addr3 balance: %d, found balance: %d", expectedBalance3, balance3)
 		}
@@ -875,10 +876,10 @@ func TestReorgReInsert(t *testing.T, create func(db ethdb.Database, gspec *Genes
 	)
 
 	// Ensure that key1 has some funds in the genesis block.
-	genesisBalance := big.NewInt(1000000000)
+	genesisBalance := uint256.NewInt(1000000000)
 	gspec := &Genesis{
 		Config: &params.ChainConfig{HomesteadBlock: new(big.Int)},
-		Alloc:  GenesisAlloc{addr1: {Balance: genesisBalance}},
+		Alloc:  GenesisAlloc{addr1: {Balance: genesisBalance.ToBig()}},
 	}
 
 	blockchain, err := create(chainDB, gspec, common.Hash{})
@@ -938,8 +939,8 @@ func TestReorgReInsert(t *testing.T, create func(db ethdb.Database, gspec *Genes
 			return fmt.Errorf("expected addr1 nonce: 3, found nonce: %d", nonce1)
 		}
 		balance1 := sdb.GetBalance(addr1)
-		transferredFunds := big.NewInt(30000)
-		expectedBalance := new(big.Int).Sub(genesisBalance, transferredFunds)
+		transferredFunds := uint256.NewInt(30000)
+		expectedBalance := new(uint256.Int).Sub(genesisBalance, transferredFunds)
 		if balance1.Cmp(expectedBalance) != 0 {
 			return fmt.Errorf("expected balance1: %d, found balance: %d", expectedBalance, balance1)
 		}
@@ -980,10 +981,10 @@ func TestAcceptBlockIdenticalStateRoot(t *testing.T, create func(db ethdb.Databa
 	)
 
 	// Ensure that key1 has some funds in the genesis block.
-	genesisBalance := big.NewInt(1000000000)
+	genesisBalance := uint256.NewInt(1000000000)
 	gspec := &Genesis{
 		Config: &params.ChainConfig{HomesteadBlock: new(big.Int)},
-		Alloc:  GenesisAlloc{addr1: {Balance: genesisBalance}},
+		Alloc:  GenesisAlloc{addr1: {Balance: genesisBalance.ToBig()}},
 	}
 
 	blockchain, err := create(chainDB, gspec, common.Hash{})
@@ -1081,7 +1082,7 @@ func TestAcceptBlockIdenticalStateRoot(t *testing.T, create func(db ethdb.Databa
 			return fmt.Errorf("expected addr1 nonce: 2, found nonce: %d", nonce1)
 		}
 		balance1 := sdb.GetBalance(addr1)
-		expectedBalance := common.Big0
+		expectedBalance := uint256.NewInt(0)
 		if balance1.Cmp(expectedBalance) != 0 {
 			return fmt.Errorf("expected balance1: %d, found balance: %d", expectedBalance, balance1)
 		}
@@ -1123,10 +1124,10 @@ func TestReprocessAcceptBlockIdenticalStateRoot(t *testing.T, create func(db eth
 	)
 
 	// Ensure that key1 has some funds in the genesis block.
-	genesisBalance := big.NewInt(1000000000)
+	genesisBalance := uint256.NewInt(1000000000)
 	gspec := &Genesis{
 		Config: &params.ChainConfig{HomesteadBlock: new(big.Int)},
-		Alloc:  GenesisAlloc{addr1: {Balance: genesisBalance}},
+		Alloc:  GenesisAlloc{addr1: {Balance: genesisBalance.ToBig()}},
 	}
 
 	blockchain, err := create(chainDB, gspec, common.Hash{})
@@ -1248,7 +1249,7 @@ func TestReprocessAcceptBlockIdenticalStateRoot(t *testing.T, create func(db eth
 			return fmt.Errorf("expected addr1 nonce: 2, found nonce: %d", nonce1)
 		}
 		balance1 := sdb.GetBalance(addr1)
-		expectedBalance := common.Big0
+		expectedBalance := uint256.NewInt(0)
 		if balance1.Cmp(expectedBalance) != 0 {
 			return fmt.Errorf("expected balance1: %d, found balance: %d", expectedBalance, balance1)
 		}
@@ -1379,10 +1380,10 @@ func TestInsertChainValidBlockFee(t *testing.T, create func(db ethdb.Database, g
 	)
 
 	// Ensure that key1 has some funds in the genesis block.
-	genesisBalance := new(big.Int).Mul(big.NewInt(1000000), big.NewInt(params.Ether))
+	genesisBalance := new(uint256.Int).Mul(uint256.NewInt(1000000), uint256.NewInt(params.Ether))
 	gspec := &Genesis{
 		Config: params.TestChainConfig,
-		Alloc:  GenesisAlloc{addr1: {Balance: genesisBalance}},
+		Alloc:  GenesisAlloc{addr1: {Balance: genesisBalance.ToBig()}},
 	}
 
 	blockchain, err := create(chainDB, gspec, common.Hash{})
@@ -1393,18 +1394,18 @@ func TestInsertChainValidBlockFee(t *testing.T, create func(db ethdb.Database, g
 
 	// This call generates a chain of 3 blocks.
 	signer := types.LatestSigner(params.TestChainConfig)
-	tip := big.NewInt(50000 * params.GWei)
-	transfer := big.NewInt(10000)
+	tip := uint256.NewInt(50000 * params.GWei)
+	transfer := uint256.NewInt(10000)
 	_, chain, _, err := GenerateChainWithGenesis(gspec, blockchain.engine, 3, 0, func(i int, gen *BlockGen) {
-		feeCap := new(big.Int).Add(gen.BaseFee(), tip)
+		feeCap := new(big.Int).Add(gen.BaseFee(), tip.ToBig())
 		tx := types.NewTx(&types.DynamicFeeTx{
 			ChainID:   params.TestChainConfig.ChainID,
 			Nonce:     gen.TxNonce(addr1),
 			To:        &addr2,
 			Gas:       params.TxGas,
-			Value:     transfer,
+			Value:     transfer.ToBig(),
 			GasFeeCap: feeCap,
-			GasTipCap: tip,
+			GasTipCap: tip.ToBig(),
 			Data:      []byte{},
 		})
 
@@ -1434,9 +1435,9 @@ func TestInsertChainValidBlockFee(t *testing.T, create func(db ethdb.Database, g
 			return fmt.Errorf("expected nonce addr1: 1, found nonce: %d", nonce)
 		}
 		balance1 := sdb.GetBalance(addr1)
-		expectedBalance1 := new(big.Int).Sub(genesisBalance, transfer)
-		baseFee := params.DefaultFeeConfig.MinBaseFee
-		feeSpend := new(big.Int).Mul(new(big.Int).Add(baseFee, tip), new(big.Int).SetUint64(params.TxGas))
+		expectedBalance1 := new(uint256.Int).Sub(genesisBalance, transfer)
+		baseFee := uint256.MustFromBig(params.DefaultFeeConfig.MinBaseFee)
+		feeSpend := new(uint256.Int).Mul(new(uint256.Int).Add(baseFee, tip), uint256.NewInt(params.TxGas))
 		expectedBalance1.Sub(expectedBalance1, feeSpend)
 		if balance1.Cmp(expectedBalance1) != 0 {
 			return fmt.Errorf("expected addr1 balance: %d, found balance: %d", expectedBalance1, balance1)
