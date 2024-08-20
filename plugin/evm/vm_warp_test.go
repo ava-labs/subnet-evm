@@ -437,7 +437,7 @@ func TestReceiveWarpMessage(t *testing.T) {
 	// Subnet messages should use subnet signers
 	testReceiveWarpMessage(t, issuer, vm, false, false, upgrade.InitiallyActiveTime)
 
-	/// At genesis, primary network messages should use subnet signers
+	// At genesis, primary network messages should use subnet signers
 	blockTime := upgrade.InitiallyActiveTime.Add(2 * time.Second) // for fees
 	require.True(blockTime.Before(disableTime))
 	testReceiveWarpMessage(t, issuer, vm, true, false, blockTime)
