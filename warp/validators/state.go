@@ -43,8 +43,9 @@ func (s *State) GetValidatorSet(
 	subnetID ids.ID,
 ) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
 	// If the subnetID is anything other than the Primary Network, or Primary
-	// Network signers are required, this is a direct passthrough.
-	if s.requirePrimaryNetworkSigners && s.sourceChainID != constants.PlatformChainID || subnetID != constants.PrimaryNetworkID {
+	// Network signers are required (except P-Chain), this is a direct passthrough.
+	usePrimary := s.requirePrimaryNetworkSigners && s.sourceChainID != constants.PlatformChainID
+	if usePrimary || subnetID != constants.PrimaryNetworkID {
 		return s.State.GetValidatorSet(ctx, height, subnetID)
 	}
 
