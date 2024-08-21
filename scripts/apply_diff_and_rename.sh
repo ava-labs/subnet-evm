@@ -22,7 +22,11 @@ else
 fi
 
 # TODO: improve this command that finds all the "coreth" references and replaces them with "subnet-evm"
-LANG=C find . -type f \! -name 'apply_diff_and_rename.sh' \! -path './.git/*' \! -path './contracts/node_modules/*' -exec sed -i '' -e "${sed_command}" {} \;
+sed_inplace=(sed -i) # Linux
+if [[ $(uname) == "Darwin" ]]; then
+    sed_inplace=(sed -i '')
+fi
+LANG=C find . -type f \! -name 'apply_diff_and_rename.sh' \! -path './.git/*' \! -path './contracts/node_modules/*' -exec "${sed_inplace[@]}" -e "${sed_command}" {} \;
 gofmt -w .
 go mod tidy
 
