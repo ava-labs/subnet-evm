@@ -27,4 +27,4 @@ gofmt -w .
 go mod tidy
 
 # Restore contracts/.gitignore
-git checkout -- contracts/.gitignore
+git checkout -- contracts/.gitignore || true  # Ignore if the file doesn't exist
