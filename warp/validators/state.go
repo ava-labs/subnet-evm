@@ -28,12 +28,23 @@ type State struct {
 //
 // The wrapped state will return the chainContext's Subnet validator set instead of the Primary Network when
 // the Primary Network SubnetID is passed in.
+// Additionally, it will return the chainContext's Subnet instead of the P-Chain, so that messages from the
+// P-Chains are verified against the Subnet's validator set.
 func NewState(chainContext *snow.Context, requirePrimaryNetworkSigners func() bool) *State {
 	return &State{
 		State:                        chainContext.ValidatorState,
 		chainContext:                 chainContext,
 		requirePrimaryNetworkSigners: requirePrimaryNetworkSigners,
 	}
+}
+
+func (s *State) GetSubnetID(ctx context.Context, chainID ids.ID) (ids.ID, error) {
+	// Messages from the P-Chain should be verified against the Subnet's validator set
+	if chainID == constants.PlatformChainID {
+		return s.chainContext.SubnetID, nil
+	}
+
+	return s.State.GetSubnetID(ctx, chainID)
 }
 
 func (s *State) GetValidatorSet(
