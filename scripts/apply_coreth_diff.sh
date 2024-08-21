@@ -16,3 +16,6 @@ sed_command='s!github.com/ava-labs/coreth!github.com/ava-labs/subnet-evm!g'
 LANG=C find . -type f \! -name 'apply_coreth_diff.sh' \! -path './.git/*' \! -path './contracts/node_modules/*' -exec sed -i '' -e "${sed_command}" {} \;
 gofmt -w .
 go mod tidy
+
+# Restore contracts/.gitignore
+git checkout -- contracts/.gitignore
