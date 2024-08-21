@@ -47,13 +47,6 @@ var (
 	exampleWarpABI string
 )
 
-type warpMsgFrom int
-
-const (
-	fromSubnet warpMsgFrom = iota
-	fromPrimary
-)
-
 type useWarpMsgSigners int
 
 const (
@@ -457,7 +450,6 @@ func TestReceiveWarpMessage(t *testing.T) {
 	type test struct {
 		name          string
 		sourceChainID ids.ID
-		msgFrom       warpMsgFrom
 		useSigners    useWarpMsgSigners
 		blockTime     time.Time
 	}
@@ -467,21 +459,18 @@ func TestReceiveWarpMessage(t *testing.T) {
 		{
 			name:          "subnet message should be signed by subnet without RequirePrimaryNetworkSigners",
 			sourceChainID: vm.ctx.ChainID,
-			msgFrom:       fromSubnet,
 			useSigners:    signersSubnet,
 			blockTime:     upgrade.InitiallyActiveTime,
 		},
 		{
 			name:          "P-Chain message should be signed by subnet without RequirePrimaryNetworkSigners",
 			sourceChainID: constants.PlatformChainID,
-			msgFrom:       fromPrimary,
 			useSigners:    signersSubnet,
 			blockTime:     upgrade.InitiallyActiveTime.Add(blockGap),
 		},
 		{
 			name:          "C-Chain message should be signed by subnet without RequirePrimaryNetworkSigners",
 			sourceChainID: testCChainID,
-			msgFrom:       fromPrimary,
 			useSigners:    signersSubnet,
 			blockTime:     upgrade.InitiallyActiveTime.Add(2 * blockGap),
 		},
@@ -490,21 +479,18 @@ func TestReceiveWarpMessage(t *testing.T) {
 		{
 			name:          "subnet message should be signed by subnet with RequirePrimaryNetworkSigners (unimpacted)",
 			sourceChainID: vm.ctx.ChainID,
-			msgFrom:       fromSubnet,
 			useSigners:    signersSubnet,
 			blockTime:     reEnableTime,
 		},
 		{
 			name:          "P-Chain message should be signed by subnet with RequirePrimaryNetworkSigners (unimpacted)",
 			sourceChainID: constants.PlatformChainID,
-			msgFrom:       fromPrimary,
 			useSigners:    signersSubnet,
 			blockTime:     reEnableTime.Add(blockGap),
 		},
 		{
 			name:          "C-Chain message should be signed by primary with RequirePrimaryNetworkSigners (impacted)",
 			sourceChainID: testCChainID,
-			msgFrom:       fromPrimary,
 			useSigners:    signersPrimary,
 			blockTime:     reEnableTime.Add(2 * blockGap),
 		},
@@ -513,16 +499,14 @@ func TestReceiveWarpMessage(t *testing.T) {
 	// time and cannot, eg be run in parallel or a separate golang test.
 	for _, test := range tests {
 		testReceiveWarpMessage(
-			t, issuer, vm, test.sourceChainID, test.msgFrom, test.useSigners, test.blockTime,
+			t, issuer, vm, test.sourceChainID, test.useSigners, test.blockTime,
 		)
 	}
 }
 
 func testReceiveWarpMessage(
 	t *testing.T, issuer chan commonEng.Message, vm *VM,
-	sourceChainID ids.ID,
-	msgFrom warpMsgFrom, useSigners useWarpMsgSigners,
-	blockTime time.Time,
+	sourceChainID ids.ID, useSigners useWarpMsgSigners, blockTime time.Time,
 ) {
 	require := require.New(t)
 	payloadData := avagoUtils.RandomBytes(100)
@@ -585,10 +569,7 @@ func testReceiveWarpMessage(
 
 	vm.ctx.ValidatorState = &validatorstest.State{
 		GetSubnetIDF: func(ctx context.Context, chainID ids.ID) (ids.ID, error) {
-			if msgFrom == fromPrimary {
-				return constants.PrimaryNetworkID, nil
-			}
-			return vm.ctx.SubnetID, nil
+			return sourceChainID, nil
 		},
 		GetValidatorSetF: func(ctx context.Context, height uint64, subnetID ids.ID) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
 			if height < minimumValidPChainHeight {
