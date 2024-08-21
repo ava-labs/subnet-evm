@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -o erexit
+set -o errexit
 set -o nounset
 set -o pipefail
 # TODO(marun) Ensure the working directory is the repository root or a non-canonical set of tests may be executed
