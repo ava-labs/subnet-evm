@@ -42,17 +42,9 @@ func (s *State) GetValidatorSet(
 	height uint64,
 	subnetID ids.ID,
 ) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
-	requirePrimaryNetworkSigners := s.requirePrimaryNetworkSigners
-	if s.sourceChainID == constants.PlatformChainID {
-		// Since subnets still process the P-Chain, their validators should
-		// be used in verifying messages from the P-Chain.
-		// TODO: uncomment
-		// requirePrimaryNetworkSigners = false
-	}
-
 	// If the subnetID is anything other than the Primary Network, or Primary
 	// Network signers are required, this is a direct passthrough.
-	if requirePrimaryNetworkSigners || subnetID != constants.PrimaryNetworkID {
+	if s.requirePrimaryNetworkSigners && s.sourceChainID != constants.PlatformChainID || subnetID != constants.PrimaryNetworkID {
 		return s.State.GetValidatorSet(ctx, height, subnetID)
 	}
 
