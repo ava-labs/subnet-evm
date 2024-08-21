@@ -7,6 +7,7 @@ import (
 	"context"
 
 	"github.com/ava-labs/avalanchego/ids"
+	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/avalanchego/snow/validators"
 	"github.com/ava-labs/avalanchego/utils/constants"
 )
@@ -19,20 +20,18 @@ var _ validators.State = (*State)(nil)
 // since the receiving subnet already relies on a majority of its validators being correct.
 type State struct {
 	validators.State
-	mySubnetID                   ids.ID
-	sourceChainID                ids.ID
-	requirePrimaryNetworkSigners bool
+	chainContext                 *snow.Context
+	requirePrimaryNetworkSigners func() bool
 }
 
 // NewState returns a wrapper of [validators.State] which special cases the handling of the Primary Network.
 //
-// The wrapped state will return the [mySubnetID's] validator set instead of the Primary Network when
+// The wrapped state will return the chainContext's Subnet validator set instead of the Primary Network when
 // the Primary Network SubnetID is passed in.
-func NewState(state validators.State, mySubnetID ids.ID, sourceChainID ids.ID, requirePrimaryNetworkSigners bool) *State {
+func NewState(chainContext *snow.Context, requirePrimaryNetworkSigners func() bool) *State {
 	return &State{
-		State:                        state,
-		mySubnetID:                   mySubnetID,
-		sourceChainID:                sourceChainID,
+		State:                        chainContext.ValidatorState,
+		chainContext:                 chainContext,
 		requirePrimaryNetworkSigners: requirePrimaryNetworkSigners,
 	}
 }
@@ -43,13 +42,12 @@ func (s *State) GetValidatorSet(
 	subnetID ids.ID,
 ) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
 	// If the subnetID is anything other than the Primary Network, or Primary
-	// Network signers are required (except P-Chain), this is a direct passthrough.
-	usePrimary := s.requirePrimaryNetworkSigners && s.sourceChainID != constants.PlatformChainID
-	if usePrimary || subnetID != constants.PrimaryNetworkID {
+	// Network signers are required, this is a direct passthrough.
+	if s.requirePrimaryNetworkSigners() || subnetID != constants.PrimaryNetworkID {
 		return s.State.GetValidatorSet(ctx, height, subnetID)
 	}
 
 	// If the requested subnet is the primary network, then we return the validator
 	// set for the Subnet that is receiving the message instead.
-	return s.State.GetValidatorSet(ctx, height, s.mySubnetID)
+	return s.State.GetValidatorSet(ctx, height, s.chainContext.SubnetID)
 }

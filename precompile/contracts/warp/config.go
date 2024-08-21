@@ -200,19 +200,11 @@ func (c *Config) VerifyPredicate(predicateContext *precompileconfig.PredicateCon
 	}
 
 	log.Debug("verifying warp message", "warpMsg", warpMsg, "quorumNum", quorumNumerator, "quorumDenom", WarpQuorumDenominator)
-
-	// Wrap validators.State on the chain snow context to special case the Primary Network
-	state := warpValidators.NewState(
-		predicateContext.SnowCtx.ValidatorState,
-		predicateContext.SnowCtx.SubnetID,
-		warpMsg.SourceChainID,
-		c.RequirePrimaryNetworkSigners,
-	)
 	err = warpMsg.Signature.Verify(
 		context.Background(),
 		&warpMsg.UnsignedMessage,
 		predicateContext.SnowCtx.NetworkID,
-		state,
+		warpValidators.NewState(predicateContext.SnowCtx, func() bool { return c.RequirePrimaryNetworkSigners }), // Wrap validators.State on the chain snow context to special case the Primary Network
 		predicateContext.ProposerVMBlockCtx.PChainHeight,
 		quorumNumerator,
 		WarpQuorumDenominator,
