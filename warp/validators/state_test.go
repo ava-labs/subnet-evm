@@ -44,4 +44,15 @@ func TestGetValidatorSetPrimaryNetwork(t *testing.T) {
 	output, err = state.GetValidatorSet(context.Background(), 10, otherSubnetID)
 	require.NoError(err)
 	require.Len(output, 0)
+
+	// Requesting P-Chain's subnet should return mySubnetID
+	subnetID, err := state.GetSubnetID(context.Background(), constants.PlatformChainID)
+	require.NoError(err)
+	require.Equal(mySubnetID, subnetID)
+
+	// Requesting other chain's subnet should pass through
+	mockState.EXPECT().GetSubnetID(gomock.Any(), gomock.Any()).Return(otherSubnetID, nil)
+	subnetID, err = state.GetSubnetID(context.Background(), ids.GenerateTestID())
+	require.NoError(err)
+	require.Equal(otherSubnetID, subnetID)
 }
