@@ -483,13 +483,13 @@ func TestUngracefulAsyncShutdown(t *testing.T) {
 	// After inserting all blocks, we should confirm that txs added after the
 	// async worker shutdown cannot be found.
 	for _, tx := range foundTxs {
-		txLookup, _, _ := blockchain.GetTransactionLookup(tx)
+		txLookup := blockchain.GetTransactionLookup(tx)
 		if txLookup == nil {
 			t.Fatalf("missing transaction: %v", tx)
 		}
 	}
 	for _, tx := range missingTxs {
-		txLookup, _, _ := blockchain.GetTransactionLookup(tx)
+		txLookup := blockchain.GetTransactionLookup(tx)
 		if txLookup != nil {
 			t.Fatalf("transaction should be missing: %v", tx)
 		}
@@ -533,7 +533,7 @@ func TestUngracefulAsyncShutdown(t *testing.T) {
 
 		// We should confirm all transactions can now be queried
 		for _, tx := range allTxs {
-			txLookup, _, _ := bc.GetTransactionLookup(tx)
+			txLookup := bc.GetTransactionLookup(tx)
 			if txLookup == nil {
 				t.Fatalf("missing transaction: %v", tx)
 			}
