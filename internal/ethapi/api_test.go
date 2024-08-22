@@ -625,7 +625,7 @@ func TestEstimateGas(t *testing.T) {
 	var (
 		accounts = newAccounts(2)
 		genesis  = &core.Genesis{
-			Config: params.MergedTestChainConfig,
+			Config: params.TestSubnetEVMChainConfig,
 			Alloc: types.GenesisAlloc{
 				accounts[0].addr: {Balance: big.NewInt(params.Ether)},
 				accounts[1].addr: {Balance: big.NewInt(params.Ether)},
@@ -635,13 +635,12 @@ func TestEstimateGas(t *testing.T) {
 		signer         = types.HomesteadSigner{}
 		randomAccounts = newAccounts(2)
 	)
-	api := NewBlockChainAPI(newTestBackend(t, genBlocks, genesis, beacon.New(dummy.NewCoinbaseFaker()), func(i int, b *core.BlockGen) {
+	api := NewBlockChainAPI(newTestBackend(t, genBlocks, genesis, dummy.NewCoinbaseFaker(), func(i int, b *core.BlockGen) {
 		// Transfer from account[0] to account[1]
 		//    value: 1000 wei
 		//    fee:   0 wei
 		tx, _ := types.SignTx(types.NewTx(&types.LegacyTx{Nonce: uint64(i), To: &accounts[1].addr, Value: big.NewInt(1000), Gas: params.TxGas, GasPrice: b.BaseFee(), Data: nil}), signer, accounts[0].key)
 		b.AddTx(tx)
-		b.SetPoS()
 	}))
 	var testSuite = []struct {
 		blockNumber rpc.BlockNumber
@@ -782,7 +781,7 @@ func TestCall(t *testing.T) {
 	var (
 		accounts = newAccounts(3)
 		genesis  = &core.Genesis{
-			Config: params.MergedTestChainConfig,
+			Config: params.TestSubnetEVMChainConfig,
 			Alloc: types.GenesisAlloc{
 				accounts[0].addr: {Balance: big.NewInt(params.Ether)},
 				accounts[1].addr: {Balance: big.NewInt(params.Ether)},
@@ -798,7 +797,6 @@ func TestCall(t *testing.T) {
 		//    fee:   0 wei
 		tx, _ := types.SignTx(types.NewTx(&types.LegacyTx{Nonce: uint64(i), To: &accounts[1].addr, Value: big.NewInt(1000), Gas: params.TxGas, GasPrice: b.BaseFee(), Data: nil}), signer, accounts[0].key)
 		b.AddTx(tx)
-		b.SetPoS()
 	}))
 	randomAccounts := newAccounts(3)
 	var testSuite = []struct {
@@ -979,13 +977,11 @@ func TestSignTransaction(t *testing.T) {
 		key, _  = crypto.HexToECDSA("8a1f9a8f95be41cd7ccb6168179afb4504aefe388d1e14474d32c45c72ce7b7a")
 		to      = crypto.PubkeyToAddress(key.PublicKey)
 		genesis = &core.Genesis{
-			Config: params.MergedTestChainConfig,
+			Config: params.TestSubnetEVMChainConfig,
 			Alloc:  types.GenesisAlloc{},
 		}
 	)
-	b := newTestBackend(t, 1, genesis, beacon.New(ethash.NewFaker()), func(i int, b *core.BlockGen) {
-		b.SetPoS()
-	})
+	b := newTestBackend(t, 1, genesis, dummy.NewFaker(), func(i int, b *core.BlockGen) {})
 	api := NewTransactionAPI(b, nil)
 	res, err := api.FillTransaction(context.Background(), TransactionArgs{
 		From:  &b.acc.Address,
@@ -1017,13 +1013,11 @@ func TestSignBlobTransaction(t *testing.T) {
 		key, _  = crypto.HexToECDSA("8a1f9a8f95be41cd7ccb6168179afb4504aefe388d1e14474d32c45c72ce7b7a")
 		to      = crypto.PubkeyToAddress(key.PublicKey)
 		genesis = &core.Genesis{
-			Config: params.MergedTestChainConfig,
+			Config: params.TestSubnetEVMChainConfig,
 			Alloc:  types.GenesisAlloc{},
 		}
 	)
-	b := newTestBackend(t, 1, genesis, beacon.New(ethash.NewFaker()), func(i int, b *core.BlockGen) {
-		b.SetPoS()
-	})
+	b := newTestBackend(t, 1, genesis, dummy.NewFaker(), func(i int, b *core.BlockGen) {})
 	api := NewTransactionAPI(b, nil)
 	res, err := api.FillTransaction(context.Background(), TransactionArgs{
 		From:       &b.acc.Address,
@@ -1051,13 +1045,11 @@ func TestSendBlobTransaction(t *testing.T) {
 		key, _  = crypto.HexToECDSA("8a1f9a8f95be41cd7ccb6168179afb4504aefe388d1e14474d32c45c72ce7b7a")
 		to      = crypto.PubkeyToAddress(key.PublicKey)
 		genesis = &core.Genesis{
-			Config: params.MergedTestChainConfig,
+			Config: params.TestSubnetEVMChainConfig,
 			Alloc:  types.GenesisAlloc{},
 		}
 	)
-	b := newTestBackend(t, 1, genesis, beacon.New(ethash.NewFaker()), func(i int, b *core.BlockGen) {
-		b.SetPoS()
-	})
+	b := newTestBackend(t, 1, genesis, dummy.NewFaker(), func(i int, b *core.BlockGen) {})
 	api := NewTransactionAPI(b, nil)
 	res, err := api.FillTransaction(context.Background(), TransactionArgs{
 		From:       &b.acc.Address,
@@ -1084,7 +1076,7 @@ func TestFillBlobTransaction(t *testing.T) {
 		key, _  = crypto.HexToECDSA("8a1f9a8f95be41cd7ccb6168179afb4504aefe388d1e14474d32c45c72ce7b7a")
 		to      = crypto.PubkeyToAddress(key.PublicKey)
 		genesis = &core.Genesis{
-			Config: params.MergedTestChainConfig,
+			Config: params.TestSubnetEVMChainConfig,
 			Alloc:  types.GenesisAlloc{},
 		}
 		emptyBlob                      = kzg4844.Blob{}
@@ -1092,9 +1084,7 @@ func TestFillBlobTransaction(t *testing.T) {
 		emptyBlobProof, _              = kzg4844.ComputeBlobProof(emptyBlob, emptyBlobCommit)
 		emptyBlobHash      common.Hash = kzg4844.CalcBlobHashV1(sha256.New(), &emptyBlobCommit)
 	)
-	b := newTestBackend(t, 1, genesis, beacon.New(ethash.NewFaker()), func(i int, b *core.BlockGen) {
-		b.SetPoS()
-	})
+	b := newTestBackend(t, 1, genesis, dummy.NewFaker(), func(i int, b *core.BlockGen) {})
 	api := NewTransactionAPI(b, nil)
 	type result struct {
 		Hashes  []common.Hash
@@ -1808,7 +1798,6 @@ func setupReceiptBackend(t *testing.T, genBlocks int) (*testBackend, []common.Ha
 			tx  *types.Transaction
 			err error
 		)
-		b.SetPoS()
 		switch i {
 		case 0:
 			// transfer 1000wei
@@ -1857,7 +1846,6 @@ func setupReceiptBackend(t *testing.T, genBlocks int) (*testBackend, []common.Ha
 			b.AddTx(tx)
 			txHashes[i] = tx.Hash()
 		}
-		// b.SetPoS()
 	})
 	return backend, txHashes
 }
