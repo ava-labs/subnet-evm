@@ -807,7 +807,7 @@ func makeAccounts(size int) (addresses [][20]byte, accounts [][]byte) {
 		balanceBytes := make([]byte, numBytes)
 		random.Read(balanceBytes)
 		balance := new(uint256.Int).SetBytes(balanceBytes)
-		data, _ := rlp.EncodeToBytes(&account{Nonce: nonce, Balance: balance, Root: root, CodeHash: code})
+		data, _ := rlp.EncodeToBytes(&account{Nonce: nonce, Balance: balance.ToBig(), Root: root, CodeHash: code})
 		accounts[i] = data
 	}
 	return addresses, accounts

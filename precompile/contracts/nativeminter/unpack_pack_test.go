@@ -13,6 +13,7 @@ import (
 	"github.com/ethereum/go-ethereum/constants"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/precompile/contract"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
 )
 
@@ -56,7 +57,7 @@ func TestUnpackMintNativeCoinInput(t *testing.T) {
 		expectedErr    string
 		expectedOldErr string
 		expectedAddr   common.Address
-		expectedAmount *big.Int
+		expectedAmount *uint256.Int
 	}{
 		{
 			name:           "empty input strict mode",
@@ -86,7 +87,7 @@ func TestUnpackMintNativeCoinInput(t *testing.T) {
 			expectedErr:    "",
 			expectedOldErr: ErrInvalidLen.Error(),
 			expectedAddr:   constants.BlackholeAddr,
-			expectedAmount: common.Big2,
+			expectedAmount: uint256.NewInt(2),
 		},
 		{
 			name:           "input with extra bytes (not divisible by 32) strict mode",
@@ -100,7 +101,7 @@ func TestUnpackMintNativeCoinInput(t *testing.T) {
 			input:          append(testInputBytes, make([]byte, 33)...),
 			strictMode:     false,
 			expectedAddr:   constants.BlackholeAddr,
-			expectedAmount: common.Big2,
+			expectedAmount: uint256.NewInt(2),
 			expectedOldErr: ErrInvalidLen.Error(),
 		},
 	}
@@ -172,13 +173,13 @@ func OldPackMintNativeCoinInput(address common.Address, amount *big.Int) ([]byte
 	return res, err
 }
 
-func OldUnpackMintNativeCoinInput(input []byte) (common.Address, *big.Int, error) {
+func OldUnpackMintNativeCoinInput(input []byte) (common.Address, *uint256.Int, error) {
 	mintInputAddressSlot := 0
 	mintInputAmountSlot := 1
 	if len(input) != mintInputLen {
 		return common.Address{}, nil, fmt.Errorf("%w: %d", ErrInvalidLen, len(input))
 	}
 	to := common.BytesToAddress(contract.PackedHash(input, mintInputAddressSlot))
-	assetAmount := new(big.Int).SetBytes(contract.PackedHash(input, mintInputAmountSlot))
+	assetAmount := new(uint256.Int).SetBytes(contract.PackedHash(input, mintInputAmountSlot))
 	return to, assetAmount, nil
 }

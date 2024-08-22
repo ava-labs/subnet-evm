@@ -4,7 +4,6 @@
 package nativeminter
 
 import (
-	"math/big"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -15,6 +14,7 @@ import (
 	"github.com/ethereum/go-ethereum/precompile/precompileconfig"
 	"github.com/ethereum/go-ethereum/precompile/testutils"
 	"github.com/ethereum/go-ethereum/vmerrs"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
@@ -50,7 +50,7 @@ var (
 				require.Equal(t, common.Big1, stateDB.GetBalance(allowlist.TestEnabledAddr), "expected minted funds")
 
 				logsTopics, logsData := stateDB.GetLogData()
-				assertNativeCoinMintedEvent(t, logsTopics, logsData, allowlist.TestEnabledAddr, allowlist.TestEnabledAddr, common.Big1)
+				assertNativeCoinMintedEvent(t, logsTopics, logsData, allowlist.TestEnabledAddr, allowlist.TestEnabledAddr, uint256.NewInt(1))
 			},
 		},
 		"initial mint funds": {
@@ -81,7 +81,7 @@ var (
 				require.Equal(t, common.Big1, stateDB.GetBalance(allowlist.TestEnabledAddr), "expected minted funds")
 
 				logsTopics, logsData := stateDB.GetLogData()
-				assertNativeCoinMintedEvent(t, logsTopics, logsData, allowlist.TestManagerAddr, allowlist.TestEnabledAddr, common.Big1)
+				assertNativeCoinMintedEvent(t, logsTopics, logsData, allowlist.TestManagerAddr, allowlist.TestEnabledAddr, uint256.NewInt(1))
 			},
 		},
 		"mint funds from admin address": {
@@ -100,7 +100,7 @@ var (
 				require.Equal(t, common.Big1, stateDB.GetBalance(allowlist.TestAdminAddr), "expected minted funds")
 
 				logsTopics, logsData := stateDB.GetLogData()
-				assertNativeCoinMintedEvent(t, logsTopics, logsData, allowlist.TestAdminAddr, allowlist.TestAdminAddr, common.Big1)
+				assertNativeCoinMintedEvent(t, logsTopics, logsData, allowlist.TestAdminAddr, allowlist.TestAdminAddr, uint256.NewInt(1))
 			},
 		},
 		"mint max big funds": {
@@ -119,7 +119,7 @@ var (
 				require.Equal(t, math.MaxBig256, stateDB.GetBalance(allowlist.TestAdminAddr), "expected minted funds")
 
 				logsTopics, logsData := stateDB.GetLogData()
-				assertNativeCoinMintedEvent(t, logsTopics, logsData, allowlist.TestAdminAddr, allowlist.TestAdminAddr, math.MaxBig256)
+				assertNativeCoinMintedEvent(t, logsTopics, logsData, allowlist.TestAdminAddr, allowlist.TestAdminAddr, new(uint256.Int).Not(uint256.NewInt(0)))
 			},
 		},
 		"readOnly mint with noRole fails": {
@@ -242,7 +242,7 @@ var (
 				require.Equal(t, common.Big1, state.GetBalance(allowlist.TestEnabledAddr), "expected minted funds")
 
 				logsTopics, logsData := state.GetLogData()
-				assertNativeCoinMintedEvent(t, logsTopics, logsData, allowlist.TestEnabledAddr, allowlist.TestEnabledAddr, common.Big1)
+				assertNativeCoinMintedEvent(t, logsTopics, logsData, allowlist.TestEnabledAddr, allowlist.TestEnabledAddr, uint256.NewInt(1))
 			},
 		},
 	}
@@ -261,7 +261,8 @@ func assertNativeCoinMintedEvent(t testing.TB,
 	logsData [][]byte,
 	expectedSender common.Address,
 	expectedRecipient common.Address,
-	expectedAmount *big.Int) {
+	expectedAmount *uint256.Int,
+) {
 	require.Len(t, logsTopics, 1)
 	require.Len(t, logsData, 1)
 	topics := logsTopics[0]
