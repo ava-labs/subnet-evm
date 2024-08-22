@@ -3,6 +3,7 @@
 set -o errexit
 set -o nounset
 set -o pipefail
+set -x 
 # TODO(marun) Ensure the working directory is the repository root or a non-canonical set of tests may be executed
 
 # Root directory
@@ -25,4 +26,4 @@ if [[ -n "${NO_RACE:-}" ]]; then
     race=""
 fi
 # shellcheck disable=SC2046
-go test -shuffle=on "${race}" -timeout="${TIMEOUT:-600s}" -coverprofile=coverage.out -covermode=atomic "$@" $(go list ./... | grep -v github.com/ava-labs/subnet-evm/tests)
+go test -shuffle=on ${race:-} -timeout="${TIMEOUT:-600s}" -coverprofile=coverage.out -covermode=atomic "$@" $(go list ./... | grep -v github.com/ava-labs/subnet-evm/tests)
