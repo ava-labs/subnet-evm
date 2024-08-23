@@ -16,228 +16,245 @@
 
 package core
 
+// DO NOT MERGE: copied from @darioush's
+
 import (
+	"fmt"
 	"math/big"
-	"os"
 	"testing"
 
+	"github.com/ava-labs/subnet-evm/consensus/dummy"
+	"github.com/ava-labs/subnet-evm/core/rawdb"
+	"github.com/ava-labs/subnet-evm/core/types"
+	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/consensus/dummy"
-	"github.com/ethereum/go-ethereum/core/rawdb"
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethdb"
-	"github.com/ethereum/go-ethereum/params"
+	"github.com/stretchr/testify/require"
 )
 
-// TestTxIndexer tests the functionalities for managing transaction indexes.
-func TestTxIndexer(t *testing.T) {
+// Should we try to use the TestTxIndexer from upstream here instead
+// or move this test to a new file eg, blockchain_extra_test.go?
+func TestTransactionIndices(t *testing.T) {
+	// Configure and generate a sample block chain
+	require := require.New(t)
 	var (
-		testBankKey, _  = crypto.GenerateKey()
-		testBankAddress = crypto.PubkeyToAddress(testBankKey.PublicKey)
-		testBankFunds   = big.NewInt(1000000000000000000)
-
-		gspec = &Genesis{
-			Config:  params.TestChainConfig,
-			Alloc:   types.GenesisAlloc{testBankAddress: {Balance: testBankFunds}},
-			BaseFee: big.NewInt(params.InitialBaseFee),
+		key1, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
+		key2, _ = crypto.HexToECDSA("8a1f9a8f95be41cd7ccb6168179afb4504aefe388d1e14474d32c45c72ce7b7a")
+		addr1   = crypto.PubkeyToAddress(key1.PublicKey)
+		addr2   = crypto.PubkeyToAddress(key2.PublicKey)
+		funds   = big.NewInt(10000000000000)
+		gspec   = &Genesis{
+			Config: &params.ChainConfig{HomesteadBlock: new(big.Int)},
+			Alloc:  GenesisAlloc{addr1: {Balance: funds}},
 		}
-		engine    = dummy.NewFaker()
-		nonce     = uint64(0)
-		chainHead = uint64(128)
+		signer = types.LatestSigner(gspec.Config)
 	)
-	_, blocks, receipts := GenerateChainWithGenesis(gspec, engine, int(chainHead), func(i int, gen *BlockGen) {
-		tx, _ := types.SignTx(types.NewTransaction(nonce, common.HexToAddress("0xdeadbeef"), big.NewInt(1000), params.TxGas, big.NewInt(10*params.InitialBaseFee), nil), types.HomesteadSigner{}, testBankKey)
-		gen.AddTx(tx)
-		nonce += 1
+	genDb, blocks, _, err := GenerateChainWithGenesis(gspec, dummy.NewFaker(), 128, 10, func(i int, block *BlockGen) {
+		tx, err := types.SignTx(types.NewTransaction(block.TxNonce(addr1), addr2, big.NewInt(10000), params.TxGas, nil, nil), signer, key1)
+		require.NoError(err)
+		block.AddTx(tx)
 	})
+	require.NoError(err)
 
-	// verifyIndexes checks if the transaction indexes are present or not
-	// of the specified block.
-	verifyIndexes := func(db ethdb.Database, number uint64, exist bool) {
-		if number == 0 {
-			return
-		}
-		block := blocks[number-1]
-		for _, tx := range block.Transactions() {
-			lookup := rawdb.ReadTxLookupEntry(db, tx.Hash())
-			if exist && lookup == nil {
-				t.Fatalf("missing %d %x", number, tx.Hash().Hex())
-			}
-			if !exist && lookup != nil {
-				t.Fatalf("unexpected %d %x", number, tx.Hash().Hex())
-			}
-		}
-	}
-	verify := func(db ethdb.Database, expTail uint64, indexer *txIndexer) {
-		tail := rawdb.ReadTxIndexTail(db)
-		if tail == nil {
-			t.Fatal("Failed to write tx index tail")
-		}
-		if *tail != expTail {
-			t.Fatalf("Unexpected tx index tail, want %v, got %d", expTail, *tail)
-		}
-		if *tail != 0 {
-			for number := uint64(0); number < *tail; number += 1 {
-				verifyIndexes(db, number, false)
-			}
-		}
-		for number := *tail; number <= chainHead; number += 1 {
-			verifyIndexes(db, number, true)
-		}
-		progress := indexer.report(chainHead, tail)
-		if !progress.Done() {
-			t.Fatalf("Expect fully indexed")
-		}
+	blocks2, _, err := GenerateChain(gspec.Config, blocks[len(blocks)-1], dummy.NewFaker(), genDb, 10, 10, func(i int, block *BlockGen) {
+		tx, err := types.SignTx(types.NewTransaction(block.TxNonce(addr1), addr2, big.NewInt(10000), params.TxGas, nil, nil), signer, key1)
+		require.NoError(err)
+		block.AddTx(tx)
+	})
+	require.NoError(err)
+
+	conf := &CacheConfig{
+		TrieCleanLimit:            256,
+		TrieDirtyLimit:            256,
+		TrieDirtyCommitTarget:     20,
+		TriePrefetcherParallelism: 4,
+		Pruning:                   true,
+		CommitInterval:            4096,
+		SnapshotLimit:             256,
+		SnapshotNoBuild:           true, // Ensure the test errors if snapshot initialization fails
+		AcceptorQueueLimit:        64,
 	}
 
-	var cases = []struct {
-		limitA uint64
-		tailA  uint64
-		limitB uint64
-		tailB  uint64
-		limitC uint64
-		tailC  uint64
-	}{
-		{
-			// LimitA: 0
-			// TailA:  0
-			//
-			// all blocks are indexed
-			limitA: 0,
-			tailA:  0,
+	// Init block chain and check all needed indices has been indexed.
+	chainDB := rawdb.NewMemoryDatabase()
+	chain, err := createBlockChain(chainDB, conf, gspec, common.Hash{})
+	require.NoError(err)
 
-			// LimitB: 1
-			// TailB:  128
-			//
-			// block-128 is indexed
-			limitB: 1,
-			tailB:  128,
+	_, err = chain.InsertChain(blocks)
+	require.NoError(err)
 
-			// LimitB: 64
-			// TailB:  65
-			//
-			// block [65, 128] are indexed
-			limitC: 64,
-			tailC:  65,
-		},
-		{
-			// LimitA: 64
-			// TailA:  65
-			//
-			// block [65, 128] are indexed
-			limitA: 64,
-			tailA:  65,
-
-			// LimitB: 1
-			// TailB:  128
-			//
-			// block-128 is indexed
-			limitB: 1,
-			tailB:  128,
-
-			// LimitB: 64
-			// TailB:  65
-			//
-			// block [65, 128] are indexed
-			limitC: 64,
-			tailC:  65,
-		},
-		{
-			// LimitA: 127
-			// TailA:  2
-			//
-			// block [2, 128] are indexed
-			limitA: 127,
-			tailA:  2,
-
-			// LimitB: 1
-			// TailB:  128
-			//
-			// block-128 is indexed
-			limitB: 1,
-			tailB:  128,
-
-			// LimitB: 64
-			// TailB:  65
-			//
-			// block [65, 128] are indexed
-			limitC: 64,
-			tailC:  65,
-		},
-		{
-			// LimitA: 128
-			// TailA:  1
-			//
-			// block [2, 128] are indexed
-			limitA: 128,
-			tailA:  1,
-
-			// LimitB: 1
-			// TailB:  128
-			//
-			// block-128 is indexed
-			limitB: 1,
-			tailB:  128,
-
-			// LimitB: 64
-			// TailB:  65
-			//
-			// block [65, 128] are indexed
-			limitC: 64,
-			tailC:  65,
-		},
-		{
-			// LimitA: 129
-			// TailA:  0
-			//
-			// block [0, 128] are indexed
-			limitA: 129,
-			tailA:  0,
-
-			// LimitB: 1
-			// TailB:  128
-			//
-			// block-128 is indexed
-			limitB: 1,
-			tailB:  128,
-
-			// LimitB: 64
-			// TailB:  65
-			//
-			// block [65, 128] are indexed
-			limitC: 64,
-			tailC:  65,
-		},
+	for _, block := range blocks {
+		err := chain.Accept(block)
+		require.NoError(err)
 	}
-	for _, c := range cases {
-		frdir := t.TempDir()
-		db, _ := rawdb.NewDatabaseWithFreezer(rawdb.NewMemoryDatabase(), frdir, "", false)
-		rawdb.WriteAncientBlocks(db, append([]*types.Block{gspec.ToBlock()}, blocks...), append([]types.Receipts{{}}, receipts...), big.NewInt(0))
+	chain.DrainAcceptorQueue()
 
-		// Index the initial blocks from ancient store
-		indexer := &txIndexer{
-			limit:    c.limitA,
-			db:       db,
-			progress: make(chan chan TxIndexProgress),
+	lastAcceptedBlock := blocks[len(blocks)-1]
+	require.Equal(lastAcceptedBlock.Hash(), chain.CurrentHeader().Hash())
+
+	CheckTxIndices(t, nil, lastAcceptedBlock.NumberU64(), chain.db, false) // check all indices has been indexed
+	chain.Stop()
+
+	// Reconstruct a block chain which only reserves limited tx indices
+	// 128 blocks were previously indexed. Now we add a new block at each test step.
+	limits := []uint64{
+		0,   /* tip: 129 reserve all (don't run) */
+		131, /* tip: 130 reserve all */
+		140, /* tip: 131 reserve all */
+		64,  /* tip: 132, limit:64 */
+		32,  /* tip: 133, limit:32  */
+	}
+	for i, l := range limits {
+		t.Run(fmt.Sprintf("test-%d, limit: %d", i+1, l), func(t *testing.T) {
+			conf.TransactionHistory = l
+
+			chain, err := createBlockChain(chainDB, conf, gspec, lastAcceptedBlock.Hash())
+			require.NoError(err)
+
+			tail := getTail(l, lastAcceptedBlock.NumberU64())
+			// check if startup indices are correct
+			CheckTxIndices(t, tail, lastAcceptedBlock.NumberU64(), chain.db, false)
+
+			newBlks := blocks2[i : i+1]
+			_, err = chain.InsertChain(newBlks) // Feed chain a higher block to trigger indices updater.
+			require.NoError(err)
+
+			lastAcceptedBlock = newBlks[0]
+			err = chain.Accept(lastAcceptedBlock) // Accept the block to trigger indices updater.
+			require.NoError(err)
+			chain.DrainAcceptorQueue()
+
+			tail = getTail(l, lastAcceptedBlock.NumberU64())
+			// check if indices are updated correctly
+			CheckTxIndices(t, tail, lastAcceptedBlock.NumberU64(), chain.db, false)
+			chain.Stop()
+		})
+	}
+}
+
+func getTail(limit uint64, lastAccepted uint64) *uint64 {
+	if limit == 0 {
+		return nil
+	}
+	var tail uint64
+	if lastAccepted > limit {
+		// tail should be the oldest block number which is indexed
+		// i.e the first block number that's in the lookup range
+		tail = lastAccepted - limit + 1
+	}
+	return &tail
+}
+
+func TestTransactionSkipIndexing(t *testing.T) {
+	// Configure and generate a sample block chain
+	require := require.New(t)
+	var (
+		key1, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
+		key2, _ = crypto.HexToECDSA("8a1f9a8f95be41cd7ccb6168179afb4504aefe388d1e14474d32c45c72ce7b7a")
+		addr1   = crypto.PubkeyToAddress(key1.PublicKey)
+		addr2   = crypto.PubkeyToAddress(key2.PublicKey)
+		funds   = big.NewInt(10000000000000)
+		gspec   = &Genesis{
+			Config: &params.ChainConfig{HomesteadBlock: new(big.Int)},
+			Alloc:  GenesisAlloc{addr1: {Balance: funds}},
 		}
-		indexer.run(nil, 128, make(chan struct{}), make(chan struct{}))
-		verify(db, c.tailA, indexer)
+		signer = types.LatestSigner(gspec.Config)
+	)
+	genDb, blocks, _, err := GenerateChainWithGenesis(gspec, dummy.NewCoinbaseFaker(), 5, 10, func(i int, block *BlockGen) {
+		tx, err := types.SignTx(types.NewTransaction(block.TxNonce(addr1), addr2, big.NewInt(10000), params.TxGas, nil, nil), signer, key1)
+		require.NoError(err)
+		block.AddTx(tx)
+	})
+	require.NoError(err)
 
-		indexer.limit = c.limitB
-		indexer.run(rawdb.ReadTxIndexTail(db), 128, make(chan struct{}), make(chan struct{}))
-		verify(db, c.tailB, indexer)
+	blocks2, _, err := GenerateChain(gspec.Config, blocks[len(blocks)-1], dummy.NewCoinbaseFaker(), genDb, 5, 10, func(i int, block *BlockGen) {
+		tx, err := types.SignTx(types.NewTransaction(block.TxNonce(addr1), addr2, big.NewInt(10000), params.TxGas, nil, nil), signer, key1)
+		require.NoError(err)
+		block.AddTx(tx)
+	})
+	require.NoError(err)
 
-		indexer.limit = c.limitC
-		indexer.run(rawdb.ReadTxIndexTail(db), 128, make(chan struct{}), make(chan struct{}))
-		verify(db, c.tailC, indexer)
-
-		// Recover all indexes
-		indexer.limit = 0
-		indexer.run(rawdb.ReadTxIndexTail(db), 128, make(chan struct{}), make(chan struct{}))
-		verify(db, 0, indexer)
-
-		db.Close()
-		os.RemoveAll(frdir)
+	conf := &CacheConfig{
+		TrieCleanLimit:            256,
+		TrieDirtyLimit:            256,
+		TrieDirtyCommitTarget:     20,
+		TriePrefetcherParallelism: 4,
+		Pruning:                   true,
+		CommitInterval:            4096,
+		SnapshotLimit:             256,
+		SnapshotNoBuild:           true, // Ensure the test errors if snapshot initialization fails
+		AcceptorQueueLimit:        64,
+		SkipTxIndexing:            true,
 	}
+
+	// test1: Init block chain and check all indices has been skipped.
+	chainDB := rawdb.NewMemoryDatabase()
+	chain, err := createAndInsertChain(chainDB, conf, gspec, blocks, common.Hash{},
+		func(b *types.Block) {
+			bNumber := b.NumberU64()
+			checkTxIndicesHelper(t, nil, bNumber+1, bNumber+1, bNumber, chainDB, false) // check all indices has been skipped
+		})
+	require.NoError(err)
+	chain.Stop()
+
+	// test2: specify lookuplimit with tx index skipping enabled. Blocks should not be indexed but tail should be updated.
+	conf.TransactionHistory = 2
+	chainDB = rawdb.NewMemoryDatabase()
+	chain, err = createAndInsertChain(chainDB, conf, gspec, blocks, common.Hash{},
+		func(b *types.Block) {
+			bNumber := b.NumberU64()
+			tail := bNumber - conf.TransactionHistory + 1
+			checkTxIndicesHelper(t, &tail, bNumber+1, bNumber+1, bNumber, chainDB, false) // check all indices has been skipped
+		})
+	require.NoError(err)
+	chain.Stop()
+
+	// test3: tx index skipping and unindexer disabled. Blocks should be indexed and tail should be updated.
+	conf.TransactionHistory = 0
+	conf.SkipTxIndexing = false
+	chainDB = rawdb.NewMemoryDatabase()
+	chain, err = createAndInsertChain(chainDB, conf, gspec, blocks, common.Hash{},
+		func(b *types.Block) {
+			bNumber := b.NumberU64()
+			checkTxIndicesHelper(t, nil, 0, bNumber, bNumber, chainDB, false) // check all indices has been indexed
+		})
+	require.NoError(err)
+	chain.Stop()
+
+	// now change tx index skipping to true and check that the indices are skipped for the last block
+	// and old indices are removed up to the tail, but [tail, current) indices are still there.
+	conf.TransactionHistory = 2
+	conf.SkipTxIndexing = true
+	chain, err = createAndInsertChain(chainDB, conf, gspec, blocks2[0:1], chain.CurrentHeader().Hash(),
+		func(b *types.Block) {
+			bNumber := b.NumberU64()
+			tail := bNumber - conf.TransactionHistory + 1
+			checkTxIndicesHelper(t, &tail, tail, bNumber-1, bNumber, chainDB, false)
+		})
+	require.NoError(err)
+	chain.Stop()
+}
+
+func createAndInsertChain(db ethdb.Database, cacheConfig *CacheConfig, gspec *Genesis, blocks types.Blocks, lastAcceptedHash common.Hash, accepted func(*types.Block)) (*BlockChain, error) {
+	chain, err := createBlockChain(db, cacheConfig, gspec, lastAcceptedHash)
+	if err != nil {
+		return nil, err
+	}
+	_, err = chain.InsertChain(blocks)
+	if err != nil {
+		return nil, err
+	}
+	for _, block := range blocks {
+		err := chain.Accept(block)
+		if err != nil {
+			return nil, err
+		}
+		chain.DrainAcceptorQueue()
+		if accepted != nil {
+			accepted(block)
+		}
+	}
+
+	return chain, nil
 }
