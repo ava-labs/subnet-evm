@@ -1,1 +1,5 @@
+TestExpDecaySampleNanosecondRegression
+TestMempoolEthTxsAppGossipHandling
 TestTransactionSkipIndexing
+TestVMShutdownWhileSyncing
+TestWalletNotifications
