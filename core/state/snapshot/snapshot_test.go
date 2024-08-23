@@ -600,19 +600,19 @@ func TestRebloomOnFlatten(t *testing.T) {
 			t.Fatal("snapshot should be a diffLayer")
 		}
 
-		if hitsA != dl.diffed.Contains(accountBloomHasher(addrA)) {
+		if hitsA != dl.diffed.ContainsHash(accountBloomHash(addrA)) {
 			t.Errorf("expected bloom filter to return %t but got %t", hitsA, !hitsA)
 		}
 
-		if hitsB != dl.diffed.Contains(accountBloomHasher(addrB)) {
+		if hitsB != dl.diffed.ContainsHash(accountBloomHash(addrB)) {
 			t.Errorf("expected bloom filter to return %t but got %t", hitsB, !hitsB)
 		}
 
-		if hitsC != dl.diffed.Contains(accountBloomHasher(addrC)) {
+		if hitsC != dl.diffed.ContainsHash(accountBloomHash(addrC)) {
 			t.Errorf("expected bloom filter to return %t but got %t", hitsC, !hitsC)
 		}
 
-		if hitsD != dl.diffed.Contains(accountBloomHasher(addrD)) {
+		if hitsD != dl.diffed.ContainsHash(accountBloomHash(addrD)) {
 			t.Errorf("expected bloom filter to return %t but got %t", hitsD, !hitsD)
 		}
 	}
