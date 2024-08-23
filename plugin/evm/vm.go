@@ -21,6 +21,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/ethereum/go-ethereum/commontype"
+	"github.com/ethereum/go-ethereum/consensus/dummy"
 	"github.com/ethereum/go-ethereum/constants"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/rawdb"
@@ -547,6 +548,7 @@ func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.
 		vm.chaindb,
 		vm.config.EthBackendSettings(),
 		lastAcceptedHash,
+		dummy.NewFakerWithClock(&vm.clock),
 		&vm.clock,
 	)
 	if err != nil {
