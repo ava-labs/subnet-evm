@@ -64,19 +64,9 @@ func newTxIndexer(limit uint64, chain *BlockChain) *txIndexer {
 		chain:    chain,
 	}
 	chain.wg.Add(1)
-	var (
-		headCh = make(chan ChainEvent, 1)
-		sub    = chain.SubscribeChainAcceptedEvent(headCh)
-	)
 	go func() {
 		defer chain.wg.Done()
-		if sub == nil {
-			log.Warn("could not create chain accepted subscription to unindex txs")
-			return
-		}
-		defer sub.Unsubscribe()
-
-		indexer.loop(headCh)
+		indexer.loop(chain)
 	}()
 
 	var msg string
@@ -108,6 +98,11 @@ func (indexer *txIndexer) run(tail *uint64, head uint64, stop chan struct{}, don
 		return
 	}
 
+	// Defensively ensure tail is not nil.
+	if tail == nil {
+		tail = new(uint64)
+	}
+
 	if head-indexer.limit+1 >= *tail {
 		// Unindex a part of stale indices and forward index tail to HEAD-limit
 		rawdb.UnindexTransactions(indexer.db, *tail, head-indexer.limit+1, stop, false)
@@ -116,7 +111,7 @@ func (indexer *txIndexer) run(tail *uint64, head uint64, stop chan struct{}, don
 
 // loop is the scheduler of the indexer, assigning indexing/unindexing tasks depending
 // on the received chain event.
-func (indexer *txIndexer) loop(headCh <-chan ChainEvent) {
+func (indexer *txIndexer) loop(chain *BlockChain) {
 	defer close(indexer.closed)
 
 	// If the user just upgraded to a new version which supports transaction
@@ -131,7 +126,16 @@ func (indexer *txIndexer) loop(headCh <-chan ChainEvent) {
 		done     chan struct{}                       // Non-nil if background routine is active.
 		lastHead uint64                              // The latest announced chain head (whose tx indexes are assumed created)
 		lastTail = rawdb.ReadTxIndexTail(indexer.db) // The oldest indexed block, nil means nothing indexed
+
+		headCh = make(chan ChainEvent, 1)
+		sub    = chain.SubscribeChainAcceptedEvent(headCh)
 	)
+	if sub == nil {
+		log.Warn("could not create chain accepted subscription to unindex txs")
+		return
+	}
+	defer sub.Unsubscribe()
+
 	log.Info("Initialized transaction unindexer", "limit", indexer.limit)
 
 	// Launch the initial processing if chain is not empty (head != genesis).
