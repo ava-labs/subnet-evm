@@ -253,7 +253,7 @@ func makeChainForBench(db ethdb.Database, genesis *Genesis, full bool, count uin
 }
 
 func benchWriteChain(b *testing.B, full bool, count uint64) {
-	genesis := &Genesis{Config: params.AllEthashProtocolChanges}
+	genesis := &Genesis{Config: params.TestChainConfig}
 	for i := 0; i < b.N; i++ {
 		dir := b.TempDir()
 		db, err := rawdb.NewLevelDBDatabase(dir, 128, 1024, "", false)
@@ -272,7 +272,7 @@ func benchReadChain(b *testing.B, full bool, count uint64) {
 	if err != nil {
 		b.Fatalf("error opening database at %v: %v", dir, err)
 	}
-	genesis := &Genesis{Config: params.AllEthashProtocolChanges}
+	genesis := &Genesis{Config: params.TestChainConfig}
 	makeChainForBench(db, genesis, full, count)
 	db.Close()
 

@@ -78,6 +78,7 @@ func testSetupGenesis(t *testing.T, scheme string) {
 	rollbackpreSubnetConfig.SubnetEVMTimestamp = utils.NewUint64(90)
 	oldcustomg.Config = &rollbackpreSubnetConfig
 
+	// DO NOT MERGE: test table copied directly from @darioush's
 	tests := []struct {
 		name       string
 		fn         func(ethdb.Database) (*params.ChainConfig, common.Hash, error)
@@ -98,15 +99,6 @@ func testSetupGenesis(t *testing.T, scheme string) {
 			fn: func(db ethdb.Database) (*params.ChainConfig, common.Hash, error) {
 				return setupGenesisBlock(db, triedb.NewDatabase(db, newDbConfig(scheme)), nil, common.Hash{})
 			},
-			wantHash:   params.MainnetGenesisHash,
-			wantConfig: params.MainnetChainConfig,
-		},
-		{
-			name: "mainnet block in DB, genesis == nil",
-			fn: func(db ethdb.Database) (*params.ChainConfig, common.Hash, error) {
-				DefaultGenesisBlock().MustCommit(db, triedb.NewDatabase(db, newDbConfig(scheme)))
-				return setupGenesisBlock(db, triedb.NewDatabase(db, newDbConfig(scheme)), nil, common.Hash{})
-			},
 			wantErr:    ErrNoGenesis,
 			wantConfig: nil,
 		},
@@ -117,8 +109,8 @@ func testSetupGenesis(t *testing.T, scheme string) {
 				customg.Commit(db, tdb)
 				return setupGenesisBlock(db, tdb, nil, common.Hash{})
 			},
-			wantHash:   customghash,
-			wantConfig: customg.Config,
+			wantErr:    ErrNoGenesis,
+			wantConfig: nil,
 		},
 		{
 			name: "compatible config in DB",
