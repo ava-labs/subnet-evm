@@ -110,7 +110,7 @@ func New(gasTip uint64, chain BlockChain, subpools []SubPool) (*TxPool, error) {
 			return nil, err
 		}
 	}
-	pool.gasTip.Store(gasTip)
+	pool.gasTip.Store(new(big.Int).SetUint64(gasTip))
 
 	// Subscribe to chain head events to trigger subpool resets
 	var (

@@ -103,7 +103,7 @@ func setupPoolWithConfig(t *testing.T, config *params.ChainConfig, fundedAddress
 	testTxPoolConfig := legacypool.DefaultConfig
 	legacyPool := legacypool.New(testTxPoolConfig, chain)
 
-	txPool, err := txpool.New(new(big.Int).SetUint64(testTxPoolConfig.PriceLimit), chain, []txpool.SubPool{legacyPool})
+	txPool, err := txpool.New(testTxPoolConfig.PriceLimit, chain, []txpool.SubPool{legacyPool})
 	require.NoError(t, err)
 
 	return txPool
