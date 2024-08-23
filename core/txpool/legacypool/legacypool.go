@@ -582,6 +582,8 @@ func (pool *LegacyPool) PendingWithBaseFee(filter txpool.PendingFilter, baseFee 
 	}
 	if filter.BaseFee != nil {
 		baseFeeBig = filter.BaseFee.ToBig()
+	} else if filter.EnforceTips {
+		baseFeeBig = pool.priced.urgent.baseFee // DO NOT MERGE: copied from @darioush's
 	}
 	pending := make(map[common.Address][]*txpool.LazyTransaction, len(pool.pending))
 	for addr, list := range pool.pending {

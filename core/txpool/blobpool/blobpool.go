@@ -1544,8 +1544,8 @@ func (p *BlobPool) Pending(filter txpool.PendingFilter) map[common.Address][]*tx
 	return pending
 }
 
-func (p *BlobPool) PendingWithBaseFee(enforceTips bool, baseFee *big.Int) map[common.Address][]*txpool.LazyTransaction {
-	return p.Pending(enforceTips)
+func (p *BlobPool) PendingWithBaseFee(filter txpool.PendingFilter, baseFee *big.Int) map[common.Address][]*txpool.LazyTransaction {
+	return p.Pending(filter)
 }
 
 // IteratePending iterates over [pool.pending] until [f] returns false.

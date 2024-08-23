@@ -83,6 +83,9 @@ type PendingFilter struct {
 
 	OnlyPlainTxs bool // Return only plain EVM transactions (peer-join announces, block space filling)
 	OnlyBlobTxs  bool // Return only blob transactions (block blob-space filling)
+
+	// DO NOT MERGE: copied from @darioush's
+	EnforceTips bool // Whether to enforce the tip requirements (if BaseFee is nil, pool.urgent.baseFee is used)
 }
 
 // SubPool represents a specialized transaction pool that lives on its own (e.g.
@@ -136,7 +139,7 @@ type SubPool interface {
 	// The transactions can also be pre-filtered by the dynamic fee components to
 	// reduce allocations and load on downstream subsystems.
 	Pending(filter PendingFilter) map[common.Address][]*LazyTransaction
-	PendingWithBaseFee(enforceTips bool, baseFee *big.Int) map[common.Address][]*LazyTransaction
+	PendingWithBaseFee(filter PendingFilter, baseFee *big.Int) map[common.Address][]*LazyTransaction
 	IteratePending(f func(tx *types.Transaction) bool) bool // Returns false if iteration was interrupted.
 
 	// SubscribeTransactions subscribes to new transaction events. The subscriber

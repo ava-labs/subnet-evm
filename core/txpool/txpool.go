@@ -409,7 +409,7 @@ func (p *TxPool) AddRemotesSync(txs []*types.Transaction) []error {
 // The transactions can also be pre-filtered by the dynamic fee components to
 // reduce allocations and load on downstream subsystems.
 func (p *TxPool) Pending(filter PendingFilter) map[common.Address][]*LazyTransaction {
-	return p.PendingWithBaseFee(enforceTips, nil)
+	return p.PendingWithBaseFee(filter, nil)
 }
 
 // If baseFee is nil, then pool.priced.urgent.baseFee is used.
