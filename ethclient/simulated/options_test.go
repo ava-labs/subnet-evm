@@ -44,7 +44,7 @@ func TestWithBlockGasLimitOption(t *testing.T) {
 		t.Errorf("genesis gas limit mismatch: have %v, want %v", genesis.GasLimit(), 12_345_678)
 	}
 	// Produce a number of blocks and verify the locked in gas target
-	sim.Commit()
+	sim.Commit(true)
 	head, err := client.BlockByNumber(context.Background(), big.NewInt(1))
 	if err != nil {
 		t.Fatalf("failed to retrieve head block: %v", err)
