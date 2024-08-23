@@ -12,8 +12,9 @@ import (
 )
 
 var (
-	_ GossipHandler  = NoopMempoolGossipHandler{}
-	_ RequestHandler = NoopRequestHandler{}
+	_ GossipHandler            = NoopMempoolGossipHandler{}
+	_ RequestHandler           = NoopRequestHandler{}
+	_ CrossChainRequestHandler = NoopCrossChainRequestHandler{}
 )
 
 // GossipHandler handles incoming gossip messages
@@ -69,5 +70,16 @@ func (NoopRequestHandler) HandleMessageSignatureRequest(ctx context.Context, nod
 }
 
 func (NoopRequestHandler) HandleBlockSignatureRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, signatureRequest BlockSignatureRequest) ([]byte, error) {
+	return nil, nil
+}
+
+// CrossChainRequestHandler interface handles incoming requests from another chain
+type CrossChainRequestHandler interface {
+	HandleEthCallRequest(ctx context.Context, requestingchainID ids.ID, requestID uint32, ethCallRequest EthCallRequest) ([]byte, error)
+}
+
+type NoopCrossChainRequestHandler struct{}
+
+func (NoopCrossChainRequestHandler) HandleEthCallRequest(ctx context.Context, requestingchainID ids.ID, requestID uint32, ethCallRequest EthCallRequest) ([]byte, error) {
 	return nil, nil
 }

@@ -6,7 +6,6 @@ package params
 import (
 	"testing"
 
-	"github.com/ava-labs/avalanchego/upgrade"
 	"github.com/ava-labs/avalanchego/utils/constants"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/stretchr/testify/require"
@@ -173,20 +172,20 @@ func TestCheckNetworkUpgradesCompatible(t *testing.T) {
 
 func TestVerifyNetworkUpgrades(t *testing.T) {
 	testcases := []struct {
-		name          string
-		upgrades      *NetworkUpgrades
-		avagoUpgrades upgrade.Config
-		expected      bool
+		name      string
+		upgrades  *NetworkUpgrades
+		networkID uint32
+		expected  bool
 	}{
 		{
-			name: "ValidNetworkUpgrades for custom network",
+			name: "ValidNetworkUpgrades",
 			upgrades: &NetworkUpgrades{
 				SubnetEVMTimestamp: utils.NewUint64(0),
 				DurangoTimestamp:   utils.NewUint64(1607144400),
 				EtnaTimestamp:      utils.NewUint64(1607144400),
 			},
-			avagoUpgrades: upgrade.GetConfig(1111),
-			expected:      true,
+			networkID: 1111,
+			expected:  true,
 		},
 		{
 			name: "Invalid Durango nil upgrade",
@@ -194,8 +193,8 @@ func TestVerifyNetworkUpgrades(t *testing.T) {
 				SubnetEVMTimestamp: utils.NewUint64(1),
 				DurangoTimestamp:   nil,
 			},
-			avagoUpgrades: upgrade.GetConfig(constants.MainnetID),
-			expected:      false,
+			networkID: 1,
+			expected:  false,
 		},
 		{
 			name: "Invalid Subnet-EVM non-zero",
@@ -203,8 +202,8 @@ func TestVerifyNetworkUpgrades(t *testing.T) {
 				SubnetEVMTimestamp: utils.NewUint64(1),
 				DurangoTimestamp:   utils.NewUint64(2),
 			},
-			avagoUpgrades: upgrade.GetConfig(constants.MainnetID),
-			expected:      false,
+			networkID: 1,
+			expected:  false,
 		},
 		{
 			name: "Invalid Durango before default upgrade",
@@ -212,26 +211,8 @@ func TestVerifyNetworkUpgrades(t *testing.T) {
 				SubnetEVMTimestamp: utils.NewUint64(0),
 				DurangoTimestamp:   utils.NewUint64(1),
 			},
-			avagoUpgrades: upgrade.GetConfig(constants.MainnetID),
-			expected:      false,
-		},
-		{
-			name: "Invalid Mainnet Durango reconfigured to Fuji",
-			upgrades: &NetworkUpgrades{
-				SubnetEVMTimestamp: utils.NewUint64(0),
-				DurangoTimestamp:   utils.TimeToNewUint64(upgrade.GetConfig(constants.FujiID).DurangoTime),
-			},
-			avagoUpgrades: upgrade.GetConfig(constants.MainnetID),
-			expected:      false,
-		},
-		{
-			name: "Valid Fuji Durango reconfigured to Mainnet",
-			upgrades: &NetworkUpgrades{
-				SubnetEVMTimestamp: utils.NewUint64(0),
-				DurangoTimestamp:   utils.TimeToNewUint64(upgrade.GetConfig(constants.MainnetID).DurangoTime),
-			},
-			avagoUpgrades: upgrade.GetConfig(constants.FujiID),
-			expected:      false,
+			networkID: constants.MainnetID,
+			expected:  false,
 		},
 		{
 			name: "Invalid Etna nil",
@@ -240,8 +221,8 @@ func TestVerifyNetworkUpgrades(t *testing.T) {
 				DurangoTimestamp:   utils.NewUint64(2),
 				EtnaTimestamp:      nil,
 			},
-			avagoUpgrades: upgrade.GetConfig(constants.MainnetID),
-			expected:      false,
+			networkID: 1,
+			expected:  false,
 		},
 		{
 			name: "Invalid Etna before Durango",
@@ -250,13 +231,13 @@ func TestVerifyNetworkUpgrades(t *testing.T) {
 				DurangoTimestamp:   utils.NewUint64(2),
 				EtnaTimestamp:      utils.NewUint64(1),
 			},
-			avagoUpgrades: upgrade.GetConfig(constants.MainnetID),
-			expected:      false,
+			networkID: 1,
+			expected:  false,
 		},
 	}
 	for _, test := range testcases {
 		t.Run(test.name, func(t *testing.T) {
-			err := test.upgrades.verifyNetworkUpgrades(test.avagoUpgrades)
+			err := test.upgrades.verifyNetworkUpgrades(test.networkID)
 			if test.expected {
 				require.Nil(t, err)
 			} else {

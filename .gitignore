@@ -55,6 +55,3 @@ dist/
 
 # Outputs of `scripts/diff_against.sh`
 diffs/
-
-# clone used for antithesis image builds
-avalanchego/

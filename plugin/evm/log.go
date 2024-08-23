@@ -10,7 +10,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/ava-labs/subnet-evm/log"
+	"github.com/ethereum/go-ethereum/log"
 	gethlog "github.com/ethereum/go-ethereum/log"
 	"golang.org/x/exp/slog"
 )
@@ -29,19 +29,11 @@ func InitLogger(alias string, level string, jsonFormat bool, writer io.Writer) (
 	var handler slog.Handler
 	if jsonFormat {
 		chainStr := fmt.Sprintf("%s Chain", alias)
-		handler = log.JSONHandlerWithLevel(writer, logLevel)
+		handler = slog.NewJSONHandler(writer, &slog.HandlerOptions{Level: logLevel})
 		handler = &addContext{Handler: handler, logger: chainStr}
 	} else {
 		useColor := false
-		chainStr := fmt.Sprintf("<%s Chain> ", alias)
-		termHandler := log.NewTerminalHandlerWithLevel(writer, logLevel, useColor)
-		termHandler.Prefix = func(r slog.Record) string {
-			file, line := getSource(r)
-			if file != "" {
-				return fmt.Sprintf("%s%s:%d ", chainStr, file, line)
-			}
-			return chainStr
-		}
+		termHandler := log.NewTerminalHandlerWithLevel(writer, logLevel.Level(), useColor)
 		handler = termHandler
 	}
 
@@ -61,11 +53,11 @@ func InitLogger(alias string, level string, jsonFormat bool, writer io.Writer) (
 // SetLogLevel sets the log level of initialized log handler.
 func (s *SubnetEVMLogger) SetLogLevel(level string) error {
 	// Set log level
-	logLevel, err := log.LvlFromString(level)
-	if err != nil {
+	old := s.logLevel
+	if err := s.logLevel.UnmarshalText([]byte(level)); err != nil {
+		s.logLevel = old
 		return err
 	}
-	s.logLevel.Set(logLevel)
 	return nil
 }
 

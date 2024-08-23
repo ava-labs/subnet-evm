@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/common/math"
@@ -61,7 +62,7 @@ func (c *ChainConfig) verifyStateUpgrades() error {
 func (c *ChainConfig) GetActivatingStateUpgrades(from *uint64, to uint64, upgrades []StateUpgrade) []StateUpgrade {
 	activating := make([]StateUpgrade, 0)
 	for _, upgrade := range upgrades {
-		if IsForkTransition(upgrade.BlockTimestamp, from, to) {
+		if utils.IsForkTransition(upgrade.BlockTimestamp, from, to) {
 			activating = append(activating, upgrade)
 		}
 	}
