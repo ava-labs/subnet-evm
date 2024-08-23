@@ -123,11 +123,13 @@ func NewNetwork(p2pNetwork *p2p.Network, appSender common.AppSender, codec codec
 // Returns the ID of the chosen peer, and an error if the request could not
 // be sent to a peer with the desired [minVersion].
 func (n *network) SendAppRequestAny(ctx context.Context, minVersion *version.Application, request []byte, handler message.ResponseHandler) (ids.NodeID, error) {
+	// Propagate context errors immediately
+	if err := ctx.Err(); err != nil {
+		return ids.EmptyNodeID, err
+	}
+
 	// Take a slot from total [activeAppRequests] and block until a slot becomes available.
 	if err := n.activeAppRequests.Acquire(ctx, 1); err != nil {
-		if errors.Is(err, context.Canceled) {
-			return ids.EmptyNodeID, err
-		}
 		return ids.EmptyNodeID, errAcquiringSemaphore
 	}
 
