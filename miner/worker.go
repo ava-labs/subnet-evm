@@ -483,7 +483,7 @@ func (w *worker) commit(env *environment) (*types.Block, error) {
 
 func (w *worker) handleResult(env *environment, block *types.Block, createdAt time.Time, unfinishedReceipts []*types.Receipt) (*types.Block, error) {
 	// Short circuit when receiving duplicate result caused by resubmitting.
-	if !w.config.AllowDuplicateBlocks && w.chain.HasBlock(block.Hash(), block.NumberU64()) {
+	if !w.config.TestOnlyAllowDuplicateBlocks && w.chain.HasBlock(block.Hash(), block.NumberU64()) {
 		return nil, fmt.Errorf("produced duplicate block (Hash: %s, Number %d)", block.Hash(), block.NumberU64())
 	}
 	// Different block could share same sealhash, deep copy here to prevent write-write conflict.

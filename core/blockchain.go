@@ -45,6 +45,7 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/metrics"
 	"github.com/ethereum/go-ethereum/params"
+	"github.com/ethereum/go-ethereum/trie"
 	"github.com/ethereum/go-ethereum/triedb"
 	"github.com/ethereum/go-ethereum/triedb/hashdb"
 	"github.com/ethereum/go-ethereum/triedb/pathdb"
@@ -494,7 +495,7 @@ func (bc *BlockChain) unindexBlocks(tail uint64, head uint64, done chan struct{}
 
 	if head-txLookupLimit+1 >= tail {
 		// Unindex a part of stale indices and forward index tail to HEAD-limit
-		rawdb.UnindexTransactions(bc.db, tail, head-txLookupLimit+1, bc.quit)
+		rawdb.UnindexTransactions(bc.db, tail, head-txLookupLimit+1, bc.quit, false)
 	}
 }
 

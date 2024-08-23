@@ -112,43 +112,6 @@ func hashAlloc(ga *types.GenesisAlloc, isVerkle bool) (common.Hash, error) {
 	return statedb.Commit(0, false, false)
 }
 
-// flushAlloc is very similar with hash, but the main difference is all the generated
-// states will be persisted into the given database. Also, the genesis state
-// specification will be flushed as well.
-func flushAlloc(ga *types.GenesisAlloc, db ethdb.Database, triedb *triedb.Database, blockhash common.Hash) error {
-	statedb, err := state.New(types.EmptyRootHash, state.NewDatabaseWithNodeDB(db, triedb), nil)
-	if err != nil {
-		return err
-	}
-	for addr, account := range *ga {
-		if account.Balance != nil {
-			statedb.AddBalance(addr, uint256.MustFromBig(account.Balance))
-		}
-		statedb.SetCode(addr, account.Code)
-		statedb.SetNonce(addr, account.Nonce)
-		for key, value := range account.Storage {
-			statedb.SetState(addr, key, value)
-		}
-	}
-	root, err := statedb.Commit(0, false, false)
-	if err != nil {
-		return err
-	}
-	// Commit newly generated states into disk if it's not empty.
-	if root != types.EmptyRootHash {
-		if err := triedb.Commit(root, true); err != nil {
-			return err
-		}
-	}
-	// Marshal the genesis state specification and persist.
-	blob, err := json.Marshal(ga)
-	if err != nil {
-		return err
-	}
-	rawdb.WriteGenesisStateSpec(db, blockhash, blob)
-	return nil
-}
-
 // field type overrides for gencodec
 type genesisSpecMarshaling struct {
 	Nonce         math.HexOrDecimal64

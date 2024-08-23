@@ -250,7 +250,7 @@ func (args *TransactionArgs) setFeeDefaults(ctx context.Context, b feeBackend) e
 }
 
 // setCancunFeeDefaults fills in reasonable default fee values for unspecified fields.
-func (args *TransactionArgs) setCancunFeeDefaults(ctx context.Context, head *types.Header, b Backend) error {
+func (args *TransactionArgs) setCancunFeeDefaults(ctx context.Context, head *types.Header, b feeBackend) error {
 	// Set maxFeePerBlobGas if it is missing.
 	if args.BlobHashes != nil && args.BlobFeeCap == nil {
 		var excessBlobGas uint64

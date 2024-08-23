@@ -475,9 +475,9 @@ func MakePreState(db ethdb.Database, accounts types.GenesisAlloc, snapshotter bo
 	if snapshotter {
 		snapconfig := snapshot.Config{
 			CacheSize:  1,
-			Recovery:   false,
 			NoBuild:    false,
 			AsyncBuild: false,
+			SkipVerify: true, // DO NOT MERGE: copied from @darioush's
 		}
 		snaps, _ = snapshot.New(snapconfig, db, triedb, common.Hash{}, root)
 	}
@@ -493,7 +493,7 @@ func (st *StateTestState) Close() {
 	}
 	if st.Snapshots != nil {
 		// Need to call Disable here to quit the snapshot generator goroutine.
-		st.Snapshots.Disable()
+		// st.Snapshots.Disable() // DO NOT MERGE: this method no longer exists
 		st.Snapshots.Release()
 		st.Snapshots = nil
 	}
