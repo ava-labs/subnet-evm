@@ -28,7 +28,7 @@ import (
 func WithBlockGasLimit(gaslimit uint64) func(nodeConf *node.Config, ethConf *ethconfig.Config) {
 	return func(nodeConf *node.Config, ethConf *ethconfig.Config) {
 		ethConf.Genesis.GasLimit = gaslimit
-		ethConf.Miner.GasCeil = gaslimit
+		ethConf.Genesis.Config.FeeConfig.GasLimit = new(big.Int).SetUint64(gaslimit)
 	}
 }
 
@@ -37,19 +37,5 @@ func WithBlockGasLimit(gaslimit uint64) func(nodeConf *node.Config, ethConf *eth
 func WithCallGasLimit(gaslimit uint64) func(nodeConf *node.Config, ethConf *ethconfig.Config) {
 	return func(nodeConf *node.Config, ethConf *ethconfig.Config) {
 		ethConf.RPCGasCap = gaslimit
-	}
-}
-
-// WithMinerMinTip configures the simulated backend to require a specific minimum
-// gas tip for a transaction to be included.
-//
-// 0 is not possible as a live Geth node would reject that due to DoS protection,
-// so the simulated backend will replicate that behavior for consistency.
-func WithMinerMinTip(tip *big.Int) func(nodeConf *node.Config, ethConf *ethconfig.Config) {
-	if tip == nil || tip.Cmp(new(big.Int)) <= 0 {
-		panic("invalid miner minimum tip")
-	}
-	return func(nodeConf *node.Config, ethConf *ethconfig.Config) {
-		ethConf.Miner.GasPrice = tip
 	}
 }

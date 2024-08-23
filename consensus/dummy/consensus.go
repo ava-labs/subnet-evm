@@ -58,14 +58,16 @@ func NewFaker() *DummyEngine {
 }
 
 func NewFakerWithClock(clock *mockable.Clock) *DummyEngine {
-	return &DummyEngine{
-		clock: clock,
-	}
+	NewFakerWithModeAndClock(Mode{}, clock)
 }
 
 func NewFakerWithMode(mode Mode) *DummyEngine {
+	return NewFakerWithModeAndClock(mode, &mockable.Clock{})
+}
+
+func NewFakerWithModeAndClock(mode Mode, clock *mockable.Clock) *DummyEngine {
 	return &DummyEngine{
-		clock:         &mockable.Clock{},
+		clock:         clock,
 		consensusMode: mode,
 	}
 }

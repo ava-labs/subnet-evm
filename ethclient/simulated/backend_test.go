@@ -263,7 +263,7 @@ func TestCommitReturnValue(t *testing.T) {
 	head, _ := client.HeaderByNumber(ctx, nil) // Should be child's, good enough
 	gasPrice := new(big.Int).Add(head.BaseFee, big.NewInt(1))
 	_tx := types.NewTransaction(0, testAddr, big.NewInt(1000), params.TxGas, gasPrice, nil)
-	tx, _ := types.SignTx(_tx, types.LatestSignerForChainID(big.NewInt(ChainID)), testKey)
+	tx, _ := types.SignTx(_tx, types.LatestSignerForChainID(big.NewInt(1337)), testKey)
 	require.NoError(t, client.SendTransaction(ctx, tx))
 
 	h2 := sim.Commit(false)
