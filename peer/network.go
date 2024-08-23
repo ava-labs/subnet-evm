@@ -149,11 +149,14 @@ func (n *network) SendAppRequest(ctx context.Context, nodeID ids.NodeID, request
 		return fmt.Errorf("cannot send request to empty nodeID, nodeID=%s, requestLen=%d", nodeID, len(request))
 	}
 
+	// If the context was cancelled, we can skip sending this request.
+	if err := ctx.Err(); err != nil {
+		n.activeAppRequests.Release(1)
+		return err
+	}
+
 	// Take a slot from total [activeAppRequests] and block until a slot becomes available.
 	if err := n.activeAppRequests.Acquire(ctx, 1); err != nil {
-		if errors.Is(err, context.Canceled) {
-			return err
-		}
 		return errAcquiringSemaphore
 	}
 

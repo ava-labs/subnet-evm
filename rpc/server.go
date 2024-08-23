@@ -74,8 +74,8 @@ func NewServer(maximumDuration time.Duration) *Server {
 	server := &Server{
 		idgen:           randomIDGenerator(),
 		codecs:          make(map[ServerCodec]struct{}),
-		httpBodyLimit:   defaultBodyLimit,
 		maximumDuration: maximumDuration,
+		httpBodyLimit:   defaultBodyLimit,
 	}
 	server.run.Store(true)
 	// Register the default service providing meta information about the RPC service such

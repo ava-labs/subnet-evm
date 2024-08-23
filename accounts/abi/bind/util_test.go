@@ -93,7 +93,7 @@ func TestWaitDeployed(t *testing.T) {
 
 		// Send and mine the transaction.
 		if err := backend.Client().SendTransaction(ctx, tx); err != nil {
-			t.Errorf("Failed to send transaction: %s", err)
+			t.Fatalf("Failed to send transaction: %s", err)
 		}
 		backend.Commit(true)
 

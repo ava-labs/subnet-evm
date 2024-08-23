@@ -36,8 +36,6 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
-var MaxHash = common.HexToHash("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
-
 func TestMakeTopics(t *testing.T) {
 	t.Parallel()
 	type args struct {

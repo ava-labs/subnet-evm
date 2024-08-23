@@ -71,11 +71,11 @@ func (eth *Ethereum) hashState(ctx context.Context, block *types.Block, reexec u
 		}
 	}
 	// The state is both for reading and writing, or it's unavailable in disk,
-	// try to construct/recover the state over an ephemeral triedb.Database for
+	// try to construct/recover the state over an ephemeral trie.Database for
 	// isolating the live one.
 	if base != nil {
 		if preferDisk {
-			// Create an ephemeral triedb.Database for isolating the live one. Otherwise
+			// Create an ephemeral trie.Database for isolating the live one. Otherwise
 			// the internal junks created by tracing will be persisted into the disk.
 			// TODO(rjl493456442), clean cache is disabled to prevent memory leak,
 			// please re-enable it for better performance.
@@ -92,7 +92,7 @@ func (eth *Ethereum) hashState(ctx context.Context, block *types.Block, reexec u
 		// Otherwise, try to reexec blocks until we find a state or reach our limit
 		current = block
 
-		// Create an ephemeral triedb.Database for isolating the live one. Otherwise
+		// Create an ephemeral trie.Database for isolating the live one. Otherwise
 		// the internal junks created by tracing will be persisted into the disk.
 		// TODO(rjl493456442), clean cache is disabled to prevent memory leak,
 		// please re-enable it for better performance.

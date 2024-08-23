@@ -268,7 +268,8 @@ func assertNativeCoinMintedEvent(t testing.TB,
 	logsData [][]byte,
 	expectedSender common.Address,
 	expectedRecipient common.Address,
-	expectedAmount *big.Int) {
+	expectedAmount *big.Int,
+) {
 	require.Len(t, logsTopics, 1)
 	require.Len(t, logsData, 1)
 	topics := logsTopics[0]

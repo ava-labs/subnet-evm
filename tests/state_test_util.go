@@ -100,7 +100,7 @@ type stEnv struct {
 	GasLimit      uint64         `json:"currentGasLimit"   gencodec:"required"`
 	Number        uint64         `json:"currentNumber"     gencodec:"required"`
 	Timestamp     uint64         `json:"currentTimestamp"  gencodec:"required"`
-	BaseFee       *big.Int       `json:"currentBaseFee"  gencodec:"optional"`
+	BaseFee       *big.Int       `json:"currentBaseFee"    gencodec:"optional"`
 	ExcessBlobGas *uint64        `json:"currentExcessBlobGas" gencodec:"optional"`
 }
 

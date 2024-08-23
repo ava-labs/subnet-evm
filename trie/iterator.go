@@ -133,7 +133,7 @@ type NodeIterator interface {
 	// accesses and returning them from memory.
 	//
 	// Before adding a similar mechanism to any other place in Geth, consider
-	// making triedb.Database an interface and wrapping at that level. It's a huge
+	// making trie.Database an interface and wrapping at that level. It's a huge
 	// refactor, but it could be worth it if another occurrence arises.
 	AddResolver(NodeResolver)
 }
