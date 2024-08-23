@@ -27,8 +27,8 @@ func TestBuildGenesis(t *testing.T) {
 
 	// add test allocs
 	testAlloc := types.GenesisAlloc{
-		testEthAddrs[0]: core.GenesisAccount{Balance: genesisBalance},
-		testEthAddrs[1]: core.GenesisAccount{Balance: genesisBalance},
+		testEthAddrs[0]: {Balance: genesisBalance},
+		testEthAddrs[1]: {Balance: genesisBalance},
 	}
 	genesis.Alloc = testAlloc
 	genesis.Config.FeeConfig = params.DefaultFeeConfig
@@ -65,8 +65,8 @@ func TestDecodeGenesis(t *testing.T) {
 
 	// add test allocs
 	testAlloc := types.GenesisAlloc{
-		testEthAddrs[0]: types.Account{Balance: genesisBalance},
-		testEthAddrs[1]: types.Account{Balance: genesisBalance},
+		testEthAddrs[0]: {Balance: genesisBalance},
+		testEthAddrs[1]: {Balance: genesisBalance},
 	}
 	genesis.Alloc = testAlloc
 	genesis.Config.FeeConfig = params.DefaultFeeConfig
