@@ -39,12 +39,12 @@ import (
 	"github.com/ava-labs/subnet-evm/triedb"
 	"github.com/ava-labs/subnet-evm/triedb/hashdb"
 
+	warpcontract "github.com/ava-labs/subnet-evm/precompile/contracts/warp"
 	"github.com/ava-labs/subnet-evm/rpc"
 	statesyncclient "github.com/ava-labs/subnet-evm/sync/client"
 	"github.com/ava-labs/subnet-evm/sync/client/stats"
 	"github.com/ava-labs/subnet-evm/warp"
 	"github.com/ava-labs/subnet-evm/warp/handlers"
-	warpValidators "github.com/ava-labs/subnet-evm/warp/validators"
 
 	// Force-load tracer engine to trigger registration
 	//
@@ -478,7 +478,7 @@ func (vm *VM) Initialize(
 	}
 	vm.validators = p2p.NewValidators(p2pNetwork.Peers, vm.ctx.Log, vm.ctx.SubnetID, vm.ctx.ValidatorState, maxValidatorSetStaleness)
 	vm.networkCodec = message.Codec
-	vm.Network = peer.NewNetwork(p2pNetwork, appSender, vm.networkCodec, message.CrossChainCodec, chainCtx.NodeID, vm.config.MaxOutboundActiveRequests, vm.config.MaxOutboundActiveCrossChainRequests)
+	vm.Network = peer.NewNetwork(p2pNetwork, appSender, vm.networkCodec, chainCtx.NodeID, vm.config.MaxOutboundActiveRequests)
 	vm.client = peer.NewNetworkClient(vm.Network)
 
 	// Initialize warp backend
@@ -628,7 +628,6 @@ func (vm *VM) initializeHandlers() {
 	vm.Network.AddHandler(p2p.SignatureRequestHandlerID, warpHandler)
 
 	vm.setAppRequestHandlers()
-	vm.setCrossChainAppRequestHandler()
 }
 
 func (vm *VM) initChainState(lastAcceptedBlock *types.Block) error {
@@ -812,13 +811,6 @@ func (vm *VM) setAppRequestHandlers() {
 
 	networkHandler := newNetworkHandler(vm.blockChain, vm.chaindb, evmTrieDB, vm.warpBackend, vm.networkCodec)
 	vm.Network.SetRequestHandler(networkHandler)
-}
-
-// setCrossChainAppRequestHandler sets the request handlers for the VM to serve cross chain
-// requests.
-func (vm *VM) setCrossChainAppRequestHandler() {
-	crossChainRequestHandler := message.NewCrossChainHandler(vm.eth.APIBackend, message.CrossChainCodec)
-	vm.Network.SetCrossChainRequestHandler(crossChainRequestHandler)
 }
 
 // Shutdown implements the snowman.ChainVM interface
@@ -1029,8 +1021,7 @@ func (vm *VM) CreateHandlers(context.Context) (map[string]http.Handler, error) {
 	}
 
 	if vm.config.WarpAPIEnabled {
-		validatorsState := warpValidators.NewState(vm.ctx)
-		if err := handler.RegisterName("warp", warp.NewAPI(vm.ctx.NetworkID, vm.ctx.SubnetID, vm.ctx.ChainID, validatorsState, vm.warpBackend, vm.client)); err != nil {
+		if err := handler.RegisterName("warp", warp.NewAPI(vm.ctx.NetworkID, vm.ctx.SubnetID, vm.ctx.ChainID, vm.ctx.ValidatorState, vm.warpBackend, vm.client, vm.requirePrimaryNetworkSigners)); err != nil {
 			return nil, err
 		}
 		enabledAPIs = append(enabledAPIs, "warp")
@@ -1075,6 +1066,24 @@ func (vm *VM) GetCurrentNonce(address common.Address) (uint64, error) {
 		return 0, err
 	}
 	return state.GetNonce(address), nil
+}
+
+// currentRules returns the chain rules for the current block.
+func (vm *VM) currentRules() params.Rules {
+	header := vm.eth.APIBackend.CurrentHeader()
+	return vm.chainConfig.Rules(header.Number, header.Time)
+}
+
+// requirePrimaryNetworkSigners returns true if warp messages from the primary
+// network must be signed by the primary network validators.
+// This is necessary when the subnet is not validating the primary network.
+func (vm *VM) requirePrimaryNetworkSigners() bool {
+	switch c := vm.currentRules().ActivePrecompiles[warpcontract.ContractAddress].(type) {
+	case *warpcontract.Config:
+		return c.RequirePrimaryNetworkSigners
+	default: // includes nil due to non-presence
+		return false
+	}
 }
 
 func (vm *VM) startContinuousProfiler() {

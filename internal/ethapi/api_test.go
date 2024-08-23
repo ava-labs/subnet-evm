@@ -1548,7 +1548,7 @@ func TestRPCGetBlockOrHeader(t *testing.T) {
 		acc1Addr   = crypto.PubkeyToAddress(acc1Key.PublicKey)
 		acc2Addr   = crypto.PubkeyToAddress(acc2Key.PublicKey)
 		genesis    = &core.Genesis{
-			Config: params.TestSubnetEVMChainConfig,
+			Config: params.TestChainConfig,
 			Alloc: types.GenesisAlloc{
 				acc1Addr: {Balance: big.NewInt(params.Ether)},
 				acc2Addr: {Balance: big.NewInt(params.Ether)},
@@ -1873,7 +1873,6 @@ func setupReceiptBackend(t *testing.T, genBlocks int) (*testBackend, []common.Ha
 			b.AddTx(tx)
 			txHashes[i] = tx.Hash()
 		}
-		// b.SetPoS()
 	})
 	return backend, txHashes
 }
