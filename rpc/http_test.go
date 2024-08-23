@@ -41,7 +41,7 @@ func confirmStatusCode(t *testing.T, got, want int) {
 func confirmRequestValidationCode(t *testing.T, method, contentType, body string, expectedStatusCode int) {
 	t.Helper()
 
-	s := NewServer()
+	s := NewServer(0)
 	request := httptest.NewRequest(method, "http://url.com", strings.NewReader(body))
 	if len(contentType) > 0 {
 		request.Header.Set("Content-Type", contentType)
