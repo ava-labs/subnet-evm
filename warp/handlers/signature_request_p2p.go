@@ -16,7 +16,7 @@ import (
 	"github.com/ava-labs/avalanchego/utils/crypto/bls"
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
-	"github.com/ethereum/go-ethereum/warp"
+	"github.com/ava-labs/subnet-evm/warp"
 	"google.golang.org/protobuf/proto"
 )
 

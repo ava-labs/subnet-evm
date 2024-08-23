@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/ava-labs/subnet-evm/constants"
+	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/constants"
-	"github.com/ethereum/go-ethereum/utils"
 )
 
 var (

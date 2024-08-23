@@ -23,6 +23,10 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/precompile/contract"
+	"github.com/ava-labs/subnet-evm/precompile/modules"
+	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -30,10 +34,6 @@ import (
 	"github.com/ethereum/go-ethereum/crypto/bls12381"
 	"github.com/ethereum/go-ethereum/crypto/bn256"
 	"github.com/ethereum/go-ethereum/crypto/kzg4844"
-	"github.com/ethereum/go-ethereum/params"
-	"github.com/ethereum/go-ethereum/precompile/contract"
-	"github.com/ethereum/go-ethereum/precompile/modules"
-	"github.com/ethereum/go-ethereum/vmerrs"
 	"golang.org/x/crypto/ripemd160"
 )
 

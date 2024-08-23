@@ -8,11 +8,11 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/ava-labs/subnet-evm/core/state/snapshot"
+	syncclient "github.com/ava-labs/subnet-evm/sync/client"
+	"github.com/ava-labs/subnet-evm/triedb"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/state/snapshot"
 	"github.com/ethereum/go-ethereum/ethdb"
-	syncclient "github.com/ethereum/go-ethereum/sync/client"
-	"github.com/ethereum/go-ethereum/triedb"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -37,7 +37,7 @@ type StateSyncerConfig struct {
 type stateSync struct {
 	db        ethdb.Database    // database we are syncing
 	root      common.Hash       // root of the EVM state we are syncing to
-	trieDB    *triedb.Database    // trieDB on top of db we are syncing. used to restore any existing tries.
+	trieDB    *triedb.Database  // trieDB on top of db we are syncing. used to restore any existing tries.
 	snapshot  snapshot.Snapshot // used to access the database we are syncing as a snapshot.
 	batchSize int               // write batches when they reach this size
 	client    syncclient.Client // used to contact peers over the network

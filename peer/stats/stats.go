@@ -6,7 +6,7 @@ package stats
 import (
 	"time"
 
-	"github.com/ethereum/go-ethereum/metrics"
+	"github.com/ava-labs/subnet-evm/metrics"
 )
 
 // RequestHandlerStats provides the interface for metrics for both app requests and cross chain requests.

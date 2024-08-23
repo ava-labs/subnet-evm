@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ethereum/go-ethereum/cmd/simulator/metrics"
+	"github.com/ava-labs/subnet-evm/cmd/simulator/metrics"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 )

@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ethereum/go-ethereum/metrics"
-	"github.com/ethereum/go-ethereum/plugin/evm/message"
+	"github.com/ava-labs/subnet-evm/metrics"
+	"github.com/ava-labs/subnet-evm/plugin/evm/message"
 )
 
 var (

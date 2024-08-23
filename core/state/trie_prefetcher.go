@@ -20,10 +20,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ava-labs/subnet-evm/metrics"
+	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/metrics"
-	"github.com/ethereum/go-ethereum/utils"
 )
 
 // triePrefetchMetricsPrefix is the prefix under which to publish the metrics.

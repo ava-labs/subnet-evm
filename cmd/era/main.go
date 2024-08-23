@@ -26,13 +26,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ava-labs/subnet-evm/core/types"
+	"github.com/ava-labs/subnet-evm/internal/era"
+	"github.com/ava-labs/subnet-evm/internal/ethapi"
+	"github.com/ava-labs/subnet-evm/internal/flags"
+	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/trie"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/internal/era"
-	"github.com/ethereum/go-ethereum/internal/ethapi"
-	"github.com/ethereum/go-ethereum/internal/flags"
-	"github.com/ethereum/go-ethereum/params"
-	"github.com/ethereum/go-ethereum/trie"
 	"github.com/urfave/cli/v2"
 )
 

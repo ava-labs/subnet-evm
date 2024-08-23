@@ -8,12 +8,12 @@ import (
 	"fmt"
 
 	"github.com/ava-labs/avalanchego/utils/set"
+	"github.com/ava-labs/subnet-evm/core/types"
+	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
+	"github.com/ava-labs/subnet-evm/predicate"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/params"
-	"github.com/ethereum/go-ethereum/precompile/precompileconfig"
-	"github.com/ethereum/go-ethereum/predicate"
 )
 
 var ErrMissingPredicateContext = errors.New("missing predicate context")

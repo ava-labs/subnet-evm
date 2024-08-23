@@ -9,9 +9,9 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
 
-	"github.com/ethereum/go-ethereum/core/txpool"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/plugin/evm/message"
+	"github.com/ava-labs/subnet-evm/core/txpool"
+	"github.com/ava-labs/subnet-evm/core/types"
+	"github.com/ava-labs/subnet-evm/plugin/evm/message"
 )
 
 // GossipHandler handles incoming gossip messages

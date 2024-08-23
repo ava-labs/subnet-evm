@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/ava-labs/avalanchego/utils/constants"
-	"github.com/ethereum/go-ethereum/utils"
+	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/stretchr/testify/require"
 )
 

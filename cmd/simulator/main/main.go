@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/ethereum/go-ethereum/cmd/simulator/config"
-	"github.com/ethereum/go-ethereum/cmd/simulator/load"
+	"github.com/ava-labs/subnet-evm/cmd/simulator/config"
+	"github.com/ava-labs/subnet-evm/cmd/simulator/load"
 	gethlog "github.com/ethereum/go-ethereum/log"
 	"github.com/spf13/pflag"
 	"golang.org/x/exp/slog"

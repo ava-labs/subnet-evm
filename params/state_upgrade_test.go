@@ -8,9 +8,9 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
-	"github.com/ethereum/go-ethereum/utils"
 	"github.com/stretchr/testify/require"
 )
 

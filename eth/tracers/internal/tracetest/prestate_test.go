@@ -24,13 +24,13 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ava-labs/subnet-evm/core"
+	"github.com/ava-labs/subnet-evm/core/rawdb"
+	"github.com/ava-labs/subnet-evm/core/types"
+	"github.com/ava-labs/subnet-evm/core/vm"
+	"github.com/ava-labs/subnet-evm/eth/tracers"
+	"github.com/ava-labs/subnet-evm/tests"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/core/rawdb"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/core/vm"
-	"github.com/ethereum/go-ethereum/eth/tracers"
-	"github.com/ethereum/go-ethereum/tests"
 )
 
 // prestateTrace is the result of a prestateTrace run.
