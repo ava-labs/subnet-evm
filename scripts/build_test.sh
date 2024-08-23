@@ -34,7 +34,7 @@ do
     go test -shuffle=on ${race:-} -timeout="${TIMEOUT:-600s}" -coverprofile=coverage.out -covermode=atomic "$@" $(go list ./... | grep -v github.com/ava-labs/subnet-evm/tests) | tee test.out || command_status=$?
 
     # If the test passed, exit
-    if [[ ${command_status:0} == 0 ]]; then
+    if [[ ${command_status:-0} == 0 ]]; then
         rm test.out
         exit 0
     fi
