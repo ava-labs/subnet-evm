@@ -30,7 +30,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"math/big"
 	"math/rand"
 	"testing"
 
@@ -42,8 +41,11 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
 )
+
+// DO NOT MERGE: copied from @darioush's because it wasn't present locally
 
 func updateTrie(addrHash common.Hash, root common.Hash, dirties, cleans map[common.Hash][]byte) (common.Hash, *trienode.NodeSet) {
 	h, err := newTestHasher(addrHash, root, cleans)
@@ -64,7 +66,7 @@ func updateTrie(addrHash common.Hash, root common.Hash, dirties, cleans map[comm
 func generateAccount(storageRoot common.Hash) types.StateAccount {
 	return types.StateAccount{
 		Nonce:    uint64(rand.Intn(100)),
-		Balance:  big.NewInt(rand.Int63()),
+		Balance:  uint256.NewInt(uint64(rand.Int63())),
 		CodeHash: testutil.RandBytes(32),
 		Root:     storageRoot,
 	}

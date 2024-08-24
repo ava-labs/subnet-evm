@@ -117,8 +117,8 @@ func newSubnetEVMInstructionSet() JumpTable {
 	return validate(instructionSet)
 }
 
-// newIstanbulInstructionSet returns the frontier,
-// homestead, byzantium, constantinople and petersburg instructions.
+// newIstanbulInstructionSet returns the frontier, homestead, byzantium,
+// constantinople, istanbul and petersburg instructions.
 func newIstanbulInstructionSet() JumpTable {
 	instructionSet := newConstantinopleInstructionSet()
 
