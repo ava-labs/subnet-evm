@@ -1,5 +1,5 @@
-TestExpDecaySampleNanosecondRegression
 TestClientCancelWebsocket
+TestExpDecaySampleNanosecondRegression
 TestGolangBindings
 TestMempoolEthTxsAppGossipHandling
 TestTransactionSkipIndexing
