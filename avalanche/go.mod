@@ -5,7 +5,6 @@ go 1.21.12
 require (
 	github.com/antithesishq/antithesis-sdk-go v0.3.8
 	github.com/ava-labs/avalanchego v1.11.11-0.20240821175119-35c66e33f0dc
-	github.com/ava-labs/coreth v0.13.8-fixed-genesis-upgrade.0.20240813194342-7635a96aa180
 	github.com/ava-labs/subnet-evm v0.0.0
 	github.com/ethereum/go-ethereum v1.13.8
 	github.com/go-cmd/cmd v1.4.1
@@ -26,6 +25,7 @@ require (
 	github.com/DataDog/zstd v1.5.2 // indirect
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
 	github.com/VictoriaMetrics/fastcache v1.12.1 // indirect
+	github.com/ava-labs/coreth v0.13.8-fixed-genesis-upgrade.0.20240813194342-7635a96aa180 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bits-and-blooms/bitset v1.10.0 // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.3.2 // indirect

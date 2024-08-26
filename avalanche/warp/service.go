@@ -12,7 +12,7 @@ import (
 	"github.com/ava-labs/avalanchego/snow/validators"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
-	"github.com/ava-labs/coreth/peer"
+	"github.com/ava-labs/subnet-evm/avalanche/peer"
 	"github.com/ava-labs/subnet-evm/avalanche/warp/aggregator"
 	warpValidators "github.com/ava-labs/subnet-evm/warp/validators"
 	"github.com/ethereum/go-ethereum/common/hexutil"
