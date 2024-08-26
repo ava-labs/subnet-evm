@@ -84,13 +84,13 @@ jobs:
           node-version: "20.13"
       - name: NPM Clean Install
         run: npm ci
-        working-directory: ./contracts
+        working-directory: ./avalanche/contracts
       - name: Hardhat Clean
         run: npx hardhat clean
-        working-directory: ./contracts
+        working-directory: ./avalanche/contracts
       - name: Hardhat Compile
         run: npx hardhat compile
-        working-directory: ./contracts
+        working-directory: ./avalanche/contracts
       - name: Install AvalancheGo Release
         shell: bash
         run: BASEDIR=/tmp/e2e-test AVALANCHEGO_BUILD_PATH=/tmp/e2e-test/avalanchego ./scripts/install_avalanchego_release.sh
@@ -126,13 +126,13 @@ jobs:
           node-version: "20.13"
       - name: NPM Clean Install
         run: npm ci
-        working-directory: ./contracts
+        working-directory: ./avalanche/contracts
       - name: Hardhat Clean
         run: npx hardhat clean
-        working-directory: ./contracts
+        working-directory: ./avalanche/contracts
       - name: Hardhat Compile
         run: npx hardhat compile
-        working-directory: ./contracts
+        working-directory: ./avalanche/contracts
       - name: Install AvalancheGo Release
         shell: bash
         run: BASEDIR=/tmp/e2e-test AVALANCHEGO_BUILD_PATH=/tmp/e2e-test/avalanchego ./scripts/install_avalanchego_release.sh
