@@ -285,7 +285,7 @@ func TestVMStateUpgrade(t *testing.T) {
 	// Verify the new account doesn't exist yet
 	genesisState, err := vm.blockChain.State()
 	require.NoError(t, err)
-	require.Equal(t, common.Big0, genesisState.GetBalance(newAccount))
+	require.Equal(t, common.U2560, genesisState.GetBalance(newAccount))
 
 	// Advance the chain to the upgrade time
 	vm.clock.Set(upgradeTimestamp)
