@@ -17,9 +17,9 @@ import (
 // Before running the tests, this function creates all subnets given in the genesis files
 // and then runs the hardhat tests for each one asynchronously if called with `ginkgo run -procs=`.
 func RegisterAsyncTests() {
-	// Tests here assumes that the genesis files are in ./tests/precompile/genesis/
+	// Tests here assumes that the genesis files are in ./avalanche/tests/precompile/genesis/
 	// with the name {precompile_name}.json
-	genesisFiles, err := utils.GetFilesAndAliases("./tests/precompile/genesis/*.json")
+	genesisFiles, err := utils.GetFilesAndAliases("./avalanche/tests/precompile/genesis/*.json")
 	if err != nil {
 		ginkgo.AbortSuite("Failed to get genesis files: " + err.Error())
 	}
