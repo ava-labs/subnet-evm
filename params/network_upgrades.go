@@ -55,8 +55,8 @@ func (n *NetworkUpgrades) forkOrder() []fork {
 
 // setDefaults sets the default values for the network upgrades.
 // This overrides deactivating the network upgrade by providing a timestamp of nil value.
-func (n *NetworkUpgrades) setDefaults(networkID uint32) {
-	defaults := getDefaultNetworkUpgrades(networkID)
+func (n *NetworkUpgrades) setDefaults(agoUpgrades upgrade.Config) {
+	defaults := getDefaultNetworkUpgrades(agoUpgrades)
 	// If the network upgrade is not set, set it to the default value.
 	// If the network upgrade is set to 0, we also treat it as nil and set it default.
 	// This is because in prior versions, upgrades were not modifiable and were directly set to their default values.
@@ -74,8 +74,8 @@ func (n *NetworkUpgrades) setDefaults(networkID uint32) {
 }
 
 // verifyNetworkUpgrades checks that the network upgrades are well formed.
-func (n *NetworkUpgrades) verifyNetworkUpgrades(networkID uint32) error {
-	defaults := getDefaultNetworkUpgrades(networkID)
+func (n *NetworkUpgrades) verifyNetworkUpgrades(agoUpgrades upgrade.Config) error {
+	defaults := getDefaultNetworkUpgrades(agoUpgrades)
 	if err := verifyWithDefault(n.SubnetEVMTimestamp, defaults.SubnetEVMTimestamp); err != nil {
 		return fmt.Errorf("SubnetEVM fork block timestamp is invalid: %w", err)
 	}
@@ -103,19 +103,19 @@ func (n *NetworkUpgrades) Override(o *NetworkUpgrades) {
 // IsSubnetEVM returns whether [time] represents a block
 // with a timestamp after the SubnetEVM upgrade time.
 func (n *NetworkUpgrades) IsSubnetEVM(time uint64) bool {
-	return utils.IsTimestampForked(n.SubnetEVMTimestamp, time)
+	return isTimestampForked(n.SubnetEVMTimestamp, time)
 }
 
 // IsDurango returns whether [time] represents a block
 // with a timestamp after the Durango upgrade time.
 func (n *NetworkUpgrades) IsDurango(time uint64) bool {
-	return utils.IsTimestampForked(n.DurangoTimestamp, time)
+	return isTimestampForked(n.DurangoTimestamp, time)
 }
 
 // IsEtna returns whether [time] represents a block
 // with a timestamp after the Etna upgrade time.
 func (n *NetworkUpgrades) IsEtna(time uint64) bool {
-	return utils.IsTimestampForked(n.EtnaTimestamp, time)
+	return isTimestampForked(n.EtnaTimestamp, time)
 }
 
 func (n *NetworkUpgrades) Description() string {
@@ -140,10 +140,9 @@ func (n *NetworkUpgrades) GetAvalancheRules(time uint64) AvalancheRules {
 	}
 }
 
-// getDefaultNetworkUpgrades returns the network upgrades for the specified network ID.
+// getDefaultNetworkUpgrades returns the network upgrades for the specified avalanchego upgrades.
 // These should not return nil values.
-func getDefaultNetworkUpgrades(networkID uint32) NetworkUpgrades {
-	agoUpgrade := upgrade.GetConfig(networkID)
+func getDefaultNetworkUpgrades(agoUpgrade upgrade.Config) NetworkUpgrades {
 	return NetworkUpgrades{
 		SubnetEVMTimestamp: utils.NewUint64(0),
 		DurangoTimestamp:   utils.TimeToNewUint64(agoUpgrade.DurangoTime),
