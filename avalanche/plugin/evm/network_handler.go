@@ -8,8 +8,8 @@ import (
 
 	"github.com/ava-labs/avalanchego/codec"
 	"github.com/ava-labs/avalanchego/ids"
+	"github.com/ava-labs/subnet-evm/avalanche/plugin/evm/message"
 	"github.com/ava-labs/subnet-evm/metrics"
-	"github.com/ava-labs/subnet-evm/plugin/evm/message"
 	syncHandlers "github.com/ava-labs/subnet-evm/sync/handlers"
 	syncStats "github.com/ava-labs/subnet-evm/sync/handlers/stats"
 	"github.com/ava-labs/subnet-evm/trie"

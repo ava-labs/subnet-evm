@@ -20,6 +20,7 @@ import (
 	"github.com/ava-labs/avalanchego/network/p2p/gossip"
 	"github.com/prometheus/client_golang/prometheus"
 
+	"github.com/ava-labs/subnet-evm/avalanche/plugin/evm/message"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/core"
@@ -34,7 +35,6 @@ import (
 	"github.com/ava-labs/subnet-evm/node"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/peer"
-	"github.com/ava-labs/subnet-evm/plugin/evm/message"
 	"github.com/ava-labs/subnet-evm/trie/triedb/hashdb"
 
 	warpcontract "github.com/ava-labs/subnet-evm/precompile/contracts/warp"

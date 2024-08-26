@@ -13,10 +13,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ava-labs/subnet-evm/avalanche/plugin/evm/message"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/state/snapshot"
 	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/plugin/evm/message"
 	statesyncclient "github.com/ava-labs/subnet-evm/sync/client"
 	"github.com/ava-labs/subnet-evm/sync/handlers"
 	handlerstats "github.com/ava-labs/subnet-evm/sync/handlers/stats"
