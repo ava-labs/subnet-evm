@@ -25,6 +25,8 @@ import (
 	"github.com/ava-labs/avalanchego/utils/set"
 
 	"github.com/ava-labs/subnet-evm/accounts/keystore"
+	statesyncclient "github.com/ava-labs/subnet-evm/avalanche/sync/client"
+	"github.com/ava-labs/subnet-evm/avalanche/sync/statesync"
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
 	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/core"
@@ -33,8 +35,6 @@ import (
 	"github.com/ava-labs/subnet-evm/metrics"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/predicate"
-	statesyncclient "github.com/ava-labs/subnet-evm/sync/client"
-	"github.com/ava-labs/subnet-evm/sync/statesync"
 	"github.com/ava-labs/subnet-evm/trie"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethdb"

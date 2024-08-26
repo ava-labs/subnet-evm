@@ -20,6 +20,7 @@ import (
 	"github.com/ava-labs/avalanchego/network/p2p/gossip"
 	"github.com/prometheus/client_golang/prometheus"
 
+	"github.com/ava-labs/subnet-evm/avalanche/peer"
 	"github.com/ava-labs/subnet-evm/avalanche/plugin/evm/message"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/constants"
@@ -34,16 +35,15 @@ import (
 	"github.com/ava-labs/subnet-evm/miner"
 	"github.com/ava-labs/subnet-evm/node"
 	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/peer"
 	"github.com/ava-labs/subnet-evm/trie/triedb/hashdb"
 
+	statesyncclient "github.com/ava-labs/subnet-evm/avalanche/sync/client"
+	"github.com/ava-labs/subnet-evm/avalanche/sync/client/stats"
+	"github.com/ava-labs/subnet-evm/avalanche/warp"
+	"github.com/ava-labs/subnet-evm/avalanche/warp/handlers"
 	warpcontract "github.com/ava-labs/subnet-evm/precompile/contracts/warp"
 	"github.com/ava-labs/subnet-evm/rpc"
-	statesyncclient "github.com/ava-labs/subnet-evm/sync/client"
-	"github.com/ava-labs/subnet-evm/sync/client/stats"
 	"github.com/ava-labs/subnet-evm/trie"
-	"github.com/ava-labs/subnet-evm/warp"
-	"github.com/ava-labs/subnet-evm/warp/handlers"
 
 	// Force-load tracer engine to trigger registration
 	//

@@ -9,12 +9,12 @@ import (
 	"github.com/ava-labs/avalanchego/codec"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/subnet-evm/avalanche/plugin/evm/message"
+	syncHandlers "github.com/ava-labs/subnet-evm/avalanche/sync/handlers"
+	syncStats "github.com/ava-labs/subnet-evm/avalanche/sync/handlers/stats"
+	"github.com/ava-labs/subnet-evm/avalanche/warp"
+	warpHandlers "github.com/ava-labs/subnet-evm/avalanche/warp/handlers"
 	"github.com/ava-labs/subnet-evm/metrics"
-	syncHandlers "github.com/ava-labs/subnet-evm/sync/handlers"
-	syncStats "github.com/ava-labs/subnet-evm/sync/handlers/stats"
 	"github.com/ava-labs/subnet-evm/trie"
-	"github.com/ava-labs/subnet-evm/warp"
-	warpHandlers "github.com/ava-labs/subnet-evm/warp/handlers"
 	"github.com/ethereum/go-ethereum/ethdb"
 )
 
