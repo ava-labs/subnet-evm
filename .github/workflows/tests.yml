@@ -214,7 +214,7 @@ jobs:
         run: ./scripts/build.sh
       - name: Check that the antithesis workload is sane
         shell: bash
-        run: go run ./tests/antithesis --avalanchego-path=/tmp/e2e-test/avalanchego/avalanchego --duration=60s
+        run: go run ./avalanche/tests/antithesis --avalanchego-path=/tmp/e2e-test/avalanchego/avalanchego --duration=60s
       - name: Check antithesis image build
         shell: bash
         run: bash -x scripts/tests.build_antithesis_images.sh
