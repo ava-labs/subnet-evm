@@ -26,4 +26,7 @@ if [[ -n "${AVALANCHEGO_BUILD_PATH}" ]]; then
   echo "Running with extra args:" "${EXTRA_ARGS[@]}"
 fi
 
+# TODO: consider moving scripts to the avalanche directory
+cd "$SUBNET_EVM_PATH/avalanche"
+
 ginkgo -vv --label-filter="${GINKGO_LABEL_FILTER:-}" ./tests/load -- "${EXTRA_ARGS[@]}"
