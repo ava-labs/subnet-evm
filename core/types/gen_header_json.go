@@ -31,7 +31,9 @@ func (h Header) MarshalJSON() ([]byte, error) {
 		Extra            hexutil.Bytes   `json:"extraData"        gencodec:"required"`
 		MixDigest        common.Hash     `json:"mixHash"`
 		Nonce            BlockNonce      `json:"nonce"`
+		ExtDataHash      common.Hash     `json:"extDataHash"      gencodec:"required"`
 		BaseFee          *hexutil.Big    `json:"baseFeePerGas" rlp:"optional"`
+		ExtDataGasUsed   *hexutil.Big    `json:"extDataGasUsed" rlp:"optional"`
 		BlockGasCost     *hexutil.Big    `json:"blockGasCost" rlp:"optional"`
 		BlobGasUsed      *hexutil.Uint64 `json:"blobGasUsed" rlp:"optional"`
 		ExcessBlobGas    *hexutil.Uint64 `json:"excessBlobGas" rlp:"optional"`
@@ -54,7 +56,9 @@ func (h Header) MarshalJSON() ([]byte, error) {
 	enc.Extra = h.Extra
 	enc.MixDigest = h.MixDigest
 	enc.Nonce = h.Nonce
+	enc.ExtDataHash = h.ExtDataHash
 	enc.BaseFee = (*hexutil.Big)(h.BaseFee)
+	enc.ExtDataGasUsed = (*hexutil.Big)(h.ExtDataGasUsed)
 	enc.BlockGasCost = (*hexutil.Big)(h.BlockGasCost)
 	enc.BlobGasUsed = (*hexutil.Uint64)(h.BlobGasUsed)
 	enc.ExcessBlobGas = (*hexutil.Uint64)(h.ExcessBlobGas)
@@ -81,7 +85,9 @@ func (h *Header) UnmarshalJSON(input []byte) error {
 		Extra            *hexutil.Bytes  `json:"extraData"        gencodec:"required"`
 		MixDigest        *common.Hash    `json:"mixHash"`
 		Nonce            *BlockNonce     `json:"nonce"`
+		ExtDataHash      *common.Hash    `json:"extDataHash"      gencodec:"required"`
 		BaseFee          *hexutil.Big    `json:"baseFeePerGas" rlp:"optional"`
+		ExtDataGasUsed   *hexutil.Big    `json:"extDataGasUsed" rlp:"optional"`
 		BlockGasCost     *hexutil.Big    `json:"blockGasCost" rlp:"optional"`
 		BlobGasUsed      *hexutil.Uint64 `json:"blobGasUsed" rlp:"optional"`
 		ExcessBlobGas    *hexutil.Uint64 `json:"excessBlobGas" rlp:"optional"`
@@ -149,8 +155,15 @@ func (h *Header) UnmarshalJSON(input []byte) error {
 	if dec.Nonce != nil {
 		h.Nonce = *dec.Nonce
 	}
+	if dec.ExtDataHash == nil {
+		return errors.New("missing required field 'extDataHash' for Header")
+	}
+	h.ExtDataHash = *dec.ExtDataHash
 	if dec.BaseFee != nil {
 		h.BaseFee = (*big.Int)(dec.BaseFee)
+	}
+	if dec.ExtDataGasUsed != nil {
+		h.ExtDataGasUsed = (*big.Int)(dec.ExtDataGasUsed)
 	}
 	if dec.BlockGasCost != nil {
 		h.BlockGasCost = (*big.Int)(dec.BlockGasCost)

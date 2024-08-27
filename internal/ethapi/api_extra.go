@@ -6,11 +6,8 @@ package ethapi
 import (
 	"context"
 	"fmt"
-	"math/big"
 
-	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/core"
-	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/rpc"
 	"github.com/ethereum/go-ethereum/common"
@@ -18,8 +15,9 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 )
 
-func (s *BlockChainAPI) GetChainConfig(ctx context.Context) *params.ChainConfigWithUpgradesJSON {
-	return s.b.ChainConfig().ToWithUpgradesJSON()
+// GetChainConfig returns the chain config.
+func (api *BlockChainAPI) GetChainConfig(ctx context.Context) *params.ChainConfig {
+	return api.b.ChainConfig()
 }
 
 type DetailedExecutionResult struct {
@@ -93,78 +91,4 @@ func (s *BlockChainAPI) GetBadBlocks(ctx context.Context) ([]*BadBlockArgs, erro
 		})
 	}
 	return results, nil
-}
-
-type FeeConfigResult struct {
-	FeeConfig     commontype.FeeConfig `json:"feeConfig"`
-	LastChangedAt *big.Int             `json:"lastChangedAt,omitempty"`
-}
-
-func (s *BlockChainAPI) FeeConfig(ctx context.Context, blockNrOrHash *rpc.BlockNumberOrHash) (*FeeConfigResult, error) {
-	var (
-		header *types.Header
-		err    error
-	)
-	if blockNrOrHash == nil {
-		header = s.b.CurrentHeader()
-	} else {
-		header, err = s.b.HeaderByNumberOrHash(ctx, *blockNrOrHash)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	feeConfig, lastChangedAt, err := s.b.GetFeeConfigAt(header)
-	if err != nil {
-		return nil, err
-	}
-	return &FeeConfigResult{FeeConfig: feeConfig, LastChangedAt: lastChangedAt}, nil
-}
-
-// GetActivePrecompilesAt returns the active precompile configs at the given block timestamp.
-// DEPRECATED: Use GetActiveRulesAt instead.
-func (s *BlockChainAPI) GetActivePrecompilesAt(ctx context.Context, blockTimestamp *uint64) params.Precompiles {
-	var timestamp uint64
-	if blockTimestamp == nil {
-		timestamp = s.b.CurrentHeader().Time
-	} else {
-		timestamp = *blockTimestamp
-	}
-
-	return s.b.ChainConfig().EnabledStatefulPrecompiles(timestamp)
-}
-
-type ActivePrecompilesResult struct {
-	Timestamp uint64 `json:"timestamp"`
-}
-
-type ActiveRulesResult struct {
-	EthRules          params.EthRules                    `json:"ethRules"`
-	AvalancheRules    params.AvalancheRules              `json:"avalancheRules"`
-	ActivePrecompiles map[string]ActivePrecompilesResult `json:"precompiles"`
-}
-
-// GetActiveRulesAt returns the active rules at the given block timestamp.
-func (s *BlockChainAPI) GetActiveRulesAt(ctx context.Context, blockTimestamp *uint64) ActiveRulesResult {
-	var timestamp uint64
-	if blockTimestamp == nil {
-		timestamp = s.b.CurrentHeader().Time
-	} else {
-		timestamp = *blockTimestamp
-	}
-	rules := s.b.ChainConfig().Rules(common.Big0, timestamp)
-	res := ActiveRulesResult{
-		EthRules:       rules.EthRules,
-		AvalancheRules: rules.AvalancheRules,
-	}
-	res.ActivePrecompiles = make(map[string]ActivePrecompilesResult)
-	for _, precompileConfig := range rules.ActivePrecompiles {
-		if precompileConfig.Timestamp() == nil {
-			continue
-		}
-		res.ActivePrecompiles[precompileConfig.Key()] = ActivePrecompilesResult{
-			Timestamp: *precompileConfig.Timestamp(),
-		}
-	}
-	return res
 }

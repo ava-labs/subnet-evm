@@ -39,7 +39,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
 	"github.com/ava-labs/subnet-evm/consensus/misc/eip4844"
 	"github.com/ava-labs/subnet-evm/core"
@@ -85,10 +84,16 @@ var testChainConfig *params.ChainConfig
 func init() {
 	testChainConfig = new(params.ChainConfig)
 	*testChainConfig = *params.TestChainConfig
-	testChainConfig.FeeConfig.MinBaseFee = new(big.Int).SetUint64(1)
 
 	testChainConfig.CancunTime = new(uint64)
 	*testChainConfig.CancunTime = uint64(time.Now().Unix())
+}
+
+// overrideMinFee sets the minimum base fee to 1 wei for the duration of the test.
+func overrideMinFee(t *testing.T) {
+	orig := dummy.EtnaMinBaseFee
+	dummy.EtnaMinBaseFee = big.NewInt(1)
+	t.Cleanup(func() { dummy.EtnaMinBaseFee = orig })
 }
 
 // testBlockChain is a mock of the live chain for testing the pool.
@@ -129,7 +134,7 @@ func (bc *testBlockChain) CurrentBlock() *types.Header {
 			Extra:    make([]byte, params.DynamicFeeExtraDataSize),
 		}
 		_, baseFee, err := dummy.CalcBaseFee(
-			bc.config, bc.config.FeeConfig, parent, blockTime,
+			bc.config, parent, blockTime,
 		)
 		if err != nil {
 			panic(err)
@@ -181,10 +186,6 @@ func (bt *testBlockChain) GetBlock(hash common.Hash, number uint64) *types.Block
 
 func (bc *testBlockChain) StateAt(common.Hash) (*state.StateDB, error) {
 	return bc.statedb, nil
-}
-
-func (bc *testBlockChain) GetFeeConfigAt(header *types.Header) (commontype.FeeConfig, *big.Int, error) {
-	return bc.config.FeeConfig, nil, nil
 }
 
 // makeAddressReserver is a utility method to sanity check that accounts are
@@ -552,7 +553,7 @@ func TestOpenDrops(t *testing.T) {
 
 	chain := &testBlockChain{
 		config:  testChainConfig,
-		basefee: uint256.NewInt(uint64(params.TestInitialBaseFee)),
+		basefee: uint256.NewInt(uint64(params.ApricotPhase3MinBaseFee)),
 		blobfee: uint256.NewInt(params.BlobTxMinBlobGasprice),
 		statedb: statedb,
 	}
@@ -667,7 +668,7 @@ func TestOpenIndex(t *testing.T) {
 
 	chain := &testBlockChain{
 		config:  testChainConfig,
-		basefee: uint256.NewInt(uint64(params.TestInitialBaseFee)),
+		basefee: uint256.NewInt(uint64(params.ApricotPhase3MinBaseFee)),
 		blobfee: uint256.NewInt(params.BlobTxMinBlobGasprice),
 		statedb: statedb,
 	}
@@ -714,6 +715,7 @@ func TestOpenIndex(t *testing.T) {
 // Tests that after indexing all the loaded transactions from disk, a price heap
 // is correctly constructed based on the head basefee and blobfee.
 func TestOpenHeap(t *testing.T) {
+	overrideMinFee(t)
 	log.SetDefault(log.NewLogger(log.NewTerminalHandlerWithLevel(os.Stderr, log.LevelTrace, true)))
 
 	// Create a temporary folder for the persistent backend
@@ -801,6 +803,7 @@ func TestOpenHeap(t *testing.T) {
 // Tests that after the pool's previous state is loaded back, any transactions
 // over the new storage cap will get dropped.
 func TestOpenCap(t *testing.T) {
+	overrideMinFee(t)
 	log.SetDefault(log.NewLogger(log.NewTerminalHandlerWithLevel(os.Stderr, log.LevelTrace, true)))
 
 	// Create a temporary folder for the persistent backend
@@ -842,9 +845,9 @@ func TestOpenCap(t *testing.T) {
 	for _, datacap := range []uint64{2 * (txAvgSize + blobSize), 100 * (txAvgSize + blobSize)} {
 		// Create a blob pool out of the pre-seeded data, but cap it to 2 blob transaction
 		statedb, _ := state.New(types.EmptyRootHash, state.NewDatabase(rawdb.NewDatabase(memorydb.New())), nil)
-		statedb.AddBalance(addr1, big.NewInt(1_000_000_000))
-		statedb.AddBalance(addr2, big.NewInt(1_000_000_000))
-		statedb.AddBalance(addr3, big.NewInt(1_000_000_000))
+		statedb.AddBalance(addr1, big.NewInt(params.Ether))
+		statedb.AddBalance(addr2, big.NewInt(params.Ether))
+		statedb.AddBalance(addr3, big.NewInt(params.Ether))
 		statedb.Commit(0, true, false)
 
 		chain := &testBlockChain{

@@ -10,22 +10,28 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/precompile/allowlist"
-	"github.com/ava-labs/subnet-evm/precompile/contracts/deployerallowlist"
-	"github.com/ava-labs/subnet-evm/precompile/contracts/feemanager"
-	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+var TestCallbacks = dummy.ConsensusCallbacks{
+	OnExtraStateChange: func(block *types.Block, sdb *state.StateDB) (*big.Int, *big.Int, error) {
+		sdb.SetBalanceMultiCoin(common.HexToAddress("0xdeadbeef"), common.HexToHash("0xdeadbeef"), big.NewInt(block.Number().Int64()))
+		return nil, nil, nil
+	},
+	OnFinalizeAndAssemble: func(header *types.Header, sdb *state.StateDB, txs []*types.Transaction) ([]byte, *big.Int, *big.Int, error) {
+		sdb.SetBalanceMultiCoin(common.HexToAddress("0xdeadbeef"), common.HexToHash("0xdeadbeef"), big.NewInt(header.Number.Int64()))
+		return nil, nil, nil, nil
+	},
+}
 
 type ChainTest struct {
 	Name     string
@@ -61,10 +67,6 @@ var tests = []ChainTest{
 		TestEmptyBlocks,
 	},
 	{
-		"ReorgReInsert",
-		TestReorgReInsert,
-	},
-	{
 		"AcceptBlockIdenticalStateRoot",
 		TestAcceptBlockIdenticalStateRoot,
 	},
@@ -83,10 +85,6 @@ var tests = []ChainTest{
 	{
 		"InsertChainValidBlockFee",
 		TestInsertChainValidBlockFee,
-	},
-	{
-		"TestStatefulPrecompiles",
-		TestStatefulPrecompiles,
 	},
 }
 
@@ -430,6 +428,8 @@ func TestAcceptNonCanonicalBlock(t *testing.T, create func(db ethdb.Database, gs
 		key2, _ = crypto.HexToECDSA("8a1f9a8f95be41cd7ccb6168179afb4504aefe388d1e14474d32c45c72ce7b7a")
 		addr1   = crypto.PubkeyToAddress(key1.PublicKey)
 		addr2   = crypto.PubkeyToAddress(key2.PublicKey)
+		// We use two separate databases since GenerateChain commits the state roots to its underlying
+		// database.
 		chainDB = rawdb.NewMemoryDatabase()
 	)
 
@@ -830,6 +830,7 @@ func TestBuildOnVariousStages(t *testing.T, create func(db ethdb.Database, gspec
 func TestEmptyBlocks(t *testing.T, create func(db ethdb.Database, gspec *Genesis, lastAcceptedHash common.Hash) (*BlockChain, error)) {
 	chainDB := rawdb.NewMemoryDatabase()
 
+	// Ensure that key1 has some funds in the genesis block.
 	gspec := &Genesis{
 		Config: &params.ChainConfig{HomesteadBlock: new(big.Int)},
 		Alloc:  GenesisAlloc{},
@@ -871,6 +872,9 @@ func TestReorgReInsert(t *testing.T, create func(db ethdb.Database, gspec *Genes
 		key2, _ = crypto.HexToECDSA("8a1f9a8f95be41cd7ccb6168179afb4504aefe388d1e14474d32c45c72ce7b7a")
 		addr1   = crypto.PubkeyToAddress(key1.PublicKey)
 		addr2   = crypto.PubkeyToAddress(key2.PublicKey)
+		// We use two separate databases since GenerateChain commits the state roots to its underlying
+		// database.
+		genDB   = rawdb.NewMemoryDatabase()
 		chainDB = rawdb.NewMemoryDatabase()
 	)
 
@@ -880,6 +884,7 @@ func TestReorgReInsert(t *testing.T, create func(db ethdb.Database, gspec *Genes
 		Config: &params.ChainConfig{HomesteadBlock: new(big.Int)},
 		Alloc:  GenesisAlloc{addr1: {Balance: genesisBalance}},
 	}
+	genesis := gspec.ToBlock()
 
 	blockchain, err := create(chainDB, gspec, common.Hash{})
 	if err != nil {
@@ -889,7 +894,7 @@ func TestReorgReInsert(t *testing.T, create func(db ethdb.Database, gspec *Genes
 
 	signer := types.HomesteadSigner{}
 	numBlocks := 3
-	_, chain, _, err := GenerateChainWithGenesis(gspec, blockchain.engine, numBlocks, 10, func(i int, gen *BlockGen) {
+	chain, _, err := GenerateChain(gspec.Config, genesis, blockchain.engine, genDB, numBlocks, 10, func(i int, gen *BlockGen) {
 		// Generate a transaction to create a unique block
 		tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr1), addr2, big.NewInt(10000), params.TxGas, nil, nil), signer, key1)
 		gen.AddTx(tx)
@@ -1339,7 +1344,7 @@ func TestInsertChainInvalidBlockFee(t *testing.T, create func(db ethdb.Database,
 
 	// This call generates a chain of 3 blocks.
 	signer := types.LatestSigner(params.TestChainConfig)
-	eng := dummy.NewFakerWithMode(dummy.Mode{ModeSkipBlockFee: true, ModeSkipCoinbase: true})
+	eng := dummy.NewFakerWithMode(TestCallbacks, dummy.Mode{ModeSkipBlockFee: true, ModeSkipCoinbase: true})
 	_, chain, _, err := GenerateChainWithGenesis(gspec, eng, 3, 0, func(i int, gen *BlockGen) {
 		tx := types.NewTx(&types.DynamicFeeTx{
 			ChainID:   params.TestChainConfig.ChainID,
@@ -1375,6 +1380,8 @@ func TestInsertChainValidBlockFee(t *testing.T, create func(db ethdb.Database, g
 		key2, _ = crypto.HexToECDSA("8a1f9a8f95be41cd7ccb6168179afb4504aefe388d1e14474d32c45c72ce7b7a")
 		addr1   = crypto.PubkeyToAddress(key1.PublicKey)
 		addr2   = crypto.PubkeyToAddress(key2.PublicKey)
+		// We use two separate databases since GenerateChain commits the state roots to its underlying
+		// database.
 		chainDB = rawdb.NewMemoryDatabase()
 	)
 
@@ -1435,8 +1442,7 @@ func TestInsertChainValidBlockFee(t *testing.T, create func(db ethdb.Database, g
 		}
 		balance1 := sdb.GetBalance(addr1)
 		expectedBalance1 := new(big.Int).Sub(genesisBalance, transfer)
-		baseFee := params.DefaultFeeConfig.MinBaseFee
-		feeSpend := new(big.Int).Mul(new(big.Int).Add(baseFee, tip), new(big.Int).SetUint64(params.TxGas))
+		feeSpend := new(big.Int).Mul(new(big.Int).Add(big.NewInt(225*params.GWei), tip), new(big.Int).SetUint64(params.TxGas))
 		expectedBalance1.Sub(expectedBalance1, feeSpend)
 		if balance1.Cmp(expectedBalance1) != 0 {
 			return fmt.Errorf("expected addr1 balance: %d, found balance: %d", expectedBalance1, balance1)
@@ -1455,196 +1461,6 @@ func TestInsertChainValidBlockFee(t *testing.T, create func(db ethdb.Database, g
 		return nil
 	}
 
-	checkBlockChainState(t, blockchain, gspec, chainDB, create, checkState)
-}
-
-// TestStatefulPrecompiles provides a testing framework to ensure that processing transactions interacting with the stateful precompiles work as expected.
-func TestStatefulPrecompiles(t *testing.T, create func(db ethdb.Database, gspec *Genesis, lastAcceptedHash common.Hash) (*BlockChain, error)) {
-	var (
-		key1, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
-		key2, _ = crypto.HexToECDSA("8a1f9a8f95be41cd7ccb6168179afb4504aefe388d1e14474d32c45c72ce7b7a")
-		addr1   = crypto.PubkeyToAddress(key1.PublicKey)
-		addr2   = crypto.PubkeyToAddress(key2.PublicKey)
-		chainDB = rawdb.NewMemoryDatabase()
-	)
-
-	// Ensure that key1 has sufficient funds in the genesis block for all of the tests.
-	genesisBalance := new(big.Int).Mul(big.NewInt(1000000), big.NewInt(params.Ether))
-	config := *params.TestChainConfig
-	// Set all of the required config parameters
-	config.GenesisPrecompiles = params.Precompiles{
-		deployerallowlist.ConfigKey: deployerallowlist.NewConfig(utils.NewUint64(0), []common.Address{addr1}, nil, nil),
-		feemanager.ConfigKey:        feemanager.NewConfig(utils.NewUint64(0), []common.Address{addr1}, nil, nil, nil),
-	}
-	gspec := &Genesis{
-		Config: &config,
-		Alloc:  GenesisAlloc{addr1: {Balance: genesisBalance}},
-	}
-
-	blockchain, err := create(chainDB, gspec, common.Hash{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer blockchain.Stop()
-
-	signer := types.LatestSigner(params.TestChainConfig)
-	tip := big.NewInt(50000 * params.GWei)
-
-	// Simple framework to add a test that the stateful precompile works as expected
-	type test struct {
-		addTx         func(gen *BlockGen)
-		verifyGenesis func(sdb *state.StateDB)
-		verifyState   func(sdb *state.StateDB) error
-	}
-	testFeeConfig := commontype.FeeConfig{
-		GasLimit:        big.NewInt(11_000_000),
-		TargetBlockRate: 5, // in seconds
-
-		MinBaseFee:               big.NewInt(28_000_000_000),
-		TargetGas:                big.NewInt(18_000_000),
-		BaseFeeChangeDenominator: big.NewInt(3396),
-
-		MinBlockGasCost:  big.NewInt(0),
-		MaxBlockGasCost:  big.NewInt(4_000_000),
-		BlockGasCostStep: big.NewInt(500_000),
-	}
-	assert := assert.New(t)
-	tests := map[string]test{
-		"allow list": {
-			addTx: func(gen *BlockGen) {
-				feeCap := new(big.Int).Add(gen.BaseFee(), tip)
-				input, err := allowlist.PackModifyAllowList(addr2, allowlist.AdminRole)
-				if err != nil {
-					t.Fatal(err)
-				}
-				tx := types.NewTx(&types.DynamicFeeTx{
-					ChainID:   params.TestChainConfig.ChainID,
-					Nonce:     gen.TxNonce(addr1),
-					To:        &deployerallowlist.ContractAddress,
-					Gas:       3_000_000,
-					Value:     common.Big0,
-					GasFeeCap: feeCap,
-					GasTipCap: tip,
-					Data:      input,
-				})
-
-				signedTx, err := types.SignTx(tx, signer, key1)
-				if err != nil {
-					t.Fatal(err)
-				}
-				gen.AddTx(signedTx)
-			},
-			verifyState: func(sdb *state.StateDB) error {
-				res := deployerallowlist.GetContractDeployerAllowListStatus(sdb, addr1)
-				if allowlist.AdminRole != res {
-					return fmt.Errorf("unexpected allow list status for addr1 %s, expected %s", res, allowlist.AdminRole)
-				}
-				res = deployerallowlist.GetContractDeployerAllowListStatus(sdb, addr2)
-				if allowlist.AdminRole != res {
-					return fmt.Errorf("unexpected allow list status for addr2 %s, expected %s", res, allowlist.AdminRole)
-				}
-				return nil
-			},
-			verifyGenesis: func(sdb *state.StateDB) {
-				res := deployerallowlist.GetContractDeployerAllowListStatus(sdb, addr1)
-				if allowlist.AdminRole != res {
-					t.Fatalf("unexpected allow list status for addr1 %s, expected %s", res, allowlist.AdminRole)
-				}
-				res = deployerallowlist.GetContractDeployerAllowListStatus(sdb, addr2)
-				if allowlist.NoRole != res {
-					t.Fatalf("unexpected allow list status for addr2 %s, expected %s", res, allowlist.NoRole)
-				}
-			},
-		},
-		"fee manager set config": {
-			addTx: func(gen *BlockGen) {
-				feeCap := new(big.Int).Add(gen.BaseFee(), tip)
-				input, err := feemanager.PackSetFeeConfig(testFeeConfig)
-				if err != nil {
-					t.Fatal(err)
-				}
-				tx := types.NewTx(&types.DynamicFeeTx{
-					ChainID:   params.TestChainConfig.ChainID,
-					Nonce:     gen.TxNonce(addr1),
-					To:        &feemanager.ContractAddress,
-					Gas:       3_000_000,
-					Value:     common.Big0,
-					GasFeeCap: feeCap,
-					GasTipCap: tip,
-					Data:      input,
-				})
-
-				signedTx, err := types.SignTx(tx, signer, key1)
-				if err != nil {
-					t.Fatal(err)
-				}
-				gen.AddTx(signedTx)
-			},
-			verifyState: func(sdb *state.StateDB) error {
-				res := feemanager.GetFeeManagerStatus(sdb, addr1)
-				assert.Equal(allowlist.AdminRole, res)
-
-				storedConfig := feemanager.GetStoredFeeConfig(sdb)
-				assert.EqualValues(testFeeConfig, storedConfig)
-
-				feeConfig, _, err := blockchain.GetFeeConfigAt(blockchain.CurrentHeader())
-				assert.NoError(err)
-				assert.EqualValues(testFeeConfig, feeConfig)
-				return nil
-			},
-			verifyGenesis: func(sdb *state.StateDB) {
-				res := feemanager.GetFeeManagerStatus(sdb, addr1)
-				assert.Equal(allowlist.AdminRole, res)
-
-				feeConfig, _, err := blockchain.GetFeeConfigAt(blockchain.Genesis().Header())
-				assert.NoError(err)
-				assert.EqualValues(config.FeeConfig, feeConfig)
-			},
-		},
-	}
-
-	// Generate chain of blocks using [genDB] instead of [chainDB] to avoid writing
-	// to the BlockChain's database while generating blocks.
-	_, chain, _, err := GenerateChainWithGenesis(gspec, blockchain.engine, 1, 0, func(i int, gen *BlockGen) {
-		for _, test := range tests {
-			test.addTx(gen)
-		}
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Insert three blocks into the chain and accept only the first block.
-	if _, err := blockchain.InsertChain(chain); err != nil {
-		t.Fatal(err)
-	}
-	if err := blockchain.Accept(chain[0]); err != nil {
-		t.Fatal(err)
-	}
-	blockchain.DrainAcceptorQueue()
-
-	genesisState, err := blockchain.StateAt(blockchain.Genesis().Root())
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, test := range tests {
-		if test.verifyGenesis == nil {
-			continue
-		}
-		test.verifyGenesis(genesisState)
-	}
-
-	// Run all of the necessary state verification
-	checkState := func(sdb *state.StateDB) error {
-		for _, test := range tests {
-			if err := test.verifyState(sdb); err != nil {
-				return err
-			}
-		}
-		return nil
-	}
-
-	// This tests that the precompiles work as expected when they are enabled
 	checkBlockChainState(t, blockchain, gspec, chainDB, create, checkState)
 }
 

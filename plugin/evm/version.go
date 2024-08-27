@@ -10,8 +10,8 @@ import (
 var (
 	// GitCommit is set by the build script
 	GitCommit string
-	// Version is the version of Subnet EVM
-	Version string = "v0.6.8"
+	// Version is the version of Coreth
+	Version string = "v0.13.7"
 )
 
 func init() {

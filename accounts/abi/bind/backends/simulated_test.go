@@ -1305,7 +1305,7 @@ Example contract to test event emission:
 		function Call() public { emit Called(); }
 	}
 */
-// The fork tests are commented out because transactions are not indexed in subnet-evm until they are marked
+// The fork tests are commented out because transactions are not indexed in coreth until they are marked
 // as accepted, which breaks the logic of these tests.
 // const callableAbi = "[{\"anonymous\":false,\"inputs\":[],\"name\":\"Called\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"Call\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]"
 

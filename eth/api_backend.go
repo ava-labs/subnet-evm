@@ -33,7 +33,6 @@ import (
 	"time"
 
 	"github.com/ava-labs/subnet-evm/accounts"
-	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/consensus"
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
 	"github.com/ava-labs/subnet-evm/core"
@@ -105,10 +104,6 @@ func (b *EthAPIBackend) HeaderByNumber(ctx context.Context, number rpc.BlockNumb
 	}
 
 	return b.eth.blockchain.GetHeaderByNumber(uint64(number)), nil
-}
-
-func (b *EthAPIBackend) GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig, *big.Int, error) {
-	return b.eth.blockchain.GetFeeConfigAt(parent)
 }
 
 func (b *EthAPIBackend) HeaderByHash(ctx context.Context, hash common.Hash) (*types.Header, error) {

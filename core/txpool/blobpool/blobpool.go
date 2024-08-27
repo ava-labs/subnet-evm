@@ -408,14 +408,8 @@ func (p *BlobPool) Init(gasTip *big.Int, head *types.Header, reserve txpool.Addr
 	for addr := range p.index {
 		p.recheck(addr, nil)
 	}
-	feeConfig, _, err := p.chain.GetFeeConfigAt(p.head)
-	if err != nil {
-		p.Close()
-		return err
-	}
 	_, baseFee, err := dummy.EstimateNextBaseFee(
 		p.chain.Config(),
-		feeConfig,
 		p.head,
 		uint64(time.Now().Unix()),
 	)
@@ -808,14 +802,8 @@ func (p *BlobPool) Reset(oldHead, newHead *types.Header) {
 	if p.chain.Config().IsCancun(p.head.Number, p.head.Time) {
 		p.limbo.finalize(p.chain.CurrentFinalBlock())
 	}
-	feeConfig, _, err := p.chain.GetFeeConfigAt(p.head)
-	if err != nil {
-		log.Error("Failed to get fee config to reset blobpool fees", "err", err)
-		return
-	}
 	_, baseFee, err := dummy.EstimateNextBaseFee(
 		p.chain.Config(),
-		feeConfig,
 		p.head,
 		uint64(time.Now().Unix()),
 	)

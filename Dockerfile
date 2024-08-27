@@ -1,36 +1,38 @@
-# syntax=docker/dockerfile:experimental
-
-# ============= Setting up base Stage ================
-# AVALANCHEGO_NODE_IMAGE needs to identify an existing node image and should include the tag
-ARG AVALANCHEGO_NODE_IMAGE
-
 # ============= Compilation Stage ================
 FROM golang:1.21.12-bullseye AS builder
 
-WORKDIR /build
+ARG AVALANCHE_VERSION
 
-# Copy avalanche dependencies first (intermediate docker image caching)
-# Copy avalanchego directory if present (for manual CI case, which uses local dependency)
-COPY go.mod go.sum avalanchego* ./
+RUN mkdir -p $GOPATH/src/github.com/ava-labs
+WORKDIR $GOPATH/src/github.com/ava-labs
 
-# Download avalanche dependencies using go mod
+RUN git clone -b $AVALANCHE_VERSION --single-branch https://github.com/ava-labs/avalanchego.git
+
+# Copy coreth repo into desired location
+COPY . coreth
+
+# Set the workdir to AvalancheGo and update coreth dependency to local version
+WORKDIR $GOPATH/src/github.com/ava-labs/avalanchego
+# Run go mod download here to improve caching of AvalancheGo specific depednencies
+RUN go mod download
+# Replace the coreth dependency
+RUN go mod edit -replace github.com/ava-labs/subnet-evm=../coreth
 RUN go mod download && go mod tidy -compat=1.21
 
-# Copy the code into the container
-COPY . .
-
-# Ensure pre-existing builds are not available for inclusion in the final image
-RUN [ -d ./build ] && rm -rf ./build/* || true
-
-# Pass in SUBNET_EVM_COMMIT as an arg to allow the build script to set this externally
-ARG SUBNET_EVM_COMMIT
-ARG CURRENT_BRANCH
-
-RUN export SUBNET_EVM_COMMIT=$SUBNET_EVM_COMMIT && export CURRENT_BRANCH=$CURRENT_BRANCH && ./scripts/build.sh build/subnet-evm
+# Build the AvalancheGo binary with local version of coreth.
+RUN ./scripts/build_avalanche.sh
+# Create the plugins directory in the standard location so the build directory will be recognized
+# as valid.
+RUN mkdir build/plugins
 
 # ============= Cleanup Stage ================
-FROM $AVALANCHEGO_NODE_IMAGE AS builtImage
+FROM debian:11-slim AS execution
 
-# Copy the evm binary into the correct location in the container
-ARG VM_ID=srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
-COPY --from=builder /build/build/subnet-evm /avalanchego/build/plugins/$VM_ID
+# Maintain compatibility with previous images
+RUN mkdir -p /avalanchego/build
+WORKDIR /avalanchego/build
+
+# Copy the executables into the container
+COPY --from=builder /go/src/github.com/ava-labs/avalanchego/build .
+
+CMD [ "./avalanchego" ]

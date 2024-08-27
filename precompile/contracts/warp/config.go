@@ -47,24 +47,22 @@ var (
 // adds specific configuration for Warp.
 type Config struct {
 	precompileconfig.Upgrade
-	QuorumNumerator              uint64 `json:"quorumNumerator"`
-	RequirePrimaryNetworkSigners bool   `json:"requirePrimaryNetworkSigners"`
+	QuorumNumerator uint64 `json:"quorumNumerator"`
 }
 
 // NewConfig returns a config for a network upgrade at [blockTimestamp] that enables
 // Warp with the given quorum numerator.
-func NewConfig(blockTimestamp *uint64, quorumNumerator uint64, requirePrimaryNetworkSigners bool) *Config {
+func NewConfig(blockTimestamp *uint64, quorumNumerator uint64) *Config {
 	return &Config{
-		Upgrade:                      precompileconfig.Upgrade{BlockTimestamp: blockTimestamp},
-		QuorumNumerator:              quorumNumerator,
-		RequirePrimaryNetworkSigners: requirePrimaryNetworkSigners,
+		Upgrade:         precompileconfig.Upgrade{BlockTimestamp: blockTimestamp},
+		QuorumNumerator: quorumNumerator,
 	}
 }
 
 // NewDefaultConfig returns a config for a network upgrade at [blockTimestamp] that enables
 // Warp with the default quorum numerator (0 denotes using the default).
 func NewDefaultConfig(blockTimestamp *uint64) *Config {
-	return NewConfig(blockTimestamp, 0, false)
+	return NewConfig(blockTimestamp, 0)
 }
 
 // NewDisableConfig returns config for a network upgrade at [blockTimestamp]
@@ -200,19 +198,11 @@ func (c *Config) VerifyPredicate(predicateContext *precompileconfig.PredicateCon
 	}
 
 	log.Debug("verifying warp message", "warpMsg", warpMsg, "quorumNum", quorumNumerator, "quorumDenom", WarpQuorumDenominator)
-
-	// Wrap validators.State on the chain snow context to special case the Primary Network
-	state := warpValidators.NewState(
-		predicateContext.SnowCtx.ValidatorState,
-		predicateContext.SnowCtx.SubnetID,
-		warpMsg.SourceChainID,
-		c.RequirePrimaryNetworkSigners,
-	)
 	err = warpMsg.Signature.Verify(
 		context.Background(),
 		&warpMsg.UnsignedMessage,
 		predicateContext.SnowCtx.NetworkID,
-		state,
+		warpValidators.NewState(predicateContext.SnowCtx), // Wrap validators.State on the chain snow context to special case the Primary Network
 		predicateContext.ProposerVMBlockCtx.PChainHeight,
 		quorumNumerator,
 		WarpQuorumDenominator,

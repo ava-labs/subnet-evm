@@ -86,11 +86,19 @@ type Header struct {
 	Extra       []byte         `json:"extraData"        gencodec:"required"`
 	MixDigest   common.Hash    `json:"mixHash"`
 	Nonce       BlockNonce     `json:"nonce"`
+	ExtDataHash common.Hash    `json:"extDataHash"      gencodec:"required"`
 
 	// BaseFee was added by EIP-1559 and is ignored in legacy headers.
 	BaseFee *big.Int `json:"baseFeePerGas" rlp:"optional"`
 
-	// BlockGasCost was added by SubnetEVM and is ignored in legacy
+	// ExtDataGasUsed was added by Apricot Phase 4 and is ignored in legacy
+	// headers.
+	//
+	// It is not a uint64 like GasLimit or GasUsed because it is not possible to
+	// correctly encode this field optionally with uint64.
+	ExtDataGasUsed *big.Int `json:"extDataGasUsed" rlp:"optional"`
+
+	// BlockGasCost was added by Apricot Phase 4 and is ignored in legacy
 	// headers.
 	BlockGasCost *big.Int `json:"blockGasCost" rlp:"optional"`
 
@@ -106,17 +114,18 @@ type Header struct {
 
 // field type overrides for gencodec
 type headerMarshaling struct {
-	Difficulty    *hexutil.Big
-	Number        *hexutil.Big
-	GasLimit      hexutil.Uint64
-	GasUsed       hexutil.Uint64
-	Time          hexutil.Uint64
-	Extra         hexutil.Bytes
-	BaseFee       *hexutil.Big
-	BlockGasCost  *hexutil.Big
-	Hash          common.Hash `json:"hash"` // adds call to Hash() in MarshalJSON
-	BlobGasUsed   *hexutil.Uint64
-	ExcessBlobGas *hexutil.Uint64
+	Difficulty     *hexutil.Big
+	Number         *hexutil.Big
+	GasLimit       hexutil.Uint64
+	GasUsed        hexutil.Uint64
+	Time           hexutil.Uint64
+	Extra          hexutil.Bytes
+	BaseFee        *hexutil.Big
+	ExtDataGasUsed *hexutil.Big
+	BlockGasCost   *hexutil.Big
+	Hash           common.Hash `json:"hash"` // adds call to Hash() in MarshalJSON
+	BlobGasUsed    *hexutil.Uint64
+	ExcessBlobGas  *hexutil.Uint64
 }
 
 // Hash returns the block hash of the header, which is simply the keccak256 hash of its
@@ -153,6 +162,8 @@ func (h *Header) EmptyReceipts() bool {
 type Body struct {
 	Transactions []*Transaction
 	Uncles       []*Header
+	Version      uint32
+	ExtData      *[]byte `rlp:"nil"`
 }
 
 // Block represents an Ethereum block.
@@ -177,6 +188,10 @@ type Block struct {
 	uncles       []*Header
 	transactions Transactions
 
+	// Coreth specific data structures to support atomic transactions
+	version uint32
+	extdata *[]byte
+
 	// caches
 	hash atomic.Value
 	size atomic.Value
@@ -184,9 +199,11 @@ type Block struct {
 
 // "external" block encoding. used for eth protocol, etc.
 type extblock struct {
-	Header *Header
-	Txs    []*Transaction
-	Uncles []*Header
+	Header  *Header
+	Txs     []*Transaction
+	Uncles  []*Header
+	Version uint32
+	ExtData *[]byte `rlp:"nil"`
 }
 
 // NewBlock creates a new block. The input data is copied, changes to header and to the
@@ -241,6 +258,9 @@ func CopyHeader(h *Header) *Header {
 	if h.BaseFee != nil {
 		cpy.BaseFee = new(big.Int).Set(h.BaseFee)
 	}
+	if h.ExtDataGasUsed != nil {
+		cpy.ExtDataGasUsed = new(big.Int).Set(h.ExtDataGasUsed)
+	}
 	if h.BlockGasCost != nil {
 		cpy.BlockGasCost = new(big.Int).Set(h.BlockGasCost)
 	}
@@ -270,7 +290,7 @@ func (b *Block) DecodeRLP(s *rlp.Stream) error {
 	if err := s.Decode(&eb); err != nil {
 		return err
 	}
-	b.header, b.uncles, b.transactions = eb.Header, eb.Uncles, eb.Txs
+	b.header, b.uncles, b.transactions, b.version, b.extdata = eb.Header, eb.Uncles, eb.Txs, eb.Version, eb.ExtData
 	b.size.Store(rlp.ListSize(size))
 	return nil
 }
@@ -278,16 +298,18 @@ func (b *Block) DecodeRLP(s *rlp.Stream) error {
 // EncodeRLP serializes a block as RLP.
 func (b *Block) EncodeRLP(w io.Writer) error {
 	return rlp.Encode(w, &extblock{
-		Header: b.header,
-		Txs:    b.transactions,
-		Uncles: b.uncles,
+		Header:  b.header,
+		Txs:     b.transactions,
+		Uncles:  b.uncles,
+		Version: b.version,
+		ExtData: b.extdata,
 	})
 }
 
 // Body returns the non-header content of the block.
 // Note the returned data is not an independent copy.
 func (b *Block) Body() *Body {
-	return &Body{b.transactions, b.uncles}
+	return &Body{b.transactions, b.uncles, b.version, b.extdata}
 }
 
 // Accessors for body data. These do not return a copy because the content

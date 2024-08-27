@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
@@ -47,9 +46,9 @@ type PrecompileTest struct {
 	ExpectedRes []byte
 	// ExpectedErr is the expected error returned by the precompile
 	ExpectedErr string
-	// ChainConfigFn returns the chain config to use for the precompile's block context
+	// ChainConfig is the chain config to use for the precompile's block context
 	// If nil, the default chain config will be used.
-	ChainConfigFn func(*gomock.Controller) precompileconfig.ChainConfig
+	ChainConfig precompileconfig.ChainConfig
 }
 
 type PrecompileRunparams struct {
@@ -90,16 +89,12 @@ func (test PrecompileTest) setup(t testing.TB, module modules.Module, state cont
 		test.BeforeHook(t, state)
 	}
 
-	if test.ChainConfigFn == nil {
-		test.ChainConfigFn = func(ctrl *gomock.Controller) precompileconfig.ChainConfig {
-			mockChainConfig := precompileconfig.NewMockChainConfig(ctrl)
-			mockChainConfig.EXPECT().GetFeeConfig().AnyTimes().Return(commontype.ValidTestFeeConfig)
-			mockChainConfig.EXPECT().AllowedFeeRecipients().AnyTimes().Return(false)
-			mockChainConfig.EXPECT().IsDurango(gomock.Any()).AnyTimes().Return(true)
-			return mockChainConfig
-		}
+	chainConfig := test.ChainConfig
+	if chainConfig == nil {
+		mockChainConfig := precompileconfig.NewMockChainConfig(ctrl)
+		mockChainConfig.EXPECT().IsDurango(gomock.Any()).AnyTimes().Return(true)
+		chainConfig = mockChainConfig
 	}
-	chainConfig := test.ChainConfigFn(ctrl)
 
 	blockContext := contract.NewMockBlockContext(ctrl)
 	if test.SetupBlockContext != nil {

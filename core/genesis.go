@@ -33,7 +33,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"time"
 
 	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/state"
@@ -44,7 +43,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/common/math"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/log"
 )
@@ -54,26 +52,18 @@ import (
 
 var errGenesisNoConfig = errors.New("genesis has no chain configuration")
 
-type Airdrop struct {
-	// Address strings are hex-formatted common.Address
-	Address common.Address `json:"address"`
-}
-
 // Genesis specifies the header fields, state of a genesis block. It also defines hard
 // fork switch-over blocks through the chain configuration.
 type Genesis struct {
-	Config        *params.ChainConfig `json:"config"`
-	Nonce         uint64              `json:"nonce"`
-	Timestamp     uint64              `json:"timestamp"`
-	ExtraData     []byte              `json:"extraData"`
-	GasLimit      uint64              `json:"gasLimit"   gencodec:"required"`
-	Difficulty    *big.Int            `json:"difficulty" gencodec:"required"`
-	Mixhash       common.Hash         `json:"mixHash"`
-	Coinbase      common.Address      `json:"coinbase"`
-	Alloc         GenesisAlloc        `json:"alloc"      gencodec:"required"`
-	AirdropHash   common.Hash         `json:"airdropHash"`
-	AirdropAmount *big.Int            `json:"airdropAmount"`
-	AirdropData   []byte              `json:"-"` // provided in a separate file, not serialized in this struct.
+	Config     *params.ChainConfig `json:"config"`
+	Nonce      uint64              `json:"nonce"`
+	Timestamp  uint64              `json:"timestamp"`
+	ExtraData  []byte              `json:"extraData"`
+	GasLimit   uint64              `json:"gasLimit"   gencodec:"required"`
+	Difficulty *big.Int            `json:"difficulty" gencodec:"required"`
+	Mixhash    common.Hash         `json:"mixHash"`
+	Coinbase   common.Address      `json:"coinbase"`
+	Alloc      GenesisAlloc        `json:"alloc"      gencodec:"required"`
 
 	// These fields are used for consensus tests. Please don't use them
 	// in actual genesis blocks.
@@ -100,11 +90,14 @@ func (ga *GenesisAlloc) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+type GenesisMultiCoinBalance map[common.Hash]*big.Int
+
 // GenesisAccount is an account in the state of the genesis block.
 type GenesisAccount struct {
 	Code       []byte                      `json:"code,omitempty"`
 	Storage    map[common.Hash]common.Hash `json:"storage,omitempty"`
 	Balance    *big.Int                    `json:"balance" gencodec:"required"`
+	MCBalance  GenesisMultiCoinBalance     `json:"mcbalance,omitempty"`
 	Nonce      uint64                      `json:"nonce,omitempty"`
 	PrivateKey []byte                      `json:"secretKey,omitempty"` // for tests
 }
@@ -118,9 +111,8 @@ type genesisSpecMarshaling struct {
 	GasUsed       math.HexOrDecimal64
 	Number        math.HexOrDecimal64
 	Difficulty    *math.HexOrDecimal256
-	Alloc         map[common.UnprefixedAddress]GenesisAccount
 	BaseFee       *math.HexOrDecimal256
-	AirdropAmount *math.HexOrDecimal256
+	Alloc         map[common.UnprefixedAddress]GenesisAccount
 	ExcessBlobGas *math.HexOrDecimal64
 	BlobGasUsed   *math.HexOrDecimal64
 }
@@ -222,13 +214,12 @@ func SetupGenesisBlock(
 		return newcfg, common.Hash{}, err
 	}
 	storedcfg := rawdb.ReadChainConfig(db, stored)
-	// If there is no previously stored chain config, write the chain config to disk.
 	if storedcfg == nil {
-		// Note: this can happen since we did not previously write the genesis block and chain config in the same batch.
 		log.Warn("Found genesis block without chain config")
 		rawdb.WriteChainConfig(db, stored, newcfg)
 		return newcfg, stored, nil
 	}
+	storedData, _ := json.Marshal(storedcfg)
 	// Check config compatibility and write the config. Compatibility errors
 	// are returned to the caller unless we're already at block zero.
 	// we use last accepted block for cfg compatibility check. Note this allows
@@ -248,15 +239,13 @@ func SetupGenesisBlock(
 	} else {
 		compatErr := storedcfg.CheckCompatible(newcfg, height, timestamp)
 		if compatErr != nil && ((height != 0 && compatErr.RewindToBlock != 0) || (timestamp != 0 && compatErr.RewindToTime != 0)) {
-			storedData, _ := storedcfg.ToWithUpgradesJSON().MarshalJSON()
-			newData, _ := newcfg.ToWithUpgradesJSON().MarshalJSON()
-			log.Error("found mismatch between config on database vs. new config", "storedConfig", string(storedData), "newConfig", string(newData), "err", compatErr)
 			return newcfg, stored, compatErr
 		}
 	}
-	// Required to write the chain config to disk to ensure both the chain config and upgrade bytes are persisted to disk.
-	// Note: this intentionally removes an extra check from upstream.
-	rawdb.WriteChainConfig(db, stored, newcfg)
+	// Don't overwrite if the old is identical to the new
+	if newData, _ := json.Marshal(newcfg); !bytes.Equal(storedData, newData) {
+		rawdb.WriteChainConfig(db, stored, newcfg)
+	}
 	return newcfg, stored, nil
 }
 
@@ -288,25 +277,6 @@ func (g *Genesis) toBlock(db ethdb.Database, triedb *trie.Database) *types.Block
 	if err != nil {
 		panic(err)
 	}
-	if g.AirdropHash != (common.Hash{}) {
-		t := time.Now()
-		h := common.BytesToHash(crypto.Keccak256(g.AirdropData))
-		if g.AirdropHash != h {
-			panic(fmt.Sprintf("expected standard allocation %s but got %s", g.AirdropHash, h))
-		}
-		airdrop := []*Airdrop{}
-		if err := json.Unmarshal(g.AirdropData, &airdrop); err != nil {
-			panic(err)
-		}
-		for _, alloc := range airdrop {
-			statedb.SetBalance(alloc.Address, g.AirdropAmount)
-		}
-		log.Debug(
-			"applied airdrop allocation",
-			"hash", h, "addrs", len(airdrop), "balance", g.AirdropAmount,
-			"t", time.Since(t),
-		)
-	}
 
 	head := &types.Header{
 		Number:     new(big.Int).SetUint64(g.Number),
@@ -328,14 +298,17 @@ func (g *Genesis) toBlock(db ethdb.Database, triedb *trie.Database) *types.Block
 		panic(fmt.Sprintf("unable to configure precompiles in genesis block: %v", err))
 	}
 
-	// Do custom allocation after airdrop in case an address shows up in standard
-	// allocation
 	for addr, account := range g.Alloc {
-		statedb.SetBalance(addr, account.Balance)
+		statedb.AddBalance(addr, account.Balance)
 		statedb.SetCode(addr, account.Code)
 		statedb.SetNonce(addr, account.Nonce)
 		for key, value := range account.Storage {
 			statedb.SetState(addr, key, value)
+		}
+		if account.MCBalance != nil {
+			for coinID, value := range account.MCBalance {
+				statedb.AddBalanceMultiCoin(addr, coinID, value)
+			}
 		}
 	}
 	root := statedb.IntermediateRoot(false)
@@ -349,11 +322,11 @@ func (g *Genesis) toBlock(db ethdb.Database, triedb *trie.Database) *types.Block
 	}
 	if conf := g.Config; conf != nil {
 		num := new(big.Int).SetUint64(g.Number)
-		if conf.IsSubnetEVM(g.Timestamp) {
+		if conf.IsApricotPhase3(g.Timestamp) {
 			if g.BaseFee != nil {
 				head.BaseFee = g.BaseFee
 			} else {
-				head.BaseFee = new(big.Int).Set(g.Config.FeeConfig.MinBaseFee)
+				head.BaseFee = new(big.Int).SetInt64(params.ApricotPhase3InitialBaseFee)
 			}
 		}
 		if conf.IsCancun(num, g.Timestamp) {
@@ -397,16 +370,12 @@ func (g *Genesis) Commit(db ethdb.Database, triedb *trie.Database) (*types.Block
 	if err := config.CheckConfigForkOrder(); err != nil {
 		return nil, err
 	}
-	batch := db.NewBatch()
-	rawdb.WriteBlock(batch, block)
-	rawdb.WriteReceipts(batch, block.Hash(), block.NumberU64(), nil)
-	rawdb.WriteCanonicalHash(batch, block.Hash(), block.NumberU64())
-	rawdb.WriteHeadBlockHash(batch, block.Hash())
-	rawdb.WriteHeadHeaderHash(batch, block.Hash())
-	rawdb.WriteChainConfig(batch, block.Hash(), config)
-	if err := batch.Write(); err != nil {
-		return nil, fmt.Errorf("failed to write genesis block: %w", err)
-	}
+	rawdb.WriteBlock(db, block)
+	rawdb.WriteReceipts(db, block.Hash(), block.NumberU64(), nil)
+	rawdb.WriteCanonicalHash(db, block.Hash(), block.NumberU64())
+	rawdb.WriteHeadBlockHash(db, block.Hash())
+	rawdb.WriteHeadHeaderHash(db, block.Hash())
+	rawdb.WriteChainConfig(db, block.Hash(), config)
 	return block, nil
 }
 
@@ -420,29 +389,12 @@ func (g *Genesis) MustCommit(db ethdb.Database, triedb *trie.Database) *types.Bl
 	return block
 }
 
-func (g *Genesis) Verify() error {
-	// Make sure genesis gas limit is consistent
-	gasLimitConfig := g.Config.FeeConfig.GasLimit.Uint64()
-	if gasLimitConfig != g.GasLimit {
-		return fmt.Errorf(
-			"gas limit in fee config (%d) does not match gas limit in header (%d)",
-			gasLimitConfig,
-			g.GasLimit,
-		)
-	}
-	// Verify config
-	if err := g.Config.Verify(); err != nil {
-		return err
-	}
-	return nil
-}
-
 // GenesisBlockForTesting creates and writes a block in which addr has the given wei balance.
 func GenesisBlockForTesting(db ethdb.Database, addr common.Address, balance *big.Int) *types.Block {
 	g := Genesis{
 		Config:  params.TestChainConfig,
 		Alloc:   GenesisAlloc{addr: {Balance: balance}},
-		BaseFee: big.NewInt(params.TestMaxBaseFee),
+		BaseFee: big.NewInt(params.ApricotPhase3InitialBaseFee),
 	}
 	return g.MustCommit(db, trie.NewDatabase(db, trie.HashDefaults))
 }

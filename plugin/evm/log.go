@@ -15,7 +15,7 @@ import (
 	"golang.org/x/exp/slog"
 )
 
-type SubnetEVMLogger struct {
+type CorethLogger struct {
 	gethlog.Logger
 
 	logLevel *slog.LevelVar
@@ -23,7 +23,7 @@ type SubnetEVMLogger struct {
 
 // InitLogger initializes logger with alias and sets the log level and format with the original [os.StdErr] interface
 // along with the context logger.
-func InitLogger(alias string, level string, jsonFormat bool, writer io.Writer) (SubnetEVMLogger, error) {
+func InitLogger(alias string, level string, jsonFormat bool, writer io.Writer) (CorethLogger, error) {
 	logLevel := &slog.LevelVar{}
 
 	var handler slog.Handler
@@ -46,40 +46,45 @@ func InitLogger(alias string, level string, jsonFormat bool, writer io.Writer) (
 	}
 
 	// Create handler
-	c := SubnetEVMLogger{
+	c := CorethLogger{
 		Logger:   gethlog.NewLogger(handler),
 		logLevel: logLevel,
 	}
 
 	if err := c.SetLogLevel(level); err != nil {
-		return SubnetEVMLogger{}, err
+		return CorethLogger{}, err
 	}
 	gethlog.SetDefault(c.Logger)
 	return c, nil
 }
 
 // SetLogLevel sets the log level of initialized log handler.
-func (s *SubnetEVMLogger) SetLogLevel(level string) error {
+func (c *CorethLogger) SetLogLevel(level string) error {
 	// Set log level
 	logLevel, err := log.LvlFromString(level)
 	if err != nil {
 		return err
 	}
-	s.logLevel.Set(logLevel)
+	c.logLevel.Set(logLevel)
 	return nil
 }
 
 // locationTrims are trimmed for display to avoid unwieldy log lines.
 var locationTrims = []string{
-	"subnet-evm/",
+	"coreth",
 }
 
 func trimPrefixes(s string) string {
 	for _, prefix := range locationTrims {
 		idx := strings.LastIndex(s, prefix)
-		if idx >= 0 {
-			s = s[idx+len(prefix):]
+		if idx < 0 {
+			continue
 		}
+		slashIdx := strings.Index(s[idx:], "/")
+		if slashIdx < 0 || slashIdx+idx >= len(s)-1 {
+			continue
+		}
+		s = s[idx+slashIdx+1:]
 	}
 	return s
 }

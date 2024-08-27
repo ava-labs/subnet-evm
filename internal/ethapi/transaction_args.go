@@ -172,7 +172,7 @@ func (args *TransactionArgs) setFeeDefaults(ctx context.Context, b feeBackend) e
 	}
 	// Sanity check the non-EIP-1559 fee parameters.
 	head := b.CurrentHeader()
-	isLondon := b.ChainConfig().IsSubnetEVM(head.Time)
+	isLondon := b.ChainConfig().IsApricotPhase3(head.Time)
 	if args.GasPrice != nil && !eip1559ParamsSet {
 		// Zero gas-price is not allowed after London fork
 		if args.GasPrice.ToInt().Sign() == 0 && isLondon {
@@ -184,25 +184,26 @@ func (args *TransactionArgs) setFeeDefaults(ctx context.Context, b feeBackend) e
 	// Now attempt to fill in default value depending on whether London is active or not.
 	if isLondon {
 		// London is active, set maxPriorityFeePerGas and maxFeePerGas.
-		if err := args.setSubnetEVMFeeDefault(ctx, head, b); err != nil {
+		if err := args.setApricotPhase3FeeDefault(ctx, head, b); err != nil {
 			return err
 		}
 	} else {
 		if args.MaxFeePerGas != nil || args.MaxPriorityFeePerGas != nil {
 			return errors.New("maxFeePerGas and maxPriorityFeePerGas are not valid before London is active")
 		}
-		// London not active, set gas price.
-		price, err := b.SuggestGasTipCap(ctx)
-		if err != nil {
-			return err
+		if args.GasPrice == nil {
+			price, err := b.SuggestGasTipCap(ctx)
+			if err != nil {
+				return err
+			}
+			args.GasPrice = (*hexutil.Big)(price)
 		}
-		args.GasPrice = (*hexutil.Big)(price)
 	}
 	return nil
 }
 
-// setSubnetEVMFeeDefault fills in reasonable default fee values for unspecified fields.
-func (args *TransactionArgs) setSubnetEVMFeeDefault(ctx context.Context, head *types.Header, b feeBackend) error {
+// setApricotPhase3FeeDefault fills in reasonable default fee values for unspecified fields.
+func (args *TransactionArgs) setApricotPhase3FeeDefault(ctx context.Context, head *types.Header, b feeBackend) error {
 	// Set maxPriorityFeePerGas if it is missing.
 	if args.MaxPriorityFeePerGas == nil {
 		tip, err := b.SuggestGasTipCap(ctx)
@@ -216,11 +217,11 @@ func (args *TransactionArgs) setSubnetEVMFeeDefault(ctx context.Context, head *t
 		// Set the max fee to be 2 times larger than the previous block's base fee.
 		// The additional slack allows the tx to not become invalidated if the base
 		// fee is rising.
-		val := new(big.Int).Add(
-			args.MaxPriorityFeePerGas.ToInt(),
+		gasFeeCap := new(big.Int).Add(
+			(*big.Int)(args.MaxPriorityFeePerGas),
 			new(big.Int).Mul(head.BaseFee, big.NewInt(2)),
 		)
-		args.MaxFeePerGas = (*hexutil.Big)(val)
+		args.MaxFeePerGas = (*hexutil.Big)(gasFeeCap)
 	}
 	// Both EIP-1559 fee parameters are now set; sanity check them.
 	if args.MaxFeePerGas.ToInt().Cmp(args.MaxPriorityFeePerGas.ToInt()) < 0 {

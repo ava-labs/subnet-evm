@@ -30,7 +30,6 @@ package consensus
 import (
 	"math/big"
 
-	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
@@ -54,13 +53,6 @@ type ChainHeaderReader interface {
 
 	// GetHeaderByHash retrieves a block header from the database by its hash.
 	GetHeaderByHash(hash common.Hash) *types.Header
-
-	// GetFeeConfigAt retrieves the fee config and last changed block number at block header.
-	GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig, *big.Int, error)
-
-	// GetCoinbaseAt retrieves the configured coinbase address at [parent].
-	// If fee recipients are allowed, returns true in the second return value and a predefined address in the first value.
-	GetCoinbaseAt(parent *types.Header) (common.Address, bool, error)
 }
 
 // ChainReader defines a small collection of methods needed to access the local

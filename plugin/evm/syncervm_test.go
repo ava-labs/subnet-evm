@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/ava-labs/avalanchego/chains/atomic"
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/database/prefixdb"
 	"github.com/ava-labs/avalanchego/ids"
@@ -22,7 +23,9 @@ import (
 	commonEng "github.com/ava-labs/avalanchego/snow/engine/common"
 	"github.com/ava-labs/avalanchego/snow/engine/enginetest"
 	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
+	"github.com/ava-labs/avalanchego/utils/crypto/secp256k1"
 	"github.com/ava-labs/avalanchego/utils/set"
+	"github.com/ava-labs/avalanchego/utils/units"
 
 	"github.com/ava-labs/subnet-evm/accounts/keystore"
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
@@ -273,26 +276,67 @@ func TestVMShutdownWhileSyncing(t *testing.T) {
 
 func createSyncServerAndClientVMs(t *testing.T, test syncTest, numBlocks int) *syncVMSetup {
 	var (
-		require = require.New(t)
+		require      = require.New(t)
+		importAmount = 2000000 * units.Avax // 2M avax
+		alloc        = map[ids.ShortID]uint64{
+			testShortIDAddrs[0]: importAmount,
+		}
 	)
-	// configure [serverVM]
-	_, serverVM, _, serverAppSender := GenesisVM(t, true, genesisJSONLatest, "", "")
+	_, serverVM, _, serverAtomicMemory, serverAppSender := GenesisVMWithUTXOs(
+		t, true, "", "", "", alloc,
+	)
 	t.Cleanup(func() {
 		log.Info("Shutting down server VM")
 		require.NoError(serverVM.Shutdown(context.Background()))
 	})
+	var (
+		importTx, exportTx *Tx
+		err                error
+	)
 	generateAndAcceptBlocks(t, serverVM, numBlocks, func(i int, gen *core.BlockGen) {
 		b, err := predicate.NewResults().Bytes()
 		if err != nil {
 			t.Fatal(err)
 		}
 		gen.AppendExtra(b)
-
-		tx := types.NewTransaction(gen.TxNonce(testEthAddrs[0]), testEthAddrs[1], common.Big1, params.TxGas, big.NewInt(testMinGasPrice), nil)
-		signedTx, err := types.SignTx(tx, types.NewEIP155Signer(serverVM.chainConfig.ChainID), testKeys[0])
-		require.NoError(err)
-		gen.AddTx(signedTx)
+		switch i {
+		case 0:
+			// spend the UTXOs from shared memory
+			importTx, err = serverVM.newImportTx(serverVM.ctx.XChainID, testEthAddrs[0], initialBaseFee, []*secp256k1.PrivateKey{testKeys[0]})
+			require.NoError(err)
+			require.NoError(serverVM.mempool.AddLocalTx(importTx))
+		case 1:
+			// export some of the imported UTXOs to test exportTx is properly synced
+			exportTx, err = serverVM.newExportTx(
+				serverVM.ctx.AVAXAssetID,
+				importAmount/2,
+				serverVM.ctx.XChainID,
+				testShortIDAddrs[0],
+				initialBaseFee,
+				[]*secp256k1.PrivateKey{testKeys[0]},
+			)
+			require.NoError(err)
+			require.NoError(serverVM.mempool.AddLocalTx(exportTx))
+		default: // Generate simple transfer transactions.
+			pk := testKeys[0].ToECDSA()
+			tx := types.NewTransaction(gen.TxNonce(testEthAddrs[0]), testEthAddrs[1], common.Big1, params.TxGas, initialBaseFee, nil)
+			signedTx, err := types.SignTx(tx, types.NewEIP155Signer(serverVM.chainID), pk)
+			require.NoError(err)
+			gen.AddTx(signedTx)
+		}
 	}, nil)
+
+	// override serverAtomicTrie's commitInterval so the call to [serverAtomicTrie.Index]
+	// creates a commit at the height [syncableInterval]. This is necessary to support
+	// fetching a state summary.
+	serverAtomicTrie := serverVM.atomicTrie.(*atomicTrie)
+	serverAtomicTrie.commitInterval = test.syncableInterval
+	require.NoError(serverAtomicTrie.commit(test.syncableInterval, serverAtomicTrie.LastAcceptedRoot()))
+	require.NoError(serverVM.db.Commit())
+
+	serverSharedMemories := newSharedMemories(serverAtomicMemory, serverVM.ctx.ChainID, serverVM.ctx.XChainID)
+	serverSharedMemories.assertOpsApplied(t, importTx.mustAtomicOps())
+	serverSharedMemories.assertOpsApplied(t, exportTx.mustAtomicOps())
 
 	// make some accounts
 	trieDB := trie.NewDatabase(serverVM.chaindb, nil)
@@ -314,7 +358,9 @@ func createSyncServerAndClientVMs(t *testing.T, test syncTest, numBlocks int) *s
 
 	// initialise [syncerVM] with blank genesis state
 	stateSyncEnabledJSON := fmt.Sprintf(`{"state-sync-enabled":true, "state-sync-min-blocks": %d, "tx-lookup-limit": %d}`, test.stateSyncMinBlocks, 4)
-	syncerEngineChan, syncerVM, syncerDB, syncerAppSender := GenesisVM(t, false, genesisJSONLatest, stateSyncEnabledJSON, "")
+	syncerEngineChan, syncerVM, syncerDB, syncerAtomicMemory, syncerAppSender := GenesisVMWithUTXOs(
+		t, false, "", stateSyncEnabledJSON, "", alloc,
+	)
 	shutdownOnceSyncerVM := &shutdownOnceVM{VM: syncerVM}
 	t.Cleanup(func() {
 		require.NoError(shutdownOnceSyncerVM.Shutdown(context.Background()))
@@ -323,6 +369,9 @@ func createSyncServerAndClientVMs(t *testing.T, test syncTest, numBlocks int) *s
 	enabled, err := syncerVM.StateSyncEnabled(context.Background())
 	require.NoError(err)
 	require.True(enabled)
+
+	// override [syncerVM]'s commit interval so the atomic trie works correctly.
+	syncerVM.atomicTrie.(*atomicTrie).commitInterval = test.syncableInterval
 
 	// override [serverVM]'s SendAppResponse function to trigger AppResponse on [syncerVM]
 	serverAppSender.SendAppResponseF = func(ctx context.Context, nodeID ids.NodeID, requestID uint32, response []byte) error {
@@ -354,12 +403,17 @@ func createSyncServerAndClientVMs(t *testing.T, test syncTest, numBlocks int) *s
 	}
 
 	return &syncVMSetup{
-		serverVM:             serverVM,
-		serverAppSender:      serverAppSender,
+		serverVM:        serverVM,
+		serverAppSender: serverAppSender,
+		includedAtomicTxs: []*Tx{
+			importTx,
+			exportTx,
+		},
 		fundedAccounts:       accounts,
 		syncerVM:             syncerVM,
 		syncerDB:             syncerDB,
 		syncerEngineChan:     syncerEngineChan,
+		syncerAtomicMemory:   syncerAtomicMemory,
 		shutdownOnceSyncerVM: shutdownOnceSyncerVM,
 	}
 }
@@ -370,11 +424,13 @@ type syncVMSetup struct {
 	serverVM        *VM
 	serverAppSender *enginetest.Sender
 
-	fundedAccounts map[*keystore.Key]*types.StateAccount
+	includedAtomicTxs []*Tx
+	fundedAccounts    map[*keystore.Key]*types.StateAccount
 
 	syncerVM             *VM
 	syncerDB             database.Database
 	syncerEngineChan     <-chan commonEng.Message
+	syncerAtomicMemory   *atomic.Memory
 	shutdownOnceSyncerVM *shutdownOnceVM
 }
 
@@ -401,11 +457,13 @@ type syncTest struct {
 func testSyncerVM(t *testing.T, vmSetup *syncVMSetup, test syncTest) {
 	t.Helper()
 	var (
-		require          = require.New(t)
-		serverVM         = vmSetup.serverVM
-		fundedAccounts   = vmSetup.fundedAccounts
-		syncerVM         = vmSetup.syncerVM
-		syncerEngineChan = vmSetup.syncerEngineChan
+		require            = require.New(t)
+		serverVM           = vmSetup.serverVM
+		includedAtomicTxs  = vmSetup.includedAtomicTxs
+		fundedAccounts     = vmSetup.fundedAccounts
+		syncerVM           = vmSetup.syncerVM
+		syncerEngineChan   = vmSetup.syncerEngineChan
+		syncerAtomicMemory = vmSetup.syncerAtomicMemory
 	)
 	// get last summary and test related methods
 	summary, err := serverVM.GetLastStateSummary(context.Background())
@@ -454,7 +512,7 @@ func testSyncerVM(t *testing.T, vmSetup *syncVMSetup, test syncTest) {
 	}
 
 	// tail should be the last block synced
-	if syncerVM.ethConfig.TransactionHistory != 0 {
+	if syncerVM.ethConfig.TxLookupLimit != 0 {
 		tail := lastSyncedBlock.NumberU64()
 
 		core.CheckTxIndices(t, &tail, tail, syncerVM.chaindb, true)
@@ -471,7 +529,7 @@ func testSyncerVM(t *testing.T, vmSetup *syncVMSetup, test syncTest) {
 		gen.AppendExtra(b)
 		i := 0
 		for k := range fundedAccounts {
-			tx := types.NewTransaction(gen.TxNonce(k.Address), toAddress, big.NewInt(1), 21000, big.NewInt(testMinGasPrice), nil)
+			tx := types.NewTransaction(gen.TxNonce(k.Address), toAddress, big.NewInt(1), 21000, initialBaseFee, nil)
 			signedTx, err := types.SignTx(tx, types.NewEIP155Signer(serverVM.chainConfig.ChainID), k.PrivateKey)
 			require.NoError(err)
 			gen.AddTx(signedTx)
@@ -482,8 +540,8 @@ func testSyncerVM(t *testing.T, vmSetup *syncVMSetup, test syncTest) {
 		}
 	},
 		func(block *types.Block) {
-			if syncerVM.ethConfig.TransactionHistory != 0 {
-				tail := block.NumberU64() - syncerVM.ethConfig.TransactionHistory + 1
+			if syncerVM.ethConfig.TxLookupLimit != 0 {
+				tail := block.NumberU64() - syncerVM.ethConfig.TxLookupLimit + 1
 				// tail should be the minimum last synced block, since we skipped it to the last block
 				if tail < lastSyncedBlock.NumberU64() {
 					tail = lastSyncedBlock.NumberU64()
@@ -497,14 +555,23 @@ func testSyncerVM(t *testing.T, vmSetup *syncVMSetup, test syncTest) {
 	require.NoError(syncerVM.SetState(context.Background(), snow.NormalOp))
 	require.True(syncerVM.bootstrapped)
 
+	// check atomic memory was synced properly
+	syncerSharedMemories := newSharedMemories(syncerAtomicMemory, syncerVM.ctx.ChainID, syncerVM.ctx.XChainID)
+
+	for _, tx := range includedAtomicTxs {
+		syncerSharedMemories.assertOpsApplied(t, tx.mustAtomicOps())
+	}
+
 	// Generate blocks after we have entered normal consensus as well
 	generateAndAcceptBlocks(t, syncerVM, blocksToBuild, func(_ int, gen *core.BlockGen) {
 		b, err := predicate.NewResults().Bytes()
-		require.NoError(err)
+		if err != nil {
+			t.Fatal(err)
+		}
 		gen.AppendExtra(b)
 		i := 0
 		for k := range fundedAccounts {
-			tx := types.NewTransaction(gen.TxNonce(k.Address), toAddress, big.NewInt(1), 21000, big.NewInt(testMinGasPrice), nil)
+			tx := types.NewTransaction(gen.TxNonce(k.Address), toAddress, big.NewInt(1), 21000, initialBaseFee, nil)
 			signedTx, err := types.SignTx(tx, types.NewEIP155Signer(serverVM.chainConfig.ChainID), k.PrivateKey)
 			require.NoError(err)
 			gen.AddTx(signedTx)
@@ -515,8 +582,8 @@ func testSyncerVM(t *testing.T, vmSetup *syncVMSetup, test syncTest) {
 		}
 	},
 		func(block *types.Block) {
-			if syncerVM.ethConfig.TransactionHistory != 0 {
-				tail := block.NumberU64() - syncerVM.ethConfig.TransactionHistory + 1
+			if syncerVM.ethConfig.TxLookupLimit != 0 {
+				tail := block.NumberU64() - syncerVM.ethConfig.TxLookupLimit + 1
 				// tail should be the minimum last synced block, since we skipped it to the last block
 				if tail < lastSyncedBlock.NumberU64() {
 					tail = lastSyncedBlock.NumberU64()
@@ -536,8 +603,8 @@ func patchBlock(blk *types.Block, root common.Hash, db ethdb.Database) *types.Bl
 	header := blk.Header()
 	header.Root = root
 	receipts := rawdb.ReadRawReceipts(db, blk.Hash(), blk.NumberU64())
-	newBlk := types.NewBlock(
-		header, blk.Transactions(), blk.Uncles(), receipts, trie.NewStackTrie(nil),
+	newBlk := types.NewBlockWithExtData(
+		header, blk.Transactions(), blk.Uncles(), receipts, trie.NewStackTrie(nil), blk.ExtData(), true,
 	)
 	rawdb.WriteBlock(db, newBlk)
 	rawdb.WriteCanonicalHash(db, newBlk.Hash(), newBlk.NumberU64())
@@ -575,7 +642,7 @@ func generateAndAcceptBlocks(t *testing.T, vm *VM, numBlocks int, gen func(int, 
 	_, _, err := core.GenerateChain(
 		vm.chainConfig,
 		vm.blockChain.LastAcceptedBlock(),
-		dummy.NewETHFaker(),
+		dummy.NewFakerWithCallbacks(vm.createConsensusCallbacks()),
 		vm.chaindb,
 		numBlocks,
 		10,

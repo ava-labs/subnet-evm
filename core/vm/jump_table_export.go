@@ -28,8 +28,15 @@ func LookupInstructionSet(rules params.Rules) (JumpTable, error) {
 		return newCancunInstructionSet(), nil
 	case rules.IsDurango:
 		return newDurangoInstructionSet(), nil
-	case rules.IsSubnetEVM:
-		return newSubnetEVMInstructionSet(), nil
+	case rules.IsApricotPhase3, rules.IsApricotPhase4,
+		rules.IsApricotPhase5, rules.IsApricotPhasePre6,
+		rules.IsApricotPhase6, rules.IsApricotPhasePost6,
+		rules.IsBanff, rules.IsCortina:
+		return newApricotPhase3InstructionSet(), nil
+	case rules.IsApricotPhase2:
+		return newApricotPhase2InstructionSet(), nil
+	case rules.IsApricotPhase1:
+		return newApricotPhase1InstructionSet(), nil
 	case rules.IsIstanbul:
 		return newIstanbulInstructionSet(), nil
 	case rules.IsConstantinople:
