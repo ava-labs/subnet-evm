@@ -31,6 +31,7 @@ echo "Building Subnet EVM @ GitCommit: $SUBNET_EVM_COMMIT at $BINARY_PATH"
 # TODO: consider moving scripts to the avalanche directory
 pushd "$SUBNET_EVM_PATH/avalanche"
 
+go mod tidy
 go build -ldflags "-X github.com/ava-labs/subnet-evm/avalanche/plugin/evm.GitCommit=$SUBNET_EVM_COMMIT $STATIC_LD_FLAGS" -o "$BINARY_PATH" "plugin/"*.go
 
 popd
