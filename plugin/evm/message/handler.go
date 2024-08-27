@@ -18,10 +18,16 @@ var (
 
 // GossipHandler handles incoming gossip messages
 type GossipHandler interface {
+	HandleAtomicTx(nodeID ids.NodeID, msg AtomicTxGossip) error
 	HandleEthTxs(nodeID ids.NodeID, msg EthTxsGossip) error
 }
 
 type NoopMempoolGossipHandler struct{}
+
+func (NoopMempoolGossipHandler) HandleAtomicTx(nodeID ids.NodeID, msg AtomicTxGossip) error {
+	log.Debug("dropping unexpected AtomicTxGossip message", "peerID", nodeID)
+	return nil
+}
 
 func (NoopMempoolGossipHandler) HandleEthTxs(nodeID ids.NodeID, msg EthTxsGossip) error {
 	log.Debug("dropping unexpected EthTxsGossip message", "peerID", nodeID)
@@ -35,6 +41,7 @@ func (NoopMempoolGossipHandler) HandleEthTxs(nodeID ids.NodeID, msg EthTxsGossip
 // Also see GossipHandler for implementation style.
 type RequestHandler interface {
 	HandleStateTrieLeafsRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, leafsRequest LeafsRequest) ([]byte, error)
+	HandleAtomicTrieLeafsRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, leafsRequest LeafsRequest) ([]byte, error)
 	HandleBlockRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, request BlockRequest) ([]byte, error)
 	HandleCodeRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, codeRequest CodeRequest) ([]byte, error)
 	HandleMessageSignatureRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, signatureRequest MessageSignatureRequest) ([]byte, error)

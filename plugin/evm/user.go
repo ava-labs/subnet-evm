@@ -117,3 +117,20 @@ func (u *user) getKey(address common.Address) (*secp256k1.PrivateKey, error) {
 	}
 	return secp256k1.ToPrivateKey(bytes)
 }
+
+// Return all private keys controlled by this user
+func (u *user) getKeys() ([]*secp256k1.PrivateKey, error) {
+	addrs, err := u.getAddresses()
+	if err != nil {
+		return nil, err
+	}
+	keys := make([]*secp256k1.PrivateKey, len(addrs))
+	for i, addr := range addrs {
+		key, err := u.getKey(addr)
+		if err != nil {
+			return nil, err
+		}
+		keys[i] = key
+	}
+	return keys, nil
+}

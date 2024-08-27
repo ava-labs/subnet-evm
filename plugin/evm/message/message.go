@@ -22,6 +22,7 @@ const (
 )
 
 var (
+	_ GossipMessage = AtomicTxGossip{}
 	_ GossipMessage = EthTxsGossip{}
 
 	errUnexpectedCodecVersion = errors.New("unexpected codec version")
@@ -33,6 +34,18 @@ type GossipMessage interface {
 
 	// Handle this gossip message with the gossip handler.
 	Handle(handler GossipHandler, nodeID ids.NodeID) error
+}
+
+type AtomicTxGossip struct {
+	Tx []byte `serialize:"true"`
+}
+
+func (msg AtomicTxGossip) Handle(handler GossipHandler, nodeID ids.NodeID) error {
+	return handler.HandleAtomicTx(nodeID, msg)
+}
+
+func (msg AtomicTxGossip) String() string {
+	return fmt.Sprintf("AtomicTxGossip(Len=%d)", len(msg.Tx))
 }
 
 type EthTxsGossip struct {

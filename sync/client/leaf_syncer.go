@@ -30,6 +30,7 @@ type LeafSyncTask interface {
 	Account() common.Hash               // Account hash of the trie to sync (only applicable to storage tries)
 	Start() []byte                      // Starting key to request new leaves
 	End() []byte                        // End key to request new leaves
+	NodeType() message.NodeType         // Specifies the message type (atomic/state trie) for the leaf syncer to send
 	OnStart() (bool, error)             // Callback when tasks begins, returns true if work can be skipped
 	OnLeafs(keys, vals [][]byte) error  // Callback when new leaves are received from the network
 	OnFinish(ctx context.Context) error // Callback when there are no more leaves in the trie to sync or when we reach End()
@@ -97,10 +98,11 @@ func (c *CallbackLeafSyncer) syncTask(ctx context.Context, task LeafSyncTask) er
 		}
 
 		leafsResponse, err := c.client.GetLeafs(ctx, message.LeafsRequest{
-			Root:    root,
-			Account: task.Account(),
-			Start:   start,
-			Limit:   c.requestSize,
+			Root:     root,
+			Account:  task.Account(),
+			Start:    start,
+			Limit:    c.requestSize,
+			NodeType: task.NodeType(),
 		})
 		if err != nil {
 			return fmt.Errorf("%s: %w", errFailedToFetchLeafs, err)

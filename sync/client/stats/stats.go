@@ -75,6 +75,7 @@ func (m *messageMetric) UpdateRequestLatency(duration time.Duration) {
 }
 
 type clientSyncerStats struct {
+	atomicTrieLeavesMetric,
 	stateTrieLeavesMetric,
 	codeRequestMetric,
 	blockRequestMetric MessageMetric
@@ -83,9 +84,10 @@ type clientSyncerStats struct {
 // NewClientSyncerStats returns stats for the client syncer
 func NewClientSyncerStats() ClientSyncerStats {
 	return &clientSyncerStats{
-		stateTrieLeavesMetric: NewMessageMetric("sync_state_trie_leaves"),
-		codeRequestMetric:     NewMessageMetric("sync_code"),
-		blockRequestMetric:    NewMessageMetric("sync_blocks"),
+		atomicTrieLeavesMetric: NewMessageMetric("sync_atomic_trie_leaves"),
+		stateTrieLeavesMetric:  NewMessageMetric("sync_state_trie_leaves"),
+		codeRequestMetric:      NewMessageMetric("sync_code"),
+		blockRequestMetric:     NewMessageMetric("sync_blocks"),
 	}
 }
 
@@ -97,7 +99,14 @@ func (c *clientSyncerStats) GetMetric(msgIntf message.Request) (MessageMetric, e
 	case message.CodeRequest:
 		return c.codeRequestMetric, nil
 	case message.LeafsRequest:
-		return c.stateTrieLeavesMetric, nil
+		switch msg.NodeType {
+		case message.StateTrieNode:
+			return c.stateTrieLeavesMetric, nil
+		case message.AtomicTrieNode:
+			return c.atomicTrieLeavesMetric, nil
+		default:
+			return nil, fmt.Errorf("invalid leafs request for node type: %T", msg.NodeType)
+		}
 	default:
 		return nil, fmt.Errorf("attempted to get metric for invalid request with type %T", msg)
 	}

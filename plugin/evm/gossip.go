@@ -31,9 +31,11 @@ const pendingTxsBuffer = 10
 var (
 	_ p2p.Handler = (*txGossipHandler)(nil)
 
-	_ gossip.Gossipable               = (*GossipEthTx)(nil)
-	_ gossip.Marshaller[*GossipEthTx] = (*GossipEthTxMarshaller)(nil)
-	_ gossip.Set[*GossipEthTx]        = (*GossipEthTxPool)(nil)
+	_ gossip.Gossipable                  = (*GossipEthTx)(nil)
+	_ gossip.Gossipable                  = (*GossipAtomicTx)(nil)
+	_ gossip.Marshaller[*GossipAtomicTx] = (*GossipAtomicTxMarshaller)(nil)
+	_ gossip.Marshaller[*GossipEthTx]    = (*GossipEthTxMarshaller)(nil)
+	_ gossip.Set[*GossipEthTx]           = (*GossipEthTxPool)(nil)
 
 	_ eth.PushGossiper = (*EthPushGossiper)(nil)
 )
@@ -86,6 +88,27 @@ func (t txGossipHandler) AppGossip(ctx context.Context, nodeID ids.NodeID, gossi
 
 func (t txGossipHandler) AppRequest(ctx context.Context, nodeID ids.NodeID, deadline time.Time, requestBytes []byte) ([]byte, *common.AppError) {
 	return t.appRequestHandler.AppRequest(ctx, nodeID, deadline, requestBytes)
+}
+
+type GossipAtomicTxMarshaller struct{}
+
+func (g GossipAtomicTxMarshaller) MarshalGossip(tx *GossipAtomicTx) ([]byte, error) {
+	return tx.Tx.SignedBytes(), nil
+}
+
+func (g GossipAtomicTxMarshaller) UnmarshalGossip(bytes []byte) (*GossipAtomicTx, error) {
+	tx, err := ExtractAtomicTx(bytes, Codec)
+	return &GossipAtomicTx{
+		Tx: tx,
+	}, err
+}
+
+type GossipAtomicTx struct {
+	Tx *Tx
+}
+
+func (tx *GossipAtomicTx) GossipID() ids.ID {
+	return tx.Tx.ID()
 }
 
 func NewGossipEthTxPool(mempool *txpool.TxPool, registerer prometheus.Registerer) (*GossipEthTxPool, error) {

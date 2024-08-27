@@ -88,10 +88,11 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 		"zero limit dropped": {
 			prepareTestFn: func() (context.Context, message.LeafsRequest) {
 				return context.Background(), message.LeafsRequest{
-					Root:  largeTrieRoot,
-					Start: bytes.Repeat([]byte{0x00}, common.HashLength),
-					End:   bytes.Repeat([]byte{0xff}, common.HashLength),
-					Limit: 0,
+					Root:     largeTrieRoot,
+					Start:    bytes.Repeat([]byte{0x00}, common.HashLength),
+					End:      bytes.Repeat([]byte{0xff}, common.HashLength),
+					Limit:    0,
+					NodeType: message.StateTrieNode,
 				}
 			},
 			assertResponseFn: func(t *testing.T, _ message.LeafsRequest, response []byte, err error) {
@@ -103,10 +104,11 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 		"empty root dropped": {
 			prepareTestFn: func() (context.Context, message.LeafsRequest) {
 				return context.Background(), message.LeafsRequest{
-					Root:  common.Hash{},
-					Start: bytes.Repeat([]byte{0x00}, common.HashLength),
-					End:   bytes.Repeat([]byte{0xff}, common.HashLength),
-					Limit: maxLeavesLimit,
+					Root:     common.Hash{},
+					Start:    bytes.Repeat([]byte{0x00}, common.HashLength),
+					End:      bytes.Repeat([]byte{0xff}, common.HashLength),
+					Limit:    maxLeavesLimit,
+					NodeType: message.StateTrieNode,
 				}
 			},
 			assertResponseFn: func(t *testing.T, _ message.LeafsRequest, response []byte, err error) {
@@ -118,10 +120,11 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 		"bad start len dropped": {
 			prepareTestFn: func() (context.Context, message.LeafsRequest) {
 				return context.Background(), message.LeafsRequest{
-					Root:  common.Hash{},
-					Start: bytes.Repeat([]byte{0x00}, common.HashLength+2),
-					End:   bytes.Repeat([]byte{0xff}, common.HashLength),
-					Limit: maxLeavesLimit,
+					Root:     common.Hash{},
+					Start:    bytes.Repeat([]byte{0x00}, common.HashLength+2),
+					End:      bytes.Repeat([]byte{0xff}, common.HashLength),
+					Limit:    maxLeavesLimit,
+					NodeType: message.StateTrieNode,
 				}
 			},
 			assertResponseFn: func(t *testing.T, _ message.LeafsRequest, response []byte, err error) {
@@ -133,10 +136,11 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 		"bad end len dropped": {
 			prepareTestFn: func() (context.Context, message.LeafsRequest) {
 				return context.Background(), message.LeafsRequest{
-					Root:  common.Hash{},
-					Start: bytes.Repeat([]byte{0x00}, common.HashLength),
-					End:   bytes.Repeat([]byte{0xff}, common.HashLength-1),
-					Limit: maxLeavesLimit,
+					Root:     common.Hash{},
+					Start:    bytes.Repeat([]byte{0x00}, common.HashLength),
+					End:      bytes.Repeat([]byte{0xff}, common.HashLength-1),
+					Limit:    maxLeavesLimit,
+					NodeType: message.StateTrieNode,
 				}
 			},
 			assertResponseFn: func(t *testing.T, _ message.LeafsRequest, response []byte, err error) {
@@ -148,10 +152,11 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 		"empty storage root dropped": {
 			prepareTestFn: func() (context.Context, message.LeafsRequest) {
 				return context.Background(), message.LeafsRequest{
-					Root:  types.EmptyRootHash,
-					Start: bytes.Repeat([]byte{0x00}, common.HashLength),
-					End:   bytes.Repeat([]byte{0xff}, common.HashLength),
-					Limit: maxLeavesLimit,
+					Root:     types.EmptyRootHash,
+					Start:    bytes.Repeat([]byte{0x00}, common.HashLength),
+					End:      bytes.Repeat([]byte{0xff}, common.HashLength),
+					Limit:    maxLeavesLimit,
+					NodeType: message.StateTrieNode,
 				}
 			},
 			assertResponseFn: func(t *testing.T, _ message.LeafsRequest, response []byte, err error) {
@@ -163,10 +168,11 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 		"missing root dropped": {
 			prepareTestFn: func() (context.Context, message.LeafsRequest) {
 				return context.Background(), message.LeafsRequest{
-					Root:  common.BytesToHash([]byte("something is missing here...")),
-					Start: bytes.Repeat([]byte{0x00}, common.HashLength),
-					End:   bytes.Repeat([]byte{0xff}, common.HashLength),
-					Limit: maxLeavesLimit,
+					Root:     common.BytesToHash([]byte("something is missing here...")),
+					Start:    bytes.Repeat([]byte{0x00}, common.HashLength),
+					End:      bytes.Repeat([]byte{0xff}, common.HashLength),
+					Limit:    maxLeavesLimit,
+					NodeType: message.StateTrieNode,
 				}
 			},
 			assertResponseFn: func(t *testing.T, _ message.LeafsRequest, response []byte, err error) {
@@ -178,10 +184,11 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 		"corrupted trie drops request": {
 			prepareTestFn: func() (context.Context, message.LeafsRequest) {
 				return context.Background(), message.LeafsRequest{
-					Root:  corruptedTrieRoot,
-					Start: bytes.Repeat([]byte{0x00}, common.HashLength),
-					End:   bytes.Repeat([]byte{0xff}, common.HashLength),
-					Limit: maxLeavesLimit,
+					Root:     corruptedTrieRoot,
+					Start:    bytes.Repeat([]byte{0x00}, common.HashLength),
+					End:      bytes.Repeat([]byte{0xff}, common.HashLength),
+					Limit:    maxLeavesLimit,
+					NodeType: message.StateTrieNode,
 				}
 			},
 			assertResponseFn: func(t *testing.T, _ message.LeafsRequest, response []byte, err error) {
@@ -195,10 +202,11 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 				ctx, cancel := context.WithCancel(context.Background())
 				defer cancel()
 				return ctx, message.LeafsRequest{
-					Root:  largeTrieRoot,
-					Start: bytes.Repeat([]byte{0x00}, common.HashLength),
-					End:   bytes.Repeat([]byte{0xff}, common.HashLength),
-					Limit: maxLeavesLimit,
+					Root:     largeTrieRoot,
+					Start:    bytes.Repeat([]byte{0x00}, common.HashLength),
+					End:      bytes.Repeat([]byte{0xff}, common.HashLength),
+					Limit:    maxLeavesLimit,
+					NodeType: message.StateTrieNode,
 				}
 			},
 			assertResponseFn: func(t *testing.T, _ message.LeafsRequest, response []byte, err error) {
@@ -209,10 +217,11 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 		"nil start and end range returns entire trie": {
 			prepareTestFn: func() (context.Context, message.LeafsRequest) {
 				return context.Background(), message.LeafsRequest{
-					Root:  smallTrieRoot,
-					Start: nil,
-					End:   nil,
-					Limit: maxLeavesLimit,
+					Root:     smallTrieRoot,
+					Start:    nil,
+					End:      nil,
+					Limit:    maxLeavesLimit,
+					NodeType: message.StateTrieNode,
 				}
 			},
 			assertResponseFn: func(t *testing.T, _ message.LeafsRequest, response []byte, err error) {
@@ -228,10 +237,11 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 		"nil end range treated like greatest possible value": {
 			prepareTestFn: func() (context.Context, message.LeafsRequest) {
 				return context.Background(), message.LeafsRequest{
-					Root:  smallTrieRoot,
-					Start: bytes.Repeat([]byte{0x00}, common.HashLength),
-					End:   nil,
-					Limit: maxLeavesLimit,
+					Root:     smallTrieRoot,
+					Start:    bytes.Repeat([]byte{0x00}, common.HashLength),
+					End:      nil,
+					Limit:    maxLeavesLimit,
+					NodeType: message.StateTrieNode,
 				}
 			},
 			assertResponseFn: func(t *testing.T, _ message.LeafsRequest, response []byte, err error) {
@@ -248,10 +258,11 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 				ctx, cancel := context.WithCancel(context.Background())
 				defer cancel()
 				return ctx, message.LeafsRequest{
-					Root:  largeTrieRoot,
-					Start: bytes.Repeat([]byte{0xbb}, common.HashLength),
-					End:   bytes.Repeat([]byte{0xaa}, common.HashLength),
-					Limit: maxLeavesLimit,
+					Root:     largeTrieRoot,
+					Start:    bytes.Repeat([]byte{0xbb}, common.HashLength),
+					End:      bytes.Repeat([]byte{0xaa}, common.HashLength),
+					Limit:    maxLeavesLimit,
+					NodeType: message.StateTrieNode,
 				}
 			},
 			assertResponseFn: func(t *testing.T, _ message.LeafsRequest, response []byte, err error) {
@@ -265,10 +276,11 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 				ctx, cancel := context.WithCancel(context.Background())
 				defer cancel()
 				return ctx, message.LeafsRequest{
-					Root:  largeTrieRoot,
-					Start: bytes.Repeat([]byte{0xbb}, common.HashLength),
-					End:   bytes.Repeat([]byte{0xaa}, common.HashLength),
-					Limit: maxLeavesLimit,
+					Root:     largeTrieRoot,
+					Start:    bytes.Repeat([]byte{0xbb}, common.HashLength),
+					End:      bytes.Repeat([]byte{0xaa}, common.HashLength),
+					Limit:    maxLeavesLimit,
+					NodeType: message.NodeType(11),
 				}
 			},
 			assertResponseFn: func(t *testing.T, _ message.LeafsRequest, response []byte, err error) {
@@ -279,10 +291,11 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 		"max leaves overridden": {
 			prepareTestFn: func() (context.Context, message.LeafsRequest) {
 				return context.Background(), message.LeafsRequest{
-					Root:  largeTrieRoot,
-					Start: bytes.Repeat([]byte{0x00}, common.HashLength),
-					End:   bytes.Repeat([]byte{0xff}, common.HashLength),
-					Limit: maxLeavesLimit * 10,
+					Root:     largeTrieRoot,
+					Start:    bytes.Repeat([]byte{0x00}, common.HashLength),
+					End:      bytes.Repeat([]byte{0xff}, common.HashLength),
+					Limit:    maxLeavesLimit * 10,
+					NodeType: message.StateTrieNode,
 				}
 			},
 			assertResponseFn: func(t *testing.T, _ message.LeafsRequest, response []byte, err error) {
@@ -299,10 +312,11 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 		"full range with nil start": {
 			prepareTestFn: func() (context.Context, message.LeafsRequest) {
 				return context.Background(), message.LeafsRequest{
-					Root:  largeTrieRoot,
-					Start: nil,
-					End:   bytes.Repeat([]byte{0xff}, common.HashLength),
-					Limit: maxLeavesLimit,
+					Root:     largeTrieRoot,
+					Start:    nil,
+					End:      bytes.Repeat([]byte{0xff}, common.HashLength),
+					Limit:    maxLeavesLimit,
+					NodeType: message.StateTrieNode,
 				}
 			},
 			assertResponseFn: func(t *testing.T, request message.LeafsRequest, response []byte, err error) {
@@ -320,10 +334,11 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 		"full range with 0x00 start": {
 			prepareTestFn: func() (context.Context, message.LeafsRequest) {
 				return context.Background(), message.LeafsRequest{
-					Root:  largeTrieRoot,
-					Start: bytes.Repeat([]byte{0x00}, common.HashLength),
-					End:   bytes.Repeat([]byte{0xff}, common.HashLength),
-					Limit: maxLeavesLimit,
+					Root:     largeTrieRoot,
+					Start:    bytes.Repeat([]byte{0x00}, common.HashLength),
+					End:      bytes.Repeat([]byte{0xff}, common.HashLength),
+					Limit:    maxLeavesLimit,
+					NodeType: message.StateTrieNode,
 				}
 			},
 			assertResponseFn: func(t *testing.T, request message.LeafsRequest, response []byte, err error) {
@@ -344,10 +359,11 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 				startKey[31] = startKey[31] + 1 // exclude start key from response
 				endKey := largeTrieKeys[1_040]  // include end key in response
 				return context.Background(), message.LeafsRequest{
-					Root:  largeTrieRoot,
-					Start: startKey,
-					End:   endKey,
-					Limit: maxLeavesLimit,
+					Root:     largeTrieRoot,
+					Start:    startKey,
+					End:      endKey,
+					Limit:    maxLeavesLimit,
+					NodeType: message.StateTrieNode,
 				}
 			},
 			assertResponseFn: func(t *testing.T, request message.LeafsRequest, response []byte, err error) {
@@ -365,10 +381,11 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 		"partial end range": {
 			prepareTestFn: func() (context.Context, message.LeafsRequest) {
 				return context.Background(), message.LeafsRequest{
-					Root:  largeTrieRoot,
-					Start: largeTrieKeys[9_400],
-					End:   bytes.Repeat([]byte{0xff}, common.HashLength),
-					Limit: maxLeavesLimit,
+					Root:     largeTrieRoot,
+					Start:    largeTrieKeys[9_400],
+					End:      bytes.Repeat([]byte{0xff}, common.HashLength),
+					Limit:    maxLeavesLimit,
+					NodeType: message.StateTrieNode,
 				}
 			},
 			assertResponseFn: func(t *testing.T, request message.LeafsRequest, response []byte, err error) {
@@ -386,10 +403,11 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 		"final end range": {
 			prepareTestFn: func() (context.Context, message.LeafsRequest) {
 				return context.Background(), message.LeafsRequest{
-					Root:  largeTrieRoot,
-					Start: bytes.Repeat([]byte{0xff}, common.HashLength),
-					End:   bytes.Repeat([]byte{0xff}, common.HashLength),
-					Limit: maxLeavesLimit,
+					Root:     largeTrieRoot,
+					Start:    bytes.Repeat([]byte{0xff}, common.HashLength),
+					End:      bytes.Repeat([]byte{0xff}, common.HashLength),
+					Limit:    maxLeavesLimit,
+					NodeType: message.StateTrieNode,
 				}
 			},
 			assertResponseFn: func(t *testing.T, request message.LeafsRequest, response []byte, err error) {
@@ -407,10 +425,11 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 		"small trie root": {
 			prepareTestFn: func() (context.Context, message.LeafsRequest) {
 				return context.Background(), message.LeafsRequest{
-					Root:  smallTrieRoot,
-					Start: nil,
-					End:   bytes.Repeat([]byte{0xff}, common.HashLength),
-					Limit: maxLeavesLimit,
+					Root:     smallTrieRoot,
+					Start:    nil,
+					End:      bytes.Repeat([]byte{0xff}, common.HashLength),
+					Limit:    maxLeavesLimit,
+					NodeType: message.StateTrieNode,
 				}
 			},
 			assertResponseFn: func(t *testing.T, request message.LeafsRequest, response []byte, err error) {
@@ -437,8 +456,9 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 				}
 				snapshotProvider.Snapshot = snap
 				return context.Background(), message.LeafsRequest{
-					Root:  accountTrieRoot,
-					Limit: maxLeavesLimit,
+					Root:     accountTrieRoot,
+					Limit:    maxLeavesLimit,
+					NodeType: message.StateTrieNode,
 				}
 			},
 			assertResponseFn: func(t *testing.T, request message.LeafsRequest, response []byte, err error) {
@@ -484,8 +504,9 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 				}
 
 				return context.Background(), message.LeafsRequest{
-					Root:  accountTrieRoot,
-					Limit: maxLeavesLimit,
+					Root:     accountTrieRoot,
+					Limit:    maxLeavesLimit,
+					NodeType: message.StateTrieNode,
 				}
 			},
 			assertResponseFn: func(t *testing.T, request message.LeafsRequest, response []byte, err error) {
@@ -515,9 +536,10 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 				}
 				snapshotProvider.Snapshot = snap
 				return context.Background(), message.LeafsRequest{
-					Root:    largeTrieRoot,
-					Account: largeStorageAccount,
-					Limit:   maxLeavesLimit,
+					Root:     largeTrieRoot,
+					Account:  largeStorageAccount,
+					Limit:    maxLeavesLimit,
+					NodeType: message.StateTrieNode,
 				}
 			},
 			assertResponseFn: func(t *testing.T, request message.LeafsRequest, response []byte, err error) {
@@ -560,9 +582,10 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 				}
 
 				return context.Background(), message.LeafsRequest{
-					Root:    largeTrieRoot,
-					Account: largeStorageAccount,
-					Limit:   maxLeavesLimit,
+					Root:     largeTrieRoot,
+					Account:  largeStorageAccount,
+					Limit:    maxLeavesLimit,
+					NodeType: message.StateTrieNode,
 				}
 			},
 			assertResponseFn: func(t *testing.T, request message.LeafsRequest, response []byte, err error) {
@@ -600,9 +623,10 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 				rawdb.DeleteStorageSnapshot(memdb, smallStorageAccount, lastKey)
 
 				return context.Background(), message.LeafsRequest{
-					Root:    smallTrieRoot,
-					Account: smallStorageAccount,
-					Limit:   maxLeavesLimit,
+					Root:     smallTrieRoot,
+					Account:  smallStorageAccount,
+					Limit:    maxLeavesLimit,
+					NodeType: message.StateTrieNode,
 				}
 			},
 			assertResponseFn: func(t *testing.T, request message.LeafsRequest, response []byte, err error) {
@@ -635,10 +659,11 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 				rawdb.DeleteStorageSnapshot(memdb, smallStorageAccount, lastKey)
 
 				return context.Background(), message.LeafsRequest{
-					Root:    smallTrieRoot,
-					Account: smallStorageAccount,
-					Start:   lastKey[:],
-					Limit:   maxLeavesLimit,
+					Root:     smallTrieRoot,
+					Account:  smallStorageAccount,
+					Start:    lastKey[:],
+					Limit:    maxLeavesLimit,
+					NodeType: message.StateTrieNode,
 				}
 			},
 			assertResponseFn: func(t *testing.T, request message.LeafsRequest, response []byte, err error) {

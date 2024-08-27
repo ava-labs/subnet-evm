@@ -10,6 +10,8 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 
+	safemath "github.com/ava-labs/avalanchego/utils/math"
+
 	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
@@ -29,8 +31,10 @@ type blockValidator struct {
 	extDataHashes map[common.Hash]common.Hash
 }
 
-func NewBlockValidator() BlockValidator {
-	return &blockValidator{}
+func NewBlockValidator(extDataHashes map[common.Hash]common.Hash) BlockValidator {
+	return &blockValidator{
+		extDataHashes: extDataHashes,
+	}
 }
 
 func (v blockValidator) SyntacticVerify(b *Block, rules params.Rules) error {
@@ -174,7 +178,7 @@ func (v blockValidator) SyntacticVerify(b *Block, rules params.Rules) error {
 
 	// Block must not be empty
 	txs := b.ethBlock.Transactions()
-	if len(txs) == 0 {
+	if len(txs) == 0 && len(b.atomicTxs) == 0 {
 		return errEmptyBlock
 	}
 
@@ -230,6 +234,19 @@ func (v blockValidator) SyntacticVerify(b *Block, rules params.Rules) error {
 			}
 		}
 		var totalGasUsed uint64
+		for _, atomicTx := range b.atomicTxs {
+			// We perform this check manually here to avoid the overhead of having to
+			// reparse the atomicTx in `CalcExtDataGasUsed`.
+			fixedFee := rules.IsApricotPhase5 // Charge the atomic tx fixed fee as of ApricotPhase5
+			gasUsed, err := atomicTx.GasUsed(fixedFee)
+			if err != nil {
+				return err
+			}
+			totalGasUsed, err = safemath.Add64(totalGasUsed, gasUsed)
+			if err != nil {
+				return err
+			}
+		}
 
 		switch {
 		case ethHeader.ExtDataGasUsed.Cmp(new(big.Int).SetUint64(totalGasUsed)) != 0:
