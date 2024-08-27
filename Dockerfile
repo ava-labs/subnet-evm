@@ -15,7 +15,6 @@ COPY go.mod go.sum avalanchego* ./
 
 # Download avalanche dependencies using go mod
 RUN go mod download && go mod tidy -compat=1.21
-RUN pushd avalanche && go mod download && go mod tidy -compat=1.21 && popd
 
 # Copy the code into the container
 COPY . .
