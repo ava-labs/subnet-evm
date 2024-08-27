@@ -2,7 +2,9 @@ TestClientCancelWebsocket
 TestExpDecaySampleNanosecondRegression
 TestGolangBindings
 TestMempoolEthTxsAppGossipHandling
+TestResumeSyncAccountsTrieInterrupted
 TestResyncNewRootAfterDeletes
+TestT8n
 TestTransactionSkipIndexing
 TestVMShutdownWhileSyncing
 TestWalletNotifications
