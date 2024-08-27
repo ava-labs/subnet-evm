@@ -30,12 +30,10 @@ import (
 	"fmt"
 	"os"
 	"regexp"
-	"sort"
 	"strings"
 
 	"github.com/ava-labs/subnet-evm/internal/version"
 	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ethereum/go-ethereum/log"
 	"github.com/mattn/go-isatty"
 	"github.com/urfave/cli/v2"
 )
@@ -233,88 +231,4 @@ func wordWrap(s string, width int) string {
 	}
 
 	return output.String()
-}
-
-// AutoEnvVars extends all the specific CLI flags with automatically generated
-// env vars by capitalizing the flag, replacing . with _ and prefixing it with
-// the specified string.
-//
-// Note, the prefix should *not* contain the separator underscore, that will be
-// added automatically.
-func AutoEnvVars(flags []cli.Flag, prefix string) {
-	for _, flag := range flags {
-		envvar := strings.ToUpper(prefix + "_" + strings.ReplaceAll(strings.ReplaceAll(flag.Names()[0], ".", "_"), "-", "_"))
-
-		switch flag := flag.(type) {
-		case *cli.StringFlag:
-			flag.EnvVars = append(flag.EnvVars, envvar)
-
-		case *cli.StringSliceFlag:
-			flag.EnvVars = append(flag.EnvVars, envvar)
-
-		case *cli.BoolFlag:
-			flag.EnvVars = append(flag.EnvVars, envvar)
-
-		case *cli.IntFlag:
-			flag.EnvVars = append(flag.EnvVars, envvar)
-
-		case *cli.Int64Flag:
-			flag.EnvVars = append(flag.EnvVars, envvar)
-
-		case *cli.Uint64Flag:
-			flag.EnvVars = append(flag.EnvVars, envvar)
-
-		case *cli.Float64Flag:
-			flag.EnvVars = append(flag.EnvVars, envvar)
-
-		case *cli.DurationFlag:
-			flag.EnvVars = append(flag.EnvVars, envvar)
-
-		case *cli.PathFlag:
-			flag.EnvVars = append(flag.EnvVars, envvar)
-
-		case *BigFlag:
-			flag.EnvVars = append(flag.EnvVars, envvar)
-
-		case *TextMarshalerFlag:
-			flag.EnvVars = append(flag.EnvVars, envvar)
-
-		case *DirectoryFlag:
-			flag.EnvVars = append(flag.EnvVars, envvar)
-		}
-	}
-}
-
-// CheckEnvVars iterates over all the environment variables and checks if any of
-// them look like a CLI flag but is not consumed. This can be used to detect old
-// or mistyped names.
-func CheckEnvVars(ctx *cli.Context, flags []cli.Flag, prefix string) {
-	known := make(map[string]string)
-	for _, flag := range flags {
-		docflag, ok := flag.(cli.DocGenerationFlag)
-		if !ok {
-			continue
-		}
-		for _, envvar := range docflag.GetEnvVars() {
-			known[envvar] = flag.Names()[0]
-		}
-	}
-	keyvals := os.Environ()
-	sort.Strings(keyvals)
-
-	for _, keyval := range keyvals {
-		key := strings.Split(keyval, "=")[0]
-		if !strings.HasPrefix(key, prefix) {
-			continue
-		}
-		if flag, ok := known[key]; ok {
-			if ctx.Count(flag) > 0 {
-				log.Info("Config environment variable found", "envvar", key, "shadowedby", "--"+flag)
-			} else {
-				log.Info("Config environment variable found", "envvar", key)
-			}
-		} else {
-			log.Warn("Unknown config environment variable", "envvar", key)
-		}
-	}
 }

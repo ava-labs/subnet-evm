@@ -67,7 +67,7 @@ func makeGasSStoreFunc() gasFunc {
 			//		return params.SloadGasEIP2200, nil
 			return cost + params.WarmStorageReadCostEIP2929, nil // SLOAD_GAS
 		}
-		original := evm.StateDB.GetCommittedState(contract.Address(), x.Bytes32())
+		original := evm.StateDB.GetCommittedStateAP1(contract.Address(), x.Bytes32())
 		if original == current {
 			if original == (common.Hash{}) { // create slot (2.1.1)
 				return cost + params.SstoreSetGasEIP2200, nil

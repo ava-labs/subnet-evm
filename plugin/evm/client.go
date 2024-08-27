@@ -40,7 +40,6 @@ func NewClient(uri, chain string) Client {
 
 // NewCChainClient returns a Client for interacting with the C Chain
 func NewCChainClient(uri string) Client {
-	// TODO: Update for Subnet-EVM compatibility
 	return NewClient(uri, "C")
 }
 

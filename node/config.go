@@ -66,7 +66,7 @@ type Config struct {
 	// BatchResponseMaxSize is the maximum number of bytes returned from a batched rpc call.
 	BatchResponseMaxSize int `toml:",omitempty"`
 
-	SubnetEVMVersion string
+	CorethVersion string
 }
 
 // ExtRPCEnabled returns the indicator whether node enables the external
@@ -101,7 +101,7 @@ func (c *Config) GetKeyStoreDir() (string, bool, error) {
 	isEphemeral := false
 	if keydir == "" {
 		// There is no datadir.
-		keydir, err = os.MkdirTemp("", "subnet-evm-keystore")
+		keydir, err = os.MkdirTemp("", "coreth-keystore")
 		isEphemeral = true
 	}
 

@@ -50,6 +50,9 @@ var (
 
 	// EmptyVerkleHash is the known hash of an empty verkle trie.
 	EmptyVerkleHash = common.Hash{}
+
+	// EmptyExtDataHash is the known hash of empty extdata bytes.
+	EmptyExtDataHash = rlpHash([]byte(nil))
 )
 
 // TrieRootHash returns the hash itself if it's non-empty or the predefined

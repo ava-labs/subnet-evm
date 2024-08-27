@@ -38,7 +38,6 @@ import (
 	"github.com/ava-labs/subnet-evm/accounts/abi/bind"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/interfaces"
-	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/rpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -73,7 +72,6 @@ var (
 type Client interface {
 	Client() *rpc.Client
 	Close()
-	ChainConfig(context.Context) (*params.ChainConfigWithUpgradesJSON, error)
 	ChainID(context.Context) (*big.Int, error)
 	BlockByHash(context.Context, common.Hash) (*types.Block, error)
 	BlockByNumber(context.Context, *big.Int) (*types.Block, error)
@@ -150,16 +148,6 @@ func (ec *client) Client() *rpc.Client {
 }
 
 // Blockchain Access
-
-// ChainConfig retrieves the current chain config.
-func (ec *client) ChainConfig(ctx context.Context) (*params.ChainConfigWithUpgradesJSON, error) {
-	var result *params.ChainConfigWithUpgradesJSON
-	err := ec.c.CallContext(ctx, &result, "eth_getChainConfig")
-	if err != nil {
-		return nil, err
-	}
-	return result, err
-}
 
 // ChainID retrieves the current chain ID for transaction replay protection.
 func (ec *client) ChainID(ctx context.Context) (*big.Int, error) {
@@ -279,7 +267,7 @@ func (ec *client) getBlock(ctx context.Context, method string, args ...interface
 		}
 		txs[i] = tx.tx
 	}
-	return types.NewBlockWithHeader(head).WithBody(txs, uncles), nil
+	return types.NewBlockWithHeader(head).WithBody(txs, uncles).WithExtData(body.Version, (*[]byte)(body.BlockExtraData)), nil
 }
 
 // HeaderByHash returns the block header with the given hash.

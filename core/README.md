@@ -10,7 +10,7 @@ When the consensus engine verifies blocks as they are ready to be issued into co
 
 InsertBlockManual verifies the block, inserts it into the state manager to track the merkle trie for the block, and adds it to the canonical chain if it extends the currently preferred chain.
 
-Subnet-EVM adds functions for Accept and Reject, which take care of marking a block as finalized and performing garbage collection where possible.
+Coreth adds functions for Accept and Reject, which take care of marking a block as finalized and performing garbage collection where possible.
 
 The consensus engine can also call `SetPreference` on a VM to tell the VM that a specific block is preferred by the consensus engine to be accepted. This triggers a call to `reorg` the blockchain and set the newly preferred block as the preferred chain.
 

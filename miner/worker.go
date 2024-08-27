@@ -55,7 +55,9 @@ import (
 )
 
 const (
-	targetTxsSize = 1800 * units.KiB
+	// Leaves 256 KBs for other sections of the block (limit is 2MB).
+	// This should suffice for atomic txs, proposervm header, and serialization overhead.
+	targetTxsSize = 1792 * units.KiB
 )
 
 // environment is the worker's current environment and holds all of the current state information.
@@ -144,19 +146,14 @@ func (w *worker) commitNewWork(predicateContext *precompileconfig.PredicateConte
 	}
 
 	var gasLimit uint64
-	// The fee manager relies on the state of the parent block to set the fee config
-	// because the fee config may be changed by the current block.
-	feeConfig, _, err := w.chain.GetFeeConfigAt(parent)
-	if err != nil {
-		return nil, err
-	}
-	configuredGasLimit := feeConfig.GasLimit.Uint64()
-	if w.chainConfig.IsSubnetEVM(timestamp) {
-		gasLimit = configuredGasLimit
+	if w.chainConfig.IsCortina(timestamp) {
+		gasLimit = params.CortinaGasLimit
+	} else if w.chainConfig.IsApricotPhase1(timestamp) {
+		gasLimit = params.ApricotPhase1GasLimit
 	} else {
-		// The gas limit is set in SubnetEVMGasLimit because the ceiling and floor were set to the same value
+		// The gas limit is set in phase1 to ApricotPhase1GasLimit because the ceiling and floor were set to the same value
 		// such that the gas limit converged to it. Since this is hardbaked now, we remove the ability to configure it.
-		gasLimit = core.CalcGasLimit(parent.GasUsed, parent.GasLimit, configuredGasLimit, configuredGasLimit)
+		gasLimit = core.CalcGasLimit(parent.GasUsed, parent.GasLimit, params.ApricotPhase1GasLimit, params.ApricotPhase1GasLimit)
 	}
 	header := &types.Header{
 		ParentHash: parent.Hash(),
@@ -166,9 +163,10 @@ func (w *worker) commitNewWork(predicateContext *precompileconfig.PredicateConte
 		Time:       timestamp,
 	}
 
-	if w.chainConfig.IsSubnetEVM(timestamp) {
+	// Set BaseFee and Extra data field if we are post ApricotPhase3
+	if w.chainConfig.IsApricotPhase3(timestamp) {
 		var err error
-		header.Extra, header.BaseFee, err = dummy.CalcBaseFee(w.chainConfig, feeConfig, parent, timestamp)
+		header.Extra, header.BaseFee, err = dummy.CalcBaseFee(w.chainConfig, parent, timestamp)
 		if err != nil {
 			return nil, fmt.Errorf("failed to calculate new base fee: %w", err)
 		}
@@ -191,20 +189,6 @@ func (w *worker) commitNewWork(predicateContext *precompileconfig.PredicateConte
 		return nil, errors.New("cannot mine without etherbase")
 	}
 	header.Coinbase = w.coinbase
-
-	configuredCoinbase, isAllowFeeRecipient, err := w.chain.GetCoinbaseAt(parent)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get configured coinbase: %w", err)
-	}
-
-	// if fee recipients are not allowed, then the coinbase is the configured coinbase
-	// don't set w.coinbase directly to the configured coinbase because that would override the
-	// coinbase set by the user
-	if !isAllowFeeRecipient && w.coinbase != configuredCoinbase {
-		log.Info("fee recipients are not allowed, using required coinbase for the mining", "currentminer", w.coinbase, "required", configuredCoinbase)
-		header.Coinbase = configuredCoinbase
-	}
-
 	if err := w.engine.Prepare(w.chain, header); err != nil {
 		return nil, fmt.Errorf("failed to prepare header for mining: %w", err)
 	}
@@ -468,11 +452,8 @@ func (w *worker) handleResult(env *environment, block *types.Block, createdAt ti
 		}
 		logs = append(logs, receipt.Logs...)
 	}
-
-	feesInEther, err := core.TotalFeesFloat(block, receipts)
-	if err != nil {
-		log.Error("TotalFeesFloat error: %s", err)
-	}
+	fees := totalFees(block, receipts)
+	feesInEther := new(big.Float).Quo(new(big.Float).SetInt(fees), big.NewFloat(params.Ether))
 	log.Info("Commit new mining work", "number", block.Number(), "hash", hash,
 		"uncles", 0, "txs", env.tcount,
 		"gas", block.GasUsed(), "fees", feesInEther,
@@ -492,4 +473,21 @@ func copyReceipts(receipts []*types.Receipt) []*types.Receipt {
 		result[i] = &cpy
 	}
 	return result
+}
+
+// totalFees computes total consumed miner fees in Wei. Block transactions and receipts have to have the same order.
+func totalFees(block *types.Block, receipts []*types.Receipt) *big.Int {
+	feesWei := new(big.Int)
+	for i, tx := range block.Transactions() {
+		var minerFee *big.Int
+		if baseFee := block.BaseFee(); baseFee != nil {
+			// Note in coreth the coinbase payment is (baseFee + effectiveGasTip) * gasUsed
+			minerFee = new(big.Int).Add(baseFee, tx.EffectiveGasTipValue(baseFee))
+		} else {
+			// Prior to activation of EIP-1559, the coinbase payment was gasPrice * gasUsed
+			minerFee = tx.GasPrice()
+		}
+		feesWei.Add(feesWei, new(big.Int).Mul(new(big.Int).SetUint64(receipts[i].GasUsed), minerFee))
+	}
+	return feesWei
 }

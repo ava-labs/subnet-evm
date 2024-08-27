@@ -27,9 +27,6 @@
 package blobpool
 
 import (
-	"math/big"
-
-	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
@@ -54,6 +51,4 @@ type BlockChain interface {
 
 	// StateAt returns a state database for a given root hash (generally the head).
 	StateAt(root common.Hash) (*state.StateDB, error)
-
-	GetFeeConfigAt(header *types.Header) (commontype.FeeConfig, *big.Int, error)
 }

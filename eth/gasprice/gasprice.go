@@ -28,17 +28,14 @@ package gasprice
 
 import (
 	"context"
-	"fmt"
 	"math/big"
 	"sync"
 
 	"github.com/ava-labs/avalanchego/utils/timer/mockable"
-	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/precompile/contracts/feemanager"
 	"github.com/ava-labs/subnet-evm/rpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/lru"
@@ -67,7 +64,7 @@ const (
 var (
 	DefaultMaxPrice           = big.NewInt(150 * params.GWei)
 	DefaultMinPrice           = big.NewInt(0 * params.GWei)
-	DefaultMinBaseFee         = big.NewInt(params.TestInitialBaseFee)
+	DefaultMinBaseFee         = big.NewInt(params.ApricotPhase3InitialBaseFee)
 	DefaultMinGasUsed         = big.NewInt(6_000_000) // block gas limit is 8,000,000
 	DefaultMaxLookbackSeconds = uint64(80)
 )
@@ -102,7 +99,6 @@ type OracleBackend interface {
 	SubscribeChainAcceptedEvent(ch chan<- core.ChainEvent) event.Subscription
 	MinRequiredTip(ctx context.Context, header *types.Header) (*big.Int, error)
 	LastAcceptedBlock() *types.Block
-	GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig, *big.Int, error)
 }
 
 // Oracle recommends gas prices based on the content of recent
@@ -191,14 +187,6 @@ func NewOracle(backend OracleBackend, config Config) (*Oracle, error) {
 			lastHead = ev.Block.Hash()
 		}
 	}()
-	feeConfig, _, err := backend.GetFeeConfigAt(backend.LastAcceptedBlock().Header())
-	var minBaseFee *big.Int
-	if err != nil {
-		// resort back to chain config
-		return nil, fmt.Errorf("failed getting fee config in the oracle: %w", err)
-	} else {
-		minBaseFee = feeConfig.MinBaseFee
-	}
 	feeInfoProvider, err := newFeeInfoProvider(backend, minGasUsed.Uint64(), config.Blocks)
 	if err != nil {
 		return nil, err
@@ -206,7 +194,7 @@ func NewOracle(backend OracleBackend, config Config) (*Oracle, error) {
 	return &Oracle{
 		backend:             backend,
 		lastPrice:           minPrice,
-		lastBaseFee:         new(big.Int).Set(minBaseFee),
+		lastBaseFee:         DefaultMinBaseFee,
 		minPrice:            minPrice,
 		maxPrice:            maxPrice,
 		checkBlocks:         blocks,
@@ -220,7 +208,7 @@ func NewOracle(backend OracleBackend, config Config) (*Oracle, error) {
 }
 
 // EstimateBaseFee returns an estimate of what the base fee will be on a block
-// produced at the current time. If SubnetEVM has not been activated, it may
+// produced at the current time. If ApricotPhase3 has not been activated, it may
 // return a nil value and a nil error.
 func (oracle *Oracle) EstimateBaseFee(ctx context.Context) (*big.Int, error) {
 	_, baseFee, err := oracle.suggestDynamicFees(ctx)
@@ -256,10 +244,6 @@ func (oracle *Oracle) estimateNextBaseFee(ctx context.Context) (*big.Int, error)
 	if err != nil {
 		return nil, err
 	}
-	feeConfig, _, err := oracle.backend.GetFeeConfigAt(header)
-	if err != nil {
-		return nil, err
-	}
 	// If the fetched block does not have a base fee, return nil as the base fee
 	if header.BaseFee == nil {
 		return nil, nil
@@ -268,7 +252,7 @@ func (oracle *Oracle) estimateNextBaseFee(ctx context.Context) (*big.Int, error)
 	// If the block does have a baseFee, calculate the next base fee
 	// based on the current time and add it to the tip to estimate the
 	// total gas price estimate.
-	_, nextBaseFee, err := dummy.EstimateNextBaseFee(oracle.backend.ChainConfig(), feeConfig, header, oracle.clock.Unix())
+	_, nextBaseFee, err := dummy.EstimateNextBaseFee(oracle.backend.ChainConfig(), header, oracle.clock.Unix())
 	return nextBaseFee, err
 }
 
@@ -314,17 +298,6 @@ func (oracle *Oracle) suggestDynamicFees(ctx context.Context) (*big.Int, *big.In
 		return nil, nil, err
 	}
 
-	var (
-		feeLastChangedAt *big.Int
-		feeConfig        commontype.FeeConfig
-	)
-	if oracle.backend.ChainConfig().IsPrecompileEnabled(feemanager.ContractAddress, head.Time) {
-		feeConfig, feeLastChangedAt, err = oracle.backend.GetFeeConfigAt(head)
-		if err != nil {
-			return nil, nil, err
-		}
-	}
-
 	headHash := head.Hash()
 
 	// If the latest gasprice is still available, return it.
@@ -354,19 +327,6 @@ func (oracle *Oracle) suggestDynamicFees(ctx context.Context) (*big.Int, *big.In
 
 	if uint64(oracle.checkBlocks) <= latestBlockNumber {
 		lowerBlockNumberLimit = latestBlockNumber - uint64(oracle.checkBlocks)
-	}
-
-	// if fee config has changed at a more recent block, it should be the lower limit
-	if feeLastChangedAt != nil {
-		if lowerBlockNumberLimit < feeLastChangedAt.Uint64() {
-			lowerBlockNumberLimit = feeLastChangedAt.Uint64()
-		}
-
-		// If the fee config has been increased in the latest block, increase the lastBaseFee to the
-		// new minimum base fee.
-		if feeLastChangedAt.Uint64() == latestBlockNumber && lastBaseFee.Cmp(feeConfig.MinBaseFee) < 0 {
-			lastBaseFee = feeConfig.MinBaseFee
-		}
 	}
 
 	// Process block headers in the range calculated for this gas price estimation.

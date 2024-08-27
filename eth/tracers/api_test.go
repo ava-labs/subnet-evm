@@ -75,7 +75,7 @@ type testBackend struct {
 func newTestBackend(t *testing.T, n int, gspec *core.Genesis, generator func(i int, b *core.BlockGen)) *testBackend {
 	backend := &testBackend{
 		chainConfig: gspec.Config,
-		engine:      dummy.NewFakerWithMode(dummy.Mode{ModeSkipBlockFee: true, ModeSkipCoinbase: true}),
+		engine:      dummy.NewETHFaker(),
 		chaindb:     rawdb.NewMemoryDatabase(),
 	}
 	// Generate blocks for testing
@@ -226,7 +226,7 @@ func TestTraceCall(t *testing.T) {
 	// Initialize test accounts
 	accounts := newAccounts(3)
 	genesis := &core.Genesis{
-		Config: params.TestChainConfig,
+		Config: params.TestBanffChainConfig, // TODO: go-ethereum has not enabled Shanghai yet, so we use Banff here so tests pass.
 		Alloc: core.GenesisAlloc{
 			accounts[0].addr: {Balance: big.NewInt(params.Ether)},
 			accounts[1].addr: {Balance: big.NewInt(params.Ether)},
@@ -590,7 +590,7 @@ func TestTracingWithOverrides(t *testing.T) {
 	accounts := newAccounts(3)
 	storageAccount := common.Address{0x13, 37}
 	genesis := &core.Genesis{
-		Config: params.TestChainConfig,
+		Config: params.TestCortinaChainConfig, // TODO: go-ethereum has not enabled Shanghai yet, so we use Cortina here so tests pass.
 		Alloc: core.GenesisAlloc{
 			accounts[0].addr: {Balance: big.NewInt(params.Ether)},
 			accounts[1].addr: {Balance: big.NewInt(params.Ether)},

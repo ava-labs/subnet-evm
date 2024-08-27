@@ -729,7 +729,7 @@ func TestCreate2Addreses(t *testing.T) {
 
 // TestRandom is a test for the RANDOM opcode in geth, which we do not support. Therefore, we use this test to check that DIFFICULTY opcode continues to work
 // the same as the RANDOM opcode except using the Difficulty value in the block context.
-// Note: this should not be used as a source of randomness in subnet-evm since the difficulty is required to be 1.
+// Note: this should not be used as a source of randomness in coreth since the difficulty is required to be 1.
 func TestRandom(t *testing.T) {
 	type testcase struct {
 		name   string

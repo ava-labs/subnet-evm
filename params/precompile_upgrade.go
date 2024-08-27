@@ -77,22 +77,6 @@ func (c *ChainConfig) verifyPrecompileUpgrades() error {
 
 	lastPrecompileUpgrades := make(map[string]lastUpgradeData)
 
-	// verify genesis precompiles
-	for key, config := range c.GenesisPrecompiles {
-		if err := config.Verify(c); err != nil {
-			return err
-		}
-		// if the precompile is disabled at genesis, skip it.
-		if config.Timestamp() == nil {
-			continue
-		}
-		// check the genesis chain config for any enabled upgrade
-		lastPrecompileUpgrades[key] = lastUpgradeData{
-			disabled:       false,
-			blockTimestamp: *config.Timestamp(),
-		}
-	}
-
 	// next range over upgrades to verify correct use of disabled and blockTimestamps.
 	// previousUpgradeTimestamp is used to verify monotonically increasing timestamps.
 	var previousUpgradeTimestamp *uint64
@@ -167,13 +151,6 @@ func (c *ChainConfig) GetActivatingPrecompileConfigs(address common.Address, fro
 	}
 	configs := make([]precompileconfig.Config, 0)
 	key := module.ConfigKey
-	// First check the embedded [upgrade] for precompiles configured
-	// in the genesis chain config.
-	if config, ok := c.GenesisPrecompiles[key]; ok {
-		if IsForkTransition(config.Timestamp(), from, to) {
-			configs = append(configs, config)
-		}
-	}
 	// Loop over all upgrades checking for the requested precompile config.
 	for _, upgrade := range upgrades {
 		if upgrade.Key() == key {

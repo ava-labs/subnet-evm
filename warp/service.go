@@ -9,12 +9,11 @@ import (
 	"fmt"
 
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/avalanchego/snow/validators"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
 	"github.com/ava-labs/subnet-evm/peer"
 	"github.com/ava-labs/subnet-evm/warp/aggregator"
-	warpValidators "github.com/ava-labs/subnet-evm/warp/validators"
+	"github.com/ava-labs/subnet-evm/warp/validators"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/log"
 )
@@ -26,20 +25,18 @@ type API struct {
 	networkID                     uint32
 	sourceSubnetID, sourceChainID ids.ID
 	backend                       Backend
-	state                         validators.State
+	state                         *validators.State
 	client                        peer.NetworkClient
-	requirePrimaryNetworkSigners  func() bool
 }
 
-func NewAPI(networkID uint32, sourceSubnetID ids.ID, sourceChainID ids.ID, state validators.State, backend Backend, client peer.NetworkClient, requirePrimaryNetworkSigners func() bool) *API {
+func NewAPI(networkID uint32, sourceSubnetID ids.ID, sourceChainID ids.ID, state *validators.State, backend Backend, client peer.NetworkClient) *API {
 	return &API{
-		networkID:                    networkID,
-		sourceSubnetID:               sourceSubnetID,
-		sourceChainID:                sourceChainID,
-		backend:                      backend,
-		state:                        state,
-		client:                       client,
-		requirePrimaryNetworkSigners: requirePrimaryNetworkSigners,
+		networkID:      networkID,
+		sourceSubnetID: sourceSubnetID,
+		sourceChainID:  sourceChainID,
+		backend:        backend,
+		state:          state,
+		client:         client,
 	}
 }
 
@@ -107,8 +104,7 @@ func (a *API) aggregateSignatures(ctx context.Context, unsignedMessage *warp.Uns
 		return nil, err
 	}
 
-	state := warpValidators.NewState(a.state, a.sourceSubnetID, a.sourceChainID, a.requirePrimaryNetworkSigners())
-	validators, totalWeight, err := warp.GetCanonicalValidatorSet(ctx, state, pChainHeight, subnetID)
+	validators, totalWeight, err := warp.GetCanonicalValidatorSet(ctx, a.state, pChainHeight, subnetID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get validator set: %w", err)
 	}

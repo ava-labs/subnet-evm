@@ -56,6 +56,10 @@ func (NoopRequestHandler) HandleStateTrieLeafsRequest(ctx context.Context, nodeI
 	return nil, nil
 }
 
+func (NoopRequestHandler) HandleAtomicTrieLeafsRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, leafsRequest LeafsRequest) ([]byte, error) {
+	return nil, nil
+}
+
 func (NoopRequestHandler) HandleBlockRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, request BlockRequest) ([]byte, error) {
 	return nil, nil
 }

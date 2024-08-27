@@ -3,7 +3,7 @@
 set -euo pipefail
 
 # Root directory
-SUBNET_EVM_PATH=$(
+CORETH_PATH=$(
   cd "$(dirname "${BASH_SOURCE[0]}")"
   cd .. && pwd
 )
@@ -22,8 +22,11 @@ if ! command -v go-license &>/dev/null; then
   go install -v github.com/palantir/go-license@v1.25.0
 fi
 
+# Load the versions
+source "$CORETH_PATH"/scripts/versions.sh
+
 # Load the constants
-source "$SUBNET_EVM_PATH"/scripts/constants.sh
+source "$CORETH_PATH"/scripts/constants.sh
 
 # tuples of (source interface import path, comma-separated interface names, output file path)
 input="scripts/mocks.mockgen.txt"

@@ -27,9 +27,6 @@ func (g Genesis) MarshalJSON() ([]byte, error) {
 		Mixhash       common.Hash                                 `json:"mixHash"`
 		Coinbase      common.Address                              `json:"coinbase"`
 		Alloc         map[common.UnprefixedAddress]GenesisAccount `json:"alloc"      gencodec:"required"`
-		AirdropHash   common.Hash                                 `json:"airdropHash"`
-		AirdropAmount *math.HexOrDecimal256                       `json:"airdropAmount"`
-		AirdropData   []byte                                      `json:"-"`
 		Number        math.HexOrDecimal64                         `json:"number"`
 		GasUsed       math.HexOrDecimal64                         `json:"gasUsed"`
 		ParentHash    common.Hash                                 `json:"parentHash"`
@@ -52,9 +49,6 @@ func (g Genesis) MarshalJSON() ([]byte, error) {
 			enc.Alloc[common.UnprefixedAddress(k)] = v
 		}
 	}
-	enc.AirdropHash = g.AirdropHash
-	enc.AirdropAmount = (*math.HexOrDecimal256)(g.AirdropAmount)
-	enc.AirdropData = g.AirdropData
 	enc.Number = math.HexOrDecimal64(g.Number)
 	enc.GasUsed = math.HexOrDecimal64(g.GasUsed)
 	enc.ParentHash = g.ParentHash
@@ -76,9 +70,6 @@ func (g *Genesis) UnmarshalJSON(input []byte) error {
 		Mixhash       *common.Hash                                `json:"mixHash"`
 		Coinbase      *common.Address                             `json:"coinbase"`
 		Alloc         map[common.UnprefixedAddress]GenesisAccount `json:"alloc"      gencodec:"required"`
-		AirdropHash   *common.Hash                                `json:"airdropHash"`
-		AirdropAmount *math.HexOrDecimal256                       `json:"airdropAmount"`
-		AirdropData   []byte                                      `json:"-"`
 		Number        *math.HexOrDecimal64                        `json:"number"`
 		GasUsed       *math.HexOrDecimal64                        `json:"gasUsed"`
 		ParentHash    *common.Hash                                `json:"parentHash"`
@@ -122,15 +113,6 @@ func (g *Genesis) UnmarshalJSON(input []byte) error {
 	g.Alloc = make(GenesisAlloc, len(dec.Alloc))
 	for k, v := range dec.Alloc {
 		g.Alloc[common.Address(k)] = v
-	}
-	if dec.AirdropHash != nil {
-		g.AirdropHash = *dec.AirdropHash
-	}
-	if dec.AirdropAmount != nil {
-		g.AirdropAmount = (*big.Int)(dec.AirdropAmount)
-	}
-	if dec.AirdropData != nil {
-		g.AirdropData = dec.AirdropData
 	}
 	if dec.Number != nil {
 		g.Number = uint64(*dec.Number)

@@ -26,7 +26,6 @@ awscpu
 *logs/
 
 .vscode*
-workspace.code-workspace
 
 *.pb*
 
@@ -46,15 +45,5 @@ workspace.code-workspace
 bin/
 build/
 
-cmd/evm/evm
-cmd/simulator/.simulator/*
-cmd/simulator/simulator
-
-# goreleaser
-dist/
-
-# Outputs of `scripts/diff_against.sh`
-diffs/
-
-# clone used for antithesis image builds
-avalanchego/
+# Used for e2e testing
+avalanchego

@@ -173,22 +173,27 @@ func TestStorageRangeAt(t *testing.T) {
 
 	// Create a state where account 0x010000... has a few storage entries.
 	var (
-		db     = state.NewDatabaseWithConfig(rawdb.NewMemoryDatabase(), &trie.Config{Preimages: true})
-		sdb, _ = state.New(types.EmptyRootHash, db, nil)
-		addr   = common.Address{0x01}
-		keys   = []common.Hash{ // hashes of Keys of storage
-			common.HexToHash("340dd630ad21bf010b4e676dbfa9ba9a02175262d1fa356232cfde6cb5b47ef2"),
-			common.HexToHash("426fcb404ab2d5d8e61a3d918108006bbb0a9be65e92235bb10eefbdb6dcd053"),
-			common.HexToHash("48078cfed56339ea54962e72c37c7f588fc4f8e5bc173827ba75cb10a63a96a5"),
-			common.HexToHash("5723d2c3a83af9b735e3b7f21531e5623d183a9095a56604ead41f3582fdfb75"),
-		}
-		storage = storageMap{
-			keys[0]: {Key: &common.Hash{0x02}, Value: common.Hash{0x01}},
-			keys[1]: {Key: &common.Hash{0x04}, Value: common.Hash{0x02}},
-			keys[2]: {Key: &common.Hash{0x01}, Value: common.Hash{0x03}},
-			keys[3]: {Key: &common.Hash{0x03}, Value: common.Hash{0x04}},
+		db          = state.NewDatabaseWithConfig(rawdb.NewMemoryDatabase(), &trie.Config{Preimages: true})
+		sdb, _      = state.New(types.EmptyRootHash, db, nil)
+		addr        = common.Address{0x01}
+		keys        = []common.Hash{}
+		storage     = storageMap{}
+		storageList = []storageEntry{
+			{Key: &common.Hash{0x00, 0x02}, Value: common.Hash{0x01}},
+			{Key: &common.Hash{0x00, 0x04}, Value: common.Hash{0x02}},
+			{Key: &common.Hash{0x00, 0x01}, Value: common.Hash{0x03}},
+			{Key: &common.Hash{0x00, 0x03}, Value: common.Hash{0x04}},
 		}
 	)
+	// Note: This test is modified compared to upstream since coreth normalizes
+	// state keys before storing them. This means the original values cannot be
+	// used, and the keys array and storage map must be re-calculated.
+	for _, entry := range storageList {
+		k := crypto.Keccak256Hash(entry.Key.Bytes())
+		keys = append(keys, k)
+		storage[k] = entry
+	}
+	slices.SortFunc(keys, common.Hash.Cmp)
 	for _, entry := range storage {
 		sdb.SetState(addr, *entry.Key, entry.Value)
 	}

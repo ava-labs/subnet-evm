@@ -9,7 +9,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/ava-labs/avalanchego/upgrade"
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/state"
@@ -62,7 +61,7 @@ func createBlockChain(
 		db,
 		cacheConfig,
 		gspec,
-		dummy.NewCoinbaseFaker(),
+		dummy.NewFakerWithCallbacks(TestCallbacks),
 		vm.Config{},
 		lastAcceptedHash,
 		false,
@@ -270,9 +269,6 @@ func TestBlockChainOfflinePruningUngracefulShutdown(t *testing.T) {
 		}
 		// get the target root to prune to before stopping the blockchain
 		targetRoot := blockchain.LastAcceptedBlock().Root()
-		if targetRoot == types.EmptyRootHash {
-			return blockchain, nil
-		}
 		blockchain.Stop()
 
 		tempDir := t.TempDir()
@@ -313,7 +309,7 @@ func testRepopulateMissingTriesParallel(t *testing.T, parallelism int) {
 	// Ensure that key1 has some funds in the genesis block.
 	genesisBalance := big.NewInt(1000000)
 	gspec := &Genesis{
-		Config: &params.ChainConfig{HomesteadBlock: new(big.Int), FeeConfig: params.DefaultFeeConfig},
+		Config: &params.ChainConfig{HomesteadBlock: new(big.Int)},
 		Alloc:  GenesisAlloc{addr1: {Balance: genesisBalance}},
 	}
 
@@ -426,7 +422,7 @@ func TestUngracefulAsyncShutdown(t *testing.T) {
 	// Ensure that key1 has some funds in the genesis block.
 	genesisBalance := big.NewInt(1000000)
 	gspec := &Genesis{
-		Config: &params.ChainConfig{HomesteadBlock: new(big.Int), FeeConfig: params.DefaultFeeConfig},
+		Config: &params.ChainConfig{HomesteadBlock: new(big.Int)},
 		Alloc:  GenesisAlloc{addr1: {Balance: genesisBalance}},
 	}
 
@@ -553,14 +549,14 @@ func TestTransactionIndices(t *testing.T) {
 		}
 		signer = types.LatestSigner(gspec.Config)
 	)
-	genDb, blocks, _, err := GenerateChainWithGenesis(gspec, dummy.NewFaker(), 128, 10, func(i int, block *BlockGen) {
+	genDb, blocks, _, err := GenerateChainWithGenesis(gspec, dummy.NewFakerWithCallbacks(TestCallbacks), 128, 10, func(i int, block *BlockGen) {
 		tx, err := types.SignTx(types.NewTransaction(block.TxNonce(addr1), addr2, big.NewInt(10000), params.TxGas, nil, nil), signer, key1)
 		require.NoError(err)
 		block.AddTx(tx)
 	})
 	require.NoError(err)
 
-	blocks2, _, err := GenerateChain(gspec.Config, blocks[len(blocks)-1], dummy.NewFaker(), genDb, 10, 10, func(i int, block *BlockGen) {
+	blocks2, _, err := GenerateChain(gspec.Config, blocks[len(blocks)-1], dummy.NewFakerWithCallbacks(TestCallbacks), genDb, 10, 10, func(i int, block *BlockGen) {
 		tx, err := types.SignTx(types.NewTransaction(block.TxNonce(addr1), addr2, big.NewInt(10000), params.TxGas, nil, nil), signer, key1)
 		require.NoError(err)
 		block.AddTx(tx)
@@ -610,7 +606,7 @@ func TestTransactionIndices(t *testing.T) {
 	}
 	for i, l := range limits {
 		t.Run(fmt.Sprintf("test-%d, limit: %d", i+1, l), func(t *testing.T) {
-			conf.TransactionHistory = l
+			conf.TxLookupLimit = l
 
 			chain, err := createBlockChain(chainDB, conf, gspec, lastAcceptedBlock.Hash())
 			require.NoError(err)
@@ -664,14 +660,14 @@ func TestTransactionSkipIndexing(t *testing.T) {
 		}
 		signer = types.LatestSigner(gspec.Config)
 	)
-	genDb, blocks, _, err := GenerateChainWithGenesis(gspec, dummy.NewCoinbaseFaker(), 5, 10, func(i int, block *BlockGen) {
+	genDb, blocks, _, err := GenerateChainWithGenesis(gspec, dummy.NewFakerWithCallbacks(TestCallbacks), 5, 10, func(i int, block *BlockGen) {
 		tx, err := types.SignTx(types.NewTransaction(block.TxNonce(addr1), addr2, big.NewInt(10000), params.TxGas, nil, nil), signer, key1)
 		require.NoError(err)
 		block.AddTx(tx)
 	})
 	require.NoError(err)
 
-	blocks2, _, err := GenerateChain(gspec.Config, blocks[len(blocks)-1], dummy.NewCoinbaseFaker(), genDb, 5, 10, func(i int, block *BlockGen) {
+	blocks2, _, err := GenerateChain(gspec.Config, blocks[len(blocks)-1], dummy.NewFakerWithCallbacks(TestCallbacks), genDb, 5, 10, func(i int, block *BlockGen) {
 		tx, err := types.SignTx(types.NewTransaction(block.TxNonce(addr1), addr2, big.NewInt(10000), params.TxGas, nil, nil), signer, key1)
 		require.NoError(err)
 		block.AddTx(tx)
@@ -702,19 +698,19 @@ func TestTransactionSkipIndexing(t *testing.T) {
 	chain.Stop()
 
 	// test2: specify lookuplimit with tx index skipping enabled. Blocks should not be indexed but tail should be updated.
-	conf.TransactionHistory = 2
+	conf.TxLookupLimit = 2
 	chainDB = rawdb.NewMemoryDatabase()
 	chain, err = createAndInsertChain(chainDB, conf, gspec, blocks, common.Hash{},
 		func(b *types.Block) {
 			bNumber := b.NumberU64()
-			tail := bNumber - conf.TransactionHistory + 1
+			tail := bNumber - conf.TxLookupLimit + 1
 			checkTxIndicesHelper(t, &tail, bNumber+1, bNumber+1, bNumber, chainDB, false) // check all indices has been skipped
 		})
 	require.NoError(err)
 	chain.Stop()
 
 	// test3: tx index skipping and unindexer disabled. Blocks should be indexed and tail should be updated.
-	conf.TransactionHistory = 0
+	conf.TxLookupLimit = 0
 	conf.SkipTxIndexing = false
 	chainDB = rawdb.NewMemoryDatabase()
 	chain, err = createAndInsertChain(chainDB, conf, gspec, blocks, common.Hash{},
@@ -727,12 +723,12 @@ func TestTransactionSkipIndexing(t *testing.T) {
 
 	// now change tx index skipping to true and check that the indices are skipped for the last block
 	// and old indices are removed up to the tail, but [tail, current) indices are still there.
-	conf.TransactionHistory = 2
+	conf.TxLookupLimit = 2
 	conf.SkipTxIndexing = true
 	chain, err = createAndInsertChain(chainDB, conf, gspec, blocks2[0:1], chain.CurrentHeader().Hash(),
 		func(b *types.Block) {
 			bNumber := b.NumberU64()
-			tail := bNumber - conf.TransactionHistory + 1
+			tail := bNumber - conf.TxLookupLimit + 1
 			checkTxIndicesHelper(t, &tail, tail, bNumber-1, bNumber, chainDB, false)
 		})
 	require.NoError(err)
@@ -786,7 +782,7 @@ func testCanonicalHashMarker(t *testing.T, scheme string) {
 			gspec = &Genesis{
 				Config:  params.TestChainConfig,
 				Alloc:   GenesisAlloc{},
-				BaseFee: big.NewInt(params.TestInitialBaseFee),
+				BaseFee: big.NewInt(params.ApricotPhase3InitialBaseFee),
 			}
 			engine = dummy.NewCoinbaseFaker()
 		)
@@ -866,7 +862,7 @@ func TestTxLookupBlockChain(t *testing.T) {
 		SnapshotLimit:             256,
 		SnapshotNoBuild:           true, // Ensure the test errors if snapshot initialization fails
 		AcceptorQueueLimit:        64,   // ensure channel doesn't block
-		TransactionHistory:        5,
+		TxLookupLimit:             5,
 	}
 	createTxLookupBlockChain := func(db ethdb.Database, gspec *Genesis, lastAcceptedHash common.Hash) (*BlockChain, error) {
 		return createBlockChain(db, cacheConf, gspec, lastAcceptedHash)
@@ -889,7 +885,7 @@ func TestTxLookupSkipIndexingBlockChain(t *testing.T) {
 		SnapshotLimit:             256,
 		SnapshotNoBuild:           true, // Ensure the test errors if snapshot initialization fails
 		AcceptorQueueLimit:        64,   // ensure channel doesn't block
-		TransactionHistory:        5,
+		TxLookupLimit:             5,
 		SkipTxIndexing:            true,
 	}
 	createTxLookupBlockChain := func(db ethdb.Database, gspec *Genesis, lastAcceptedHash common.Hash) (*BlockChain, error) {
@@ -905,7 +901,7 @@ func TestTxLookupSkipIndexingBlockChain(t *testing.T) {
 func TestCreateThenDeletePreByzantium(t *testing.T) {
 	// We want to use pre-byzantium rules where we have intermediate state roots
 	// between transactions.
-	config := *params.TestPreSubnetEVMChainConfig
+	config := *params.TestLaunchConfig
 	config.ByzantiumBlock = nil
 	config.ConstantinopleBlock = nil
 	config.PetersburgBlock = nil
@@ -1216,8 +1212,7 @@ func TestEIP3651(t *testing.T) {
 		addr2   = crypto.PubkeyToAddress(key2.PublicKey)
 		funds   = new(big.Int).Mul(common.Big1, big.NewInt(params.Ether))
 		gspec   = &Genesis{
-			Config:    params.TestChainConfig,
-			Timestamp: uint64(upgrade.InitiallyActiveTime.Unix()),
+			Config: params.TestChainConfig,
 			Alloc: GenesisAlloc{
 				addr1: {Balance: funds},
 				addr2: {Balance: funds},

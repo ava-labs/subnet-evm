@@ -39,7 +39,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/consensus"
 	"github.com/ava-labs/subnet-evm/consensus/misc/eip4844"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
@@ -84,14 +83,12 @@ var (
 	blockValidationTimer        = metrics.NewRegisteredCounter("chain/block/validations/state", nil)
 	blockWriteTimer             = metrics.NewRegisteredCounter("chain/block/writes", nil)
 
-	acceptorQueueGauge            = metrics.NewRegisteredGauge("chain/acceptor/queue/size", nil)
-	acceptorWorkTimer             = metrics.NewRegisteredCounter("chain/acceptor/work", nil)
-	acceptorWorkCount             = metrics.NewRegisteredCounter("chain/acceptor/work/count", nil)
-	lastAcceptedBlockBaseFeeGauge = metrics.NewRegisteredGauge("chain/block/fee/basefee", nil)
-	blockTotalFeesGauge           = metrics.NewRegisteredGauge("chain/block/fee/total", nil)
-	processedBlockGasUsedCounter  = metrics.NewRegisteredCounter("chain/block/gas/used/processed", nil)
-	acceptedBlockGasUsedCounter   = metrics.NewRegisteredCounter("chain/block/gas/used/accepted", nil)
-	badBlockCounter               = metrics.NewRegisteredCounter("chain/block/bad/count", nil)
+	acceptorQueueGauge           = metrics.NewRegisteredGauge("chain/acceptor/queue/size", nil)
+	acceptorWorkTimer            = metrics.NewRegisteredCounter("chain/acceptor/work", nil)
+	acceptorWorkCount            = metrics.NewRegisteredCounter("chain/acceptor/work/count", nil)
+	processedBlockGasUsedCounter = metrics.NewRegisteredCounter("chain/block/gas/used/processed", nil)
+	acceptedBlockGasUsedCounter  = metrics.NewRegisteredCounter("chain/block/gas/used/accepted", nil)
+	badBlockCounter              = metrics.NewRegisteredCounter("chain/block/bad/count", nil)
 
 	txUnindexTimer      = metrics.NewRegisteredCounter("chain/txs/unindex", nil)
 	acceptedTxsCounter  = metrics.NewRegisteredCounter("chain/txs/accepted", nil)
@@ -109,13 +106,11 @@ var (
 )
 
 const (
-	bodyCacheLimit           = 256
-	blockCacheLimit          = 256
-	receiptsCacheLimit       = 32
-	txLookupCacheLimit       = 1024
-	feeConfigCacheLimit      = 256
-	coinbaseConfigCacheLimit = 256
-	badBlockLimit            = 10
+	bodyCacheLimit     = 256
+	blockCacheLimit    = 256
+	receiptsCacheLimit = 32
+	txLookupCacheLimit = 1024
+	badBlockLimit      = 10
 
 	// BlockChainVersion ensures that an incompatible database forces a resync from scratch.
 	//
@@ -151,20 +146,6 @@ const (
 	trieCleanCacheStatsNamespace = "hashdb/memcache/clean/fastcache"
 )
 
-// cacheableFeeConfig encapsulates fee configuration itself and the block number that it has changed at,
-// in order to cache them together.
-type cacheableFeeConfig struct {
-	feeConfig     commontype.FeeConfig
-	lastChangedAt *big.Int
-}
-
-// cacheableCoinbaseConfig encapsulates coinbase address itself and allowFeeRecipient flag,
-// in order to cache them together.
-type cacheableCoinbaseConfig struct {
-	coinbaseAddress    common.Address
-	allowFeeRecipients bool
-}
-
 // CacheConfig contains the configuration values for the trie database
 // and state snapshot these are resident in a blockchain.
 type CacheConfig struct {
@@ -183,7 +164,7 @@ type CacheConfig struct {
 	SnapshotVerify                  bool    // Verify generated snapshots
 	Preimages                       bool    // Whether to store preimage of trie key to the disk
 	AcceptedCacheSize               int     // Depth of accepted headers cache and accepted logs cache at the accepted tip
-	TransactionHistory              uint64  // Number of recent blocks for which to maintain transaction lookup indices
+	TxLookupLimit                   uint64  // Number of recent blocks for which to maintain transaction lookup indices
 	SkipTxIndexing                  bool    // Whether to skip transaction indexing
 	StateHistory                    uint64  // Number of blocks from head whose state histories are reserved.
 	StateScheme                     string  // Scheme used to store ethereum states and merkle tree nodes on top
@@ -277,13 +258,11 @@ type BlockChain struct {
 
 	currentBlock atomic.Pointer[types.Header] // Current head of the block chain
 
-	bodyCache           *lru.Cache[common.Hash, *types.Body]                // Cache for the most recent block bodies
-	receiptsCache       *lru.Cache[common.Hash, []*types.Receipt]           // Cache for the most recent receipts per block
-	blockCache          *lru.Cache[common.Hash, *types.Block]               // Cache for the most recent entire blocks
-	txLookupCache       *lru.Cache[common.Hash, *rawdb.LegacyTxLookupEntry] // Cache for the most recent transaction lookup data.
-	badBlocks           *lru.Cache[common.Hash, *badBlock]                  // Cache for bad blocks
-	feeConfigCache      *lru.Cache[common.Hash, *cacheableFeeConfig]        // Cache for the most recent feeConfig lookup data.
-	coinbaseConfigCache *lru.Cache[common.Hash, *cacheableCoinbaseConfig]   // Cache for the most recent coinbaseConfig lookup data.
+	bodyCache     *lru.Cache[common.Hash, *types.Body]                // Cache for the most recent block bodies
+	receiptsCache *lru.Cache[common.Hash, []*types.Receipt]           // Cache for the most recent receipts per block
+	blockCache    *lru.Cache[common.Hash, *types.Block]               // Cache for the most recent entire blocks
+	txLookupCache *lru.Cache[common.Hash, *rawdb.LegacyTxLookupEntry] // Cache for the most recent transaction lookup data.
+	badBlocks     *lru.Cache[common.Hash, *badBlock]                  // Cache for bad blocks
 
 	stopping atomic.Bool // false if chain is running, true when stopped
 
@@ -372,23 +351,21 @@ func NewBlockChain(
 	log.Info("")
 
 	bc := &BlockChain{
-		chainConfig:         chainConfig,
-		cacheConfig:         cacheConfig,
-		db:                  db,
-		triedb:              triedb,
-		bodyCache:           lru.NewCache[common.Hash, *types.Body](bodyCacheLimit),
-		receiptsCache:       lru.NewCache[common.Hash, []*types.Receipt](receiptsCacheLimit),
-		blockCache:          lru.NewCache[common.Hash, *types.Block](blockCacheLimit),
-		txLookupCache:       lru.NewCache[common.Hash, *rawdb.LegacyTxLookupEntry](txLookupCacheLimit),
-		badBlocks:           lru.NewCache[common.Hash, *badBlock](badBlockLimit),
-		feeConfigCache:      lru.NewCache[common.Hash, *cacheableFeeConfig](feeConfigCacheLimit),
-		coinbaseConfigCache: lru.NewCache[common.Hash, *cacheableCoinbaseConfig](coinbaseConfigCacheLimit),
-		engine:              engine,
-		vmConfig:            vmConfig,
-		senderCacher:        NewTxSenderCacher(runtime.NumCPU()),
-		acceptorQueue:       make(chan *types.Block, cacheConfig.AcceptorQueueLimit),
-		quit:                make(chan struct{}),
-		acceptedLogsCache:   NewFIFOCache[common.Hash, [][]*types.Log](cacheConfig.AcceptedCacheSize),
+		chainConfig:       chainConfig,
+		cacheConfig:       cacheConfig,
+		db:                db,
+		triedb:            triedb,
+		bodyCache:         lru.NewCache[common.Hash, *types.Body](bodyCacheLimit),
+		receiptsCache:     lru.NewCache[common.Hash, []*types.Receipt](receiptsCacheLimit),
+		blockCache:        lru.NewCache[common.Hash, *types.Block](blockCacheLimit),
+		txLookupCache:     lru.NewCache[common.Hash, *rawdb.LegacyTxLookupEntry](txLookupCacheLimit),
+		badBlocks:         lru.NewCache[common.Hash, *badBlock](badBlockLimit),
+		engine:            engine,
+		vmConfig:          vmConfig,
+		senderCacher:      NewTxSenderCacher(runtime.NumCPU()),
+		acceptorQueue:     make(chan *types.Block, cacheConfig.AcceptorQueueLimit),
+		quit:              make(chan struct{}),
+		acceptedLogsCache: NewFIFOCache[common.Hash, [][]*types.Log](cacheConfig.AcceptedCacheSize),
 	}
 	bc.stateCache = state.NewDatabaseWithNodeDB(bc.db, bc.triedb)
 	bc.validator = NewBlockValidator(chainConfig, bc, engine)
@@ -448,7 +425,7 @@ func NewBlockChain(
 	bc.warmAcceptedCaches()
 
 	// if txlookup limit is 0 (uindexing disabled), we don't need to repair the tx index tail.
-	if bc.cacheConfig.TransactionHistory != 0 {
+	if bc.cacheConfig.TxLookupLimit != 0 {
 		latestStateSynced := rawdb.GetLatestSyncPerformed(bc.db)
 		bc.setTxIndexTail(latestStateSynced)
 	}
@@ -457,7 +434,7 @@ func NewBlockChain(
 	go bc.startAcceptor()
 
 	// Start tx indexer/unindexer if required.
-	if bc.cacheConfig.TransactionHistory != 0 {
+	if bc.cacheConfig.TxLookupLimit != 0 {
 		bc.wg.Add(1)
 		var (
 			headCh = make(chan ChainEvent, 1) // Buffered to avoid locking up the event feed
@@ -480,7 +457,7 @@ func NewBlockChain(
 // unindexBlocks unindexes transactions depending on user configuration
 func (bc *BlockChain) unindexBlocks(tail uint64, head uint64, done chan struct{}) {
 	start := time.Now()
-	txLookupLimit := bc.cacheConfig.TransactionHistory
+	txLookupLimit := bc.cacheConfig.TxLookupLimit
 	bc.txIndexTailLock.Lock()
 	defer func() {
 		txUnindexTimer.Inc(time.Since(start).Milliseconds())
@@ -506,7 +483,7 @@ func (bc *BlockChain) unindexBlocks(tail uint64, head uint64, done chan struct{}
 // Invariant: If TxLookupLimit is 0, it means all tx indices will be preserved.
 // Meaning that this function should never be called.
 func (bc *BlockChain) maintainTxIndex(headCh <-chan ChainEvent) {
-	txLookupLimit := bc.cacheConfig.TransactionHistory
+	txLookupLimit := bc.cacheConfig.TxLookupLimit
 
 	// If the user just upgraded to a new version which supports transaction
 	// index pruning, write the new tail and remove anything older.
@@ -952,7 +929,7 @@ func (bc *BlockChain) ValidateCanonicalChain() error {
 		// that the transactions have been indexed, if we are checking below the last accepted
 		// block.
 		shouldIndexTxs := !bc.cacheConfig.SkipTxIndexing &&
-			(bc.cacheConfig.TransactionHistory == 0 || bc.lastAccepted.NumberU64() < current.Number.Uint64()+bc.cacheConfig.TransactionHistory)
+			(bc.cacheConfig.TxLookupLimit == 0 || bc.lastAccepted.NumberU64() < current.Number.Uint64()+bc.cacheConfig.TxLookupLimit)
 		if current.Number.Uint64() <= bc.lastAccepted.NumberU64() && shouldIndexTxs {
 			// Ensure that all of the transactions have been stored correctly in the canonical
 			// chain
@@ -1163,45 +1140,7 @@ func (bc *BlockChain) Accept(block *types.Block) error {
 	bc.addAcceptorQueue(block)
 	acceptedBlockGasUsedCounter.Inc(int64(block.GasUsed()))
 	acceptedTxsCounter.Inc(int64(len(block.Transactions())))
-	if baseFee := block.BaseFee(); baseFee != nil {
-		lastAcceptedBlockBaseFeeGauge.Update(baseFee.Int64())
-	}
-	total, err := TotalFees(block, bc.GetReceiptsByHash(block.Hash()))
-	if err != nil {
-		log.Error(fmt.Sprintf("TotalFees error: %s", err))
-	} else {
-		blockTotalFeesGauge.Update(total.Int64())
-	}
 	return nil
-}
-
-// TotalFees computes total consumed fees in wei. Block transactions and receipts have to have the same order.
-func TotalFees(block *types.Block, receipts []*types.Receipt) (*big.Int, error) {
-	baseFee := block.BaseFee()
-	feesWei := new(big.Int)
-	if len(block.Transactions()) != len(receipts) {
-		return nil, errors.New("mismatch between total number of transactions and receipts")
-	}
-	for i, tx := range block.Transactions() {
-		var minerFee *big.Int
-		if baseFee == nil {
-			// legacy block, no baseFee
-			minerFee = tx.GasPrice()
-		} else {
-			minerFee = new(big.Int).Add(baseFee, tx.EffectiveGasTipValue(baseFee))
-		}
-		feesWei.Add(feesWei, new(big.Int).Mul(new(big.Int).SetUint64(receipts[i].GasUsed), minerFee))
-	}
-	return feesWei, nil
-}
-
-// TotalFees computes total consumed fees in ether. Block transactions and receipts have to have the same order.
-func TotalFeesFloat(block *types.Block, receipts []*types.Receipt) (*big.Float, error) {
-	total, err := TotalFees(block, receipts)
-	if err != nil {
-		return nil, err
-	}
-	return new(big.Float).Quo(new(big.Float).SetInt(total), new(big.Float).SetInt(big.NewInt(params.Ether))), nil
 }
 
 func (bc *BlockChain) Reject(block *types.Block) error {
@@ -2221,7 +2160,7 @@ func (bc *BlockChain) ResetToStateSyncedBlock(block *types.Block) error {
 	}
 
 	// if txlookup limit is 0 (uindexing disabled), we don't need to repair the tx index tail.
-	if bc.cacheConfig.TransactionHistory != 0 {
+	if bc.cacheConfig.TxLookupLimit != 0 {
 		bc.setTxIndexTail(block.NumberU64())
 	}
 

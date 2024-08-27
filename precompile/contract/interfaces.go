@@ -28,6 +28,7 @@ type StateDB interface {
 
 	GetBalance(common.Address) *big.Int
 	AddBalance(common.Address, *big.Int)
+	GetBalanceMultiCoin(common.Address, common.Hash) *big.Int
 
 	CreateAccount(common.Address)
 	Exist(common.Address) bool
@@ -49,6 +50,7 @@ type AccessibleState interface {
 	GetBlockContext() BlockContext
 	GetSnowContext() *snow.Context
 	GetChainConfig() precompileconfig.ChainConfig
+	NativeAssetCall(caller common.Address, input []byte, suppliedGas uint64, gasCost uint64, readOnly bool) (ret []byte, remainingGas uint64, err error)
 }
 
 // ConfigurationBlockContext defines the interface required to configure a precompile.

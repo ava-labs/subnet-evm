@@ -42,7 +42,7 @@ const (
 	defaultPushRegossipNumPeers                   = 0
 	defaultPushGossipFrequency                    = 100 * time.Millisecond
 	defaultPullGossipFrequency                    = 1 * time.Second
-	defaultRegossipFrequency                      = 30 * time.Second
+	defaultTxRegossipFrequency                    = 30 * time.Second
 	defaultOfflinePruningBloomFilterSize   uint64 = 512 // Default size (MB) for the offline pruner to use
 	defaultLogLevel                               = "info"
 	defaultLogJSONFormat                          = false
@@ -83,14 +83,13 @@ type Duration struct {
 
 // Config ...
 type Config struct {
-	// Airdrop
-	AirdropFile string `json:"airdrop"`
-
-	// Subnet EVM APIs
-	SnowmanAPIEnabled bool   `json:"snowman-api-enabled"`
-	AdminAPIEnabled   bool   `json:"admin-api-enabled"`
-	AdminAPIDir       string `json:"admin-api-dir"`
-	WarpAPIEnabled    bool   `json:"warp-api-enabled"`
+	// Coreth APIs
+	SnowmanAPIEnabled     bool   `json:"snowman-api-enabled"`
+	AdminAPIEnabled       bool   `json:"admin-api-enabled"`
+	AdminAPIDir           string `json:"admin-api-dir"`
+	CorethAdminAPIEnabled bool   `json:"coreth-admin-api-enabled"` // Deprecated: use AdminAPIEnabled instead
+	CorethAdminAPIDir     string `json:"coreth-admin-api-dir"`     // Deprecated: use AdminAPIDir instead
+	WarpAPIEnabled        bool   `json:"warp-api-enabled"`
 
 	// EnabledEthAPIs is a list of Ethereum services that should be enabled
 	// If none is specified, then we use the default list [defaultEnabledAPIs]
@@ -154,22 +153,19 @@ type Config struct {
 	KeystoreInsecureUnlockAllowed bool   `json:"keystore-insecure-unlock-allowed"`
 
 	// Gossip Settings
-	PushGossipPercentStake    float64          `json:"push-gossip-percent-stake"`
-	PushGossipNumValidators   int              `json:"push-gossip-num-validators"`
-	PushGossipNumPeers        int              `json:"push-gossip-num-peers"`
-	PushRegossipNumValidators int              `json:"push-regossip-num-validators"`
-	PushRegossipNumPeers      int              `json:"push-regossip-num-peers"`
-	PushGossipFrequency       Duration         `json:"push-gossip-frequency"`
-	PullGossipFrequency       Duration         `json:"pull-gossip-frequency"`
-	RegossipFrequency         Duration         `json:"regossip-frequency"`
-	PriorityRegossipAddresses []common.Address `json:"priority-regossip-addresses"`
+	PushGossipPercentStake    float64  `json:"push-gossip-percent-stake"`
+	PushGossipNumValidators   int      `json:"push-gossip-num-validators"`
+	PushGossipNumPeers        int      `json:"push-gossip-num-peers"`
+	PushRegossipNumValidators int      `json:"push-regossip-num-validators"`
+	PushRegossipNumPeers      int      `json:"push-regossip-num-peers"`
+	PushGossipFrequency       Duration `json:"push-gossip-frequency"`
+	PullGossipFrequency       Duration `json:"pull-gossip-frequency"`
+	RegossipFrequency         Duration `json:"regossip-frequency"`
+	TxRegossipFrequency       Duration `json:"tx-regossip-frequency"` // Deprecated: use RegossipFrequency instead
 
 	// Log
 	LogLevel      string `json:"log-level"`
 	LogJSONFormat bool   `json:"log-json-format"`
-
-	// Address for Tx Fees (must be empty if not supported by blockchain)
-	FeeRecipient string `json:"feeRecipient"`
 
 	// Offline Pruning Settings
 	OfflinePruning                bool   `json:"offline-pruning-enabled"`
@@ -180,7 +176,7 @@ type Config struct {
 	MaxOutboundActiveRequests int64 `json:"max-outbound-active-requests"`
 
 	// Sync settings
-	StateSyncEnabled         bool   `json:"state-sync-enabled"`
+	StateSyncEnabled         *bool  `json:"state-sync-enabled"`     // Pointer distinguishes false (no state sync) and not set (state sync only at genesis).
 	StateSyncSkipResume      bool   `json:"state-sync-skip-resume"` // Forces state sync to use the highest available summary block
 	StateSyncServerTrieCache int    `json:"state-sync-server-trie-cache"`
 	StateSyncIDs             string `json:"state-sync-ids"`
@@ -269,7 +265,7 @@ func (c *Config) SetDefaults() {
 	c.PushRegossipNumPeers = defaultPushRegossipNumPeers
 	c.PushGossipFrequency.Duration = defaultPushGossipFrequency
 	c.PullGossipFrequency.Duration = defaultPullGossipFrequency
-	c.RegossipFrequency.Duration = defaultRegossipFrequency
+	c.RegossipFrequency.Duration = defaultTxRegossipFrequency
 	c.OfflinePruningBloomFilterSize = defaultOfflinePruningBloomFilterSize
 	c.LogLevel = defaultLogLevel
 	c.LogJSONFormat = defaultLogJSONFormat
@@ -328,6 +324,18 @@ func (c *Config) Validate() error {
 func (c *Config) Deprecate() string {
 	msg := ""
 	// Deprecate the old config options and set the new ones.
+	if c.CorethAdminAPIEnabled {
+		msg += "coreth-admin-api-enabled is deprecated, use admin-api-enabled instead. "
+		c.AdminAPIEnabled = c.CorethAdminAPIEnabled
+	}
+	if c.CorethAdminAPIDir != "" {
+		msg += "coreth-admin-api-dir is deprecated, use admin-api-dir instead. "
+		c.AdminAPIDir = c.CorethAdminAPIDir
+	}
+	if c.TxRegossipFrequency != (Duration{}) {
+		msg += "tx-regossip-frequency is deprecated, use regossip-frequency instead. "
+		c.RegossipFrequency = c.TxRegossipFrequency
+	}
 	if c.TxLookupLimit != 0 {
 		msg += "tx-lookup-limit is deprecated, use transaction-history instead. "
 		c.TransactionHistory = c.TxLookupLimit

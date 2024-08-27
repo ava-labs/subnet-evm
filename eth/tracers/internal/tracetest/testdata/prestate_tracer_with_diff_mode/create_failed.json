@@ -56,7 +56,9 @@
       "arrowGlacierBlock": 13773000,
       "grayGlacierBlock": 15050000,
       "terminalTotalDifficultyPassed": true,
-      "subnetEVMTimestamp": 0
+      "apricotPhase1BlockTimestamp": 0,
+      "apricotPhase2BlockTimestamp": 0,
+      "apricotPhase3BlockTimestamp": 0
     }
   },
   "context": {

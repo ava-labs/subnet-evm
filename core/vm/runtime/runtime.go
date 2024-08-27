@@ -69,6 +69,8 @@ func setDefaults(cfg *Config) {
 		cfg.ChainConfig = &params.ChainConfig{
 			ChainID:             big.NewInt(1),
 			HomesteadBlock:      new(big.Int),
+			DAOForkBlock:        new(big.Int),
+			DAOForkSupport:      false,
 			EIP150Block:         new(big.Int),
 			EIP155Block:         new(big.Int),
 			EIP158Block:         new(big.Int),
@@ -78,7 +80,10 @@ func setDefaults(cfg *Config) {
 			IstanbulBlock:       new(big.Int),
 			MuirGlacierBlock:    new(big.Int),
 			NetworkUpgrades: params.NetworkUpgrades{
-				SubnetEVMTimestamp: new(uint64),
+				ApricotPhase1BlockTimestamp: new(uint64),
+				ApricotPhase2BlockTimestamp: new(uint64),
+				ApricotPhase3BlockTimestamp: new(uint64),
+				ApricotPhase4BlockTimestamp: new(uint64),
 			},
 		}
 	}
@@ -104,7 +109,7 @@ func setDefaults(cfg *Config) {
 		}
 	}
 	if cfg.BaseFee == nil {
-		cfg.BaseFee = new(big.Int).Set(params.DefaultFeeConfig.MinBaseFee)
+		cfg.BaseFee = big.NewInt(params.ApricotPhase3InitialBaseFee)
 	}
 	if cfg.BlobBaseFee == nil {
 		cfg.BlobBaseFee = big.NewInt(params.BlobTxMinBlobGasprice)
@@ -132,7 +137,7 @@ func Execute(code, input []byte, cfg *Config) ([]byte, *state.StateDB, error) {
 		rules   = cfg.ChainConfig.Rules(vmenv.Context.BlockNumber, vmenv.Context.Time)
 	)
 	// Execute the preparatory steps for state transition which includes:
-	// - prepare accessList(post-berlin)
+	// - prepare accessList(post-berlin/ApricotPhase2)
 	// - reset transient storage(eip 1153)
 	cfg.State.Prepare(rules, cfg.Origin, cfg.Coinbase, &address, vm.ActivePrecompiles(rules), nil)
 
@@ -166,7 +171,7 @@ func Create(input []byte, cfg *Config) ([]byte, common.Address, uint64, error) {
 		rules  = cfg.ChainConfig.Rules(vmenv.Context.BlockNumber, vmenv.Context.Time)
 	)
 	// Execute the preparatory steps for state transition which includes:
-	// - prepare accessList(post-berlin)
+	// - prepare accessList(post-berlin/ApricotPhase2)
 	// - reset transient storage(eip 1153)
 	cfg.State.Prepare(rules, cfg.Origin, cfg.Coinbase, nil, vm.ActivePrecompiles(rules), nil)
 
@@ -195,7 +200,7 @@ func Call(address common.Address, input []byte, cfg *Config) ([]byte, uint64, er
 		rules   = cfg.ChainConfig.Rules(vmenv.Context.BlockNumber, vmenv.Context.Time)
 	)
 	// Execute the preparatory steps for state transition which includes:
-	// - prepare accessList(post-berlin)
+	// - prepare accessList(post-berlin/ApricotPhase2)
 	// - reset transient storage(eip 1153)
 	statedb.Prepare(rules, cfg.Origin, cfg.Coinbase, &address, vm.ActivePrecompiles(rules), nil)
 

@@ -90,6 +90,7 @@ type TxPool struct {
 	quit chan chan error         // Quit channel to tear down the head updater
 
 	gasTip    atomic.Pointer[big.Int] // Remember last value set so it can be retrieved
+	minFee    atomic.Pointer[big.Int] // Remember last value set so it can be retrieved (in tests)
 	reorgFeed event.Feed
 }
 
@@ -114,7 +115,6 @@ func New(gasTip *big.Int, chain BlockChain, subpools []SubPool) (*TxPool, error)
 			return nil, err
 		}
 	}
-	pool.gasTip.Store(gasTip)
 
 	// Subscribe to chain head events to trigger subpool resets
 	var (
@@ -271,9 +271,16 @@ func (p *TxPool) SetGasTip(tip *big.Int) {
 	}
 }
 
+// MinFee returns the current minimum fee enforced by the transaction pool.
+func (p *TxPool) MinFee() *big.Int {
+	return new(big.Int).Set(p.minFee.Load())
+}
+
 // SetMinFee updates the minimum fee required by the transaction pool for a
 // new transaction, and drops all transactions below this threshold.
 func (p *TxPool) SetMinFee(fee *big.Int) {
+	p.minFee.Store(new(big.Int).Set(fee))
+
 	for _, subpool := range p.subpools {
 		subpool.SetMinFee(fee)
 	}

@@ -38,12 +38,12 @@ type Block struct {
 }
 
 // newBlock returns a new Block wrapping the ethBlock type and implementing the snowman.Block interface
-func (vm *VM) newBlock(ethBlock *types.Block) *Block {
+func (vm *VM) newBlock(ethBlock *types.Block) (*Block, error) {
 	return &Block{
 		id:       ids.ID(ethBlock.Hash()),
 		ethBlock: ethBlock,
 		vm:       vm,
-	}
+	}, nil
 }
 
 // ID implements the snowman.Block interface

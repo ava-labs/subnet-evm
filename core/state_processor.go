@@ -38,7 +38,6 @@ import (
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/precompile/modules"
-	"github.com/ava-labs/subnet-evm/stateupgrade"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
@@ -252,20 +251,6 @@ func ApplyPrecompileActivations(c *params.ChainConfig, parentTimestamp *uint64, 
 	return nil
 }
 
-// applyStateUpgrades checks if any of the state upgrades specified by the chain config are activated by the block
-// transition from [parentTimestamp] to the timestamp set in [header]. If this is the case, it calls [Configure]
-// to apply the necessary state transitions for the upgrade.
-func applyStateUpgrades(c *params.ChainConfig, parentTimestamp *uint64, blockContext contract.ConfigurationBlockContext, statedb *state.StateDB) error {
-	// Apply state upgrades
-	for _, upgrade := range c.GetActivatingStateUpgrades(parentTimestamp, blockContext.Timestamp(), c.StateUpgrades) {
-		log.Info("Applying state upgrade", "blockNumber", blockContext.Number(), "upgrade", upgrade)
-		if err := stateupgrade.Configure(&upgrade, c, statedb, blockContext); err != nil {
-			return fmt.Errorf("could not configure state upgrade: %w", err)
-		}
-	}
-	return nil
-}
-
 // ApplyUpgrades checks if any of the precompile or state upgrades specified by the chain config are activated by the block
 // transition from [parentTimestamp] to the timestamp set in [header]. If this is the case, it calls [Configure]
 // to apply the necessary state transitions for the upgrade.
@@ -273,8 +258,5 @@ func applyStateUpgrades(c *params.ChainConfig, parentTimestamp *uint64, blockCon
 // - in block processing to update the state when processing a block.
 // - in the miner to apply the state upgrades when producing a block.
 func ApplyUpgrades(c *params.ChainConfig, parentTimestamp *uint64, blockContext contract.ConfigurationBlockContext, statedb *state.StateDB) error {
-	if err := ApplyPrecompileActivations(c, parentTimestamp, blockContext, statedb); err != nil {
-		return err
-	}
-	return applyStateUpgrades(c, parentTimestamp, blockContext, statedb)
+	return ApplyPrecompileActivations(c, parentTimestamp, blockContext, statedb)
 }

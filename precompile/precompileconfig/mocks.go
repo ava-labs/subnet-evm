@@ -12,7 +12,6 @@ package precompileconfig
 import (
 	reflect "reflect"
 
-	commontype "github.com/ava-labs/subnet-evm/commontype"
 	common "github.com/ethereum/go-ethereum/common"
 	gomock "go.uber.org/mock/gomock"
 )
@@ -183,34 +182,6 @@ func NewMockChainConfig(ctrl *gomock.Controller) *MockChainConfig {
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockChainConfig) EXPECT() *MockChainConfigMockRecorder {
 	return m.recorder
-}
-
-// AllowedFeeRecipients mocks base method.
-func (m *MockChainConfig) AllowedFeeRecipients() bool {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AllowedFeeRecipients")
-	ret0, _ := ret[0].(bool)
-	return ret0
-}
-
-// AllowedFeeRecipients indicates an expected call of AllowedFeeRecipients.
-func (mr *MockChainConfigMockRecorder) AllowedFeeRecipients() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AllowedFeeRecipients", reflect.TypeOf((*MockChainConfig)(nil).AllowedFeeRecipients))
-}
-
-// GetFeeConfig mocks base method.
-func (m *MockChainConfig) GetFeeConfig() commontype.FeeConfig {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetFeeConfig")
-	ret0, _ := ret[0].(commontype.FeeConfig)
-	return ret0
-}
-
-// GetFeeConfig indicates an expected call of GetFeeConfig.
-func (mr *MockChainConfigMockRecorder) GetFeeConfig() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFeeConfig", reflect.TypeOf((*MockChainConfig)(nil).GetFeeConfig))
 }
 
 // IsDurango mocks base method.

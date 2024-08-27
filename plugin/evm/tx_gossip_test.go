@@ -22,6 +22,7 @@ import (
 	"github.com/ava-labs/avalanchego/snow/validators"
 	"github.com/ava-labs/avalanchego/snow/validators/validatorstest"
 	agoUtils "github.com/ava-labs/avalanchego/utils"
+	"github.com/ava-labs/avalanchego/utils/crypto/secp256k1"
 	"github.com/ava-labs/avalanchego/utils/logging"
 	"github.com/ava-labs/avalanchego/utils/set"
 	"github.com/prometheus/client_golang/prometheus"
@@ -30,6 +31,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/ava-labs/subnet-evm/core/types"
+	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/utils"
 )
 
@@ -39,6 +41,13 @@ func TestEthTxGossip(t *testing.T) {
 	snowCtx := utils.TestSnowContext()
 	validatorState := &validatorstest.State{}
 	snowCtx.ValidatorState = validatorState
+
+	pk, err := secp256k1.NewPrivateKey()
+	require.NoError(err)
+	address := GetEthAddress(pk)
+	genesis := newPrefundedGenesis(100_000_000_000_000_000, address)
+	genesisBytes, err := genesis.MarshalJSON()
+	require.NoError(err)
 
 	responseSender := &enginetest.SenderStub{
 		SentAppResponse: make(chan []byte, 1),
@@ -51,7 +60,7 @@ func TestEthTxGossip(t *testing.T) {
 		ctx,
 		snowCtx,
 		memdb.New(),
-		[]byte(genesisJSONLatest),
+		genesisBytes,
 		nil,
 		nil,
 		make(chan common.Message),
@@ -71,7 +80,7 @@ func TestEthTxGossip(t *testing.T) {
 
 	network, err := p2p.NewNetwork(logging.NoLog{}, peerSender, prometheus.NewRegistry(), "")
 	require.NoError(err)
-	client := network.NewClient(p2p.TxGossipHandlerID)
+	client := network.NewClient(ethTxGossipProtocol)
 
 	// we only accept gossip requests from validators
 	requestingNodeID := ids.GenerateTestNodeID()
@@ -116,10 +125,8 @@ func TestEthTxGossip(t *testing.T) {
 	wg.Wait()
 
 	// Issue a tx to the VM
-	address := testEthAddrs[0]
-	key := testKeys[0]
-	tx := types.NewTransaction(0, address, big.NewInt(10), 21000, big.NewInt(testMinGasPrice), nil)
-	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), key)
+	tx := types.NewTransaction(0, address, big.NewInt(10), 100_000, big.NewInt(params.LaunchMinGasPrice), nil)
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainID), pk.ToECDSA())
 	require.NoError(err)
 
 	errs := vm.txPool.Add([]*types.Transaction{signedTx}, true, true)
@@ -151,6 +158,7 @@ func TestEthTxGossip(t *testing.T) {
 	wg.Wait()
 }
 
+// Tests that a tx is gossiped when it is issued
 func TestEthTxPushGossipOutbound(t *testing.T) {
 	require := require.New(t)
 	ctx := context.Background()
@@ -171,11 +179,18 @@ func TestEthTxPushGossipOutbound(t *testing.T) {
 		ethTxPullGossiper: gossip.NoOpGossiper{},
 	}
 
+	pk, err := secp256k1.NewPrivateKey()
+	require.NoError(err)
+	address := GetEthAddress(pk)
+	genesis := newPrefundedGenesis(100_000_000_000_000_000, address)
+	genesisBytes, err := genesis.MarshalJSON()
+	require.NoError(err)
+
 	require.NoError(vm.Initialize(
 		ctx,
 		snowCtx,
 		memdb.New(),
-		[]byte(genesisJSONLatest),
+		genesisBytes,
 		nil,
 		nil,
 		make(chan common.Message),
@@ -188,10 +203,8 @@ func TestEthTxPushGossipOutbound(t *testing.T) {
 		require.NoError(vm.Shutdown(ctx))
 	}()
 
-	address := testEthAddrs[0]
-	key := testKeys[0]
-	tx := types.NewTransaction(0, address, big.NewInt(10), 21000, big.NewInt(testMinGasPrice), nil)
-	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), key)
+	tx := types.NewTransaction(0, address, big.NewInt(10), 100_000, big.NewInt(params.LaunchMinGasPrice), nil)
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainID), pk.ToECDSA())
 	require.NoError(err)
 
 	// issue a tx
@@ -203,7 +216,7 @@ func TestEthTxPushGossipOutbound(t *testing.T) {
 
 	// we should get a message that has the protocol prefix and the gossip
 	// message
-	require.Equal(byte(p2p.TxGossipHandlerID), sent[0])
+	require.Equal(byte(ethTxGossipProtocol), sent[0])
 	require.NoError(proto.Unmarshal(sent[1:], got))
 
 	marshaller := GossipEthTxMarshaller{}
@@ -224,11 +237,18 @@ func TestEthTxPushGossipInbound(t *testing.T) {
 		ethTxPullGossiper: gossip.NoOpGossiper{},
 	}
 
+	pk, err := secp256k1.NewPrivateKey()
+	require.NoError(err)
+	address := GetEthAddress(pk)
+	genesis := newPrefundedGenesis(100_000_000_000_000_000, address)
+	genesisBytes, err := genesis.MarshalJSON()
+	require.NoError(err)
+
 	require.NoError(vm.Initialize(
 		ctx,
 		snowCtx,
 		memdb.New(),
-		[]byte(genesisJSONLatest),
+		genesisBytes,
 		nil,
 		nil,
 		make(chan common.Message),
@@ -241,10 +261,8 @@ func TestEthTxPushGossipInbound(t *testing.T) {
 		require.NoError(vm.Shutdown(ctx))
 	}()
 
-	address := testEthAddrs[0]
-	key := testKeys[0]
-	tx := types.NewTransaction(0, address, big.NewInt(10), 21000, big.NewInt(testMinGasPrice), nil)
-	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), key)
+	tx := types.NewTransaction(0, address, big.NewInt(10), 100_000, big.NewInt(params.LaunchMinGasPrice), nil)
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainID), pk.ToECDSA())
 	require.NoError(err)
 
 	marshaller := GossipEthTxMarshaller{}
@@ -261,7 +279,7 @@ func TestEthTxPushGossipInbound(t *testing.T) {
 	inboundGossipBytes, err := proto.Marshal(inboundGossip)
 	require.NoError(err)
 
-	inboundGossipMsg := append(binary.AppendUvarint(nil, p2p.TxGossipHandlerID), inboundGossipBytes...)
+	inboundGossipMsg := append(binary.AppendUvarint(nil, ethTxGossipProtocol), inboundGossipBytes...)
 	require.NoError(vm.AppGossip(ctx, ids.EmptyNodeID, inboundGossipMsg))
 
 	require.True(vm.txPool.Has(signedTx.Hash()))

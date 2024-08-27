@@ -36,7 +36,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/state"
@@ -44,7 +43,6 @@ import (
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/metrics"
 	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/precompile/contracts/feemanager"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/prque"
@@ -77,7 +75,7 @@ var (
 var (
 	evictionInterval      = time.Minute      // Time interval to check for evictable transactions
 	statsReportInterval   = 8 * time.Second  // Time interval to report transaction pool stats
-	baseFeeUpdateInterval = 10 * time.Second // Time interval at which to schedule a base fee update for the tx pool after SubnetEVM is enabled
+	baseFeeUpdateInterval = 10 * time.Second // Time interval at which to schedule a base fee update for the tx pool after ApricotPhase3 is enabled
 )
 
 var (
@@ -134,7 +132,6 @@ type BlockChain interface {
 	StateAt(root common.Hash) (*state.StateDB, error)
 
 	SenderCacher() *core.TxSenderCacher
-	GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig, *big.Int, error)
 }
 
 // Config are the configuration parameters of the transaction pool.
@@ -1359,7 +1356,7 @@ func (pool *LegacyPool) runReorg(done chan struct{}, reset *txpoolResetRequest, 
 	if reset != nil {
 		pool.demoteUnexecutables()
 		if reset.newHead != nil {
-			if pool.chainconfig.IsSubnetEVM(reset.newHead.Time) {
+			if pool.chainconfig.IsApricotPhase3(reset.newHead.Time) {
 				if err := pool.updateBaseFeeAt(reset.newHead); err != nil {
 					log.Error("error at updating base fee in tx pool", "error", err)
 				}
@@ -1494,17 +1491,6 @@ func (pool *LegacyPool) reset(oldHead, newHead *types.Header) {
 	pool.currentState = statedb
 	pool.currentStateLock.Unlock()
 	pool.pendingNonces = newNoncer(statedb)
-
-	// when we reset txPool we should explicitly check if fee struct for min base fee has changed
-	// so that we can correctly drop txs with < minBaseFee from tx pool.
-	if pool.chainconfig.IsPrecompileEnabled(feemanager.ContractAddress, newHead.Time) {
-		feeConfig, _, err := pool.chain.GetFeeConfigAt(newHead)
-		if err != nil {
-			log.Error("Failed to get fee config state", "err", err, "root", newHead.Root)
-			return
-		}
-		pool.minimumFee = feeConfig.MinBaseFee
-	}
 
 	// Inject any transactions discarded due to reorgs
 	log.Debug("Reinjecting stale transactions", "count", len(reinject))
@@ -1783,13 +1769,13 @@ func (pool *LegacyPool) demoteUnexecutables() {
 }
 
 func (pool *LegacyPool) startPeriodicFeeUpdate() {
-	if pool.chainconfig.SubnetEVMTimestamp == nil {
+	if pool.chainconfig.ApricotPhase3BlockTimestamp == nil {
 		return
 	}
 
 	// Call updateBaseFee here to ensure that there is not a [baseFeeUpdateInterval] delay
-	// when starting up in Subnet EVM before the base fee is updated.
-	if time.Now().After(utils.Uint64ToTime(pool.chainconfig.SubnetEVMTimestamp)) {
+	// when starting up in ApricotPhase3 before the base fee is updated.
+	if time.Now().After(utils.Uint64ToTime(pool.chainconfig.ApricotPhase3BlockTimestamp)) {
 		pool.updateBaseFee()
 	}
 
@@ -1802,7 +1788,7 @@ func (pool *LegacyPool) periodicBaseFeeUpdate() {
 
 	// Sleep until its time to start the periodic base fee update or the tx pool is shutting down
 	select {
-	case <-time.After(time.Until(utils.Uint64ToTime(pool.chainconfig.SubnetEVMTimestamp))):
+	case <-time.After(time.Until(utils.Uint64ToTime(pool.chainconfig.ApricotPhase3BlockTimestamp))):
 	case <-pool.generalShutdownChan:
 		return // Return early if shutting down
 	}
@@ -1831,11 +1817,7 @@ func (pool *LegacyPool) updateBaseFee() {
 
 // assumes lock is already held
 func (pool *LegacyPool) updateBaseFeeAt(head *types.Header) error {
-	feeConfig, _, err := pool.chain.GetFeeConfigAt(head)
-	if err != nil {
-		return err
-	}
-	_, baseFeeEstimate, err := dummy.EstimateNextBaseFee(pool.chainconfig, feeConfig, head, uint64(time.Now().Unix()))
+	_, baseFeeEstimate, err := dummy.EstimateNextBaseFee(pool.chainconfig, head, uint64(time.Now().Unix()))
 	if err != nil {
 		return err
 	}

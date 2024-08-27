@@ -42,6 +42,10 @@ type StateDB interface {
 	AddBalance(common.Address, *big.Int)
 	GetBalance(common.Address) *big.Int
 
+	SubBalanceMultiCoin(common.Address, common.Hash, *big.Int)
+	AddBalanceMultiCoin(common.Address, common.Hash, *big.Int)
+	GetBalanceMultiCoin(common.Address, common.Hash) *big.Int
+
 	GetNonce(common.Address) uint64
 	SetNonce(common.Address, uint64)
 
@@ -55,6 +59,7 @@ type StateDB interface {
 	GetRefund() uint64
 
 	GetCommittedState(common.Address, common.Hash) common.Hash
+	GetCommittedStateAP1(common.Address, common.Hash) common.Hash
 	GetState(common.Address, common.Hash) common.Hash
 	SetState(common.Address, common.Hash, common.Hash)
 

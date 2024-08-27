@@ -127,6 +127,7 @@ func roundUpCacheSize(input int, allocSize int) int {
 func New(
 	stack *node.Node,
 	config *Config,
+	cb dummy.ConsensusCallbacks,
 	gossiper PushGossiper,
 	chainDb ethdb.Database,
 	settings Settings,
@@ -176,7 +177,7 @@ func New(
 		chainDb:           chainDb,
 		eventMux:          new(event.TypeMux),
 		accountManager:    stack.AccountManager(),
-		engine:            dummy.NewFakerWithClock(clock),
+		engine:            dummy.NewFakerWithClock(cb, clock),
 		closeBloomHandler: make(chan struct{}),
 		networkID:         networkID,
 		etherbase:         config.Miner.Etherbase,
@@ -194,7 +195,7 @@ func New(
 
 	if !config.SkipBcVersionCheck {
 		if bcVersion != nil && *bcVersion > core.BlockChainVersion {
-			return nil, fmt.Errorf("database version is v%d, Subnet-EVM %s only supports v%d", *bcVersion, params.VersionWithMeta, core.BlockChainVersion)
+			return nil, fmt.Errorf("database version is v%d, Coreth %s only supports v%d", *bcVersion, params.VersionWithMeta, core.BlockChainVersion)
 		} else if bcVersion == nil || *bcVersion < core.BlockChainVersion {
 			log.Warn("Upgrade blockchain database version", "from", dbVer, "to", core.BlockChainVersion)
 			rawdb.WriteDatabaseVersion(chainDb, core.BlockChainVersion)
@@ -222,7 +223,7 @@ func New(
 			SnapshotNoBuild:                 config.SkipSnapshotRebuild,
 			Preimages:                       config.Preimages,
 			AcceptedCacheSize:               config.AcceptedCacheSize,
-			TransactionHistory:              config.TransactionHistory,
+			TxLookupLimit:                   config.TxLookupLimit,
 			SkipTxIndexing:                  config.SkipTxIndexing,
 			StateHistory:                    config.StateHistory,
 			StateScheme:                     scheme,
@@ -237,16 +238,13 @@ func New(
 		return nil, err
 	}
 
-	// Free airdrop data to save memory usage
-	defer func() {
-		config.Genesis.AirdropData = nil
-	}()
-
 	if err := eth.handleOfflinePruning(cacheConfig, config.Genesis, vmConfig, lastAcceptedHash); err != nil {
 		return nil, err
 	}
 
 	eth.bloomIndexer.Start(eth.blockchain)
+
+	// Uncomment the following to enable the new blobpool
 
 	// config.BlobPool.Datadir = ""
 	// blobPool := blobpool.New(config.BlobPool, &chainWithFinalBlock{eth.blockchain})
@@ -276,7 +274,6 @@ func New(
 		log.Info("Unprotected transactions allowed")
 	}
 	gpoParams := config.GPO
-	gpoParams.MinPrice = new(big.Int).SetUint64(config.TxPool.PriceLimit)
 	eth.APIBackend.gpo, err = gasprice.NewOracle(eth.APIBackend, gpoParams)
 	if err != nil {
 		return nil, err

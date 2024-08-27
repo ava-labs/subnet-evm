@@ -23,6 +23,7 @@ import (
 	"github.com/ava-labs/avalanchego/snow/engine/enginetest"
 	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
 	"github.com/ava-labs/avalanchego/utils/set"
+	"github.com/ava-labs/avalanchego/utils/units"
 
 	"github.com/ava-labs/subnet-evm/accounts/keystore"
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
@@ -273,10 +274,15 @@ func TestVMShutdownWhileSyncing(t *testing.T) {
 
 func createSyncServerAndClientVMs(t *testing.T, test syncTest, numBlocks int) *syncVMSetup {
 	var (
-		require = require.New(t)
+		require      = require.New(t)
+		importAmount = 2000000 * units.Avax // 2M avax
+		alloc        = map[ids.ShortID]uint64{
+			testShortIDAddrs[0]: importAmount,
+		}
 	)
-	// configure [serverVM]
-	_, serverVM, _, serverAppSender := GenesisVM(t, true, genesisJSONLatest, "", "")
+	_, serverVM, _, _, serverAppSender := GenesisVMWithUTXOs(
+		t, true, "", "", "", alloc,
+	)
 	t.Cleanup(func() {
 		log.Info("Shutting down server VM")
 		require.NoError(serverVM.Shutdown(context.Background()))
@@ -289,7 +295,7 @@ func createSyncServerAndClientVMs(t *testing.T, test syncTest, numBlocks int) *s
 		gen.AppendExtra(b)
 
 		tx := types.NewTransaction(gen.TxNonce(testEthAddrs[0]), testEthAddrs[1], common.Big1, params.TxGas, big.NewInt(testMinGasPrice), nil)
-		signedTx, err := types.SignTx(tx, types.NewEIP155Signer(serverVM.chainConfig.ChainID), testKeys[0])
+		signedTx, err := types.SignTx(tx, types.NewEIP155Signer(serverVM.chainConfig.ChainID), testKeys[0].ToECDSA())
 		require.NoError(err)
 		gen.AddTx(signedTx)
 	}, nil)
@@ -314,7 +320,9 @@ func createSyncServerAndClientVMs(t *testing.T, test syncTest, numBlocks int) *s
 
 	// initialise [syncerVM] with blank genesis state
 	stateSyncEnabledJSON := fmt.Sprintf(`{"state-sync-enabled":true, "state-sync-min-blocks": %d, "tx-lookup-limit": %d}`, test.stateSyncMinBlocks, 4)
-	syncerEngineChan, syncerVM, syncerDB, syncerAppSender := GenesisVM(t, false, genesisJSONLatest, stateSyncEnabledJSON, "")
+	syncerEngineChan, syncerVM, syncerDB, _, syncerAppSender := GenesisVMWithUTXOs(
+		t, false, "", stateSyncEnabledJSON, "", alloc,
+	)
 	shutdownOnceSyncerVM := &shutdownOnceVM{VM: syncerVM}
 	t.Cleanup(func() {
 		require.NoError(shutdownOnceSyncerVM.Shutdown(context.Background()))
@@ -454,7 +462,7 @@ func testSyncerVM(t *testing.T, vmSetup *syncVMSetup, test syncTest) {
 	}
 
 	// tail should be the last block synced
-	if syncerVM.ethConfig.TransactionHistory != 0 {
+	if syncerVM.ethConfig.TxLookupLimit != 0 {
 		tail := lastSyncedBlock.NumberU64()
 
 		core.CheckTxIndices(t, &tail, tail, syncerVM.chaindb, true)
@@ -471,7 +479,7 @@ func testSyncerVM(t *testing.T, vmSetup *syncVMSetup, test syncTest) {
 		gen.AppendExtra(b)
 		i := 0
 		for k := range fundedAccounts {
-			tx := types.NewTransaction(gen.TxNonce(k.Address), toAddress, big.NewInt(1), 21000, big.NewInt(testMinGasPrice), nil)
+			tx := types.NewTransaction(gen.TxNonce(k.Address), toAddress, big.NewInt(1), 21000, initialBaseFee, nil)
 			signedTx, err := types.SignTx(tx, types.NewEIP155Signer(serverVM.chainConfig.ChainID), k.PrivateKey)
 			require.NoError(err)
 			gen.AddTx(signedTx)
@@ -482,8 +490,8 @@ func testSyncerVM(t *testing.T, vmSetup *syncVMSetup, test syncTest) {
 		}
 	},
 		func(block *types.Block) {
-			if syncerVM.ethConfig.TransactionHistory != 0 {
-				tail := block.NumberU64() - syncerVM.ethConfig.TransactionHistory + 1
+			if syncerVM.ethConfig.TxLookupLimit != 0 {
+				tail := block.NumberU64() - syncerVM.ethConfig.TxLookupLimit + 1
 				// tail should be the minimum last synced block, since we skipped it to the last block
 				if tail < lastSyncedBlock.NumberU64() {
 					tail = lastSyncedBlock.NumberU64()
@@ -500,11 +508,13 @@ func testSyncerVM(t *testing.T, vmSetup *syncVMSetup, test syncTest) {
 	// Generate blocks after we have entered normal consensus as well
 	generateAndAcceptBlocks(t, syncerVM, blocksToBuild, func(_ int, gen *core.BlockGen) {
 		b, err := predicate.NewResults().Bytes()
-		require.NoError(err)
+		if err != nil {
+			t.Fatal(err)
+		}
 		gen.AppendExtra(b)
 		i := 0
 		for k := range fundedAccounts {
-			tx := types.NewTransaction(gen.TxNonce(k.Address), toAddress, big.NewInt(1), 21000, big.NewInt(testMinGasPrice), nil)
+			tx := types.NewTransaction(gen.TxNonce(k.Address), toAddress, big.NewInt(1), 21000, initialBaseFee, nil)
 			signedTx, err := types.SignTx(tx, types.NewEIP155Signer(serverVM.chainConfig.ChainID), k.PrivateKey)
 			require.NoError(err)
 			gen.AddTx(signedTx)
@@ -515,8 +525,8 @@ func testSyncerVM(t *testing.T, vmSetup *syncVMSetup, test syncTest) {
 		}
 	},
 		func(block *types.Block) {
-			if syncerVM.ethConfig.TransactionHistory != 0 {
-				tail := block.NumberU64() - syncerVM.ethConfig.TransactionHistory + 1
+			if syncerVM.ethConfig.TxLookupLimit != 0 {
+				tail := block.NumberU64() - syncerVM.ethConfig.TxLookupLimit + 1
 				// tail should be the minimum last synced block, since we skipped it to the last block
 				if tail < lastSyncedBlock.NumberU64() {
 					tail = lastSyncedBlock.NumberU64()
@@ -536,8 +546,8 @@ func patchBlock(blk *types.Block, root common.Hash, db ethdb.Database) *types.Bl
 	header := blk.Header()
 	header.Root = root
 	receipts := rawdb.ReadRawReceipts(db, blk.Hash(), blk.NumberU64())
-	newBlk := types.NewBlock(
-		header, blk.Transactions(), blk.Uncles(), receipts, trie.NewStackTrie(nil),
+	newBlk := types.NewBlockWithExtData(
+		header, blk.Transactions(), blk.Uncles(), receipts, trie.NewStackTrie(nil), blk.ExtData(), true,
 	)
 	rawdb.WriteBlock(db, newBlk)
 	rawdb.WriteCanonicalHash(db, newBlk.Hash(), newBlk.NumberU64())
@@ -575,7 +585,7 @@ func generateAndAcceptBlocks(t *testing.T, vm *VM, numBlocks int, gen func(int, 
 	_, _, err := core.GenerateChain(
 		vm.chainConfig,
 		vm.blockChain.LastAcceptedBlock(),
-		dummy.NewETHFaker(),
+		dummy.NewFakerWithCallbacks(vm.createConsensusCallbacks()),
 		vm.chaindb,
 		numBlocks,
 		10,

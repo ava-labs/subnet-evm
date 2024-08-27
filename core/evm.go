@@ -97,17 +97,19 @@ func newEVMBlockContext(header *types.Header, chain ChainContext, author *common
 		blobBaseFee = eip4844.CalcBlobFee(*header.ExcessBlobGas)
 	}
 	return vm.BlockContext{
-		CanTransfer:      CanTransfer,
-		Transfer:         Transfer,
-		GetHash:          GetHashFn(header, chain),
-		PredicateResults: predicateResults,
-		Coinbase:         beneficiary,
-		BlockNumber:      new(big.Int).Set(header.Number),
-		Time:             header.Time,
-		Difficulty:       new(big.Int).Set(header.Difficulty),
-		BaseFee:          baseFee,
-		BlobBaseFee:      blobBaseFee,
-		GasLimit:         header.GasLimit,
+		CanTransfer:       CanTransfer,
+		CanTransferMC:     CanTransferMC,
+		Transfer:          Transfer,
+		TransferMultiCoin: TransferMultiCoin,
+		GetHash:           GetHashFn(header, chain),
+		PredicateResults:  predicateResults,
+		Coinbase:          beneficiary,
+		BlockNumber:       new(big.Int).Set(header.Number),
+		Time:              header.Time,
+		Difficulty:        new(big.Int).Set(header.Difficulty),
+		BaseFee:           baseFee,
+		BlobBaseFee:       blobBaseFee,
+		GasLimit:          header.GasLimit,
 	}
 }
 
@@ -169,8 +171,18 @@ func CanTransfer(db vm.StateDB, addr common.Address, amount *big.Int) bool {
 	return db.GetBalance(addr).Cmp(amount) >= 0
 }
 
+func CanTransferMC(db vm.StateDB, addr common.Address, to common.Address, coinID common.Hash, amount *big.Int) bool {
+	return db.GetBalanceMultiCoin(addr, coinID).Cmp(amount) >= 0
+}
+
 // Transfer subtracts amount from sender and adds amount to recipient using the given Db
 func Transfer(db vm.StateDB, sender, recipient common.Address, amount *big.Int) {
 	db.SubBalance(sender, amount)
 	db.AddBalance(recipient, amount)
+}
+
+// Transfer subtracts amount from sender and adds amount to recipient using the given Db
+func TransferMultiCoin(db vm.StateDB, sender, recipient common.Address, coinID common.Hash, amount *big.Int) {
+	db.SubBalanceMultiCoin(sender, coinID, amount)
+	db.AddBalanceMultiCoin(recipient, coinID, amount)
 }

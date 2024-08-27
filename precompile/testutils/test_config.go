@@ -6,7 +6,6 @@ package testutils
 import (
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -36,8 +35,6 @@ func RunVerifyTests(t *testing.T, tests map[string]ConfigVerifyTest) {
 			if chainConfig == nil {
 				ctrl := gomock.NewController(t)
 				mockChainConfig := precompileconfig.NewMockChainConfig(ctrl)
-				mockChainConfig.EXPECT().GetFeeConfig().AnyTimes().Return(commontype.ValidTestFeeConfig)
-				mockChainConfig.EXPECT().AllowedFeeRecipients().AnyTimes().Return(false)
 				mockChainConfig.EXPECT().IsDurango(gomock.Any()).AnyTimes().Return(true)
 				chainConfig = mockChainConfig
 			}

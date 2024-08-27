@@ -10,7 +10,7 @@ import (
 	"math/big"
 
 	"github.com/ava-labs/avalanchego/snow"
-	"github.com/ava-labs/subnet-evm/commontype"
+	"github.com/ava-labs/avalanchego/upgrade"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -18,45 +18,12 @@ import (
 const (
 	maxJSONLen = 64 * 1024 * 1024 // 64MB
 
-	// Consensus Params
-	RollupWindow            uint64 = 10
-	DynamicFeeExtraDataSize        = 80
-
-	// For legacy tests
-	MinGasPrice        int64 = 225_000_000_000
-	TestInitialBaseFee int64 = 225_000_000_000
-	TestMaxBaseFee     int64 = 225_000_000_000
-)
-
-var (
-	errNonGenesisForkByHeight = errors.New("subnet-evm only supports forking by height at the genesis block")
-
-	DefaultChainID = big.NewInt(43214)
-
-	DefaultFeeConfig = commontype.FeeConfig{
-		GasLimit:        big.NewInt(8_000_000),
-		TargetBlockRate: 2, // in seconds
-
-		MinBaseFee:               big.NewInt(25_000_000_000),
-		TargetGas:                big.NewInt(15_000_000),
-		BaseFeeChangeDenominator: big.NewInt(36),
-
-		MinBlockGasCost:  big.NewInt(0),
-		MaxBlockGasCost:  big.NewInt(1_000_000),
-		BlockGasCostStep: big.NewInt(200_000),
-	}
 )
 
 // UpgradeConfig includes the following configs that may be specified in upgradeBytes:
 // - Timestamps that enable avalanche network upgrades,
 // - Enabling or disabling precompiles as network upgrades.
 type UpgradeConfig struct {
-	// Config for timestamps that enable network upgrades.
-	NetworkUpgradeOverrides *NetworkUpgrades `json:"networkUpgradeOverrides,omitempty"`
-
-	// Config for modifying state as a network upgrade.
-	StateUpgrades []StateUpgrade `json:"stateUpgrades,omitempty"`
-
 	// Config for enabling and disabling precompiles as network upgrades.
 	PrecompileUpgrades []PrecompileUpgrade `json:"precompileUpgrades,omitempty"`
 }
@@ -66,10 +33,15 @@ type AvalancheContext struct {
 	SnowCtx *snow.Context
 }
 
-// SetEthUpgrades sets the mapped upgrades  Avalanche > EVM upgrades) for the chain config.
-func (c *ChainConfig) SetEthUpgrades(avalancheUpgrades NetworkUpgrades) {
-	if avalancheUpgrades.EtnaTimestamp != nil {
-		c.CancunTime = utils.NewUint64(*avalancheUpgrades.EtnaTimestamp)
+// SetEthUpgrades enables Etheruem network upgrades using the same time as
+// the Avalanche network upgrade that enables them.
+//
+// TODO: Prior to Cancun, Avalanche upgrades are referenced inline in the
+// code in place of their Ethereum counterparts. The original Ethereum names
+// should be restored for maintainability.
+func (c *ChainConfig) SetEthUpgrades() {
+	if c.EtnaTimestamp != nil {
+		c.CancunTime = utils.NewUint64(*c.EtnaTimestamp)
 	}
 }
 
@@ -89,8 +61,7 @@ func (c *ChainConfig) UnmarshalJSON(data []byte) error {
 	// At this point we have populated all fields except PrecompileUpgrade
 	*c = ChainConfig(tmp)
 
-	// Unmarshal inlined PrecompileUpgrade
-	return json.Unmarshal(data, &c.GenesisPrecompiles)
+	return nil
 }
 
 // MarshalJSON returns the JSON encoding of c.
@@ -98,27 +69,7 @@ func (c *ChainConfig) UnmarshalJSON(data []byte) error {
 func (c ChainConfig) MarshalJSON() ([]byte, error) {
 	// Alias ChainConfig to avoid recursion
 	type _ChainConfig ChainConfig
-	tmp, err := json.Marshal(_ChainConfig(c))
-	if err != nil {
-		return nil, err
-	}
-
-	// To include PrecompileUpgrades, we unmarshal the json representing c
-	// then directly add the corresponding keys to the json.
-	raw := make(map[string]json.RawMessage)
-	if err := json.Unmarshal(tmp, &raw); err != nil {
-		return nil, err
-	}
-
-	for key, value := range c.GenesisPrecompiles {
-		conf, err := json.Marshal(value)
-		if err != nil {
-			return nil, err
-		}
-		raw[key] = conf
-	}
-
-	return json.Marshal(raw)
+	return json.Marshal(_ChainConfig(c))
 }
 
 type ChainConfigWithUpgradesJSON struct {
@@ -182,23 +133,9 @@ func (cu *ChainConfigWithUpgradesJSON) UnmarshalJSON(input []byte) error {
 
 // Verify verifies chain config and returns error
 func (c *ChainConfig) Verify() error {
-	if err := c.FeeConfig.Verify(); err != nil {
-		return err
-	}
-
 	// Verify the precompile upgrades are internally consistent given the existing chainConfig.
 	if err := c.verifyPrecompileUpgrades(); err != nil {
 		return fmt.Errorf("invalid precompile upgrades: %w", err)
-	}
-
-	// Verify the state upgrades are internally consistent given the existing chainConfig.
-	if err := c.verifyStateUpgrades(); err != nil {
-		return fmt.Errorf("invalid state upgrades: %w", err)
-	}
-
-	// Verify the network upgrades are internally consistent given the existing chainConfig.
-	if err := c.verifyNetworkUpgrades(c.SnowCtx.NetworkUpgrades); err != nil {
-		return fmt.Errorf("invalid network upgrades: %w", err)
 	}
 
 	return nil
@@ -208,18 +145,6 @@ func (c *ChainConfig) Verify() error {
 func (c *ChainConfig) IsPrecompileEnabled(address common.Address, timestamp uint64) bool {
 	config := c.getActivePrecompileConfig(address, timestamp)
 	return config != nil && !config.IsDisabled()
-}
-
-// GetFeeConfig returns the original FeeConfig contained in the genesis ChainConfig.
-// Implements precompile.ChainConfig interface.
-func (c *ChainConfig) GetFeeConfig() commontype.FeeConfig {
-	return c.FeeConfig
-}
-
-// AllowedFeeRecipients returns the original AllowedFeeRecipients parameter contained in the genesis ChainConfig.
-// Implements precompile.ChainConfig interface.
-func (c *ChainConfig) AllowedFeeRecipients() bool {
-	return c.AllowFeeRecipients
 }
 
 // ToWithUpgradesJSON converts the ChainConfig to ChainConfigWithUpgradesJSON with upgrades explicitly displayed.
@@ -232,36 +157,22 @@ func (c *ChainConfig) ToWithUpgradesJSON() *ChainConfigWithUpgradesJSON {
 	}
 }
 
-func (c *ChainConfig) SetNetworkUpgradeDefaults() {
-	if c.HomesteadBlock == nil {
-		c.HomesteadBlock = big.NewInt(0)
+func GetChainConfig(agoUpgrade upgrade.Config, chainID *big.Int) *ChainConfig {
+	return &ChainConfig{
+		ChainID:             chainID,
+		HomesteadBlock:      big.NewInt(0),
+		DAOForkBlock:        big.NewInt(0),
+		DAOForkSupport:      true,
+		EIP150Block:         big.NewInt(0),
+		EIP155Block:         big.NewInt(0),
+		EIP158Block:         big.NewInt(0),
+		ByzantiumBlock:      big.NewInt(0),
+		ConstantinopleBlock: big.NewInt(0),
+		PetersburgBlock:     big.NewInt(0),
+		IstanbulBlock:       big.NewInt(0),
+		MuirGlacierBlock:    big.NewInt(0),
+		NetworkUpgrades:     getNetworkUpgrades(agoUpgrade),
 	}
-	if c.EIP150Block == nil {
-		c.EIP150Block = big.NewInt(0)
-	}
-	if c.EIP155Block == nil {
-		c.EIP155Block = big.NewInt(0)
-	}
-	if c.EIP158Block == nil {
-		c.EIP158Block = big.NewInt(0)
-	}
-	if c.ByzantiumBlock == nil {
-		c.ByzantiumBlock = big.NewInt(0)
-	}
-	if c.ConstantinopleBlock == nil {
-		c.ConstantinopleBlock = big.NewInt(0)
-	}
-	if c.PetersburgBlock == nil {
-		c.PetersburgBlock = big.NewInt(0)
-	}
-	if c.IstanbulBlock == nil {
-		c.IstanbulBlock = big.NewInt(0)
-	}
-	if c.MuirGlacierBlock == nil {
-		c.MuirGlacierBlock = big.NewInt(0)
-	}
-
-	c.NetworkUpgrades.setDefaults(c.SnowCtx.NetworkUpgrades)
 }
 
 func (r *Rules) PredicatersExist() bool {

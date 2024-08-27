@@ -681,7 +681,7 @@ func (b *SimulatedBackend) callContract(ctx context.Context, call interfaces.Cal
 	if call.GasPrice != nil && (call.GasFeeCap != nil || call.GasTipCap != nil) {
 		return nil, errors.New("both gasPrice and (maxFeePerGas or maxPriorityFeePerGas) specified")
 	}
-	if !b.blockchain.Config().IsSubnetEVM(header.Time) {
+	if !b.blockchain.Config().IsApricotPhase3(header.Time) {
 		// If there's no basefee, then it must be a non-1559 execution
 		if call.GasPrice == nil {
 			call.GasPrice = new(big.Int)

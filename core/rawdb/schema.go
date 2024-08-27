@@ -101,9 +101,8 @@ var (
 	trieNodeStoragePrefix = []byte("O") // trieNodeStoragePrefix + accountHash + hexPath -> trie node
 	stateIDPrefix         = []byte("L") // stateIDPrefix + state root -> state id
 
-	PreimagePrefix      = []byte("secure-key-")      // PreimagePrefix + hash -> preimage
-	configPrefix        = []byte("ethereum-config-") // config prefix for the db
-	upgradeConfigPrefix = []byte("upgrade-config-")  // upgrade bytes passed to the chain are stored with this prefix
+	PreimagePrefix = []byte("secure-key-")      // PreimagePrefix + hash -> preimage
+	configPrefix   = []byte("ethereum-config-") // config prefix for the db
 
 	// BloomBitsIndexPrefix is the data table of a chain indexer to track its progress
 	BloomBitsIndexPrefix = []byte("iB")
@@ -228,11 +227,6 @@ func IsCodeKey(key []byte) (bool, []byte) {
 // configKey = configPrefix + hash
 func configKey(hash common.Hash) []byte {
 	return append(configPrefix, hash.Bytes()...)
-}
-
-// upgradeConfigKey = upgradeConfigPrefix + hash
-func upgradeConfigKey(hash common.Hash) []byte {
-	return append(upgradeConfigPrefix, hash.Bytes()...)
 }
 
 // stateIDKey = stateIDPrefix + root (32 bytes)
