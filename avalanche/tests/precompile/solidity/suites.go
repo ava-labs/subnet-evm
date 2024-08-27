@@ -33,7 +33,7 @@ func RegisterAsyncTests() {
 		utils.RegisterPingTest()
 
 		// Each ginkgo It node specifies the name of the genesis file (in ./tests/precompile/genesis/)
-		// to use to launch the subnet and the name of the TS test file to run on the subnet (in ./contracts/tests/)
+		// to use to launch the subnet and the name of the TS test file to run on the subnet (in ./avalanche/contracts/tests/)
 		ginkgo.It("contract native minter", ginkgo.Label("Precompile"), ginkgo.Label("ContractNativeMinter"), func() {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 			defer cancel()
@@ -81,7 +81,7 @@ func RegisterAsyncTests() {
 				defer cancel()
 
 				// Specify the name shared by the genesis file in ./tests/precompile/genesis/{your_precompile}.json
-				// and the test file in ./contracts/tests/{your_precompile}.ts
+				// and the test file in ./avalanche/contracts/tests/{your_precompile}.ts
 				// If you want to use a different test command and genesis path than the defaults, you can
 				// use the utils.RunTestCMD. See utils.RunDefaultHardhatTests for an example.
 				subnetsSuite.RunHardhatTests(ctx, "your_precompile")
@@ -92,11 +92,11 @@ func RegisterAsyncTests() {
 
 //	Default parameters are:
 //
-// 1. Hardhat contract environment is located at ./contracts
-// 2. Hardhat test file is located at ./contracts/test/<test>.ts
-// 3. npx is available in the ./contracts directory
+// 1. Hardhat contract environment is located at ./avalanche/contracts
+// 2. Hardhat test file is located at ./avalanche/contracts/test/<test>.ts
+// 3. npx is available in the ./avalanche/contracts directory
 func runDefaultHardhatTests(ctx context.Context, blockchainID, testName string) {
-	cmdPath := "./contracts"
+	cmdPath := "./avalanche/contracts"
 	// test path is relative to the cmd path
 	testPath := fmt.Sprintf("./test/%s.ts", testName)
 	utils.RunHardhatTests(ctx, blockchainID, cmdPath, testPath)
