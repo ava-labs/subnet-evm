@@ -25,13 +25,16 @@ if [[ -n "${NO_RACE:-}" ]]; then
     race=""
 fi
 
+# TODO: consider moving scripts to the avalanche directory
+cd "$SUBNET_EVM_PATH/avalanche" 
+
 # MAX_RUNS bounds the attempts to retry the tests before giving up
 # This is useful for flaky tests
 MAX_RUNS=4
 for ((i = 1; i <= MAX_RUNS; i++));
 do
     # shellcheck disable=SC2046
-    go test -shuffle=on ${race:-} -timeout="${TIMEOUT:-600s}" -coverprofile=coverage.out -covermode=atomic "$@" $(go list ./... | grep -v github.com/ava-labs/subnet-evm/tests) | tee test.out || command_status=$?
+    go test -shuffle=on ${race:-} -timeout="${TIMEOUT:-600s}" -coverprofile=coverage.out -covermode=atomic "$@" $(go list github.com/ava-labs/subnet-evm/... | grep -v github.com/ava-labs/subnet-evm/avalanche/tests) | tee test.out || command_status=$?
 
     # If the test passed, exit
     if [[ ${command_status:-0} == 0 ]]; then
