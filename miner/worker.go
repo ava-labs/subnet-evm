@@ -234,7 +234,9 @@ func (w *worker) commitNewWork(predicateContext *precompileconfig.PredicateConte
 	}
 
 	// Retrieve the pending transactions pre-filtered by the 1559/4844 dynamic fees
-	filter := txpool.PendingFilter{EnforceTips: true}
+	filter := txpool.PendingFilter{
+		MinTip: uint256.MustFromBig(w.eth.TxPool().GasTip()),
+	}
 	if env.header.BaseFee != nil {
 		filter.BaseFee = uint256.MustFromBig(env.header.BaseFee)
 	}

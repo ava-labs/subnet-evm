@@ -583,9 +583,12 @@ func (pool *LegacyPool) Pending(filter txpool.PendingFilter) map[common.Address]
 	}
 	if filter.BaseFee != nil {
 		baseFeeBig = filter.BaseFee.ToBig()
-	} else if filter.EnforceTips {
+	}
+
+	if baseFeeBig == nil {
 		baseFeeBig = pool.priced.urgent.baseFee
 	}
+
 	pending := make(map[common.Address][]*txpool.LazyTransaction, len(pool.pending))
 	for addr, list := range pool.pending {
 		txs := list.Flatten()
