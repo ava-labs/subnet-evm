@@ -25,7 +25,6 @@ import (
 	"github.com/ava-labs/subnet-evm/predicate"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/mock/gomock"
 )
 
 const pChainHeight uint64 = 1337
@@ -132,9 +131,16 @@ func newTestValidator() *testValidator {
 	}
 }
 
+type testValidatorState struct {
+	subnetID        ids.ID
+	subnetIDErr     error
+	validatorSet    map[ids.NodeID]*validators.GetValidatorOutput
+	validatorSetErr error
+}
+
 type signatureTest struct {
 	name      string
-	stateF    func(*gomock.Controller) validators.State
+	state     testValidatorState
 	quorumNum uint64
 	quorumDen uint64
 	msgF      func(*require.Assertions) *avalancheWarp.Message
