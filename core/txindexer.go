@@ -127,7 +127,7 @@ func (indexer *txIndexer) loop(chain *BlockChain) {
 		lastHead uint64                              // The latest announced chain head (whose tx indexes are assumed created)
 		lastTail = rawdb.ReadTxIndexTail(indexer.db) // The oldest indexed block, nil means nothing indexed
 
-		headCh = make(chan ChainEvent, 1)
+		headCh = make(chan ChainEvent)
 		sub    = chain.SubscribeChainAcceptedEvent(headCh)
 	)
 	if sub == nil {
