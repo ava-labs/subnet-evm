@@ -851,7 +851,7 @@ func (p *BlobPool) Reset(oldHead, newHead *types.Header) {
 		log.Error("Failed to get fee config to reset blobpool fees", "err", err)
 		return
 	}
-	_, baseFee, err := dummy.EstimateNextBaseFee(
+	_, baseFeeBig, err := dummy.EstimateNextBaseFee(
 		p.chain.Config(),
 		feeConfig,
 		p.head,
@@ -864,7 +864,7 @@ func (p *BlobPool) Reset(oldHead, newHead *types.Header) {
 	// Reset the price heap for the new set of basefee/blobfee pairs
 	var (
 		// basefee = uint256.MustFromBig(eip1559.CalcBaseFee(p.chain.Config(), newHead))
-		basefee = uint256.MustFromBig(baseFee)
+		basefee = uint256.MustFromBig(baseFeeBig)
 		blobfee = uint256.MustFromBig(big.NewInt(params.BlobTxMinBlobGasprice))
 	)
 	if newHead.ExcessBlobGas != nil {

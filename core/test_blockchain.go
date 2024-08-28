@@ -407,7 +407,7 @@ func TestInsertLongForkedChain(t *testing.T, create func(db ethdb.Database, gspe
 			return fmt.Errorf("expected addr1 nonce: 129, found nonce %d", nonce1)
 		}
 		balance1 := sdb.GetBalance(addr1)
-		transferredFunds := uint256.MustFromBig(new(big.Int).Mul(big.NewInt(129), big.NewInt(10000)))
+		transferredFunds := uint256.NewInt(129 * 10_000)
 		genesisBalance := uint256.MustFromBig(genesisBalance)
 		expectedBalance := new(uint256.Int).Sub(genesisBalance, transferredFunds)
 		if balance1.Cmp(expectedBalance) != 0 {
@@ -515,7 +515,7 @@ func TestAcceptNonCanonicalBlock(t *testing.T, create func(db ethdb.Database, gs
 			return fmt.Errorf("expected addr1 nonce: 1, found nonce: %d", nonce1)
 		}
 		balance1 := sdb.GetBalance(addr1)
-		transferredFunds := uint256.MustFromBig(big.NewInt(5000))
+		transferredFunds := uint256.NewInt(5000)
 		genesisBalance := uint256.MustFromBig(genesisBalance)
 		expectedBalance := new(uint256.Int).Sub(genesisBalance, transferredFunds)
 		if balance1.Cmp(expectedBalance) != 0 {
@@ -644,7 +644,7 @@ func TestSetPreferenceRewind(t *testing.T, create func(db ethdb.Database, gspec 
 		if nonce != 1 {
 			return fmt.Errorf("expected addr1 nonce: 1, found nonce: %d", nonce)
 		}
-		transferredFunds := uint256.MustFromBig(big.NewInt(10000))
+		transferredFunds := uint256.NewInt(10000)
 		balance1 := sdb.GetBalance(addr1)
 		genesisBalance := uint256.MustFromBig(genesisBalance)
 		expectedBalance1 := new(uint256.Int).Sub(genesisBalance, transferredFunds)
@@ -945,7 +945,7 @@ func TestReorgReInsert(t *testing.T, create func(db ethdb.Database, gspec *Genes
 			return fmt.Errorf("expected addr1 nonce: 3, found nonce: %d", nonce1)
 		}
 		balance1 := sdb.GetBalance(addr1)
-		transferredFunds := uint256.MustFromBig(big.NewInt(30000))
+		transferredFunds := uint256.NewInt(30000)
 		genesisBalance := uint256.MustFromBig(genesisBalance)
 		expectedBalance := new(uint256.Int).Sub(genesisBalance, transferredFunds)
 		if balance1.Cmp(expectedBalance) != 0 {

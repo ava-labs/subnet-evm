@@ -124,8 +124,8 @@ func ValidateTransaction(tx *types.Transaction, head *types.Header, signer types
 	if err != nil {
 		return err
 	}
-	if tx.Gas() < intrGas {
-		return fmt.Errorf("%w: address %v gas %v,  minimum needed %v", core.ErrIntrinsicGas, from.Hex(), tx.Gas(), intrGas)
+	if txGas := tx.Gas(); txGas < intrGas {
+		return fmt.Errorf("%w: address %v tx gas (%v), minimum needed %v", core.ErrIntrinsicGas, from.Hex(), txGas, intrGas)
 	}
 	// Ensure the gasprice is high enough to cover the requirement of the calling pool
 	if tx.GasTipCapIntCmp(opts.MinTip) < 0 {
