@@ -325,7 +325,8 @@ func (t *StateTest) RunNoVerify(subtest StateSubtest, vmconfig vm.Config, snapsh
 	// - there are only 'bad' transactions, which aren't executed. In those cases,
 	//   the coinbase gets no txfee, so isn't created, and thus needs to be touched
 	state.StateDB.AddBalance(block.Coinbase(), new(uint256.Int))
-	// Commit block
+
+	// Commit state mutations into database.
 	root, _ = state.StateDB.Commit(block.NumberU64(), config.IsEIP158(block.Number()), false)
 	return state, root, err
 }

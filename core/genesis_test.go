@@ -226,7 +226,7 @@ func TestStatefulPrecompilesConfigure(t *testing.T) {
 
 			genesis := &Genesis{
 				Config: config,
-				Alloc: GenesisAlloc{
+				Alloc: types.GenesisAlloc{
 					{1}: {Balance: big.NewInt(1), Storage: map[common.Hash]common.Hash{{1}: {1}}},
 				},
 				GasLimit: config.FeeConfig.GasLimit.Uint64(),
@@ -259,7 +259,7 @@ func TestPrecompileActivationAfterHeaderBlock(t *testing.T) {
 	db := rawdb.NewMemoryDatabase()
 	customg := Genesis{
 		Config: params.TestChainConfig,
-		Alloc: GenesisAlloc{
+		Alloc: types.GenesisAlloc{
 			{1}: {Balance: big.NewInt(1), Storage: map[common.Hash]common.Hash{{1}: {1}}},
 		},
 		GasLimit: params.TestChainConfig.FeeConfig.GasLimit.Uint64(),

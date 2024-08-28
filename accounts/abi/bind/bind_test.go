@@ -1759,7 +1759,6 @@ var bindTests = []struct {
 		`
 			key, _ := crypto.GenerateKey()
 			addr := crypto.PubkeyToAddress(key.PublicKey)
-	
 			
 			sim := backends.NewSimulatedBackend(types.GenesisAlloc{addr: {Balance: big.NewInt(1000000000000000000)}}, 1000000)
 			defer sim.Close()
