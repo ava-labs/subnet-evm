@@ -48,7 +48,6 @@ var (
 	numTestVdrs = 10_000
 	testVdrs    []*testValidator
 	vdrs        map[ids.NodeID]*validators.GetValidatorOutput
-	tests       []signatureTest
 
 	predicateTests = make(map[string]testutils.PredicateTest)
 )
@@ -129,22 +128,6 @@ func newTestValidator() *testValidator {
 			NodeIDs:        []ids.NodeID{nodeID},
 		},
 	}
-}
-
-type testValidatorState struct {
-	subnetID        ids.ID
-	subnetIDErr     error
-	validatorSet    map[ids.NodeID]*validators.GetValidatorOutput
-	validatorSetErr error
-}
-
-type signatureTest struct {
-	name      string
-	state     testValidatorState
-	quorumNum uint64
-	quorumDen uint64
-	msgF      func(*require.Assertions) *avalancheWarp.Message
-	err       error
 }
 
 // createWarpMessage constructs a signed warp message using the global variable [unsignedMsg]

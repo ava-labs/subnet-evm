@@ -18,10 +18,26 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
+type testValidatorState struct {
+	subnetID        ids.ID
+	subnetIDErr     error
+	validatorSet    map[ids.NodeID]*validators.GetValidatorOutput
+	validatorSetErr error
+}
+
+type signatureTest struct {
+	name      string
+	state     testValidatorState
+	quorumNum uint64
+	quorumDen uint64
+	msgF      func(*require.Assertions) *avalancheWarp.Message
+	err       error
+}
+
 // This test copies the test coverage from https://github.com/ava-labs/avalanchego/blob/v1.10.0/vms/platformvm/warp/signature_test.go#L137.
 // These tests are only expected to fail if there is a breaking change in AvalancheGo that unexpectedly changes behavior.
 func TestSignatureVerification(t *testing.T) {
-	tests = []signatureTest{
+	tests := []signatureTest{
 		{
 			name: "can't get subnetID",
 			state: testValidatorState{
