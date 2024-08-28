@@ -114,7 +114,6 @@ func TestSignatureVerification(t *testing.T) {
 				subnetID:     sourceSubnetID,
 				validatorSet: vdrs,
 			},
-
 			quorumNum: 1,
 			quorumDen: 2,
 			msgF: func(require *require.Assertions) *avalancheWarp.Message {
