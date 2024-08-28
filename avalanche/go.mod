@@ -4,7 +4,7 @@ go 1.21.12
 
 require (
 	github.com/antithesishq/antithesis-sdk-go v0.3.8
-	github.com/ava-labs/avalanchego v1.11.11-0.20240821175119-35c66e33f0dc
+	github.com/ava-labs/avalanchego v1.11.11-monitoring-url.0.20240828021418-51e54a5e3295
 	github.com/ava-labs/subnet-evm v0.0.0
 	github.com/ethereum/go-ethereum v1.13.8
 	github.com/go-cmd/cmd v1.4.1
