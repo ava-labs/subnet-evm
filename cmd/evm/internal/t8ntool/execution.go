@@ -195,7 +195,7 @@ func (pre *Prestate) Apply(vmConfig vm.Config, chainConfig *params.ChainConfig,
 	// 	misc.ApplyDAOHardFork(statedb)
 	// }
 	if beaconRoot := pre.Env.ParentBeaconBlockRoot; beaconRoot != nil {
-		evm := core.NewEVM(vmContext, vm.TxContext{}, statedb, chainConfig, vmConfig)
+		evm := vm.NewEVM(vmContext, vm.TxContext{}, statedb, chainConfig, vmConfig)
 		core.ProcessBeaconBlockRoot(*beaconRoot, evm, statedb)
 	}
 	var blobGasUsed uint64
@@ -241,7 +241,7 @@ func (pre *Prestate) Apply(vmConfig vm.Config, chainConfig *params.ChainConfig,
 			snapshot  = statedb.Snapshot()
 			prevGas   = gaspool.Gas()
 		)
-		evm := core.NewEVM(vmContext, txContext, statedb, chainConfig, vmConfig)
+		evm := vm.NewEVM(vmContext, txContext, statedb, chainConfig, vmConfig)
 
 		// (ret []byte, usedGas uint64, failed bool, err error)
 		msgResult, err := core.ApplyMessage(evm, msg, gaspool)

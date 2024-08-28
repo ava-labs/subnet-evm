@@ -51,5 +51,5 @@ func NewEnv(cfg *Config) *vm.EVM {
 		BlobBaseFee: cfg.BlobBaseFee,
 	}
 
-	return core.NewEVM(blockContext, txContext, cfg.State, cfg.ChainConfig, cfg.EVMConfig)
+	return vm.NewEVM(blockContext, txContext, cfg.State, cfg.ChainConfig, cfg.EVMConfig)
 }

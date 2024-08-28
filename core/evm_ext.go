@@ -15,6 +15,10 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
+func init() {
+	vm.NewEVM = NewEVM
+}
+
 // IsProhibited returns true if [addr] is in the prohibited list of addresses which should
 // not be allowed as an EOA or newly created contract address.
 func IsProhibited(addr common.Address) bool {
@@ -32,11 +36,11 @@ type EVM struct {
 }
 
 func NewEVM(
-	blockCtx vm.BlockContext, txCtx vm.TxContext, statedb stateDB,
-	chainConfig *params.ChainConfig, config vm.Config,
+	blockCtx vm.BlockContext, txCtx vm.TxContext, statedb vm.StateDB,
+	chainConfig vm.ChainConfig, config vm.Config,
 ) *vm.EVM {
 	evm := &EVM{
-		chainConfig: chainConfig,
+		chainConfig: chainConfig.(*params.ChainConfig),
 	}
 	config.IsProhibited = IsProhibited
 	config.DeployerAllowed = evm.DeployerAllowed

@@ -571,7 +571,7 @@ func (api *API) IntermediateRoots(ctx context.Context, hash common.Hash, config 
 		var (
 			msg, _    = core.TransactionToMessage(tx, signer, block.BaseFee())
 			txContext = core.NewEVMTxContext(msg)
-			vmenv     = core.NewEVM(vmctx, txContext, statedb, chainConfig, vm.Config{})
+			vmenv     = vm.NewEVM(vmctx, txContext, statedb, chainConfig, vm.Config{})
 		)
 		statedb.SetTxContext(tx.Hash(), i)
 		if _, err := core.ApplyMessage(vmenv, msg, new(core.GasPool).AddGas(msg.GasLimit)); err != nil {
@@ -729,7 +729,7 @@ txloop:
 		// Generate the next state snapshot fast without tracing
 		msg, _ := core.TransactionToMessage(tx, signer, block.BaseFee())
 		statedb.SetTxContext(tx.Hash(), i)
-		vmenv := core.NewEVM(blockCtx, core.NewEVMTxContext(msg), statedb, api.backend.ChainConfig(), vm.Config{})
+		vmenv := vm.NewEVM(blockCtx, core.NewEVMTxContext(msg), statedb, api.backend.ChainConfig(), vm.Config{})
 		if _, err := core.ApplyMessage(vmenv, msg, new(core.GasPool).AddGas(msg.GasLimit)); err != nil {
 			failed = err
 			break txloop
@@ -835,7 +835,7 @@ func (api *FileTracerAPI) standardTraceBlockToFile(ctx context.Context, block *t
 			}
 		}
 		// Execute the transaction and flush any traces to disk
-		vmenv := core.NewEVM(vmctx, txContext, statedb, chainConfig, vmConf)
+		vmenv := vm.NewEVM(vmctx, txContext, statedb, chainConfig, vmConf)
 		statedb.SetTxContext(tx.Hash(), i)
 		_, err = core.ApplyMessage(vmenv, msg, new(core.GasPool).AddGas(msg.GasLimit))
 		if writer != nil {
@@ -1008,7 +1008,7 @@ func (api *baseAPI) traceTx(ctx context.Context, message *core.Message, txctx *C
 			return nil, err
 		}
 	}
-	vmenv := core.NewEVM(vmctx, txContext, statedb, api.backend.ChainConfig(), vm.Config{Tracer: tracer, NoBaseFee: true})
+	vmenv := vm.NewEVM(vmctx, txContext, statedb, api.backend.ChainConfig(), vm.Config{Tracer: tracer, NoBaseFee: true})
 
 	// Define a meaningful timeout of a single transaction trace
 	if config.Timeout != nil {

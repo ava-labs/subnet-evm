@@ -290,7 +290,7 @@ func (t *StateTest) RunNoVerify(subtest StateSubtest, vmconfig vm.Config, snapsh
 	if config.IsSubnetEVM(0) && t.json.Env.Random != nil {
 		context.Difficulty = big.NewInt(0)
 	}
-	evm := core.NewEVM(context, txContext, statedb, config, vmconfig)
+	evm := vm.NewEVM(context, txContext, statedb, config, vmconfig)
 
 	// Execute the message.
 	snapshot := statedb.Snapshot()
