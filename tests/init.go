@@ -33,7 +33,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/libevm/params"
 	"github.com/ava-labs/subnet-evm/utils"
 )
 

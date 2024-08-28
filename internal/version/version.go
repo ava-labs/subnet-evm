@@ -33,7 +33,7 @@ import (
 	"runtime/debug"
 	"strings"
 
-	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/libevm/params"
 )
 
 const ourPath = "github.com/ava-labs/subnet-evm" // Path to our module

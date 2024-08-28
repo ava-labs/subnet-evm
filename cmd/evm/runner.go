@@ -46,7 +46,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/vm/runtime"
 	"github.com/ava-labs/subnet-evm/eth/tracers/logger"
 	"github.com/ava-labs/subnet-evm/internal/flags"
-	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/libevm/params"
 	"github.com/ava-labs/subnet-evm/trie"
 	"github.com/ava-labs/subnet-evm/trie/triedb/hashdb"
 	"github.com/ethereum/go-ethereum/common"

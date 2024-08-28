@@ -34,7 +34,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/libevm/params"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/holiman/uint256"
