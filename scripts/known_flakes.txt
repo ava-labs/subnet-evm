@@ -1,0 +1,10 @@
+TestClientCancelWebsocket
+TestExpDecaySampleNanosecondRegression
+TestGolangBindings
+TestMempoolEthTxsAppGossipHandling
+TestResumeSyncAccountsTrieInterrupted
+TestResyncNewRootAfterDeletes
+TestTransactionSkipIndexing
+TestVMShutdownWhileSyncing
+TestWalletNotifications
+TestWebsocketLargeRead
