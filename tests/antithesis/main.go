@@ -26,7 +26,7 @@ import (
 	"github.com/ava-labs/subnet-evm/accounts/abi/bind"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/ethclient"
-	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/libevm/params"
 	"github.com/ava-labs/subnet-evm/tests"
 	"github.com/ava-labs/subnet-evm/tests/utils"
 

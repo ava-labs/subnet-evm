@@ -10,7 +10,7 @@ import (
 
 	"github.com/ava-labs/avalanchego/utils/formatting"
 	"github.com/ava-labs/subnet-evm/core"
-	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/libevm/params"
 	"github.com/stretchr/testify/assert"
 )
 

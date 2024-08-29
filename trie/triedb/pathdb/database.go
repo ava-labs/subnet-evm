@@ -34,7 +34,7 @@ import (
 
 	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/libevm/params"
 	"github.com/ava-labs/subnet-evm/trie/trienode"
 	"github.com/ava-labs/subnet-evm/trie/triestate"
 	"github.com/ethereum/go-ethereum/common"

@@ -34,7 +34,7 @@ import (
 	"strings"
 
 	"github.com/ava-labs/subnet-evm/internal/version"
-	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/libevm/params"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/mattn/go-isatty"
 	"github.com/urfave/cli/v2"
