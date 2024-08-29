@@ -13,6 +13,11 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/log"
+)
+
+var (
+	newEVM = vm.NewEVM
 )
 
 func init() {
@@ -39,14 +44,21 @@ func NewEVM(
 	blockCtx vm.BlockContext, txCtx vm.TxContext, statedb vm.StateDB,
 	chainConfig vm.ChainConfig, config vm.Config,
 ) *vm.EVM {
+	customChainConfig, ok := chainConfig.(*params.ChainConfig)
+	if !ok {
+		// If the chainConfig is not a params.ChainConfig, then we can't use the custom
+		// EVM implementation, so we fall back to the default implementation.
+		log.Warn("ChainConfig is not a *params.ChainConfig, falling back to default EVM")
+		return newEVM(blockCtx, txCtx, statedb, chainConfig, config)
+	}
 	evm := &EVM{
-		chainConfig: chainConfig.(*params.ChainConfig),
+		chainConfig: customChainConfig,
 	}
 	config.IsProhibited = IsProhibited
 	config.DeployerAllowed = evm.DeployerAllowed
 	config.CustomPrecompiles = evm.CustomPrecompiles
 
-	evm.EVM = vm.NewEVM(blockCtx, txCtx, statedb, chainConfig, config)
+	evm.EVM = newEVM(blockCtx, txCtx, statedb, chainConfig, config)
 	return evm.EVM
 }
 
