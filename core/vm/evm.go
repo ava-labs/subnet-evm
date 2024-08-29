@@ -50,12 +50,6 @@ type (
 	GetHashFunc func(uint64) common.Hash
 )
 
-type (
-	// RunFunc is the signature of a precompiled contract run function
-	// Consider passing caller as ContractRef instead of common.Address
-	RunFunc func(caller common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error)
-)
-
 func (evm *EVM) precompile(addr common.Address) (RunFunc, bool) {
 	var precompiles map[common.Address]PrecompiledContract
 	switch {

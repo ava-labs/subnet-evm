@@ -7,6 +7,12 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
+type (
+	// RunFunc is the signature of a precompiled contract run function
+	// Consider passing caller as ContractRef instead of common.Address
+	RunFunc func(caller common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error)
+)
+
 var defaultEVMFactory EvmFactory = &evmFactory{}
 
 type evmFactory struct{}
