@@ -27,8 +27,10 @@ import (
 	"github.com/ava-labs/subnet-evm/accounts/abi/bind"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/rpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/stretchr/testify/require"
 )
 
 var _ bind.ContractBackend = (Client)(nil)
@@ -214,13 +216,18 @@ func TestForkResendTx(t *testing.T) {
 		t.Fatalf("could not create transaction: %v", err)
 	}
 	client.SendTransaction(ctx, tx)
-	sim.Commit(true)
+	sim.Commit(false)
 
 	// 3.
-	receipt, _ := client.TransactionReceipt(ctx, tx.Hash())
-	if h := receipt.BlockNumber.Uint64(); h != 1 {
-		t.Errorf("TX included in wrong block: %d", h)
-	}
+	// Note this test is revised from upstream since we cannot get the receipt
+	// for a pending transaction. (Receipts only written for accepted blocks).
+	require := require.New(t)
+	pendingBlockNum := big.NewInt(int64(rpc.PendingBlockNumber))
+	b1, err := client.BlockByNumber(ctx, pendingBlockNum)
+	require.NoError(err)
+	require.Len(b1.Transactions(), 1)
+	require.Equal(tx.Hash(), b1.Transactions()[0].Hash())
+	require.Equal(uint64(1), b1.NumberU64())
 
 	// 4.
 	if err := sim.Fork(parent.Hash()); err != nil {
@@ -233,7 +240,7 @@ func TestForkResendTx(t *testing.T) {
 		t.Fatalf("sending transaction: %v", err)
 	}
 	sim.Commit(true)
-	receipt, _ = client.TransactionReceipt(ctx, tx.Hash())
+	receipt, _ := client.TransactionReceipt(ctx, tx.Hash())
 	if h := receipt.BlockNumber.Uint64(); h != 2 {
 		t.Errorf("TX included in wrong block: %d", h)
 	}
