@@ -16,12 +16,11 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 )
 
-var (
-	newEVM = vm.NewEVM
-)
+var defaultEVMFactory vm.EvmFactory
 
 func init() {
-	vm.NewEVM = NewEVM
+	defaultEVMFactory = vm.DefaultEVMFactory()
+	vm.SetDefaultEVMFactory(&evmFactory{})
 }
 
 // IsProhibited returns true if [addr] is in the prohibited list of addresses which should
@@ -34,13 +33,15 @@ func IsProhibited(addr common.Address) bool {
 	return modules.ReservedAddress(addr)
 }
 
+type evmFactory struct{}
+
 type EVM struct {
 	*vm.EVM
 
 	chainConfig *params.ChainConfig
 }
 
-func NewEVM(
+func (*evmFactory) NewEVM(
 	blockCtx vm.BlockContext, txCtx vm.TxContext, statedb vm.StateDB,
 	chainConfig vm.ChainConfig, config vm.Config,
 ) *vm.EVM {
@@ -49,7 +50,7 @@ func NewEVM(
 		// If the chainConfig is not a params.ChainConfig, then we can't use the custom
 		// EVM implementation, so we fall back to the default implementation.
 		log.Warn("ChainConfig is not a *params.ChainConfig, falling back to default EVM")
-		return newEVM(blockCtx, txCtx, statedb, chainConfig, config)
+		return defaultEVMFactory.NewEVM(blockCtx, txCtx, statedb, chainConfig, config)
 	}
 	evm := &EVM{
 		chainConfig: customChainConfig,
@@ -58,7 +59,7 @@ func NewEVM(
 	config.DeployerAllowed = evm.DeployerAllowed
 	config.CustomPrecompiles = evm.CustomPrecompiles
 
-	evm.EVM = newEVM(blockCtx, txCtx, statedb, chainConfig, config)
+	evm.EVM = defaultEVMFactory.NewEVM(blockCtx, txCtx, statedb, chainConfig, config)
 	return evm.EVM
 }
 

@@ -171,19 +171,9 @@ type EVM struct {
 	callGasTemp uint64
 }
 
-type ChainConfig interface {
-	IsEIP158(blockNum *big.Int) bool
-	IsSubnetEVM(timestamp uint64) bool
-	IsCancun(blockNum *big.Int, timestamp uint64) bool
-	IsPrecompileEnabled(addr common.Address, timestamp uint64) bool
-	Rules(blockNum *big.Int, timestamp uint64) params.Rules
-}
-
-var NewEVM = newEVM
-
 // NewEVM returns a new EVM. The returned EVM is not thread safe and should
 // only ever be used *once*.
-func newEVM(blockCtx BlockContext, txCtx TxContext, statedb StateDB, chainConfig ChainConfig, config Config) *EVM {
+func (*evmFactory) NewEVM(blockCtx BlockContext, txCtx TxContext, statedb StateDB, chainConfig ChainConfig, config Config) *EVM {
 	// If basefee tracking is disabled (eth_call, eth_estimateGas, etc), and no
 	// gas prices were specified, lower the basefee to 0 to avoid breaking EVM
 	// invariants (basefee < feecap)
