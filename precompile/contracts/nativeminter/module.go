@@ -54,7 +54,10 @@ func (*configurator) Configure(chainConfig precompileconfig.ChainConfig, cfg pre
 	for to, amount := range config.InitialMint {
 		if amount != nil {
 			amountBig := (*big.Int)(amount)
-			amountU256, _ := uint256.FromBig(amountBig)
+			amountU256, overflows := uint256.FromBig(amountBig)
+			if overflows {
+				return ErrOverflows
+			}
 			state.AddBalance(to, amountU256)
 		}
 	}

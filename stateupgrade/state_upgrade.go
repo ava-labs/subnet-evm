@@ -4,12 +4,15 @@
 package stateupgrade
 
 import (
+	"errors"
 	"math/big"
 
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 )
+
+var errOverflows = errors.New("amount overflows uint256")
 
 // Configure applies the state upgrade to the state.
 func Configure(stateUpgrade *params.StateUpgrade, chainConfig ChainContext, state StateDB, blockContext BlockContext) error {
@@ -30,7 +33,10 @@ func upgradeAccount(account common.Address, upgrade params.StateUpgradeAccount, 
 	}
 
 	if upgrade.BalanceChange != nil {
-		balanceChange, _ := uint256.FromBig((*big.Int)(upgrade.BalanceChange))
+		balanceChange, overflows := uint256.FromBig((*big.Int)(upgrade.BalanceChange))
+		if overflows {
+			return errOverflows
+		}
 		state.AddBalance(account, balanceChange)
 	}
 	if len(upgrade.Code) != 0 {

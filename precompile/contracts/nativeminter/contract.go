@@ -33,6 +33,7 @@ var (
 
 	ErrCannotMint = errors.New("non-enabled cannot mint")
 	ErrInvalidLen = errors.New("invalid input length for minting")
+	ErrOverflows  = errors.New("amount overflows uint256")
 
 	// NativeMinterRawABI contains the raw ABI of NativeMinter contract.
 	//go:embed contract.abi
@@ -118,7 +119,11 @@ func mintNativeCoin(accessibleState contract.AccessibleState, caller common.Addr
 		stateDB.CreateAccount(to)
 	}
 
-	amountU256, _ := uint256.FromBig(amount)
+	amountU256, overflows := uint256.FromBig(amount)
+	if overflows {
+		return nil, remainingGas, ErrOverflows
+	}
+
 	stateDB.AddBalance(to, amountU256)
 	// Return an empty output and the remaining gas
 	return []byte{}, remainingGas, nil
