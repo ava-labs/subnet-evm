@@ -6,7 +6,25 @@ package contract
 import (
 	"fmt"
 
+	"github.com/ava-labs/subnet-evm/core/types"
+	"github.com/ava-labs/subnet-evm/precompile/interfaces"
 	"github.com/ethereum/go-ethereum/common"
+)
+
+// Guarantee that we don't have a circular dependency if importing types here.
+var _ *types.Transaction = nil
+
+// Temporary type aliases for proof-of-concept only. This allows all other code
+// to work as expected, requiring only the `modules` package to change to a
+// direct dependency on `interfaces`. As seen above, this allows importing
+// of `types`.
+type (
+	StatefulPrecompiledContract = interfaces.StatefulPrecompiledContract
+	StateDB                     = interfaces.StateDB
+	AccessibleState             = interfaces.AccessibleState
+	ConfigurationBlockContext   = interfaces.ConfigurationBlockContext
+	Configurator                = interfaces.Configurator
+	BlockContext                = interfaces.BlockContext
 )
 
 const (
