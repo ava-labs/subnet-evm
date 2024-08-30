@@ -195,17 +195,16 @@ type CacheConfig struct {
 // triedbConfig derives the configures for trie database.
 func (c *CacheConfig) triedbConfig() *trie.Config {
 	config := &trie.Config{Preimages: c.Preimages}
-	if c.StateScheme == rawdb.HashScheme {
-		config.HashDB = &hashdb.Config{
-			CleanCacheSize: c.TrieCleanLimit * 1024 * 1024,
-			StatsPrefix:    trieCleanCacheStatsNamespace,
-		}
-	}
 	if c.StateScheme == rawdb.PathScheme {
 		config.PathDB = &pathdb.Config{
 			StateHistory:   c.StateHistory,
 			CleanCacheSize: c.TrieCleanLimit * 1024 * 1024,
 			DirtyCacheSize: c.TrieDirtyLimit * 1024 * 1024,
+		}
+	} else {
+		config.HashDB = &hashdb.Config{
+			CleanCacheSize: c.TrieCleanLimit * 1024 * 1024,
+			StatsPrefix:    trieCleanCacheStatsNamespace,
 		}
 	}
 	return config
