@@ -506,7 +506,10 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 		st.state.SetNonce(msg.From, st.state.GetNonce(sender.Address())+1)
 		ret, st.gasRemaining, vmerr = st.evm.Call(sender, st.to(), msg.Data, st.gasRemaining, value)
 	}
-	price, _ := uint256.FromBig(msg.GasPrice)
+	price, overflow := uint256.FromBig(msg.GasPrice)
+	if overflow {
+		return nil, ErrGasUintOverflow
+	}
 	gasRefund := st.refundGas(rules.IsSubnetEVM)
 	fee := new(uint256.Int).SetUint64(st.gasUsed())
 	fee.Mul(fee, price)
