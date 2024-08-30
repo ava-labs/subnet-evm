@@ -99,13 +99,15 @@ func (indexer *txIndexer) run(tail *uint64, head uint64, stop chan struct{}, don
 	}
 
 	// Defensively ensure tail is not nil.
-	if tail == nil {
-		tail = new(uint64)
+	tailValue := uint64(0)
+	if tail != nil {
+		// use intermediate variable to avoid modifying the pointer
+		tailValue = *tail
 	}
 
-	if head-indexer.limit+1 >= *tail {
+	if head-indexer.limit+1 >= tailValue {
 		// Unindex a part of stale indices and forward index tail to HEAD-limit
-		rawdb.UnindexTransactions(indexer.db, *tail, head-indexer.limit+1, stop, false)
+		rawdb.UnindexTransactions(indexer.db, tailValue, head-indexer.limit+1, stop, false)
 	}
 }
 
@@ -113,12 +115,6 @@ func (indexer *txIndexer) run(tail *uint64, head uint64, stop chan struct{}, don
 // on the received chain event.
 func (indexer *txIndexer) loop(chain *BlockChain) {
 	defer close(indexer.closed)
-
-	// If the user just upgraded to a new version which supports transaction
-	// index pruning, write the new tail and remove anything older.
-	if rawdb.ReadTxIndexTail(indexer.db) == nil {
-		rawdb.WriteTxIndexTail(indexer.db, 0)
-	}
 
 	// Listening to chain events and manipulate the transaction indexes.
 	var (
@@ -145,7 +141,7 @@ func (indexer *txIndexer) loop(chain *BlockChain) {
 		done = make(chan struct{})
 		lastHead = head.Number.Uint64()
 		indexer.chain.wg.Add(1)
-		go indexer.run(rawdb.ReadTxIndexTail(indexer.db), head.Number.Uint64(), stop, done)
+		go indexer.run(lastTail, head.Number.Uint64(), stop, done)
 	}
 	for {
 		select {
@@ -159,7 +155,7 @@ func (indexer *txIndexer) loop(chain *BlockChain) {
 				stop = make(chan struct{})
 				done = make(chan struct{})
 				indexer.chain.wg.Add(1)
-				go indexer.run(rawdb.ReadTxIndexTail(indexer.db), head.Block.NumberU64(), stop, done)
+				go indexer.run(lastTail, head.Block.NumberU64(), stop, done)
 			}
 			lastHead = head.Block.NumberU64()
 		case <-done:
