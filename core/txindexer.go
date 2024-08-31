@@ -85,12 +85,9 @@ func newTxIndexer(limit uint64, chain *BlockChain) *txIndexer {
 // possible, the done channel will be closed once the task is finished.
 func (indexer *txIndexer) run(tail *uint64, head uint64, stop chan struct{}, done chan struct{}) {
 	start := time.Now()
-	indexer.chain.txIndexTailLock.Lock()
 	defer func() {
 		txUnindexTimer.Inc(time.Since(start).Milliseconds())
-		indexer.chain.txIndexTailLock.Unlock()
 		close(done)
-		indexer.chain.wg.Done()
 	}()
 
 	// Short circuit if chain is empty and nothing to index.
@@ -115,13 +112,11 @@ func (indexer *txIndexer) run(tail *uint64, head uint64, stop chan struct{}, don
 // on the received chain event.
 func (indexer *txIndexer) loop(chain *BlockChain) {
 	defer close(indexer.closed)
-
 	// Listening to chain events and manipulate the transaction indexes.
 	var (
-		stop     chan struct{}                       // Non-nil if background routine is active.
-		done     chan struct{}                       // Non-nil if background routine is active.
-		lastHead uint64                              // The latest announced chain head (whose tx indexes are assumed created)
-		lastTail = rawdb.ReadTxIndexTail(indexer.db) // The oldest indexed block, nil means nothing indexed
+		stop     chan struct{} // Non-nil if background routine is active.
+		done     chan struct{} // Non-nil if background routine is active.
+		lastHead uint64        // The latest announced chain head (whose tx indexes are assumed created)
 
 		headCh = make(chan ChainEvent)
 		sub    = chain.SubscribeChainAcceptedEvent(headCh)
@@ -141,7 +136,12 @@ func (indexer *txIndexer) loop(chain *BlockChain) {
 		done = make(chan struct{})
 		lastHead = head.Number.Uint64()
 		indexer.chain.wg.Add(1)
-		go indexer.run(lastTail, head.Number.Uint64(), stop, done)
+		go func() {
+			indexer.chain.txIndexTailLock.Lock()
+			indexer.run(rawdb.ReadTxIndexTail(indexer.db), head.Number.Uint64(), stop, done)
+			indexer.chain.txIndexTailLock.Unlock()
+			indexer.chain.wg.Done()
+		}()
 	}
 	for {
 		select {
@@ -155,15 +155,19 @@ func (indexer *txIndexer) loop(chain *BlockChain) {
 				stop = make(chan struct{})
 				done = make(chan struct{})
 				indexer.chain.wg.Add(1)
-				go indexer.run(lastTail, head.Block.NumberU64(), stop, done)
+				go func() {
+					indexer.chain.txIndexTailLock.Lock()
+					indexer.run(rawdb.ReadTxIndexTail(indexer.db), head.Block.NumberU64(), stop, done)
+					indexer.chain.txIndexTailLock.Unlock()
+					indexer.chain.wg.Done()
+				}()
 			}
 			lastHead = head.Block.NumberU64()
 		case <-done:
 			stop = nil
 			done = nil
-			lastTail = rawdb.ReadTxIndexTail(indexer.db)
 		case ch := <-indexer.progress:
-			ch <- indexer.report(lastHead, lastTail)
+			ch <- indexer.report(lastHead, rawdb.ReadTxIndexTail(indexer.db))
 		case ch := <-indexer.term:
 			if stop != nil {
 				close(stop)
