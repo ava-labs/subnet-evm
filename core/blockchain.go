@@ -459,7 +459,7 @@ func NewBlockChain(
 	// if txlookup limit is 0 (uindexing disabled), we don't need to repair the tx index tail.
 	if bc.cacheConfig.TransactionHistory != 0 {
 		latestStateSynced := rawdb.GetLatestSyncPerformed(bc.db)
-		bc.setTxIndexTail(latestStateSynced)
+		bc.repairTxIndexTail(latestStateSynced)
 	}
 
 	// Start processing accepted blocks effects in the background
@@ -2124,7 +2124,7 @@ func (bc *BlockChain) ResetToStateSyncedBlock(block *types.Block) error {
 
 	// if txlookup limit is 0 (uindexing disabled), we don't need to repair the tx index tail.
 	if bc.cacheConfig.TransactionHistory != 0 {
-		bc.setTxIndexTail(block.NumberU64())
+		bc.repairTxIndexTail(block.NumberU64())
 	}
 
 	// Update all in-memory chain markers
@@ -2160,18 +2160,12 @@ func (bc *BlockChain) CacheConfig() *CacheConfig {
 	return bc.cacheConfig
 }
 
-func (bc *BlockChain) setTxIndexTail(newTail uint64) error {
+func (bc *BlockChain) repairTxIndexTail(newTail uint64) error {
 	bc.txIndexTailLock.Lock()
 	defer bc.txIndexTailLock.Unlock()
 
-	tailP := rawdb.ReadTxIndexTail(bc.db)
-	var tailV uint64
-	if tailP != nil {
-		tailV = *tailP
-	}
-
-	if newTail > tailV {
-		log.Info("Repairing tx index tail", "old", tailV, "new", newTail)
+	if curr := rawdb.ReadTxIndexTail(bc.db); curr == nil || *curr < newTail {
+		log.Info("Repairing tx index tail", "old", curr, "new", newTail)
 		rawdb.WriteTxIndexTail(bc.db, newTail)
 	}
 	return nil
