@@ -9,3 +9,4 @@ TestVMShutdownWhileSyncing
 TestWalletNotifications
 TestWebsocketLargeRead
 TestChainIndexerWithChildren
+TestWalletNotifications
