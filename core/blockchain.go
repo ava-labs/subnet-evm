@@ -2187,8 +2187,8 @@ func (bc *BlockChain) repairTxIndexTail(newTail uint64) error {
 	bc.txIndexTailLock.Lock()
 	defer bc.txIndexTailLock.Unlock()
 
-	if currentTail := rawdb.ReadTxIndexTail(bc.db); currentTail == nil || newTail > *currentTail {
-		log.Info("Repairing tx index tail", "old", currentTail, "new", newTail)
+	if curr := rawdb.ReadTxIndexTail(bc.db); curr == nil || *curr < newTail {
+		log.Info("Repairing tx index tail", "old", curr, "new", newTail)
 		rawdb.WriteTxIndexTail(bc.db, newTail)
 	}
 	return nil
