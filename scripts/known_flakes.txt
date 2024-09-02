@@ -8,3 +8,4 @@ TestTransactionSkipIndexing
 TestVMShutdownWhileSyncing
 TestWalletNotifications
 TestWebsocketLargeRead
+TestChainIndexerWithChildren
