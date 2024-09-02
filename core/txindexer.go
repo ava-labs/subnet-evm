@@ -137,10 +137,7 @@ func (indexer *txIndexer) loop(chain *BlockChain) {
 		lastHead = head.Number.Uint64()
 		indexer.chain.wg.Add(1)
 		go func() {
-			indexer.chain.txIndexTailLock.Lock()
-			indexer.run(rawdb.ReadTxIndexTail(indexer.db), head.Number.Uint64(), stop, done)
-			indexer.chain.txIndexTailLock.Unlock()
-			indexer.chain.wg.Done()
+			indexer.lockedRun(head.Number.Uint64(), stop, done)
 		}()
 	}
 	for {
@@ -156,10 +153,7 @@ func (indexer *txIndexer) loop(chain *BlockChain) {
 				done = make(chan struct{})
 				indexer.chain.wg.Add(1)
 				go func() {
-					indexer.chain.txIndexTailLock.Lock()
-					indexer.run(rawdb.ReadTxIndexTail(indexer.db), head.Block.NumberU64(), stop, done)
-					indexer.chain.txIndexTailLock.Unlock()
-					indexer.chain.wg.Done()
+					indexer.lockedRun(headNum, stop, done)
 				}()
 			}
 			lastHead = head.Block.NumberU64()
@@ -212,4 +206,13 @@ func (indexer *txIndexer) close() {
 		<-ch
 	case <-indexer.closed:
 	}
+}
+
+// lockedRun runs the indexing/unindexing task in a locked manner. It reads
+// the current tail index from the database.
+func (indexer *txIndexer) lockedRun(head uint64, stop chan struct{}, done chan struct{}) {
+	indexer.chain.txIndexTailLock.Lock()
+	indexer.run(rawdb.ReadTxIndexTail(indexer.db), head, stop, done)
+	indexer.chain.txIndexTailLock.Unlock()
+	indexer.chain.wg.Done()
 }
