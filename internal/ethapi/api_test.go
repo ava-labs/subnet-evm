@@ -468,7 +468,6 @@ func newTestBackend(t *testing.T, n int, gspec *core.Genesis, engine consensus.E
 			t.Fatalf("block %d: failed to accept into chain: %v", block.NumberU64(), err)
 		}
 	}
-	chain.DrainAcceptorQueue()
 
 	backend := &testBackend{db: db, chain: chain, accman: accman, acc: acc}
 	return backend

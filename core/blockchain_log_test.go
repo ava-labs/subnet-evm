@@ -91,7 +91,6 @@ func TestAcceptedLogsSubscription(t *testing.T) {
 		err := chain.Accept(block)
 		require.NoError(err)
 	}
-	chain.DrainAcceptorQueue()
 
 	logs := <-logsCh
 	require.Len(logs, 1)

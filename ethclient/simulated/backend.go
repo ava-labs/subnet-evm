@@ -185,7 +185,6 @@ func (n *Backend) buildBlock(accept bool, gap uint64) (common.Hash, error) {
 		if err := n.acceptAncestors(block); err != nil {
 			return common.Hash{}, err
 		}
-		chain.DrainAcceptorQueue()
 	}
 	return block.Hash(), nil
 }

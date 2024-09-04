@@ -16,7 +16,6 @@ import (
 )
 
 const (
-	defaultAcceptorQueueLimit                     = 64 // Provides 2 minutes of buffer (2s block target) for a commit delay
 	defaultPruningEnabled                         = true
 	defaultCommitInterval                         = 4096
 	defaultTrieCleanCache                         = 512
@@ -119,7 +118,6 @@ type Config struct {
 
 	// Pruning Settings
 	Pruning                         bool    `json:"pruning-enabled"`                    // If enabled, trie roots are only persisted every 4096 blocks
-	AcceptorQueueLimit              int     `json:"accepted-queue-limit"`               // Maximum blocks to queue before blocking during acceptance
 	CommitInterval                  uint64  `json:"commit-interval"`                    // Specifies the commit interval at which to persist EVM and atomic tries.
 	AllowMissingTries               bool    `json:"allow-missing-tries"`                // If enabled, warnings preventing an incomplete trie index are suppressed
 	PopulateMissingTries            *uint64 `json:"populate-missing-tries,omitempty"`   // Sets the starting point for re-populating missing tries. Disables re-generation if nil.
@@ -262,7 +260,6 @@ func (c *Config) SetDefaults() {
 	c.TrieDirtyCommitTarget = defaultTrieDirtyCommitTarget
 	c.TriePrefetcherParallelism = defaultTriePrefetcherParallelism
 	c.SnapshotCache = defaultSnapshotCache
-	c.AcceptorQueueLimit = defaultAcceptorQueueLimit
 	c.CommitInterval = defaultCommitInterval
 	c.SnapshotWait = defaultSnapshotWait
 	c.PushGossipPercentStake = defaultPushGossipPercentStake

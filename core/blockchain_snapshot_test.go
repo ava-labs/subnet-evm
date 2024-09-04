@@ -116,7 +116,6 @@ func (basic *snapshotTestBasic) prepare(t *testing.T) (*BlockChain, []*types.Blo
 				}
 				basic.lastAcceptedHash = blocks[i].Hash()
 			}
-			chain.DrainAcceptorQueue()
 
 			diskRoot, blockRoot := chain.snaps.DiskRoot(), blocks[point-1].Root()
 			if !bytes.Equal(diskRoot.Bytes(), blockRoot.Bytes()) {

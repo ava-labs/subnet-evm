@@ -597,7 +597,6 @@ func testRepairWithScheme(t *testing.T, tt *rewindTest, snapshots bool, scheme s
 				}
 				lastAcceptedHash = canonblocks[i].Hash()
 			}
-			chain.DrainAcceptorQueue()
 		}
 	}
 	if _, err := chain.InsertChain(canonblocks[tt.commitBlock:]); err != nil {

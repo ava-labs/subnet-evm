@@ -210,7 +210,6 @@ func New(
 			TrieDirtyCommitTarget:           config.TrieDirtyCommitTarget,
 			TriePrefetcherParallelism:       config.TriePrefetcherParallelism,
 			Pruning:                         config.Pruning,
-			AcceptorQueueLimit:              config.AcceptorQueueLimit,
 			CommitInterval:                  config.CommitInterval,
 			PopulateMissingTries:            config.PopulateMissingTries,
 			PopulateMissingTriesParallelism: config.PopulateMissingTriesParallelism,
