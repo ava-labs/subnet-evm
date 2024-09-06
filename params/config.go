@@ -661,6 +661,10 @@ type Rules struct {
 	// Rules for Ethereum releases
 	EthRules
 
+	RulesExtra
+}
+
+type RulesExtra struct {
 	// Rules for Avalanche releases
 	AvalancheRules
 
