@@ -38,6 +38,7 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/params"
 )
 
 var (
@@ -658,6 +659,8 @@ type Rules struct {
 	// AccepterPrecompiles map addresses to stateful precompile accepter functions
 	// that are enabled for this rule set.
 	AccepterPrecompiles map[common.Address]precompileconfig.Accepter
+
+	params.NOOPHooks // XXX: Embedded to ensure that Rules implements params.RulesHooks
 }
 
 // Rules ensures c's ChainID is not nil.
