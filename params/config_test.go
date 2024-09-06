@@ -151,8 +151,10 @@ func TestCheckCompatible(t *testing.T) {
 
 func TestConfigRules(t *testing.T) {
 	c := &ChainConfig{
-		NetworkUpgrades: NetworkUpgrades{
-			SubnetEVMTimestamp: utils.NewUint64(500),
+		ChainConfigExtra: ChainConfigExtra{
+			NetworkUpgrades: NetworkUpgrades{
+				SubnetEVMTimestamp: utils.NewUint64(500),
+			},
 		},
 	}
 
@@ -238,13 +240,15 @@ func TestConfigUnmarshalJSON(t *testing.T) {
 
 func TestActivePrecompiles(t *testing.T) {
 	config := ChainConfig{
-		UpgradeConfig: UpgradeConfig{
-			PrecompileUpgrades: []PrecompileUpgrade{
-				{
-					nativeminter.NewConfig(utils.NewUint64(0), nil, nil, nil, nil), // enable at genesis
-				},
-				{
-					nativeminter.NewDisableConfig(utils.NewUint64(1)), // disable at timestamp 1
+		ChainConfigExtra: ChainConfigExtra{
+			UpgradeConfig: UpgradeConfig{
+				PrecompileUpgrades: []PrecompileUpgrade{
+					{
+						nativeminter.NewConfig(utils.NewUint64(0), nil, nil, nil, nil), // enable at genesis
+					},
+					{
+						nativeminter.NewDisableConfig(utils.NewUint64(1)), // disable at timestamp 1
+					},
 				},
 			},
 		},
@@ -261,8 +265,6 @@ func TestChainConfigMarshalWithUpgrades(t *testing.T) {
 	config := ChainConfigWithUpgradesJSON{
 		ChainConfig: ChainConfig{
 			ChainID:             big.NewInt(1),
-			FeeConfig:           DefaultFeeConfig,
-			AllowFeeRecipients:  false,
 			HomesteadBlock:      big.NewInt(0),
 			EIP150Block:         big.NewInt(0),
 			EIP155Block:         big.NewInt(0),
@@ -272,11 +274,15 @@ func TestChainConfigMarshalWithUpgrades(t *testing.T) {
 			PetersburgBlock:     big.NewInt(0),
 			IstanbulBlock:       big.NewInt(0),
 			MuirGlacierBlock:    big.NewInt(0),
-			NetworkUpgrades: NetworkUpgrades{
-				SubnetEVMTimestamp: utils.NewUint64(0),
-				DurangoTimestamp:   utils.NewUint64(0),
+			ChainConfigExtra: ChainConfigExtra{
+				FeeConfig:          DefaultFeeConfig,
+				AllowFeeRecipients: false,
+				NetworkUpgrades: NetworkUpgrades{
+					SubnetEVMTimestamp: utils.NewUint64(0),
+					DurangoTimestamp:   utils.NewUint64(0),
+				},
+				GenesisPrecompiles: Precompiles{},
 			},
-			GenesisPrecompiles: Precompiles{},
 		},
 		UpgradeConfig: UpgradeConfig{
 			PrecompileUpgrades: []PrecompileUpgrade{

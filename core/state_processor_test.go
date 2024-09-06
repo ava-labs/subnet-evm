@@ -259,7 +259,6 @@ func TestStateProcessorErrors(t *testing.T) {
 			gspec = &Genesis{
 				Config: &params.ChainConfig{
 					ChainID:             big.NewInt(1),
-					FeeConfig:           params.DefaultFeeConfig,
 					HomesteadBlock:      big.NewInt(0),
 					EIP150Block:         big.NewInt(0),
 					EIP155Block:         big.NewInt(0),
@@ -269,6 +268,9 @@ func TestStateProcessorErrors(t *testing.T) {
 					PetersburgBlock:     big.NewInt(0),
 					IstanbulBlock:       big.NewInt(0),
 					MuirGlacierBlock:    big.NewInt(0),
+					ChainConfigExtra: params.ChainConfigExtra{
+						FeeConfig: params.DefaultFeeConfig,
+					},
 				},
 				Alloc: types.GenesisAlloc{
 					common.HexToAddress("0x71562b71999873DB5b286dF957af199Ec94617F7"): types.Account{
@@ -354,7 +356,6 @@ func TestBadTxAllowListBlock(t *testing.T) {
 
 		config = &params.ChainConfig{
 			ChainID:             big.NewInt(1),
-			FeeConfig:           params.DefaultFeeConfig,
 			HomesteadBlock:      big.NewInt(0),
 			EIP150Block:         big.NewInt(0),
 			EIP155Block:         big.NewInt(0),
@@ -364,11 +365,14 @@ func TestBadTxAllowListBlock(t *testing.T) {
 			PetersburgBlock:     big.NewInt(0),
 			IstanbulBlock:       big.NewInt(0),
 			MuirGlacierBlock:    big.NewInt(0),
-			NetworkUpgrades: params.NetworkUpgrades{
-				SubnetEVMTimestamp: utils.NewUint64(0),
-			},
-			GenesisPrecompiles: params.Precompiles{
-				txallowlist.ConfigKey: txallowlist.NewConfig(utils.NewUint64(0), nil, nil, nil),
+			ChainConfigExtra: params.ChainConfigExtra{
+				FeeConfig: params.DefaultFeeConfig,
+				NetworkUpgrades: params.NetworkUpgrades{
+					SubnetEVMTimestamp: utils.NewUint64(0),
+				},
+				GenesisPrecompiles: params.Precompiles{
+					txallowlist.ConfigKey: txallowlist.NewConfig(utils.NewUint64(0), nil, nil, nil),
+				},
 			},
 		}
 		signer     = types.LatestSigner(config)

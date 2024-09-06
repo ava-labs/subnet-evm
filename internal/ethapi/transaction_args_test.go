@@ -274,8 +274,10 @@ func newBackendMock() *backendMock {
 		PetersburgBlock:     big.NewInt(0),
 		IstanbulBlock:       big.NewInt(0),
 		MuirGlacierBlock:    big.NewInt(0),
-		NetworkUpgrades: params.NetworkUpgrades{
-			SubnetEVMTimestamp: utils.NewUint64(100),
+		ChainConfigExtra: params.ChainConfigExtra{
+			NetworkUpgrades: params.NetworkUpgrades{
+				SubnetEVMTimestamp: utils.NewUint64(100),
+			},
 		},
 		CancunTime: &cancunTime,
 	}

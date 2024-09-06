@@ -178,8 +178,10 @@ var Forks = map[string]*params.ChainConfig{
 		ConstantinopleBlock: big.NewInt(0),
 		PetersburgBlock:     big.NewInt(0),
 		IstanbulBlock:       big.NewInt(0),
-		NetworkUpgrades: params.NetworkUpgrades{
-			SubnetEVMTimestamp: utils.NewUint64(0),
+		ChainConfigExtra: params.ChainConfigExtra{
+			NetworkUpgrades: params.NetworkUpgrades{
+				SubnetEVMTimestamp: utils.NewUint64(0),
+			},
 		},
 	},
 	"Durango": {
@@ -192,9 +194,11 @@ var Forks = map[string]*params.ChainConfig{
 		ConstantinopleBlock: big.NewInt(0),
 		PetersburgBlock:     big.NewInt(0),
 		IstanbulBlock:       big.NewInt(0),
-		NetworkUpgrades: params.NetworkUpgrades{
-			SubnetEVMTimestamp: utils.NewUint64(0),
-			DurangoTimestamp:   utils.NewUint64(0),
+		ChainConfigExtra: params.ChainConfigExtra{
+			NetworkUpgrades: params.NetworkUpgrades{
+				SubnetEVMTimestamp: utils.NewUint64(0),
+				DurangoTimestamp:   utils.NewUint64(0),
+			},
 		},
 	},
 	"Cancun": {
@@ -208,9 +212,11 @@ var Forks = map[string]*params.ChainConfig{
 		PetersburgBlock:     big.NewInt(0),
 		IstanbulBlock:       big.NewInt(0),
 		CancunTime:          utils.NewUint64(0),
-		NetworkUpgrades: params.NetworkUpgrades{
-			SubnetEVMTimestamp: utils.NewUint64(0),
-			DurangoTimestamp:   utils.NewUint64(0),
+		ChainConfigExtra: params.ChainConfigExtra{
+			NetworkUpgrades: params.NetworkUpgrades{
+				SubnetEVMTimestamp: utils.NewUint64(0),
+				DurangoTimestamp:   utils.NewUint64(0),
+			},
 		},
 	},
 }
