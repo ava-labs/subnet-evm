@@ -366,8 +366,8 @@ func (bc *BlockChain) SubscribeAcceptedTransactionEvent(ch chan<- NewTxsEvent) e
 // Assumes that a valid configuration is stored when the precompile is activated.
 func (bc *BlockChain) GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig, *big.Int, error) {
 	config := bc.Config()
-	if !config.IsPrecompileEnabled(feemanager.ContractAddress, parent.Time) {
-		return config.FeeConfig, common.Big0, nil
+	if !params.GetExtra(config).IsPrecompileEnabled(feemanager.ContractAddress, parent.Time) {
+		return params.GetExtra(config).FeeConfig, common.Big0, nil
 	}
 
 	// try to return it from the cache
@@ -400,12 +400,12 @@ func (bc *BlockChain) GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig
 // If fee recipients are allowed, returns true in the second return value.
 func (bc *BlockChain) GetCoinbaseAt(parent *types.Header) (common.Address, bool, error) {
 	config := bc.Config()
-	if !config.IsSubnetEVM(parent.Time) {
+	if !params.GetExtra(config).IsSubnetEVM(parent.Time) {
 		return constants.BlackholeAddr, false, nil
 	}
 
-	if !config.IsPrecompileEnabled(rewardmanager.ContractAddress, parent.Time) {
-		if bc.chainConfig.AllowFeeRecipients {
+	if !params.GetExtra(config).IsPrecompileEnabled(rewardmanager.ContractAddress, parent.Time) {
+		if params.GetExtra(bc.chainConfig).AllowFeeRecipients {
 			return common.Address{}, true, nil
 		} else {
 			return constants.BlackholeAddr, false, nil

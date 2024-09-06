@@ -205,7 +205,7 @@ func Transition(ctx *cli.Context) error {
 
 func applyLondonChecks(env *stEnv, chainConfig *params.ChainConfig) error {
 	// NOTE: IsLondon replaced with IsSubnetEVM here
-	if !chainConfig.IsSubnetEVM(env.Timestamp) {
+	if !params.GetExtra(chainConfig).IsSubnetEVM(env.Timestamp) {
 		return nil
 	}
 	// Sanity check, to not `panic` in state_transition

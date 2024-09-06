@@ -131,7 +131,7 @@ func (s *BlockChainAPI) GetActivePrecompilesAt(ctx context.Context, blockTimesta
 		timestamp = *blockTimestamp
 	}
 
-	return s.b.ChainConfig().EnabledStatefulPrecompiles(timestamp)
+	return params.GetExtra(s.b.ChainConfig()).EnabledStatefulPrecompiles(timestamp)
 }
 
 type ActivePrecompilesResult struct {

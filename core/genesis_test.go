@@ -71,7 +71,7 @@ func TestSetupGenesis(t *testing.T) {
 
 func testSetupGenesis(t *testing.T, scheme string) {
 	preSubnetConfig := *params.TestPreSubnetEVMChainConfig
-	preSubnetConfig.SubnetEVMTimestamp = utils.NewUint64(100)
+	params.GetExtra(&preSubnetConfig).SubnetEVMTimestamp = utils.NewUint64(100)
 	var (
 		customghash = common.HexToHash("0x4a12fe7bf8d40d152d7e9de22337b115186a4662aa3a97217b36146202bbfc66")
 		customg     = Genesis{
@@ -79,13 +79,13 @@ func testSetupGenesis(t *testing.T, scheme string) {
 			Alloc: types.GenesisAlloc{
 				{1}: {Balance: big.NewInt(1), Storage: map[common.Hash]common.Hash{{1}: {1}}},
 			},
-			GasLimit: preSubnetConfig.FeeConfig.GasLimit.Uint64(),
+			GasLimit: params.GetExtra(&preSubnetConfig).FeeConfig.GasLimit.Uint64(),
 		}
 		oldcustomg = customg
 	)
 
 	rollbackpreSubnetConfig := preSubnetConfig
-	rollbackpreSubnetConfig.SubnetEVMTimestamp = utils.NewUint64(90)
+	params.GetExtra(&rollbackpreSubnetConfig).SubnetEVMTimestamp = utils.NewUint64(90)
 	oldcustomg.Config = &rollbackpreSubnetConfig
 
 	tests := []struct {
@@ -209,7 +209,7 @@ func TestStatefulPrecompilesConfigure(t *testing.T) {
 		"allow list enabled in genesis": {
 			getConfig: func() *params.ChainConfig {
 				config := *params.TestChainConfig
-				config.GenesisPrecompiles = params.Precompiles{
+				params.GetExtra(&config).GenesisPrecompiles = params.Precompiles{
 					deployerallowlist.ConfigKey: deployerallowlist.NewConfig(utils.NewUint64(0), []common.Address{addr}, nil, nil),
 				}
 				return &config
@@ -228,7 +228,7 @@ func TestStatefulPrecompilesConfigure(t *testing.T) {
 				Alloc: types.GenesisAlloc{
 					{1}: {Balance: big.NewInt(1), Storage: map[common.Hash]common.Hash{{1}: {1}}},
 				},
-				GasLimit: config.FeeConfig.GasLimit.Uint64(),
+				GasLimit: params.GetExtra(config).FeeConfig.GasLimit.Uint64(),
 			}
 
 			db := rawdb.NewMemoryDatabase()
@@ -261,7 +261,7 @@ func TestPrecompileActivationAfterHeaderBlock(t *testing.T) {
 		Alloc: types.GenesisAlloc{
 			{1}: {Balance: big.NewInt(1), Storage: map[common.Hash]common.Hash{{1}: {1}}},
 		},
-		GasLimit: params.TestChainConfig.FeeConfig.GasLimit.Uint64(),
+		GasLimit: params.GetExtra(params.TestChainConfig).FeeConfig.GasLimit.Uint64(),
 	}
 	bc, _ := NewBlockChain(db, DefaultCacheConfig, &customg, dummy.NewFullFaker(), vm.Config{}, common.Hash{}, false)
 	defer bc.Stop()
@@ -285,7 +285,7 @@ func TestPrecompileActivationAfterHeaderBlock(t *testing.T) {
 
 	activatedGenesisConfig := *customg.Config
 	contractDeployerConfig := deployerallowlist.NewConfig(utils.NewUint64(51), nil, nil, nil)
-	activatedGenesisConfig.UpgradeConfig.PrecompileUpgrades = []params.PrecompileUpgrade{
+	params.GetExtra(&activatedGenesisConfig).UpgradeConfig.PrecompileUpgrades = []params.PrecompileUpgrade{
 		{
 			Config: contractDeployerConfig,
 		},
@@ -313,7 +313,7 @@ func TestGenesisWriteUpgradesRegression(t *testing.T) {
 		Alloc: types.GenesisAlloc{
 			{1}: {Balance: big.NewInt(1), Storage: map[common.Hash]common.Hash{{1}: {1}}},
 		},
-		GasLimit: config.FeeConfig.GasLimit.Uint64(),
+		GasLimit: params.GetExtra(&config).FeeConfig.GasLimit.Uint64(),
 	}
 
 	db := rawdb.NewMemoryDatabase()
@@ -323,7 +323,7 @@ func TestGenesisWriteUpgradesRegression(t *testing.T) {
 	_, _, err := SetupGenesisBlock(db, trieDB, genesis, genesisBlock.Hash(), false)
 	require.NoError(err)
 
-	genesis.Config.UpgradeConfig.PrecompileUpgrades = []params.PrecompileUpgrade{
+	params.GetExtra(genesis.Config).UpgradeConfig.PrecompileUpgrades = []params.PrecompileUpgrade{
 		{
 			Config: deployerallowlist.NewConfig(utils.NewUint64(51), nil, nil, nil),
 		},

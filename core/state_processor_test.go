@@ -58,7 +58,7 @@ func TestStateProcessorErrors(t *testing.T) {
 	cpcfg := *params.TestChainConfig
 	config := &cpcfg
 	config.CancunTime = u64(0)
-	config.FeeConfig.MinBaseFee = big.NewInt(params.TestMaxBaseFee)
+	params.GetExtra(config).FeeConfig.MinBaseFee = big.NewInt(params.TestMaxBaseFee)
 
 	var (
 		signer  = types.LatestSigner(config)
@@ -119,7 +119,7 @@ func TestStateProcessorErrors(t *testing.T) {
 						Nonce:   0,
 					},
 				},
-				GasLimit: params.TestChainConfig.FeeConfig.GasLimit.Uint64(),
+				GasLimit: params.GetExtra(params.TestChainConfig).FeeConfig.GasLimit.Uint64(),
 			}
 			// FullFaker used to skip header verification that enforces no blobs.
 			blockchain, _  = NewBlockChain(db, DefaultCacheConfig, gspec, dummy.NewFullFaker(), vm.Config{}, common.Hash{}, false)
@@ -278,7 +278,7 @@ func TestStateProcessorErrors(t *testing.T) {
 						Nonce:   0,
 					},
 				},
-				GasLimit: params.TestChainConfig.FeeConfig.GasLimit.Uint64(),
+				GasLimit: params.GetExtra(params.TestChainConfig).FeeConfig.GasLimit.Uint64(),
 			}
 			blockchain, _ = NewBlockChain(db, DefaultCacheConfig, gspec, dummy.NewCoinbaseFaker(), vm.Config{}, common.Hash{}, false)
 		)
@@ -318,7 +318,7 @@ func TestStateProcessorErrors(t *testing.T) {
 						Code:    common.FromHex("0xB0B0FACE"),
 					},
 				},
-				GasLimit: params.TestChainConfig.FeeConfig.GasLimit.Uint64(),
+				GasLimit: params.GetExtra(params.TestChainConfig).FeeConfig.GasLimit.Uint64(),
 			}
 			blockchain, _ = NewBlockChain(db, DefaultCacheConfig, gspec, dummy.NewCoinbaseFaker(), vm.Config{}, common.Hash{}, false)
 		)
@@ -386,7 +386,7 @@ func TestBadTxAllowListBlock(t *testing.T) {
 					Nonce:   0,
 				},
 			},
-			GasLimit: config.FeeConfig.GasLimit.Uint64(),
+			GasLimit: params.GetExtra(config).FeeConfig.GasLimit.Uint64(),
 		}
 		blockchain, _ = NewBlockChain(db, DefaultCacheConfig, gspec, dummy.NewCoinbaseFaker(), vm.Config{}, common.Hash{}, false)
 	)
@@ -448,8 +448,8 @@ func GenerateBadBlock(parent *types.Block, engine consensus.Engine, txs types.Tr
 		UncleHash: types.EmptyUncleHash,
 	}
 
-	if config.IsSubnetEVM(header.Time) {
-		header.Extra, header.BaseFee, _ = dummy.CalcBaseFee(config, config.FeeConfig, parent.Header(), header.Time)
+	if params.GetExtra(config).IsSubnetEVM(header.Time) {
+		header.Extra, header.BaseFee, _ = dummy.CalcBaseFee(config, params.GetExtra(config).FeeConfig, parent.Header(), header.Time)
 		header.BlockGasCost = big.NewInt(0)
 	}
 	var receipts []*types.Receipt

@@ -61,9 +61,9 @@ func TestVerifyStateUpgrades(t *testing.T) {
 			require := require.New(t)
 			baseConfig := *TestChainConfig
 			config := &baseConfig
-			config.StateUpgrades = tt.upgrades
+			GetExtra(config).StateUpgrades = tt.upgrades
 
-			err := config.Verify()
+			err := GetExtra(config).Verify()
 			if tt.expectedError == "" {
 				require.NoError(err)
 			} else {

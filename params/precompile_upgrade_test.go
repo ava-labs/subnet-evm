@@ -15,7 +15,8 @@ import (
 
 func TestVerifyUpgradeConfig(t *testing.T) {
 	admins := []common.Address{{1}}
-	chainConfig := *TestChainConfig
+	chainConfigCpy := *TestChainConfig
+	chainConfig := GetExtra(&chainConfigCpy)
 	chainConfig.GenesisPrecompiles = Precompiles{
 		txallowlist.ConfigKey: txallowlist.NewConfig(utils.NewUint64(1), admins, nil, nil),
 	}
@@ -73,7 +74,7 @@ func TestVerifyUpgradeConfig(t *testing.T) {
 func TestCheckCompatibleUpgradeConfigs(t *testing.T) {
 	admins := []common.Address{{1}}
 	chainConfig := *TestChainConfig
-	chainConfig.GenesisPrecompiles = Precompiles{
+	GetExtra(&chainConfig).GenesisPrecompiles = Precompiles{
 		txallowlist.ConfigKey:       txallowlist.NewConfig(utils.NewUint64(1), admins, nil, nil),
 		deployerallowlist.ConfigKey: deployerallowlist.NewConfig(utils.NewUint64(10), admins, nil, nil),
 	}
@@ -277,7 +278,7 @@ func (tt *upgradeCompatibilityTest) run(t *testing.T, chainConfig ChainConfig) {
 	// apply all the upgrade bytes specified in order
 	for i, upgrade := range tt.configs {
 		newCfg := chainConfig
-		newCfg.UpgradeConfig = *upgrade
+		GetExtra(&newCfg).UpgradeConfig = *upgrade
 
 		err := chainConfig.checkCompatible(&newCfg, nil, tt.startTimestamps[i])
 

@@ -123,7 +123,7 @@ func TestCheckCompatible(t *testing.T) {
 			wantErr: &ConfigCompatError{
 				What:         "SubnetEVM fork block timestamp",
 				StoredTime:   utils.NewUint64(0),
-				NewTime:      TestPreSubnetEVMChainConfig.NetworkUpgrades.SubnetEVMTimestamp,
+				NewTime:      GetExtra(TestPreSubnetEVMChainConfig).NetworkUpgrades.SubnetEVMTimestamp,
 				RewindToTime: 0,
 			},
 		},
@@ -135,7 +135,7 @@ func TestCheckCompatible(t *testing.T) {
 			wantErr: &ConfigCompatError{
 				What:         "SubnetEVM fork block timestamp",
 				StoredTime:   utils.NewUint64(0),
-				NewTime:      TestPreSubnetEVMChainConfig.NetworkUpgrades.SubnetEVMTimestamp,
+				NewTime:      GetExtra(TestPreSubnetEVMChainConfig).NetworkUpgrades.SubnetEVMTimestamp,
 				RewindToTime: 0,
 			},
 		},
@@ -218,14 +218,14 @@ func TestConfigUnmarshalJSON(t *testing.T) {
 	require.NoError(err)
 
 	require.Equal(c.ChainID, big.NewInt(43214))
-	require.Equal(c.AllowFeeRecipients, true)
+	require.Equal(GetExtra(&c).AllowFeeRecipients, true)
 
-	rewardManagerConfig, ok := c.GenesisPrecompiles[rewardmanager.ConfigKey]
+	rewardManagerConfig, ok := GetExtra(&c).GenesisPrecompiles[rewardmanager.ConfigKey]
 	require.True(ok)
 	require.Equal(rewardManagerConfig.Key(), rewardmanager.ConfigKey)
 	require.True(rewardManagerConfig.Equal(testRewardManagerConfig))
 
-	nativeMinterConfig := c.GenesisPrecompiles[nativeminter.ConfigKey]
+	nativeMinterConfig := GetExtra(&c).GenesisPrecompiles[nativeminter.ConfigKey]
 	require.Equal(nativeMinterConfig.Key(), nativeminter.ConfigKey)
 	require.True(nativeMinterConfig.Equal(testContractNativeMinterConfig))
 

@@ -52,7 +52,7 @@ func TestTraceBlockPrecompileActivation(t *testing.T) {
 		Config: txallowlist.NewDisableConfig(&deactivateAllowListTime),
 	}
 
-	genesis.Config.PrecompileUpgrades = []params.PrecompileUpgrade{
+	params.GetExtra(genesis.Config).PrecompileUpgrades = []params.PrecompileUpgrade{
 		activateTxAllowListConfig,
 		deactivateTxAllowListConfig,
 	}
@@ -158,7 +158,7 @@ func TestTraceTransactionPrecompileActivation(t *testing.T) {
 		Config: txallowlist.NewDisableConfig(&deactivateAllowListTime),
 	}
 
-	genesis.Config.PrecompileUpgrades = []params.PrecompileUpgrade{
+	params.GetExtra(genesis.Config).PrecompileUpgrades = []params.PrecompileUpgrade{
 		activateTxAllowListConfig,
 		deactivateTxAllowListConfig,
 	}
@@ -222,7 +222,7 @@ func TestTraceChainPrecompileActivation(t *testing.T) {
 		Config: txallowlist.NewDisableConfig(&deactivateAllowListTime),
 	}
 
-	genesis.Config.PrecompileUpgrades = []params.PrecompileUpgrade{
+	params.GetExtra(genesis.Config).PrecompileUpgrades = []params.PrecompileUpgrade{
 		activateTxAllowListConfig,
 		deactivateTxAllowListConfig,
 	}
@@ -319,7 +319,7 @@ func TestTraceCallWithOverridesStateUpgrade(t *testing.T) {
 		},
 	}
 
-	genesis.Config.StateUpgrades = []params.StateUpgrade{
+	params.GetExtra(genesis.Config).StateUpgrades = []params.StateUpgrade{
 		activateStateUpgradeConfig,
 	}
 	genBlocks := 3

@@ -132,7 +132,7 @@ func (eng *DummyEngine) verifyHeaderGasFields(config *params.ChainConfig, header
 	if err != nil {
 		return err
 	}
-	if config.IsSubnetEVM(header.Time) {
+	if params.GetExtra(config).IsSubnetEVM(header.Time) {
 		expectedGasLimit := feeConfig.GasLimit.Uint64()
 		if header.GasLimit != expectedGasLimit {
 			return fmt.Errorf("expected gas limit to be %d, but found %d", expectedGasLimit, header.GasLimit)
@@ -206,11 +206,11 @@ func (eng *DummyEngine) verifyHeader(chain consensus.ChainHeaderReader, header *
 		return errUnclesUnsupported
 	}
 	switch {
-	case config.IsDurango(header.Time):
+	case params.GetExtra(config).IsDurango(header.Time):
 		if len(header.Extra) < params.DynamicFeeExtraDataSize {
 			return fmt.Errorf("expected extra-data field length >= %d, found %d", params.DynamicFeeExtraDataSize, len(header.Extra))
 		}
-	case config.IsSubnetEVM(header.Time):
+	case params.GetExtra(config).IsSubnetEVM(header.Time):
 		if len(header.Extra) != params.DynamicFeeExtraDataSize {
 			return fmt.Errorf("expected extra-data field to be: %d, but found %d", params.DynamicFeeExtraDataSize, len(header.Extra))
 		}
@@ -363,7 +363,7 @@ func (eng *DummyEngine) verifyBlockFee(
 }
 
 func (eng *DummyEngine) Finalize(chain consensus.ChainHeaderReader, block *types.Block, parent *types.Header, state *state.StateDB, receipts []*types.Receipt) error {
-	if chain.Config().IsSubnetEVM(block.Time()) {
+	if params.GetExtra(chain.Config()).IsSubnetEVM(block.Time()) {
 		// we use the parent to determine the fee config
 		// since the current block has not been finalized yet.
 		feeConfig, _, err := chain.GetFeeConfigAt(parent)
@@ -402,7 +402,7 @@ func (eng *DummyEngine) Finalize(chain consensus.ChainHeaderReader, block *types
 func (eng *DummyEngine) FinalizeAndAssemble(chain consensus.ChainHeaderReader, header *types.Header, parent *types.Header, state *state.StateDB, txs []*types.Transaction,
 	uncles []*types.Header, receipts []*types.Receipt,
 ) (*types.Block, error) {
-	if chain.Config().IsSubnetEVM(header.Time) {
+	if params.GetExtra(chain.Config()).IsSubnetEVM(header.Time) {
 		// we use the parent to determine the fee config
 		// since the current block has not been finalized yet.
 		feeConfig, _, err := chain.GetFeeConfigAt(parent)

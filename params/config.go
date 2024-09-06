@@ -214,7 +214,12 @@ type ChainConfig struct {
 	CancunTime *uint64 `json:"cancunTime,omitempty"` // Cancun switch time (nil = no fork, 0 = already activated)
 	VerkleTime *uint64 `json:"verkleTime,omitempty"` // Verkle switch time (nil = no fork, 0 = already on verkle)
 
-	ChainConfigExtra
+	// XXX: Should not be accessed directly except to initialize. Use GetExtra instead.
+	ChainConfigExtra ChainConfigExtra `json:"-"`
+}
+
+func GetExtra(c *ChainConfig) *ChainConfigExtra {
+	return &c.ChainConfigExtra
 }
 
 type ChainConfigExtra struct {
@@ -256,6 +261,12 @@ func (c *ChainConfig) Description() string {
 	banner += fmt.Sprintf(" - Cancun Timestamp:              @%-10v (https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/cancun.md)\n", ptrToString(c.CancunTime))
 	banner += fmt.Sprintf(" - Verkle Timestamp:              @%-10v", ptrToString(c.VerkleTime))
 	banner += "\n"
+
+	return banner + c.ChainConfigExtra.Description()
+}
+
+func (c *ChainConfigExtra) Description() string {
+	var banner string
 
 	banner += "Avalanche Upgrades (timestamp based):\n"
 	banner += c.NetworkUpgrades.Description()
@@ -397,7 +408,10 @@ func (c *ChainConfig) CheckConfigForkOrder() error {
 	if err := checkForks(ethForks, true); err != nil {
 		return err
 	}
+	return c.ChainConfigExtra.CheckConfigForkOrder()
+}
 
+func (c *ChainConfigExtra) CheckConfigForkOrder() error {
 	// Note: In Avalanche, hard forks must take place via block timestamps instead
 	// of block numbers since blocks are produced asynchronously. Therefore, we do not
 	// check that the block timestamps in the same way as for
@@ -503,6 +517,10 @@ func (c *ChainConfig) checkCompatible(newcfg *ChainConfig, headNumber *big.Int, 
 		return newTimestampCompatError("Verkle fork timestamp", c.VerkleTime, newcfg.VerkleTime)
 	}
 
+	return c.ChainConfigExtra.CheckCompatible(GetExtra(newcfg), headTimestamp)
+}
+
+func (c *ChainConfigExtra) CheckCompatible(newcfg *ChainConfigExtra, headTimestamp uint64) *ConfigCompatError {
 	// Check avalanche network upgrades
 	if err := c.CheckNetworkUpgradesCompatible(&newcfg.NetworkUpgrades, headTimestamp); err != nil {
 		return err
@@ -710,7 +728,12 @@ func (c *ChainConfig) rules(num *big.Int, timestamp uint64) Rules {
 // network upgrades
 func (c *ChainConfig) Rules(blockNum *big.Int, timestamp uint64) Rules {
 	rules := c.rules(blockNum, timestamp)
+	rules.RulesExtra = c.ChainConfigExtra.Rules(blockNum, timestamp)
+	return rules
+}
 
+func (c *ChainConfigExtra) Rules(blockNum *big.Int, timestamp uint64) RulesExtra {
+	var rules RulesExtra
 	rules.AvalancheRules = c.GetAvalancheRules(timestamp)
 
 	// Initialize the stateful precompiles that should be enabled at [blockTimestamp].

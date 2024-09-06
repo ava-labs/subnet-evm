@@ -35,7 +35,7 @@ func (s *StateUpgrade) Equal(other *StateUpgrade) bool {
 
 // verifyStateUpgrades checks [c.StateUpgrades] is well formed:
 // - the specified blockTimestamps must monotonically increase
-func (c *ChainConfig) verifyStateUpgrades() error {
+func (c *ChainConfigExtra) verifyStateUpgrades() error {
 	var previousUpgradeTimestamp *uint64
 	for i, upgrade := range c.StateUpgrades {
 		upgradeTimestamp := upgrade.BlockTimestamp
@@ -58,7 +58,7 @@ func (c *ChainConfig) verifyStateUpgrades() error {
 
 // GetActivatingStateUpgrades returns all state upgrades configured to activate during the
 // state transition from a block with timestamp [from] to a block with timestamp [to].
-func (c *ChainConfig) GetActivatingStateUpgrades(from *uint64, to uint64, upgrades []StateUpgrade) []StateUpgrade {
+func (c *ChainConfigExtra) GetActivatingStateUpgrades(from *uint64, to uint64, upgrades []StateUpgrade) []StateUpgrade {
 	activating := make([]StateUpgrade, 0)
 	for _, upgrade := range upgrades {
 		if IsForkTransition(upgrade.BlockTimestamp, from, to) {
@@ -69,7 +69,7 @@ func (c *ChainConfig) GetActivatingStateUpgrades(from *uint64, to uint64, upgrad
 }
 
 // CheckStateUpgradesCompatible checks if [stateUpgrades] are compatible with [c] at [headTimestamp].
-func (c *ChainConfig) CheckStateUpgradesCompatible(stateUpgrades []StateUpgrade, lastTimestamp uint64) *ConfigCompatError {
+func (c *ChainConfigExtra) CheckStateUpgradesCompatible(stateUpgrades []StateUpgrade, lastTimestamp uint64) *ConfigCompatError {
 	// All active upgrades (from nil to [lastTimestamp]) must match.
 	activeUpgrades := c.GetActivatingStateUpgrades(nil, lastTimestamp, c.StateUpgrades)
 	newUpgrades := c.GetActivatingStateUpgrades(nil, lastTimestamp, stateUpgrades)

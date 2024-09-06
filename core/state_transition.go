@@ -358,7 +358,7 @@ func (st *StateTransition) preCheck() error {
 		}
 
 		// Check that the sender is on the tx allow list if enabled
-		if st.evm.ChainConfig().IsPrecompileEnabled(txallowlist.ContractAddress, st.evm.Context.Time) {
+		if params.GetExtra(st.evm.ChainConfig()).IsPrecompileEnabled(txallowlist.ContractAddress, st.evm.Context.Time) {
 			txAllowListRole := txallowlist.GetTxAllowListStatus(st.state, msg.From)
 			if !txAllowListRole.IsEnabled() {
 				return fmt.Errorf("%w: %s", vmerrs.ErrSenderAddressNotAllowListed, msg.From)
@@ -366,7 +366,7 @@ func (st *StateTransition) preCheck() error {
 		}
 	}
 	// Make sure that transaction gasFeeCap is greater than the baseFee (post london)
-	if st.evm.ChainConfig().IsSubnetEVM(st.evm.Context.Time) {
+	if params.GetExtra(st.evm.ChainConfig()).IsSubnetEVM(st.evm.Context.Time) {
 		// Skip the checks if gas fields are zero and baseFee was explicitly disabled (eth_call)
 		skipCheck := st.evm.Config.NoBaseFee && msg.GasFeeCap.BitLen() == 0 && msg.GasTipCap.BitLen() == 0
 		if !skipCheck {

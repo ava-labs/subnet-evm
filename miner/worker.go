@@ -152,7 +152,7 @@ func (w *worker) commitNewWork(predicateContext *precompileconfig.PredicateConte
 		return nil, err
 	}
 	configuredGasLimit := feeConfig.GasLimit.Uint64()
-	if w.chainConfig.IsSubnetEVM(timestamp) {
+	if params.GetExtra(w.chainConfig).IsSubnetEVM(timestamp) {
 		gasLimit = configuredGasLimit
 	} else {
 		// The gas limit is set in SubnetEVMGasLimit because the ceiling and floor were set to the same value
@@ -167,7 +167,7 @@ func (w *worker) commitNewWork(predicateContext *precompileconfig.PredicateConte
 		Time:       timestamp,
 	}
 
-	if w.chainConfig.IsSubnetEVM(timestamp) {
+	if params.GetExtra(w.chainConfig).IsSubnetEVM(timestamp) {
 		var err error
 		header.Extra, header.BaseFee, err = dummy.CalcBaseFee(w.chainConfig, feeConfig, parent, timestamp)
 		if err != nil {

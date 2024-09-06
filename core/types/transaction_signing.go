@@ -51,7 +51,7 @@ func MakeSigner(config *params.ChainConfig, blockNumber *big.Int, blockTime uint
 	switch {
 	case config.IsCancun(blockNumber, blockTime):
 		return NewCancunSigner(config.ChainID)
-	case config.IsSubnetEVM(blockTime):
+	case params.GetExtra(config).IsSubnetEVM(blockTime):
 		return NewLondonSigner(config.ChainID)
 	case config.IsEIP155(blockNumber):
 		return NewEIP155Signer(config.ChainID)
@@ -74,7 +74,7 @@ func LatestSigner(config *params.ChainConfig) Signer {
 		if config.CancunTime != nil {
 			return NewCancunSigner(config.ChainID)
 		}
-		if config.SubnetEVMTimestamp != nil {
+		if params.GetExtra(config).SubnetEVMTimestamp != nil {
 			return NewLondonSigner(config.ChainID)
 		}
 		if config.EIP155Block != nil {

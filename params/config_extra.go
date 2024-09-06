@@ -73,32 +73,76 @@ func (c *ChainConfig) SetEthUpgrades(avalancheUpgrades NetworkUpgrades) {
 	}
 }
 
-// UnmarshalJSON parses the JSON-encoded data and stores the result in the
-// object pointed to by c.
-// This is a custom unmarshaler to handle the Precompiles field.
-// Precompiles was presented as an inline object in the JSON.
-// This custom unmarshaler ensures backwards compatibility with the old format.
 func (c *ChainConfig) UnmarshalJSON(data []byte) error {
-	// Alias ChainConfig to avoid recursion
 	type _ChainConfig ChainConfig
 	tmp := _ChainConfig{}
 	if err := json.Unmarshal(data, &tmp); err != nil {
 		return err
 	}
 
-	// At this point we have populated all fields except PrecompileUpgrade
 	*c = ChainConfig(tmp)
+
+	return json.Unmarshal(data, &c.ChainConfigExtra)
+}
+
+// UnmarshalJSON parses the JSON-encoded data and stores the result in the
+// object pointed to by c.
+// This is a custom unmarshaler to handle the Precompiles field.
+// Precompiles was presented as an inline object in the JSON.
+// This custom unmarshaler ensures backwards compatibility with the old format.
+func (c *ChainConfigExtra) UnmarshalJSON(data []byte) error {
+	// Alias ChainConfigExtra to avoid recursion
+	type _ChainConfigExtra ChainConfigExtra
+	tmp := _ChainConfigExtra{}
+	if err := json.Unmarshal(data, &tmp); err != nil {
+		return err
+	}
+
+	// At this point we have populated all fields except PrecompileUpgrade
+	*c = ChainConfigExtra(tmp)
 
 	// Unmarshal inlined PrecompileUpgrade
 	return json.Unmarshal(data, &c.GenesisPrecompiles)
 }
 
+// MarshalJSON implements the [json.Marshaler] interface.
+func (c ChainConfig) MarshalJSON() ([]byte, error) {
+	// See UnmarshalJSON() for rationale.
+	type raw ChainConfig
+	tmp, err := json.Marshal(raw(c))
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert to map so we can add the extra fields.
+	asMap := make(map[string]json.RawMessage)
+	if err := json.Unmarshal(tmp, &asMap); err != nil {
+		return nil, err
+	}
+
+	// Similarly, obtain [c.extra] as a map.
+	tmp, err = json.Marshal(c.ChainConfigExtra)
+	if err != nil {
+		return nil, err
+	}
+	extraAsMap := make(map[string]json.RawMessage)
+	if err := json.Unmarshal(tmp, &extraAsMap); err != nil {
+		return nil, err
+	}
+
+	// Merge the two maps and marshal the result.
+	for k, v := range extraAsMap {
+		asMap[k] = v
+	}
+	return json.Marshal(asMap)
+}
+
 // MarshalJSON returns the JSON encoding of c.
 // This is a custom marshaler to handle the Precompiles field.
-func (c ChainConfig) MarshalJSON() ([]byte, error) {
-	// Alias ChainConfig to avoid recursion
-	type _ChainConfig ChainConfig
-	tmp, err := json.Marshal(_ChainConfig(c))
+func (c ChainConfigExtra) MarshalJSON() ([]byte, error) {
+	// Alias ChainConfigExtra to avoid recursion
+	type _ChainConfigExtra ChainConfigExtra
+	tmp, err := json.Marshal(_ChainConfigExtra(c))
 	if err != nil {
 		return nil, err
 	}
@@ -181,7 +225,7 @@ func (cu *ChainConfigWithUpgradesJSON) UnmarshalJSON(input []byte) error {
 }
 
 // Verify verifies chain config and returns error
-func (c *ChainConfig) Verify() error {
+func (c *ChainConfigExtra) Verify() error {
 	if err := c.FeeConfig.Verify(); err != nil {
 		return err
 	}
@@ -205,20 +249,20 @@ func (c *ChainConfig) Verify() error {
 }
 
 // IsPrecompileEnabled returns whether precompile with [address] is enabled at [timestamp].
-func (c *ChainConfig) IsPrecompileEnabled(address common.Address, timestamp uint64) bool {
+func (c *ChainConfigExtra) IsPrecompileEnabled(address common.Address, timestamp uint64) bool {
 	config := c.getActivePrecompileConfig(address, timestamp)
 	return config != nil && !config.IsDisabled()
 }
 
 // GetFeeConfig returns the original FeeConfig contained in the genesis ChainConfig.
 // Implements precompile.ChainConfig interface.
-func (c *ChainConfig) GetFeeConfig() commontype.FeeConfig {
+func (c *ChainConfigExtra) GetFeeConfig() commontype.FeeConfig {
 	return c.FeeConfig
 }
 
 // AllowedFeeRecipients returns the original AllowedFeeRecipients parameter contained in the genesis ChainConfig.
 // Implements precompile.ChainConfig interface.
-func (c *ChainConfig) AllowedFeeRecipients() bool {
+func (c *ChainConfigExtra) AllowedFeeRecipients() bool {
 	return c.AllowFeeRecipients
 }
 
@@ -228,7 +272,7 @@ func (c *ChainConfig) AllowedFeeRecipients() bool {
 func (c *ChainConfig) ToWithUpgradesJSON() *ChainConfigWithUpgradesJSON {
 	return &ChainConfigWithUpgradesJSON{
 		ChainConfig:   *c,
-		UpgradeConfig: c.UpgradeConfig,
+		UpgradeConfig: GetExtra(c).UpgradeConfig,
 	}
 }
 
@@ -261,7 +305,7 @@ func (c *ChainConfig) SetNetworkUpgradeDefaults() {
 		c.MuirGlacierBlock = big.NewInt(0)
 	}
 
-	c.NetworkUpgrades.setDefaults(c.SnowCtx.NetworkUpgrades)
+	GetExtra(c).NetworkUpgrades.setDefaults(GetExtra(c).SnowCtx.NetworkUpgrades)
 }
 
 func (r *Rules) PredicatersExist() bool {

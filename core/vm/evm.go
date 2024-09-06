@@ -232,7 +232,7 @@ func (evm *EVM) Cancelled() bool {
 
 // GetSnowContext returns the evm's snow.Context.
 func (evm *EVM) GetSnowContext() *snow.Context {
-	return evm.chainConfig.SnowCtx
+	return params.GetExtra(evm.chainConfig).SnowCtx
 }
 
 // GetStateDB returns the evm's StateDB
@@ -626,4 +626,6 @@ func (evm *EVM) Create2(caller ContractRef, code []byte, gas uint64, endowment *
 func (evm *EVM) ChainConfig() *params.ChainConfig { return evm.chainConfig }
 
 // GetChainConfig implements AccessibleState
-func (evm *EVM) GetChainConfig() precompileconfig.ChainConfig { return evm.chainConfig }
+func (evm *EVM) GetChainConfig() precompileconfig.ChainConfig {
+	return params.GetExtra(evm.chainConfig)
+}

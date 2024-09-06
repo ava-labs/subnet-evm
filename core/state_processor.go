@@ -215,7 +215,7 @@ func ApplyPrecompileActivations(c *params.ChainConfig, parentTimestamp *uint64, 
 	// This ensures even if precompiles read/write state other than their own they will observe
 	// an identical global state in a deterministic order when they are configured.
 	for _, module := range modules.RegisteredModules() {
-		for _, activatingConfig := range c.GetActivatingPrecompileConfigs(module.Address, parentTimestamp, blockTimestamp, c.PrecompileUpgrades) {
+		for _, activatingConfig := range params.GetExtra(c).GetActivatingPrecompileConfigs(module.Address, parentTimestamp, blockTimestamp, params.GetExtra(c).PrecompileUpgrades) {
 			// If this transition activates the upgrade, configure the stateful precompile.
 			// (or deconfigure it if it is being disabled.)
 			if activatingConfig.IsDisabled() {
@@ -243,7 +243,7 @@ func ApplyPrecompileActivations(c *params.ChainConfig, parentTimestamp *uint64, 
 				// can be called from within Solidity contracts. Solidity adds a check before invoking a contract to ensure
 				// that it does not attempt to invoke a non-existent contract.
 				statedb.SetCode(module.Address, []byte{0x1})
-				if err := module.Configure(c, activatingConfig, statedb, blockContext); err != nil {
+				if err := module.Configure(params.GetExtra(c), activatingConfig, statedb, blockContext); err != nil {
 					return fmt.Errorf("could not configure precompile, name: %s, reason: %w", module.ConfigKey, err)
 				}
 			}
@@ -257,7 +257,7 @@ func ApplyPrecompileActivations(c *params.ChainConfig, parentTimestamp *uint64, 
 // to apply the necessary state transitions for the upgrade.
 func applyStateUpgrades(c *params.ChainConfig, parentTimestamp *uint64, blockContext contract.ConfigurationBlockContext, statedb *state.StateDB) error {
 	// Apply state upgrades
-	for _, upgrade := range c.GetActivatingStateUpgrades(parentTimestamp, blockContext.Timestamp(), c.StateUpgrades) {
+	for _, upgrade := range params.GetExtra(c).GetActivatingStateUpgrades(parentTimestamp, blockContext.Timestamp(), params.GetExtra(c).StateUpgrades) {
 		log.Info("Applying state upgrade", "blockNumber", blockContext.Number(), "upgrade", upgrade)
 		if err := stateupgrade.Configure(&upgrade, c, statedb, blockContext); err != nil {
 			return fmt.Errorf("could not configure state upgrade: %w", err)

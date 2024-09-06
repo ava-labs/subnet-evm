@@ -1059,16 +1059,16 @@ func overrideConfig(original *params.ChainConfig, override *params.ChainConfig) 
 	*copy = *original
 	canon := true
 
-	if timestamp := override.SubnetEVMTimestamp; timestamp != nil {
-		copy.SubnetEVMTimestamp = timestamp
+	if timestamp := params.GetExtra(override).SubnetEVMTimestamp; timestamp != nil {
+		params.GetExtra(copy).SubnetEVMTimestamp = timestamp
 		canon = false
 	}
-	if timestamp := override.DurangoTimestamp; timestamp != nil {
-		copy.DurangoTimestamp = timestamp
+	if timestamp := params.GetExtra(override).DurangoTimestamp; timestamp != nil {
+		params.GetExtra(copy).DurangoTimestamp = timestamp
 		canon = false
 	}
-	if timestamp := override.EtnaTimestamp; timestamp != nil {
-		copy.EtnaTimestamp = timestamp
+	if timestamp := params.GetExtra(override).EtnaTimestamp; timestamp != nil {
+		params.GetExtra(copy).EtnaTimestamp = timestamp
 		canon = false
 	}
 	if timestamp := override.CancunTime; timestamp != nil {

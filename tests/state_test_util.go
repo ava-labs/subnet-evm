@@ -261,7 +261,7 @@ func (t *StateTest) RunNoVerify(subtest StateSubtest, vmconfig vm.Config, snapsh
 	state = MakePreState(rawdb.NewMemoryDatabase(), t.json.Pre, snapshotter, scheme)
 
 	var baseFee *big.Int
-	if config.IsSubnetEVM(0) {
+	if params.GetExtra(config).IsSubnetEVM(0) {
 		baseFee = t.json.Env.BaseFee
 		if baseFee == nil {
 			// Retesteth uses `0x10` for genesis baseFee. Therefore, it defaults to
@@ -303,7 +303,7 @@ func (t *StateTest) RunNoVerify(subtest StateSubtest, vmconfig vm.Config, snapsh
 	context := core.NewEVMBlockContext(block.Header(), nil, &t.json.Env.Coinbase)
 	context.GetHash = vmTestBlockHash
 	context.BaseFee = baseFee
-	if config.IsSubnetEVM(0) && t.json.Env.Random != nil {
+	if params.GetExtra(config).IsSubnetEVM(0) && t.json.Env.Random != nil {
 		context.Difficulty = big.NewInt(0)
 	}
 	if config.IsCancun(new(big.Int), block.Time()) && t.json.Env.ExcessBlobGas != nil {
