@@ -154,4 +154,6 @@ require (
 	rsc.io/tmplfunc v0.0.3 // indirect
 )
 
-replace github.com/ethereum/go-ethereum => github.com/ava-labs/go-ethereum v0.0.0-20240905235234-ba862f93dfc1
+replace github.com/ethereum/go-ethereum => github.com/ava-labs/go-ethereum v0.0.0-20240909202038-fdd63effd030
+
+// replace github.com/ethereum/go-ethereum => ../go-ethereum
