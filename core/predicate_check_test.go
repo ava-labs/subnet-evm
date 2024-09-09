@@ -300,6 +300,7 @@ func TestCheckPredicate(t *testing.T) {
 			rules := params.TestChainConfig.Rules(common.Big0, 0)
 			if test.createPredicates != nil {
 				for address, predicater := range test.createPredicates(t) {
+					rules := params.GetRulesExtra(rules)
 					rules.Predicaters[address] = predicater
 				}
 			}
@@ -445,8 +446,9 @@ func TestCheckPredicatesOutput(t *testing.T) {
 				})
 			}
 
-			rules.Predicaters[addr1] = predicater
-			rules.Predicaters[addr2] = predicater
+			rulesExtra := params.GetRulesExtra(rules)
+			rulesExtra.Predicaters[addr1] = predicater
+			rulesExtra.Predicaters[addr2] = predicater
 
 			// Specify only the access list, since this test should not depend on any other values
 			tx := types.NewTx(&types.DynamicFeeTx{

@@ -1384,7 +1384,8 @@ func (s *StateDB) commit(block uint64, deleteEmptyObjects bool, snaps *snapshot.
 // - Add coinbase to access list (EIP-3651/Durango)
 // - Reset transient storage (EIP-1153)
 func (s *StateDB) Prepare(rules params.Rules, sender, coinbase common.Address, dst *common.Address, precompiles []common.Address, list types.AccessList) {
-	if rules.IsSubnetEVM {
+	rulesExtra := params.GetRulesExtra(rules)
+	if rulesExtra.IsSubnetEVM {
 		// Clear out any leftover from previous executions
 		al := newAccessList()
 		s.accessList = al
@@ -1403,7 +1404,7 @@ func (s *StateDB) Prepare(rules params.Rules, sender, coinbase common.Address, d
 				al.AddSlot(el.Address, key)
 			}
 		}
-		if rules.IsDurango { // EIP-3651: warm coinbase
+		if rulesExtra.IsDurango { // EIP-3651: warm coinbase
 			al.AddAddress(coinbase)
 		}
 

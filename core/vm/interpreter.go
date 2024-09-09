@@ -27,6 +27,7 @@
 package vm
 
 import (
+	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
@@ -69,9 +70,9 @@ func NewEVMInterpreter(evm *EVM) *EVMInterpreter {
 	switch {
 	case evm.chainRules.IsCancun:
 		table = &cancunInstructionSet
-	case evm.chainRules.IsDurango:
+	case params.GetRulesExtra(evm.chainRules).IsDurango:
 		table = &durangoInstructionSet
-	case evm.chainRules.IsSubnetEVM:
+	case params.GetRulesExtra(evm.chainRules).IsSubnetEVM:
 		table = &subnetEVMInstructionSet
 	case evm.chainRules.IsIstanbul:
 		table = &istanbulInstructionSet

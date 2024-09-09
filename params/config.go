@@ -222,6 +222,10 @@ func GetExtra(c *ChainConfig) *ChainConfigExtra {
 	return &c.ChainConfigExtra
 }
 
+func GetRulesExtra(r Rules) *RulesExtra {
+	return &r.RulesExtra
+}
+
 type ChainConfigExtra struct {
 	NetworkUpgrades // Config for timestamps that enable network upgrades. Skip encoding/decoding directly into ChainConfig.
 
@@ -679,7 +683,7 @@ type Rules struct {
 	// Rules for Ethereum releases
 	EthRules
 
-	RulesExtra
+	RulesExtra RulesExtra
 }
 
 type RulesExtra struct {

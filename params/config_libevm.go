@@ -10,18 +10,18 @@ import (
 )
 
 func init() {
-	getter = gethparams.RegisterExtras(gethparams.Extras[ChainConfig, Rules]{
+	getter = gethparams.RegisterExtras(gethparams.Extras[ChainConfig, RulesExtra]{
 		NewRules: constructRulesExtra,
 	})
 }
 
-var getter gethparams.ExtraPayloadGetter[ChainConfig, Rules]
+var getter gethparams.ExtraPayloadGetter[ChainConfig, RulesExtra]
 
 // constructRulesExtra acts as an adjunct to the [params.ChainConfig.Rules]
 // method. Its primary purpose is to construct the extra payload for the
 // [params.Rules] but it MAY also modify the [params.Rules].
-func constructRulesExtra(c *gethparams.ChainConfig, r *gethparams.Rules, cEx *ChainConfig, blockNum *big.Int, isMerge bool, timestamp uint64) *Rules {
-	return &Rules{}
+func constructRulesExtra(c *gethparams.ChainConfig, r *gethparams.Rules, cEx *ChainConfig, blockNum *big.Int, isMerge bool, timestamp uint64) *RulesExtra {
+	return &RulesExtra{}
 }
 
 // FromChainConfig returns the extra payload carried by the ChainConfig.
@@ -30,6 +30,6 @@ func FromChainConfig(c *gethparams.ChainConfig) *ChainConfig {
 }
 
 // FromRules returns the extra payload carried by the Rules.
-func FromRules(r *gethparams.Rules) *Rules {
+func FromRules(r *gethparams.Rules) *RulesExtra {
 	return getter.FromRules(r)
 }

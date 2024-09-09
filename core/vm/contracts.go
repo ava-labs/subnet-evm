@@ -191,7 +191,7 @@ func ActivePrecompiles(rules params.Rules) []common.Address {
 	switch {
 	case rules.IsCancun:
 		return PrecompiledAddressesCancun
-	case rules.IsSubnetEVM:
+	case params.GetRulesExtra(rules).IsSubnetEVM:
 		return PrecompiledAddressesBerlin
 	case rules.IsIstanbul:
 		return PrecompiledAddressesIstanbul

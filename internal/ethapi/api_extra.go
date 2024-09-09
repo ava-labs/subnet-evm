@@ -155,10 +155,10 @@ func (s *BlockChainAPI) GetActiveRulesAt(ctx context.Context, blockTimestamp *ui
 	rules := s.b.ChainConfig().Rules(common.Big0, timestamp)
 	res := ActiveRulesResult{
 		EthRules:       rules.EthRules,
-		AvalancheRules: rules.AvalancheRules,
+		AvalancheRules: params.GetRulesExtra(rules).AvalancheRules,
 	}
 	res.ActivePrecompiles = make(map[string]ActivePrecompilesResult)
-	for _, precompileConfig := range rules.ActivePrecompiles {
+	for _, precompileConfig := range params.GetRulesExtra(rules).ActivePrecompiles {
 		if precompileConfig.Timestamp() == nil {
 			continue
 		}

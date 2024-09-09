@@ -1085,7 +1085,7 @@ func (vm *VM) currentRules() params.Rules {
 // network must be signed by the primary network validators.
 // This is necessary when the subnet is not validating the primary network.
 func (vm *VM) requirePrimaryNetworkSigners() bool {
-	switch c := vm.currentRules().ActivePrecompiles[warpcontract.ContractAddress].(type) {
+	switch c := params.GetRulesExtra(vm.currentRules()).ActivePrecompiles[warpcontract.ContractAddress].(type) {
 	case *warpcontract.Config:
 		return c.RequirePrimaryNetworkSigners
 	default: // includes nil due to non-presence

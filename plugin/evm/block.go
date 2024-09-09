@@ -94,8 +94,9 @@ func (b *Block) Accept(context.Context) error {
 // contract.Accepter
 // This function assumes that the Accept function will ONLY operate on state maintained in the VM's versiondb.
 // This ensures that any DB operations are performed atomically with marking the block as accepted.
-func (b *Block) handlePrecompileAccept(rules params.Rules, sharedMemoryWriter *sharedMemoryWriter) error {
+func (b *Block) handlePrecompileAccept(rules_ params.Rules, sharedMemoryWriter *sharedMemoryWriter) error {
 	// Short circuit early if there are no precompile accepters to execute
+	rules := params.GetRulesExtra(rules_)
 	if len(rules.AccepterPrecompiles) == 0 {
 		return nil
 	}
@@ -169,7 +170,8 @@ func (b *Block) Verify(context.Context) error {
 
 // ShouldVerifyWithContext implements the block.WithVerifyContext interface
 func (b *Block) ShouldVerifyWithContext(context.Context) (bool, error) {
-	predicates := b.vm.chainConfig.Rules(b.ethBlock.Number(), b.ethBlock.Timestamp()).Predicaters
+	rules := params.GetRulesExtra(b.vm.chainConfig.Rules(b.ethBlock.Number(), b.ethBlock.Timestamp()))
+	predicates := rules.Predicaters
 	// Short circuit early if there are no predicates to verify
 	if len(predicates) == 0 {
 		return false, nil
@@ -236,11 +238,12 @@ func (b *Block) verify(predicateContext *precompileconfig.PredicateContext, writ
 // verifyPredicates verifies the predicates in the block are valid according to predicateContext.
 func (b *Block) verifyPredicates(predicateContext *precompileconfig.PredicateContext) error {
 	rules := b.vm.chainConfig.Rules(b.ethBlock.Number(), b.ethBlock.Timestamp())
+	rulesExtra := params.GetRulesExtra(rules)
 
 	switch {
-	case !rules.IsDurango && rules.PredicatersExist():
+	case !rulesExtra.IsDurango && rulesExtra.PredicatersExist():
 		return errors.New("cannot enable predicates before Durango activation")
-	case !rules.IsDurango:
+	case !rulesExtra.IsDurango:
 		return nil
 	}
 

@@ -17,6 +17,7 @@ import (
 func PreparePredicateStorageSlots(rules params.Rules, list types.AccessList) map[common.Address][][]byte {
 	predicateStorageSlots := make(map[common.Address][][]byte)
 	for _, el := range list {
+		rules := params.GetRulesExtra(rules)
 		if !rules.PredicaterExists(el.Address) {
 			continue
 		}

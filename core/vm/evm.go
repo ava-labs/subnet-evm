@@ -76,7 +76,7 @@ func (evm *EVM) precompile(addr common.Address) (contract.StatefulPrecompiledCon
 	switch {
 	case evm.chainRules.IsCancun:
 		precompiles = PrecompiledContractsCancun
-	case evm.chainRules.IsSubnetEVM:
+	case params.GetRulesExtra(evm.chainRules).IsSubnetEVM:
 		precompiles = PrecompiledContractsBerlin
 	case evm.chainRules.IsIstanbul:
 		precompiles = PrecompiledContractsIstanbul
@@ -93,7 +93,7 @@ func (evm *EVM) precompile(addr common.Address) (contract.StatefulPrecompiledCon
 	}
 
 	// Otherwise, check the chain rules for the additionally configured precompiles.
-	if _, ok = evm.chainRules.ActivePrecompiles[addr]; ok {
+	if _, ok = params.GetRulesExtra(evm.chainRules).ActivePrecompiles[addr]; ok {
 		module, ok := modules.GetPrecompileModuleByAddress(addr)
 		return module.Contract, ok
 	}
@@ -524,7 +524,7 @@ func (evm *EVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 	evm.StateDB.SetNonce(caller.Address(), nonce+1)
 	// We add this to the access list _before_ taking a snapshot. Even if the creation fails,
 	// the access-list change should not be rolled back
-	if evm.chainRules.IsSubnetEVM {
+	if params.GetRulesExtra(evm.chainRules).IsSubnetEVM {
 		evm.StateDB.AddAddressToAccessList(address)
 	}
 	// Ensure there's no existing contract already at the designated address
@@ -533,7 +533,7 @@ func (evm *EVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 		return nil, common.Address{}, 0, vmerrs.ErrContractAddressCollision
 	}
 	// If the allow list is enabled, check that [evm.TxContext.Origin] has permission to deploy a contract.
-	if evm.chainRules.IsPrecompileEnabled(deployerallowlist.ContractAddress) {
+	if params.GetRulesExtra(evm.chainRules).IsPrecompileEnabled(deployerallowlist.ContractAddress) {
 		allowListRole := deployerallowlist.GetContractDeployerAllowListStatus(evm.StateDB, evm.TxContext.Origin)
 		if !allowListRole.IsEnabled() {
 			return nil, common.Address{}, 0, fmt.Errorf("tx.origin %s is not authorized to deploy a contract", evm.TxContext.Origin)
@@ -569,7 +569,7 @@ func (evm *EVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 	}
 
 	// Reject code starting with 0xEF if EIP-3541 is enabled.
-	if err == nil && len(ret) >= 1 && ret[0] == 0xEF && evm.chainRules.IsSubnetEVM {
+	if err == nil && len(ret) >= 1 && ret[0] == 0xEF && params.GetRulesExtra(evm.chainRules).IsSubnetEVM {
 		err = vmerrs.ErrInvalidCode
 	}
 

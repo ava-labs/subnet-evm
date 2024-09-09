@@ -274,7 +274,7 @@ func ValidateTransactionWithState(tx *types.Transaction, signer types.Signer, op
 	}
 
 	// If the tx allow list is enabled, return an error if the from address is not allow listed.
-	if opts.Rules.IsPrecompileEnabled(txallowlist.ContractAddress) {
+	if params.GetRulesExtra(opts.Rules).IsPrecompileEnabled(txallowlist.ContractAddress) {
 		txAllowListRole := txallowlist.GetTxAllowListStatus(opts.State, from)
 		if !txAllowListRole.IsEnabled() {
 			return fmt.Errorf("%w: %s", vmerrs.ErrSenderAddressNotAllowListed, from)
