@@ -337,7 +337,7 @@ func (vm *VM) Initialize(
 		SnowCtx: chainCtx,
 	}
 
-	g.Config.SetNetworkUpgradeDefaults()
+	params.SetNetworkUpgradeDefaults(g.Config)
 
 	// Load airdrop file if provided
 	if vm.config.AirdropFile != "" {
@@ -376,7 +376,7 @@ func (vm *VM) Initialize(
 		params.GetExtra(g.Config).Override(overrides)
 	}
 
-	g.Config.SetEthUpgrades(params.GetExtra(g.Config).NetworkUpgrades)
+	params.SetEthUpgrades(g.Config, params.GetExtra(g.Config).NetworkUpgrades)
 
 	if err := g.Verify(); err != nil {
 		return fmt.Errorf("failed to verify genesis: %w", err)

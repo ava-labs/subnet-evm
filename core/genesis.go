@@ -202,8 +202,8 @@ func SetupGenesisBlock(
 	} else {
 		compatErr := storedcfg.CheckCompatible(newcfg, height, timestamp)
 		if compatErr != nil && ((height != 0 && compatErr.RewindToBlock != 0) || (timestamp != 0 && compatErr.RewindToTime != 0)) {
-			storedData, _ := storedcfg.ToWithUpgradesJSON().MarshalJSON()
-			newData, _ := newcfg.ToWithUpgradesJSON().MarshalJSON()
+			storedData, _ := params.ToWithUpgradesJSON(storedcfg).MarshalJSON()
+			newData, _ := params.ToWithUpgradesJSON(newcfg).MarshalJSON()
 			log.Error("found mismatch between config on database vs. new config", "storedConfig", string(storedData), "newConfig", string(newData), "err", compatErr)
 			return newcfg, stored, compatErr
 		}

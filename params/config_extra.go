@@ -67,7 +67,7 @@ type AvalancheContext struct {
 }
 
 // SetEthUpgrades sets the mapped upgrades  Avalanche > EVM upgrades) for the chain config.
-func (c *ChainConfig) SetEthUpgrades(avalancheUpgrades NetworkUpgrades) {
+func SetEthUpgrades(c *ChainConfig, avalancheUpgrades NetworkUpgrades) {
 	if avalancheUpgrades.EtnaTimestamp != nil {
 		c.CancunTime = utils.NewUint64(*avalancheUpgrades.EtnaTimestamp)
 	}
@@ -269,14 +269,14 @@ func (c *ChainConfigExtra) AllowedFeeRecipients() bool {
 // ToWithUpgradesJSON converts the ChainConfig to ChainConfigWithUpgradesJSON with upgrades explicitly displayed.
 // ChainConfig does not include upgrades in its JSON output.
 // This is a workaround for showing upgrades in the JSON output.
-func (c *ChainConfig) ToWithUpgradesJSON() *ChainConfigWithUpgradesJSON {
+func ToWithUpgradesJSON(c *ChainConfig) *ChainConfigWithUpgradesJSON {
 	return &ChainConfigWithUpgradesJSON{
 		ChainConfig:   *c,
 		UpgradeConfig: GetExtra(c).UpgradeConfig,
 	}
 }
 
-func (c *ChainConfig) SetNetworkUpgradeDefaults() {
+func SetNetworkUpgradeDefaults(c *ChainConfig) {
 	if c.HomesteadBlock == nil {
 		c.HomesteadBlock = big.NewInt(0)
 	}
@@ -308,17 +308,17 @@ func (c *ChainConfig) SetNetworkUpgradeDefaults() {
 	GetExtra(c).NetworkUpgrades.setDefaults(GetExtra(c).SnowCtx.NetworkUpgrades)
 }
 
-func (r *Rules) PredicatersExist() bool {
+func (r *RulesExtra) PredicatersExist() bool {
 	return len(r.Predicaters) > 0
 }
 
-func (r *Rules) PredicaterExists(addr common.Address) bool {
+func (r *RulesExtra) PredicaterExists(addr common.Address) bool {
 	_, PredicaterExists := r.Predicaters[addr]
 	return PredicaterExists
 }
 
 // IsPrecompileEnabled returns true if the precompile at [addr] is enabled for this rule set.
-func (r *Rules) IsPrecompileEnabled(addr common.Address) bool {
+func (r *RulesExtra) IsPrecompileEnabled(addr common.Address) bool {
 	_, ok := r.ActivePrecompiles[addr]
 	return ok
 }

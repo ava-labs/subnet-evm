@@ -19,7 +19,7 @@ import (
 )
 
 func (s *BlockChainAPI) GetChainConfig(ctx context.Context) *params.ChainConfigWithUpgradesJSON {
-	return s.b.ChainConfig().ToWithUpgradesJSON()
+	return params.ToWithUpgradesJSON(s.b.ChainConfig())
 }
 
 type DetailedExecutionResult struct {
