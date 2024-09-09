@@ -139,7 +139,7 @@ type ActivePrecompilesResult struct {
 }
 
 type ActiveRulesResult struct {
-	EthRules          params.EthRules                    `json:"ethRules"`
+	EthRules          params.Rules                       `json:"ethRules"`
 	AvalancheRules    params.AvalancheRules              `json:"avalancheRules"`
 	ActivePrecompiles map[string]ActivePrecompilesResult `json:"precompiles"`
 }
@@ -154,7 +154,7 @@ func (s *BlockChainAPI) GetActiveRulesAt(ctx context.Context, blockTimestamp *ui
 	}
 	rules := s.b.ChainConfig().Rules(common.Big0, timestamp)
 	res := ActiveRulesResult{
-		EthRules:       rules.EthRules,
+		EthRules:       rules,
 		AvalancheRules: params.GetRulesExtra(rules).AvalancheRules,
 	}
 	res.ActivePrecompiles = make(map[string]ActivePrecompilesResult)

@@ -26,6 +26,10 @@ const (
 	MinGasPrice        int64 = 225_000_000_000
 	TestInitialBaseFee int64 = 225_000_000_000
 	TestMaxBaseFee     int64 = 225_000_000_000
+
+	// XXX: Value to pass to geth's Rules by default where the appropriate
+	// context is not available in the avalanche code. (similar to context.TODO())
+	IsMergeTODO = true
 )
 
 var (
@@ -309,16 +313,28 @@ func SetNetworkUpgradeDefaults(c *ChainConfig) {
 }
 
 func (r *RulesExtra) PredicatersExist() bool {
+	// Methods on *RulesExtra handle nil receiver so params.Rules is an initialized struct.
+	if r == nil {
+		return false
+	}
 	return len(r.Predicaters) > 0
 }
 
 func (r *RulesExtra) PredicaterExists(addr common.Address) bool {
+	// Methods on *RulesExtra handle nil receiver so params.Rules is an initialized struct.
+	if r == nil {
+		return false
+	}
 	_, PredicaterExists := r.Predicaters[addr]
 	return PredicaterExists
 }
 
 // IsPrecompileEnabled returns true if the precompile at [addr] is enabled for this rule set.
 func (r *RulesExtra) IsPrecompileEnabled(addr common.Address) bool {
+	// Methods on *RulesExtra handle nil receiver so params.Rules is an initialized struct.
+	if r == nil {
+		return false
+	}
 	_, ok := r.ActivePrecompiles[addr]
 	return ok
 }

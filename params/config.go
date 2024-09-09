@@ -34,14 +34,15 @@ import (
 	"github.com/ava-labs/avalanchego/upgrade"
 	"github.com/ava-labs/avalanchego/utils/constants"
 	"github.com/ava-labs/subnet-evm/commontype"
-	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/params"
+	gethparams "github.com/ethereum/go-ethereum/params"
 )
 
 var (
+	_ = do_init() // XXX: is (temporarily) here because type registeration must proceed the call to .Rules()
 	// SubnetEVMDefaultConfig is the default configuration
 	// without any network upgrades.
 	SubnetEVMDefaultChainConfig = &ChainConfig{
@@ -223,7 +224,7 @@ func GetExtra(c *ChainConfig) *ChainConfigExtra {
 }
 
 func GetRulesExtra(r Rules) *RulesExtra {
-	return &r.RulesExtra
+	return FromRules(&r)
 }
 
 type ChainConfigExtra struct {
@@ -677,14 +678,7 @@ type EthRules struct {
 //
 // Rules is a one time interface meaning that it shouldn't be used in between transition
 // phases.
-type Rules struct {
-	ChainID *big.Int
-
-	// Rules for Ethereum releases
-	EthRules
-
-	RulesExtra RulesExtra
-}
+type Rules = gethparams.Rules
 
 type RulesExtra struct {
 	// Rules for Avalanche releases
@@ -712,49 +706,30 @@ func (c *ChainConfig) rules(num *big.Int, timestamp uint64) Rules {
 		chainID = new(big.Int)
 	}
 	return Rules{
-		ChainID: new(big.Int).Set(chainID),
-		EthRules: EthRules{
-			IsHomestead:      c.IsHomestead(num),
-			IsEIP150:         c.IsEIP150(num),
-			IsEIP155:         c.IsEIP155(num),
-			IsEIP158:         c.IsEIP158(num),
-			IsByzantium:      c.IsByzantium(num),
-			IsConstantinople: c.IsConstantinople(num),
-			IsPetersburg:     c.IsPetersburg(num),
-			IsIstanbul:       c.IsIstanbul(num),
-			IsCancun:         c.IsCancun(num, timestamp),
-			IsVerkle:         c.IsVerkle(num, timestamp),
-		},
+		ChainID:          new(big.Int).Set(chainID),
+		IsHomestead:      c.IsHomestead(num),
+		IsEIP150:         c.IsEIP150(num),
+		IsEIP155:         c.IsEIP155(num),
+		IsEIP158:         c.IsEIP158(num),
+		IsByzantium:      c.IsByzantium(num),
+		IsConstantinople: c.IsConstantinople(num),
+		IsPetersburg:     c.IsPetersburg(num),
+		IsIstanbul:       c.IsIstanbul(num),
+		IsCancun:         c.IsCancun(num, timestamp),
+		IsVerkle:         c.IsVerkle(num, timestamp),
 	}
 }
 
 // Rules returns the Avalanche modified rules to support Avalanche
 // network upgrades
 func (c *ChainConfig) Rules(blockNum *big.Int, timestamp uint64) Rules {
-	rules := c.rules(blockNum, timestamp)
-	rules.RulesExtra = c.ChainConfigExtra.Rules(blockNum, timestamp)
-	return rules
-}
-
-func (c *ChainConfigExtra) Rules(blockNum *big.Int, timestamp uint64) RulesExtra {
-	var rules RulesExtra
-	rules.AvalancheRules = c.GetAvalancheRules(timestamp)
-
-	// Initialize the stateful precompiles that should be enabled at [blockTimestamp].
-	rules.ActivePrecompiles = make(map[common.Address]precompileconfig.Config)
-	rules.Predicaters = make(map[common.Address]precompileconfig.Predicater)
-	rules.AccepterPrecompiles = make(map[common.Address]precompileconfig.Accepter)
-	for _, module := range modules.RegisteredModules() {
-		if config := c.getActivePrecompileConfig(module.Address, timestamp); config != nil && !config.IsDisabled() {
-			rules.ActivePrecompiles[module.Address] = config
-			if predicater, ok := config.(precompileconfig.Predicater); ok {
-				rules.Predicaters[module.Address] = predicater
-			}
-			if precompileAccepter, ok := config.(precompileconfig.Accepter); ok {
-				rules.AccepterPrecompiles[module.Address] = precompileAccepter
-			}
-		}
+	// XXX: This just exists to get the callback from libevm to take RulesExtra.
+	var c_ gethparams.ChainConfig
+	jsonBytes := []byte(`{}`)
+	if err := json.Unmarshal(jsonBytes, &c_); err != nil {
+		panic(err)
 	}
-
-	return rules
+	extra := FromChainConfig(&c_)
+	*extra = *c
+	return c_.Rules(blockNum, IsMergeTODO, timestamp)
 }
