@@ -34,9 +34,9 @@ func fundAddressByGenesis(addrs []common.Address) (string, error) {
 		Difficulty: common.Big0,
 		GasLimit:   params.TestChainConfig.FeeConfig.GasLimit.Uint64(),
 	}
-	funds := make(map[common.Address]core.GenesisAccount)
+	funds := make(map[common.Address]types.Account)
 	for _, addr := range addrs {
-		funds[addr] = core.GenesisAccount{
+		funds[addr] = types.Account{
 			Balance: balance,
 		}
 	}
@@ -111,7 +111,7 @@ func TestMempoolEthTxsAppGossipHandling(t *testing.T) {
 
 	// Txs must be submitted over the API to be included in push gossip.
 	// (i.e., txs received via p2p are not included in push gossip)
-	vm.eth.APIBackend.SendTx(context.Background(), tx)
+	err = vm.eth.APIBackend.SendTx(context.Background(), tx)
 	assert.NoError(err)
 	assert.False(txRequested, "tx should not be requested")
 

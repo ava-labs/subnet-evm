@@ -1,4 +1,6 @@
+TestChainIndexerWithChildren
 TestClientCancelWebsocket
+TestExampleOpenTSB
 TestExpDecaySampleNanosecondRegression
 TestGolangBindings
 TestMempoolEthTxsAppGossipHandling
@@ -6,5 +8,6 @@ TestResumeSyncAccountsTrieInterrupted
 TestResyncNewRootAfterDeletes
 TestTransactionSkipIndexing
 TestVMShutdownWhileSyncing
+TestWalletNotifications
 TestWalletNotifications
 TestWebsocketLargeRead
