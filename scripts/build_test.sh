@@ -45,8 +45,7 @@ do
     unexpected_failures=$(
         # First grep pattern corresponds to test failures, second pattern corresponds to test panics due to timeouts
         (grep "^--- FAIL" test.out | awk '{print $3}' || grep -E '^\s+Test.+ \(' test.out | awk '{print $1}') |
-        sed 's/\r$//' | sort -u | comm -23 - ./scripts/known_flakes.txt
-    )
+        sort -u | comm -23 -  <(dos2unix < ./scripts/known_flakes.txt)
     if [ -n "${unexpected_failures}" ]; then
         echo "Unexpected test failures: ${unexpected_failures}"
         exit 1
