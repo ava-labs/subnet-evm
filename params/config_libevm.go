@@ -14,7 +14,8 @@ import (
 
 func do_init() any {
 	getter = gethparams.RegisterExtras(gethparams.Extras[ChainConfigExtra, RulesExtra]{
-		NewRules: constructRulesExtra,
+		ReuseJSONRoot: true, // Reuse the root JSON input when unmarshalling the extra payload.
+		NewRules:      constructRulesExtra,
 	})
 	return nil
 }
