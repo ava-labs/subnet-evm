@@ -263,24 +263,26 @@ type backendMock struct {
 
 func newBackendMock() *backendMock {
 	var cancunTime uint64 = 600
-	config := &params.ChainConfig{
-		ChainID:             big.NewInt(42),
-		HomesteadBlock:      big.NewInt(0),
-		EIP150Block:         big.NewInt(0),
-		EIP155Block:         big.NewInt(0),
-		EIP158Block:         big.NewInt(0),
-		ByzantiumBlock:      big.NewInt(0),
-		ConstantinopleBlock: big.NewInt(0),
-		PetersburgBlock:     big.NewInt(0),
-		IstanbulBlock:       big.NewInt(0),
-		MuirGlacierBlock:    big.NewInt(0),
-		ChainConfigExtra: params.ChainConfigExtra{
+	config := params.WithExtra(
+		&params.ChainConfig{
+			ChainID:             big.NewInt(42),
+			HomesteadBlock:      big.NewInt(0),
+			EIP150Block:         big.NewInt(0),
+			EIP155Block:         big.NewInt(0),
+			EIP158Block:         big.NewInt(0),
+			ByzantiumBlock:      big.NewInt(0),
+			ConstantinopleBlock: big.NewInt(0),
+			PetersburgBlock:     big.NewInt(0),
+			IstanbulBlock:       big.NewInt(0),
+			MuirGlacierBlock:    big.NewInt(0),
+			CancunTime:          &cancunTime,
+		},
+		&params.ChainConfigExtra{
 			NetworkUpgrades: params.NetworkUpgrades{
 				SubnetEVMTimestamp: utils.NewUint64(100),
 			},
 		},
-		CancunTime: &cancunTime,
-	}
+	)
 	return &backendMock{
 		current: &types.Header{
 			Difficulty: big.NewInt(10000000000),

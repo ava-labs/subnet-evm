@@ -8,10 +8,10 @@ import (
 	"math/big"
 
 	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/common/math"
+	"github.com/ethereum/go-ethereum/params"
 )
 
 var _ = (*genesisSpecMarshaling)(nil)
@@ -19,7 +19,7 @@ var _ = (*genesisSpecMarshaling)(nil)
 // MarshalJSON marshals as JSON.
 func (g Genesis) MarshalJSON() ([]byte, error) {
 	type Genesis struct {
-		Config        *ChainConfig                               `json:"config"`
+		Config        *params.ChainConfig                        `json:"config"`
 		Nonce         math.HexOrDecimal64                        `json:"nonce"`
 		Timestamp     math.HexOrDecimal64                        `json:"timestamp"`
 		ExtraData     hexutil.Bytes                              `json:"extraData"`
@@ -39,7 +39,7 @@ func (g Genesis) MarshalJSON() ([]byte, error) {
 		BlobGasUsed   *math.HexOrDecimal64                       `json:"blobGasUsed"`
 	}
 	var enc Genesis
-	enc.Config = (*ChainConfig)(g.Config)
+	enc.Config = g.Config
 	enc.Nonce = math.HexOrDecimal64(g.Nonce)
 	enc.Timestamp = math.HexOrDecimal64(g.Timestamp)
 	enc.ExtraData = g.ExtraData
@@ -68,7 +68,7 @@ func (g Genesis) MarshalJSON() ([]byte, error) {
 // UnmarshalJSON unmarshals from JSON.
 func (g *Genesis) UnmarshalJSON(input []byte) error {
 	type Genesis struct {
-		Config        *ChainConfig                               `json:"config"`
+		Config        *params.ChainConfig                        `json:"config"`
 		Nonce         *math.HexOrDecimal64                       `json:"nonce"`
 		Timestamp     *math.HexOrDecimal64                       `json:"timestamp"`
 		ExtraData     *hexutil.Bytes                             `json:"extraData"`
@@ -92,7 +92,7 @@ func (g *Genesis) UnmarshalJSON(input []byte) error {
 		return err
 	}
 	if dec.Config != nil {
-		g.Config = (*params.ChainConfig)(dec.Config)
+		g.Config = dec.Config
 	}
 	if dec.Nonce != nil {
 		g.Nonce = uint64(*dec.Nonce)

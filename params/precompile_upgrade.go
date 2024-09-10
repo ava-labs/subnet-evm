@@ -186,14 +186,14 @@ func (c *ChainConfigExtra) GetActivatingPrecompileConfigs(address common.Address
 	return configs
 }
 
-// CheckPrecompilesCompatible checks if [precompileUpgrades] are compatible with [c] at [headTimestamp].
+// checkPrecompilesCompatible checks if [precompileUpgrades] are compatible with [c] at [headTimestamp].
 // Returns a ConfigCompatError if upgrades already activated at [headTimestamp] are missing from
 // [precompileUpgrades]. Upgrades not already activated may be modified or absent from [precompileUpgrades].
 // Returns nil if [precompileUpgrades] is compatible with [c].
 // Assumes given timestamp is the last accepted block timestamp.
 // This ensures that as long as the node has not accepted a block with a different rule set it will allow a
 // new upgrade to be applied as long as it activates after the last accepted block.
-func (c *ChainConfigExtra) CheckPrecompilesCompatible(precompileUpgrades []PrecompileUpgrade, time uint64) *ConfigCompatError {
+func (c *ChainConfigExtra) checkPrecompilesCompatible(precompileUpgrades []PrecompileUpgrade, time uint64) *ConfigCompatError {
 	for _, module := range modules.RegisteredModules() {
 		if err := c.checkPrecompileCompatible(module.Address, precompileUpgrades, time); err != nil {
 			return err

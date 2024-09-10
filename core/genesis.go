@@ -92,7 +92,6 @@ type Genesis struct {
 
 // field type overrides for gencodec
 type genesisSpecMarshaling struct {
-	Config        *ChainConfig
 	Nonce         math.HexOrDecimal64
 	Timestamp     math.HexOrDecimal64
 	ExtraData     hexutil.Bytes

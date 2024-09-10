@@ -55,7 +55,7 @@ func u64(val uint64) *uint64 { return &val }
 // blockchain imports bad blocks, meaning blocks which have valid headers but
 // contain invalid transactions
 func TestStateProcessorErrors(t *testing.T) {
-	cpcfg := *params.TestChainConfig
+	cpcfg := params.Copy(params.TestChainConfig)
 	config := &cpcfg
 	config.CancunTime = u64(0)
 	params.GetExtra(config).FeeConfig.MinBaseFee = big.NewInt(params.TestMaxBaseFee)
@@ -257,21 +257,21 @@ func TestStateProcessorErrors(t *testing.T) {
 		var (
 			db    = rawdb.NewMemoryDatabase()
 			gspec = &Genesis{
-				Config: &params.ChainConfig{
-					ChainID:             big.NewInt(1),
-					HomesteadBlock:      big.NewInt(0),
-					EIP150Block:         big.NewInt(0),
-					EIP155Block:         big.NewInt(0),
-					EIP158Block:         big.NewInt(0),
-					ByzantiumBlock:      big.NewInt(0),
-					ConstantinopleBlock: big.NewInt(0),
-					PetersburgBlock:     big.NewInt(0),
-					IstanbulBlock:       big.NewInt(0),
-					MuirGlacierBlock:    big.NewInt(0),
-					ChainConfigExtra: params.ChainConfigExtra{
-						FeeConfig: params.DefaultFeeConfig,
+				Config: params.WithExtra(
+					&params.ChainConfig{
+						ChainID:             big.NewInt(1),
+						HomesteadBlock:      big.NewInt(0),
+						EIP150Block:         big.NewInt(0),
+						EIP155Block:         big.NewInt(0),
+						EIP158Block:         big.NewInt(0),
+						ByzantiumBlock:      big.NewInt(0),
+						ConstantinopleBlock: big.NewInt(0),
+						PetersburgBlock:     big.NewInt(0),
+						IstanbulBlock:       big.NewInt(0),
+						MuirGlacierBlock:    big.NewInt(0),
 					},
-				},
+					&params.ChainConfigExtra{FeeConfig: params.DefaultFeeConfig},
+				),
 				Alloc: types.GenesisAlloc{
 					common.HexToAddress("0x71562b71999873DB5b286dF957af199Ec94617F7"): types.Account{
 						Balance: big.NewInt(1000000000000000000), // 1 ether
@@ -354,18 +354,20 @@ func TestBadTxAllowListBlock(t *testing.T) {
 		db       = rawdb.NewMemoryDatabase()
 		testAddr = common.HexToAddress("0x71562b71999873DB5b286dF957af199Ec94617F7")
 
-		config = &params.ChainConfig{
-			ChainID:             big.NewInt(1),
-			HomesteadBlock:      big.NewInt(0),
-			EIP150Block:         big.NewInt(0),
-			EIP155Block:         big.NewInt(0),
-			EIP158Block:         big.NewInt(0),
-			ByzantiumBlock:      big.NewInt(0),
-			ConstantinopleBlock: big.NewInt(0),
-			PetersburgBlock:     big.NewInt(0),
-			IstanbulBlock:       big.NewInt(0),
-			MuirGlacierBlock:    big.NewInt(0),
-			ChainConfigExtra: params.ChainConfigExtra{
+		config = params.WithExtra(
+			&params.ChainConfig{
+				ChainID:             big.NewInt(1),
+				HomesteadBlock:      big.NewInt(0),
+				EIP150Block:         big.NewInt(0),
+				EIP155Block:         big.NewInt(0),
+				EIP158Block:         big.NewInt(0),
+				ByzantiumBlock:      big.NewInt(0),
+				ConstantinopleBlock: big.NewInt(0),
+				PetersburgBlock:     big.NewInt(0),
+				IstanbulBlock:       big.NewInt(0),
+				MuirGlacierBlock:    big.NewInt(0),
+			},
+			&params.ChainConfigExtra{
 				FeeConfig: params.DefaultFeeConfig,
 				NetworkUpgrades: params.NetworkUpgrades{
 					SubnetEVMTimestamp: utils.NewUint64(0),
@@ -374,7 +376,7 @@ func TestBadTxAllowListBlock(t *testing.T) {
 					txallowlist.ConfigKey: txallowlist.NewConfig(utils.NewUint64(0), nil, nil, nil),
 				},
 			},
-		}
+		)
 		signer     = types.LatestSigner(config)
 		testKey, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 

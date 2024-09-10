@@ -70,7 +70,7 @@ func TestSetupGenesis(t *testing.T) {
 }
 
 func testSetupGenesis(t *testing.T, scheme string) {
-	preSubnetConfig := *params.TestPreSubnetEVMChainConfig
+	preSubnetConfig := params.Copy(params.TestPreSubnetEVMChainConfig)
 	params.GetExtra(&preSubnetConfig).SubnetEVMTimestamp = utils.NewUint64(100)
 	var (
 		customghash = common.HexToHash("0x4a12fe7bf8d40d152d7e9de22337b115186a4662aa3a97217b36146202bbfc66")
@@ -84,7 +84,7 @@ func testSetupGenesis(t *testing.T, scheme string) {
 		oldcustomg = customg
 	)
 
-	rollbackpreSubnetConfig := preSubnetConfig
+	rollbackpreSubnetConfig := params.Copy(&preSubnetConfig)
 	params.GetExtra(&rollbackpreSubnetConfig).SubnetEVMTimestamp = utils.NewUint64(90)
 	oldcustomg.Config = &rollbackpreSubnetConfig
 
@@ -208,7 +208,7 @@ func TestStatefulPrecompilesConfigure(t *testing.T) {
 	for name, test := range map[string]test{
 		"allow list enabled in genesis": {
 			getConfig: func() *params.ChainConfig {
-				config := *params.TestChainConfig
+				config := params.Copy(params.TestChainConfig)
 				params.GetExtra(&config).GenesisPrecompiles = params.Precompiles{
 					deployerallowlist.ConfigKey: deployerallowlist.NewConfig(utils.NewUint64(0), []common.Address{addr}, nil, nil),
 				}
@@ -283,7 +283,7 @@ func TestPrecompileActivationAfterHeaderBlock(t *testing.T) {
 	// header must be bigger than last accepted
 	require.Greater(block.Time, bc.lastAccepted.Time())
 
-	activatedGenesisConfig := *customg.Config
+	activatedGenesisConfig := params.Copy(customg.Config)
 	contractDeployerConfig := deployerallowlist.NewConfig(utils.NewUint64(51), nil, nil, nil)
 	params.GetExtra(&activatedGenesisConfig).UpgradeConfig.PrecompileUpgrades = []params.PrecompileUpgrade{
 		{
@@ -307,7 +307,7 @@ func TestPrecompileActivationAfterHeaderBlock(t *testing.T) {
 
 func TestGenesisWriteUpgradesRegression(t *testing.T) {
 	require := require.New(t)
-	config := *params.TestChainConfig
+	config := params.Copy(params.TestChainConfig)
 	genesis := &Genesis{
 		Config: &config,
 		Alloc: types.GenesisAlloc{
@@ -367,6 +367,7 @@ func TestVerkleGenesisCommit(t *testing.T) {
 		PetersburgBlock:     big.NewInt(0),
 		IstanbulBlock:       big.NewInt(0),
 		MuirGlacierBlock:    big.NewInt(0),
+		LondonBlock:         big.NewInt(0),
 		CancunTime:          &verkleTime,
 		VerkleTime:          &verkleTime,
 	}

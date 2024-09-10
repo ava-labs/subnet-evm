@@ -68,8 +68,8 @@ func (c *ChainConfigExtra) GetActivatingStateUpgrades(from *uint64, to uint64, u
 	return activating
 }
 
-// CheckStateUpgradesCompatible checks if [stateUpgrades] are compatible with [c] at [headTimestamp].
-func (c *ChainConfigExtra) CheckStateUpgradesCompatible(stateUpgrades []StateUpgrade, lastTimestamp uint64) *ConfigCompatError {
+// checkStateUpgradesCompatible checks if [stateUpgrades] are compatible with [c] at [headTimestamp].
+func (c *ChainConfigExtra) checkStateUpgradesCompatible(stateUpgrades []StateUpgrade, lastTimestamp uint64) *ConfigCompatError {
 	// All active upgrades (from nil to [lastTimestamp]) must match.
 	activeUpgrades := c.GetActivatingStateUpgrades(nil, lastTimestamp, c.StateUpgrades)
 	newUpgrades := c.GetActivatingStateUpgrades(nil, lastTimestamp, stateUpgrades)

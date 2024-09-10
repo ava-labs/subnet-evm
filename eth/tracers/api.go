@@ -1056,7 +1056,7 @@ func APIs(backend Backend) []rpc.API {
 // along with a boolean that indicates whether the copy is canonical (equivalent to the original).
 func overrideConfig(original *params.ChainConfig, override *params.ChainConfig) (*params.ChainConfig, bool) {
 	copy := new(params.ChainConfig)
-	*copy = *original
+	*copy = params.Copy(original)
 	canon := true
 
 	if timestamp := params.GetExtra(override).SubnetEVMTimestamp; timestamp != nil {

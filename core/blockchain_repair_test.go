@@ -527,7 +527,7 @@ func testRepairWithScheme(t *testing.T, tt *rewindTest, snapshots bool, scheme s
 	defer db.Close() // Might double close, should be fine
 
 	// Initialize a fresh chain
-	chainConfig := *params.TestChainConfig
+	chainConfig := params.Copy(params.TestChainConfig)
 	params.GetExtra(&chainConfig).FeeConfig.MinBaseFee = big.NewInt(1)
 	var (
 		require = require.New(t)

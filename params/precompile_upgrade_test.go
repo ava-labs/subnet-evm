@@ -15,7 +15,7 @@ import (
 
 func TestVerifyUpgradeConfig(t *testing.T) {
 	admins := []common.Address{{1}}
-	chainConfigCpy := *TestChainConfig
+	chainConfigCpy := Copy(TestChainConfig)
 	chainConfig := GetExtra(&chainConfigCpy)
 	chainConfig.GenesisPrecompiles = Precompiles{
 		txallowlist.ConfigKey: txallowlist.NewConfig(utils.NewUint64(1), admins, nil, nil),
@@ -73,7 +73,7 @@ func TestVerifyUpgradeConfig(t *testing.T) {
 
 func TestCheckCompatibleUpgradeConfigs(t *testing.T) {
 	admins := []common.Address{{1}}
-	chainConfig := *TestChainConfig
+	chainConfig := Copy(TestChainConfig)
 	GetExtra(&chainConfig).GenesisPrecompiles = Precompiles{
 		txallowlist.ConfigKey:       txallowlist.NewConfig(utils.NewUint64(1), admins, nil, nil),
 		deployerallowlist.ConfigKey: deployerallowlist.NewConfig(utils.NewUint64(10), admins, nil, nil),
@@ -277,10 +277,10 @@ type upgradeCompatibilityTest struct {
 func (tt *upgradeCompatibilityTest) run(t *testing.T, chainConfig ChainConfig) {
 	// apply all the upgrade bytes specified in order
 	for i, upgrade := range tt.configs {
-		newCfg := chainConfig
+		newCfg := Copy(&chainConfig)
 		GetExtra(&newCfg).UpgradeConfig = *upgrade
 
-		err := chainConfig.checkCompatible(&newCfg, nil, tt.startTimestamps[i])
+		err := chainConfig.CheckCompatible(&newCfg, 0, tt.startTimestamps[i])
 
 		// if this is not the final upgradeBytes, continue applying
 		// the next upgradeBytes. (only check the result on the last apply)
@@ -293,6 +293,7 @@ func (tt *upgradeCompatibilityTest) run(t *testing.T, chainConfig ChainConfig) {
 		}
 
 		if tt.expectedErrorString != "" {
+			require.NotNil(t, err)
 			require.ErrorContains(t, err, tt.expectedErrorString)
 		} else {
 			require.Nil(t, err)

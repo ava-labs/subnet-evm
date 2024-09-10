@@ -30,7 +30,7 @@ func TestTraceBlockPrecompileActivation(t *testing.T) {
 
 	// Initialize test accounts
 	accounts := newAccounts(3)
-	copyConfig := *params.TestChainConfig
+	copyConfig := params.Copy(params.TestChainConfig)
 	genesis := &core.Genesis{
 		Config: &copyConfig,
 		Alloc: types.GenesisAlloc{
@@ -136,7 +136,7 @@ func TestTraceTransactionPrecompileActivation(t *testing.T) {
 
 	// Initialize test accounts
 	accounts := newAccounts(3)
-	copyConfig := *params.TestChainConfig
+	copyConfig := params.Copy(params.TestChainConfig)
 	genesis := &core.Genesis{
 		Config: &copyConfig,
 		Alloc: types.GenesisAlloc{
@@ -200,7 +200,7 @@ func TestTraceChainPrecompileActivation(t *testing.T) {
 	// Initialize test accounts
 	// Note: the balances in this test have been increased compared to go-ethereum.
 	accounts := newAccounts(3)
-	copyConfig := *params.TestChainConfig
+	copyConfig := params.Copy(params.TestChainConfig)
 	genesis := &core.Genesis{
 		Config: &copyConfig,
 		Alloc: types.GenesisAlloc{
@@ -297,7 +297,7 @@ func TestTraceCallWithOverridesStateUpgrade(t *testing.T) {
 
 	// Initialize test accounts
 	accounts := newAccounts(3)
-	copyConfig := *params.TestChainConfig
+	copyConfig := params.Copy(params.TestChainConfig)
 	genesis := &core.Genesis{
 		Config: &copyConfig,
 		Alloc: types.GenesisAlloc{

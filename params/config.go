@@ -45,39 +45,45 @@ var (
 	_ = do_init() // XXX: is (temporarily) here because type registeration must proceed the call to .Rules()
 	// SubnetEVMDefaultConfig is the default configuration
 	// without any network upgrades.
-	SubnetEVMDefaultChainConfig = &ChainConfig{
-		ChainID: DefaultChainID,
+	SubnetEVMDefaultChainConfig = WithExtra(
+		&ChainConfig{
+			ChainID: DefaultChainID,
 
-		HomesteadBlock:      big.NewInt(0),
-		EIP150Block:         big.NewInt(0),
-		EIP155Block:         big.NewInt(0),
-		EIP158Block:         big.NewInt(0),
-		ByzantiumBlock:      big.NewInt(0),
-		ConstantinopleBlock: big.NewInt(0),
-		PetersburgBlock:     big.NewInt(0),
-		IstanbulBlock:       big.NewInt(0),
-		MuirGlacierBlock:    big.NewInt(0),
-		ChainConfigExtra: ChainConfigExtra{
+			HomesteadBlock:      big.NewInt(0),
+			EIP150Block:         big.NewInt(0),
+			EIP155Block:         big.NewInt(0),
+			EIP158Block:         big.NewInt(0),
+			ByzantiumBlock:      big.NewInt(0),
+			ConstantinopleBlock: big.NewInt(0),
+			PetersburgBlock:     big.NewInt(0),
+			IstanbulBlock:       big.NewInt(0),
+			MuirGlacierBlock:    big.NewInt(0),
+		},
+		&ChainConfigExtra{
 			FeeConfig:          DefaultFeeConfig,
 			AllowFeeRecipients: false,
 			NetworkUpgrades:    getDefaultNetworkUpgrades(upgrade.GetConfig(constants.MainnetID)), // This can be changed to correct network (local, test) via VM.
 			GenesisPrecompiles: Precompiles{},
 		},
-	}
+	)
 
-	TestChainConfig = &ChainConfig{
-		ChainID:             big.NewInt(1),
-		HomesteadBlock:      big.NewInt(0),
-		EIP150Block:         big.NewInt(0),
-		EIP155Block:         big.NewInt(0),
-		EIP158Block:         big.NewInt(0),
-		ByzantiumBlock:      big.NewInt(0),
-		ConstantinopleBlock: big.NewInt(0),
-		PetersburgBlock:     big.NewInt(0),
-		IstanbulBlock:       big.NewInt(0),
-		MuirGlacierBlock:    big.NewInt(0),
-		CancunTime:          utils.TimeToNewUint64(upgrade.GetConfig(constants.UnitTestID).EtnaTime),
-		ChainConfigExtra: ChainConfigExtra{
+	TestChainConfig = WithExtra(
+		&ChainConfig{
+			ChainID:             big.NewInt(1),
+			HomesteadBlock:      big.NewInt(0),
+			EIP150Block:         big.NewInt(0),
+			EIP155Block:         big.NewInt(0),
+			EIP158Block:         big.NewInt(0),
+			ByzantiumBlock:      big.NewInt(0),
+			ConstantinopleBlock: big.NewInt(0),
+			PetersburgBlock:     big.NewInt(0),
+			IstanbulBlock:       big.NewInt(0),
+			MuirGlacierBlock:    big.NewInt(0),
+			BerlinBlock:         big.NewInt(0),
+			LondonBlock:         big.NewInt(0),
+			CancunTime:          utils.TimeToNewUint64(upgrade.GetConfig(constants.UnitTestID).EtnaTime),
+		},
+		&ChainConfigExtra{
 			AvalancheContext:   AvalancheContext{utils.TestSnowContext()},
 			FeeConfig:          DefaultFeeConfig,
 			AllowFeeRecipients: false,
@@ -85,20 +91,24 @@ var (
 			GenesisPrecompiles: Precompiles{},
 			UpgradeConfig:      UpgradeConfig{},
 		},
-	}
+	)
 
-	TestPreSubnetEVMChainConfig = &ChainConfig{
-		ChainID:             big.NewInt(1),
-		HomesteadBlock:      big.NewInt(0),
-		EIP150Block:         big.NewInt(0),
-		EIP155Block:         big.NewInt(0),
-		EIP158Block:         big.NewInt(0),
-		ByzantiumBlock:      big.NewInt(0),
-		ConstantinopleBlock: big.NewInt(0),
-		PetersburgBlock:     big.NewInt(0),
-		IstanbulBlock:       big.NewInt(0),
-		MuirGlacierBlock:    big.NewInt(0),
-		ChainConfigExtra: ChainConfigExtra{
+	TestPreSubnetEVMChainConfig = WithExtra(
+		&ChainConfig{
+			ChainID:             big.NewInt(1),
+			HomesteadBlock:      big.NewInt(0),
+			EIP150Block:         big.NewInt(0),
+			EIP155Block:         big.NewInt(0),
+			EIP158Block:         big.NewInt(0),
+			ByzantiumBlock:      big.NewInt(0),
+			ConstantinopleBlock: big.NewInt(0),
+			PetersburgBlock:     big.NewInt(0),
+			IstanbulBlock:       big.NewInt(0),
+			MuirGlacierBlock:    big.NewInt(0),
+			BerlinBlock:         big.NewInt(0),
+			LondonBlock:         big.NewInt(0),
+		},
+		&ChainConfigExtra{
 			AvalancheContext:   AvalancheContext{utils.TestSnowContext()},
 			FeeConfig:          DefaultFeeConfig,
 			AllowFeeRecipients: false,
@@ -110,20 +120,23 @@ var (
 			GenesisPrecompiles: Precompiles{},
 			UpgradeConfig:      UpgradeConfig{},
 		},
-	}
+	)
 
-	TestSubnetEVMChainConfig = &ChainConfig{
-		ChainID:             big.NewInt(1),
-		HomesteadBlock:      big.NewInt(0),
-		EIP150Block:         big.NewInt(0),
-		EIP155Block:         big.NewInt(0),
-		EIP158Block:         big.NewInt(0),
-		ByzantiumBlock:      big.NewInt(0),
-		ConstantinopleBlock: big.NewInt(0),
-		PetersburgBlock:     big.NewInt(0),
-		IstanbulBlock:       big.NewInt(0),
-		MuirGlacierBlock:    big.NewInt(0),
-		ChainConfigExtra: ChainConfigExtra{
+	TestSubnetEVMChainConfig = WithExtra(
+		&ChainConfig{
+			ChainID:             big.NewInt(1),
+			HomesteadBlock:      big.NewInt(0),
+			EIP150Block:         big.NewInt(0),
+			EIP155Block:         big.NewInt(0),
+			EIP158Block:         big.NewInt(0),
+			ByzantiumBlock:      big.NewInt(0),
+			ConstantinopleBlock: big.NewInt(0),
+			PetersburgBlock:     big.NewInt(0),
+			IstanbulBlock:       big.NewInt(0),
+			MuirGlacierBlock:    big.NewInt(0),
+			LondonBlock:         big.NewInt(0),
+		},
+		&ChainConfigExtra{
 			AvalancheContext:   AvalancheContext{utils.TestSnowContext()},
 			FeeConfig:          DefaultFeeConfig,
 			AllowFeeRecipients: false,
@@ -135,20 +148,22 @@ var (
 			GenesisPrecompiles: Precompiles{},
 			UpgradeConfig:      UpgradeConfig{},
 		},
-	}
+	)
 
-	TestDurangoChainConfig = &ChainConfig{
-		ChainID:             big.NewInt(1),
-		HomesteadBlock:      big.NewInt(0),
-		EIP150Block:         big.NewInt(0),
-		EIP155Block:         big.NewInt(0),
-		EIP158Block:         big.NewInt(0),
-		ByzantiumBlock:      big.NewInt(0),
-		ConstantinopleBlock: big.NewInt(0),
-		PetersburgBlock:     big.NewInt(0),
-		IstanbulBlock:       big.NewInt(0),
-		MuirGlacierBlock:    big.NewInt(0),
-		ChainConfigExtra: ChainConfigExtra{
+	TestDurangoChainConfig = WithExtra(
+		&ChainConfig{
+			ChainID:             big.NewInt(1),
+			HomesteadBlock:      big.NewInt(0),
+			EIP150Block:         big.NewInt(0),
+			EIP155Block:         big.NewInt(0),
+			EIP158Block:         big.NewInt(0),
+			ByzantiumBlock:      big.NewInt(0),
+			ConstantinopleBlock: big.NewInt(0),
+			PetersburgBlock:     big.NewInt(0),
+			IstanbulBlock:       big.NewInt(0),
+			MuirGlacierBlock:    big.NewInt(0),
+		},
+		&ChainConfigExtra{
 			AvalancheContext:   AvalancheContext{utils.TestSnowContext()},
 			FeeConfig:          DefaultFeeConfig,
 			AllowFeeRecipients: false,
@@ -160,20 +175,22 @@ var (
 			GenesisPrecompiles: Precompiles{},
 			UpgradeConfig:      UpgradeConfig{},
 		},
-	}
+	)
 
-	TestEtnaChainConfig = &ChainConfig{
-		ChainID:             big.NewInt(1),
-		HomesteadBlock:      big.NewInt(0),
-		EIP150Block:         big.NewInt(0),
-		EIP155Block:         big.NewInt(0),
-		EIP158Block:         big.NewInt(0),
-		ByzantiumBlock:      big.NewInt(0),
-		ConstantinopleBlock: big.NewInt(0),
-		PetersburgBlock:     big.NewInt(0),
-		IstanbulBlock:       big.NewInt(0),
-		MuirGlacierBlock:    big.NewInt(0),
-		ChainConfigExtra: ChainConfigExtra{
+	TestEtnaChainConfig = WithExtra(
+		&ChainConfig{
+			ChainID:             big.NewInt(1),
+			HomesteadBlock:      big.NewInt(0),
+			EIP150Block:         big.NewInt(0),
+			EIP155Block:         big.NewInt(0),
+			EIP158Block:         big.NewInt(0),
+			ByzantiumBlock:      big.NewInt(0),
+			ConstantinopleBlock: big.NewInt(0),
+			PetersburgBlock:     big.NewInt(0),
+			IstanbulBlock:       big.NewInt(0),
+			MuirGlacierBlock:    big.NewInt(0),
+		},
+		&ChainConfigExtra{
 			AvalancheContext:   AvalancheContext{utils.TestSnowContext()},
 			FeeConfig:          DefaultFeeConfig,
 			AllowFeeRecipients: false,
@@ -185,7 +202,7 @@ var (
 			GenesisPrecompiles: Precompiles{},
 			UpgradeConfig:      UpgradeConfig{},
 		},
-	}
+	)
 	TestRules = TestChainConfig.Rules(new(big.Int), IsMergeTODO, 0)
 )
 
@@ -194,37 +211,23 @@ var (
 // ChainConfig is stored in the database on a per block basis. This means
 // that any network, identified by its genesis block, can have its own
 // set of configuration options.
-type ChainConfig struct {
-	ChainID *big.Int `json:"chainId"` // chainId identifies the current chain and is used for replay protection
-
-	HomesteadBlock *big.Int `json:"homesteadBlock,omitempty"` // Homestead switch block (nil = no fork, 0 = already homestead)
-
-	// EIP150 implements the Gas price changes (https://github.com/ethereum/EIPs/issues/150)
-	EIP150Block *big.Int `json:"eip150Block,omitempty"` // EIP150 HF block (nil = no fork)
-	EIP155Block *big.Int `json:"eip155Block,omitempty"` // EIP155 HF block
-	EIP158Block *big.Int `json:"eip158Block,omitempty"` // EIP158 HF block
-
-	ByzantiumBlock      *big.Int `json:"byzantiumBlock,omitempty"`      // Byzantium switch block (nil = no fork, 0 = already on byzantium)
-	ConstantinopleBlock *big.Int `json:"constantinopleBlock,omitempty"` // Constantinople switch block (nil = no fork, 0 = already activated)
-	PetersburgBlock     *big.Int `json:"petersburgBlock,omitempty"`     // Petersburg switch block (nil = same as Constantinople)
-	IstanbulBlock       *big.Int `json:"istanbulBlock,omitempty"`       // Istanbul switch block (nil = no fork, 0 = already on istanbul)
-	MuirGlacierBlock    *big.Int `json:"muirGlacierBlock,omitempty"`    // Eip-2384 (bomb delay) switch block (nil = no fork, 0 = already activated)
-
-	// Fork scheduling was switched from blocks to timestamps here
-
-	CancunTime *uint64 `json:"cancunTime,omitempty"` // Cancun switch time (nil = no fork, 0 = already activated)
-	VerkleTime *uint64 `json:"verkleTime,omitempty"` // Verkle switch time (nil = no fork, 0 = already on verkle)
-
-	// XXX: Should not be accessed directly except to initialize. Use GetExtra instead.
-	ChainConfigExtra ChainConfigExtra `json:"-"`
-}
+type ChainConfig = gethparams.ChainConfig
 
 func GetExtra(c *ChainConfig) *ChainConfigExtra {
-	return &c.ChainConfigExtra
+	if extra := FromChainConfig(c); extra != nil {
+		return extra
+	}
+	return &ChainConfigExtra{}
 }
 
 func GetRulesExtra(r Rules) *RulesExtra {
 	return FromRules(&r)
+}
+
+func Copy(c *ChainConfig) ChainConfig {
+	cpy := *c
+	extraCpy := *GetExtra(c)
+	return *WithExtra(&cpy, &extraCpy)
 }
 
 type ChainConfigExtra struct {
@@ -239,38 +242,12 @@ type ChainConfigExtra struct {
 	UpgradeConfig      `json:"-"`  // Config specified in upgradeBytes (avalanche network upgrades or enable/disabling precompiles). Skip encoding/decoding directly into ChainConfig.
 }
 
-// Description returns a human-readable description of ChainConfig.
-func (c *ChainConfig) Description() string {
-	var banner string
-
-	banner += fmt.Sprintf("Chain ID:  %v\n", c.ChainID)
-	banner += "Consensus: Dummy Consensus Engine\n\n"
-
-	// Create a list of forks with a short description of them. Forks that only
-	// makes sense for mainnet should be optional at printing to avoid bloating
-	// the output for testnets and private networks.
-	banner += "Hard Forks (block based):\n"
-	banner += fmt.Sprintf(" - Homestead:                   #%-8v (https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/homestead.md)\n", c.HomesteadBlock)
-	banner += fmt.Sprintf(" - Tangerine Whistle (EIP 150): #%-8v (https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/tangerine-whistle.md)\n", c.EIP150Block)
-	banner += fmt.Sprintf(" - Spurious Dragon/1 (EIP 155): #%-8v (https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/spurious-dragon.md)\n", c.EIP155Block)
-	banner += fmt.Sprintf(" - Spurious Dragon/2 (EIP 158): #%-8v (https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/spurious-dragon.md)\n", c.EIP155Block)
-	banner += fmt.Sprintf(" - Byzantium:                   #%-8v (https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/byzantium.md)\n", c.ByzantiumBlock)
-	banner += fmt.Sprintf(" - Constantinople:              #%-8v (https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/constantinople.md)\n", c.ConstantinopleBlock)
-	banner += fmt.Sprintf(" - Petersburg:                  #%-8v (https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/petersburg.md)\n", c.PetersburgBlock)
-	banner += fmt.Sprintf(" - Istanbul:                    #%-8v (https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/istanbul.md)\n", c.IstanbulBlock)
-	if c.MuirGlacierBlock != nil {
-		banner += fmt.Sprintf(" - Muir Glacier:                #%-8v (https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/muir-glacier.md)\n", c.MuirGlacierBlock)
+func (c *ChainConfigExtra) Description() string {
+	// Handle nil receiver
+	if c == nil {
+		return ""
 	}
 
-	banner += "Hard forks (timestamp based):\n"
-	banner += fmt.Sprintf(" - Cancun Timestamp:              @%-10v (https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/cancun.md)\n", ptrToString(c.CancunTime))
-	banner += fmt.Sprintf(" - Verkle Timestamp:              @%-10v", ptrToString(c.VerkleTime))
-	banner += "\n"
-
-	return banner + c.ChainConfigExtra.Description()
-}
-
-func (c *ChainConfigExtra) Description() string {
 	var banner string
 
 	banner += "Avalanche Upgrades (timestamp based):\n"
@@ -303,88 +280,6 @@ func (c *ChainConfigExtra) Description() string {
 	return banner
 }
 
-// IsHomestead returns whether num is either equal to the homestead block or greater.
-func (c *ChainConfig) IsHomestead(num *big.Int) bool {
-	return isBlockForked(c.HomesteadBlock, num)
-}
-
-// IsEIP150 returns whether num is either equal to the EIP150 fork block or greater.
-func (c *ChainConfig) IsEIP150(num *big.Int) bool {
-	return isBlockForked(c.EIP150Block, num)
-}
-
-// IsEIP155 returns whether num is either equal to the EIP155 fork block or greater.
-func (c *ChainConfig) IsEIP155(num *big.Int) bool {
-	return isBlockForked(c.EIP155Block, num)
-}
-
-// IsEIP158 returns whether num is either equal to the EIP158 fork block or greater.
-func (c *ChainConfig) IsEIP158(num *big.Int) bool {
-	return isBlockForked(c.EIP158Block, num)
-}
-
-// IsByzantium returns whether num is either equal to the Byzantium fork block or greater.
-func (c *ChainConfig) IsByzantium(num *big.Int) bool {
-	return isBlockForked(c.ByzantiumBlock, num)
-}
-
-// IsConstantinople returns whether num is either equal to the Constantinople fork block or greater.
-func (c *ChainConfig) IsConstantinople(num *big.Int) bool {
-	return isBlockForked(c.ConstantinopleBlock, num)
-}
-
-// IsMuirGlacier returns whether num is either equal to the Muir Glacier (EIP-2384) fork block or greater.
-func (c *ChainConfig) IsMuirGlacier(num *big.Int) bool {
-	return isBlockForked(c.MuirGlacierBlock, num)
-}
-
-// IsPetersburg returns whether num is either
-// - equal to or greater than the PetersburgBlock fork block,
-// - OR is nil, and Constantinople is active
-func (c *ChainConfig) IsPetersburg(num *big.Int) bool {
-	return isBlockForked(c.PetersburgBlock, num) || c.PetersburgBlock == nil && isBlockForked(c.ConstantinopleBlock, num)
-}
-
-// IsIstanbul returns whether num is either equal to the Istanbul fork block or greater.
-func (c *ChainConfig) IsIstanbul(num *big.Int) bool {
-	return isBlockForked(c.IstanbulBlock, num)
-}
-
-// IsCancun returns whether time is either equal to the Cancun fork time or greater.
-func (c *ChainConfig) IsCancun(num *big.Int, time uint64) bool {
-	return isTimestampForked(c.CancunTime, time)
-}
-
-// IsVerkle returns whether time is either equal to the Verkle fork time or greater.
-func (c *ChainConfig) IsVerkle(num *big.Int, time uint64) bool {
-	return isTimestampForked(c.VerkleTime, time)
-}
-
-// CheckCompatible checks whether scheduled fork transitions have been imported
-// with a mismatching chain configuration.
-func (c *ChainConfig) CheckCompatible(newcfg *ChainConfig, height uint64, time uint64) *ConfigCompatError {
-	var (
-		bhead = new(big.Int).SetUint64(height)
-		btime = time
-	)
-	// Iterate checkCompatible to find the lowest conflict.
-	var lasterr *ConfigCompatError
-	for {
-		err := c.checkCompatible(newcfg, bhead, btime)
-		if err == nil || (lasterr != nil && err.RewindToBlock == lasterr.RewindToBlock && err.RewindToTime == lasterr.RewindToTime) {
-			break
-		}
-		lasterr = err
-
-		if err.RewindToTime > 0 {
-			btime = err.RewindToTime
-		} else {
-			bhead.SetUint64(err.RewindToBlock)
-		}
-	}
-	return lasterr
-}
-
 type fork struct {
 	name      string
 	block     *big.Int // some go-ethereum forks use block numbers
@@ -392,31 +287,12 @@ type fork struct {
 	optional  bool     // if true, the fork may be nil and next fork is still allowed
 }
 
-// CheckConfigForkOrder checks that we don't "skip" any forks, geth isn't pluggable enough
-// to guarantee that forks can be implemented in a different order than on official networks
-func (c *ChainConfig) CheckConfigForkOrder() error {
-	ethForks := []fork{
-		{name: "homesteadBlock", block: c.HomesteadBlock},
-		{name: "eip150Block", block: c.EIP150Block},
-		{name: "eip155Block", block: c.EIP155Block},
-		{name: "eip158Block", block: c.EIP158Block},
-		{name: "byzantiumBlock", block: c.ByzantiumBlock},
-		{name: "constantinopleBlock", block: c.ConstantinopleBlock},
-		{name: "petersburgBlock", block: c.PetersburgBlock},
-		{name: "istanbulBlock", block: c.IstanbulBlock},
-		{name: "muirGlacierBlock", block: c.MuirGlacierBlock, optional: true},
-		{name: "cancunTime", timestamp: c.CancunTime, optional: true},
-		{name: "verkleTime", timestamp: c.VerkleTime, optional: true},
-	}
-
-	// Check that forks are enabled in order
-	if err := checkForks(ethForks, true); err != nil {
-		return err
-	}
-	return c.ChainConfigExtra.CheckConfigForkOrder()
-}
-
 func (c *ChainConfigExtra) CheckConfigForkOrder() error {
+	// Handle nil receiver
+	if c == nil {
+		return nil
+	}
+
 	// Note: In Avalanche, hard forks must take place via block timestamps instead
 	// of block numbers since blocks are produced asynchronously. Therefore, we do not
 	// check that the block timestamps in the same way as for
@@ -477,67 +353,24 @@ func checkForks(forks []fork, blockFork bool) error {
 	return nil
 }
 
-// checkCompatible confirms that [newcfg] is backwards compatible with [c] to upgrade with the given head block height and timestamp.
-// This confirms that all Ethereum and Avalanche upgrades are backwards compatible as well as that the precompile config is backwards
-// compatible.
-func (c *ChainConfig) checkCompatible(newcfg *ChainConfig, headNumber *big.Int, headTimestamp uint64) *ConfigCompatError {
-	if isForkBlockIncompatible(c.HomesteadBlock, newcfg.HomesteadBlock, headNumber) {
-		return newBlockCompatError("Homestead fork block", c.HomesteadBlock, newcfg.HomesteadBlock)
+func (c *ChainConfigExtra) CheckCompatible(newcfg_ *ChainConfig, headNumber *big.Int, headTimestamp uint64) *ConfigCompatError {
+	if c == nil {
+		return nil
 	}
-	if isForkBlockIncompatible(c.EIP150Block, newcfg.EIP150Block, headNumber) {
-		return newBlockCompatError("EIP150 fork block", c.EIP150Block, newcfg.EIP150Block)
-	}
-	if isForkBlockIncompatible(c.EIP155Block, newcfg.EIP155Block, headNumber) {
-		return newBlockCompatError("EIP155 fork block", c.EIP155Block, newcfg.EIP155Block)
-	}
-	if isForkBlockIncompatible(c.EIP158Block, newcfg.EIP158Block, headNumber) {
-		return newBlockCompatError("EIP158 fork block", c.EIP158Block, newcfg.EIP158Block)
-	}
-	if c.IsEIP158(headNumber) && !utils.BigNumEqual(c.ChainID, newcfg.ChainID) {
-		return newBlockCompatError("EIP158 chain ID", c.EIP158Block, newcfg.EIP158Block)
-	}
-	if isForkBlockIncompatible(c.ByzantiumBlock, newcfg.ByzantiumBlock, headNumber) {
-		return newBlockCompatError("Byzantium fork block", c.ByzantiumBlock, newcfg.ByzantiumBlock)
-	}
-	if isForkBlockIncompatible(c.ConstantinopleBlock, newcfg.ConstantinopleBlock, headNumber) {
-		return newBlockCompatError("Constantinople fork block", c.ConstantinopleBlock, newcfg.ConstantinopleBlock)
-	}
-	if isForkBlockIncompatible(c.PetersburgBlock, newcfg.PetersburgBlock, headNumber) {
-		// the only case where we allow Petersburg to be set in the past is if it is equal to Constantinople
-		// mainly to satisfy fork ordering requirements which state that Petersburg fork be set if Constantinople fork is set
-		if isForkBlockIncompatible(c.ConstantinopleBlock, newcfg.PetersburgBlock, headNumber) {
-			return newBlockCompatError("Petersburg fork block", c.PetersburgBlock, newcfg.PetersburgBlock)
-		}
-	}
-	if isForkBlockIncompatible(c.IstanbulBlock, newcfg.IstanbulBlock, headNumber) {
-		return newBlockCompatError("Istanbul fork block", c.IstanbulBlock, newcfg.IstanbulBlock)
-	}
-	if isForkBlockIncompatible(c.MuirGlacierBlock, newcfg.MuirGlacierBlock, headNumber) {
-		return newBlockCompatError("Muir Glacier fork block", c.MuirGlacierBlock, newcfg.MuirGlacierBlock)
-	}
-	if isForkTimestampIncompatible(c.CancunTime, newcfg.CancunTime, headTimestamp) {
-		return newTimestampCompatError("Cancun fork timestamp", c.CancunTime, newcfg.CancunTime)
-	}
-	if isForkTimestampIncompatible(c.VerkleTime, newcfg.VerkleTime, headTimestamp) {
-		return newTimestampCompatError("Verkle fork timestamp", c.VerkleTime, newcfg.VerkleTime)
-	}
+	newcfg := GetExtra(newcfg_)
 
-	return c.ChainConfigExtra.CheckCompatible(GetExtra(newcfg), headTimestamp)
-}
-
-func (c *ChainConfigExtra) CheckCompatible(newcfg *ChainConfigExtra, headTimestamp uint64) *ConfigCompatError {
 	// Check avalanche network upgrades
-	if err := c.CheckNetworkUpgradesCompatible(&newcfg.NetworkUpgrades, headTimestamp); err != nil {
+	if err := c.checkNetworkUpgradesCompatible(&newcfg.NetworkUpgrades, headTimestamp); err != nil {
 		return err
 	}
 
 	// Check that the precompiles on the new config are compatible with the existing precompile config.
-	if err := c.CheckPrecompilesCompatible(newcfg.PrecompileUpgrades, headTimestamp); err != nil {
+	if err := c.checkPrecompilesCompatible(newcfg.PrecompileUpgrades, headTimestamp); err != nil {
 		return err
 	}
 
 	// Check that the state upgrades on the new config are compatible with the existing state upgrade config.
-	if err := c.CheckStateUpgradesCompatible(newcfg.StateUpgrades, headTimestamp); err != nil {
+	if err := c.checkStateUpgradesCompatible(newcfg.StateUpgrades, headTimestamp); err != nil {
 		return err
 	}
 
@@ -669,39 +502,4 @@ type RulesExtra struct {
 	AccepterPrecompiles map[common.Address]precompileconfig.Accepter
 
 	params.NOOPHooks // XXX: Embedded to ensure that Rules implements params.RulesHooks
-}
-
-// Rules ensures c's ChainID is not nil.
-func (c *ChainConfig) rules(num *big.Int, timestamp uint64) Rules {
-	chainID := c.ChainID
-	if chainID == nil {
-		chainID = new(big.Int)
-	}
-	return Rules{
-		ChainID:          new(big.Int).Set(chainID),
-		IsHomestead:      c.IsHomestead(num),
-		IsEIP150:         c.IsEIP150(num),
-		IsEIP155:         c.IsEIP155(num),
-		IsEIP158:         c.IsEIP158(num),
-		IsByzantium:      c.IsByzantium(num),
-		IsConstantinople: c.IsConstantinople(num),
-		IsPetersburg:     c.IsPetersburg(num),
-		IsIstanbul:       c.IsIstanbul(num),
-		IsCancun:         c.IsCancun(num, timestamp),
-		IsVerkle:         c.IsVerkle(num, timestamp),
-	}
-}
-
-// Rules returns the Avalanche modified rules to support Avalanche
-// network upgrades
-func (c *ChainConfig) Rules(blockNum *big.Int, isMerge bool, timestamp uint64) Rules {
-	// XXX: This just exists to get the callback from libevm to take RulesExtra.
-	var c_ gethparams.ChainConfig
-	jsonBytes := []byte(`{}`)
-	if err := json.Unmarshal(jsonBytes, &c_); err != nil {
-		panic(err)
-	}
-	extra := FromChainConfig(&c_)
-	*extra = *c
-	return c_.Rules(blockNum, isMerge, timestamp)
 }

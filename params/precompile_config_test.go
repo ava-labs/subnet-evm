@@ -21,7 +21,7 @@ import (
 
 func TestVerifyWithChainConfig(t *testing.T) {
 	admins := []common.Address{{1}}
-	baseConfig := *TestChainConfig
+	baseConfig := Copy(TestChainConfig)
 	config := GetExtra(&baseConfig)
 	config.GenesisPrecompiles = Precompiles{
 		txallowlist.ConfigKey: txallowlist.NewConfig(utils.NewUint64(2), nil, nil, nil),
@@ -66,7 +66,7 @@ func TestVerifyWithChainConfig(t *testing.T) {
 
 func TestVerifyWithChainConfigAtNilTimestamp(t *testing.T) {
 	admins := []common.Address{{0}}
-	baseConfig := *TestChainConfig
+	baseConfig := Copy(TestChainConfig)
 	config := GetExtra(&baseConfig)
 	config.PrecompileUpgrades = []PrecompileUpgrade{
 		// this does NOT enable the precompile, so it should be upgradeable.
@@ -186,7 +186,7 @@ func TestVerifyPrecompileUpgrades(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			require := require.New(t)
-			baseConfig := *TestChainConfig
+			baseConfig := Copy(TestChainConfig)
 			config := GetExtra(&baseConfig)
 			config.PrecompileUpgrades = tt.upgrades
 
@@ -230,7 +230,7 @@ func TestVerifyPrecompiles(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			require := require.New(t)
-			baseConfig := *TestChainConfig
+			baseConfig := Copy(TestChainConfig)
 			config := GetExtra(&baseConfig)
 			config.GenesisPrecompiles = tt.precompiles
 
@@ -246,7 +246,7 @@ func TestVerifyPrecompiles(t *testing.T) {
 
 func TestVerifyRequiresSortedTimestamps(t *testing.T) {
 	admins := []common.Address{{1}}
-	baseConfig := *TestChainConfig
+	baseConfig := Copy(TestChainConfig)
 	config := GetExtra(&baseConfig)
 	config.PrecompileUpgrades = []PrecompileUpgrade{
 		{
@@ -264,7 +264,7 @@ func TestVerifyRequiresSortedTimestamps(t *testing.T) {
 
 func TestGetPrecompileConfig(t *testing.T) {
 	require := require.New(t)
-	baseConfig := *TestChainConfig
+	baseConfig := Copy(TestChainConfig)
 	config := GetExtra(&baseConfig)
 	config.GenesisPrecompiles = Precompiles{
 		deployerallowlist.ConfigKey: deployerallowlist.NewConfig(utils.NewUint64(10), nil, nil, nil),

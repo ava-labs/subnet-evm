@@ -72,7 +72,7 @@ var testChainConfig *params.ChainConfig
 
 func init() {
 	testChainConfig = new(params.ChainConfig)
-	*testChainConfig = *params.TestChainConfig
+	*testChainConfig = params.Copy(params.TestChainConfig)
 	params.GetExtra(testChainConfig).FeeConfig.MinBaseFee = new(big.Int).SetUint64(1)
 
 	testChainConfig.CancunTime = new(uint64)

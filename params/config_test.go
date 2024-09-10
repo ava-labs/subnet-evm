@@ -150,13 +150,14 @@ func TestCheckCompatible(t *testing.T) {
 }
 
 func TestConfigRules(t *testing.T) {
-	c := &ChainConfig{
-		ChainConfigExtra: ChainConfigExtra{
+	c := WithExtra(
+		&ChainConfig{},
+		&ChainConfigExtra{
 			NetworkUpgrades: NetworkUpgrades{
 				SubnetEVMTimestamp: utils.NewUint64(500),
 			},
 		},
-	}
+	)
 
 	var stamp uint64
 	if r := c.Rules(big.NewInt(0), IsMergeTODO, stamp); GetRulesExtra(r).IsSubnetEVM {
@@ -230,7 +231,7 @@ func TestConfigUnmarshalJSON(t *testing.T) {
 	require.True(nativeMinterConfig.Equal(testContractNativeMinterConfig))
 
 	// Marshal and unmarshal again and check that the result is the same
-	marshaled, err := json.Marshal(c)
+	marshaled, err := json.Marshal(&c) // XXX: Marshal should be defined on value receiver?
 	require.NoError(err)
 	c2 := ChainConfig{}
 	err = json.Unmarshal(marshaled, &c2)
@@ -239,8 +240,9 @@ func TestConfigUnmarshalJSON(t *testing.T) {
 }
 
 func TestActivePrecompiles(t *testing.T) {
-	config := ChainConfig{
-		ChainConfigExtra: ChainConfigExtra{
+	config := *WithExtra(
+		&ChainConfig{},
+		&ChainConfigExtra{
 			UpgradeConfig: UpgradeConfig{
 				PrecompileUpgrades: []PrecompileUpgrade{
 					{
@@ -252,7 +254,7 @@ func TestActivePrecompiles(t *testing.T) {
 				},
 			},
 		},
-	}
+	)
 
 	rules0 := config.Rules(common.Big0, IsMergeTODO, 0)
 	require.True(t, GetRulesExtra(rules0).IsPrecompileEnabled(nativeminter.Module.Address))
@@ -263,18 +265,20 @@ func TestActivePrecompiles(t *testing.T) {
 
 func TestChainConfigMarshalWithUpgrades(t *testing.T) {
 	config := ChainConfigWithUpgradesJSON{
-		ChainConfig: ChainConfig{
-			ChainID:             big.NewInt(1),
-			HomesteadBlock:      big.NewInt(0),
-			EIP150Block:         big.NewInt(0),
-			EIP155Block:         big.NewInt(0),
-			EIP158Block:         big.NewInt(0),
-			ByzantiumBlock:      big.NewInt(0),
-			ConstantinopleBlock: big.NewInt(0),
-			PetersburgBlock:     big.NewInt(0),
-			IstanbulBlock:       big.NewInt(0),
-			MuirGlacierBlock:    big.NewInt(0),
-			ChainConfigExtra: ChainConfigExtra{
+		ChainConfig: *WithExtra(
+			&ChainConfig{
+				ChainID:             big.NewInt(1),
+				HomesteadBlock:      big.NewInt(0),
+				EIP150Block:         big.NewInt(0),
+				EIP155Block:         big.NewInt(0),
+				EIP158Block:         big.NewInt(0),
+				ByzantiumBlock:      big.NewInt(0),
+				ConstantinopleBlock: big.NewInt(0),
+				PetersburgBlock:     big.NewInt(0),
+				IstanbulBlock:       big.NewInt(0),
+				MuirGlacierBlock:    big.NewInt(0),
+			},
+			&ChainConfigExtra{
 				FeeConfig:          DefaultFeeConfig,
 				AllowFeeRecipients: false,
 				NetworkUpgrades: NetworkUpgrades{
@@ -283,7 +287,7 @@ func TestChainConfigMarshalWithUpgrades(t *testing.T) {
 				},
 				GenesisPrecompiles: Precompiles{},
 			},
-		},
+		),
 		UpgradeConfig: UpgradeConfig{
 			PrecompileUpgrades: []PrecompileUpgrade{
 				{

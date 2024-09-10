@@ -77,18 +77,6 @@ func SetEthUpgrades(c *ChainConfig, avalancheUpgrades NetworkUpgrades) {
 	}
 }
 
-func (c *ChainConfig) UnmarshalJSON(data []byte) error {
-	type _ChainConfig ChainConfig
-	tmp := _ChainConfig{}
-	if err := json.Unmarshal(data, &tmp); err != nil {
-		return err
-	}
-
-	*c = ChainConfig(tmp)
-
-	return json.Unmarshal(data, &c.ChainConfigExtra)
-}
-
 // UnmarshalJSON parses the JSON-encoded data and stores the result in the
 // object pointed to by c.
 // This is a custom unmarshaler to handle the Precompiles field.
@@ -107,38 +95,6 @@ func (c *ChainConfigExtra) UnmarshalJSON(data []byte) error {
 
 	// Unmarshal inlined PrecompileUpgrade
 	return json.Unmarshal(data, &c.GenesisPrecompiles)
-}
-
-// MarshalJSON implements the [json.Marshaler] interface.
-func (c ChainConfig) MarshalJSON() ([]byte, error) {
-	// See UnmarshalJSON() for rationale.
-	type raw ChainConfig
-	tmp, err := json.Marshal(raw(c))
-	if err != nil {
-		return nil, err
-	}
-
-	// Convert to map so we can add the extra fields.
-	asMap := make(map[string]json.RawMessage)
-	if err := json.Unmarshal(tmp, &asMap); err != nil {
-		return nil, err
-	}
-
-	// Similarly, obtain [c.extra] as a map.
-	tmp, err = json.Marshal(c.ChainConfigExtra)
-	if err != nil {
-		return nil, err
-	}
-	extraAsMap := make(map[string]json.RawMessage)
-	if err := json.Unmarshal(tmp, &extraAsMap); err != nil {
-		return nil, err
-	}
-
-	// Merge the two maps and marshal the result.
-	for k, v := range extraAsMap {
-		asMap[k] = v
-	}
-	return json.Marshal(asMap)
 }
 
 // MarshalJSON returns the JSON encoding of c.
@@ -181,7 +137,7 @@ type ChainConfigWithUpgradesJSON struct {
 // ChainConfig struct.
 func (cu ChainConfigWithUpgradesJSON) MarshalJSON() ([]byte, error) {
 	// embed the ChainConfig struct into the response
-	chainConfigJSON, err := json.Marshal(cu.ChainConfig)
+	chainConfigJSON, err := json.Marshal(&cu.ChainConfig) // XXX: Marshal should be defined on value receiver?
 	if err != nil {
 		return nil, err
 	}
@@ -308,6 +264,12 @@ func SetNetworkUpgradeDefaults(c *ChainConfig) {
 	if c.MuirGlacierBlock == nil {
 		c.MuirGlacierBlock = big.NewInt(0)
 	}
+	if c.LondonBlock == nil {
+		c.LondonBlock = big.NewInt(0)
+	}
+	if c.BerlinBlock == nil {
+		c.BerlinBlock = big.NewInt(0)
+	}
 
 	GetExtra(c).NetworkUpgrades.setDefaults(GetExtra(c).SnowCtx.NetworkUpgrades)
 }
@@ -358,4 +320,19 @@ func IsForkTransition(fork *uint64, parent *uint64, current uint64) bool {
 	}
 	currentForked := isTimestampForked(fork, current)
 	return !parentForked && currentForked
+}
+
+func WithExtra(c *ChainConfig, extra *ChainConfigExtra) *ChainConfig {
+	// XXX: Hack to initialize the ChainConfigExtra pointer in the ChainConfig.
+	cpy := *c
+	jsonBytes, err := json.Marshal(cpy)
+	if err != nil {
+		panic(err)
+	}
+	if err := json.Unmarshal(jsonBytes, &cpy); err != nil {
+		panic(err)
+	}
+
+	*GetExtra(&cpy) = *extra
+	return &cpy
 }
