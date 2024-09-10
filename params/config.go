@@ -67,6 +67,32 @@ var (
 		},
 	)
 
+	TestChainConfig = WithExtra(
+		&ChainConfig{
+			ChainID:             big.NewInt(1),
+			HomesteadBlock:      big.NewInt(0),
+			EIP150Block:         big.NewInt(0),
+			EIP155Block:         big.NewInt(0),
+			EIP158Block:         big.NewInt(0),
+			ByzantiumBlock:      big.NewInt(0),
+			ConstantinopleBlock: big.NewInt(0),
+			PetersburgBlock:     big.NewInt(0),
+			IstanbulBlock:       big.NewInt(0),
+			MuirGlacierBlock:    big.NewInt(0),
+			BerlinBlock:         big.NewInt(0),
+			LondonBlock:         big.NewInt(0),
+			CancunTime:          utils.TimeToNewUint64(upgrade.GetConfig(constants.UnitTestID).EtnaTime),
+		},
+		&ChainConfigExtra{
+			AvalancheContext:   AvalancheContext{utils.TestSnowContext()},
+			FeeConfig:          DefaultFeeConfig,
+			AllowFeeRecipients: false,
+			NetworkUpgrades:    getDefaultNetworkUpgrades(upgrade.GetConfig(constants.UnitTestID)), // This can be changed to correct network (local, test) via VM.
+			GenesisPrecompiles: Precompiles{},
+			UpgradeConfig:      UpgradeConfig{},
+		},
+	)
+
 	TestPreSubnetEVMChainConfig = WithExtra(
 		&ChainConfig{
 			ChainID:             big.NewInt(1),
@@ -91,32 +117,6 @@ var (
 				DurangoTimestamp:   utils.TimeToNewUint64(upgrade.UnscheduledActivationTime),
 				EtnaTimestamp:      utils.TimeToNewUint64(upgrade.UnscheduledActivationTime),
 			},
-			GenesisPrecompiles: Precompiles{},
-			UpgradeConfig:      UpgradeConfig{},
-		},
-	)
-
-	TestChainConfig = WithExtra(
-		&ChainConfig{
-			ChainID:             big.NewInt(1),
-			HomesteadBlock:      big.NewInt(0),
-			EIP150Block:         big.NewInt(0),
-			EIP155Block:         big.NewInt(0),
-			EIP158Block:         big.NewInt(0),
-			ByzantiumBlock:      big.NewInt(0),
-			ConstantinopleBlock: big.NewInt(0),
-			PetersburgBlock:     big.NewInt(0),
-			IstanbulBlock:       big.NewInt(0),
-			MuirGlacierBlock:    big.NewInt(0),
-			BerlinBlock:         big.NewInt(0),
-			LondonBlock:         big.NewInt(0),
-			CancunTime:          utils.TimeToNewUint64(upgrade.GetConfig(constants.UnitTestID).EtnaTime),
-		},
-		&ChainConfigExtra{
-			AvalancheContext:   AvalancheContext{utils.TestSnowContext()},
-			FeeConfig:          DefaultFeeConfig,
-			AllowFeeRecipients: false,
-			NetworkUpgrades:    getDefaultNetworkUpgrades(upgrade.GetConfig(constants.UnitTestID)), // This can be changed to correct network (local, test) via VM.
 			GenesisPrecompiles: Precompiles{},
 			UpgradeConfig:      UpgradeConfig{},
 		},
