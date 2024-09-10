@@ -49,71 +49,6 @@ var (
 		&ChainConfig{
 			ChainID: DefaultChainID,
 
-		HomesteadBlock:      big.NewInt(0),
-		EIP150Block:         big.NewInt(0),
-		EIP155Block:         big.NewInt(0),
-		EIP158Block:         big.NewInt(0),
-		ByzantiumBlock:      big.NewInt(0),
-		ConstantinopleBlock: big.NewInt(0),
-		PetersburgBlock:     big.NewInt(0),
-		IstanbulBlock:       big.NewInt(0),
-		MuirGlacierBlock:    big.NewInt(0),
-		NetworkUpgrades:     getDefaultNetworkUpgrades(upgrade.GetConfig(constants.MainnetID)), // This can be changed to correct network (local, test) via VM.
-		GenesisPrecompiles:  Precompiles{},
-	}
-
-	TestChainConfig = &ChainConfig{
-		AvalancheContext:    AvalancheContext{utils.TestSnowContext()},
-		ChainID:             big.NewInt(1),
-		FeeConfig:           DefaultFeeConfig,
-		AllowFeeRecipients:  false,
-		HomesteadBlock:      big.NewInt(0),
-		EIP150Block:         big.NewInt(0),
-		EIP155Block:         big.NewInt(0),
-		EIP158Block:         big.NewInt(0),
-		ByzantiumBlock:      big.NewInt(0),
-		ConstantinopleBlock: big.NewInt(0),
-		PetersburgBlock:     big.NewInt(0),
-		IstanbulBlock:       big.NewInt(0),
-		MuirGlacierBlock:    big.NewInt(0),
-		LondonBlock:         big.NewInt(0),
-		ShanghaiTime:        utils.TimeToNewUint64(upgrade.GetConfig(constants.UnitTestID).DurangoTime),
-		CancunTime:          utils.TimeToNewUint64(upgrade.GetConfig(constants.UnitTestID).EtnaTime),
-		NetworkUpgrades:     getDefaultNetworkUpgrades(upgrade.GetConfig(constants.UnitTestID)), // This can be changed to correct network (local, test) via VM.
-		GenesisPrecompiles:  Precompiles{},
-		UpgradeConfig:       UpgradeConfig{},
-	}
-
-	TestPreSubnetEVMChainConfig = &ChainConfig{
-		AvalancheContext:    AvalancheContext{utils.TestSnowContext()},
-		ChainID:             big.NewInt(1),
-		FeeConfig:           DefaultFeeConfig,
-		AllowFeeRecipients:  false,
-		HomesteadBlock:      big.NewInt(0),
-		EIP150Block:         big.NewInt(0),
-		EIP155Block:         big.NewInt(0),
-		EIP158Block:         big.NewInt(0),
-		ByzantiumBlock:      big.NewInt(0),
-		ConstantinopleBlock: big.NewInt(0),
-		PetersburgBlock:     big.NewInt(0),
-		IstanbulBlock:       big.NewInt(0),
-		MuirGlacierBlock:    big.NewInt(0),
-		NetworkUpgrades: NetworkUpgrades{
-			SubnetEVMTimestamp: utils.TimeToNewUint64(upgrade.UnscheduledActivationTime),
-			DurangoTimestamp:   utils.TimeToNewUint64(upgrade.UnscheduledActivationTime),
-			EtnaTimestamp:      utils.TimeToNewUint64(upgrade.UnscheduledActivationTime),
-		},
-		&ChainConfigExtra{
-			FeeConfig:          DefaultFeeConfig,
-			AllowFeeRecipients: false,
-			NetworkUpgrades:    getDefaultNetworkUpgrades(upgrade.GetConfig(constants.MainnetID)), // This can be changed to correct network (local, test) via VM.
-			GenesisPrecompiles: Precompiles{},
-		},
-	)
-
-	TestChainConfig = WithExtra(
-		&ChainConfig{
-			ChainID:             big.NewInt(1),
 			HomesteadBlock:      big.NewInt(0),
 			EIP150Block:         big.NewInt(0),
 			EIP155Block:         big.NewInt(0),
@@ -123,17 +58,12 @@ var (
 			PetersburgBlock:     big.NewInt(0),
 			IstanbulBlock:       big.NewInt(0),
 			MuirGlacierBlock:    big.NewInt(0),
-			BerlinBlock:         big.NewInt(0),
-			LondonBlock:         big.NewInt(0),
-			CancunTime:          utils.TimeToNewUint64(upgrade.GetConfig(constants.UnitTestID).EtnaTime),
 		},
 		&ChainConfigExtra{
-			AvalancheContext:   AvalancheContext{utils.TestSnowContext()},
 			FeeConfig:          DefaultFeeConfig,
 			AllowFeeRecipients: false,
-			NetworkUpgrades:    getDefaultNetworkUpgrades(upgrade.GetConfig(constants.UnitTestID)), // This can be changed to correct network (local, test) via VM.
+			NetworkUpgrades:    getDefaultNetworkUpgrades(upgrade.GetConfig(constants.MainnetID)), // This can be changed to correct network (local, test) via VM.
 			GenesisPrecompiles: Precompiles{},
-			UpgradeConfig:      UpgradeConfig{},
 		},
 	)
 
@@ -161,6 +91,32 @@ var (
 				DurangoTimestamp:   utils.TimeToNewUint64(upgrade.UnscheduledActivationTime),
 				EtnaTimestamp:      utils.TimeToNewUint64(upgrade.UnscheduledActivationTime),
 			},
+			GenesisPrecompiles: Precompiles{},
+			UpgradeConfig:      UpgradeConfig{},
+		},
+	)
+
+	TestChainConfig = WithExtra(
+		&ChainConfig{
+			ChainID:             big.NewInt(1),
+			HomesteadBlock:      big.NewInt(0),
+			EIP150Block:         big.NewInt(0),
+			EIP155Block:         big.NewInt(0),
+			EIP158Block:         big.NewInt(0),
+			ByzantiumBlock:      big.NewInt(0),
+			ConstantinopleBlock: big.NewInt(0),
+			PetersburgBlock:     big.NewInt(0),
+			IstanbulBlock:       big.NewInt(0),
+			MuirGlacierBlock:    big.NewInt(0),
+			BerlinBlock:         big.NewInt(0),
+			LondonBlock:         big.NewInt(0),
+			CancunTime:          utils.TimeToNewUint64(upgrade.GetConfig(constants.UnitTestID).EtnaTime),
+		},
+		&ChainConfigExtra{
+			AvalancheContext:   AvalancheContext{utils.TestSnowContext()},
+			FeeConfig:          DefaultFeeConfig,
+			AllowFeeRecipients: false,
+			NetworkUpgrades:    getDefaultNetworkUpgrades(upgrade.GetConfig(constants.UnitTestID)), // This can be changed to correct network (local, test) via VM.
 			GenesisPrecompiles: Precompiles{},
 			UpgradeConfig:      UpgradeConfig{},
 		},
