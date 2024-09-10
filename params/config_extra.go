@@ -263,6 +263,9 @@ func (c *ChainConfig) SetNetworkUpgradeDefaults() {
 	if c.MuirGlacierBlock == nil {
 		c.MuirGlacierBlock = big.NewInt(0)
 	}
+	if c.BerlinBlock == nil {
+		c.BerlinBlock = big.NewInt(0)
+	}
 	if c.LondonBlock == nil {
 		c.LondonBlock = big.NewInt(0)
 	}
