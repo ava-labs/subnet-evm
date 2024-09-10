@@ -368,6 +368,7 @@ func TestVerkleGenesisCommit(t *testing.T) {
 		IstanbulBlock:       big.NewInt(0),
 		MuirGlacierBlock:    big.NewInt(0),
 		LondonBlock:         big.NewInt(0),
+		ShanghaiTime:        &verkleTime,
 		CancunTime:          &verkleTime,
 		VerkleTime:          &verkleTime,
 	}
