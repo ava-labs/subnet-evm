@@ -599,21 +599,7 @@ func configTimestampEqual(x, y *uint64) bool {
 
 // ConfigCompatError is raised if the locally-stored blockchain is initialised with a
 // ChainConfig that would alter the past.
-type ConfigCompatError struct {
-	What string
-
-	// block numbers of the stored and new configurations if block based forking
-	StoredBlock, NewBlock *big.Int
-
-	// timestamps of the stored and new configurations if time based forking
-	StoredTime, NewTime *uint64
-
-	// the block number to which the local chain must be rewound to correct the error
-	RewindToBlock uint64
-
-	// the timestamp to which the local chain must be rewound to correct the error
-	RewindToTime uint64
-}
+type ConfigCompatError = gethparams.ConfigCompatError
 
 func newBlockCompatError(what string, storedblock, newblock *big.Int) *ConfigCompatError {
 	var rew *big.Int
@@ -657,13 +643,6 @@ func newTimestampCompatError(what string, storedtime, newtime *uint64) *ConfigCo
 		err.RewindToTime = *rew - 1
 	}
 	return err
-}
-
-func (err *ConfigCompatError) Error() string {
-	if err.StoredBlock != nil {
-		return fmt.Sprintf("mismatching %s in database (have block %d, want block %d, rewindto block %d)", err.What, err.StoredBlock, err.NewBlock, err.RewindToBlock)
-	}
-	return fmt.Sprintf("mismatching %s in database (have timestamp %s, want timestamp %s, rewindto timestamp %d)", err.What, ptrToString(err.StoredTime), ptrToString(err.NewTime), err.RewindToTime)
 }
 
 // Rules wraps ChainConfig and is merely syntactic sugar or can be used for functions
