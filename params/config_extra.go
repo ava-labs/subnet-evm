@@ -267,9 +267,6 @@ func SetNetworkUpgradeDefaults(c *ChainConfig) {
 	if c.LondonBlock == nil {
 		c.LondonBlock = big.NewInt(0)
 	}
-	if c.BerlinBlock == nil {
-		c.BerlinBlock = big.NewInt(0)
-	}
 
 	GetExtra(c).NetworkUpgrades.setDefaults(GetExtra(c).SnowCtx.NetworkUpgrades)
 }
