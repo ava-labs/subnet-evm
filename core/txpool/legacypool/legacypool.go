@@ -695,6 +695,7 @@ func (pool *LegacyPool) validateTx(tx *types.Transaction, local bool) error {
 		State: pool.currentState,
 		Rules: pool.chainconfig.Rules(
 			pool.currentHead.Load().Number,
+			params.IsMergeTODO,
 			pool.currentHead.Load().Time,
 		),
 		MinimumFee: pool.minimumFee,

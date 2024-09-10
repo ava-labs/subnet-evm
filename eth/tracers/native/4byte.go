@@ -34,6 +34,7 @@ import (
 
 	"github.com/ava-labs/subnet-evm/core/vm"
 	"github.com/ava-labs/subnet-evm/eth/tracers"
+	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -91,7 +92,7 @@ func (t *fourByteTracer) store(id []byte, size int) {
 // CaptureStart implements the EVMLogger interface to initialize the tracing operation.
 func (t *fourByteTracer) CaptureStart(env *vm.EVM, from common.Address, to common.Address, create bool, input []byte, gas uint64, value *big.Int) {
 	// Update list of precompiles based on current block
-	rules := env.ChainConfig().Rules(env.Context.BlockNumber, env.Context.Time)
+	rules := env.ChainConfig().Rules(env.Context.BlockNumber, params.IsMergeTODO, env.Context.Time)
 	t.activePrecompiles = vm.ActivePrecompiles(rules)
 
 	// Save the outer calldata also

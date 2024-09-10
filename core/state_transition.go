@@ -463,7 +463,7 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	var (
 		msg              = st.msg
 		sender           = vm.AccountRef(msg.From)
-		rules            = st.evm.ChainConfig().Rules(st.evm.Context.BlockNumber, st.evm.Context.Time)
+		rules            = st.evm.ChainConfig().Rules(st.evm.Context.BlockNumber, params.IsMergeTODO, st.evm.Context.Time)
 		rulesExtra       = params.GetRulesExtra(rules)
 		contractCreation = msg.To == nil
 	)

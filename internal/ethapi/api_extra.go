@@ -152,7 +152,7 @@ func (s *BlockChainAPI) GetActiveRulesAt(ctx context.Context, blockTimestamp *ui
 	} else {
 		timestamp = *blockTimestamp
 	}
-	rules := s.b.ChainConfig().Rules(common.Big0, timestamp)
+	rules := s.b.ChainConfig().Rules(common.Big0, params.IsMergeTODO, timestamp)
 	res := ActiveRulesResult{
 		EthRules:       rules,
 		AvalancheRules: params.GetRulesExtra(rules).AvalancheRules,

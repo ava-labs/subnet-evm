@@ -89,7 +89,7 @@ func TestHandlePrecompileAccept(t *testing.T) {
 	// Call handlePrecompileAccept
 	blk := vm.newBlock(ethBlock)
 
-	rules := params.TestChainConfig.Rules(ethBlock.Number(), ethBlock.Time())
+	rules := params.TestChainConfig.Rules(ethBlock.Number(), params.IsMergeTODO, ethBlock.Time())
 	rulesExtra := params.GetRulesExtra(rules)
 	rulesExtra.AccepterPrecompiles = map[common.Address]precompileconfig.Accepter{
 		precompileAddr: mockAccepter,

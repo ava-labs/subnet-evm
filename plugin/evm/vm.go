@@ -1078,7 +1078,7 @@ func (vm *VM) GetCurrentNonce(address common.Address) (uint64, error) {
 // currentRules returns the chain rules for the current block.
 func (vm *VM) currentRules() params.Rules {
 	header := vm.eth.APIBackend.CurrentHeader()
-	return vm.chainConfig.Rules(header.Number, header.Time)
+	return vm.chainConfig.Rules(header.Number, params.IsMergeTODO, header.Time)
 }
 
 // requirePrimaryNetworkSigners returns true if warp messages from the primary

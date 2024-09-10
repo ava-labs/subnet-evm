@@ -132,7 +132,7 @@ func Execute(code, input []byte, cfg *Config) ([]byte, *state.StateDB, error) {
 		address = common.BytesToAddress([]byte("contract"))
 		vmenv   = NewEnv(cfg)
 		sender  = vm.AccountRef(cfg.Origin)
-		rules   = cfg.ChainConfig.Rules(vmenv.Context.BlockNumber, vmenv.Context.Time)
+		rules   = cfg.ChainConfig.Rules(vmenv.Context.BlockNumber, params.IsMergeTODO, vmenv.Context.Time)
 	)
 	// Execute the preparatory steps for state transition which includes:
 	// - prepare accessList(post-berlin)
@@ -166,7 +166,7 @@ func Create(input []byte, cfg *Config) ([]byte, common.Address, uint64, error) {
 	var (
 		vmenv  = NewEnv(cfg)
 		sender = vm.AccountRef(cfg.Origin)
-		rules  = cfg.ChainConfig.Rules(vmenv.Context.BlockNumber, vmenv.Context.Time)
+		rules  = cfg.ChainConfig.Rules(vmenv.Context.BlockNumber, params.IsMergeTODO, vmenv.Context.Time)
 	)
 	// Execute the preparatory steps for state transition which includes:
 	// - prepare accessList(post-berlin)
@@ -195,7 +195,7 @@ func Call(address common.Address, input []byte, cfg *Config) ([]byte, uint64, er
 		vmenv   = NewEnv(cfg)
 		sender  = vm.AccountRef(cfg.Origin)
 		statedb = cfg.State
-		rules   = cfg.ChainConfig.Rules(vmenv.Context.BlockNumber, vmenv.Context.Time)
+		rules   = cfg.ChainConfig.Rules(vmenv.Context.BlockNumber, params.IsMergeTODO, vmenv.Context.Time)
 	)
 	// Execute the preparatory steps for state transition which includes:
 	// - prepare accessList(post-berlin)

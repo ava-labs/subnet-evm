@@ -37,6 +37,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/vm"
 	"github.com/ava-labs/subnet-evm/eth/tracers"
 	jsassets "github.com/ava-labs/subnet-evm/eth/tracers/js/internal/tracers"
+	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -289,7 +290,7 @@ func (t *jsTracer) CaptureStart(env *vm.EVM, from common.Address, to common.Addr
 	t.ctx["value"] = valueBig
 	t.ctx["block"] = t.vm.ToValue(env.Context.BlockNumber.Uint64())
 	// Update list of precompiles based on current block
-	rules := env.ChainConfig().Rules(env.Context.BlockNumber, env.Context.Time)
+	rules := env.ChainConfig().Rules(env.Context.BlockNumber, params.IsMergeTODO, env.Context.Time)
 	t.activePrecompiles = vm.ActivePrecompiles(rules)
 }
 

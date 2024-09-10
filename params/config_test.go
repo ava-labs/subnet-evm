@@ -159,15 +159,15 @@ func TestConfigRules(t *testing.T) {
 	}
 
 	var stamp uint64
-	if r := c.Rules(big.NewInt(0), stamp); GetRulesExtra(r).IsSubnetEVM {
+	if r := c.Rules(big.NewInt(0), IsMergeTODO, stamp); GetRulesExtra(r).IsSubnetEVM {
 		t.Errorf("expected %v to not be subnet-evm", stamp)
 	}
 	stamp = 500
-	if r := c.Rules(big.NewInt(0), stamp); !GetRulesExtra(r).IsSubnetEVM {
+	if r := c.Rules(big.NewInt(0), IsMergeTODO, stamp); !GetRulesExtra(r).IsSubnetEVM {
 		t.Errorf("expected %v to be subnet-evm", stamp)
 	}
 	stamp = math.MaxInt64
-	if r := c.Rules(big.NewInt(0), stamp); !GetRulesExtra(r).IsSubnetEVM {
+	if r := c.Rules(big.NewInt(0), IsMergeTODO, stamp); !GetRulesExtra(r).IsSubnetEVM {
 		t.Errorf("expected %v to be subnet-evm", stamp)
 	}
 }
@@ -254,10 +254,10 @@ func TestActivePrecompiles(t *testing.T) {
 		},
 	}
 
-	rules0 := config.Rules(common.Big0, 0)
+	rules0 := config.Rules(common.Big0, IsMergeTODO, 0)
 	require.True(t, GetRulesExtra(rules0).IsPrecompileEnabled(nativeminter.Module.Address))
 
-	rules1 := config.Rules(common.Big0, 1)
+	rules1 := config.Rules(common.Big0, IsMergeTODO, 1)
 	require.False(t, GetRulesExtra(rules1).IsPrecompileEnabled(nativeminter.Module.Address))
 }
 

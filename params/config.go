@@ -186,7 +186,7 @@ var (
 			UpgradeConfig:      UpgradeConfig{},
 		},
 	}
-	TestRules = TestChainConfig.Rules(new(big.Int), 0)
+	TestRules = TestChainConfig.Rules(new(big.Int), IsMergeTODO, 0)
 )
 
 // ChainConfig is the core config which determines the blockchain settings.
@@ -715,7 +715,7 @@ func (c *ChainConfig) rules(num *big.Int, timestamp uint64) Rules {
 
 // Rules returns the Avalanche modified rules to support Avalanche
 // network upgrades
-func (c *ChainConfig) Rules(blockNum *big.Int, timestamp uint64) Rules {
+func (c *ChainConfig) Rules(blockNum *big.Int, isMerge bool, timestamp uint64) Rules {
 	// XXX: This just exists to get the callback from libevm to take RulesExtra.
 	var c_ gethparams.ChainConfig
 	jsonBytes := []byte(`{}`)
@@ -724,5 +724,5 @@ func (c *ChainConfig) Rules(blockNum *big.Int, timestamp uint64) Rules {
 	}
 	extra := FromChainConfig(&c_)
 	*extra = *c
-	return c_.Rules(blockNum, IsMergeTODO, timestamp)
+	return c_.Rules(blockNum, isMerge, timestamp)
 }
