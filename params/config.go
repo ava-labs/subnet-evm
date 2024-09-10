@@ -77,6 +77,7 @@ var (
 		IstanbulBlock:       big.NewInt(0),
 		MuirGlacierBlock:    big.NewInt(0),
 		LondonBlock:         big.NewInt(0),
+		ShanghaiTime:        utils.TimeToNewUint64(upgrade.GetConfig(constants.UnitTestID).DurangoTime),
 		CancunTime:          utils.TimeToNewUint64(upgrade.GetConfig(constants.UnitTestID).EtnaTime),
 		NetworkUpgrades:     getDefaultNetworkUpgrades(upgrade.GetConfig(constants.UnitTestID)), // This can be changed to correct network (local, test) via VM.
 		GenesisPrecompiles:  Precompiles{},

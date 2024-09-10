@@ -71,7 +71,10 @@ type AvalancheContext struct {
 }
 
 // SetEthUpgrades sets the mapped upgrades  Avalanche > EVM upgrades) for the chain config.
-func SetEthUpgrades(c *ChainConfig, avalancheUpgrades NetworkUpgrades) {
+func (c *ChainConfigExtra) SetEthUpgrades(avalancheUpgrades NetworkUpgrades) {
+	if avalancheUpgrades.DurangoTimestamp != nil {
+		c.ShanghaiTime = utils.NewUint64(*avalancheUpgrades.DurangoTimestamp)
+	}
 	if avalancheUpgrades.EtnaTimestamp != nil {
 		c.CancunTime = utils.NewUint64(*avalancheUpgrades.EtnaTimestamp)
 	}
