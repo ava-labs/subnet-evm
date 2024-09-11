@@ -259,11 +259,11 @@ func TestBlockChainOfflinePruningUngracefulShutdown(t *testing.T) {
 			return blockchain, nil
 		}
 
-		if err := blockchain.CleanBlockRootsAboveLastAccepted(); err != nil {
+		targetRoot, err := blockchain.CleanBlockRootsAboveLastAccepted()
+		if err != nil {
 			return nil, err
 		}
 		// get the target root to prune to before stopping the blockchain
-		targetRoot := blockchain.LastAcceptedBlock().Root()
 		if targetRoot == types.EmptyRootHash {
 			return blockchain, nil
 		}
