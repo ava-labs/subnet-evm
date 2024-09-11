@@ -191,7 +191,7 @@ func (n *Backend) buildBlock(accept bool, gap uint64) (common.Hash, error) {
 
 func (n *Backend) acceptAncestors(block *types.Block) error {
 	chain := n.eth.BlockChain()
-	lastAccepted := chain.LastConsensusAcceptedBlock()
+	lastAccepted := chain.LastAcceptedBlock()
 
 	// Accept all ancestors of the block
 	toAccept := []*types.Block{block}

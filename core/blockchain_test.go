@@ -336,7 +336,7 @@ func testRepopulateMissingTriesParallel(t *testing.T, parallelism int) {
 		}
 	}
 
-	lastAcceptedHash := blockchain.LastConsensusAcceptedBlock().Hash()
+	lastAcceptedHash := blockchain.LastAcceptedBlock().Hash()
 	blockchain.Stop()
 
 	blockchain, err = createBlockChain(chainDB, pruningConfig, gspec, lastAcceptedHash)
