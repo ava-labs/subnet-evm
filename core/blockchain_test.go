@@ -674,6 +674,9 @@ func TestCreateThenDeletePreByzantium(t *testing.T) {
 	config.PetersburgBlock = nil
 	config.IstanbulBlock = nil
 	config.MuirGlacierBlock = nil
+	config.BerlinBlock = nil
+	config.LondonBlock = nil
+
 	testCreateThenDelete(t, &config)
 }
 func TestCreateThenDeletePostByzantium(t *testing.T) {
