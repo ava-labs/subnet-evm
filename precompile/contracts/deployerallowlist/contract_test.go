@@ -1,13 +1,14 @@
 // (c) 2019-2023, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-package deployerallowlist
+package deployerallowlist_test
 
 import (
 	"testing"
 
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
+	. "github.com/ava-labs/subnet-evm/precompile/contracts/deployerallowlist"
 )
 
 func TestContractDeployerAllowListRun(t *testing.T) {

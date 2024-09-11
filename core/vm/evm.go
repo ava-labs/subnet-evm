@@ -27,7 +27,6 @@
 package vm
 
 import (
-	"fmt"
 	"math/big"
 	"sync/atomic"
 
@@ -36,13 +35,13 @@ import (
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
-	"github.com/ava-labs/subnet-evm/precompile/contracts/deployerallowlist"
 	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/predicate"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/libevm"
 	"github.com/holiman/uint256"
 )
 
@@ -501,6 +500,15 @@ func (c *codeAndHash) Hash() common.Hash {
 
 // create creates a new contract using code as deployment code.
 func (evm *EVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64, value *uint256.Int, address common.Address, typ OpCode) ([]byte, common.Address, uint64, error) {
+	// XXX: This is a placeholder for IsProhibited (failure does not consume gas)
+	// and DeployerAllowList (failure consumes gas).
+	// We should make sure the gas consumption is correctly preserved,
+	// and verify the type of error returned does not impact execution,
+	// as some checks are performed before the 'hook' in subnet-evm.
+	cc := &libevm.AddressContext{Gas: gas, Origin: evm.Origin, Caller: caller.Address(), Self: address}
+	if err := evm.chainRules.Hooks().CanCreateContract(cc, evm.StateDB); err != nil {
+		return nil, common.Address{}, cc.Gas, err
+	}
 	// Depth check execution. Fail if we're trying to execute above the
 	// limit.
 	if evm.depth > int(params.CallCreateDepth) {
@@ -511,11 +519,6 @@ func (evm *EVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 	// always yield a positive result.
 	if !evm.Context.CanTransfer(evm.StateDB, caller.Address(), value) {
 		return nil, common.Address{}, gas, vmerrs.ErrInsufficientBalance
-	}
-	// If there is any collision with a prohibited address, return an error instead
-	// of allowing the contract to be created.
-	if IsProhibited(address) {
-		return nil, common.Address{}, gas, vmerrs.ErrAddrProhibited
 	}
 	nonce := evm.StateDB.GetNonce(caller.Address())
 	if nonce+1 < nonce {
@@ -531,13 +534,6 @@ func (evm *EVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 	contractHash := evm.StateDB.GetCodeHash(address)
 	if evm.StateDB.GetNonce(address) != 0 || (contractHash != (common.Hash{}) && contractHash != types.EmptyCodeHash) {
 		return nil, common.Address{}, 0, vmerrs.ErrContractAddressCollision
-	}
-	// If the allow list is enabled, check that [evm.TxContext.Origin] has permission to deploy a contract.
-	if params.GetRulesExtra(evm.chainRules).IsPrecompileEnabled(deployerallowlist.ContractAddress) {
-		allowListRole := deployerallowlist.GetContractDeployerAllowListStatus(evm.StateDB, evm.TxContext.Origin)
-		if !allowListRole.IsEnabled() {
-			return nil, common.Address{}, 0, fmt.Errorf("tx.origin %s is not authorized to deploy a contract", evm.TxContext.Origin)
-		}
 	}
 
 	// Create a new account on the state

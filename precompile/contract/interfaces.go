@@ -19,9 +19,13 @@ type StatefulPrecompiledContract interface {
 	Run(accessibleState AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error)
 }
 
+type StateReader interface {
+	GetState(common.Address, common.Hash) common.Hash
+}
+
 // StateDB is the interface for accessing EVM state
 type StateDB interface {
-	GetState(common.Address, common.Hash) common.Hash
+	StateReader
 	SetState(common.Address, common.Hash, common.Hash)
 
 	SetNonce(common.Address, uint64)
