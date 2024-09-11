@@ -336,7 +336,7 @@ func testRepopulateMissingTriesParallel(t *testing.T, parallelism int) {
 		}
 	}
 
-	lastAcceptedHash := blockchain.LastConsensusAcceptedBlock().Hash()
+	lastAcceptedHash := blockchain.LastAcceptedBlock().Hash()
 	blockchain.Stop()
 
 	blockchain, err = createBlockChain(chainDB, pruningConfig, gspec, lastAcceptedHash)
@@ -674,6 +674,9 @@ func TestCreateThenDeletePreByzantium(t *testing.T) {
 	config.PetersburgBlock = nil
 	config.IstanbulBlock = nil
 	config.MuirGlacierBlock = nil
+	config.BerlinBlock = nil
+	config.LondonBlock = nil
+
 	testCreateThenDelete(t, &config)
 }
 func TestCreateThenDeletePostByzantium(t *testing.T) {

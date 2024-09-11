@@ -57,6 +57,7 @@ func u64(val uint64) *uint64 { return &val }
 func TestStateProcessorErrors(t *testing.T) {
 	cpcfg := *params.TestChainConfig
 	config := &cpcfg
+	config.ShanghaiTime = u64(0)
 	config.CancunTime = u64(0)
 	config.FeeConfig.MinBaseFee = big.NewInt(params.TestMaxBaseFee)
 
@@ -121,7 +122,8 @@ func TestStateProcessorErrors(t *testing.T) {
 				},
 				GasLimit: params.TestChainConfig.FeeConfig.GasLimit.Uint64(),
 			}
-			blockchain, _  = NewBlockChain(db, DefaultCacheConfig, gspec, dummy.NewCoinbaseFaker(), vm.Config{}, common.Hash{}, false)
+			// FullFaker used to skip header verification that enforces no blobs.
+			blockchain, _  = NewBlockChain(db, DefaultCacheConfig, gspec, dummy.NewFullFaker(), vm.Config{}, common.Hash{}, false)
 			tooBigInitCode = [params.MaxInitCodeSize + 1]byte{}
 		)
 

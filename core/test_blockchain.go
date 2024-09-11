@@ -118,7 +118,7 @@ func checkBlockChainState(
 	checkState func(sdb *state.StateDB) error,
 ) (*BlockChain, *BlockChain, *BlockChain) {
 	var (
-		lastAcceptedBlock = bc.LastConsensusAcceptedBlock()
+		lastAcceptedBlock = bc.LastAcceptedBlock()
 		newDB             = rawdb.NewMemoryDatabase()
 	)
 
@@ -149,7 +149,7 @@ func checkBlockChainState(
 		}
 	}
 
-	newLastAcceptedBlock := newBlockChain.LastConsensusAcceptedBlock()
+	newLastAcceptedBlock := newBlockChain.LastAcceptedBlock()
 	if newLastAcceptedBlock.Hash() != lastAcceptedBlock.Hash() {
 		t.Fatalf("Expected new blockchain to have last accepted block %s:%d, but found %s:%d", lastAcceptedBlock.Hash().Hex(), lastAcceptedBlock.NumberU64(), newLastAcceptedBlock.Hash().Hex(), newLastAcceptedBlock.NumberU64())
 	}
@@ -176,7 +176,7 @@ func checkBlockChainState(
 	if currentBlock := restartedChain.CurrentBlock(); currentBlock.Hash() != lastAcceptedBlock.Hash() {
 		t.Fatalf("Expected restarted chain to have current block %s:%d, but found %s:%d", lastAcceptedBlock.Hash().Hex(), lastAcceptedBlock.NumberU64(), currentBlock.Hash().Hex(), currentBlock.Number.Uint64())
 	}
-	if restartedLastAcceptedBlock := restartedChain.LastConsensusAcceptedBlock(); restartedLastAcceptedBlock.Hash() != lastAcceptedBlock.Hash() {
+	if restartedLastAcceptedBlock := restartedChain.LastAcceptedBlock(); restartedLastAcceptedBlock.Hash() != lastAcceptedBlock.Hash() {
 		t.Fatalf("Expected restarted chain to have current block %s:%d, but found %s:%d", lastAcceptedBlock.Hash().Hex(), lastAcceptedBlock.NumberU64(), restartedLastAcceptedBlock.Hash().Hex(), restartedLastAcceptedBlock.NumberU64())
 	}
 
@@ -387,7 +387,7 @@ func TestInsertLongForkedChain(t *testing.T, create func(db ethdb.Database, gspe
 		}
 	}
 
-	lastAcceptedBlock := blockchain.LastConsensusAcceptedBlock()
+	lastAcceptedBlock := blockchain.LastAcceptedBlock()
 	expectedLastAcceptedBlock := chain1[len(chain1)-1]
 	if lastAcceptedBlock.Hash() != expectedLastAcceptedBlock.Hash() {
 		t.Fatalf("Expected last accepted block to be %s:%d, but found %s%d", expectedLastAcceptedBlock.Hash().Hex(), expectedLastAcceptedBlock.NumberU64(), lastAcceptedBlock.Hash().Hex(), lastAcceptedBlock.NumberU64())
@@ -495,7 +495,7 @@ func TestAcceptNonCanonicalBlock(t *testing.T, create func(db ethdb.Database, gs
 		require.False(t, blockchain.HasBlock(chain1[i].Hash(), chain1[i].NumberU64()))
 	}
 
-	lastAcceptedBlock := blockchain.LastConsensusAcceptedBlock()
+	lastAcceptedBlock := blockchain.LastAcceptedBlock()
 	expectedLastAcceptedBlock := chain2[0]
 	if lastAcceptedBlock.Hash() != expectedLastAcceptedBlock.Hash() {
 		t.Fatalf("Expected last accepted block to be %s:%d, but found %s%d", expectedLastAcceptedBlock.Hash().Hex(), expectedLastAcceptedBlock.NumberU64(), lastAcceptedBlock.Hash().Hex(), lastAcceptedBlock.NumberU64())
@@ -591,7 +591,7 @@ func TestSetPreferenceRewind(t *testing.T, create func(db ethdb.Database, gspec 
 		t.Fatalf("Expected current block to be %s:%d, but found %s%d", expectedCurrentBlock.Hash().Hex(), expectedCurrentBlock.NumberU64(), currentBlock.Hash().Hex(), currentBlock.Number.Uint64())
 	}
 
-	lastAcceptedBlock := blockchain.LastConsensusAcceptedBlock()
+	lastAcceptedBlock := blockchain.LastAcceptedBlock()
 	expectedLastAcceptedBlock := blockchain.Genesis()
 	if lastAcceptedBlock.Hash() != expectedLastAcceptedBlock.Hash() {
 		t.Fatalf("Expected last accepted block to be %s:%d, but found %s%d", expectedLastAcceptedBlock.Hash().Hex(), expectedLastAcceptedBlock.NumberU64(), lastAcceptedBlock.Hash().Hex(), lastAcceptedBlock.NumberU64())
@@ -626,7 +626,7 @@ func TestSetPreferenceRewind(t *testing.T, create func(db ethdb.Database, gspec 
 		t.Fatal(err)
 	}
 
-	lastAcceptedBlock = blockchain.LastConsensusAcceptedBlock()
+	lastAcceptedBlock = blockchain.LastAcceptedBlock()
 	expectedLastAcceptedBlock = chain[0]
 	if lastAcceptedBlock.Hash() != expectedLastAcceptedBlock.Hash() {
 		t.Fatalf("Expected last accepted block to be %s:%d, but found %s%d", expectedLastAcceptedBlock.Hash().Hex(), expectedLastAcceptedBlock.NumberU64(), lastAcceptedBlock.Hash().Hex(), lastAcceptedBlock.NumberU64())
@@ -1055,7 +1055,7 @@ func TestAcceptBlockIdenticalStateRoot(t *testing.T, create func(db ethdb.Databa
 		t.Fatal(err)
 	}
 
-	lastAcceptedBlock := blockchain.LastConsensusAcceptedBlock()
+	lastAcceptedBlock := blockchain.LastAcceptedBlock()
 	expectedLastAcceptedBlock := chain1[1]
 	if lastAcceptedBlock.Hash() != expectedLastAcceptedBlock.Hash() {
 		t.Fatalf("Expected last accepted block to be %s:%d, but found %s%d", expectedLastAcceptedBlock.Hash().Hex(), expectedLastAcceptedBlock.NumberU64(), lastAcceptedBlock.Hash().Hex(), lastAcceptedBlock.NumberU64())
@@ -1220,7 +1220,7 @@ func TestReprocessAcceptBlockIdenticalStateRoot(t *testing.T, create func(db eth
 		t.Fatal(err)
 	}
 
-	lastAcceptedBlock := blockchain.LastConsensusAcceptedBlock()
+	lastAcceptedBlock := blockchain.LastAcceptedBlock()
 	expectedLastAcceptedBlock := chain1[1]
 	if lastAcceptedBlock.Hash() != expectedLastAcceptedBlock.Hash() {
 		t.Fatalf("Expected last accepted block to be %s:%d, but found %s%d", expectedLastAcceptedBlock.Hash().Hex(), expectedLastAcceptedBlock.NumberU64(), lastAcceptedBlock.Hash().Hex(), lastAcceptedBlock.NumberU64())
