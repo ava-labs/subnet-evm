@@ -480,7 +480,7 @@ func (bc *BlockChain) flattenSnapshot(postAbortWork func() error, hash common.Ha
 func (bc *BlockChain) warmAcceptedCaches() {
 	var (
 		startTime       = time.Now()
-		lastAccepted    = bc.LastAcceptedBlock().NumberU64()
+		lastAccepted    = bc.lastAccepted.NumberU64()
 		startIndex      = uint64(1)
 		targetCacheSize = uint64(bc.cacheConfig.AcceptedCacheSize)
 	)
@@ -520,12 +520,12 @@ func (bc *BlockChain) accept(next *types.Block) error {
 	if err := bc.flattenSnapshot(func() error {
 		return bc.stateManager.AcceptTrie(next)
 	}, next.Hash()); err != nil {
-		log.Crit("unable to flatten snapshot from acceptor", "blockHash", next.Hash(), "err", err)
+		return fmt.Errorf("unable to flatten snapshot in accept for block (%): %w", next.Hash(), err)
 	}
 
 	// Update last processed and transaction lookup index
 	if err := bc.writeBlockAcceptedIndices(next); err != nil {
-		log.Crit("failed to write accepted block effects", "err", err)
+		return fmt.Errorf("failed to write accepted block indices: %w", err)
 	}
 
 	// Ensure [hc.acceptedNumberCache] and [acceptedLogsCache] have latest content
@@ -900,22 +900,10 @@ func (bc *BlockChain) setPreference(block *types.Block) error {
 	return nil
 }
 
-// LastConsensusAcceptedBlock returns the last block to be marked as accepted. It may or
-// may not yet be processed.
-func (bc *BlockChain) LastConsensusAcceptedBlock() *types.Block {
-	bc.chainmu.Lock()
-	defer bc.chainmu.Unlock()
-
-	return bc.lastAccepted
-}
-
-// LastAcceptedBlock returns the last block to be marked as accepted and is
-// processed.
-//
-// Note: During initialization, [acceptorTip] is equal to [lastAccepted].
+// LastAcceptedBlock returns the last block that was marked as accepted.
 func (bc *BlockChain) LastAcceptedBlock() *types.Block {
-	bc.chainmu.Lock()
-	defer bc.chainmu.Unlock()
+	bc.chainmu.RLock()
+	defer bc.chainmu.RUnlock()
 
 	return bc.lastAccepted
 }
@@ -1825,7 +1813,7 @@ func (bc *BlockChain) populateMissingTries() error {
 	}
 
 	var (
-		lastAccepted = bc.LastAcceptedBlock().NumberU64()
+		lastAccepted = bc.lastAccepted.NumberU64()
 		startHeight  = *bc.cacheConfig.PopulateMissingTries
 		startTime    = time.Now()
 		logged       time.Time
@@ -1906,7 +1894,6 @@ func (bc *BlockChain) CleanBlockRootsAboveLastAccepted() (common.Hash, error) {
 
 	targetBlock := bc.lastAccepted
 	targetRoot := targetBlock.Root()
-
 	// Clean up any block roots above the last accepted block before we start pruning.
 	// Note: this takes the place of middleRoots in the geth implementation since we do not
 	// track processing block roots via snapshot journals in the same way.

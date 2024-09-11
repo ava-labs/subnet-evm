@@ -56,7 +56,6 @@ import (
 	"github.com/ava-labs/subnet-evm/internal/blocktest"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/rpc"
-	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -788,15 +787,13 @@ func TestEstimateGas(t *testing.T) {
 }
 
 func TestCall(t *testing.T) {
-	// Enable BLOBHASH opcode in Cancun
-	cfg := *params.TestChainConfig
-	cfg.CancunTime = utils.NewUint64(0)
 	t.Parallel()
 	// Initialize test accounts
 	var (
 		accounts = newAccounts(3)
 		genesis  = &core.Genesis{
-			Config: &cfg,
+			Config:    params.TestChainConfig,
+			Timestamp: uint64(upgrade.InitiallyActiveTime.Unix()),
 			Alloc: types.GenesisAlloc{
 				accounts[0].addr: {Balance: big.NewInt(params.Ether)},
 				accounts[1].addr: {Balance: big.NewInt(params.Ether)},
@@ -1786,6 +1783,7 @@ func TestRPCGetBlockOrHeader(t *testing.T) {
 
 func setupReceiptBackend(t *testing.T, genBlocks int) (*testBackend, []common.Hash) {
 	config := *params.TestChainConfig
+	config.ShanghaiTime = new(uint64)
 	config.CancunTime = new(uint64)
 	var (
 		acc1Key, _ = crypto.HexToECDSA("8a1f9a8f95be41cd7ccb6168179afb4504aefe388d1e14474d32c45c72ce7b7a")
@@ -1818,7 +1816,7 @@ func setupReceiptBackend(t *testing.T, genBlocks int) (*testBackend, []common.Ha
 		txHashes = make([]common.Hash, genBlocks)
 	)
 
-	backend := newTestBackend(t, genBlocks, genesis, dummy.NewCoinbaseFaker(), func(i int, b *core.BlockGen) {
+	backend := newTestBackend(t, genBlocks, genesis, dummy.NewFullFaker(), func(i int, b *core.BlockGen) {
 		var (
 			tx  *types.Transaction
 			err error
