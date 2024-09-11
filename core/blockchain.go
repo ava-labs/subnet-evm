@@ -520,7 +520,7 @@ func (bc *BlockChain) accept(next *types.Block) error {
 	if err := bc.flattenSnapshot(func() error {
 		return bc.stateManager.AcceptTrie(next)
 	}, next.Hash()); err != nil {
-		return fmt.Errorf("unable to flatten snapshot in accept for block (%v): %w", next.Hash(), err)
+		return fmt.Errorf("unable to flatten snapshot in accept for block (%): %w", next.Hash(), err)
 	}
 
 	// Update last processed and transaction lookup index
