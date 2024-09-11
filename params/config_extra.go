@@ -327,15 +327,15 @@ func IsForkTransition(fork *uint64, parent *uint64, current uint64) bool {
 
 func WithExtra(c *ChainConfig, extra *ChainConfigExtra) *ChainConfig {
 	// XXX: Hack to initialize the ChainConfigExtra pointer in the ChainConfig.
-	cpy := *c
-	jsonBytes, err := json.Marshal(cpy)
+	jsonBytes, err := json.Marshal(c)
 	if err != nil {
 		panic(err)
 	}
-	if err := json.Unmarshal(jsonBytes, &cpy); err != nil {
+	var newCfg ChainConfig
+	if err := json.Unmarshal(jsonBytes, &newCfg); err != nil {
 		panic(err)
 	}
 
-	*GetExtra(&cpy) = *extra
-	return &cpy
+	*GetExtra(&newCfg) = *extra
+	return &newCfg
 }
