@@ -455,10 +455,10 @@ func (s *Ethereum) handleOfflinePruning(cacheConfig *core.CacheConfig, gspec *co
 	}
 
 	// Clean up middle roots
-	if err := s.blockchain.CleanBlockRootsAboveLastAccepted(); err != nil {
+	targetRoot, err := s.blockchain.CleanBlockRootsAboveLastAccepted()
+	if err != nil {
 		return err
 	}
-	targetRoot := s.blockchain.LastAcceptedBlock().Root()
 
 	// Allow the blockchain to be garbage collected immediately, since we will shut down the chain after offline pruning completes.
 	s.blockchain.Stop()
