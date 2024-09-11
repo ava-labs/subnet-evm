@@ -221,7 +221,8 @@ func GetExtra(c *ChainConfig) *ChainConfigExtra {
 }
 
 func GetRulesExtra(r Rules) *RulesExtra {
-	return FromRules(&r)
+	extra := FromRules(&r)
+	return &extra
 }
 
 func Copy(c *ChainConfig) ChainConfig {
