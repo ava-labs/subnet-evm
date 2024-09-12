@@ -244,12 +244,7 @@ type ChainConfigExtra struct {
 	UpgradeConfig      `json:"-"`  // Config specified in upgradeBytes (avalanche network upgrades or enable/disabling precompiles). Skip encoding/decoding directly into ChainConfig.
 }
 
-func (c *ChainConfigExtra) Description() string {
-	// Handle nil receiver
-	if c == nil {
-		return ""
-	}
-
+func (c ChainConfigExtra) Description() string {
 	var banner string
 
 	banner += "Avalanche Upgrades (timestamp based):\n"
@@ -289,12 +284,7 @@ type fork struct {
 	optional  bool     // if true, the fork may be nil and next fork is still allowed
 }
 
-func (c *ChainConfigExtra) CheckConfigForkOrder() error {
-	// Handle nil receiver
-	if c == nil {
-		return nil
-	}
-
+func (c ChainConfigExtra) CheckConfigForkOrder() error {
 	// Note: In Avalanche, hard forks must take place via block timestamps instead
 	// of block numbers since blocks are produced asynchronously. Therefore, we do not
 	// check that the block timestamps in the same way as for
@@ -355,10 +345,7 @@ func checkForks(forks []fork, blockFork bool) error {
 	return nil
 }
 
-func (c *ChainConfigExtra) CheckCompatible(newcfg_ *ChainConfig, headNumber *big.Int, headTimestamp uint64) *ConfigCompatError {
-	if c == nil {
-		return nil
-	}
+func (c ChainConfigExtra) CheckCompatible(newcfg_ *ChainConfig, headNumber *big.Int, headTimestamp uint64) *ConfigCompatError {
 	newcfg := GetExtra(newcfg_)
 
 	// Check avalanche network upgrades
