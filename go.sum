@@ -64,8 +64,8 @@ github.com/ava-labs/avalanchego v1.11.11 h1:MIQq8xRavRj4ZXHA4G+aMiymig7SOScGOG1S
 github.com/ava-labs/avalanchego v1.11.11/go.mod h1:yFx3V31Jy9NFa8GZlgGnwiVf8KGjeF2+Uc99l9Scd/8=
 github.com/ava-labs/coreth v0.13.8-fixed-genesis-upgrade.0.20240815193440-a96bc921e732 h1:wlhGJbmb7s3bU2QWtxKjscGjfHknQiq+cVhhUjONsB8=
 github.com/ava-labs/coreth v0.13.8-fixed-genesis-upgrade.0.20240815193440-a96bc921e732/go.mod h1:RkQLaQ961Xe/sUb3ycn4Qi18vPPuEetTqDf2eDcquAs=
-github.com/ava-labs/go-ethereum v0.0.0-20240911225027-9610529dc739 h1:R3PyiQU8pTneBjKUPZ8wfuZHFoT1YePPRMlmY4R62CQ=
-github.com/ava-labs/go-ethereum v0.0.0-20240911225027-9610529dc739/go.mod h1:TN8ZiHrdJwSe8Cb6x+p0hs5CxhJZPbqB7hHkaUXcmIU=
+github.com/ava-labs/go-ethereum v0.0.0-20240912174734-cb7447e8a05e h1:Lr+6agLhCjKkUylu3WVfIkKCj+CqLBqwEebolCjmjAA=
+github.com/ava-labs/go-ethereum v0.0.0-20240912174734-cb7447e8a05e/go.mod h1:TN8ZiHrdJwSe8Cb6x+p0hs5CxhJZPbqB7hHkaUXcmIU=
 github.com/aymerick/raymond v2.0.3-0.20180322193309-b565731e1464+incompatible/go.mod h1:osfaiScAUVup+UC9Nfq76eWqDhXlp+4UYaA8uhTBO6g=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
 github.com/beorn7/perks v1.0.1/go.mod h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6rlkpw=

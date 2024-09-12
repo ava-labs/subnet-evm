@@ -17,18 +17,19 @@
 package vm
 
 import (
-	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ethereum/go-ethereum/params"
 )
 
+// XXX: Definitely broke this
 // LookupInstructionSet returns the instruction set for the fork configured by
 // the rules.
 func LookupInstructionSet(rules params.Rules) (JumpTable, error) {
 	switch {
 	case rules.IsCancun:
 		return newCancunInstructionSet(), nil
-	case params.GetRulesExtra(rules).IsDurango:
+	case rules.IsShanghai:
 		return newDurangoInstructionSet(), nil
-	case params.GetRulesExtra(rules).IsSubnetEVM:
+	case rules.IsLondon:
 		return newSubnetEVMInstructionSet(), nil
 	case rules.IsIstanbul:
 		return newIstanbulInstructionSet(), nil

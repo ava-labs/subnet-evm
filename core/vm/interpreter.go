@@ -27,7 +27,6 @@
 package vm
 
 import (
-	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
@@ -68,11 +67,12 @@ func NewEVMInterpreter(evm *EVM) *EVMInterpreter {
 	// If jump table was not initialised we set the default one.
 	var table *JumpTable
 	switch {
+	// XXX: Still does not handle jumptable
 	case evm.chainRules.IsCancun:
 		table = &cancunInstructionSet
-	case params.GetRulesExtra(evm.chainRules).IsDurango:
+	case evm.chainRules.IsShanghai:
 		table = &durangoInstructionSet
-	case params.GetRulesExtra(evm.chainRules).IsSubnetEVM:
+	case evm.chainRules.IsLondon:
 		table = &subnetEVMInstructionSet
 	case evm.chainRules.IsIstanbul:
 		table = &istanbulInstructionSet

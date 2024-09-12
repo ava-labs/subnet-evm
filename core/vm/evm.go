@@ -30,24 +30,16 @@ import (
 	"math/big"
 	"sync/atomic"
 
-	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/precompile/modules"
-	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/predicate"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/libevm"
+	"github.com/ethereum/go-ethereum/params"
 	"github.com/holiman/uint256"
-)
-
-var (
-	_ contract.AccessibleState = &EVM{}
-	_ contract.BlockContext    = &BlockContext{}
 )
 
 // IsProhibited returns true if [addr] is in the prohibited list of addresses which should
@@ -70,8 +62,11 @@ type (
 	GetHashFunc func(uint64) common.Hash
 )
 
-func (evm *EVM) precompile(addr common.Address) (contract.StatefulPrecompiledContract, bool) {
-	var precompiles map[common.Address]contract.StatefulPrecompiledContract
+func (evm *EVM) precompile(addr common.Address) (PrecompiledContract, bool) {
+	if p, override := evm.chainRules.Hooks().PrecompileOverride(addr); override {
+		return p, p != nil
+	}
+	var precompiles map[common.Address]PrecompiledContract
 	switch {
 	case evm.chainRules.IsCancun:
 		precompiles = PrecompiledContractsCancun
@@ -84,20 +79,8 @@ func (evm *EVM) precompile(addr common.Address) (contract.StatefulPrecompiledCon
 	default:
 		precompiles = PrecompiledContractsHomestead
 	}
-
-	// Check the existing precompiles first
 	p, ok := precompiles[addr]
-	if ok {
-		return p, true
-	}
-
-	// Otherwise, check the chain rules for the additionally configured precompiles.
-	if _, ok = params.GetRulesExtra(evm.chainRules).ActivePrecompiles[addr]; ok {
-		module, ok := modules.GetPrecompileModuleByAddress(addr)
-		return module.Contract, ok
-	}
-
-	return nil, false
+	return p, ok
 }
 
 // BlockContext provides the EVM with auxiliary information. Once provided
@@ -205,7 +188,7 @@ func NewEVM(blockCtx BlockContext, txCtx TxContext, statedb StateDB, chainConfig
 		StateDB:     statedb,
 		Config:      config,
 		chainConfig: chainConfig,
-		chainRules:  chainConfig.Rules(blockCtx.BlockNumber, params.IsMergeTODO, blockCtx.Time),
+		chainRules:  chainConfig.Rules(blockCtx.BlockNumber, true, blockCtx.Time),
 	}
 	evm.interpreter = NewEVMInterpreter(evm)
 	return evm
@@ -227,21 +210,6 @@ func (evm *EVM) Cancel() {
 // Cancelled returns true if Cancel has been called
 func (evm *EVM) Cancelled() bool {
 	return evm.abort.Load()
-}
-
-// GetSnowContext returns the evm's snow.Context.
-func (evm *EVM) GetSnowContext() *snow.Context {
-	return params.GetExtra(evm.chainConfig).SnowCtx
-}
-
-// GetStateDB returns the evm's StateDB
-func (evm *EVM) GetStateDB() contract.StateDB {
-	return evm.StateDB
-}
-
-// GetBlockContext returns the evm's BlockContext
-func (evm *EVM) GetBlockContext() contract.BlockContext {
-	return &evm.Context
 }
 
 // Interpreter returns the current interpreter
@@ -301,7 +269,8 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 	}
 
 	if isPrecompile {
-		ret, gas, err = RunStatefulPrecompiledContract(p, evm, caller.Address(), addr, input, gas, evm.interpreter.readOnly)
+		args := &evmCallArgs{evm, caller, addr, input, gas, value}
+		ret, gas, err = args.RunPrecompiledContract(p, input, gas)
 	} else {
 		// Initialise a new contract and set the code that is to be used by the EVM.
 		// The contract is a scoped environment for this execution context only.
@@ -367,7 +336,8 @@ func (evm *EVM) CallCode(caller ContractRef, addr common.Address, input []byte, 
 
 	// It is allowed to call precompiles, even via delegatecall
 	if p, isPrecompile := evm.precompile(addr); isPrecompile {
-		ret, gas, err = RunStatefulPrecompiledContract(p, evm, caller.Address(), addr, input, gas, evm.interpreter.readOnly)
+		args := &evmCallArgs{evm, caller, addr, input, gas, value}
+		ret, gas, err = args.RunPrecompiledContract(p, input, gas)
 	} else {
 		addrCopy := addr
 		// Initialise a new contract and set the code that is to be used by the EVM.
@@ -412,7 +382,8 @@ func (evm *EVM) DelegateCall(caller ContractRef, addr common.Address, input []by
 
 	// It is allowed to call precompiles, even via delegatecall
 	if p, isPrecompile := evm.precompile(addr); isPrecompile {
-		ret, gas, err = RunStatefulPrecompiledContract(p, evm, caller.Address(), addr, input, gas, evm.interpreter.readOnly)
+		args := &evmCallArgs{evm, caller, addr, input, gas, nil}
+		ret, gas, err = args.RunPrecompiledContract(p, input, gas)
 	} else {
 		addrCopy := addr
 		// Initialise a new contract and make initialise the delegate values
@@ -461,7 +432,8 @@ func (evm *EVM) StaticCall(caller ContractRef, addr common.Address, input []byte
 	}
 
 	if p, isPrecompile := evm.precompile(addr); isPrecompile {
-		ret, gas, err = RunStatefulPrecompiledContract(p, evm, caller.Address(), addr, input, gas, true)
+		args := &evmCallArgs{evm, caller, addr, input, gas, nil}
+		ret, gas, err = args.RunPrecompiledContract(p, input, gas)
 	} else {
 		// At this point, we use a copy of address. If we don't, the go compiler will
 		// leak the 'contract' to the outer scope, and make allocation for 'contract'
@@ -620,8 +592,3 @@ func (evm *EVM) Create2(caller ContractRef, code []byte, gas uint64, endowment *
 
 // ChainConfig returns the environment's chain configuration
 func (evm *EVM) ChainConfig() *params.ChainConfig { return evm.chainConfig }
-
-// GetChainConfig implements AccessibleState
-func (evm *EVM) GetChainConfig() precompileconfig.ChainConfig {
-	return params.GetExtra(evm.chainConfig)
-}

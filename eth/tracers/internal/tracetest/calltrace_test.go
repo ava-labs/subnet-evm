@@ -39,11 +39,11 @@ import (
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/core/vm"
 	"github.com/ava-labs/subnet-evm/eth/tracers"
-	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/tests"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/common/math"
+	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rlp"
 )
 
@@ -383,7 +383,7 @@ func TestInternals(t *testing.T) {
 				}, false, rawdb.HashScheme)
 			defer state.Close()
 
-			evm := vm.NewEVM(context, txContext, state.StateDB, params.TestPreSubnetEVMChainConfig, vm.Config{Tracer: tc.tracer})
+			evm := vm.NewEVM(context, txContext, state.StateDB, params.MainnetChainConfig, vm.Config{Tracer: tc.tracer})
 			msg := &core.Message{
 				To:                &to,
 				From:              origin,
