@@ -10,8 +10,11 @@ import (
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ethereum/go-ethereum/common"
+	gethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/holiman/uint256"
 )
+
+type Log = gethtypes.Log
 
 // StatefulPrecompiledContract is the interface for executing a precompiled contract
 type StatefulPrecompiledContract interface {
@@ -37,7 +40,7 @@ type StateDB interface {
 	CreateAccount(common.Address)
 	Exist(common.Address) bool
 
-	AddLog(addr common.Address, topics []common.Hash, data []byte, blockNumber uint64)
+	AddLog(*Log)
 	GetLogData() (topics [][]common.Hash, data [][]byte)
 	GetPredicateStorageSlots(address common.Address, index int) ([]byte, bool)
 	SetPredicateStorageSlots(address common.Address, predicates [][]byte)

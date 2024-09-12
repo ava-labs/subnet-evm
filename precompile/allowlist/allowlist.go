@@ -117,12 +117,12 @@ func createAllowListRoleSetter(precompileAddr common.Address, role Role) contrac
 			if err != nil {
 				return nil, remainingGas, err
 			}
-			stateDB.AddLog(
-				precompileAddr,
-				topics,
-				data,
-				evm.GetBlockContext().Number().Uint64(),
-			)
+			stateDB.AddLog(&contract.Log{
+				Address:     precompileAddr,
+				Topics:      topics,
+				Data:        data,
+				BlockNumber: evm.GetBlockContext().Number().Uint64(),
+			})
 		}
 
 		SetAllowListRole(stateDB, precompileAddr, modifyAddress, role)

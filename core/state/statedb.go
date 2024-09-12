@@ -237,13 +237,7 @@ func (s *StateDB) Error() error {
 // AddLog adds a log with the specified parameters to the statedb
 // Note: blockNumber is a required argument because StateDB does not
 // know the current block number.
-func (s *StateDB) AddLog(addr common.Address, topics []common.Hash, data []byte, blockNumber uint64) {
-	log := &types.Log{
-		Address:     addr,
-		Topics:      topics,
-		Data:        data,
-		BlockNumber: blockNumber,
-	}
+func (s *StateDB) AddLog(log *types.Log) {
 	s.journal.append(addLogChange{txhash: s.thash})
 
 	log.TxHash = s.thash
