@@ -11,7 +11,7 @@ set -o pipefail
 # 4. Print out the difference between the search results and the list of specified allowed package imports from geth.
 geth_regexp='"github.com/ethereum/go-ethereum/.*"'
 allow_named_imports='geth\w\+ "'
-extra_imports=$(grep -r --include='*.go' "${geth_regexp}" -h | grep -v "${allow_named_imports}" | grep -o "${geth_regexp}" | sort -u | comm -23 - ./scripts/geth-allowed-packages.txt)
+extra_imports=$(grep -r --include='*.go' --exclude=mocks.go "${geth_regexp}" -h | grep -v "${allow_named_imports}" | grep -o "${geth_regexp}" | sort -u | comm -23 - ./scripts/geth-allowed-packages.txt)
 if [ -n "${extra_imports}" ]; then
     echo "new go-ethereum imports should be added to ./scripts/geth-allowed-packages.txt to prevent accidental imports:"
     echo "${extra_imports}"
