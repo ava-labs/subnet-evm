@@ -31,14 +31,16 @@ import (
 	"math"
 	"math/big"
 
+	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/core/vm"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/txallowlist"
+	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	cmath "github.com/ethereum/go-ethereum/common/math"
+	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/crypto/kzg4844"
 	"github.com/holiman/uint256"
 )
@@ -331,6 +333,17 @@ func (st *StateTransition) buyGas() error {
 	return nil
 }
 
+// XXX: Probably should be its own hook
+// IsProhibited returns true if [addr] is in the prohibited list of addresses which should
+// not be allowed as an EOA or newly created contract address.
+func IsProhibited(addr common.Address) bool {
+	if addr == constants.BlackholeAddr {
+		return true
+	}
+
+	return modules.ReservedAddress(addr)
+}
+
 func (st *StateTransition) preCheck() error {
 	// Only check transactions that are not fake
 	msg := st.msg
@@ -354,7 +367,7 @@ func (st *StateTransition) preCheck() error {
 				msg.From.Hex(), codeHash)
 		}
 		// Make sure the sender is not prohibited
-		if vm.IsProhibited(msg.From) {
+		if IsProhibited(msg.From) {
 			return fmt.Errorf("%w: address %v", vmerrs.ErrAddrProhibited, msg.From)
 		}
 

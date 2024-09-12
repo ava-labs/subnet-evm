@@ -31,6 +31,13 @@ func constructRulesExtra(c *gethparams.ChainConfig, r *gethparams.Rules, cEx *Ch
 	}
 	var rules RulesExtra
 	rules.AvalancheRules = cEx.GetAvalancheRules(timestamp)
+	if rules.AvalancheRules.IsDurango || rules.AvalancheRules.IsEtna {
+		// After Durango, geth rules should be used with isMerge set to true.
+		// We can't call c.Rules because it will recurse back here.
+		r.IsShanghai = c.IsShanghai(blockNum, timestamp)
+		r.IsCancun = c.IsCancun(blockNum, timestamp)
+	}
+	rules.gethrules = *r
 
 	// Initialize the stateful precompiles that should be enabled at [blockTimestamp].
 	rules.ActivePrecompiles = make(map[common.Address]precompileconfig.Config)

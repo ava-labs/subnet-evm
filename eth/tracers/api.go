@@ -41,13 +41,13 @@ import (
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/core/vm"
 	"github.com/ava-labs/subnet-evm/eth/tracers/logger"
 	"github.com/ava-labs/subnet-evm/internal/ethapi"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/rpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -965,7 +965,8 @@ func (api *API) TraceCall(ctx context.Context, args ethapi.TransactionArgs, bloc
 		config.BlockOverrides.Apply(&vmctx)
 		// Apply all relevant upgrades from [originalTime] to the block time set in the override.
 		// Should be applied before the state overrides.
-		err = core.ApplyUpgrades(api.backend.ChainConfig(), &originalTime, &vmctx, statedb)
+		blockContext := params.NewBlockContext(vmctx.BlockNumber, vmctx.Time, vmctx.PredicateResults)
+		err = core.ApplyUpgrades(api.backend.ChainConfig(), &originalTime, blockContext, statedb)
 		if err != nil {
 			return nil, err
 		}

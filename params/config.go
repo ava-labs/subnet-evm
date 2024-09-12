@@ -441,6 +441,8 @@ func newTimestampCompatError(what string, storedtime, newtime *uint64) *ConfigCo
 type Rules = gethparams.Rules
 
 type RulesExtra struct {
+	gethrules gethparams.Rules
+
 	// Rules for Avalanche releases
 	AvalancheRules
 

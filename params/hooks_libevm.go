@@ -15,9 +15,22 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/libevm"
 	gethparams "github.com/ethereum/go-ethereum/params"
 )
+
+func (r RulesExtra) JumpTable() interface{} {
+	switch {
+	case r.gethrules.IsCancun:
+		return &vm.SubnetEVMCancunInstructionSet
+	case r.IsDurango:
+		return &vm.SubnetEVMDurangoInstructionSet
+	case r.IsSubnetEVM:
+		return &vm.SubnetEVMInstructionSet
+	}
+	return nil
+}
 
 func (r RulesExtra) CanCreateContract(ac *libevm.AddressContext, state libevm.StateReader) error {
 	// IsProhibited
@@ -107,6 +120,14 @@ type BlockContext struct {
 	number           *big.Int
 	time             uint64
 	predicateResults libevm.PredicateResults
+}
+
+func NewBlockContext(number *big.Int, time uint64, predicateResults libevm.PredicateResults) *BlockContext {
+	return &BlockContext{
+		number:           number,
+		time:             time,
+		predicateResults: predicateResults,
+	}
 }
 
 func (b *BlockContext) Number() *big.Int {
