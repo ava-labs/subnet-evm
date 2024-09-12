@@ -37,7 +37,6 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/params"
 	gethparams "github.com/ethereum/go-ethereum/params"
 )
 
@@ -458,5 +457,5 @@ type RulesExtra struct {
 	// that are enabled for this rule set.
 	AccepterPrecompiles map[common.Address]precompileconfig.Accepter
 
-	params.NOOPHooks // XXX: Embedded to ensure that Rules implements params.RulesHooks
+	gethparams.NOOPHooks // XXX: Embedded to ensure that Rules implements params.RulesHooks
 }
