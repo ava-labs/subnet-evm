@@ -179,6 +179,8 @@ var Forks = map[string]*params.ChainConfig{
 			ConstantinopleBlock: big.NewInt(0),
 			PetersburgBlock:     big.NewInt(0),
 			IstanbulBlock:       big.NewInt(0),
+			BerlinBlock:         big.NewInt(0),
+			LondonBlock:         big.NewInt(0),
 		},
 		&params.ChainConfigExtra{
 			NetworkUpgrades: params.NetworkUpgrades{
@@ -197,6 +199,8 @@ var Forks = map[string]*params.ChainConfig{
 			ConstantinopleBlock: big.NewInt(0),
 			PetersburgBlock:     big.NewInt(0),
 			IstanbulBlock:       big.NewInt(0),
+			BerlinBlock:         big.NewInt(0),
+			LondonBlock:         big.NewInt(0),
 		},
 		&params.ChainConfigExtra{
 			NetworkUpgrades: params.NetworkUpgrades{

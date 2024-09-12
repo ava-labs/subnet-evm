@@ -79,6 +79,8 @@ func setDefaults(cfg *Config) {
 				PetersburgBlock:     new(big.Int),
 				IstanbulBlock:       new(big.Int),
 				MuirGlacierBlock:    new(big.Int),
+				BerlinBlock:         new(big.Int),
+				LondonBlock:         new(big.Int),
 			},
 			&params.ChainConfigExtra{
 				NetworkUpgrades: params.NetworkUpgrades{

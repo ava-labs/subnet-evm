@@ -36,7 +36,6 @@ import (
 	"github.com/ava-labs/subnet-evm/core/state/snapshot"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/metrics"
-	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/predicate"
 	"github.com/ava-labs/subnet-evm/trie"
 	"github.com/ava-labs/subnet-evm/trie/trienode"
@@ -44,6 +43,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/ethereum/go-ethereum/params"
 	"github.com/holiman/uint256"
 )
 
@@ -1384,8 +1384,7 @@ func (s *StateDB) commit(block uint64, deleteEmptyObjects bool, snaps *snapshot.
 // - Add coinbase to access list (EIP-3651/Durango)
 // - Reset transient storage (EIP-1153)
 func (s *StateDB) Prepare(rules params.Rules, sender, coinbase common.Address, dst *common.Address, precompiles []common.Address, list types.AccessList) {
-	rulesExtra := params.GetRulesExtra(rules)
-	if rulesExtra.IsSubnetEVM {
+	if rules.IsBerlin {
 		// Clear out any leftover from previous executions
 		al := newAccessList()
 		s.accessList = al
@@ -1404,7 +1403,7 @@ func (s *StateDB) Prepare(rules params.Rules, sender, coinbase common.Address, d
 				al.AddSlot(el.Address, key)
 			}
 		}
-		if rulesExtra.IsDurango { // EIP-3651: warm coinbase
+		if rules.IsShanghai { // EIP-3651: warm coinbase
 			al.AddAddress(coinbase)
 		}
 
