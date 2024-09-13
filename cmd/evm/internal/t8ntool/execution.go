@@ -169,12 +169,11 @@ func (pre *Prestate) Apply(vmConfig vm.Config, chainConfig *params.ChainConfig,
 	if pre.Env.BaseFee != nil {
 		vmContext.BaseFee = new(big.Int).Set(pre.Env.BaseFee)
 	}
-	// NOTE: this has been removed
 	// If random is defined, add it to the vmContext.
-	// if pre.Env.Random != nil {
-	// 	rnd := common.BigToHash(pre.Env.Random)
-	// 	vmContext.Random = &rnd
-	// }
+	if pre.Env.Random != nil {
+		rnd := common.BigToHash(pre.Env.Random)
+		vmContext.Random = &rnd
+	}
 	// Calculate the BlobBaseFee
 	var excessBlobGas uint64
 	if pre.Env.ExcessBlobGas != nil {

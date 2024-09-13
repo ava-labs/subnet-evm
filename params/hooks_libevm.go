@@ -15,20 +15,13 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/libevm"
 	gethparams "github.com/ethereum/go-ethereum/params"
 )
 
 func (r RulesExtra) JumpTable() interface{} {
-	switch {
-	case r.gethrules.IsCancun:
-		return &vm.SubnetEVMCancunInstructionSet
-	case r.IsDurango:
-		return &vm.SubnetEVMDurangoInstructionSet
-	case r.IsSubnetEVM:
-		return &vm.SubnetEVMInstructionSet
-	}
+	// XXX: This does not account for the any possible differences in EIP-3529
+	// Do not merge without verifying.
 	return nil
 }
 

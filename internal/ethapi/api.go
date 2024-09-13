@@ -1036,6 +1036,7 @@ func (diff *BlockOverrides) Apply(blockCtx *vm.BlockContext) {
 type ChainContextBackend interface {
 	Engine() consensus.Engine
 	HeaderByNumber(context.Context, rpc.BlockNumber) (*types.Header, error)
+	ChainConfig() *params.ChainConfig
 }
 
 // ChainContext is an implementation of core.ChainContext. It's main use-case
@@ -1048,6 +1049,10 @@ type ChainContext struct {
 // NewChainContext creates a new ChainContext object.
 func NewChainContext(ctx context.Context, backend ChainContextBackend) *ChainContext {
 	return &ChainContext{ctx: ctx, b: backend}
+}
+
+func (context *ChainContext) Config() *params.ChainConfig {
+	return context.b.ChainConfig()
 }
 
 func (context *ChainContext) Engine() consensus.Engine {

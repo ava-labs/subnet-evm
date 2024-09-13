@@ -32,9 +32,11 @@ import (
 	"github.com/ava-labs/subnet-evm/consensus"
 	"github.com/ava-labs/subnet-evm/consensus/misc/eip4844"
 	"github.com/ava-labs/subnet-evm/core/types"
+	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/predicate"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/vm"
+	"github.com/ethereum/go-ethereum/libevm"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/holiman/uint256"
 )
@@ -47,6 +49,8 @@ type ChainContext interface {
 
 	// GetHeader returns the header corresponding to the hash/number argument pair.
 	GetHeader(common.Hash, uint64) *types.Header
+
+	Config() *params.ChainConfig
 }
 
 // NewEVMBlockContext creates a new context for use in the EVM.
@@ -73,15 +77,16 @@ func NewEVMBlockContext(header *types.Header, chain ChainContext, author *common
 // in header.Extra.
 // This function is used to create a BlockContext when the header Extra data is not fully formed yet and it's more efficient to pass in predicateResults
 // directly rather than re-encode the latest results when executing each individaul transaction.
-func NewEVMBlockContextWithPredicateResults(header *types.Header, chain ChainContext, author *common.Address, predicateResults *predicate.Results) vm.BlockContext {
+func NewEVMBlockContextWithPredicateResults(header *types.Header, chain ChainContext, author *common.Address, predicateResults libevm.PredicateResults) vm.BlockContext {
 	return newEVMBlockContext(header, chain, author, predicateResults)
 }
 
-func newEVMBlockContext(header *types.Header, chain ChainContext, author *common.Address, predicateResults *predicate.Results) vm.BlockContext {
+func newEVMBlockContext(header *types.Header, chain ChainContext, author *common.Address, predicateResults libevm.PredicateResults) vm.BlockContext {
 	var (
 		beneficiary common.Address
 		baseFee     *big.Int
 		blobBaseFee *big.Int
+		random      *common.Hash
 	)
 
 	// If we don't have an explicit author (i.e. not mining), extract from the header
@@ -96,6 +101,14 @@ func newEVMBlockContext(header *types.Header, chain ChainContext, author *common
 	if header.ExcessBlobGas != nil {
 		blobBaseFee = eip4844.CalcBlobFee(*header.ExcessBlobGas)
 	}
+
+	// Durango enables the Shanghai upgrade of eth, which takes place after the
+	// Merge upgrade.
+	isDurango := params.GetExtra(chain.Config()).IsDurango(header.Time)
+	if isDurango {
+		random = new(common.Hash)
+		random.SetBytes(header.Difficulty.Bytes())
+	}
 	return vm.BlockContext{
 		CanTransfer:      CanTransfer,
 		Transfer:         Transfer,
@@ -108,6 +121,7 @@ func newEVMBlockContext(header *types.Header, chain ChainContext, author *common
 		BaseFee:          baseFee,
 		BlobBaseFee:      blobBaseFee,
 		GasLimit:         header.GasLimit,
+		Random:           random,
 	}
 }
 
