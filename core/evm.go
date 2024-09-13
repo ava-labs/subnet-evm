@@ -77,8 +77,12 @@ func NewEVMBlockContext(header *types.Header, chain ChainContext, author *common
 // in header.Extra.
 // This function is used to create a BlockContext when the header Extra data is not fully formed yet and it's more efficient to pass in predicateResults
 // directly rather than re-encode the latest results when executing each individaul transaction.
-func NewEVMBlockContextWithPredicateResults(header *types.Header, chain ChainContext, author *common.Address, predicateResults libevm.PredicateResults) vm.BlockContext {
-	return newEVMBlockContext(header, chain, author, predicateResults)
+func NewEVMBlockContextWithPredicateResults(header *types.Header, chain ChainContext, author *common.Address, predicateResults *predicate.Results) vm.BlockContext {
+	var results libevm.PredicateResults
+	if predicateResults != nil {
+		results = predicateResults
+	}
+	return newEVMBlockContext(header, chain, author, results)
 }
 
 func newEVMBlockContext(header *types.Header, chain ChainContext, author *common.Address, predicateResults libevm.PredicateResults) vm.BlockContext {
