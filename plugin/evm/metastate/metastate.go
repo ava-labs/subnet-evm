@@ -17,16 +17,22 @@ var _ uptime.State = &metastate{}
 
 type ValidatorMetastate interface {
 	uptime.State
+	// AddNewValidatorMetadata adds a new validator metadata to the metastate
+	AddNewValidatorMetadata(vID ids.ID, nodeID ids.NodeID, startTimestamp uint64, isActive bool) error
+	// DeleteValidatorMetadata deletes the validator metadata from the metastate
+	DeleteValidatorMetadata(vID ids.ID) error
 	// WriteValidatorMetadata writes the metastate to the disk
 	WriteValidatorMetadata() error
-	GetValidationIDs() set.Set[ids.ID]
-	// GetValidatorIDs returns the validator IDs in the metastate
-	GetValidatorIDs() set.Set[ids.NodeID]
-	AddNewValidatorMetadata(vID ids.ID, nodeID ids.NodeID, startTimestamp uint64, isActive bool) error
-	DeleteValidatorMetadata(vID ids.ID) error
 
+	// SetStatus sets the active status of the validator with the given vID
 	SetStatus(vID ids.ID, isActive bool) error
+	// GetStatus returns the active status of the validator with the given vID
 	GetStatus(vID ids.ID) (bool, error)
+
+	// GetValidationIDs returns the validation IDs in the metastate
+	GetValidationIDs() set.Set[ids.ID]
+	// GetValidatorIDs returns the validator node IDs in the metastate
+	GetValidatorIDs() set.Set[ids.NodeID]
 }
 
 type validatorMetadata struct {
@@ -100,24 +106,6 @@ func (m *metastate) GetStartTime(nodeID ids.NodeID) (time.Time, error) {
 	return metadata.startTime, nil
 }
 
-// GetValidationIDs returns the validation IDs in the metastate
-func (m *metastate) GetValidationIDs() set.Set[ids.ID] {
-	ids := set.NewSet[ids.ID](len(m.data))
-	for vID := range m.data {
-		ids.Add(vID)
-	}
-	return ids
-}
-
-// GetValidatorIDs returns the validator IDs in the metastate
-func (m *metastate) GetValidatorIDs() set.Set[ids.NodeID] {
-	ids := set.NewSet[ids.NodeID](len(m.index))
-	for nodeID := range m.index {
-		ids.Add(nodeID)
-	}
-	return ids
-}
-
 // AddNewValidatorMetadata adds a new validator metadata to the metastate
 // the new metadata is marked as updated and will be written to the disk when WriteValidatorMetadata is called
 func (m *metastate) AddNewValidatorMetadata(vID ids.ID, nodeID ids.NodeID, startTimestamp uint64, isActive bool) error {
@@ -156,26 +144,6 @@ func (m *metastate) DeleteValidatorMetadata(vID ids.ID) error {
 	return nil
 }
 
-// SetStatus sets the active status of the validator with the given vID
-func (m *metastate) SetStatus(vID ids.ID, isActive bool) error {
-	metadata, exists := m.data[vID]
-	if !exists {
-		return database.ErrNotFound
-	}
-	metadata.IsActive = isActive
-	m.updatedMetadata[vID] = true
-	return nil
-}
-
-// GetStatus returns the active status of the validator with the given vID
-func (m *metastate) GetStatus(vID ids.ID) (bool, error) {
-	metadata, exists := m.data[vID]
-	if !exists {
-		return false, database.ErrNotFound
-	}
-	return metadata.IsActive, nil
-}
-
 // WriteValidatorMetadata writes the updated metastate to the disk
 func (m *metastate) WriteValidatorMetadata() error {
 	// TODO: add batch size
@@ -203,6 +171,44 @@ func (m *metastate) WriteValidatorMetadata() error {
 		delete(m.updatedMetadata, vID)
 	}
 	return batch.Write()
+}
+
+// SetStatus sets the active status of the validator with the given vID
+func (m *metastate) SetStatus(vID ids.ID, isActive bool) error {
+	metadata, exists := m.data[vID]
+	if !exists {
+		return database.ErrNotFound
+	}
+	metadata.IsActive = isActive
+	m.updatedMetadata[vID] = true
+	return nil
+}
+
+// GetStatus returns the active status of the validator with the given vID
+func (m *metastate) GetStatus(vID ids.ID) (bool, error) {
+	metadata, exists := m.data[vID]
+	if !exists {
+		return false, database.ErrNotFound
+	}
+	return metadata.IsActive, nil
+}
+
+// GetValidationIDs returns the validation IDs in the metastate
+func (m *metastate) GetValidationIDs() set.Set[ids.ID] {
+	ids := set.NewSet[ids.ID](len(m.data))
+	for vID := range m.data {
+		ids.Add(vID)
+	}
+	return ids
+}
+
+// GetValidatorIDs returns the validator IDs in the metastate
+func (m *metastate) GetValidatorIDs() set.Set[ids.NodeID] {
+	ids := set.NewSet[ids.NodeID](len(m.index))
+	for nodeID := range m.index {
+		ids.Add(nodeID)
+	}
+	return ids
 }
 
 // parseValidatorMetadata parses the metadata from the bytes and returns the metadata
