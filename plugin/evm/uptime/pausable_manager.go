@@ -6,33 +6,21 @@ package uptime
 import (
 	"errors"
 
+	"github.com/ava-labs/subnet-evm/plugin/evm/metastate"
+
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow/uptime"
 	"github.com/ava-labs/avalanchego/utils/set"
 )
 
-var (
-	ErrPaused    = errors.New("node is paused")
-	ErrNotPaused = errors.New("node is not paused")
-	ErrPausedDc  = errors.New("paused node cannot be disconnected")
-)
+var _ metastate.ValidatorsCallbackListener = &pausableManager{}
 
-// Pausable is an interface that allows pausing and resuming uptime tracking
-// for a node
-type Pausable interface {
-	// Pause pauses uptime tracking the node with the given ID
-	Pause(ids.NodeID) error
-	// Resume resumes uptime tracking for the node with the given ID
-	Resume(ids.NodeID) error
-	// IsPaused returns true if the node with the given ID is paused
-	IsPaused(ids.NodeID) bool
-}
+var ErrPausedDc = errors.New("paused node cannot be disconnected")
 
-// PausableManager is an interface that extends the uptime.Manager interface
-// with the ability to pause and resume uptime tracking for a node
 type PausableManager interface {
-	Pausable
 	uptime.Manager
+	metastate.ValidatorsCallbackListener
+	IsPaused(nodeID ids.NodeID) bool
 }
 
 type pausableManager struct {
@@ -51,44 +39,6 @@ func NewPausableManager(manager uptime.Manager) PausableManager {
 		connectedVdrs: make(set.Set[ids.NodeID]),
 		Manager:       manager,
 	}
-}
-
-// Pause pauses uptime tracking for the node with the given ID
-// Pause can disconnect the node from the uptime.Manager if it is connected.
-// Returns an error if the node is already paused.
-func (p *pausableManager) Pause(nodeID ids.NodeID) error {
-	if p.IsPaused(nodeID) {
-		return ErrPaused
-	}
-
-	p.pausedVdrs.Add(nodeID)
-	if p.Manager.IsConnected(nodeID) {
-		// If the node is connected, then we need to disconnect it from
-		// manager
-		// This should be fine in case tracking has not started yet since
-		// the inner manager should handle disconnects accordingly
-		return p.Manager.Disconnect(nodeID)
-	}
-	return nil
-}
-
-// Resume resumes uptime tracking for the node with the given ID
-// Resume can connect the node to the uptime.Manager if it was connected.
-// Returns an error if the node is not paused.
-func (p *pausableManager) Resume(nodeID ids.NodeID) error {
-	if !p.IsPaused(nodeID) {
-		return ErrNotPaused
-	}
-	p.pausedVdrs.Remove(nodeID)
-	if p.connectedVdrs.Contains(nodeID) {
-		return p.Manager.Connect(nodeID)
-	}
-	return nil
-}
-
-// IsPaused returns true if the node with the given ID is paused
-func (p *pausableManager) IsPaused(nodeID ids.NodeID) bool {
-	return p.pausedVdrs.Contains(nodeID)
 }
 
 // Connect connects the node with the given ID to the uptime.Manager
@@ -126,4 +76,61 @@ func (p *pausableManager) StartTracking(nodeIDs []ids.NodeID) error {
 		}
 	}
 	return p.Manager.StartTracking(activeNodeIDs)
+}
+
+// OnValidatorAdded is called when a validator is added.
+// If the node is inactive, it will be paused.
+func (p *pausableManager) OnValidatorAdded(vID ids.ID, nodeID ids.NodeID, startTime uint64, isActive bool) {
+	if !isActive {
+		p.pause(nodeID)
+	}
+}
+
+// OnValidatorRemoved is called when a validator is removed.
+// If the node is already paused, it will be resumed.
+func (p *pausableManager) OnValidatorRemoved(vID ids.ID, nodeID ids.NodeID) {
+	if p.IsPaused(nodeID) {
+		p.resume(nodeID)
+	}
+}
+
+// OnValidatorStatusUpdated is called when the status of a validator is updated.
+// If the node is active, it will be resumed. If the node is inactive, it will be paused.
+func (p *pausableManager) OnValidatorStatusUpdated(vID ids.ID, nodeID ids.NodeID, isActive bool) {
+	if isActive {
+		p.resume(nodeID)
+	} else {
+		p.pause(nodeID)
+	}
+}
+
+// IsPaused returns true if the node with the given ID is paused.
+func (p *pausableManager) IsPaused(nodeID ids.NodeID) bool {
+	return p.pausedVdrs.Contains(nodeID)
+}
+
+// pause pauses uptime tracking for the node with the given ID
+// pause can disconnect the node from the uptime.Manager if it is connected.
+// Returns an error if the node is already paused.
+func (p *pausableManager) pause(nodeID ids.NodeID) error {
+	p.pausedVdrs.Add(nodeID)
+	if p.Manager.IsConnected(nodeID) {
+		// If the node is connected, then we need to disconnect it from
+		// manager
+		// This should be fine in case tracking has not started yet since
+		// the inner manager should handle disconnects accordingly
+		return p.Manager.Disconnect(nodeID)
+	}
+	return nil
+}
+
+// resume resumes uptime tracking for the node with the given ID
+// resume can connect the node to the uptime.Manager if it was connected.
+// Returns an error if the node is not paused.
+func (p *pausableManager) resume(nodeID ids.NodeID) error {
+	p.pausedVdrs.Remove(nodeID)
+	if p.connectedVdrs.Contains(nodeID) {
+		return p.Manager.Connect(nodeID)
+	}
+	return nil
 }

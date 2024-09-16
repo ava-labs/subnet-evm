@@ -212,3 +212,77 @@ func TestParseValidatorMetadata(t *testing.T) {
 		})
 	}
 }
+
+func TestMetaStateListener(t *testing.T) {
+	require := require.New(t)
+	db := memdb.New()
+	state, err := NewValidatorMetaState(db)
+	require.NoError(err)
+
+	expectedvID := ids.GenerateTestID()
+	expectedNodeID := ids.GenerateTestNodeID()
+	expectedStartTime := time.Now()
+
+	// add listener
+	listener := &testCallbackListener{
+		t: t,
+		onAdd: func(vID ids.ID, nodeID ids.NodeID, startTime uint64, isActive bool) {
+			require.Equal(expectedvID, vID)
+			require.Equal(expectedNodeID, nodeID)
+			require.Equal(uint64(expectedStartTime.Unix()), startTime)
+			require.True(isActive)
+		},
+		onRemove: func(vID ids.ID, nodeID ids.NodeID) {
+			require.Equal(expectedvID, vID)
+			require.Equal(expectedNodeID, nodeID)
+		},
+		onStatusUpdate: func(vID ids.ID, nodeID ids.NodeID, isActive bool) {
+			require.Equal(expectedvID, vID)
+			require.Equal(expectedNodeID, nodeID)
+			require.False(isActive)
+		},
+	}
+	state.RegisterListener(listener)
+
+	// add new validator metadata
+	state.AddNewValidatorMetadata(expectedvID, expectedNodeID, uint64(expectedStartTime.Unix()), true)
+
+	// set status
+	require.NoError(state.SetStatus(expectedvID, false))
+
+	// remove validator metadata
+	state.DeleteValidatorMetadata(expectedvID)
+}
+
+var _ ValidatorsCallbackListener = (*testCallbackListener)(nil)
+
+type testCallbackListener struct {
+	t              *testing.T
+	onAdd          func(vID ids.ID, nodeID ids.NodeID, startTime uint64, isActive bool)
+	onRemove       func(ids.ID, ids.NodeID)
+	onStatusUpdate func(ids.ID, ids.NodeID, bool)
+}
+
+func (t *testCallbackListener) OnValidatorAdded(vID ids.ID, nodeID ids.NodeID, startTime uint64, isActive bool) {
+	if t.onAdd != nil {
+		t.onAdd(vID, nodeID, startTime, isActive)
+	} else {
+		t.t.Fail()
+	}
+}
+
+func (t *testCallbackListener) OnValidatorRemoved(vID ids.ID, nodeID ids.NodeID) {
+	if t.onRemove != nil {
+		t.onRemove(vID, nodeID)
+	} else {
+		t.t.Fail()
+	}
+}
+
+func (t *testCallbackListener) OnValidatorStatusUpdated(vID ids.ID, nodeID ids.NodeID, isActive bool) {
+	if t.onStatusUpdate != nil {
+		t.onStatusUpdate(vID, nodeID, isActive)
+	} else {
+		t.t.Fail()
+	}
+}

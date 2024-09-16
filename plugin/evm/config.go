@@ -60,6 +60,7 @@ const (
 	// - state sync time: ~6 hrs.
 	defaultStateSyncMinBlocks   = 300_000
 	defaultStateSyncRequestSize = 1024 // the number of key/values to ask peers for per request
+	defaultUptimeAPIEnabled     = true
 )
 
 var (
@@ -88,6 +89,7 @@ type Config struct {
 
 	// Subnet EVM APIs
 	SnowmanAPIEnabled bool   `json:"snowman-api-enabled"`
+	UptimeAPIEnabled  bool   `json:"uptime-api-enabled"`
 	AdminAPIEnabled   bool   `json:"admin-api-enabled"`
 	AdminAPIDir       string `json:"admin-api-dir"`
 	WarpAPIEnabled    bool   `json:"warp-api-enabled"`
@@ -284,6 +286,7 @@ func (c *Config) SetDefaults() {
 	c.StateSyncRequestSize = defaultStateSyncRequestSize
 	c.AllowUnprotectedTxHashes = defaultAllowUnprotectedTxHashes
 	c.AcceptedCacheSize = defaultAcceptedCacheSize
+	c.UptimeAPIEnabled = defaultUptimeAPIEnabled
 }
 
 func (d *Duration) UnmarshalJSON(data []byte) (err error) {

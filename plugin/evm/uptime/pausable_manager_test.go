@@ -14,6 +14,7 @@ import (
 )
 
 func TestPausableManager(t *testing.T) {
+	vID := ids.GenerateTestID()
 	nodeID0 := ids.GenerateTestNodeID()
 	startTime := time.Now()
 	require := require.New(t)
@@ -27,7 +28,7 @@ func TestPausableManager(t *testing.T) {
 		addTime(clk, time.Second)
 
 		// Pause before tracking
-		require.NoError(up.Pause(nodeID0))
+		up.OnValidatorStatusUpdated(vID, nodeID0, false)
 
 		// Elapse Time
 		addTime(clk, time.Second)
@@ -57,7 +58,7 @@ func TestPausableManager(t *testing.T) {
 
 		// Pause
 		addTime(clk, time.Second)
-		require.NoError(up.Pause(nodeID0))
+		up.OnValidatorStatusUpdated(vID, nodeID0, false)
 
 		// Elapse time
 		currentTime := addTime(clk, 2*time.Second)
@@ -79,7 +80,7 @@ func TestPausableManager(t *testing.T) {
 
 		// Resume and check uptime
 		currentTime = addTime(clk, 6*time.Second)
-		require.NoError(up.Resume(nodeID0))
+		up.OnValidatorStatusUpdated(vID, nodeID0, true)
 		// Uptime should not have increased since the node was paused
 		// and we just resumed it
 		checkUptime(t, up, nodeID0, 1*time.Second, currentTime)
@@ -95,7 +96,7 @@ func TestPausableManager(t *testing.T) {
 		up, clk, _ := setupTestEnv(nodeID0, startTime)
 
 		// Pause before tracking
-		require.NoError(up.Pause(nodeID0))
+		up.OnValidatorStatusUpdated(vID, nodeID0, false)
 
 		// Start tracking
 		addTime(clk, time.Second)
@@ -119,7 +120,7 @@ func TestPausableManager(t *testing.T) {
 		addTime(clk, 4*time.Second)
 		require.NoError(up.Connect(nodeID0))
 		addTime(clk, 5*time.Second)
-		require.NoError(up.Resume(nodeID0))
+		up.OnValidatorStatusUpdated(vID, nodeID0, true)
 
 		// Check uptime after resume
 		currentTime = addTime(clk, 6*time.Second)
@@ -138,7 +139,7 @@ func TestPausableManager(t *testing.T) {
 
 		// Pause and check uptime
 		currentTime := addTime(clk, 2*time.Second)
-		require.NoError(up.Pause(nodeID0))
+		up.OnValidatorStatusUpdated(vID, nodeID0, false)
 		// Uptime should be 2 seconds since the node was paused after 2 seconds
 		checkUptime(t, up, nodeID0, 2*time.Second, currentTime)
 
@@ -152,13 +153,13 @@ func TestPausableManager(t *testing.T) {
 		checkUptime(t, up, nodeID0, 2*time.Second, currentTime)
 
 		// Pause and check uptime
-		require.NoError(up.Pause(nodeID0))
+		up.OnValidatorStatusUpdated(vID, nodeID0, false)
 		// Uptime should not have increased since the node was paused
 		checkUptime(t, up, nodeID0, 2*time.Second, currentTime)
 
 		// Resume and check uptime
 		currentTime = addTime(clk, 5*time.Second)
-		require.NoError(up.Resume(nodeID0))
+		up.OnValidatorStatusUpdated(vID, nodeID0, true)
 		// Uptime should have increased by 5 seconds since the node was resumed
 		checkUptime(t, up, nodeID0, 7*time.Second, currentTime)
 

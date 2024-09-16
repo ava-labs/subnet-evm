@@ -33,6 +33,18 @@ type ValidatorMetastate interface {
 	GetValidationIDs() set.Set[ids.ID]
 	// GetValidatorIDs returns the validator node IDs in the metastate
 	GetValidatorIDs() set.Set[ids.NodeID]
+
+	RegisterListener(ValidatorsCallbackListener)
+}
+
+// ValidatorsCallbackListener is a listener for the validator metastate
+type ValidatorsCallbackListener interface {
+	// OnValidatorAdded is called when a new validator is added
+	OnValidatorAdded(vID ids.ID, nodeID ids.NodeID, startTime uint64, isActive bool)
+	// OnValidatorRemoved is called when a validator is removed
+	OnValidatorRemoved(vID ids.ID, nodeID ids.NodeID)
+	// OnValidatorStatusUpdated is called when a validator status is updated
+	OnValidatorStatusUpdated(vID ids.ID, nodeID ids.NodeID, isActive bool)
 }
 
 type validatorMetadata struct {
@@ -53,6 +65,8 @@ type metastate struct {
 	// updatedMetadata tracks the updates since las WriteValidatorMetadata was called
 	updatedMetadata map[ids.ID]bool // vID -> true(updated)/false(deleted)
 	db              database.Database
+
+	listeners []ValidatorsCallbackListener
 }
 
 // NewValidatorMetaState creates a new ValidatorMetastate, it also loads the metadata from the disk
@@ -126,6 +140,10 @@ func (m *metastate) AddNewValidatorMetadata(vID ids.ID, nodeID ids.NodeID, start
 	}
 
 	m.updatedMetadata[vID] = true
+
+	for _, listener := range m.listeners {
+		listener.OnValidatorAdded(vID, nodeID, startTimestamp, isActive)
+	}
 	return nil
 }
 
@@ -141,12 +159,16 @@ func (m *metastate) DeleteValidatorMetadata(vID ids.ID) error {
 
 	// mark as deleted for WriteValidatorMetadata
 	m.updatedMetadata[metadata.validationID] = false
+
+	for _, listener := range m.listeners {
+		listener.OnValidatorRemoved(vID, metadata.NodeID)
+	}
 	return nil
 }
 
 // WriteValidatorMetadata writes the updated metastate to the disk
 func (m *metastate) WriteValidatorMetadata() error {
-	// TODO: add batch size
+	// TODO: consider adding batch size
 	batch := m.db.NewBatch()
 	for vID, updated := range m.updatedMetadata {
 		if updated {
@@ -181,6 +203,10 @@ func (m *metastate) SetStatus(vID ids.ID, isActive bool) error {
 	}
 	metadata.IsActive = isActive
 	m.updatedMetadata[vID] = true
+
+	for _, listener := range m.listeners {
+		listener.OnValidatorStatusUpdated(vID, metadata.NodeID, isActive)
+	}
 	return nil
 }
 
@@ -209,6 +235,16 @@ func (m *metastate) GetValidatorIDs() set.Set[ids.NodeID] {
 		ids.Add(nodeID)
 	}
 	return ids
+}
+
+// RegisterListener registers a listener to the metastate
+func (m *metastate) RegisterListener(listener ValidatorsCallbackListener) {
+	m.listeners = append(m.listeners, listener)
+
+	// notify the listener of the current state
+	for vID, metadata := range m.data {
+		listener.OnValidatorAdded(vID, metadata.NodeID, uint64(metadata.startTime.Unix()), metadata.IsActive)
+	}
 }
 
 // parseValidatorMetadata parses the metadata from the bytes and returns the metadata
