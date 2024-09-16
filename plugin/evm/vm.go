@@ -864,14 +864,6 @@ func (vm *VM) Shutdown(context.Context) error {
 	if vm.cancel != nil {
 		vm.cancel()
 	}
-	vm.Network.Shutdown()
-	if err := vm.StateSyncClient.Shutdown(); err != nil {
-		log.Error("error stopping state syncer", "err", err)
-	}
-	close(vm.shutdownChan)
-	vm.eth.Stop()
-	log.Info("Ethereum backend stop completed")
-	vm.shutdownWg.Wait()
 	if vm.bootstrapped.Get() {
 		vdrIDs := vm.validatorState.GetValidatorIDs().List()
 		if err := vm.uptimeManager.StopTracking(vdrIDs); err != nil {
@@ -881,6 +873,14 @@ func (vm *VM) Shutdown(context.Context) error {
 			return fmt.Errorf("failed to write validator: %w", err)
 		}
 	}
+	vm.Network.Shutdown()
+	if err := vm.StateSyncClient.Shutdown(); err != nil {
+		log.Error("error stopping state syncer", "err", err)
+	}
+	close(vm.shutdownChan)
+	vm.eth.Stop()
+	log.Info("Ethereum backend stop completed")
+	vm.shutdownWg.Wait()
 	log.Info("Subnet-EVM Shutdown completed")
 	return nil
 }
