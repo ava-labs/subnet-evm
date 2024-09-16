@@ -730,7 +730,11 @@ func (vm *VM) onNormalOperationsStarted() error {
 		return err
 	}
 	// dispatch validator set update
-	go vm.dispatchUpdateValidators(ctx)
+	vm.shutdownWg.Add(1)
+	go func() {
+		vm.dispatchUpdateValidators(ctx)
+		vm.shutdownWg.Done()
+	}()
 
 	// Initialize goroutines related to block building
 	// once we enter normal operation as there is no need to handle mempool gossip before this point.
