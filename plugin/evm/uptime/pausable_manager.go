@@ -13,13 +13,13 @@ import (
 	"github.com/ava-labs/avalanchego/utils/set"
 )
 
-var _ validators.ValidatorsCallbackListener = &pausableManager{}
+var _ validators.StateCallbackListener = &pausableManager{}
 
 var ErrPausedDc = errors.New("paused node cannot be disconnected")
 
 type PausableManager interface {
 	uptime.Manager
-	validators.ValidatorsCallbackListener
+	validators.StateCallbackListener
 	IsPaused(nodeID ids.NodeID) bool
 }
 
