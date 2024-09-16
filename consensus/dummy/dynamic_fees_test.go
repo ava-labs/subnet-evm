@@ -469,5 +469,5 @@ func TestCalcBaseFeeRegression(t *testing.T) {
 	}
 	_, _, err := CalcBaseFee(params.TestChainConfig, testFeeConfig, parentHeader, timestamp)
 	require.NoError(t, err)
-	require.Equalf(t, common.Big1.Cmp(big.NewInt(1)), 0, "big1 should be 1, got %s", common.Big1)
+	require.Equalf(t, 0, common.Big1.Cmp(big.NewInt(1)), "big1 should be 1, got %s", common.Big1)
 }
