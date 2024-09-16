@@ -853,7 +853,7 @@ func (vm *VM) setAppRequestHandlers() {
 }
 
 // Shutdown implements the snowman.ChainVM interface
-func (vm *VM) Shutdown(ctx context.Context) error {
+func (vm *VM) Shutdown(context.Context) error {
 	if vm.ctx == nil {
 		return nil
 	}
