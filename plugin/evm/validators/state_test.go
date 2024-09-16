@@ -16,10 +16,10 @@ import (
 	"github.com/ava-labs/avalanchego/utils/wrappers"
 )
 
-func TestValidatorState(t *testing.T) {
+func TestState(t *testing.T) {
 	require := require.New(t)
 	db := memdb.New()
-	state, err := NewValidatorState(db)
+	state, err := NewState(db)
 	require.NoError(err)
 
 	// get non-existent uptime
@@ -77,10 +77,10 @@ func TestValidatorState(t *testing.T) {
 func TestWriteValidator(t *testing.T) {
 	require := require.New(t)
 	db := memdb.New()
-	state, err := NewValidatorState(db)
+	state, err := NewState(db)
 	require.NoError(err)
 	// write empty uptimes
-	require.NoError(state.WriteValidatorState())
+	require.NoError(state.WriteState())
 
 	// load uptime
 	nodeID := ids.GenerateTestNodeID()
@@ -89,17 +89,17 @@ func TestWriteValidator(t *testing.T) {
 	state.AddNewValidator(vID, nodeID, uint64(startTime.Unix()), true)
 
 	// write state, should reflect to DB
-	require.NoError(state.WriteValidatorState())
+	require.NoError(state.WriteState())
 	require.True(db.Has(vID[:]))
 
 	// set uptime
 	newUpDuration := 2 * time.Minute
 	newLastUpdated := startTime.Add(time.Hour)
 	require.NoError(state.SetUptime(nodeID, newUpDuration, newLastUpdated))
-	require.NoError(state.WriteValidatorState())
+	require.NoError(state.WriteState())
 
 	// refresh state, should load from DB
-	state, err = NewValidatorState(db)
+	state, err = NewState(db)
 	require.NoError(err)
 
 	// get uptime
@@ -112,7 +112,7 @@ func TestWriteValidator(t *testing.T) {
 	state.DeleteValidator(vID)
 
 	// write state, should reflect to DB
-	require.NoError(state.WriteValidatorState())
+	require.NoError(state.WriteState())
 	require.False(db.Has(vID[:]))
 }
 
@@ -216,7 +216,7 @@ func TestParseValidator(t *testing.T) {
 func TestStateListener(t *testing.T) {
 	require := require.New(t)
 	db := memdb.New()
-	state, err := NewValidatorState(db)
+	state, err := NewState(db)
 	require.NoError(err)
 
 	expectedvID := ids.GenerateTestID()
@@ -254,7 +254,7 @@ func TestStateListener(t *testing.T) {
 	state.DeleteValidator(expectedvID)
 }
 
-var _ ValidatorsCallbackListener = (*testCallbackListener)(nil)
+var _ StateCallbackListener = (*testCallbackListener)(nil)
 
 type testCallbackListener struct {
 	t              *testing.T
