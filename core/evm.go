@@ -27,6 +27,7 @@
 package core
 
 import (
+	"bytes"
 	"math/big"
 
 	"github.com/ava-labs/subnet-evm/consensus"
@@ -35,8 +36,8 @@ import (
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/predicate"
 	"github.com/ethereum/go-ethereum/common"
+	gethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
-	"github.com/ethereum/go-ethereum/libevm"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/holiman/uint256"
 )
@@ -62,7 +63,7 @@ func NewEVMBlockContext(header *types.Header, chain ChainContext, author *common
 	// Prior to Durango, the VM enforces the extra data is smaller than or
 	// equal to this size. After Durango, the VM pre-verifies the extra
 	// data past the dynamic fee rollup window is valid.
-	predicateResults, err := predicate.ParseResults(predicateBytes)
+	_, err := predicate.ParseResults(predicateBytes)
 	if err != nil {
 		log.Error("failed to parse predicate results creating new block context", "err", err, "extra", header.Extra)
 		// As mentioned above, we pre-verify the extra data to ensure this never happens.
@@ -70,22 +71,22 @@ func NewEVMBlockContext(header *types.Header, chain ChainContext, author *common
 		// as defense in depth.
 		return newEVMBlockContext(header, chain, author, nil)
 	}
-	return newEVMBlockContext(header, chain, author, predicateResults)
+	return newEVMBlockContext(header, chain, author, header.Extra)
 }
 
 // NewEVMBlockContextWithPredicateResults creates a new context for use in the EVM with an override for the predicate results that is not present
 // in header.Extra.
 // This function is used to create a BlockContext when the header Extra data is not fully formed yet and it's more efficient to pass in predicateResults
 // directly rather than re-encode the latest results when executing each individaul transaction.
-func NewEVMBlockContextWithPredicateResults(header *types.Header, chain ChainContext, author *common.Address, predicateResults *predicate.Results) vm.BlockContext {
-	var results libevm.PredicateResults
-	if predicateResults != nil {
-		results = predicateResults
+func NewEVMBlockContextWithPredicateResults(header *types.Header, chain ChainContext, author *common.Address, predicateBytes []byte) vm.BlockContext {
+	extra := bytes.Clone(header.Extra)
+	if len(predicateBytes) > 0 {
+		extra = predicate.SetPredicateResultBytes(extra, predicateBytes)
 	}
-	return newEVMBlockContext(header, chain, author, results)
+	return newEVMBlockContext(header, chain, author, extra)
 }
 
-func newEVMBlockContext(header *types.Header, chain ChainContext, author *common.Address, predicateResults libevm.PredicateResults) vm.BlockContext {
+func newEVMBlockContext(header *types.Header, chain ChainContext, author *common.Address, extra []byte) vm.BlockContext {
 	var (
 		beneficiary common.Address
 		baseFee     *big.Int
@@ -114,18 +115,22 @@ func newEVMBlockContext(header *types.Header, chain ChainContext, author *common
 		random.SetBytes(header.Difficulty.Bytes())
 	}
 	return vm.BlockContext{
-		CanTransfer:      CanTransfer,
-		Transfer:         Transfer,
-		GetHash:          GetHashFn(header, chain),
-		PredicateResults: predicateResults,
-		Coinbase:         beneficiary,
-		BlockNumber:      new(big.Int).Set(header.Number),
-		Time:             header.Time,
-		Difficulty:       new(big.Int).Set(header.Difficulty),
-		BaseFee:          baseFee,
-		BlobBaseFee:      blobBaseFee,
-		GasLimit:         header.GasLimit,
-		Random:           random,
+		CanTransfer: CanTransfer,
+		Transfer:    Transfer,
+		GetHash:     GetHashFn(header, chain),
+		Coinbase:    beneficiary,
+		BlockNumber: new(big.Int).Set(header.Number),
+		Time:        header.Time,
+		Difficulty:  new(big.Int).Set(header.Difficulty),
+		BaseFee:     baseFee,
+		BlobBaseFee: blobBaseFee,
+		GasLimit:    header.GasLimit,
+		Random:      random,
+		Header: &gethtypes.Header{
+			Number: new(big.Int).Set(header.Number),
+			Time:   header.Time,
+			Extra:  extra,
+		},
 	}
 }
 

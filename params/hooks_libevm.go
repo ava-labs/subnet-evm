@@ -15,9 +15,14 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/libevm"
 	gethparams "github.com/ethereum/go-ethereum/params"
 )
+
+var PredicateParser = func(extra []byte) (PredicateResults, error) {
+	return nil, nil
+}
 
 func (r RulesExtra) JumpTable() interface{} {
 	// XXX: This does not account for the any possible differences in EIP-3529
@@ -25,22 +30,22 @@ func (r RulesExtra) JumpTable() interface{} {
 	return nil
 }
 
-func (r RulesExtra) CanCreateContract(ac *libevm.AddressContext, state libevm.StateReader) error {
+func (r RulesExtra) CanCreateContract(ac *libevm.AddressContext, gas uint64, state libevm.StateReader) (uint64, error) {
 	// IsProhibited
 	if ac.Self == constants.BlackholeAddr || modules.ReservedAddress(ac.Self) {
-		return vmerrs.ErrAddrProhibited
+		return gas, vmerrs.ErrAddrProhibited
 	}
 
 	// If the allow list is enabled, check that [ac.Origin] has permission to deploy a contract.
 	if r.IsPrecompileEnabled(deployerallowlist.ContractAddress) {
 		allowListRole := deployerallowlist.GetContractDeployerAllowListStatus(state, ac.Origin)
 		if !allowListRole.IsEnabled() {
-			ac.Gas = 0
-			return fmt.Errorf("tx.origin %s is not authorized to deploy a contract", ac.Origin)
+			gas = 0
+			return gas, fmt.Errorf("tx.origin %s is not authorized to deploy a contract", ac.Origin)
 		}
 	}
 
-	return nil
+	return gas, nil
 }
 
 func (r RulesExtra) PrecompileOverride(addr common.Address) (libevm.PrecompiledContract, bool) {
@@ -52,48 +57,44 @@ func (r RulesExtra) PrecompileOverride(addr common.Address) (libevm.PrecompiledC
 		return nil, false
 	}
 
-	return libevmContract{module.Contract}, true
-}
-
-// XXX: This is a hack since we need the suppliedGas
-// to determine the gas cost of the precompile
-// also evm.interpreter.ReadOnly
-type libevmContract struct {
-	contract.StatefulPrecompiledContract
-}
-
-func (l libevmContract) RunExtra(
-	chainConfig *gethparams.ChainConfig,
-	blockNumber *big.Int, blockTime uint64, predicateResults libevm.PredicateResults,
-	state libevm.StateDB, _ *gethparams.Rules, caller, self common.Address, input []byte, suppliedGas uint64, readOnly bool) ([]byte, uint64, error) {
-	accessableState := accessableState{
-		StateDB:     state,
-		chainConfig: chainConfig,
-		blockContext: &BlockContext{
-			number:           blockNumber,
-			time:             blockTime,
-			predicateResults: predicateResults,
-		}}
-	return l.StatefulPrecompiledContract.Run(accessableState, caller, self, input, suppliedGas, readOnly)
-}
-
-func (libevmContract) Run(input []byte) ([]byte, error) {
-	panic("implement me")
-}
-
-func (libevmContract) RequiredGas(input []byte) uint64 {
-	panic("implement me")
+	precompile := func(env vm.PrecompileEnvironment, input []byte, suppliedGas uint64) ([]byte, uint64, error) {
+		header, err := env.BlockHeader()
+		if err != nil {
+			panic(err) // Should never happen
+		}
+		predicateResults, err := PredicateParser(header.Extra)
+		if err != nil {
+			panic(err) // Should never happen, because predicates are parsed in NewEVMBlockContext.
+		}
+		// XXX: this should be moved to the precompiles
+		var state libevm.StateReader
+		if env.ReadOnly() {
+			state = env.ReadOnlyState()
+		} else {
+			state = env.StateDB()
+		}
+		accessableState := accessableState{
+			StateReader: state,
+			chainConfig: GetRulesExtra(env.Rules()).chainConfig,
+			blockContext: &BlockContext{
+				number:           env.BlockNumber(),
+				time:             env.BlockTime(),
+				predicateResults: predicateResults,
+			}}
+		return module.Contract.Run(accessableState, env.Addresses().Caller, env.Addresses().Self, input, suppliedGas, env.ReadOnly())
+	}
+	return vm.NewStatefulPrecompile(precompile), true
 }
 
 type accessableState struct {
-	libevm.StateDB
+	libevm.StateReader
 	chainConfig  *gethparams.ChainConfig
 	blockContext *BlockContext
 }
 
 func (a accessableState) GetStateDB() contract.StateDB {
 	// XXX: Whoa, this is a hack
-	return a.StateDB.(contract.StateDB)
+	return a.StateReader.(contract.StateDB)
 }
 
 func (a accessableState) GetBlockContext() contract.BlockContext {
@@ -109,13 +110,17 @@ func (a accessableState) GetSnowContext() *snow.Context {
 	return GetExtra(a.chainConfig).SnowCtx
 }
 
+type PredicateResults interface {
+	GetPredicateResults(txHash common.Hash, address common.Address) []byte
+}
+
 type BlockContext struct {
 	number           *big.Int
 	time             uint64
-	predicateResults libevm.PredicateResults
+	predicateResults PredicateResults
 }
 
-func NewBlockContext(number *big.Int, time uint64, predicateResults libevm.PredicateResults) *BlockContext {
+func NewBlockContext(number *big.Int, time uint64, predicateResults PredicateResults) *BlockContext {
 	return &BlockContext{
 		number:           number,
 		time:             time,

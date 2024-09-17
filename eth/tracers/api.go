@@ -44,6 +44,7 @@ import (
 	"github.com/ava-labs/subnet-evm/eth/tracers/logger"
 	"github.com/ava-labs/subnet-evm/internal/ethapi"
 	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/predicate"
 	"github.com/ava-labs/subnet-evm/rpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -959,13 +960,22 @@ func (api *API) TraceCall(ctx context.Context, args ethapi.TransactionArgs, bloc
 	defer release()
 
 	vmctx := core.NewEVMBlockContext(block.Header(), api.chainContext(ctx), nil)
+
+	var predicateResults params.PredicateResults
+	predicateBytes, ok := predicate.GetPredicateResultBytes(vmctx.Header.Extra)
+	if ok {
+		predicateResults, err = predicate.ParseResults(predicateBytes)
+		if err != nil {
+			return nil, err
+		}
+	}
 	// Apply the customization rules if required.
 	if config != nil {
 		originalTime := block.Time()
 		config.BlockOverrides.Apply(&vmctx)
 		// Apply all relevant upgrades from [originalTime] to the block time set in the override.
 		// Should be applied before the state overrides.
-		blockContext := params.NewBlockContext(vmctx.BlockNumber, vmctx.Time, vmctx.PredicateResults)
+		blockContext := params.NewBlockContext(vmctx.BlockNumber, vmctx.Time, predicateResults)
 		err = core.ApplyUpgrades(api.backend.ChainConfig(), &originalTime, blockContext, statedb)
 		if err != nil {
 			return nil, err

@@ -102,10 +102,10 @@ func (c *ChainConfigExtra) UnmarshalJSON(data []byte) error {
 
 // MarshalJSON returns the JSON encoding of c.
 // This is a custom marshaler to handle the Precompiles field.
-func (c ChainConfigExtra) MarshalJSON() ([]byte, error) {
+func (c *ChainConfigExtra) MarshalJSON() ([]byte, error) {
 	// Alias ChainConfigExtra to avoid recursion
 	type _ChainConfigExtra ChainConfigExtra
-	tmp, err := json.Marshal(_ChainConfigExtra(c))
+	tmp, err := json.Marshal(_ChainConfigExtra(*c))
 	if err != nil {
 		return nil, err
 	}
@@ -188,7 +188,7 @@ func (cu *ChainConfigWithUpgradesJSON) UnmarshalJSON(input []byte) error {
 }
 
 // Verify verifies chain config and returns error
-func (c ChainConfigExtra) Verify() error {
+func (c *ChainConfigExtra) Verify() error {
 	if err := c.FeeConfig.Verify(); err != nil {
 		return err
 	}
@@ -212,20 +212,20 @@ func (c ChainConfigExtra) Verify() error {
 }
 
 // IsPrecompileEnabled returns whether precompile with [address] is enabled at [timestamp].
-func (c ChainConfigExtra) IsPrecompileEnabled(address common.Address, timestamp uint64) bool {
+func (c *ChainConfigExtra) IsPrecompileEnabled(address common.Address, timestamp uint64) bool {
 	config := c.getActivePrecompileConfig(address, timestamp)
 	return config != nil && !config.IsDisabled()
 }
 
 // GetFeeConfig returns the original FeeConfig contained in the genesis ChainConfig.
 // Implements precompile.ChainConfig interface.
-func (c ChainConfigExtra) GetFeeConfig() commontype.FeeConfig {
+func (c *ChainConfigExtra) GetFeeConfig() commontype.FeeConfig {
 	return c.FeeConfig
 }
 
 // AllowedFeeRecipients returns the original AllowedFeeRecipients parameter contained in the genesis ChainConfig.
 // Implements precompile.ChainConfig interface.
-func (c ChainConfigExtra) AllowedFeeRecipients() bool {
+func (c *ChainConfigExtra) AllowedFeeRecipients() bool {
 	return c.AllowFeeRecipients
 }
 

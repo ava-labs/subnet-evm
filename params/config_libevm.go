@@ -13,24 +13,25 @@ import (
 )
 
 func do_init() any {
-	getter = gethparams.RegisterExtras(gethparams.Extras[ChainConfigExtra, RulesExtra]{
+	getter = gethparams.RegisterExtras(gethparams.Extras[*ChainConfigExtra, RulesExtra]{
 		ReuseJSONRoot: true, // Reuse the root JSON input when unmarshalling the extra payload.
 		NewRules:      constructRulesExtra,
 	})
 	return nil
 }
 
-var getter gethparams.ExtraPayloadGetter[ChainConfigExtra, RulesExtra]
+var getter gethparams.ExtraPayloads[*ChainConfigExtra, RulesExtra]
 
 // constructRulesExtra acts as an adjunct to the [params.ChainConfig.Rules]
 // method. Its primary purpose is to construct the extra payload for the
 // [params.Rules] but it MAY also modify the [params.Rules].
-func constructRulesExtra(c *gethparams.ChainConfig, r *gethparams.Rules, cEx *ChainConfigExtra, blockNum *big.Int, isMerge bool, timestamp uint64) *RulesExtra {
+func constructRulesExtra(c *gethparams.ChainConfig, r *gethparams.Rules, cEx *ChainConfigExtra, blockNum *big.Int, isMerge bool, timestamp uint64) RulesExtra {
 	var rules RulesExtra
 	if cEx == nil {
-		return &rules
+		return rules
 	}
 	rules.AvalancheRules = cEx.GetAvalancheRules(timestamp)
+	rules.chainConfig = c
 	rules.gethrules = *r
 
 	// Initialize the stateful precompiles that should be enabled at [blockTimestamp].
@@ -49,7 +50,7 @@ func constructRulesExtra(c *gethparams.ChainConfig, r *gethparams.Rules, cEx *Ch
 		}
 	}
 
-	return &rules
+	return rules
 }
 
 // FromChainConfig returns the extra payload carried by the ChainConfig.
@@ -59,9 +60,5 @@ func FromChainConfig(c *gethparams.ChainConfig) *ChainConfigExtra {
 
 // FromRules returns the extra payload carried by the Rules.
 func FromRules(r *gethparams.Rules) RulesExtra {
-	extra := getter.FromRules(r)
-	if extra == nil {
-		return RulesExtra{}
-	}
-	return *extra
+	return getter.FromRules(r)
 }

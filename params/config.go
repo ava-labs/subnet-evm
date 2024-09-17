@@ -244,7 +244,10 @@ type ChainConfigExtra struct {
 	UpgradeConfig      `json:"-"`  // Config specified in upgradeBytes (avalanche network upgrades or enable/disabling precompiles). Skip encoding/decoding directly into ChainConfig.
 }
 
-func (c ChainConfigExtra) Description() string {
+func (c *ChainConfigExtra) Description() string {
+	if c == nil {
+		return ""
+	}
 	var banner string
 
 	banner += "Avalanche Upgrades (timestamp based):\n"
@@ -284,7 +287,10 @@ type fork struct {
 	optional  bool     // if true, the fork may be nil and next fork is still allowed
 }
 
-func (c ChainConfigExtra) CheckConfigForkOrder() error {
+func (c *ChainConfigExtra) CheckConfigForkOrder() error {
+	if c == nil {
+		return nil
+	}
 	// Note: In Avalanche, hard forks must take place via block timestamps instead
 	// of block numbers since blocks are produced asynchronously. Therefore, we do not
 	// check that the block timestamps in the same way as for
@@ -345,7 +351,10 @@ func checkForks(forks []fork, blockFork bool) error {
 	return nil
 }
 
-func (c ChainConfigExtra) CheckCompatible(newcfg_ *ChainConfig, headNumber *big.Int, headTimestamp uint64) *ConfigCompatError {
+func (c *ChainConfigExtra) CheckConfigCompatible(newcfg_ *ChainConfig, headNumber *big.Int, headTimestamp uint64) *ConfigCompatError {
+	if c == nil {
+		return nil
+	}
 	newcfg := GetExtra(newcfg_)
 
 	// Check avalanche network upgrades
@@ -427,7 +436,8 @@ func newTimestampCompatError(what string, storedtime, newtime *uint64) *ConfigCo
 type Rules = gethparams.Rules
 
 type RulesExtra struct {
-	gethrules gethparams.Rules
+	chainConfig *ChainConfig
+	gethrules   gethparams.Rules
 
 	// Rules for Avalanche releases
 	AvalancheRules
