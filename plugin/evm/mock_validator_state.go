@@ -78,13 +78,17 @@ func (t *MockValidatorState) GetCurrentValidatorSet(ctx context.Context, subnetI
 			isActive = recordedValidator.IsActive
 			setWeightNonce = recordedValidator.SetWeightNonce
 		}
-		// Converts the key to a validationID
+		// Converts the 20 bytes nodeID to a 32-bytes validationID
 		// TODO: This is a temporary solution until we can use the correct ID type
-		validationID, err := ids.ToID(key.Bytes())
+		// fill bytes with 0s to make it 32 bytes
+		keyBytes := make([]byte, 32)
+		copy(keyBytes[:], key.Bytes())
+		validationID, err := ids.ToID(keyBytes)
 		if err != nil {
 			return nil, err
 		}
 		output[validationID] = &ValidatorOutput{
+			VID:            validationID,
 			NodeID:         value.NodeID,
 			IsActive:       isActive,
 			StartTime:      startTime,
