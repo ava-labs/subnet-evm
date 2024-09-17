@@ -723,11 +723,13 @@ func (vm *VM) onNormalOperationsStarted() error {
 	vm.cancel = cancel
 
 	// update validators first
-	vm.performValidatorUpdate(ctx)
+	if err := vm.performValidatorUpdate(ctx); err != nil {
+		return fmt.Errorf("failed to update validators: %w", err)
+	}
 	vdrIDs := vm.validatorState.GetValidatorIDs().List()
 	// then start tracking with updated validators
 	if err := vm.uptimeManager.StartTracking(vdrIDs); err != nil {
-		return err
+		return fmt.Errorf("failed to start tracking uptime: %w", err)
 	}
 	// dispatch validator set update
 	vm.shutdownWg.Add(1)
@@ -1083,11 +1085,11 @@ func (vm *VM) CreateHandlers(context.Context) (map[string]http.Handler, error) {
 		enabledAPIs = append(enabledAPIs, "warp")
 	}
 
-	if vm.config.UptimeAPIEnabled {
-		if err := handler.RegisterName("uptime", &UptimeAPI{vm.ctx, vm.LockedCalculator}); err != nil {
+	if vm.config.ValidatorsAPIEnabled {
+		if err := handler.RegisterName("validators", &ValidatorsAPI{vm}); err != nil {
 			return nil, err
 		}
-		enabledAPIs = append(enabledAPIs, "uptime")
+		enabledAPIs = append(enabledAPIs, "validators")
 	}
 
 	log.Info(fmt.Sprintf("Enabled APIs: %s", strings.Join(enabledAPIs, ", ")))
@@ -1264,7 +1266,9 @@ func (vm *VM) dispatchUpdateValidators(ctx context.Context) {
 		select {
 		case <-ticker.C:
 			vm.ctx.Lock.Lock()
-			vm.performValidatorUpdate(ctx)
+			if err := vm.performValidatorUpdate(ctx); err != nil {
+				log.Error("failed to update validators", "error", err)
+			}
 			vm.ctx.Lock.Unlock()
 		case <-ctx.Done():
 			return
@@ -1276,24 +1280,24 @@ func (vm *VM) dispatchUpdateValidators(ctx context.Context) {
 // and writes the state to the database.
 func (vm *VM) performValidatorUpdate(ctx context.Context) error {
 	now := time.Now()
-	vm.logger.Debug("performing validator update")
+	log.Debug("performing validator update")
 	// get current validator set
 	currentValidatorSet, err := vm.mockedPChainValidatorState.GetCurrentValidatorSet(ctx, vm.ctx.SubnetID)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get current validator set: %w", err)
 	}
 
 	// load the current validator set into the validator state
 	if err := vm.loadCurrentValidators(currentValidatorSet); err != nil {
-		return err
+		return fmt.Errorf("failed to load current validators: %w", err)
 	}
 
 	// write validators to the database
 	if err := vm.validatorState.WriteState(); err != nil {
-		return err
+		return fmt.Errorf("failed to write validator state: %w", err)
 	}
 
-	vm.logger.Debug("validator update complete", "duration", time.Since(now))
+	log.Debug("validator update complete", "duration", time.Since(now))
 	return nil
 }
 
@@ -1323,7 +1327,7 @@ func (vm *VM) loadCurrentValidators(vdrs map[ids.ID]*ValidatorOutput) error {
 				}
 			}
 		} else {
-			err := vm.validatorState.AddNewValidator(vdr.VID, vdr.NodeID, vdr.StartTime, vdr.IsActive)
+			err := vm.validatorState.AddNewValidator(vID, vdr.NodeID, vdr.StartTime, vdr.IsActive)
 			if err != nil {
 				return err
 			}
