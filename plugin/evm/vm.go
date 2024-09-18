@@ -122,9 +122,6 @@ const (
 	txGossipThrottlingPeriod             = 10 * time.Second
 	txGossipThrottlingLimit              = 2
 	txGossipPollSize                     = 1
-
-	// TODO: decide for a sane value for this
-	loadValidatorFrequency = 5 * time.Minute
 )
 
 // Define the API endpoints for the VM
@@ -247,8 +244,7 @@ type VM struct {
 	ethTxPushGossiper  avalancheUtils.Atomic[*gossip.PushGossiper[*GossipEthTx]]
 	ethTxPullGossiper  gossip.Gossiper
 
-	uptimeManager    uptime.PausableManager
-	LockedCalculator avalancheUptime.LockedCalculator
+	uptimeManager uptime.PausableManager
 
 	// TODO/: remove this after implementing GetCurrentValidatorSet
 	mockedPChainValidatorState MockedValidatorState
@@ -479,6 +475,7 @@ func (vm *VM) Initialize(
 	if err != nil {
 		return fmt.Errorf("failed to initialize p2p network: %w", err)
 	}
+	// TODO: consider using p2p validators for Subnet-EVM's validatorState
 	vm.validators = p2p.NewValidators(p2pNetwork.Peers, vm.ctx.Log, vm.ctx.SubnetID, vm.ctx.ValidatorState, maxValidatorSetStaleness)
 	vm.networkCodec = message.Codec
 	vm.Network = peer.NewNetwork(p2pNetwork, appSender, vm.networkCodec, chainCtx.NodeID, vm.config.MaxOutboundActiveRequests)
@@ -492,8 +489,6 @@ func (vm *VM) Initialize(
 	}
 	// TODO: add a configuration to disable tracking uptime
 	vm.uptimeManager = uptime.NewPausableManager(avalancheUptime.NewManager(vm.validatorState, &vm.clock))
-	vm.LockedCalculator = avalancheUptime.NewLockedCalculator()
-	vm.LockedCalculator.SetCalculator(&vm.bootstrapped, &chainCtx.Lock, vm.uptimeManager)
 	vm.validatorState.RegisterListener(vm.uptimeManager)
 
 	// Initialize warp backend
@@ -1071,6 +1066,14 @@ func (vm *VM) CreateHandlers(context.Context) (map[string]http.Handler, error) {
 		enabledAPIs = append(enabledAPIs, "subnet-evm-admin")
 	}
 
+	if vm.config.ValidatorsAPIEnabled {
+		if err := handler.RegisterName("validators", &ValidatorsAPI{vm}); err != nil {
+			return nil, err
+		}
+		enabledAPIs = append(enabledAPIs, "validators")
+	}
+
+	// RPC APIs
 	if vm.config.SnowmanAPIEnabled {
 		if err := handler.RegisterName("snowman", &SnowmanAPI{vm}); err != nil {
 			return nil, err
@@ -1083,13 +1086,6 @@ func (vm *VM) CreateHandlers(context.Context) (map[string]http.Handler, error) {
 			return nil, err
 		}
 		enabledAPIs = append(enabledAPIs, "warp")
-	}
-
-	if vm.config.ValidatorsAPIEnabled {
-		if err := handler.RegisterName("validators", &ValidatorsAPI{vm}); err != nil {
-			return nil, err
-		}
-		enabledAPIs = append(enabledAPIs, "validators")
 	}
 
 	log.Info(fmt.Sprintf("Enabled APIs: %s", strings.Join(enabledAPIs, ", ")))
@@ -1259,7 +1255,7 @@ func (vm *VM) Disconnected(ctx context.Context, nodeID ids.NodeID) error {
 }
 
 func (vm *VM) dispatchUpdateValidators(ctx context.Context) {
-	ticker := time.NewTicker(loadValidatorFrequency)
+	ticker := time.NewTicker(vm.config.LoadValidatorsFrequency)
 	defer ticker.Stop()
 
 	for {
@@ -1288,7 +1284,7 @@ func (vm *VM) performValidatorUpdate(ctx context.Context) error {
 	}
 
 	// load the current validator set into the validator state
-	if err := vm.loadCurrentValidators(currentValidatorSet); err != nil {
+	if err := loadValidators(vm.validatorState, currentValidatorSet); err != nil {
 		return fmt.Errorf("failed to load current validators: %w", err)
 	}
 
@@ -1302,33 +1298,33 @@ func (vm *VM) performValidatorUpdate(ctx context.Context) error {
 }
 
 // TODO: cache the last updated height and then load if needed
-func (vm *VM) loadCurrentValidators(vdrs map[ids.ID]*ValidatorOutput) error {
-	currentValidationIDs := vm.validatorState.GetValidationIDs()
+// loadValidators loads the [validators] into the validator state [validatorState]
+func loadValidators(validatorState validators.State, validators map[ids.ID]*MockValidatorOutput) error {
+	currentValidationIDs := validatorState.GetValidationIDs()
 	// first check if we need to delete any existing validators
 	for vID := range currentValidationIDs {
 		// if the validator is not in the new set of validators
 		// delete the validator
-		if _, exists := vdrs[vID]; !exists {
-			vm.validatorState.DeleteValidator(vID)
+		if _, exists := validators[vID]; !exists {
+			validatorState.DeleteValidator(vID)
 		}
 	}
 
 	// then load the new validators
-	for vID, vdr := range vdrs {
+	for vID, vdr := range validators {
 		if currentValidationIDs.Contains(vID) {
 			// Check if IsActive has changed
-			isActive, err := vm.validatorState.GetStatus(vID)
+			isActive, err := validatorState.GetStatus(vID)
 			if err != nil {
 				return err
 			}
 			if isActive != vdr.IsActive {
-				if err := vm.validatorState.SetStatus(vID, vdr.IsActive); err != nil {
+				if err := validatorState.SetStatus(vID, vdr.IsActive); err != nil {
 					return err
 				}
 			}
 		} else {
-			err := vm.validatorState.AddNewValidator(vID, vdr.NodeID, vdr.StartTime, vdr.IsActive)
-			if err != nil {
+			if err := validatorState.AddNewValidator(vID, vdr.NodeID, vdr.StartTime, vdr.IsActive); err != nil {
 				return err
 			}
 		}

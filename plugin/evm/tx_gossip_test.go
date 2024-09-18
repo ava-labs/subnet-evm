@@ -37,7 +37,7 @@ func TestEthTxGossip(t *testing.T) {
 	require := require.New(t)
 	ctx := context.Background()
 	snowCtx := utils.TestSnowContext()
-	validatorState := &validatorstest.State{}
+	validatorState := utils.NewTestValidatorState()
 	snowCtx.ValidatorState = validatorState
 
 	responseSender := &enginetest.SenderStub{

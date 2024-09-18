@@ -33,6 +33,7 @@ import (
 	"github.com/ava-labs/avalanchego/snow/consensus/snowman"
 	commonEng "github.com/ava-labs/avalanchego/snow/engine/common"
 	"github.com/ava-labs/avalanchego/snow/engine/enginetest"
+	"github.com/ava-labs/avalanchego/snow/validators"
 	"github.com/ava-labs/avalanchego/snow/validators/validatorstest"
 	"github.com/ava-labs/avalanchego/upgrade"
 	avalancheConstants "github.com/ava-labs/avalanchego/utils/constants"
@@ -152,6 +153,10 @@ func NewContext() *snow.Context {
 	_ = aliaser.Alias(testXChainID, "X")
 	_ = aliaser.Alias(testXChainID, testXChainID.String())
 	ctx.ValidatorState = &validatorstest.State{
+		GetCurrentHeightF: func(ctx context.Context) (uint64, error) { return 0, nil },
+		GetValidatorSetF: func(ctx context.Context, height uint64, subnetID ids.ID) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
+			return map[ids.NodeID]*validators.GetValidatorOutput{}, nil
+		},
 		GetSubnetIDF: func(_ context.Context, chainID ids.ID) (ids.ID, error) {
 			subnetID, ok := map[ids.ID]ids.ID{
 				avalancheConstants.PlatformChainID: avalancheConstants.PrimaryNetworkID,

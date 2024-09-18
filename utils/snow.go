@@ -4,9 +4,12 @@
 package utils
 
 import (
+	"context"
+
 	"github.com/ava-labs/avalanchego/api/metrics"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow"
+	"github.com/ava-labs/avalanchego/snow/validators"
 	"github.com/ava-labs/avalanchego/snow/validators/validatorstest"
 	"github.com/ava-labs/avalanchego/upgrade"
 	"github.com/ava-labs/avalanchego/utils/crypto/bls"
@@ -30,6 +33,17 @@ func TestSnowContext() *snow.Context {
 		BCLookup:        ids.NewAliaser(),
 		Metrics:         metrics.NewPrefixGatherer(),
 		ChainDataDir:    "",
-		ValidatorState:  &validatorstest.State{},
+		ValidatorState:  NewTestValidatorState(),
+	}
+}
+
+func NewTestValidatorState() *validatorstest.State {
+	return &validatorstest.State{
+		GetCurrentHeightF: func(context.Context) (uint64, error) {
+			return 0, nil
+		},
+		GetValidatorSetF: func(context.Context, uint64, ids.ID) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
+			return make(map[ids.NodeID]*validators.GetValidatorOutput), nil
+		},
 	}
 }

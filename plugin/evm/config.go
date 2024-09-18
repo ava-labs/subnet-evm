@@ -61,6 +61,9 @@ const (
 	defaultStateSyncMinBlocks   = 300_000
 	defaultStateSyncRequestSize = 1024 // the number of key/values to ask peers for per request
 	defaultValidatorsAPIEnabled = true
+
+	// TODO: decide for a sane value for this
+	defaultLoadValidatorsFrequency = 5 * time.Minute
 )
 
 var (
@@ -227,6 +230,9 @@ type Config struct {
 
 	// RPC settings
 	HttpBodyLimit uint64 `json:"http-body-limit"`
+
+	// LoadValidatorsFrequency is the frequency at which the node should load the validators
+	LoadValidatorsFrequency time.Duration `json:"load-validators-frequency"`
 }
 
 // EthAPIs returns an array of strings representing the Eth APIs that should be enabled
@@ -287,6 +293,7 @@ func (c *Config) SetDefaults() {
 	c.AllowUnprotectedTxHashes = defaultAllowUnprotectedTxHashes
 	c.AcceptedCacheSize = defaultAcceptedCacheSize
 	c.ValidatorsAPIEnabled = defaultValidatorsAPIEnabled
+	c.LoadValidatorsFrequency = defaultLoadValidatorsFrequency
 }
 
 func (d *Duration) UnmarshalJSON(data []byte) (err error) {

@@ -252,18 +252,37 @@ func TestStateListener(t *testing.T) {
 
 	// remove validator
 	state.DeleteValidator(expectedvID)
+
+	require.Equal(3, listener.called)
+
+	// test case: check initial trigger when registering listener
+	// add new validator
+	state.AddNewValidator(expectedvID, expectedNodeID, uint64(expectedStartTime.Unix()), true)
+	newListener := &testCallbackListener{
+		t: t,
+		onAdd: func(vID ids.ID, nodeID ids.NodeID, startTime uint64, isActive bool) {
+			require.Equal(expectedvID, vID)
+			require.Equal(expectedNodeID, nodeID)
+			require.Equal(uint64(expectedStartTime.Unix()), startTime)
+			require.True(isActive)
+		},
+	}
+	state.RegisterListener(newListener)
+	require.Equal(1, newListener.called)
 }
 
 var _ StateCallbackListener = (*testCallbackListener)(nil)
 
 type testCallbackListener struct {
 	t              *testing.T
+	called         int
 	onAdd          func(vID ids.ID, nodeID ids.NodeID, startTime uint64, isActive bool)
 	onRemove       func(ids.ID, ids.NodeID)
 	onStatusUpdate func(ids.ID, ids.NodeID, bool)
 }
 
 func (t *testCallbackListener) OnValidatorAdded(vID ids.ID, nodeID ids.NodeID, startTime uint64, isActive bool) {
+	t.called++
 	if t.onAdd != nil {
 		t.onAdd(vID, nodeID, startTime, isActive)
 	} else {
@@ -272,6 +291,7 @@ func (t *testCallbackListener) OnValidatorAdded(vID ids.ID, nodeID ids.NodeID, s
 }
 
 func (t *testCallbackListener) OnValidatorRemoved(vID ids.ID, nodeID ids.NodeID) {
+	t.called++
 	if t.onRemove != nil {
 		t.onRemove(vID, nodeID)
 	} else {
@@ -280,6 +300,7 @@ func (t *testCallbackListener) OnValidatorRemoved(vID ids.ID, nodeID ids.NodeID)
 }
 
 func (t *testCallbackListener) OnValidatorStatusUpdated(vID ids.ID, nodeID ids.NodeID, isActive bool) {
+	t.called++
 	if t.onStatusUpdate != nil {
 		t.onStatusUpdate(vID, nodeID, isActive)
 	} else {

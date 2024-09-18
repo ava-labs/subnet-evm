@@ -18,7 +18,7 @@ var (
 	DefaultIsActive       = true
 )
 
-type ValidatorOutput struct {
+type MockValidatorOutput struct {
 	NodeID         ids.NodeID
 	VID            ids.ID
 	IsActive       bool
@@ -32,36 +32,20 @@ type MockedValidatorState interface {
 	validators.State
 	// GetCurrentValidatorSet returns the current validator set for the provided subnet
 	// Returned map contains the ValidationID as the key and the ValidatorOutput as the value
-	GetCurrentValidatorSet(ctx context.Context, subnetID ids.ID) (map[ids.ID]*ValidatorOutput, error)
-}
-
-type recordedValidator struct {
-	StartTime      uint64
-	SetWeightNonce uint64
-	IsActive       bool
+	GetCurrentValidatorSet(ctx context.Context, subnetID ids.ID) (map[ids.ID]*MockValidatorOutput, error)
 }
 
 type MockValidatorState struct {
 	validators.State
-	recordedValidators map[ids.NodeID]recordedValidator
 }
 
 func NewMockValidatorState(pState validators.State) MockedValidatorState {
 	return &MockValidatorState{
-		State:              pState,
-		recordedValidators: make(map[ids.NodeID]recordedValidator),
+		State: pState,
 	}
 }
 
-func (t *MockValidatorState) RecordValidator(nodeID ids.NodeID, startTime, setWeightNonce uint64) {
-	t.recordedValidators[nodeID] = recordedValidator{
-		StartTime:      startTime,
-		SetWeightNonce: setWeightNonce,
-		IsActive:       true,
-	}
-}
-
-func (t *MockValidatorState) GetCurrentValidatorSet(ctx context.Context, subnetID ids.ID) (map[ids.ID]*ValidatorOutput, error) {
+func (t *MockValidatorState) GetCurrentValidatorSet(ctx context.Context, subnetID ids.ID) (map[ids.ID]*MockValidatorOutput, error) {
 	currentPHeight, err := t.GetCurrentHeight(ctx)
 	if err != nil {
 		return nil, err
@@ -70,14 +54,8 @@ func (t *MockValidatorState) GetCurrentValidatorSet(ctx context.Context, subnetI
 	if err != nil {
 		return nil, err
 	}
-	output := make(map[ids.ID]*ValidatorOutput, len(validatorSet))
+	output := make(map[ids.ID]*MockValidatorOutput, len(validatorSet))
 	for key, value := range validatorSet {
-		startTime, isActive, setWeightNonce := DefaultStartTime, DefaultIsActive, DefaultSetWeightNonce
-		if recordedValidator, ok := t.recordedValidators[key]; ok {
-			startTime = recordedValidator.StartTime
-			isActive = recordedValidator.IsActive
-			setWeightNonce = recordedValidator.SetWeightNonce
-		}
 		// Converts the 20 bytes nodeID to a 32-bytes validationID
 		// TODO: This is a temporary solution until we can use the correct ID type
 		// fill bytes with 0s to make it 32 bytes
@@ -87,12 +65,12 @@ func (t *MockValidatorState) GetCurrentValidatorSet(ctx context.Context, subnetI
 		if err != nil {
 			return nil, err
 		}
-		output[validationID] = &ValidatorOutput{
+		output[validationID] = &MockValidatorOutput{
 			VID:            validationID,
 			NodeID:         value.NodeID,
-			IsActive:       isActive,
-			StartTime:      startTime,
-			SetWeightNonce: setWeightNonce,
+			IsActive:       DefaultIsActive,
+			StartTime:      DefaultStartTime,
+			SetWeightNonce: DefaultSetWeightNonce,
 			Weight:         value.Weight,
 			BLSPublicKey:   value.PublicKey,
 		}
