@@ -63,7 +63,7 @@ type validatorData struct {
 type state struct {
 	data  map[ids.ID]*validatorData // vID -> validatorData
 	index map[ids.NodeID]ids.ID     // nodeID -> vID
-	// updatedData tracks the updates since las WriteValidator was called
+	// updatedData tracks the updates since WriteValidator was last called
 	updatedData map[ids.ID]bool // vID -> true(updated)/false(deleted)
 	db          database.Database
 
