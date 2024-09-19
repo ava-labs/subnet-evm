@@ -239,7 +239,7 @@ func (s *state) GetValidatorIDs() set.Set[ids.NodeID] {
 }
 
 // RegisterListener registers a listener to the state
-// the listener will be notified of current validators via OnValidatorAdded
+// OnValidatorAdded is called for all current validators on the provided listener before this function returns
 func (s *state) RegisterListener(listener StateCallbackListener) {
 	s.listeners = append(s.listeners, listener)
 
