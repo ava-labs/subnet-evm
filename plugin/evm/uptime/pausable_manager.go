@@ -7,6 +7,7 @@ import (
 	"errors"
 
 	"github.com/ava-labs/subnet-evm/plugin/evm/validators"
+	"github.com/ethereum/go-ethereum/log"
 
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow/uptime"
@@ -15,7 +16,11 @@ import (
 
 var _ validators.StateCallbackListener = &pausableManager{}
 
-var ErrPausedDc = errors.New("paused node cannot be disconnected")
+var (
+	errPausedDisconnect = errors.New("paused node cannot be disconnected")
+	errAlreadyPaused    = errors.New("node is already paused")
+	errNotPaused        = errors.New("node is not paused")
+)
 
 type PausableManager interface {
 	uptime.Manager
@@ -59,7 +64,7 @@ func (p *pausableManager) Disconnect(nodeID ids.NodeID) error {
 	if p.Manager.IsConnected(nodeID) {
 		if p.IsPaused(nodeID) {
 			// We should never see this case
-			return ErrPausedDc
+			return errPausedDisconnect
 		}
 		return p.Manager.Disconnect(nodeID)
 	}
@@ -82,7 +87,10 @@ func (p *pausableManager) StartTracking(nodeIDs []ids.NodeID) error {
 // If the node is inactive, it will be paused.
 func (p *pausableManager) OnValidatorAdded(vID ids.ID, nodeID ids.NodeID, startTime uint64, isActive bool) {
 	if !isActive {
-		p.pause(nodeID)
+		err := p.pause(nodeID)
+		if err != nil {
+			log.Error("failed to handle added validator %s: %s", nodeID, err)
+		}
 	}
 }
 
@@ -90,17 +98,24 @@ func (p *pausableManager) OnValidatorAdded(vID ids.ID, nodeID ids.NodeID, startT
 // If the node is already paused, it will be resumed.
 func (p *pausableManager) OnValidatorRemoved(vID ids.ID, nodeID ids.NodeID) {
 	if p.IsPaused(nodeID) {
-		p.resume(nodeID)
+		err := p.resume(nodeID)
+		if err != nil {
+			log.Error("failed to handle validator removed %s: %s", nodeID, err)
+		}
 	}
 }
 
 // OnValidatorStatusUpdated is called when the status of a validator is updated.
 // If the node is active, it will be resumed. If the node is inactive, it will be paused.
 func (p *pausableManager) OnValidatorStatusUpdated(vID ids.ID, nodeID ids.NodeID, isActive bool) {
+	var err error
 	if isActive {
-		p.resume(nodeID)
+		err = p.resume(nodeID)
 	} else {
-		p.pause(nodeID)
+		err = p.pause(nodeID)
+	}
+	if err != nil {
+		log.Error("failed to update status for node %s: %s", nodeID, err)
 	}
 }
 
@@ -113,6 +128,9 @@ func (p *pausableManager) IsPaused(nodeID ids.NodeID) bool {
 // pause can disconnect the node from the uptime.Manager if it is connected.
 // Returns an error if the node is already paused.
 func (p *pausableManager) pause(nodeID ids.NodeID) error {
+	if p.IsPaused(nodeID) {
+		return errAlreadyPaused
+	}
 	p.pausedVdrs.Add(nodeID)
 	if p.Manager.IsConnected(nodeID) {
 		// If the node is connected, then we need to disconnect it from
@@ -128,6 +146,9 @@ func (p *pausableManager) pause(nodeID ids.NodeID) error {
 // resume can connect the node to the uptime.Manager if it was connected.
 // Returns an error if the node is not paused.
 func (p *pausableManager) resume(nodeID ids.NodeID) error {
+	if !p.IsPaused(nodeID) {
+		return errNotPaused
+	}
 	p.pausedVdrs.Remove(nodeID)
 	if p.connectedVdrs.Contains(nodeID) {
 		return p.Manager.Connect(nodeID)
