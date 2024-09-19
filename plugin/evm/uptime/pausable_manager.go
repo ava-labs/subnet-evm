@@ -89,7 +89,7 @@ func (p *pausableManager) OnValidatorAdded(vID ids.ID, nodeID ids.NodeID, startT
 	if !isActive {
 		err := p.pause(nodeID)
 		if err != nil {
-			log.Error("failed to pause node %s: %s", nodeID, err)
+			log.Error("failed to handle added validator %s: %s", nodeID, err)
 		}
 	}
 }
@@ -100,7 +100,7 @@ func (p *pausableManager) OnValidatorRemoved(vID ids.ID, nodeID ids.NodeID) {
 	if p.IsPaused(nodeID) {
 		err := p.resume(nodeID)
 		if err != nil {
-			log.Error("failed to resume node %s: %s", nodeID, err)
+			log.Error("failed to handle validator removed %s: %s", nodeID, err)
 		}
 	}
 }
