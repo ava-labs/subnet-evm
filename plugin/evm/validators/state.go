@@ -17,6 +17,8 @@ var _ uptime.State = &state{}
 
 type dbUpdateStatus bool
 
+var ErrAlreadyExists = fmt.Errorf("validator already exists")
+
 const (
 	updated dbUpdateStatus = true
 	deleted dbUpdateStatus = false
@@ -24,8 +26,8 @@ const (
 
 type State interface {
 	uptime.State
-	// AddNewValidator adds a new validator to the state
-	AddNewValidator(vID ids.ID, nodeID ids.NodeID, startTimestamp uint64, isActive bool) error
+	// AddValidator adds a new validator to the state
+	AddValidator(vID ids.ID, nodeID ids.NodeID, startTimestamp uint64, isActive bool) error
 	// DeleteValidator deletes the validator from the state
 	DeleteValidator(vID ids.ID) error
 	// WriteState writes the validator state to the disk
@@ -63,8 +65,6 @@ type validatorData struct {
 	IsActive    bool          `serialize:"true"`
 
 	validationID ids.ID // database key
-	lastUpdated  time.Time
-	startTime    time.Time
 }
 
 type state struct {
@@ -99,7 +99,7 @@ func (s *state) GetUptime(
 	if err != nil {
 		return 0, time.Time{}, err
 	}
-	return data.UpDuration, data.lastUpdated, nil
+	return data.UpDuration, data.getLastUpdated(), nil
 }
 
 // SetUptime sets the uptime of the validator with the given nodeID
@@ -113,7 +113,7 @@ func (s *state) SetUptime(
 		return err
 	}
 	data.UpDuration = upDuration
-	data.lastUpdated = lastUpdated
+	data.setLastUpdated(lastUpdated)
 
 	s.updatedData[data.validationID] = updated
 	return nil
@@ -125,14 +125,12 @@ func (s *state) GetStartTime(nodeID ids.NodeID) (time.Time, error) {
 	if err != nil {
 		return time.Time{}, err
 	}
-	return data.startTime, nil
+	return data.getStartTime(), nil
 }
 
-// AddNewValidator adds a new validator to the state
+// AddValidator adds a new validator to the state
 // the new validator is marked as updated and will be written to the disk when WriteState is called
-func (s *state) AddNewValidator(vID ids.ID, nodeID ids.NodeID, startTimestamp uint64, isActive bool) error {
-	startTimeUnix := time.Unix(int64(startTimestamp), 0)
-
+func (s *state) AddValidator(vID ids.ID, nodeID ids.NodeID, startTimestamp uint64, isActive bool) error {
 	data := &validatorData{
 		NodeID:       nodeID,
 		validationID: vID,
@@ -140,10 +138,8 @@ func (s *state) AddNewValidator(vID ids.ID, nodeID ids.NodeID, startTimestamp ui
 		StartTime:    startTimestamp,
 		UpDuration:   0,
 		LastUpdated:  startTimestamp,
-		lastUpdated:  startTimeUnix,
-		startTime:    startTimeUnix,
 	}
-	if err := s.putData(vID, data); err != nil {
+	if err := s.addData(vID, data); err != nil {
 		return err
 	}
 
@@ -182,9 +178,6 @@ func (s *state) WriteState() error {
 		switch updateStatus {
 		case updated:
 			data := s.data[vID]
-			data.LastUpdated = uint64(data.lastUpdated.Unix())
-			// should never change but in case
-			data.StartTime = uint64(data.startTime.Unix())
 
 			dataBytes, err := vdrCodec.Marshal(codecVersion, data)
 			if err != nil {
@@ -255,7 +248,7 @@ func (s *state) RegisterListener(listener StateCallbackListener) {
 
 	// notify the listener of the current state
 	for vID, data := range s.data {
-		listener.OnValidatorAdded(vID, data.NodeID, uint64(data.startTime.Unix()), data.IsActive)
+		listener.OnValidatorAdded(vID, data.NodeID, data.StartTime, data.IsActive)
 	}
 }
 
@@ -266,8 +259,6 @@ func parseValidatorData(bytes []byte, data *validatorData) error {
 			return err
 		}
 	}
-	data.lastUpdated = time.Unix(int64(data.LastUpdated), 0)
-	data.startTime = time.Unix(int64(data.StartTime), 0)
 	return nil
 }
 
@@ -287,20 +278,21 @@ func (s *state) loadFromDisk() error {
 		if err := parseValidatorData(it.Value(), vdr); err != nil {
 			return fmt.Errorf("failed to parse validator data: %w", err)
 		}
-		if err := s.putData(vID, vdr); err != nil {
+		if err := s.addData(vID, vdr); err != nil {
 			return err
 		}
 	}
 	return it.Error()
 }
 
-func (s *state) putData(vID ids.ID, data *validatorData) error {
+// addData adds the data to the state
+// returns an error if the data already exists
+func (s *state) addData(vID ids.ID, data *validatorData) error {
 	if _, exists := s.data[vID]; exists {
-		return fmt.Errorf("validator data already exists for %s", vID)
+		return fmt.Errorf("%w, vID: %s", ErrAlreadyExists, vID)
 	}
-	// should never happen
 	if _, exists := s.index[data.NodeID]; exists {
-		return fmt.Errorf("validator data already exists for %s", data.NodeID)
+		return fmt.Errorf("%w, nodeID: %s", ErrAlreadyExists, data.NodeID)
 	}
 
 	s.data[vID] = data
@@ -320,4 +312,16 @@ func (s *state) getData(nodeID ids.NodeID) (*validatorData, error) {
 		return nil, database.ErrNotFound
 	}
 	return data, nil
+}
+
+func (v *validatorData) setLastUpdated(t time.Time) {
+	v.LastUpdated = uint64(t.Unix())
+}
+
+func (v *validatorData) getLastUpdated() time.Time {
+	return time.Unix(int64(v.LastUpdated), 0)
+}
+
+func (v *validatorData) getStartTime() time.Time {
+	return time.Unix(int64(v.StartTime), 0)
 }

@@ -34,29 +34,29 @@ func TestState(t *testing.T) {
 	require.ErrorIs(err, database.ErrNotFound)
 
 	// add new validator
-	state.AddNewValidator(vID, nodeID, uint64(startTime.Unix()), true)
+	state.AddValidator(vID, nodeID, uint64(startTime.Unix()), true)
 
 	// adding the same validator should fail
-	err = state.AddNewValidator(vID, nodeID, uint64(startTime.Unix()), true)
-	require.Error(err)
+	err = state.AddValidator(vID, ids.GenerateTestNodeID(), uint64(startTime.Unix()), true)
+	require.ErrorIs(err, ErrAlreadyExists)
 	// adding the same nodeID should fail
-	err = state.AddNewValidator(ids.GenerateTestID(), nodeID, uint64(startTime.Unix()), true)
-	require.Error(err)
+	err = state.AddValidator(ids.GenerateTestID(), nodeID, uint64(startTime.Unix()), true)
+	require.ErrorIs(err, ErrAlreadyExists)
 
 	// get uptime
-	upDuration, lastUpdated, err := state.GetUptime(nodeID)
+	uptime, lastUpdated, err := state.GetUptime(nodeID)
 	require.NoError(err)
-	require.Equal(time.Duration(0), upDuration)
+	require.Equal(time.Duration(0), uptime)
 	require.Equal(startTime.Unix(), lastUpdated.Unix())
 
 	// set uptime
-	newUpDuration := 2 * time.Minute
+	newuptime := 2 * time.Minute
 	newLastUpdated := lastUpdated.Add(time.Hour)
-	require.NoError(state.SetUptime(nodeID, newUpDuration, newLastUpdated))
+	require.NoError(state.SetUptime(nodeID, newuptime, newLastUpdated))
 	// get new uptime
-	upDuration, lastUpdated, err = state.GetUptime(nodeID)
+	uptime, lastUpdated, err = state.GetUptime(nodeID)
 	require.NoError(err)
-	require.Equal(newUpDuration, upDuration)
+	require.Equal(newuptime, uptime)
 	require.Equal(newLastUpdated, lastUpdated)
 
 	// set status
@@ -67,7 +67,7 @@ func TestState(t *testing.T) {
 	require.False(status)
 
 	// delete uptime
-	state.DeleteValidator(vID)
+	require.NoError(state.DeleteValidator(vID))
 
 	// get deleted uptime
 	_, _, err = state.GetUptime(nodeID)
@@ -86,16 +86,16 @@ func TestWriteValidator(t *testing.T) {
 	nodeID := ids.GenerateTestNodeID()
 	vID := ids.GenerateTestID()
 	startTime := time.Now()
-	state.AddNewValidator(vID, nodeID, uint64(startTime.Unix()), true)
+	require.NoError(state.AddValidator(vID, nodeID, uint64(startTime.Unix()), true))
 
 	// write state, should reflect to DB
 	require.NoError(state.WriteState())
 	require.True(db.Has(vID[:]))
 
 	// set uptime
-	newUpDuration := 2 * time.Minute
+	newuptime := 2 * time.Minute
 	newLastUpdated := startTime.Add(time.Hour)
-	require.NoError(state.SetUptime(nodeID, newUpDuration, newLastUpdated))
+	require.NoError(state.SetUptime(nodeID, newuptime, newLastUpdated))
 	require.NoError(state.WriteState())
 
 	// refresh state, should load from DB
@@ -103,13 +103,13 @@ func TestWriteValidator(t *testing.T) {
 	require.NoError(err)
 
 	// get uptime
-	upDuration, lastUpdated, err := state.GetUptime(nodeID)
+	uptime, lastUpdated, err := state.GetUptime(nodeID)
 	require.NoError(err)
-	require.Equal(newUpDuration, upDuration)
+	require.Equal(newuptime, uptime)
 	require.Equal(newLastUpdated.Unix(), lastUpdated.Unix())
 
 	// delete
-	state.DeleteValidator(vID)
+	require.NoError(state.DeleteValidator(vID))
 
 	// write state, should reflect to DB
 	require.NoError(state.WriteState())
@@ -130,8 +130,8 @@ func TestParseValidator(t *testing.T) {
 			name:  "nil",
 			bytes: nil,
 			expected: &validatorData{
-				lastUpdated: time.Unix(0, 0),
-				startTime:   time.Unix(0, 0),
+				LastUpdated: 0,
+				StartTime:   0,
 			},
 			expectedErr: nil,
 		},
@@ -139,8 +139,8 @@ func TestParseValidator(t *testing.T) {
 			name:  "empty",
 			bytes: []byte{},
 			expected: &validatorData{
-				lastUpdated: time.Unix(0, 0),
-				startTime:   time.Unix(0, 0),
+				LastUpdated: 0,
+				StartTime:   0,
 			},
 			expectedErr: nil,
 		},
@@ -165,15 +165,13 @@ func TestParseValidator(t *testing.T) {
 			expected: &validatorData{
 				UpDuration:  time.Duration(6000000),
 				LastUpdated: 900000,
-				lastUpdated: time.Unix(900000, 0),
 				NodeID:      testNodeID,
 				StartTime:   6000000,
-				startTime:   time.Unix(6000000, 0),
 				IsActive:    true,
 			},
 		},
 		{
-			name: "invalid codec version",
+			name: "	",
 			bytes: []byte{
 				// codec version
 				0x00, 0x02,
@@ -245,13 +243,13 @@ func TestStateListener(t *testing.T) {
 	state.RegisterListener(listener)
 
 	// add new validator
-	state.AddNewValidator(expectedvID, expectedNodeID, uint64(expectedStartTime.Unix()), true)
+	require.NoError(state.AddValidator(expectedvID, expectedNodeID, uint64(expectedStartTime.Unix()), true))
 
 	// set status
 	require.NoError(state.SetStatus(expectedvID, false))
 
 	// remove validator
-	state.DeleteValidator(expectedvID)
+	require.NoError(state.DeleteValidator(expectedvID))
 }
 
 var _ StateCallbackListener = (*testCallbackListener)(nil)
