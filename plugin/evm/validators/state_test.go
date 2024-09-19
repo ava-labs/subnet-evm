@@ -50,13 +50,13 @@ func TestState(t *testing.T) {
 	require.Equal(startTime.Unix(), lastUpdated.Unix())
 
 	// set uptime
-	newuptime := 2 * time.Minute
+	newUptime := 2 * time.Minute
 	newLastUpdated := lastUpdated.Add(time.Hour)
-	require.NoError(state.SetUptime(nodeID, newuptime, newLastUpdated))
+	require.NoError(state.SetUptime(nodeID, newUptime, newLastUpdated))
 	// get new uptime
 	uptime, lastUpdated, err = state.GetUptime(nodeID)
 	require.NoError(err)
-	require.Equal(newuptime, uptime)
+	require.Equal(newUptime, uptime)
 	require.Equal(newLastUpdated, lastUpdated)
 
 	// set status
@@ -93,9 +93,9 @@ func TestWriteValidator(t *testing.T) {
 	require.True(db.Has(vID[:]))
 
 	// set uptime
-	newuptime := 2 * time.Minute
+	newUptime := 2 * time.Minute
 	newLastUpdated := startTime.Add(time.Hour)
-	require.NoError(state.SetUptime(nodeID, newuptime, newLastUpdated))
+	require.NoError(state.SetUptime(nodeID, newUptime, newLastUpdated))
 	require.NoError(state.WriteState())
 
 	// refresh state, should load from DB
@@ -105,7 +105,7 @@ func TestWriteValidator(t *testing.T) {
 	// get uptime
 	uptime, lastUpdated, err := state.GetUptime(nodeID)
 	require.NoError(err)
-	require.Equal(newuptime, uptime)
+	require.Equal(newUptime, uptime)
 	require.Equal(newLastUpdated.Unix(), lastUpdated.Unix())
 
 	// delete
@@ -171,7 +171,7 @@ func TestParseValidator(t *testing.T) {
 			},
 		},
 		{
-			name: "	",
+			name: "invalid codec version",
 			bytes: []byte{
 				// codec version
 				0x00, 0x02,
