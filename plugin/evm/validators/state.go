@@ -299,7 +299,7 @@ func (s *state) putData(vID ids.ID, data *validatorData) error {
 }
 
 // getData returns the data for the validator with the given nodeID
-// returns ErrNotFound if the data does not exist
+// returns database.ErrNotFound if the data does not exist
 func (s *state) getData(nodeID ids.NodeID) (*validatorData, error) {
 	vID, exists := s.index[nodeID]
 	if !exists {
