@@ -70,8 +70,8 @@ type validatorData struct {
 type state struct {
 	data  map[ids.ID]*validatorData // vID -> validatorData
 	index map[ids.NodeID]ids.ID     // nodeID -> vID
-	// updatedData tracks the updates since las WriteValidator was called
-	updatedData map[ids.ID]dbUpdateStatus // vID -> updated/deleted
+	// updatedData tracks the updates since WriteValidator was last called
+	updatedData map[ids.ID]dbUpdateStatus // vID -> updated status
 	db          database.Database
 
 	listeners []StateCallbackListener
@@ -242,7 +242,7 @@ func (s *state) GetValidatorIDs() set.Set[ids.NodeID] {
 }
 
 // RegisterListener registers a listener to the state
-// the listener will be notified of current validators via OnValidatorAdded
+// OnValidatorAdded is called for all current validators on the provided listener before this function returns
 func (s *state) RegisterListener(listener StateCallbackListener) {
 	s.listeners = append(s.listeners, listener)
 
@@ -301,7 +301,7 @@ func (s *state) addData(vID ids.ID, data *validatorData) error {
 }
 
 // getData returns the data for the validator with the given nodeID
-// returns ErrNotFound if the data does not exist
+// returns database.ErrNotFound if the data does not exist
 func (s *state) getData(nodeID ids.NodeID) (*validatorData, error) {
 	vID, exists := s.index[nodeID]
 	if !exists {
