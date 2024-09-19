@@ -15,6 +15,13 @@ import (
 
 var _ uptime.State = &state{}
 
+type dbUpdateStatus bool
+
+const (
+	updated dbUpdateStatus = true
+	deleted dbUpdateStatus = false
+)
+
 type State interface {
 	uptime.State
 	// AddNewValidator adds a new validator to the state
@@ -64,7 +71,7 @@ type state struct {
 	data  map[ids.ID]*validatorData // vID -> validatorData
 	index map[ids.NodeID]ids.ID     // nodeID -> vID
 	// updatedData tracks the updates since las WriteValidator was called
-	updatedData map[ids.ID]bool // vID -> true(updated)/false(deleted)
+	updatedData map[ids.ID]dbUpdateStatus // vID -> updated/deleted
 	db          database.Database
 
 	listeners []StateCallbackListener
@@ -75,7 +82,7 @@ func NewState(db database.Database) (State, error) {
 	s := &state{
 		index:       make(map[ids.NodeID]ids.ID),
 		data:        make(map[ids.ID]*validatorData),
-		updatedData: make(map[ids.ID]bool),
+		updatedData: make(map[ids.ID]dbUpdateStatus),
 		db:          db,
 	}
 	if err := s.loadFromDisk(); err != nil {
@@ -108,7 +115,7 @@ func (s *state) SetUptime(
 	data.UpDuration = upDuration
 	data.lastUpdated = lastUpdated
 
-	s.updatedData[data.validationID] = true
+	s.updatedData[data.validationID] = updated
 	return nil
 }
 
@@ -140,7 +147,7 @@ func (s *state) AddNewValidator(vID ids.ID, nodeID ids.NodeID, startTimestamp ui
 		return err
 	}
 
-	s.updatedData[vID] = true
+	s.updatedData[vID] = updated
 
 	for _, listener := range s.listeners {
 		listener.OnValidatorAdded(vID, nodeID, startTimestamp, isActive)
@@ -159,7 +166,7 @@ func (s *state) DeleteValidator(vID ids.ID) error {
 	delete(s.index, data.NodeID)
 
 	// mark as deleted for WriteValidator
-	s.updatedData[data.validationID] = false
+	s.updatedData[data.validationID] = deleted
 
 	for _, listener := range s.listeners {
 		listener.OnValidatorRemoved(vID, data.NodeID)
@@ -171,8 +178,9 @@ func (s *state) DeleteValidator(vID ids.ID) error {
 func (s *state) WriteState() error {
 	// TODO: consider adding batch size
 	batch := s.db.NewBatch()
-	for vID, updated := range s.updatedData {
-		if updated {
+	for vID, updateStatus := range s.updatedData {
+		switch updateStatus {
+		case updated:
 			data := s.data[vID]
 			data.LastUpdated = uint64(data.lastUpdated.Unix())
 			// should never change but in case
@@ -185,10 +193,12 @@ func (s *state) WriteState() error {
 			if err := batch.Put(vID[:], dataBytes); err != nil {
 				return err
 			}
-		} else { // deleted
+		case deleted:
 			if err := batch.Delete(vID[:]); err != nil {
 				return err
 			}
+		default:
+			return fmt.Errorf("unknown update status for %s", vID)
 		}
 		// we're done, remove the updated marker
 		delete(s.updatedData, vID)
@@ -203,7 +213,7 @@ func (s *state) SetStatus(vID ids.ID, isActive bool) error {
 		return database.ErrNotFound
 	}
 	data.IsActive = isActive
-	s.updatedData[vID] = true
+	s.updatedData[vID] = updated
 
 	for _, listener := range s.listeners {
 		listener.OnValidatorStatusUpdated(vID, data.NodeID, isActive)
