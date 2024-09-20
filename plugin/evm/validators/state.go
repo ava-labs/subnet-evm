@@ -259,7 +259,7 @@ func (s *state) GetValidator(nodeID ids.NodeID) (*ValidatorOutput, error) {
 	return &ValidatorOutput{
 		ValidationID: data.validationID,
 		NodeID:       data.NodeID,
-		StartTime:    data.startTime,
+		StartTime:    data.getStartTime(),
 		IsActive:     data.IsActive,
 	}, nil
 }

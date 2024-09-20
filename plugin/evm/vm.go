@@ -76,6 +76,7 @@ import (
 	"github.com/ava-labs/avalanchego/snow/consensus/snowman"
 	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
 	avalancheUptime "github.com/ava-labs/avalanchego/snow/uptime"
+	avalancheValidators "github.com/ava-labs/avalanchego/snow/validators"
 	"github.com/ava-labs/avalanchego/utils/perms"
 	"github.com/ava-labs/avalanchego/utils/profiler"
 	"github.com/ava-labs/avalanchego/utils/timer/mockable"
@@ -129,6 +130,7 @@ const (
 	adminEndpoint        = "/admin"
 	ethRPCEndpoint       = "/rpc"
 	ethWSEndpoint        = "/ws"
+	validatorsEndpoint   = "/validators"
 	ethTxGossipNamespace = "eth_tx_gossip"
 )
 
@@ -246,9 +248,7 @@ type VM struct {
 
 	uptimeManager uptime.PausableManager
 
-	// TODO/: remove this after implementing GetCurrentValidatorSet
-	mockedPChainValidatorState MockedValidatorState
-	validatorState             validators.State
+	validatorState validators.State
 }
 
 // Initialize implements the snowman.ChainVM interface
@@ -481,7 +481,6 @@ func (vm *VM) Initialize(
 	vm.Network = peer.NewNetwork(p2pNetwork, appSender, vm.networkCodec, chainCtx.NodeID, vm.config.MaxOutboundActiveRequests)
 	vm.client = peer.NewNetworkClient(vm.Network)
 
-	vm.mockedPChainValidatorState = NewMockValidatorState(vm.ctx.ValidatorState)
 	validatorsDB := prefixdb.New(validatorsDBPrefix, db)
 	vm.validatorState, err = validators.NewState(validatorsDB)
 	if err != nil {
@@ -1067,9 +1066,11 @@ func (vm *VM) CreateHandlers(context.Context) (map[string]http.Handler, error) {
 	}
 
 	if vm.config.ValidatorsAPIEnabled {
-		if err := handler.RegisterName("validators", &ValidatorsAPI{vm}); err != nil {
-			return nil, err
+		validatorsAPI, err := newHandler("validators", &ValidatorsAPI{vm})
+		if err != nil {
+			return nil, fmt.Errorf("failed to register service for admin API due to %w", err)
 		}
+		apis[validatorsEndpoint] = validatorsAPI
 		enabledAPIs = append(enabledAPIs, "validators")
 	}
 
@@ -1278,10 +1279,12 @@ func (vm *VM) performValidatorUpdate(ctx context.Context) error {
 	now := time.Now()
 	log.Debug("performing validator update")
 	// get current validator set
-	currentValidatorSet, err := vm.mockedPChainValidatorState.GetCurrentValidatorSet(ctx, vm.ctx.SubnetID)
+	currentValidatorSet, _, err := vm.ctx.ValidatorState.GetCurrentValidatorSet(ctx, vm.ctx.SubnetID)
 	if err != nil {
 		return fmt.Errorf("failed to get current validator set: %w", err)
 	}
+
+	log.Info("updating validators", "validatorSet", currentValidatorSet)
 
 	// load the current validator set into the validator state
 	if err := loadValidators(vm.validatorState, currentValidatorSet); err != nil {
@@ -1299,7 +1302,7 @@ func (vm *VM) performValidatorUpdate(ctx context.Context) error {
 
 // TODO: cache the last updated height and then load if needed
 // loadValidators loads the [validators] into the validator state [validatorState]
-func loadValidators(validatorState validators.State, validators map[ids.ID]*MockValidatorOutput) error {
+func loadValidators(validatorState validators.State, validators map[ids.ID]*avalancheValidators.GetCurrentValidatorOutput) error {
 	currentValidationIDs := validatorState.GetValidationIDs()
 	// first check if we need to delete any existing validators
 	for vID := range currentValidationIDs {
@@ -1324,7 +1327,7 @@ func loadValidators(validatorState validators.State, validators map[ids.ID]*Mock
 				}
 			}
 		} else {
-			if err := validatorState.AddNewValidator(vID, vdr.NodeID, vdr.StartTime, vdr.IsActive); err != nil {
+			if err := validatorState.AddValidator(vID, vdr.NodeID, vdr.StartTime, vdr.IsActive); err != nil {
 				return err
 			}
 		}

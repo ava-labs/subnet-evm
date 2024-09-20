@@ -255,7 +255,7 @@ func TestStateListener(t *testing.T) {
 
 	// test case: check initial trigger when registering listener
 	// add new validator
-	state.AddNewValidator(expectedvID, expectedNodeID, uint64(expectedStartTime.Unix()), true)
+	state.AddValidator(expectedvID, expectedNodeID, uint64(expectedStartTime.Unix()), true)
 	newListener := &testCallbackListener{
 		t: t,
 		onAdd: func(vID ids.ID, nodeID ids.NodeID, startTime uint64, isActive bool) {

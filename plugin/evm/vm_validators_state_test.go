@@ -32,31 +32,35 @@ func TestValidatorState(t *testing.T) {
 	ctx, dbManager, genesisBytes, issuer, _ := setupGenesis(t, string(genesisJSON))
 	appSender := &enginetest.Sender{T: t}
 	appSender.CantSendAppGossip = true
-	testValidatorIDs := []ids.NodeID{
+	testNodeIDs := []ids.NodeID{
 		ids.GenerateTestNodeID(),
 		ids.GenerateTestNodeID(),
 		ids.GenerateTestNodeID(),
 	}
+	testValidationIDs := []ids.ID{
+		ids.GenerateTestID(),
+		ids.GenerateTestID(),
+		ids.GenerateTestID(),
+	}
 	ctx.ValidatorState = &validatorstest.State{
-		GetCurrentHeightF: func(ctx context.Context) (uint64, error) { return 0, nil },
-		GetValidatorSetF: func(ctx context.Context, height uint64, subnetID ids.ID) (map[ids.NodeID]*avagoValidators.GetValidatorOutput, error) {
-			return map[ids.NodeID]*avagoValidators.GetValidatorOutput{
-				testValidatorIDs[0]: {
-					NodeID:    testValidatorIDs[0],
+		GetCurrentValidatorSetF: func(ctx context.Context, subnetID ids.ID) (map[ids.ID]*avagoValidators.GetCurrentValidatorOutput, uint64, error) {
+			return map[ids.ID]*avagoValidators.GetCurrentValidatorOutput{
+				testValidationIDs[0]: {
+					NodeID:    testNodeIDs[0],
 					PublicKey: nil,
 					Weight:    1,
 				},
-				testValidatorIDs[1]: {
-					NodeID:    testValidatorIDs[1],
+				testValidationIDs[1]: {
+					NodeID:    testNodeIDs[1],
 					PublicKey: nil,
 					Weight:    1,
 				},
-				testValidatorIDs[2]: {
-					NodeID:    testValidatorIDs[2],
+				testValidationIDs[2]: {
+					NodeID:    testNodeIDs[2],
 					PublicKey: nil,
 					Weight:    1,
 				},
-			}, nil
+			}, 0, nil
 		},
 	}
 	appSender.SendAppGossipF = func(context.Context, commonEng.SendConfig, []byte) error { return nil }
@@ -75,7 +79,7 @@ func TestValidatorState(t *testing.T) {
 
 	// Test case 1: state should not be populated until bootstrapped
 	require.Equal(0, vm.validatorState.GetValidationIDs().Len())
-	_, _, err = vm.uptimeManager.CalculateUptime(testValidatorIDs[0])
+	_, _, err = vm.uptimeManager.CalculateUptime(testNodeIDs[0])
 	require.ErrorIs(database.ErrNotFound, err)
 	require.False(vm.uptimeManager.StartedTracking())
 
@@ -83,7 +87,7 @@ func TestValidatorState(t *testing.T) {
 	require.NoError(vm.SetState(context.Background(), snow.Bootstrapping))
 	require.NoError(vm.SetState(context.Background(), snow.NormalOp))
 	require.Equal(3, vm.validatorState.GetValidationIDs().Len())
-	_, _, err = vm.uptimeManager.CalculateUptime(testValidatorIDs[0])
+	_, _, err = vm.uptimeManager.CalculateUptime(testNodeIDs[0])
 	require.NoError(err)
 	require.True(vm.uptimeManager.StartedTracking())
 
@@ -108,40 +112,40 @@ func TestValidatorState(t *testing.T) {
 	)
 	require.NoError(err, "error initializing GenesisVM")
 	require.Equal(3, vm.validatorState.GetValidationIDs().Len())
-	_, _, err = vm.uptimeManager.CalculateUptime(testValidatorIDs[0])
+	_, _, err = vm.uptimeManager.CalculateUptime(testNodeIDs[0])
 	require.NoError(err)
 	require.False(vm.uptimeManager.StartedTracking())
 
 	// Test case 4: new validators should be added to the state
-	newValidatorID := ids.GenerateTestNodeID()
+	newValidationID := ids.GenerateTestID()
+	newNodeID := ids.GenerateTestNodeID()
 	testState := &validatorstest.State{
-		GetCurrentHeightF: func(ctx context.Context) (uint64, error) { return 0, nil },
-		GetValidatorSetF: func(ctx context.Context, height uint64, subnetID ids.ID) (map[ids.NodeID]*avagoValidators.GetValidatorOutput, error) {
-			return map[ids.NodeID]*avagoValidators.GetValidatorOutput{
-				testValidatorIDs[0]: {
-					NodeID:    testValidatorIDs[0],
+		GetCurrentValidatorSetF: func(ctx context.Context, subnetID ids.ID) (map[ids.ID]*avagoValidators.GetCurrentValidatorOutput, uint64, error) {
+			return map[ids.ID]*avagoValidators.GetCurrentValidatorOutput{
+				testValidationIDs[0]: {
+					NodeID:    testNodeIDs[0],
 					PublicKey: nil,
 					Weight:    1,
 				},
-				testValidatorIDs[1]: {
-					NodeID:    testValidatorIDs[1],
+				testValidationIDs[1]: {
+					NodeID:    testNodeIDs[1],
 					PublicKey: nil,
 					Weight:    1,
 				},
-				testValidatorIDs[2]: {
-					NodeID:    testValidatorIDs[2],
+				testValidationIDs[2]: {
+					NodeID:    testNodeIDs[2],
 					PublicKey: nil,
 					Weight:    1,
 				},
-				newValidatorID: {
-					NodeID:    newValidatorID,
+				newValidationID: {
+					NodeID:    newNodeID,
 					PublicKey: nil,
 					Weight:    1,
 				},
-			}, nil
+			}, 0, nil
 		},
 	}
-	vm.mockedPChainValidatorState = NewMockValidatorState(testState)
+	vm.ctx.ValidatorState = testState
 	// set VM as bootstrapped
 	require.NoError(vm.SetState(context.Background(), snow.Bootstrapping))
 	require.NoError(vm.SetState(context.Background(), snow.NormalOp))
@@ -149,9 +153,9 @@ func TestValidatorState(t *testing.T) {
 	// new validator should be added to the state eventually after validatorsLoadFrequency
 	require.EventuallyWithT(func(c *assert.CollectT) {
 		assert.Equal(c, 4, vm.validatorState.GetValidatorIDs().Len())
-		newValidator, err := vm.validatorState.GetValidator(newValidatorID)
+		newValidator, err := vm.validatorState.GetValidator(newNodeID)
 		assert.NoError(c, err)
-		assert.Equal(c, newValidatorID, newValidator.NodeID)
+		assert.Equal(c, newNodeID, newValidator.NodeID)
 	}, validatorsLoadFrequency*2, validatorsLoadFrequency/2)
 }
 
@@ -168,20 +172,20 @@ func TestLoadNewValidators(t *testing.T) {
 	}
 	tests := []struct {
 		name                      string
-		initialValidators         map[ids.ID]*MockValidatorOutput
-		newValidators             map[ids.ID]*MockValidatorOutput
+		initialValidators         map[ids.ID]*avagoValidators.GetCurrentValidatorOutput
+		newValidators             map[ids.ID]*avagoValidators.GetCurrentValidatorOutput
 		registerMockListenerCalls func(*validators.MockStateCallbackListener)
 	}{
 		{
 			name:                      "before empty/after empty",
-			initialValidators:         map[ids.ID]*MockValidatorOutput{},
-			newValidators:             map[ids.ID]*MockValidatorOutput{},
+			initialValidators:         map[ids.ID]*avagoValidators.GetCurrentValidatorOutput{},
+			newValidators:             map[ids.ID]*avagoValidators.GetCurrentValidatorOutput{},
 			registerMockListenerCalls: func(*validators.MockStateCallbackListener) {},
 		},
 		{
 			name:              "before empty/after one",
-			initialValidators: map[ids.ID]*MockValidatorOutput{},
-			newValidators: map[ids.ID]*MockValidatorOutput{
+			initialValidators: map[ids.ID]*avagoValidators.GetCurrentValidatorOutput{},
+			newValidators: map[ids.ID]*avagoValidators.GetCurrentValidatorOutput{
 				testValidationIDs[0]: {
 					NodeID:    testNodeIDs[0],
 					IsActive:  true,
@@ -194,14 +198,14 @@ func TestLoadNewValidators(t *testing.T) {
 		},
 		{
 			name: "before one/after empty",
-			initialValidators: map[ids.ID]*MockValidatorOutput{
+			initialValidators: map[ids.ID]*avagoValidators.GetCurrentValidatorOutput{
 				testValidationIDs[0]: {
 					NodeID:    testNodeIDs[0],
 					IsActive:  true,
 					StartTime: 0,
 				},
 			},
-			newValidators: map[ids.ID]*MockValidatorOutput{},
+			newValidators: map[ids.ID]*avagoValidators.GetCurrentValidatorOutput{},
 			registerMockListenerCalls: func(mock *validators.MockStateCallbackListener) {
 				// initial validator will trigger first
 				mock.EXPECT().OnValidatorAdded(testValidationIDs[0], testNodeIDs[0], uint64(0), true).Times(1)
@@ -211,14 +215,14 @@ func TestLoadNewValidators(t *testing.T) {
 		},
 		{
 			name: "no change",
-			initialValidators: map[ids.ID]*MockValidatorOutput{
+			initialValidators: map[ids.ID]*avagoValidators.GetCurrentValidatorOutput{
 				testValidationIDs[0]: {
 					NodeID:    testNodeIDs[0],
 					IsActive:  true,
 					StartTime: 0,
 				},
 			},
-			newValidators: map[ids.ID]*MockValidatorOutput{
+			newValidators: map[ids.ID]*avagoValidators.GetCurrentValidatorOutput{
 				testValidationIDs[0]: {
 					NodeID:    testNodeIDs[0],
 					IsActive:  true,
@@ -231,14 +235,14 @@ func TestLoadNewValidators(t *testing.T) {
 		},
 		{
 			name: "status change and new one",
-			initialValidators: map[ids.ID]*MockValidatorOutput{
+			initialValidators: map[ids.ID]*avagoValidators.GetCurrentValidatorOutput{
 				testValidationIDs[0]: {
 					NodeID:    testNodeIDs[0],
 					IsActive:  true,
 					StartTime: 0,
 				},
 			},
-			newValidators: map[ids.ID]*MockValidatorOutput{
+			newValidators: map[ids.ID]*avagoValidators.GetCurrentValidatorOutput{
 				testValidationIDs[0]: {
 					NodeID:    testNodeIDs[0],
 					IsActive:  false,
@@ -261,14 +265,14 @@ func TestLoadNewValidators(t *testing.T) {
 		},
 		{
 			name: "renew validation ID",
-			initialValidators: map[ids.ID]*MockValidatorOutput{
+			initialValidators: map[ids.ID]*avagoValidators.GetCurrentValidatorOutput{
 				testValidationIDs[0]: {
 					NodeID:    testNodeIDs[0],
 					IsActive:  true,
 					StartTime: 0,
 				},
 			},
-			newValidators: map[ids.ID]*MockValidatorOutput{
+			newValidators: map[ids.ID]*avagoValidators.GetCurrentValidatorOutput{
 				testValidationIDs[1]: {
 					NodeID:    testNodeIDs[0],
 					IsActive:  true,
@@ -286,14 +290,14 @@ func TestLoadNewValidators(t *testing.T) {
 		},
 		{
 			name: "renew node ID",
-			initialValidators: map[ids.ID]*MockValidatorOutput{
+			initialValidators: map[ids.ID]*avagoValidators.GetCurrentValidatorOutput{
 				testValidationIDs[0]: {
 					NodeID:    testNodeIDs[0],
 					IsActive:  true,
 					StartTime: 0,
 				},
 			},
-			newValidators: map[ids.ID]*MockValidatorOutput{
+			newValidators: map[ids.ID]*avagoValidators.GetCurrentValidatorOutput{
 				testValidationIDs[0]: {
 					NodeID:    testNodeIDs[1],
 					IsActive:  true,
@@ -317,7 +321,7 @@ func TestLoadNewValidators(t *testing.T) {
 
 			// set initial validators
 			for vID, validator := range test.initialValidators {
-				err := validatorState.AddNewValidator(vID, validator.NodeID, validator.StartTime, validator.IsActive)
+				err := validatorState.AddValidator(vID, validator.NodeID, validator.StartTime, validator.IsActive)
 				require.NoError(err)
 			}
 			// enable mock listener
