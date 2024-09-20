@@ -15,7 +15,7 @@ export AVALANCHEGO_CLONE_PATH=${AVALANCHEGO_CLONE_PATH:-${SUBNET_EVM_PATH}/avala
 function clone_avalanchego {
   local avalanche_version="$1"
 
-  echo "checking out target avalanchego version ${avalanche_version} to ${AVALANCHE_CLONE_PATH}"
+  echo "checking out target avalanchego version ${avalanche_version} to ${AVALANCHEGO_CLONE_PATH}"
   if [[ -d "${AVALANCHEGO_CLONE_PATH}" ]]; then
     echo "updating existing clone"
     cd "${AVALANCHEGO_CLONE_PATH}"
@@ -32,6 +32,7 @@ function clone_avalanchego {
 
 # Derives an image tag from the current state of the avalanchego clone
 function avalanchego_image_tag_from_clone {
-  local commit_hash="$(git --git-dir="${AVALANCHEGO_CLONE_PATH}/.git" rev-parse HEAD)"
+  local commit_hash
+  commit_hash="$(git --git-dir="${AVALANCHEGO_CLONE_PATH}/.git" rev-parse HEAD)"
   echo "${commit_hash::8}"
 }
