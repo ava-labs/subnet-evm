@@ -60,6 +60,10 @@ const (
 	// - state sync time: ~6 hrs.
 	defaultStateSyncMinBlocks   = 300_000
 	defaultStateSyncRequestSize = 1024 // the number of key/values to ask peers for per request
+	defaultValidatorsAPIEnabled = true
+
+	// TODO: decide for a sane value for this
+	defaultLoadValidatorsFrequency = 5 * time.Minute
 )
 
 var (
@@ -87,10 +91,11 @@ type Config struct {
 	AirdropFile string `json:"airdrop"`
 
 	// Subnet EVM APIs
-	SnowmanAPIEnabled bool   `json:"snowman-api-enabled"`
-	AdminAPIEnabled   bool   `json:"admin-api-enabled"`
-	AdminAPIDir       string `json:"admin-api-dir"`
-	WarpAPIEnabled    bool   `json:"warp-api-enabled"`
+	SnowmanAPIEnabled    bool   `json:"snowman-api-enabled"`
+	ValidatorsAPIEnabled bool   `json:"validators-api-enabled"`
+	AdminAPIEnabled      bool   `json:"admin-api-enabled"`
+	AdminAPIDir          string `json:"admin-api-dir"`
+	WarpAPIEnabled       bool   `json:"warp-api-enabled"`
 
 	// EnabledEthAPIs is a list of Ethereum services that should be enabled
 	// If none is specified, then we use the default list [defaultEnabledAPIs]
@@ -225,6 +230,9 @@ type Config struct {
 
 	// RPC settings
 	HttpBodyLimit uint64 `json:"http-body-limit"`
+
+	// LoadValidatorsFrequency is the frequency at which the node should load the validators
+	LoadValidatorsFrequency time.Duration `json:"load-validators-frequency"`
 }
 
 // EthAPIs returns an array of strings representing the Eth APIs that should be enabled
@@ -284,6 +292,8 @@ func (c *Config) SetDefaults() {
 	c.StateSyncRequestSize = defaultStateSyncRequestSize
 	c.AllowUnprotectedTxHashes = defaultAllowUnprotectedTxHashes
 	c.AcceptedCacheSize = defaultAcceptedCacheSize
+	c.ValidatorsAPIEnabled = defaultValidatorsAPIEnabled
+	c.LoadValidatorsFrequency = defaultLoadValidatorsFrequency
 }
 
 func (d *Duration) UnmarshalJSON(data []byte) (err error) {

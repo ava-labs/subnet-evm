@@ -33,9 +33,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var (
-	DefaultEtnaTime = uint64(upgrade.GetConfig(testNetworkID).EtnaTime.Unix())
-)
+var DefaultEtnaTime = uint64(upgrade.GetConfig(testNetworkID).EtnaTime.Unix())
 
 func TestVMUpgradeBytesPrecompile(t *testing.T) {
 	// Make a TxAllowListConfig upgrade at genesis and convert it to JSON to apply as upgradeBytes.
@@ -113,6 +111,9 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 		}
 	}()
 	// Set the VM's state to NormalOp to initialize the tx pool.
+	if err := vm.SetState(context.Background(), snow.Bootstrapping); err != nil {
+		t.Fatal(err)
+	}
 	if err := vm.SetState(context.Background(), snow.NormalOp); err != nil {
 		t.Fatal(err)
 	}
