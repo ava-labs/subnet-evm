@@ -526,6 +526,10 @@ func (c *ChainConfig) checkCompatible(newcfg *ChainConfig, headNumber *big.Int, 
 		return err
 	}
 
+	return nil
+}
+
+func (c *ChainConfig) CheckUpgradesCompatible(newcfg *UpgradeConfig, headTimestamp uint64) *ConfigCompatError {
 	// Check that the precompiles on the new config are compatible with the existing precompile config.
 	if err := c.CheckPrecompilesCompatible(newcfg.PrecompileUpgrades, headTimestamp); err != nil {
 		return err

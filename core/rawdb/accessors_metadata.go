@@ -75,12 +75,17 @@ func ReadChainConfig(db ethdb.KeyValueReader, hash common.Hash) *params.ChainCon
 		return nil
 	}
 
+	return &config
+}
+
+func ReadUpgradeConfig(db ethdb.KeyValueReader, hash common.Hash) *params.UpgradeConfig {
+	var config params.UpgradeConfig
 	// Read the upgrade config for this chain config
-	data, _ = db.Get(upgradeConfigKey(hash))
+	data, _ := db.Get(upgradeConfigKey(hash))
 	if len(data) == 0 {
 		return &config // return early if no upgrade config is found
 	}
-	if err := json.Unmarshal(data, &config.UpgradeConfig); err != nil {
+	if err := json.Unmarshal(data, &config); err != nil {
 		log.Error("Invalid upgrade config JSON", "err", err)
 		return nil
 	}
@@ -100,9 +105,11 @@ func WriteChainConfig(db ethdb.KeyValueWriter, hash common.Hash, cfg *params.Cha
 	if err := db.Put(configKey(hash), data); err != nil {
 		log.Crit("Failed to store chain config", "err", err)
 	}
+}
 
+func WriteUpgradeConfig(db ethdb.KeyValueWriter, hash common.Hash, cfg params.UpgradeConfig) {
 	// Write the upgrade config for this chain config
-	data, err = json.Marshal(cfg.UpgradeConfig)
+	data, err := json.Marshal(cfg)
 	if err != nil {
 		log.Crit("Failed to JSON encode upgrade config", "err", err)
 	}

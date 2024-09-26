@@ -320,16 +320,18 @@ func TestGenesisWriteUpgradesRegression(t *testing.T) {
 	trieDB := triedb.NewDatabase(db, triedb.HashDefaults)
 	genesisBlock := genesis.MustCommit(db, trieDB)
 
-	_, _, err := SetupGenesisBlock(db, trieDB, genesis, genesisBlock.Hash(), false)
+	chain, err := NewBlockChain(db, DefaultCacheConfig, genesis, dummy.NewFullFaker(), vm.Config{}, genesisBlock.Hash(), false)
 	require.NoError(err)
+	chain.Stop()
 
 	genesis.Config.UpgradeConfig.PrecompileUpgrades = []params.PrecompileUpgrade{
 		{
 			Config: deployerallowlist.NewConfig(utils.NewUint64(51), nil, nil, nil),
 		},
 	}
-	_, _, err = SetupGenesisBlock(db, trieDB, genesis, genesisBlock.Hash(), false)
+	chain, err = NewBlockChain(db, DefaultCacheConfig, genesis, dummy.NewFullFaker(), vm.Config{}, genesisBlock.Hash(), false)
 	require.NoError(err)
+	chain.Stop()
 
 	timestamp := uint64(100)
 	lastAcceptedBlock := types.NewBlock(&types.Header{
@@ -343,7 +345,7 @@ func TestGenesisWriteUpgradesRegression(t *testing.T) {
 
 	// Attempt restart after the chain has advanced past the activation of the precompile upgrade.
 	// This tests a regression where the UpgradeConfig would not be written to disk correctly.
-	_, _, err = SetupGenesisBlock(db, trieDB, genesis, lastAcceptedBlock.Hash(), false)
+	err = CheckUpgradesCompatible(db, genesis.Config, lastAcceptedBlock.Hash())
 	require.NoError(err)
 }
 
