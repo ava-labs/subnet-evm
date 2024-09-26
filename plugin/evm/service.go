@@ -21,10 +21,10 @@ type GetCurrentValidatorsRequest struct {
 }
 
 type GetCurrentValidatorsResponse struct {
-	Validators []currentValidatorResponse `json:"validators"`
+	Validators []CurrentValidator `json:"validators"`
 }
 
-type currentValidatorResponse struct {
+type CurrentValidator struct {
 	ValidationID ids.ID        `json:"validationID"`
 	NodeID       ids.NodeID    `json:"nodeID"`
 	StartTime    time.Time     `json:"startTime"`
@@ -43,7 +43,7 @@ func (api *ValidatorsAPI) GetCurrentValidators(_ *http.Request, args *GetCurrent
 		nodeIDs = api.vm.validatorState.GetValidatorIDs()
 	}
 
-	reply.Validators = make([]currentValidatorResponse, 0, nodeIDs.Len())
+	reply.Validators = make([]CurrentValidator, 0, nodeIDs.Len())
 
 	for _, nodeID := range nodeIDs.List() {
 		validator, err := api.vm.validatorState.GetValidator(nodeID)
@@ -61,7 +61,7 @@ func (api *ValidatorsAPI) GetCurrentValidators(_ *http.Request, args *GetCurrent
 			return err
 		}
 
-		reply.Validators = append(reply.Validators, currentValidatorResponse{
+		reply.Validators = append(reply.Validators, CurrentValidator{
 			ValidationID: validator.ValidationID,
 			NodeID:       nodeID,
 			StartTime:    validator.StartTime,
