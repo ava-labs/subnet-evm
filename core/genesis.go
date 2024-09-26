@@ -196,14 +196,10 @@ func SetupGenesisBlock(
 	if lastBlock == nil {
 		return newcfg, common.Hash{}, errors.New("missing last accepted block")
 	}
-	if skipChainConfigCheckCompatible {
-		log.Info("skipping verifying activated network upgrades on chain config")
-	} else {
-		head := lastBlock.Header()
-		compatErr := storedcfg.CheckCompatible(newcfg, head.Number.Uint64(), head.Time)
-		if compatErr != nil && ((head.Number.Uint64() != 0 && compatErr.RewindToBlock != 0) || (head.Time != 0 && compatErr.RewindToTime != 0)) {
-			return newcfg, stored, compatErr
-		}
+	head := lastBlock.Header()
+	compatErr := storedcfg.CheckCompatible(newcfg, head.Number.Uint64(), head.Time)
+	if compatErr != nil && ((head.Number.Uint64() != 0 && compatErr.RewindToBlock != 0) || (head.Time != 0 && compatErr.RewindToTime != 0)) {
+		return newcfg, stored, compatErr
 	}
 	// Don't overwrite if the old is identical to the new
 	if newData, _ := json.Marshal(newcfg); !bytes.Equal(storedData, newData) {

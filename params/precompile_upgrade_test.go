@@ -279,7 +279,11 @@ func (tt *upgradeCompatibilityTest) run(t *testing.T, chainConfig ChainConfig) {
 		newCfg := chainConfig
 		newCfg.UpgradeConfig = *upgrade
 
-		err := chainConfig.checkCompatible(&newCfg, nil, tt.startTimestamps[i])
+		err := chainConfig.CheckCompatible(&newCfg, 0, tt.startTimestamps[i])
+		if err == nil {
+			// if the chain configs were compatible, check the upgrade config
+			err = chainConfig.CheckUpgradesCompatible(&newCfg.UpgradeConfig, tt.startTimestamps[i])
+		}
 
 		// if this is not the final upgradeBytes, continue applying
 		// the next upgradeBytes. (only check the result on the last apply)
