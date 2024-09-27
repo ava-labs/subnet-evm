@@ -51,8 +51,8 @@ import (
 	// We must import this package (not referenced elsewhere) so that the native "callTracer"
 	// is added to a map of client-accessible tracers. In geth, this is done
 	// inside of cmd/geth.
-	_ "github.com/ava-labs/subnet-evm/eth/tracers/js"
-	_ "github.com/ava-labs/subnet-evm/eth/tracers/native"
+	_ "github.com/ethereum/go-ethereum/eth/tracers/js"
+	_ "github.com/ethereum/go-ethereum/eth/tracers/native"
 
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	// Force-load precompiles to trigger registration
@@ -333,11 +333,11 @@ func (vm *VM) Initialize(
 	}
 
 	// Set the Avalanche Context on the ChainConfig
-	g.Config.AvalancheContext = params.AvalancheContext{
+	params.GetExtra(g.Config).AvalancheContext = params.AvalancheContext{
 		SnowCtx: chainCtx,
 	}
 
-	g.Config.SetNetworkUpgradeDefaults()
+	params.SetNetworkUpgradeDefaults(g.Config)
 
 	// Load airdrop file if provided
 	if vm.config.AirdropFile != "" {
@@ -349,9 +349,9 @@ func (vm *VM) Initialize(
 
 	vm.syntacticBlockValidator = NewBlockValidator()
 
-	if g.Config.FeeConfig == commontype.EmptyFeeConfig {
+	if params.GetExtra(g.Config).FeeConfig == commontype.EmptyFeeConfig {
 		log.Info("No fee config given in genesis, setting default fee config", "DefaultFeeConfig", params.DefaultFeeConfig)
-		g.Config.FeeConfig = params.DefaultFeeConfig
+		params.GetExtra(g.Config).FeeConfig = params.DefaultFeeConfig
 	}
 
 	// Apply upgradeBytes (if any) by unmarshalling them into [chainConfig.UpgradeConfig].
@@ -362,21 +362,21 @@ func (vm *VM) Initialize(
 		if err := json.Unmarshal(upgradeBytes, &upgradeConfig); err != nil {
 			return fmt.Errorf("failed to parse upgrade bytes: %w", err)
 		}
-		g.Config.UpgradeConfig = upgradeConfig
+		params.GetExtra(g.Config).UpgradeConfig = upgradeConfig
 	}
 
-	if g.Config.UpgradeConfig.NetworkUpgradeOverrides != nil {
-		overrides := g.Config.UpgradeConfig.NetworkUpgradeOverrides
+	if params.GetExtra(g.Config).UpgradeConfig.NetworkUpgradeOverrides != nil {
+		overrides := params.GetExtra(g.Config).UpgradeConfig.NetworkUpgradeOverrides
 		marshaled, err := json.Marshal(overrides)
 		if err != nil {
 			log.Warn("Failed to marshal network upgrade overrides", "error", err, "overrides", overrides)
 		} else {
 			log.Info("Applying network upgrade overrides", "overrides", string(marshaled))
 		}
-		g.Config.Override(overrides)
+		params.GetExtra(g.Config).Override(overrides)
 	}
 
-	g.Config.SetEthUpgrades(g.Config.NetworkUpgrades)
+	params.SetEthUpgrades(g.Config, params.GetExtra(g.Config).NetworkUpgrades)
 
 	if err := g.Verify(); err != nil {
 		return fmt.Errorf("failed to verify genesis: %w", err)
@@ -556,7 +556,7 @@ func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.
 	}
 	vm.eth.SetEtherbase(ethConfig.Miner.Etherbase)
 	vm.txPool = vm.eth.TxPool()
-	vm.txPool.SetMinFee(vm.chainConfig.FeeConfig.MinBaseFee)
+	vm.txPool.SetMinFee(params.GetExtra(vm.chainConfig).FeeConfig.MinBaseFee)
 	vm.txPool.SetGasTip(big.NewInt(0))
 	vm.blockChain = vm.eth.BlockChain()
 	vm.miner = vm.eth.Miner()
@@ -1078,14 +1078,14 @@ func (vm *VM) GetCurrentNonce(address common.Address) (uint64, error) {
 // currentRules returns the chain rules for the current block.
 func (vm *VM) currentRules() params.Rules {
 	header := vm.eth.APIBackend.CurrentHeader()
-	return vm.chainConfig.Rules(header.Number, header.Time)
+	return vm.chainConfig.Rules(header.Number, params.IsMergeTODO, header.Time)
 }
 
 // requirePrimaryNetworkSigners returns true if warp messages from the primary
 // network must be signed by the primary network validators.
 // This is necessary when the subnet is not validating the primary network.
 func (vm *VM) requirePrimaryNetworkSigners() bool {
-	switch c := vm.currentRules().ActivePrecompiles[warpcontract.ContractAddress].(type) {
+	switch c := params.GetRulesExtra(vm.currentRules()).ActivePrecompiles[warpcontract.ContractAddress].(type) {
 	case *warpcontract.Config:
 		return c.RequirePrimaryNetworkSigners
 	default: // includes nil due to non-presence

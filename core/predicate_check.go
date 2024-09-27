@@ -32,7 +32,7 @@ func CheckPredicates(rules params.Rules, predicateContext *precompileconfig.Pred
 
 	predicateResults := make(map[common.Address][]byte)
 	// Short circuit early if there are no precompile predicates to verify
-	if !rules.PredicatersExist() {
+	if !params.GetRulesExtra(rules).PredicatersExist() {
 		return predicateResults, nil
 	}
 
@@ -52,6 +52,7 @@ func CheckPredicates(rules params.Rules, predicateContext *precompileconfig.Pred
 	for address, predicates := range predicateArguments {
 		// Since [address] is only added to [predicateArguments] when there's a valid predicate in the ruleset
 		// there's no need to check if the predicate exists here.
+		rules := params.GetRulesExtra(rules)
 		predicaterContract := rules.Predicaters[address]
 		bitset := set.NewBits()
 		for i, predicate := range predicates {

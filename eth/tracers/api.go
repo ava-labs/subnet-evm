@@ -41,13 +41,14 @@ import (
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/core/vm"
-	"github.com/ava-labs/subnet-evm/eth/tracers/logger"
 	"github.com/ava-labs/subnet-evm/internal/ethapi"
 	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/predicate"
 	"github.com/ava-labs/subnet-evm/rpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/core/vm"
+	"github.com/ethereum/go-ethereum/eth/tracers/logger"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -959,13 +960,23 @@ func (api *API) TraceCall(ctx context.Context, args ethapi.TransactionArgs, bloc
 	defer release()
 
 	vmctx := core.NewEVMBlockContext(block.Header(), api.chainContext(ctx), nil)
+
+	var predicateResults params.PredicateResults
+	predicateBytes, ok := predicate.GetPredicateResultBytes(vmctx.Header.Extra)
+	if ok {
+		predicateResults, err = predicate.ParseResults(predicateBytes)
+		if err != nil {
+			return nil, err
+		}
+	}
 	// Apply the customization rules if required.
 	if config != nil {
 		originalTime := block.Time()
 		config.BlockOverrides.Apply(&vmctx)
 		// Apply all relevant upgrades from [originalTime] to the block time set in the override.
 		// Should be applied before the state overrides.
-		err = core.ApplyUpgrades(api.backend.ChainConfig(), &originalTime, &vmctx, statedb)
+		blockContext := params.NewBlockContext(vmctx.BlockNumber, vmctx.Time, predicateResults)
+		err = core.ApplyUpgrades(api.backend.ChainConfig(), &originalTime, blockContext, statedb)
 		if err != nil {
 			return nil, err
 		}
@@ -1056,19 +1067,19 @@ func APIs(backend Backend) []rpc.API {
 // along with a boolean that indicates whether the copy is canonical (equivalent to the original).
 func overrideConfig(original *params.ChainConfig, override *params.ChainConfig) (*params.ChainConfig, bool) {
 	copy := new(params.ChainConfig)
-	*copy = *original
+	*copy = params.Copy(original)
 	canon := true
 
-	if timestamp := override.SubnetEVMTimestamp; timestamp != nil {
-		copy.SubnetEVMTimestamp = timestamp
+	if timestamp := params.GetExtra(override).SubnetEVMTimestamp; timestamp != nil {
+		params.GetExtra(copy).SubnetEVMTimestamp = timestamp
 		canon = false
 	}
-	if timestamp := override.DurangoTimestamp; timestamp != nil {
-		copy.DurangoTimestamp = timestamp
+	if timestamp := params.GetExtra(override).DurangoTimestamp; timestamp != nil {
+		params.GetExtra(copy).DurangoTimestamp = timestamp
 		canon = false
 	}
-	if timestamp := override.EtnaTimestamp; timestamp != nil {
-		copy.EtnaTimestamp = timestamp
+	if timestamp := params.GetExtra(override).EtnaTimestamp; timestamp != nil {
+		params.GetExtra(copy).EtnaTimestamp = timestamp
 		canon = false
 	}
 	if timestamp := override.CancunTime; timestamp != nil {

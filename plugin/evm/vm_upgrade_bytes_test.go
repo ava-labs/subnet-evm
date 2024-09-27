@@ -211,11 +211,11 @@ func TestNetworkUpgradesOverriden(t *testing.T) {
 	}()
 
 	// verify upgrade overrides
-	require.False(t, vm.chainConfig.IsSubnetEVM(0))
-	require.True(t, vm.chainConfig.IsSubnetEVM(2))
-	require.False(t, vm.chainConfig.IsDurango(0))
-	require.False(t, vm.chainConfig.IsDurango(uint64(upgrade.InitiallyActiveTime.Unix())))
-	require.True(t, vm.chainConfig.IsDurango(1607144402))
+	require.False(t, params.GetExtra(vm.chainConfig).IsSubnetEVM(0))
+	require.True(t, params.GetExtra(vm.chainConfig).IsSubnetEVM(2))
+	require.False(t, params.GetExtra(vm.chainConfig).IsDurango(0))
+	require.False(t, params.GetExtra(vm.chainConfig).IsDurango(uint64(upgrade.InitiallyActiveTime.Unix())))
+	require.True(t, params.GetExtra(vm.chainConfig).IsDurango(1607144402))
 }
 
 func mustMarshal(t *testing.T, v interface{}) string {

@@ -1,4 +1,4 @@
-// (c) 2019-2020, Ava Labs, Inc.
+// (c) 2024, Ava Labs, Inc.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -24,30 +24,18 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-package vm
+package tests
 
 import (
-	"math/big"
-
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/ava-labs/subnet-evm/core"
+	"github.com/ava-labs/subnet-evm/params"
 )
 
-// EVMLogger is used to collect execution traces from an EVM transaction
-// execution. CaptureState is called for each step of the VM with the
-// current VM state.
-// Note that reference types are actual VM data structures; make copies
-// if you need to retain them beyond the current call.
-type EVMLogger interface {
-	// Transaction level
-	CaptureTxStart(gasLimit uint64)
-	CaptureTxEnd(restGas uint64)
-	// Top call frame
-	CaptureStart(env *EVM, from common.Address, to common.Address, create bool, input []byte, gas uint64, value *big.Int)
-	CaptureEnd(output []byte, gasUsed uint64, err error)
-	// Rest of call frames
-	CaptureEnter(typ OpCode, from common.Address, to common.Address, input []byte, gas uint64, value *big.Int)
-	CaptureExit(output []byte, gasUsed uint64, err error)
-	// Opcode level
-	CaptureState(pc uint64, op OpCode, gas, cost uint64, scope *ScopeContext, rData []byte, depth int, err error)
-	CaptureFault(pc uint64, op OpCode, gas, cost uint64, scope *ScopeContext, depth int, err error)
+type withChainConfig struct {
+	core.ChainContext
+	config *params.ChainConfig
+}
+
+func (w withChainConfig) Config() *params.ChainConfig {
+	return w.config
 }

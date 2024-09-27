@@ -29,7 +29,7 @@ find . -name '*.go' -exec sed -i '' -e "${sed_command}" {} \;
 git add -u .
 make_commit "${commit_msg_remove_header}"
 
-upstream_tag=$(grep -o 'github.com/ethereum/go-ethereum v.*' go.mod | cut -f2 -d' ')
+upstream_tag=${UPSTREAM_TAG:-$(grep -o 'github.com/ethereum/go-ethereum v.*' go.mod | cut -f2 -d' ')}
 upstream_dirs=$(sed -e 's/"github.com\/ethereum\/go-ethereum\/\(.*\)"/\1/' "${script_dir}"/geth-allowed-packages.txt  | xargs)
 upstream_dirs_array=()
 IFS=" " read -r -a upstream_dirs_array <<< "$upstream_dirs"
