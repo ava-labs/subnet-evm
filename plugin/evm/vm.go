@@ -5,6 +5,7 @@ package evm
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -20,6 +21,7 @@ import (
 	"github.com/ava-labs/avalanchego/network/p2p/gossip"
 	"github.com/prometheus/client_golang/prometheus"
 
+	avalancheNode "github.com/ava-labs/avalanchego/node"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
 	"github.com/ava-labs/subnet-evm/constants"
@@ -35,6 +37,7 @@ import (
 	"github.com/ava-labs/subnet-evm/node"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/peer"
+	"github.com/ava-labs/subnet-evm/plugin/evm/database"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
 	"github.com/ava-labs/subnet-evm/triedb"
 	"github.com/ava-labs/subnet-evm/triedb/hashdb"
@@ -66,7 +69,6 @@ import (
 	avalancheRPC "github.com/gorilla/rpc/v2"
 
 	"github.com/ava-labs/avalanchego/codec"
-	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/database/prefixdb"
 	"github.com/ava-labs/avalanchego/database/versiondb"
 	"github.com/ava-labs/avalanchego/ids"
@@ -81,6 +83,7 @@ import (
 
 	commonEng "github.com/ava-labs/avalanchego/snow/engine/common"
 
+	avalanchedatabase "github.com/ava-labs/avalanchego/database"
 	avalancheUtils "github.com/ava-labs/avalanchego/utils"
 	avalancheJSON "github.com/ava-labs/avalanchego/utils/json"
 )
@@ -193,18 +196,17 @@ type VM struct {
 	db *versiondb.Database
 
 	// metadataDB is used to store one off keys.
-	metadataDB database.Database
+	metadataDB avalanchedatabase.Database
 
 	// [chaindb] is the database supplied to the Ethereum backend
 	chaindb ethdb.Database
 
 	// [acceptedBlockDB] is the database to store the last accepted
 	// block.
-	acceptedBlockDB database.Database
-
+	acceptedBlockDB avalanchedatabase.Database
 	// [warpDB] is used to store warp message signatures
 	// set to a prefixDB with the prefix [warpPrefix]
-	warpDB database.Database
+	warpDB avalanchedatabase.Database
 
 	toEngine chan<- commonEng.Message
 
@@ -251,7 +253,7 @@ type VM struct {
 func (vm *VM) Initialize(
 	_ context.Context,
 	chainCtx *snow.Context,
-	db database.Database,
+	db avalanchedatabase.Database,
 	genesisBytes []byte,
 	upgradeBytes []byte,
 	configBytes []byte,
@@ -303,16 +305,15 @@ func (vm *VM) Initialize(
 
 	vm.toEngine = toEngine
 	vm.shutdownChan = make(chan struct{}, 1)
-	// Use NewNested rather than New so that the structure of the database
-	// remains the same regardless of the provided baseDB type.
-	vm.chaindb = rawdb.NewDatabase(Database{prefixdb.NewNested(ethDBPrefix, db)})
-	vm.db = versiondb.New(db)
-	vm.acceptedBlockDB = prefixdb.New(acceptedPrefix, vm.db)
-	vm.metadataDB = prefixdb.New(metadataPrefix, vm.db)
-	// Note warpDB is not part of versiondb because it is not necessary
-	// that warp signatures are committed to the database atomically with
-	// the last accepted block.
-	vm.warpDB = prefixdb.New(warpPrefix, db)
+
+	if err := vm.initializeMetrics(); err != nil {
+		return fmt.Errorf("failed to initialize metrics: %w", err)
+	}
+
+	// Initialize the database
+	if err := vm.initializeDBs(db); err != nil {
+		return fmt.Errorf("failed to initialize databases: %w", err)
+	}
 
 	if vm.config.InspectDatabase {
 		start := time.Now()
@@ -462,10 +463,6 @@ func (vm *VM) Initialize(
 		return err
 	}
 	log.Info(fmt.Sprintf("lastAccepted = %s", lastAcceptedHash))
-
-	if err := vm.initializeMetrics(); err != nil {
-		return err
-	}
 
 	// initialize peer network
 	if vm.p2pSender == nil {
@@ -797,8 +794,8 @@ func (vm *VM) initBlockBuilding() error {
 // setAppRequestHandlers sets the request handlers for the VM to serve state sync
 // requests.
 func (vm *VM) setAppRequestHandlers() {
-	// Create separate EVM TrieDB (read only) for serving leafs requests.
-	// We create a separate TrieDB here, so that it has a separate cache from the one
+	// Create standalone EVM TrieDB (read only) for serving leafs requests.
+	// We create a standalone TrieDB here, so that it has a standalone cache from the one
 	// used by the node when processing blocks.
 	evmTrieDB := triedb.NewDatabase(
 		vm.chaindb,
@@ -910,10 +907,10 @@ func (vm *VM) ParseEthBlock(b []byte) (*types.Block, error) {
 // by ChainState.
 func (vm *VM) getBlock(_ context.Context, id ids.ID) (snowman.Block, error) {
 	ethBlock := vm.blockChain.GetBlockByHash(common.Hash(id))
-	// If [ethBlock] is nil, return [database.ErrNotFound] here
+	// If [ethBlock] is nil, return [avalanchedatabase.ErrNotFound] here
 	// so that the miss is considered cacheable.
 	if ethBlock == nil {
-		return nil, database.ErrNotFound
+		return nil, avalanchedatabase.ErrNotFound
 	}
 	// Note: the status of block is set by ChainState
 	return vm.newBlock(ethBlock), nil
@@ -935,7 +932,7 @@ func (vm *VM) GetAcceptedBlock(ctx context.Context, blkID ids.ID) (snowman.Block
 
 	if acceptedBlkID != blkID {
 		// The provided block is not accepted.
-		return nil, database.ErrNotFound
+		return nil, avalanchedatabase.ErrNotFound
 	}
 	return blk, nil
 }
@@ -961,17 +958,17 @@ func (vm *VM) VerifyHeightIndex(context.Context) error {
 
 // GetBlockIDAtHeight returns the canonical block at [height].
 // Note: the engine assumes that if a block is not found at [height], then
-// [database.ErrNotFound] will be returned. This indicates that the VM has state
+// [avalanchedatabase.ErrNotFound] will be returned. This indicates that the VM has state
 // synced and does not have all historical blocks available.
 func (vm *VM) GetBlockIDAtHeight(_ context.Context, height uint64) (ids.ID, error) {
 	lastAcceptedBlock := vm.LastAcceptedBlock()
 	if lastAcceptedBlock.Height() < height {
-		return ids.ID{}, database.ErrNotFound
+		return ids.ID{}, avalanchedatabase.ErrNotFound
 	}
 
 	hash := vm.blockChain.GetCanonicalHash(height)
 	if hash == (common.Hash{}) {
-		return ids.ID{}, database.ErrNotFound
+		return ids.ID{}, avalanchedatabase.ErrNotFound
 	}
 	return ids.ID(hash), nil
 }
@@ -1128,7 +1125,7 @@ func (vm *VM) readLastAccepted() (common.Hash, uint64, error) {
 	// initialize state with the genesis block.
 	lastAcceptedBytes, lastAcceptedErr := vm.acceptedBlockDB.Get(lastAcceptedKey)
 	switch {
-	case lastAcceptedErr == database.ErrNotFound:
+	case lastAcceptedErr == avalanchedatabase.ErrNotFound:
 		// If there is nothing in the database, return the genesis block hash and height
 		return vm.genesisHash, 0, nil
 	case lastAcceptedErr != nil:
@@ -1179,5 +1176,97 @@ func attachEthService(handler *rpc.Server, apis []rpc.API, names []string) error
 		}
 	}
 
+	return nil
+}
+
+// useStandaloneDatabase returns true if the chain can and should use a standalone database
+// other than given by [db] in Initialize()
+func (vm *VM) useStandaloneDatabase(acceptedDB avalanchedatabase.Database) (bool, error) {
+	// no config provided, use default
+	standaloneDBFlag := vm.config.UseStandaloneDatabase
+	if standaloneDBFlag == nil {
+		// check if the chain can use a standalone database
+		_, lastAcceptedErr := acceptedDB.Get(lastAcceptedKey)
+		if lastAcceptedErr == avalanchedatabase.ErrNotFound {
+			// If there is nothing in the database, we can use the standalone database
+			return true, nil
+		} else {
+			return false, lastAcceptedErr
+		}
+	}
+	return *standaloneDBFlag, nil
+}
+
+// getDatabaseConfig returns the database configuration for the chain
+// to be used by sepearate, standalone database.
+func getDatabaseConfig(config Config, chainDataDir string) (avalancheNode.DatabaseConfig, error) {
+	var (
+		configBytes []byte
+		err         error
+	)
+	if len(config.DatabaseConfigContent) != 0 {
+		dbConfigContent := config.DatabaseConfigContent
+		configBytes, err = base64.StdEncoding.DecodeString(dbConfigContent)
+		if err != nil {
+			return avalancheNode.DatabaseConfig{}, fmt.Errorf("unable to decode base64 content: %w", err)
+		}
+	} else if len(config.DatabaseConfigFile) != 0 {
+		configPath := config.DatabaseConfigFile
+		configBytes, err = os.ReadFile(configPath)
+		if err != nil {
+			return avalancheNode.DatabaseConfig{}, err
+		}
+	}
+
+	dbPath := filepath.Join(chainDataDir, "db")
+	if len(config.DatabasePath) != 0 {
+		dbPath = config.DatabasePath
+	}
+
+	return avalancheNode.DatabaseConfig{
+		Name:     config.DatabaseType,
+		ReadOnly: config.DatabaseReadOnly,
+		Path:     dbPath,
+		Config:   configBytes,
+	}, nil
+}
+
+// initializeDBs initializes the databases used by the VM.
+// If [useStandaloneDB] is true, the chain will use a standalone database for its state.
+// Otherwise, the chain will use the provided [avaDB] for its state.
+func (vm *VM) initializeDBs(avaDB avalanchedatabase.Database) error {
+	// first initialize the accepted block database to check if we need to use a standalone database
+	verDB := versiondb.New(avaDB)
+	acceptedDB := prefixdb.New(acceptedPrefix, verDB)
+	useStandAloneDB, err := vm.useStandaloneDatabase(acceptedDB)
+	if err != nil {
+		return err
+	}
+	db := avaDB
+	if useStandAloneDB {
+		// If we are using a standalone database, we need to create a new database
+		// for the chain state.
+		dbConfig, err := getDatabaseConfig(vm.config, vm.ctx.ChainDataDir)
+		if err != nil {
+			return err
+		}
+		log.Info("Using standalone database for the chain state", "DatabaseConfig", dbConfig)
+		db, err = database.New(vm.ctx.Metrics, dbConfig, vm.ctx.Log)
+		if err != nil {
+			return err
+		}
+	}
+	// Use NewNested rather than New so that the structure of the database
+	// remains the same regardless of the provided baseDB type.
+	vm.chaindb = rawdb.NewDatabase(Database{prefixdb.NewNested(ethDBPrefix, db)})
+	vm.db = versiondb.New(db)
+	vm.acceptedBlockDB = prefixdb.New(acceptedPrefix, db)
+	vm.metadataDB = prefixdb.New(metadataPrefix, db)
+	// Note warpDB is not part of versiondb because it is not necessary
+	// that warp signatures are committed to the database atomically with
+	// the last accepted block.
+	// [warpDB] is used to store warp message signatures
+	// set to a prefixDB with the prefix [warpPrefix]
+	vm.warpDB = prefixdb.New(warpPrefix, db)
 	return nil
 }
