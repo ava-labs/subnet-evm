@@ -349,6 +349,32 @@ type BlockChain struct {
 	txIndexTailLock sync.Mutex
 }
 
+func CheckUpgradesCompatible(db ethdb.Database, config *params.ChainConfig, lastAcceptedHash common.Hash) error {
+	stored := rawdb.ReadCanonicalHash(db, 0)
+	if (stored == common.Hash{}) {
+		return errors.New("missing genesis block")
+	}
+	if lastAcceptedHash == (common.Hash{}) || lastAcceptedHash == stored {
+		return nil
+	}
+
+	lastBlock := ReadBlockByHash(db, lastAcceptedHash)
+	if lastBlock == nil {
+		return errors.New("missing last accepted block")
+	}
+	head := lastBlock.Header()
+	storedcfg := rawdb.ReadChainConfig(db, stored)
+	storedUpgrades := rawdb.ReadUpgradeConfig(db, stored)
+	storedcfg.UpgradeConfig = *storedUpgrades
+	compatErr := storedcfg.CheckUpgradesCompatible(&config.UpgradeConfig, lastBlock.Time())
+	if compatErr != nil && ((head.Number.Uint64() != 0 && compatErr.RewindToBlock != 0) || (head.Time != 0 && compatErr.RewindToTime != 0)) {
+		log.Error("Incompatible chain upgrades detected", "err", compatErr)
+		return compatErr
+	}
+
+	return nil
+}
+
 // NewBlockChain returns a fully initialised block chain using information
 // available in the database. It initialises the default Ethereum Validator and
 // Processor.
@@ -372,6 +398,13 @@ func NewBlockChain(
 	if err != nil {
 		return nil, err
 	}
+	if !skipChainConfigCheckCompatible {
+		if err := CheckUpgradesCompatible(db, genesis.Config, lastAcceptedHash); err != nil {
+			return nil, err
+		}
+	}
+	rawdb.WriteUpgradeConfig(db, genesis.ToBlock().Hash(), chainConfig.UpgradeConfig)
+
 	log.Info("")
 	log.Info(strings.Repeat("-", 153))
 	for _, line := range strings.Split(chainConfig.Description(), "\n") {
