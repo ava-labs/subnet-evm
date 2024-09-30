@@ -64,6 +64,8 @@ const (
 	defaultDBType               = pebbledb.Name
 )
 
+type PBool bool
+
 var (
 	defaultEnabledAPIs = []string{
 		"eth",
@@ -229,7 +231,7 @@ type Config struct {
 	HttpBodyLimit uint64 `json:"http-body-limit"`
 
 	// Database settings
-	UseStandaloneDatabase *bool  `json:"use-standalone-database"`
+	UseStandaloneDatabase *PBool `json:"use-standalone-database"`
 	DatabaseConfigContent string `json:"database-config"`
 	DatabaseConfigFile    string `json:"database-config-file"`
 	DatabaseType          string `json:"database-type"`
@@ -348,4 +350,18 @@ func (c *Config) Deprecate() string {
 	}
 
 	return msg
+}
+
+func (p *PBool) String() string {
+	if p == nil {
+		return "nil"
+	}
+	return fmt.Sprintf("%t", *p)
+}
+
+func (p *PBool) Bool() bool {
+	if p == nil {
+		return false
+	}
+	return bool(*p)
 }

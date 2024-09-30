@@ -1194,7 +1194,7 @@ func (vm *VM) useStandaloneDatabase(acceptedDB avalanchedatabase.Database) (bool
 			return false, lastAcceptedErr
 		}
 	}
-	return *standaloneDBFlag, nil
+	return standaloneDBFlag.Bool(), nil
 }
 
 // getDatabaseConfig returns the database configuration for the chain
