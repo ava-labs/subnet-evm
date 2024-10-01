@@ -25,7 +25,7 @@ run_simulator() {
     #################################
     echo "building simulator"
     pushd ./cmd/simulator
-    go build -ldflags "-s -w" -o ./simulator main/*.go
+    go build -o ./simulator main/*.go
     echo
 
     popd

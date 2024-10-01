@@ -247,6 +247,8 @@ type VM struct {
 	ethTxGossipHandler p2p.Handler
 	ethTxPushGossiper  avalancheUtils.Atomic[*gossip.PushGossiper[*GossipEthTx]]
 	ethTxPullGossiper  gossip.Gossiper
+
+	skipStandaloneDB bool
 }
 
 // Initialize implements the snowman.ChainVM interface
@@ -1243,7 +1245,7 @@ func (vm *VM) initializeDBs(avaDB avalanchedatabase.Database) error {
 		return err
 	}
 	db := avaDB
-	if useStandAloneDB {
+	if useStandAloneDB && !vm.skipStandaloneDB {
 		// If we are using a standalone database, we need to create a new database
 		// for the chain state.
 		dbConfig, err := getDatabaseConfig(vm.config, vm.ctx.ChainDataDir)

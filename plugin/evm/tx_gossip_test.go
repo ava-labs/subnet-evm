@@ -44,7 +44,8 @@ func TestEthTxGossip(t *testing.T) {
 		SentAppResponse: make(chan []byte, 1),
 	}
 	vm := &VM{
-		p2pSender: responseSender,
+		p2pSender:        responseSender,
+		skipStandaloneDB: true,
 	}
 
 	require.NoError(vm.Initialize(
@@ -169,6 +170,7 @@ func TestEthTxPushGossipOutbound(t *testing.T) {
 
 	vm := &VM{
 		ethTxPullGossiper: gossip.NoOpGossiper{},
+		skipStandaloneDB:  true,
 	}
 
 	require.NoError(vm.Initialize(
@@ -222,6 +224,7 @@ func TestEthTxPushGossipInbound(t *testing.T) {
 	sender := &enginetest.Sender{}
 	vm := &VM{
 		ethTxPullGossiper: gossip.NoOpGossiper{},
+		skipStandaloneDB:  true,
 	}
 
 	require.NoError(vm.Initialize(
