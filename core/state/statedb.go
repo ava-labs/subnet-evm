@@ -209,7 +209,14 @@ func (s *StateDB) StartPrefetcher(namespace string, maxConcurrency int) {
 		s.prefetcher = nil
 	}
 	if s.snap != nil {
-		s.prefetcher = newTriePrefetcher(s.db, s.originalRoot, namespace, maxConcurrency)
+		db := s.db
+		type prefetchingDB interface {
+			ForPrefetchingOnly(db Database, maxConcurrency int) Database
+		}
+		if p, ok := db.(prefetchingDB); ok {
+			db = p.ForPrefetchingOnly(db, maxConcurrency)
+		}
+		s.prefetcher = newTriePrefetcher(db, s.originalRoot, namespace)
 	}
 }
 
