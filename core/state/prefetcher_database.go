@@ -4,7 +4,6 @@
 package state
 
 import (
-	"fmt"
 	"sync"
 
 	"github.com/ava-labs/coreth/core/types"
@@ -49,9 +48,9 @@ func (p *prefetcherDatabase) OpenStorageTrie(stateRoot common.Hash, address comm
 func (p *prefetcherDatabase) CopyTrie(t Trie) Trie {
 	switch t := t.(type) {
 	case *prefetcherTrie:
-		return newPrefetcherTrie(p, t.getCopy())
+		return t.getCopy()
 	default:
-		panic(fmt.Errorf("unknown trie type %T", t))
+		return p.Database.CopyTrie(t)
 	}
 }
 
