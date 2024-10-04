@@ -182,8 +182,8 @@ func TestVerifyNetworkUpgrades(t *testing.T) {
 			name: "ValidNetworkUpgrades for custom network",
 			upgrades: &NetworkUpgrades{
 				SubnetEVMTimestamp: utils.NewUint64(0),
-				DurangoTimestamp:   utils.NewUint64(1607144400),
-				EtnaTimestamp:      utils.NewUint64(1607144400),
+				DurangoTimestamp:   utils.TimeToNewUint64(upgrade.InitiallyActiveTime),
+				EtnaTimestamp:      utils.TimeToNewUint64(upgrade.UnscheduledActivationTime),
 			},
 			avagoUpgrades: upgrade.GetConfig(1111),
 			expected:      true,

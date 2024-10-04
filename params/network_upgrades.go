@@ -156,7 +156,9 @@ func verifyWithDefault(configTimestamp *uint64, defaultTimestamp *uint64) error 
 		return errCannotBeNil
 	}
 
-	if *configTimestamp < *defaultTimestamp {
+	// Allow scheduling of UnscheduledActivationTime (or later) to an earlier time.
+	// This is to allow for the network upgrades to be scheduled in tests.
+	if *defaultTimestamp < uint64(upgrade.UnscheduledActivationTime.Unix()) && *configTimestamp < *defaultTimestamp {
 		return fmt.Errorf("provided timestamp (%d) must be greater than or equal to the default timestamp (%d)", *configTimestamp, *defaultTimestamp)
 	}
 	return nil

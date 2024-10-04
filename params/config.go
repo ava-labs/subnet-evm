@@ -172,7 +172,7 @@ var (
 		NetworkUpgrades: NetworkUpgrades{
 			SubnetEVMTimestamp: utils.NewUint64(0),
 			DurangoTimestamp:   utils.NewUint64(0),
-			EtnaTimestamp:      utils.NewUint64(0),
+			EtnaTimestamp:      utils.TimeToNewUint64(upgrade.InitiallyActiveTime),
 		},
 		GenesisPrecompiles: Precompiles{},
 		UpgradeConfig:      UpgradeConfig{},
