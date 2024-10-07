@@ -33,9 +33,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var (
-	DefaultEtnaTime = uint64(upgrade.GetConfig(testNetworkID).EtnaTime.Unix())
-)
+var DefaultEtnaTime = uint64(upgrade.GetConfig(testNetworkID).EtnaTime.Unix())
 
 func TestVMUpgradeBytesPrecompile(t *testing.T) {
 	// Make a TxAllowListConfig upgrade at genesis and convert it to JSON to apply as upgradeBytes.
@@ -183,7 +181,9 @@ func TestNetworkUpgradesOverriden(t *testing.T) {
 			}
 		}`
 
-	vm := &VM{}
+	vm := &VM{
+		skipStandaloneDB: true,
+	}
 	ctx, dbManager, genesisBytes, issuer, _ := setupGenesis(t, string(genesisBytes))
 	appSender := &enginetest.Sender{T: t}
 	appSender.CantSendAppGossip = true

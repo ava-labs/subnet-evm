@@ -226,7 +226,9 @@ func GenesisVM(t *testing.T,
 	database.Database,
 	*enginetest.Sender,
 ) {
-	vm := &VM{}
+	vm := &VM{
+		skipStandaloneDB: true,
+	}
 	ctx, dbManager, genesisBytes, issuer, _ := setupGenesis(t, genesisJSON)
 	appSender := &enginetest.Sender{T: t}
 	appSender.CantSendAppGossip = true
@@ -489,7 +491,9 @@ func TestBuildEthTxBlock(t *testing.T) {
 		t.Fatalf("Found unexpected blkID for parent of blk2")
 	}
 
-	restartedVM := &VM{}
+	restartedVM := &VM{
+		skipStandaloneDB: true,
+	}
 	genesisBytes := buildGenesisTest(t, genesisJSONSubnetEVM)
 
 	if err := restartedVM.Initialize(
@@ -1933,7 +1937,9 @@ func TestConfigureLogLevel(t *testing.T) {
 	}
 	for _, test := range configTests {
 		t.Run(test.name, func(t *testing.T) {
-			vm := &VM{}
+			vm := &VM{
+				skipStandaloneDB: true,
+			}
 			ctx, dbManager, genesisBytes, issuer, _ := setupGenesis(t, test.genesisJSON)
 			appSender := &enginetest.Sender{T: t}
 			appSender.CantSendAppGossip = true
@@ -2302,7 +2308,9 @@ func TestVerifyManagerConfig(t *testing.T) {
 	genesisJSON, err := genesis.MarshalJSON()
 	require.NoError(t, err)
 
-	vm := &VM{}
+	vm := &VM{
+		skipStandaloneDB: true,
+	}
 	ctx, dbManager, genesisBytes, issuer, _ := setupGenesis(t, string(genesisJSON))
 	err = vm.Initialize(
 		context.Background(),
@@ -2333,7 +2341,9 @@ func TestVerifyManagerConfig(t *testing.T) {
 	upgradeBytesJSON, err := json.Marshal(upgradeConfig)
 	require.NoError(t, err)
 
-	vm = &VM{}
+	vm = &VM{
+		skipStandaloneDB: true,
+	}
 	ctx, dbManager, genesisBytes, issuer, _ = setupGenesis(t, string(genesisJSON))
 	err = vm.Initialize(
 		context.Background(),
@@ -3026,7 +3036,9 @@ func TestSkipChainConfigCheckCompatible(t *testing.T) {
 		t.Fatalf("Expected new block to match")
 	}
 
-	reinitVM := &VM{}
+	reinitVM := &VM{
+		skipStandaloneDB: true,
+	}
 	// use the block's timestamp instead of 0 since rewind to genesis
 	// is hardcoded to be allowed in core/genesis.go.
 	genesisWithUpgrade := &core.Genesis{}

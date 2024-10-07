@@ -24,8 +24,9 @@ func TestHandlePrecompileAccept(t *testing.T) {
 
 	db := rawdb.NewMemoryDatabase()
 	vm := &VM{
-		chaindb:     db,
-		chainConfig: params.TestChainConfig,
+		chaindb:          db,
+		chainConfig:      params.TestChainConfig,
+		skipStandaloneDB: true,
 	}
 
 	precompileAddr := common.Address{0x05}
