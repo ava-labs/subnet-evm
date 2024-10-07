@@ -5,7 +5,7 @@
 ARG AVALANCHEGO_NODE_IMAGE
 
 # ============= Compilation Stage ================
-FROM golang:1.21.12-bullseye AS builder
+FROM golang:1.22.8-bullseye AS builder
 
 WORKDIR /build
 
