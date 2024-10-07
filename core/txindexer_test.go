@@ -71,7 +71,6 @@ func TestTransactionIndices(t *testing.T) {
 		CommitInterval:            4096,
 		SnapshotLimit:             256,
 		SnapshotNoBuild:           true, // Ensure the test errors if snapshot initialization fails
-		AcceptorQueueLimit:        64,
 	}
 
 	// Init block chain and check all needed indices has been indexed.
@@ -86,7 +85,6 @@ func TestTransactionIndices(t *testing.T) {
 		err := chain.Accept(block)
 		require.NoError(err)
 	}
-	chain.DrainAcceptorQueue()
 
 	lastAcceptedBlock := blocks[len(blocks)-1]
 	require.Equal(lastAcceptedBlock.Hash(), chain.CurrentHeader().Hash())
@@ -121,7 +119,6 @@ func TestTransactionIndices(t *testing.T) {
 			lastAcceptedBlock = newBlks[0]
 			err = chain.Accept(lastAcceptedBlock) // Accept the block to trigger indices updater.
 			require.NoError(err)
-			chain.DrainAcceptorQueue()
 
 			tail = getTail(l, lastAcceptedBlock.NumberU64())
 			// check if indices are updated correctly
@@ -182,7 +179,6 @@ func TestTransactionSkipIndexing(t *testing.T) {
 		CommitInterval:            4096,
 		SnapshotLimit:             256,
 		SnapshotNoBuild:           true, // Ensure the test errors if snapshot initialization fails
-		AcceptorQueueLimit:        64,
 		SkipTxIndexing:            true,
 	}
 
@@ -248,7 +244,6 @@ func createAndInsertChain(db ethdb.Database, cacheConfig *CacheConfig, gspec *Ge
 		if err != nil {
 			return nil, err
 		}
-		chain.DrainAcceptorQueue()
 		if accepted != nil {
 			accepted(block)
 		}
