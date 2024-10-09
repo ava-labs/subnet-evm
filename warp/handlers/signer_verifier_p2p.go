@@ -137,7 +137,7 @@ func (s *p2pSignerVerifier) GetMessageSignature(message *avalancheWarp.UnsignedM
 	}()
 
 	// TODO: consider changing backend to return []byte
-	sig, err := s.backend.GetMessageSignature(message)
+	sig, err := s.backend.SignMessage(message)
 	return sig[:], err
 }
 
@@ -151,6 +151,6 @@ func (s *p2pSignerVerifier) GetBlockSignature(blockID ids.ID) ([]byte, error) {
 	}()
 
 	// TODO: consider changing backend to return []byte
-	sig, err := s.backend.GetBlockSignature(blockID)
+	sig, err := s.backend.SignBlock(blockID)
 	return sig[:], err
 }
