@@ -10,6 +10,7 @@ import (
 
 	"github.com/ava-labs/avalanchego/database/memdb"
 	"github.com/ava-labs/avalanchego/ids"
+	"github.com/ava-labs/avalanchego/network/p2p/acp118"
 	"github.com/ava-labs/avalanchego/proto/pb/sdk"
 	"github.com/ava-labs/avalanchego/snow/engine/common"
 	"github.com/ava-labs/avalanchego/utils/crypto/bls"
@@ -23,7 +24,7 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-func TestMessageSignatureHandlerP2P(t *testing.T) {
+func TestMessageSignatures(t *testing.T) {
 	database := memdb.New()
 	snowCtx := utils.TestSnowContext()
 	blsSecretKey, err := bls.NewSecretKey()
@@ -64,9 +65,11 @@ func TestMessageSignatureHandlerP2P(t *testing.T) {
 			},
 			verifyStats: func(t *testing.T, stats *handlerStats) {
 				require.EqualValues(t, 1, stats.messageSignatureRequest.Snapshot().Count())
+				require.EqualValues(t, 0, stats.messageSignatureValidationFail.Snapshot().Count())
 				require.EqualValues(t, 1, stats.messageSignatureHit.Snapshot().Count())
 				require.EqualValues(t, 0, stats.messageSignatureMiss.Snapshot().Count())
 				require.EqualValues(t, 0, stats.blockSignatureRequest.Snapshot().Count())
+				require.EqualValues(t, 0, stats.blockSignatureValidationFail.Snapshot().Count())
 				require.EqualValues(t, 0, stats.blockSignatureHit.Snapshot().Count())
 				require.EqualValues(t, 0, stats.blockSignatureMiss.Snapshot().Count())
 			},
@@ -77,9 +80,11 @@ func TestMessageSignatureHandlerP2P(t *testing.T) {
 			},
 			verifyStats: func(t *testing.T, stats *handlerStats) {
 				require.EqualValues(t, 1, stats.messageSignatureRequest.Snapshot().Count())
+				require.EqualValues(t, 0, stats.messageSignatureValidationFail.Snapshot().Count())
 				require.EqualValues(t, 1, stats.messageSignatureHit.Snapshot().Count())
 				require.EqualValues(t, 0, stats.messageSignatureMiss.Snapshot().Count())
 				require.EqualValues(t, 0, stats.blockSignatureRequest.Snapshot().Count())
+				require.EqualValues(t, 0, stats.blockSignatureValidationFail.Snapshot().Count())
 				require.EqualValues(t, 0, stats.blockSignatureHit.Snapshot().Count())
 				require.EqualValues(t, 0, stats.blockSignatureMiss.Snapshot().Count())
 			},
@@ -89,21 +94,23 @@ func TestMessageSignatureHandlerP2P(t *testing.T) {
 				return sdk.SignatureRequest{Message: unknownMessage.Bytes()}, nil
 			},
 			verifyStats: func(t *testing.T, stats *handlerStats) {
-				require.EqualValues(t, 1, stats.messageSignatureRequest.Snapshot().Count())
+				require.EqualValues(t, 0, stats.messageSignatureRequest.Snapshot().Count())
+				require.EqualValues(t, 1, stats.messageSignatureValidationFail.Snapshot().Count())
 				require.EqualValues(t, 0, stats.messageSignatureHit.Snapshot().Count())
-				require.EqualValues(t, 1, stats.messageSignatureMiss.Snapshot().Count())
+				require.EqualValues(t, 0, stats.messageSignatureMiss.Snapshot().Count())
 				require.EqualValues(t, 0, stats.blockSignatureRequest.Snapshot().Count())
+				require.EqualValues(t, 0, stats.blockSignatureValidationFail.Snapshot().Count())
 				require.EqualValues(t, 0, stats.blockSignatureHit.Snapshot().Count())
 				require.EqualValues(t, 0, stats.blockSignatureMiss.Snapshot().Count())
 			},
-			err: &common.AppError{Code: ErrFailedToGetSig},
+			err: &common.AppError{Code: ValidateErrCode},
 		},
 	}
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			handler := NewSignatureRequestHandlerP2P(backend, message.Codec)
-			handler.stats.Clear()
+			signerVerifier := NewSignerVerifier(backend, message.Codec)
+			handler := acp118.NewHandler(signerVerifier, signerVerifier)
 
 			request, expectedResponse := test.setup()
 			requestBytes, err := proto.Marshal(&request)
@@ -115,7 +122,7 @@ func TestMessageSignatureHandlerP2P(t *testing.T) {
 				require.Nil(t, appErr)
 			}
 
-			test.verifyStats(t, handler.stats)
+			test.verifyStats(t, signerVerifier.(*p2pSignerVerifier).stats)
 
 			// If the expected response is empty, assert that the handler returns an empty response and return early.
 			if len(expectedResponse) == 0 {
@@ -131,7 +138,7 @@ func TestMessageSignatureHandlerP2P(t *testing.T) {
 	}
 }
 
-func TestBlockSignatureHandlerP2P(t *testing.T) {
+func TestBlockSignatures(t *testing.T) {
 	database := memdb.New()
 	snowCtx := utils.TestSnowContext()
 	blsSecretKey, err := bls.NewSecretKey()
@@ -176,9 +183,11 @@ func TestBlockSignatureHandlerP2P(t *testing.T) {
 			},
 			verifyStats: func(t *testing.T, stats *handlerStats) {
 				require.EqualValues(t, 0, stats.messageSignatureRequest.Snapshot().Count())
+				require.EqualValues(t, 0, stats.messageSignatureValidationFail.Snapshot().Count())
 				require.EqualValues(t, 0, stats.messageSignatureHit.Snapshot().Count())
 				require.EqualValues(t, 0, stats.messageSignatureMiss.Snapshot().Count())
 				require.EqualValues(t, 1, stats.blockSignatureRequest.Snapshot().Count())
+				require.EqualValues(t, 0, stats.blockSignatureValidationFail.Snapshot().Count())
 				require.EqualValues(t, 1, stats.blockSignatureHit.Snapshot().Count())
 				require.EqualValues(t, 0, stats.blockSignatureMiss.Snapshot().Count())
 			},
@@ -189,20 +198,22 @@ func TestBlockSignatureHandlerP2P(t *testing.T) {
 			},
 			verifyStats: func(t *testing.T, stats *handlerStats) {
 				require.EqualValues(t, 0, stats.messageSignatureRequest.Snapshot().Count())
+				require.EqualValues(t, 0, stats.messageSignatureValidationFail.Snapshot().Count())
 				require.EqualValues(t, 0, stats.messageSignatureHit.Snapshot().Count())
 				require.EqualValues(t, 0, stats.messageSignatureMiss.Snapshot().Count())
-				require.EqualValues(t, 1, stats.blockSignatureRequest.Snapshot().Count())
+				require.EqualValues(t, 0, stats.blockSignatureRequest.Snapshot().Count())
+				require.EqualValues(t, 1, stats.blockSignatureValidationFail.Snapshot().Count())
 				require.EqualValues(t, 0, stats.blockSignatureHit.Snapshot().Count())
-				require.EqualValues(t, 1, stats.blockSignatureMiss.Snapshot().Count())
+				require.EqualValues(t, 0, stats.blockSignatureMiss.Snapshot().Count())
 			},
-			err: &common.AppError{Code: ErrFailedToGetSig},
+			err: &common.AppError{Code: ValidateErrCode},
 		},
 	}
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			handler := NewSignatureRequestHandlerP2P(backend, message.Codec)
-			handler.stats.Clear()
+			signerVerifier := NewSignerVerifier(backend, message.Codec)
+			handler := acp118.NewHandler(signerVerifier, signerVerifier)
 
 			request, expectedResponse := test.setup()
 			requestBytes, err := proto.Marshal(&request)
@@ -214,7 +225,7 @@ func TestBlockSignatureHandlerP2P(t *testing.T) {
 				require.Nil(t, appErr)
 			}
 
-			test.verifyStats(t, handler.stats)
+			test.verifyStats(t, signerVerifier.(*p2pSignerVerifier).stats)
 
 			// If the expected response is empty, assert that the handler returns an empty response and return early.
 			if len(expectedResponse) == 0 {

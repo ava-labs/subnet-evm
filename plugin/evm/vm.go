@@ -70,6 +70,7 @@ import (
 	"github.com/ava-labs/avalanchego/database/prefixdb"
 	"github.com/ava-labs/avalanchego/database/versiondb"
 	"github.com/ava-labs/avalanchego/ids"
+	"github.com/ava-labs/avalanchego/network/p2p/acp118"
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/avalanchego/snow/consensus/snowman"
 	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
@@ -624,7 +625,9 @@ func (vm *VM) initializeHandlers() {
 	})
 
 	// Add p2p warp message warpHandler
-	warpHandler := handlers.NewSignatureRequestHandlerP2P(vm.warpBackend, vm.networkCodec)
+	signerVerifier := handlers.NewSignerVerifier(vm.warpBackend, vm.networkCodec)
+	// TODO: consider chancing acp118 handler to take a single Signer interface
+	warpHandler := acp118.NewHandler(signerVerifier, signerVerifier)
 	vm.Network.AddHandler(p2p.SignatureRequestHandlerID, warpHandler)
 
 	vm.setAppRequestHandlers()

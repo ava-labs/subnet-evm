@@ -37,16 +37,28 @@ type Backend interface {
 	// AddMessage signs [unsignedMessage] and adds it to the warp backend database
 	AddMessage(unsignedMessage *avalancheWarp.UnsignedMessage) error
 
-	// GetMessageSignature returns the signature of the requested message.
+	// GetMessageSignature validates the message and returns the signature of the requested message.
 	GetMessageSignature(message *avalancheWarp.UnsignedMessage) ([bls.SignatureLen]byte, error)
 
-	// GetBlockSignature returns the signature of the requested message hash.
+	// GetBlockSignature validates blockID and returns the signature of the requested message hash.
 	GetBlockSignature(blockID ids.ID) ([bls.SignatureLen]byte, error)
 
 	// GetMessage retrieves the [unsignedMessage] from the warp backend database if available
 	// TODO: After E-Upgrade, the backend no longer needs to store the mapping from messageHash
 	// to unsignedMessage (and this method can be removed).
 	GetMessage(messageHash ids.ID) (*avalancheWarp.UnsignedMessage, error)
+
+	// ValidateMessage validates the [unsignedMessage] and returns an error if the message is invalid.
+	ValidateMessage(unsignedMessage *avalancheWarp.UnsignedMessage) error
+
+	// ValidateBlockMessage validates the block message with the given [blockID] and returns an error if the message is invalid.
+	ValidateBlockMessage(blockID ids.ID) error
+
+	// SignMessage signs the [unsignedMessage] and returns the signature.
+	SignMessage(unsignedMessage *avalancheWarp.UnsignedMessage) ([bls.SignatureLen]byte, error)
+
+	// SignBlock signs the block message with the given [blockID] and returns the signature.
+	SignBlock(blockID ids.ID) ([bls.SignatureLen]byte, error)
 
 	// Clear clears the entire db
 	Clear() error
@@ -154,21 +166,27 @@ func (b *backend) GetMessageSignature(unsignedMessage *avalancheWarp.UnsignedMes
 	if err := b.ValidateMessage(unsignedMessage); err != nil {
 		return [bls.SignatureLen]byte{}, fmt.Errorf("failed to validate warp message: %w", err)
 	}
+	return b.signMessage(unsignedMessage)
+}
 
-	var signature [bls.SignatureLen]byte
-	sig, err := b.warpSigner.Sign(unsignedMessage)
-	if err != nil {
-		return [bls.SignatureLen]byte{}, fmt.Errorf("failed to sign warp message: %w", err)
+func (b *backend) SignMessage(unsignedMessage *avalancheWarp.UnsignedMessage) ([bls.SignatureLen]byte, error) {
+	messageID := unsignedMessage.ID()
+
+	if sig, ok := b.messageSignatureCache.Get(messageID); ok {
+		return sig, nil
 	}
 
-	copy(signature[:], sig)
-	b.messageSignatureCache.Put(messageID, signature)
-	return signature, nil
+	return b.signMessage(unsignedMessage)
 }
 
 func (b *backend) ValidateMessage(unsignedMessage *avalancheWarp.UnsignedMessage) error {
+	messageID := unsignedMessage.ID()
+
+	if _, ok := b.messageSignatureCache.Get(messageID); ok {
+		return nil
+	}
 	// Known on-chain messages should be signed
-	if _, err := b.GetMessage(unsignedMessage.ID()); err == nil {
+	if _, err := b.GetMessage(messageID); err == nil {
 		return nil
 	}
 
@@ -197,34 +215,38 @@ func (b *backend) ValidateMessage(unsignedMessage *avalancheWarp.UnsignedMessage
 	return nil
 }
 
+func (b *backend) ValidateBlockMessage(blockID ids.ID) error {
+	if _, ok := b.blockSignatureCache.Get(blockID); ok {
+		return nil
+	}
+
+	_, err := b.blockClient.GetAcceptedBlock(context.TODO(), blockID)
+	if err != nil {
+		return fmt.Errorf("failed to get block %s: %w", blockID, err)
+	}
+
+	return nil
+}
+
 func (b *backend) GetBlockSignature(blockID ids.ID) ([bls.SignatureLen]byte, error) {
 	log.Debug("Getting block from backend", "blockID", blockID)
 	if sig, ok := b.blockSignatureCache.Get(blockID); ok {
 		return sig, nil
 	}
 
-	_, err := b.blockClient.GetAcceptedBlock(context.TODO(), blockID)
-	if err != nil {
-		return [bls.SignatureLen]byte{}, fmt.Errorf("failed to get block %s: %w", blockID, err)
+	if err := b.ValidateBlockMessage(blockID); err != nil {
+		return [bls.SignatureLen]byte{}, fmt.Errorf("failed to validate block message: %w", err)
 	}
 
-	var signature [bls.SignatureLen]byte
-	blockHashPayload, err := payload.NewHash(blockID)
-	if err != nil {
-		return [bls.SignatureLen]byte{}, fmt.Errorf("failed to create new block hash payload: %w", err)
-	}
-	unsignedMessage, err := avalancheWarp.NewUnsignedMessage(b.networkID, b.sourceChainID, blockHashPayload.Bytes())
-	if err != nil {
-		return [bls.SignatureLen]byte{}, fmt.Errorf("failed to create new unsigned warp message: %w", err)
-	}
-	sig, err := b.warpSigner.Sign(unsignedMessage)
-	if err != nil {
-		return [bls.SignatureLen]byte{}, fmt.Errorf("failed to sign warp message: %w", err)
+	return b.signBlock(blockID)
+}
+
+func (b *backend) SignBlock(blockID ids.ID) ([bls.SignatureLen]byte, error) {
+	if sig, ok := b.blockSignatureCache.Get(blockID); ok {
+		return sig, nil
 	}
 
-	copy(signature[:], sig)
-	b.blockSignatureCache.Put(blockID, signature)
-	return signature, nil
+	return b.signBlock(blockID)
 }
 
 func (b *backend) GetMessage(messageID ids.ID) (*avalancheWarp.UnsignedMessage, error) {
@@ -247,4 +269,36 @@ func (b *backend) GetMessage(messageID ids.ID) (*avalancheWarp.UnsignedMessage, 
 	b.messageCache.Put(messageID, unsignedMessage)
 
 	return unsignedMessage, nil
+}
+
+func (b *backend) signMessage(unsignedMessage *avalancheWarp.UnsignedMessage) ([bls.SignatureLen]byte, error) {
+	sig, err := b.warpSigner.Sign(unsignedMessage)
+	if err != nil {
+		return [bls.SignatureLen]byte{}, fmt.Errorf("failed to sign warp message: %w", err)
+	}
+
+	var signature [bls.SignatureLen]byte
+	copy(signature[:], sig)
+	b.messageSignatureCache.Put(unsignedMessage.ID(), signature)
+	return signature, nil
+}
+
+func (b *backend) signBlock(blockID ids.ID) ([bls.SignatureLen]byte, error) {
+	blockHashPayload, err := payload.NewHash(blockID)
+	if err != nil {
+		return [bls.SignatureLen]byte{}, fmt.Errorf("failed to create new block hash payload: %w", err)
+	}
+	unsignedMessage, err := avalancheWarp.NewUnsignedMessage(b.networkID, b.sourceChainID, blockHashPayload.Bytes())
+	if err != nil {
+		return [bls.SignatureLen]byte{}, fmt.Errorf("failed to create new unsigned warp message: %w", err)
+	}
+	sig, err := b.warpSigner.Sign(unsignedMessage)
+	if err != nil {
+		return [bls.SignatureLen]byte{}, fmt.Errorf("failed to sign warp message: %w", err)
+	}
+
+	var signature [bls.SignatureLen]byte
+	copy(signature[:], sig)
+	b.blockSignatureCache.Put(blockID, signature)
+	return signature, nil
 }
