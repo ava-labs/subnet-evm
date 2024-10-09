@@ -9,7 +9,7 @@ on:
   pull_request:
 
 env:
-  min_go_version: "~1.21.12"
+  min_go_version: "~1.22.8"
 
 jobs:
   lint_test:
@@ -140,7 +140,7 @@ jobs:
         shell: bash
         run: ./scripts/build.sh
       - name: Run Warp E2E Tests
-        uses: ava-labs/avalanchego/.github/actions/run-monitored-tmpnet-cmd@v1-actions
+        uses: ava-labs/avalanchego/.github/actions/run-monitored-tmpnet-cmd@v1.11.11-monitoring-url
         with:
           run: AVALANCHEGO_BUILD_PATH=/tmp/e2e-test/avalanchego ./scripts/run_ginkgo_warp.sh
           prometheus_id: ${{ secrets.PROMETHEUS_ID || '' }}
@@ -172,7 +172,7 @@ jobs:
         shell: bash
         run: ./scripts/build.sh
       - name: Run E2E Load Tests
-        uses: ava-labs/avalanchego/.github/actions/run-monitored-tmpnet-cmd@v1-actions
+        uses: ava-labs/avalanchego/.github/actions/run-monitored-tmpnet-cmd@v1.11.11-monitoring-url
         with:
           run: AVALANCHEGO_BUILD_PATH=/tmp/e2e-test/avalanchego ./scripts/run_ginkgo_load.sh
           prometheus_id: ${{ secrets.PROMETHEUS_ID || '' }}
@@ -197,3 +197,32 @@ jobs:
         run: scripts/mock.gen.sh
       - shell: bash
         run: .github/workflows/check-clean-branch.sh
+  test_build_image:
+    name: Image build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check image build
+        shell: bash
+        run: bash -x scripts/tests.build_docker_image.sh
+  test_build_antithesis_images:
+    name: Build Antithesis images
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.min_go_version }}
+          check-latest: true
+      - name: Install AvalancheGo Release
+        shell: bash
+        run: BASEDIR=/tmp/e2e-test AVALANCHEGO_BUILD_PATH=/tmp/e2e-test/avalanchego ./scripts/install_avalanchego_release.sh
+      - name: Build Subnet-EVM Plugin Binary
+        shell: bash
+        run: ./scripts/build.sh
+      - name: Check that the antithesis workload is sane
+        shell: bash
+        run: go run ./tests/antithesis --avalanchego-path=/tmp/e2e-test/avalanchego/avalanchego --duration=60s
+      - name: Check antithesis image build
+        shell: bash
+        run: bash -x scripts/tests.build_antithesis_images.sh
