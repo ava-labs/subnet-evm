@@ -751,6 +751,8 @@ func TestMessageSignatureRequestsToVM(t *testing.T) {
 	require.NoError(t, err)
 	signature, err := vm.warpBackend.GetMessageSignature(warpMessage)
 	require.NoError(t, err)
+	var knownSignature [bls.SignatureLen]byte
+	copy(knownSignature[:], signature)
 
 	tests := map[string]struct {
 		messageID        ids.ID
@@ -758,7 +760,7 @@ func TestMessageSignatureRequestsToVM(t *testing.T) {
 	}{
 		"known": {
 			messageID:        warpMessage.ID(),
-			expectedResponse: signature,
+			expectedResponse: knownSignature,
 		},
 		"unknown": {
 			messageID:        ids.GenerateTestID(),
@@ -807,6 +809,8 @@ func TestBlockSignatureRequestsToVM(t *testing.T) {
 
 	signature, err := vm.warpBackend.GetBlockSignature(lastAcceptedID)
 	require.NoError(t, err)
+	var knownSignature [bls.SignatureLen]byte
+	copy(knownSignature[:], signature)
 
 	tests := map[string]struct {
 		blockID          ids.ID
@@ -814,7 +818,7 @@ func TestBlockSignatureRequestsToVM(t *testing.T) {
 	}{
 		"known": {
 			blockID:          lastAcceptedID,
-			expectedResponse: signature,
+			expectedResponse: knownSignature,
 		},
 		"unknown": {
 			blockID:          ids.GenerateTestID(),
