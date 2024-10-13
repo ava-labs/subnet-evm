@@ -494,6 +494,13 @@ func (vm *VM) Initialize(
 		return fmt.Errorf("failed to create warp signature cache: %w", err)
 	}
 
+	// clear warpdb on initialization if config enabled
+	if vm.config.PruneWarpDB {
+		if err := database.Clear(vm.warpDB, ethdb.IdealBatchSize); err != nil {
+			return fmt.Errorf("failed to prune warpDB: %w", err)
+		}
+	}
+
 	vm.warpBackend, err = warp.NewBackend(
 		vm.ctx.NetworkID,
 		vm.ctx.ChainID,
@@ -505,13 +512,6 @@ func (vm *VM) Initialize(
 	)
 	if err != nil {
 		return err
-	}
-
-	// clear warpdb on initialization if config enabled
-	if vm.config.PruneWarpDB {
-		if err := database.Clear(vm.warpDB, ethdb.IdealBatchSize); err != nil {
-			return fmt.Errorf("failed to prune warpDB: %w", err)
-		}
 	}
 
 	if err := vm.initializeChain(lastAcceptedHash, vm.ethConfig); err != nil {
