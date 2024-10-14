@@ -94,8 +94,6 @@ func (b *backend) verifyAddressedCall(addressedCall *payload.AddressedCall) *com
 	}
 
 	switch p := parsed.(type) {
-	case *messages.ValidatorUptime:
-		return nil
 	default:
 		return &common.AppError{
 			Code:    ParseErrCode,
