@@ -88,37 +88,55 @@ func TestAddressedCallSignatures(t *testing.T) {
 	}
 
 	for name, test := range tests {
-		t.Run(name, func(t *testing.T) {
-			sigCache := &cache.LRU[ids.ID, []byte]{Size: 100}
-			warpBackend, err := NewBackend(snowCtx.NetworkID, snowCtx.ChainID, warpSigner, warptest.EmptyBlockClient, database, sigCache, [][]byte{offchainMessage.Bytes()})
-			require.NoError(t, err)
-			handler := acp118.NewCachedHandler(sigCache, warpBackend, warpSigner)
-
-			requestBytes, expectedResponse := test.setup(warpBackend)
-			protoMsg := &sdk.SignatureRequest{Message: requestBytes}
-			protoBytes, err := proto.Marshal(protoMsg)
-			require.NoError(t, err)
-			responseBytes, appErr := handler.AppRequest(context.Background(), ids.GenerateTestNodeID(), time.Time{}, protoBytes)
-			if test.err != nil {
-				require.Error(t, appErr)
-				require.ErrorIs(t, appErr, test.err)
+		for _, withCache := range []bool{true, false} {
+			if withCache {
+				name += "_with_cache"
 			} else {
-				require.Nil(t, appErr)
+				name += "_no_cache"
 			}
+			t.Run(name, func(t *testing.T) {
+				var sigCache cache.Cacher[ids.ID, []byte]
+				if withCache {
+					sigCache = &cache.LRU[ids.ID, []byte]{Size: 100}
+				} else {
+					sigCache = &cache.Empty[ids.ID, []byte]{}
+				}
+				warpBackend, err := NewBackend(snowCtx.NetworkID, snowCtx.ChainID, warpSigner, warptest.EmptyBlockClient, database, sigCache, [][]byte{offchainMessage.Bytes()})
+				require.NoError(t, err)
+				handler := acp118.NewCachedHandler(sigCache, warpBackend, warpSigner)
 
-			test.verifyStats(t, warpBackend.(*backend).stats)
+				requestBytes, expectedResponse := test.setup(warpBackend)
+				protoMsg := &sdk.SignatureRequest{Message: requestBytes}
+				protoBytes, err := proto.Marshal(protoMsg)
+				require.NoError(t, err)
+				responseBytes, appErr := handler.AppRequest(context.Background(), ids.GenerateTestNodeID(), time.Time{}, protoBytes)
+				if test.err != nil {
+					require.Error(t, appErr)
+					require.ErrorIs(t, appErr, test.err)
+				} else {
+					require.Nil(t, appErr)
+				}
 
-			// If the expected response is empty, assert that the handler returns an empty response and return early.
-			if len(expectedResponse) == 0 {
-				require.Len(t, responseBytes, 0, "expected response to be empty")
-				return
-			}
-			response := &sdk.SignatureResponse{}
-			require.NoError(t, proto.Unmarshal(responseBytes, response))
-			require.NoError(t, err, "error unmarshalling SignatureResponse")
+				test.verifyStats(t, warpBackend.(*backend).stats)
 
-			require.Equal(t, expectedResponse, response.Signature)
-		})
+				// If the expected response is empty, assert that the handler returns an empty response and return early.
+				if len(expectedResponse) == 0 {
+					require.Len(t, responseBytes, 0, "expected response to be empty")
+					return
+				}
+				// check cache is populated
+				if withCache {
+					require.NotZero(t, warpBackend.(*backend).signatureCache.Len())
+				} else {
+					require.Zero(t, warpBackend.(*backend).signatureCache.Len())
+				}
+				response := &sdk.SignatureResponse{}
+				require.NoError(t, proto.Unmarshal(responseBytes, response))
+				require.NoError(t, err, "error unmarshalling SignatureResponse")
+
+				require.Equal(t, expectedResponse, response.Signature)
+			})
+		}
 	}
 }
 
@@ -179,44 +197,61 @@ func TestBlockSignatures(t *testing.T) {
 	}
 
 	for name, test := range tests {
-		t.Run(name, func(t *testing.T) {
-			sigCache := &cache.LRU[ids.ID, []byte]{Size: 100}
-			warpBackend, err := NewBackend(
-				snowCtx.NetworkID,
-				snowCtx.ChainID,
-				warpSigner,
-				blockClient,
-				database,
-				sigCache,
-				nil,
-			)
-			require.NoError(t, err)
-			handler := acp118.NewCachedHandler(sigCache, warpBackend, warpSigner)
-
-			requestBytes, expectedResponse := test.setup()
-			protoMsg := &sdk.SignatureRequest{Message: requestBytes}
-			protoBytes, err := proto.Marshal(protoMsg)
-			require.NoError(t, err)
-			responseBytes, appErr := handler.AppRequest(context.Background(), ids.GenerateTestNodeID(), time.Time{}, protoBytes)
-			if test.err != nil {
-				require.NotNil(t, appErr)
-				require.ErrorIs(t, test.err, appErr)
+		for _, withCache := range []bool{true, false} {
+			if withCache {
+				name += "_with_cache"
 			} else {
-				require.Nil(t, appErr)
+				name += "_no_cache"
 			}
+			t.Run(name, func(t *testing.T) {
+				var sigCache cache.Cacher[ids.ID, []byte]
+				if withCache {
+					sigCache = &cache.LRU[ids.ID, []byte]{Size: 100}
+				} else {
+					sigCache = &cache.Empty[ids.ID, []byte]{}
+				}
+				warpBackend, err := NewBackend(
+					snowCtx.NetworkID,
+					snowCtx.ChainID,
+					warpSigner,
+					blockClient,
+					database,
+					sigCache,
+					nil,
+				)
+				require.NoError(t, err)
+				handler := acp118.NewCachedHandler(sigCache, warpBackend, warpSigner)
 
-			test.verifyStats(t, warpBackend.(*backend).stats)
+				requestBytes, expectedResponse := test.setup()
+				protoMsg := &sdk.SignatureRequest{Message: requestBytes}
+				protoBytes, err := proto.Marshal(protoMsg)
+				require.NoError(t, err)
+				responseBytes, appErr := handler.AppRequest(context.Background(), ids.GenerateTestNodeID(), time.Time{}, protoBytes)
+				if test.err != nil {
+					require.NotNil(t, appErr)
+					require.ErrorIs(t, test.err, appErr)
+				} else {
+					require.Nil(t, appErr)
+				}
 
-			// If the expected response is empty, assert that the handler returns an empty response and return early.
-			if len(expectedResponse) == 0 {
-				require.Len(t, responseBytes, 0, "expected response to be empty")
-				return
-			}
-			var response sdk.SignatureResponse
-			err = proto.Unmarshal(responseBytes, &response)
-			require.NoError(t, err, "error unmarshalling SignatureResponse")
+				test.verifyStats(t, warpBackend.(*backend).stats)
 
-			require.Equal(t, expectedResponse, response.Signature)
-		})
+				// If the expected response is empty, assert that the handler returns an empty response and return early.
+				if len(expectedResponse) == 0 {
+					require.Len(t, responseBytes, 0, "expected response to be empty")
+					return
+				}
+				// check cache is populated
+				if withCache {
+					require.NotZero(t, warpBackend.(*backend).signatureCache.Len())
+				} else {
+					require.Zero(t, warpBackend.(*backend).signatureCache.Len())
+				}
+				var response sdk.SignatureResponse
+				err = proto.Unmarshal(responseBytes, &response)
+				require.NoError(t, err, "error unmarshalling SignatureResponse")
+				require.Equal(t, expectedResponse, response.Signature)
+			})
+		}
 	}
 }
