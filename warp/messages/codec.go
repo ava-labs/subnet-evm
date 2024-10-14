@@ -24,7 +24,6 @@ func init() {
 	lc := linearcodec.NewDefault()
 
 	err := errors.Join(
-		lc.RegisterType(&ValidatorUptime{}),
 		Codec.RegisterCodec(CodecVersion, lc),
 	)
 	if err != nil {
