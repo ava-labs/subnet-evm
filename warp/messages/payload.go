@@ -3,13 +3,6 @@
 
 package messages
 
-import (
-	"errors"
-	"fmt"
-)
-
-var errWrongType = errors.New("wrong payload type")
-
 // Payload provides a common interface for all payloads implemented by this
 // package.
 type Payload interface {
@@ -27,13 +20,4 @@ func Parse(bytes []byte) (Payload, error) {
 	}
 	payload.initialize(bytes)
 	return payload, nil
-}
-
-func initialize(p Payload) error {
-	bytes, err := Codec.Marshal(CodecVersion, &p)
-	if err != nil {
-		return fmt.Errorf("couldn't marshal %T payload: %w", p, err)
-	}
-	p.initialize(bytes)
-	return nil
 }
