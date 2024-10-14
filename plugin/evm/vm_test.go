@@ -189,10 +189,8 @@ func setupGenesis(
 	genesisBytes := buildGenesisTest(t, genesisJSON)
 	ctx := NewContext()
 
-	baseDB := memdb.New()
-
 	// initialize the atomic memory
-	atomicMemory := atomic.NewMemory(prefixdb.New([]byte{0}, baseDB))
+	atomicMemory := atomic.NewMemory(prefixdb.New([]byte{0}, memdb.New()))
 	ctx.SharedMemory = atomicMemory.NewSharedMemory(ctx.ChainID)
 
 	// NB: this lock is intentionally left locked when this function returns.
@@ -206,8 +204,7 @@ func setupGenesis(
 	ctx.Keystore = userKeystore.NewBlockchainKeyStore(ctx.ChainID)
 
 	issuer := make(chan commonEng.Message, 1)
-	prefixedDB := prefixdb.New([]byte{1}, baseDB)
-	return ctx, prefixedDB, genesisBytes, issuer, atomicMemory
+	return ctx, memdb.New(), genesisBytes, issuer, atomicMemory
 }
 
 // GenesisVM creates a VM instance with the genesis test bytes and returns
@@ -225,9 +222,7 @@ func GenesisVM(t *testing.T,
 	database.Database,
 	*enginetest.Sender,
 ) {
-	vm := &VM{
-		skipStandaloneDB: true,
-	}
+	vm := &VM{}
 	ctx, dbManager, genesisBytes, issuer, _ := setupGenesis(t, genesisJSON)
 	appSender := &enginetest.Sender{T: t}
 	appSender.CantSendAppGossip = true
@@ -490,9 +485,7 @@ func TestBuildEthTxBlock(t *testing.T) {
 		t.Fatalf("Found unexpected blkID for parent of blk2")
 	}
 
-	restartedVM := &VM{
-		skipStandaloneDB: true,
-	}
+	restartedVM := &VM{}
 	genesisBytes := buildGenesisTest(t, genesisJSONSubnetEVM)
 
 	if err := restartedVM.Initialize(
@@ -1936,9 +1929,7 @@ func TestConfigureLogLevel(t *testing.T) {
 	}
 	for _, test := range configTests {
 		t.Run(test.name, func(t *testing.T) {
-			vm := &VM{
-				skipStandaloneDB: true,
-			}
+			vm := &VM{}
 			ctx, dbManager, genesisBytes, issuer, _ := setupGenesis(t, test.genesisJSON)
 			appSender := &enginetest.Sender{T: t}
 			appSender.CantSendAppGossip = true
@@ -2307,9 +2298,7 @@ func TestVerifyManagerConfig(t *testing.T) {
 	genesisJSON, err := genesis.MarshalJSON()
 	require.NoError(t, err)
 
-	vm := &VM{
-		skipStandaloneDB: true,
-	}
+	vm := &VM{}
 	ctx, dbManager, genesisBytes, issuer, _ := setupGenesis(t, string(genesisJSON))
 	err = vm.Initialize(
 		context.Background(),
@@ -2340,9 +2329,7 @@ func TestVerifyManagerConfig(t *testing.T) {
 	upgradeBytesJSON, err := json.Marshal(upgradeConfig)
 	require.NoError(t, err)
 
-	vm = &VM{
-		skipStandaloneDB: true,
-	}
+	vm = &VM{}
 	ctx, dbManager, genesisBytes, issuer, _ = setupGenesis(t, string(genesisJSON))
 	err = vm.Initialize(
 		context.Background(),
@@ -3035,9 +3022,7 @@ func TestSkipChainConfigCheckCompatible(t *testing.T) {
 		t.Fatalf("Expected new block to match")
 	}
 
-	reinitVM := &VM{
-		skipStandaloneDB: true,
-	}
+	reinitVM := &VM{}
 	// use the block's timestamp instead of 0 since rewind to genesis
 	// is hardcoded to be allowed in core/genesis.go.
 	genesisWithUpgrade := &core.Genesis{}
