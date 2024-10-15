@@ -24,8 +24,22 @@ const (
 	deleted dbUpdateStatus = false
 )
 
+type StateReader interface {
+	// GetStatus returns the active status of the validator with the given vID
+	GetStatus(vID ids.ID) (bool, error)
+	// GetValidationIDs returns the validation IDs in the state
+	GetValidationIDs() set.Set[ids.ID]
+	// GetNodeIDs returns the validator node IDs in the state
+	GetNodeIDs() set.Set[ids.NodeID]
+	// GetValidator returns the validator data for the given nodeID
+	GetValidator(nodeID ids.NodeID) (*ValidatorOutput, error)
+	// GetNodeID returns the node ID for the given validation ID
+	GetNodeID(vID ids.ID) (ids.NodeID, error)
+}
+
 type State interface {
 	uptime.State
+	StateReader
 	// AddValidator adds a new validator to the state
 	AddValidator(vID ids.ID, nodeID ids.NodeID, startTimestamp uint64, isActive bool) error
 	// DeleteValidator deletes the validator from the state
@@ -35,15 +49,6 @@ type State interface {
 
 	// SetStatus sets the active status of the validator with the given vID
 	SetStatus(vID ids.ID, isActive bool) error
-	// GetStatus returns the active status of the validator with the given vID
-	GetStatus(vID ids.ID) (bool, error)
-
-	// GetValidationIDs returns the validation IDs in the state
-	GetValidationIDs() set.Set[ids.ID]
-	// GetNodeIDs returns the validator node IDs in the state
-	GetNodeIDs() set.Set[ids.NodeID]
-	// GetValidator returns the validator data for the given nodeID
-	GetValidator(nodeID ids.NodeID) (*ValidatorOutput, error)
 
 	// RegisterListener registers a listener to the state
 	RegisterListener(StateCallbackListener)
@@ -262,6 +267,15 @@ func (s *state) GetValidator(nodeID ids.NodeID) (*ValidatorOutput, error) {
 		StartTime:    data.getStartTime(),
 		IsActive:     data.IsActive,
 	}, nil
+}
+
+// GetNodeID returns the node ID for the given validation ID
+func (s *state) GetNodeID(vID ids.ID) (ids.NodeID, error) {
+	data, exists := s.data[vID]
+	if !exists {
+		return ids.NodeID{}, database.ErrNotFound
+	}
+	return data.NodeID, nil
 }
 
 // RegisterListener registers a listener to the state

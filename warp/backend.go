@@ -13,8 +13,10 @@ import (
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/network/p2p/acp118"
 	"github.com/ava-labs/avalanchego/snow/consensus/snowman"
+	"github.com/ava-labs/avalanchego/snow/uptime"
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
+	"github.com/ava-labs/subnet-evm/plugin/evm/validators"
 	"github.com/ethereum/go-ethereum/log"
 )
 
@@ -56,6 +58,8 @@ type backend struct {
 	db                        database.Database
 	warpSigner                avalancheWarp.Signer
 	blockClient               BlockClient
+	uptimeCalculator          uptime.Calculator
+	validatorState            validators.StateReader
 	signatureCache            cache.Cacher[ids.ID, []byte]
 	messageCache              *cache.LRU[ids.ID, *avalancheWarp.UnsignedMessage]
 	offchainAddressedCallMsgs map[ids.ID]*avalancheWarp.UnsignedMessage
@@ -68,16 +72,20 @@ func NewBackend(
 	sourceChainID ids.ID,
 	warpSigner avalancheWarp.Signer,
 	blockClient BlockClient,
+	uptimeCalculator uptime.Calculator,
+	validatorsState validators.StateReader,
 	db database.Database,
 	sdkCache cache.Cacher[ids.ID, []byte],
 	offchainMessages [][]byte,
 ) (Backend, error) {
 	b := &backend{
-		networkID:     networkID,
-		sourceChainID: sourceChainID,
-		db:            db,
-		warpSigner:    warpSigner,
-		blockClient:   blockClient,
+		networkID:        networkID,
+		sourceChainID:    sourceChainID,
+		db:               db,
+		warpSigner:       warpSigner,
+		blockClient:      blockClient,
+		uptimeCalculator: uptimeCalculator,
+		validatorState:   validatorsState,
 		// sdkCache returns sdk.SignatureResponse proto bytes,
 		// and it must be wrapped to return Signature bytes.
 		signatureCache:            NewWrappedCache(sdkCache),

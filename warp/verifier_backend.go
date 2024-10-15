@@ -94,10 +94,42 @@ func (b *backend) verifyAddressedCall(addressedCall *payload.AddressedCall) *com
 	}
 
 	switch p := parsed.(type) {
+	case *messages.ValidatorUptime:
+		return b.verifyUptimeMessage(p)
 	default:
 		return &common.AppError{
 			Code:    ParseErrCode,
 			Message: fmt.Sprintf("unknown message type: %T", p),
 		}
 	}
+}
+
+func (b *backend) verifyUptimeMessage(uptimeMsg *messages.ValidatorUptime) *common.AppError {
+	// first get the validator's nodeID
+	nodeID, err := b.validatorState.GetNodeID(uptimeMsg.ValidationID)
+	if err != nil {
+		return &common.AppError{
+			Code:    VerifyErrCode,
+			Message: fmt.Sprintf("failed to get nodeID for validationID %s: %s", uptimeMsg.ValidationID, err.Error()),
+		}
+	}
+
+	// then get the current uptime
+	currentUptime, _, err := b.uptimeCalculator.CalculateUptime(nodeID)
+	if err != nil {
+		return &common.AppError{
+			Code:    VerifyErrCode,
+			Message: fmt.Sprintf("failed to calculate uptime for nodeID %s: %s", nodeID, err.Error()),
+		}
+	}
+
+	// verify the current uptime against the total uptime in the message
+	if uint64(currentUptime.Seconds()) < uptimeMsg.TotalUptime {
+		return &common.AppError{
+			Code:    VerifyErrCode,
+			Message: fmt.Sprintf("current uptime %d is less than total uptime %d for nodeID %s", currentUptime, uptimeMsg.TotalUptime, nodeID),
+		}
+	}
+
+	return nil
 }
