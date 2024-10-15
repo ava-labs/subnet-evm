@@ -1190,21 +1190,22 @@ func attachEthService(handler *rpc.Server, apis []rpc.API, names []string) error
 func (vm *VM) useStandaloneDatabase(acceptedDB database.Database) (bool, error) {
 	// no config provided, use default
 	standaloneDBFlag := vm.config.UseStandaloneDatabase
-	if standaloneDBFlag == nil {
-		// check if the chain can use a standalone database
-		_, lastAcceptedErr := acceptedDB.Get(lastAcceptedKey)
-		if lastAcceptedErr == database.ErrNotFound {
-			// If there is nothing in the database, we can use the standalone database
-			return true, nil
-		} else {
-			return false, lastAcceptedErr
-		}
+	if standaloneDBFlag != nil {
+		return standaloneDBFlag.Bool(), nil
 	}
-	return standaloneDBFlag.Bool(), nil
+
+	// check if the chain can use a standalone database
+	_, err := acceptedDB.Get(lastAcceptedKey)
+	if err == database.ErrNotFound {
+		// If there is nothing in the database, we can use the standalone database
+		return true, nil
+	} else {
+		return false, err
+	}
 }
 
 // getDatabaseConfig returns the database configuration for the chain
-// to be used by sepearate, standalone database.
+// to be used by separate, standalone database.
 func getDatabaseConfig(config Config, chainDataDir string) (avalancheNode.DatabaseConfig, error) {
 	var (
 		configBytes []byte
