@@ -125,9 +125,7 @@ func TestStateSyncToggleEnabledToDisabled(t *testing.T) {
 	test.responseIntercept = nil
 	test.expectedErr = nil
 
-	syncDisabledVM := &VM{
-		skipStandaloneDB: true,
-	}
+	syncDisabledVM := &VM{}
 	appSender := &enginetest.Sender{T: t}
 	appSender.SendAppGossipF = func(context.Context, commonEng.SendConfig, []byte) error { return nil }
 	appSender.SendAppRequestF = func(ctx context.Context, nodeSet set.Set[ids.NodeID], requestID uint32, request []byte) error {
@@ -197,9 +195,7 @@ func TestStateSyncToggleEnabledToDisabled(t *testing.T) {
 	syncDisabledVM.blockChain.DrainAcceptorQueue()
 
 	// Create a new VM from the same database with state sync enabled.
-	syncReEnabledVM := &VM{
-		skipStandaloneDB: true,
-	}
+	syncReEnabledVM := &VM{}
 	// Enable state sync in configJSON
 	configJSON := fmt.Sprintf(
 		`{"state-sync-enabled":true, "state-sync-min-blocks":%d}`,

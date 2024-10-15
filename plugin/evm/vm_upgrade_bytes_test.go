@@ -181,9 +181,7 @@ func TestNetworkUpgradesOverriden(t *testing.T) {
 			}
 		}`
 
-	vm := &VM{
-		skipStandaloneDB: true,
-	}
+	vm := &VM{}
 	ctx, dbManager, genesisBytes, issuer, _ := setupGenesis(t, string(genesisBytes))
 	appSender := &enginetest.Sender{T: t}
 	appSender.CantSendAppGossip = true

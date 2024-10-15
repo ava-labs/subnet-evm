@@ -253,8 +253,6 @@ type VM struct {
 	ethTxPushGossiper  avalancheUtils.Atomic[*gossip.PushGossiper[*GossipEthTx]]
 	ethTxPullGossiper  gossip.Gossiper
 
-	skipStandaloneDB bool
-
 	chainAlias string
 }
 
@@ -1242,6 +1240,14 @@ func getDatabaseConfig(config Config, chainDataDir string) (avalancheNode.Databa
 // If [useStandaloneDB] is true, the chain will use a standalone database for its state.
 // Otherwise, the chain will use the provided [avaDB] for its state.
 func (vm *VM) initializeDBs(avaDB database.Database) error {
+	// we don't want to use a persistent database if the avalanchego database is an in memory database
+	// this is primarily used in tests.
+	var isInMemoryDB bool
+	switch avaDB.(type) {
+	case *memdb.Database:
+		isInMemoryDB = true
+	}
+
 	// first initialize the accepted block database to check if we need to use a standalone database
 	verDB := versiondb.New(avaDB)
 	acceptedDB := prefixdb.New(acceptedPrefix, verDB)
@@ -1250,7 +1256,7 @@ func (vm *VM) initializeDBs(avaDB database.Database) error {
 		return err
 	}
 	db := avaDB
-	if useStandAloneDB && !vm.skipStandaloneDB {
+	if useStandAloneDB && !isInMemoryDB {
 		// If we are using a standalone database, we need to create a new database
 		// for the chain state.
 		dbConfig, err := getDatabaseConfig(vm.config, vm.ctx.ChainDataDir)
