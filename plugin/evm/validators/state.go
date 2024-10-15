@@ -40,8 +40,8 @@ type State interface {
 
 	// GetValidationIDs returns the validation IDs in the state
 	GetValidationIDs() set.Set[ids.ID]
-	// GetValidatorIDs returns the validator node IDs in the state
-	GetValidatorIDs() set.Set[ids.NodeID]
+	// GetNodeIDs returns the validator node IDs in the state
+	GetNodeIDs() set.Set[ids.NodeID]
 	// GetValidator returns the validator data for the given nodeID
 	GetValidator(nodeID ids.NodeID) (*ValidatorOutput, error)
 
@@ -241,8 +241,8 @@ func (s *state) GetValidationIDs() set.Set[ids.ID] {
 	return ids
 }
 
-// GetValidatorIDs returns the validator IDs in the state
-func (s *state) GetValidatorIDs() set.Set[ids.NodeID] {
+// GetNodeIDs returns the validator IDs in the state
+func (s *state) GetNodeIDs() set.Set[ids.NodeID] {
 	ids := set.NewSet[ids.NodeID](len(s.index))
 	for nodeID := range s.index {
 		ids.Add(nodeID)

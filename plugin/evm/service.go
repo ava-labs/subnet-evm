@@ -40,7 +40,7 @@ func (api *ValidatorsAPI) GetCurrentValidators(_ *http.Request, args *GetCurrent
 
 	nodeIDs := set.Of(args.NodeIDs...)
 	if nodeIDs.Len() == 0 {
-		nodeIDs = api.vm.validatorState.GetValidatorIDs()
+		nodeIDs = api.vm.validatorState.GetNodeIDs()
 	}
 
 	reply.Validators = make([]CurrentValidator, 0, nodeIDs.Len())

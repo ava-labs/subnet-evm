@@ -725,7 +725,7 @@ func (vm *VM) onNormalOperationsStarted() error {
 	if err := vm.performValidatorUpdate(ctx); err != nil {
 		return fmt.Errorf("failed to update validators: %w", err)
 	}
-	vdrIDs := vm.validatorState.GetValidatorIDs().List()
+	vdrIDs := vm.validatorState.GetNodeIDs().List()
 	// then start tracking with updated validators
 	if err := vm.uptimeManager.StartTracking(vdrIDs); err != nil {
 		return fmt.Errorf("failed to start tracking uptime: %w", err)
@@ -866,7 +866,7 @@ func (vm *VM) Shutdown(context.Context) error {
 		vm.cancel()
 	}
 	if vm.bootstrapped.Get() {
-		vdrIDs := vm.validatorState.GetValidatorIDs().List()
+		vdrIDs := vm.validatorState.GetNodeIDs().List()
 		if err := vm.uptimeManager.StopTracking(vdrIDs); err != nil {
 			return fmt.Errorf("failed to stop tracking uptime: %w", err)
 		}
