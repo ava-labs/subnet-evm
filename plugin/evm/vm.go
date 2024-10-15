@@ -1241,13 +1241,13 @@ func getDatabaseConfig(config Config, chainDataDir string) (avalancheNode.Databa
 // Otherwise, the chain will use the provided [avaDB] for its state.
 func (vm *VM) initializeDBs(avaDB database.Database) error {
 	db := avaDB
-	var isInMemoryDB bool
+	var isMemDB bool
 	switch avaDB.(type) {
 	case *memdb.Database:
-		isInMemoryDB = true
+		isMemDB = true
 	}
 	// skip standalone database initialization if we are running memdb
-	if !isInMemoryDB {
+	if !isMemDB {
 		// first initialize the accepted block database to check if we need to use a standalone database
 		verDB := versiondb.New(avaDB)
 		acceptedDB := prefixdb.New(acceptedPrefix, verDB)
