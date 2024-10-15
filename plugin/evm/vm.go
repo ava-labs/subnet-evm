@@ -1240,33 +1240,33 @@ func getDatabaseConfig(config Config, chainDataDir string) (avalancheNode.Databa
 // If [useStandaloneDB] is true, the chain will use a standalone database for its state.
 // Otherwise, the chain will use the provided [avaDB] for its state.
 func (vm *VM) initializeDBs(avaDB database.Database) error {
-	// we don't want to use a persistent database if the avalanchego database is an in memory database
-	// this is primarily used in tests.
+	db := avaDB
 	var isInMemoryDB bool
 	switch avaDB.(type) {
 	case *memdb.Database:
 		isInMemoryDB = true
 	}
-
-	// first initialize the accepted block database to check if we need to use a standalone database
-	verDB := versiondb.New(avaDB)
-	acceptedDB := prefixdb.New(acceptedPrefix, verDB)
-	useStandAloneDB, err := vm.useStandaloneDatabase(acceptedDB)
-	if err != nil {
-		return err
-	}
-	db := avaDB
-	if useStandAloneDB && !isInMemoryDB {
-		// If we are using a standalone database, we need to create a new database
-		// for the chain state.
-		dbConfig, err := getDatabaseConfig(vm.config, vm.ctx.ChainDataDir)
+	// skip standalone database initialization if we are running memdb
+	if !isInMemoryDB {
+		// first initialize the accepted block database to check if we need to use a standalone database
+		verDB := versiondb.New(avaDB)
+		acceptedDB := prefixdb.New(acceptedPrefix, verDB)
+		useStandAloneDB, err := vm.useStandaloneDatabase(acceptedDB)
 		if err != nil {
 			return err
 		}
-		log.Info("Using standalone database for the chain state", "DatabaseConfig", dbConfig)
-		db, err = vm.createDatabase(dbConfig)
-		if err != nil {
-			return err
+		if useStandAloneDB {
+			// If we are using a standalone database, we need to create a new database
+			// for the chain state.
+			dbConfig, err := getDatabaseConfig(vm.config, vm.ctx.ChainDataDir)
+			if err != nil {
+				return err
+			}
+			log.Info("Using standalone database for the chain state", "DatabaseConfig", dbConfig)
+			db, err = vm.createDatabase(dbConfig)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	// Use NewNested rather than New so that the structure of the database
