@@ -1197,9 +1197,8 @@ func (vm *VM) useStandaloneDatabase(acceptedDB database.Database) (bool, error) 
 	if err == database.ErrNotFound {
 		// If there is nothing in the database, we can use the standalone database
 		return true, nil
-	} else {
-		return false, err
 	}
+	return false, err
 }
 
 // getDatabaseConfig returns the database configuration for the chain
