@@ -124,7 +124,7 @@ func (p *prefetcherTrie) GetStorage(address common.Address, key []byte) ([]byte,
 		tr := p.getCopy()
 		_, err := tr.GetStorage(address, key)
 		if err != nil {
-			log.Error("GetAccount failed in prefetcher", "err", err)
+			log.Error("GetStorage failed in prefetcher", "err", err)
 		}
 		p.putCopy(tr)
 	}
