@@ -89,6 +89,7 @@ import (
 	avalanchemetrics "github.com/ava-labs/avalanchego/api/metrics"
 	"github.com/ava-labs/avalanchego/database"
 	avalancheUtils "github.com/ava-labs/avalanchego/utils"
+	avalancheconstants "github.com/ava-labs/avalanchego/utils/constants"
 	avalancheJSON "github.com/ava-labs/avalanchego/utils/json"
 )
 
@@ -1240,13 +1241,8 @@ func getDatabaseConfig(config Config, chainDataDir string) (avalancheNode.Databa
 // Otherwise, the chain will use the provided [avaDB] for its state.
 func (vm *VM) initializeDBs(avaDB database.Database) error {
 	db := avaDB
-	var isMemDB bool
-	switch avaDB.(type) {
-	case *memdb.Database:
-		isMemDB = true
-	}
 	// skip standalone database initialization if we are running memdb
-	if !isMemDB {
+	if vm.ctx.NetworkID != avalancheconstants.UnitTestID {
 		// first initialize the accepted block database to check if we need to use a standalone database
 		verDB := versiondb.New(avaDB)
 		acceptedDB := prefixdb.New(acceptedPrefix, verDB)
