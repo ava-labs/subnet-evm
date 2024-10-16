@@ -6,6 +6,7 @@ package state
 import (
 	"crypto/rand"
 	"encoding/binary"
+	"fmt"
 	"os"
 	"path"
 	"strconv"
@@ -13,11 +14,17 @@ import (
 
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
+	"github.com/ava-labs/subnet-evm/core/state/snapshot"
 	"github.com/ava-labs/subnet-evm/core/types"
+	"github.com/ava-labs/subnet-evm/metrics"
 	"github.com/ava-labs/subnet-evm/triedb"
+	"github.com/ava-labs/subnet-evm/triedb/hashdb"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/stretchr/testify/require"
 )
+
+const prefix = "chain"
 
 // Write a test to add 100m kvs to a leveldb so that we can test the prefetcher
 // performance.
@@ -38,7 +45,6 @@ func BenchmarkPrefetcherDatabase(b *testing.B) {
 
 	levelDB, err := rawdb.NewLevelDBDatabase(path.Join(dir, "level.db"), 0, 0, "", false)
 	require.NoError(err)
-	defer levelDB.Close()
 
 	root := types.EmptyRootHash
 	count := uint64(0)
@@ -61,13 +67,13 @@ func BenchmarkPrefetcherDatabase(b *testing.B) {
 	}
 
 	// Make a trie on the levelDB
-	address := common.Address{42}
-	addBlock := func(db Database, kvsPerBlock int) {
-		root, err = addKVs(db, address, root, block, kvsPerBlock)
+	address1 := common.Address{42}
+	address2 := common.Address{43}
+	addBlock := func(levelDB ethdb.Database, db Database, snaps *snapshot.Tree, kvsPerBlock int, prefetchers int) (statedb *StateDB) {
+		statedb, root, err = addKVs(db, snaps, address1, address2, root, block, kvsPerBlock, prefetchers)
 		require.NoError(err)
 		count += uint64(kvsPerBlock)
 		block++
-		b.Logf("Root: %v, kvs: %d", root, count)
 
 		// update the tracking keys
 		err = levelDB.Put(rootKey, root.Bytes())
@@ -76,38 +82,91 @@ func BenchmarkPrefetcherDatabase(b *testing.B) {
 		require.NoError(err)
 		err = database.PutUInt64(levelDB, countKey, count)
 		require.NoError(err)
+
+		b.Logf("At block %d, storage root is %v", block, statedb.GetStorageRoot(address1))
+		return statedb
 	}
 
-	db := NewDatabaseWithConfig(levelDB, triedb.HashDefaults)
+	tdbConfig := &triedb.Config{
+		HashDB: &hashdb.Config{
+			CleanCacheSize: 3 * 1024 * 1024 * 1024,
+		},
+	}
+	db := NewDatabaseWithConfig(levelDB, tdbConfig)
+	snaps := snapshot.NewTestTree(levelDB, fakeHash(block), root)
 	for count < uint64(wantKVs) {
-		addBlock(db, 100_000)
+		_ = addBlock(levelDB, db, snaps, 100_000, 0)
+		b.Logf("Root: %v, kvs: %d, block: %d", root, count, block)
 	}
-
-	b.ResetTimer()
-	db = NewDatabaseWithConfig(levelDB, triedb.HashDefaults)
-	for i := 0; i < b.N; i++ {
-		addBlock(db, 1_000)
+	require.NoError(levelDB.Close())
+	b.Logf("Starting benchmarks")
+	b.Logf("Root: %v, kvs: %d, block: %d", root, count, block)
+	for _, updates := range []int{1_000, 10_000, 100_000} {
+		for _, prefetchers := range []int{0, 1, 4, 16} {
+			b.Run(fmt.Sprintf("updates_%d_prefetchers_%d", updates, prefetchers), func(b *testing.B) {
+				levelDB, err := rawdb.NewLevelDBDatabase(path.Join(dir, "level.db"), 0, 0, "", false)
+				require.NoError(err)
+				snaps := snapshot.NewTestTree(levelDB, fakeHash(block), root)
+				db := NewDatabaseWithConfig(levelDB, tdbConfig)
+				storage := int64(0)
+				for i := 0; i < b.N; i++ {
+					_ = addBlock(levelDB, db, snaps, updates, prefetchers)
+					meter := metrics.GetOrRegisterMeter(prefix+"/storage/skip", nil)
+					storage += meter.Snapshot().Count()
+				}
+				require.NoError(levelDB.Close())
+				b.ReportMetric(float64(storage)/float64(b.N), "storage")
+			})
+		}
 	}
 }
 
-func addKVs(db Database, address common.Address, root common.Hash, block uint64, count int) (common.Hash, error) {
-	statedb, err := New(root, db, nil)
-	if err != nil {
-		return common.Hash{}, err
+func fakeHash(block uint64) common.Hash {
+	return common.BytesToHash(binary.BigEndian.AppendUint64(nil, block))
+}
+
+func addKVs(
+	db Database, snaps *snapshot.Tree,
+	address1, address2 common.Address, root common.Hash, block uint64,
+	count int, prefetchers int,
+) (*StateDB, common.Hash, error) {
+	snap := snaps.Snapshot(root)
+	if snap == nil {
+		return nil, common.Hash{}, fmt.Errorf("snapshot not found")
 	}
-	statedb.SetNonce(address, 1)
-	for i := 0; i < count; i++ {
+	statedb, err := NewWithSnapshot(root, db, snap)
+	if err != nil {
+		return nil, common.Hash{}, err
+	}
+	if prefetchers > 0 {
+		statedb.StartPrefetcher(prefix, prefetchers)
+		// defer statedb.StopPrefetcher()
+	}
+	statedb.SetNonce(address1, 1)
+	for i := 0; i < count/2; i++ {
 		key := make([]byte, 32)
 		value := make([]byte, 32)
 		rand.Read(key)
 		rand.Read(value)
 
-		statedb.SetState(address, common.BytesToHash(key), common.BytesToHash(value))
+		statedb.SetState(address1, common.BytesToHash(key), common.BytesToHash(value))
 	}
-	root, err = statedb.Commit(block+1, true, false)
+	statedb.SetNonce(address2, 1)
+	for i := 0; i < count/2; i++ {
+		key := make([]byte, 32)
+		value := make([]byte, 32)
+		rand.Read(key)
+		rand.Read(value)
+
+		statedb.SetState(address2, common.BytesToHash(key), common.BytesToHash(value))
+	}
+	root, err = statedb.CommitWithSnap(block+1, true, snaps, fakeHash(block+1), fakeHash(block), false)
 	if err != nil {
-		return common.Hash{}, err
+		return nil, common.Hash{}, err
 	}
-	err = statedb.db.TrieDB().Commit(root, false)
-	return root, err
+	if err := statedb.db.TrieDB().Commit(root, false); err != nil {
+		return nil, common.Hash{}, err
+	}
+	err = snaps.Flatten(fakeHash(block + 1))
+	return statedb, root, err
 }

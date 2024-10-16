@@ -27,6 +27,7 @@
 package state
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/ava-labs/subnet-evm/metrics"
@@ -106,6 +107,12 @@ func (p *triePrefetcher) close() {
 				}
 				p.accountWasteMeter.Mark(int64(len(fetcher.seen)))
 			} else {
+				fmt.Println("storage",
+					"root", fetcher.root,
+					"seen", len(fetcher.seen),
+					"dups", fetcher.dups,
+					"tasks", len(fetcher.tasks),
+				)
 				p.storageLoadMeter.Mark(int64(len(fetcher.seen)))
 				p.storageDupMeter.Mark(int64(fetcher.dups))
 				p.storageSkipMeter.Mark(int64(len(fetcher.tasks)))
@@ -340,6 +347,7 @@ func (sf *subfetcher) loop() {
 		sf.trie = trie
 	}
 	// Trie opened successfully, keep prefetching items
+	shouldReturn := false
 	for {
 		select {
 		case <-sf.wake:
@@ -350,15 +358,8 @@ func (sf *subfetcher) loop() {
 			sf.lock.Unlock()
 
 			// Prefetch any tasks until the loop is interrupted
-			for i, task := range tasks {
+			for _, task := range tasks {
 				select {
-				case <-sf.stop:
-					// If termination is requested, add any leftover back and return
-					sf.lock.Lock()
-					sf.tasks = append(sf.tasks, tasks[i:]...)
-					sf.lock.Unlock()
-					return
-
 				case ch := <-sf.copy:
 					// Somebody wants a copy of the current trie, grant them
 					ch <- sf.db.CopyTrie(sf.trie)
@@ -377,6 +378,9 @@ func (sf *subfetcher) loop() {
 					}
 				}
 			}
+			if shouldReturn {
+				return
+			}
 
 		case ch := <-sf.copy:
 			// Somebody wants a copy of the current trie, grant them
@@ -384,7 +388,12 @@ func (sf *subfetcher) loop() {
 
 		case <-sf.stop:
 			// Termination is requested, abort and leave remaining tasks
-			return
+			shouldReturn = true
+			select {
+			// Notify the wake channel if it is empty
+			case sf.wake <- struct{}{}:
+			default:
+			}
 		}
 	}
 }
