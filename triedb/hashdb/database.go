@@ -97,9 +97,9 @@ type cache interface {
 
 // Config contains the settings for database.
 type Config struct {
-	CleanCacheSize int    // Maximum memory allowance (in bytes) for caching clean nodes
-	StatsPrefix    string // Prefix for cache stats (disabled if empty)
-	ReferenceRoot  bool   // Whether to reference the root node on update
+	CleanCacheSize                  int    // Maximum memory allowance (in bytes) for caching clean nodes
+	StatsPrefix                     string // Prefix for cache stats (disabled if empty)
+	ReferenceRootAtomicallyOnUpdate bool   // Whether to reference the root node on update
 }
 
 // Defaults is the default setting for database if it's not specified.
@@ -181,7 +181,7 @@ func New(diskdb ethdb.Database, config *Config, resolver ChildResolver) *Databas
 		resolver:      resolver,
 		cleans:        cleans,
 		dirties:       make(map[common.Hash]*cachedNode),
-		referenceRoot: config.ReferenceRoot,
+		referenceRoot: config.ReferenceRootAtomicallyOnUpdate,
 	}
 }
 
