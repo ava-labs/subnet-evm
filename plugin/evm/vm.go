@@ -1241,7 +1241,7 @@ func getDatabaseConfig(config Config, chainDataDir string) (avalancheNode.Databa
 // Otherwise, the chain will use the provided [avaDB] for its state.
 func (vm *VM) initializeDBs(avaDB database.Database) error {
 	db := avaDB
-	// skip standalone database initialization if we are running memdb
+	// skip standalone database initialization if we are running in unit tests
 	if vm.ctx.NetworkID != avalancheconstants.UnitTestID {
 		// first initialize the accepted block database to check if we need to use a standalone database
 		verDB := versiondb.New(avaDB)
