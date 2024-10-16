@@ -40,6 +40,7 @@ import (
 	"github.com/ava-labs/subnet-evm/eth/tracers"
 	"github.com/ava-labs/subnet-evm/trie"
 	"github.com/ava-labs/subnet-evm/triedb"
+	"github.com/ava-labs/subnet-evm/triedb/hashdb"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 )
@@ -73,13 +74,16 @@ func (eth *Ethereum) hashState(ctx context.Context, block *types.Block, reexec u
 	// The state is both for reading and writing, or it's unavailable in disk,
 	// try to construct/recover the state over an ephemeral trie.Database for
 	// isolating the live one.
+	// Use ReferenceRoot for ephemeral trie.Databases so reference counting
+	// logic is the same as a live trie.Database.
+	tdbConfig := &triedb.Config{HashDB: &hashdb.Config{ReferenceRoot: true}}
 	if base != nil {
 		if preferDisk {
 			// Create an ephemeral trie.Database for isolating the live one. Otherwise
 			// the internal junks created by tracing will be persisted into the disk.
 			// TODO(rjl493456442), clean cache is disabled to prevent memory leak,
 			// please re-enable it for better performance.
-			database = state.NewDatabaseWithConfig(eth.chainDb, triedb.HashDefaults)
+			database = state.NewDatabaseWithConfig(eth.chainDb, tdbConfig)
 			if statedb, err = state.New(block.Root(), database, nil); err == nil {
 				log.Info("Found disk backend for state trie", "root", block.Root(), "number", block.Number())
 				return statedb, noopReleaser, nil
@@ -96,7 +100,7 @@ func (eth *Ethereum) hashState(ctx context.Context, block *types.Block, reexec u
 		// the internal junks created by tracing will be persisted into the disk.
 		// TODO(rjl493456442), clean cache is disabled to prevent memory leak,
 		// please re-enable it for better performance.
-		tdb = triedb.NewDatabase(eth.chainDb, triedb.HashDefaults)
+		tdb = triedb.NewDatabase(eth.chainDb, tdbConfig)
 		database = state.NewDatabaseWithNodeDB(eth.chainDb, tdb)
 
 		// If we didn't check the live database, do check state over ephemeral database,
@@ -163,7 +167,7 @@ func (eth *Ethereum) hashState(ctx context.Context, block *types.Block, reexec u
 			return nil, nil, fmt.Errorf("processing block %d failed: %v", current.NumberU64(), err)
 		}
 		// Finalize the state so any modifications are written to the trie
-		root, err := statedb.Commit(current.NumberU64(), eth.blockchain.Config().IsEIP158(current.Number()), true)
+		root, err := statedb.Commit(current.NumberU64(), eth.blockchain.Config().IsEIP158(current.Number()))
 		if err != nil {
 			return nil, nil, fmt.Errorf("stateAtBlock commit failed, number %d root %v: %w",
 				current.NumberU64(), current.Root().Hex(), err)
@@ -172,7 +176,8 @@ func (eth *Ethereum) hashState(ctx context.Context, block *types.Block, reexec u
 		if err != nil {
 			return nil, nil, fmt.Errorf("state reset after block %d failed: %v", current.NumberU64(), err)
 		}
-		// Note: In subnet-evm, the state reference is held by passing true to [statedb.Commit].
+		// Note: In subnet-evm, the state reference is held because the triedb has
+		// ReferenceRoot enabled, as part of [triedb.Update] called from [statedb.Commit].
 		// Drop the parent state to prevent accumulating too many nodes in memory.
 		if parent != (common.Hash{}) {
 			tdb.Dereference(parent)
