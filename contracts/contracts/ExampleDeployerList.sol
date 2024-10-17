@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/IAllowList.sol";
+import {Empty} from "./Empty.sol";
 import "./AllowList.sol";
 
 address constant DEPLOYER_LIST = 0x0200000000000000000000000000000000000000;
@@ -14,9 +15,6 @@ contract ExampleDeployerList is AllowList {
   constructor() AllowList(DEPLOYER_LIST) {}
 
   function deployContract() public {
-    new Example();
+    new Empty();
   }
 }
-
-// This is an empty contract that can be used to test contract deployment
-contract Example {}
