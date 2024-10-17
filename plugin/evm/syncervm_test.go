@@ -192,7 +192,6 @@ func TestStateSyncToggleEnabledToDisabled(t *testing.T) {
 	if err := syncDisabledVM.blockChain.Snapshots().Verify(lastRoot); err != nil {
 		t.Fatal(err)
 	}
-	syncDisabledVM.blockChain.DrainAcceptorQueue()
 
 	// Create a new VM from the same database with state sync enabled.
 	syncReEnabledVM := &VM{}
@@ -589,7 +588,6 @@ func generateAndAcceptBlocks(t *testing.T, vm *VM, numBlocks int, gen func(int, 
 	if err != nil {
 		t.Fatal(err)
 	}
-	vm.blockChain.DrainAcceptorQueue()
 }
 
 // assertSyncPerformedHeights iterates over all heights the VM has synced to and
