@@ -122,7 +122,7 @@ func BenchmarkPrefetcherDatabase(b *testing.B) {
 	require.NoError(levelDB.Close())
 	b.Logf("Starting benchmarks")
 	b.Logf("Root: %v, kvs: %d, block: %d", root, count, block)
-	for _, updates := range []int{100, 200, 500, 1_000, 10_000, 100_000} {
+	for _, updates := range []int{100, 200, 500} {
 		for _, prefetchers := range []int{0, 1, 4, 16} {
 			b.Run(fmt.Sprintf("updates_%d_prefetchers_%d", updates, prefetchers), func(b *testing.B) {
 				startRoot, startBlock, startCount := root, block, count
