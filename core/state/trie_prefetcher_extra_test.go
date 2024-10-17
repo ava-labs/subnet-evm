@@ -80,6 +80,13 @@ func BenchmarkPrefetcherDatabase(b *testing.B) {
 
 	lastCommit := block
 	commit := func(levelDB ethdb.Database, snaps *snapshot.Tree, db Database) {
+		require.NoError(db.TrieDB().Commit(root, false))
+
+		for i := lastCommit + 1; i <= block; i++ {
+			require.NoError(snaps.Flatten(fakeHash(i)))
+		}
+		lastCommit = block
+
 		// update the tracking keys
 		err = levelDB.Put(rootKey, root.Bytes())
 		require.NoError(err)
@@ -87,13 +94,6 @@ func BenchmarkPrefetcherDatabase(b *testing.B) {
 		require.NoError(err)
 		err = database.PutUInt64(levelDB, countKey, count)
 		require.NoError(err)
-
-		require.NoError(db.TrieDB().Commit(root, false))
-
-		for i := lastCommit + 1; i <= block; i++ {
-			require.NoError(snaps.Flatten(fakeHash(i)))
-		}
-		lastCommit = block
 	}
 
 	tdbConfig := &triedb.Config{
