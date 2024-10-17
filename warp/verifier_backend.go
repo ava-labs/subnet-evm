@@ -110,7 +110,7 @@ func (b *backend) verifyUptimeMessage(uptimeMsg *messages.ValidatorUptime) *comm
 	if err != nil {
 		return &common.AppError{
 			Code:    VerifyErrCode,
-			Message: fmt.Sprintf("failed to get nodeID for validationID %s: %s", uptimeMsg.ValidationID, err.Error()),
+			Message: fmt.Sprintf("failed to get validator for validationID %s: %s", uptimeMsg.ValidationID, err.Error()),
 		}
 	}
 
@@ -123,11 +123,12 @@ func (b *backend) verifyUptimeMessage(uptimeMsg *messages.ValidatorUptime) *comm
 		}
 	}
 
+	currentUptimeSeconds := uint64(currentUptime.Seconds())
 	// verify the current uptime against the total uptime in the message
-	if uint64(currentUptime.Seconds()) < uptimeMsg.TotalUptime {
+	if currentUptimeSeconds < uptimeMsg.TotalUptime {
 		return &common.AppError{
 			Code:    VerifyErrCode,
-			Message: fmt.Sprintf("current uptime %d is less than total uptime %d for nodeID %s", currentUptime, uptimeMsg.TotalUptime, nodeID),
+			Message: fmt.Sprintf("current uptime %d is less than queried uptime %d for nodeID %s", currentUptimeSeconds, uptimeMsg.TotalUptime, nodeID),
 		}
 	}
 
