@@ -152,7 +152,7 @@ func TestValidatorState(t *testing.T) {
 
 	// new validator should be added to the state eventually after validatorsLoadFrequency
 	require.EventuallyWithT(func(c *assert.CollectT) {
-		assert.Equal(c, 4, vm.validatorState.GetValidatorIDs().Len())
+		assert.Equal(c, 4, vm.validatorState.GetNodeIDs().Len())
 		newValidator, err := vm.validatorState.GetValidator(newNodeID)
 		assert.NoError(c, err)
 		assert.Equal(c, newNodeID, newValidator.NodeID)

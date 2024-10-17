@@ -16,7 +16,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ava-labs/avalanchego/cache"
+	"github.com/ava-labs/avalanchego/cache/metercacher"
 	"github.com/ava-labs/avalanchego/network/p2p"
+	"github.com/ava-labs/avalanchego/network/p2p/acp118"
 	"github.com/ava-labs/avalanchego/network/p2p/gossip"
 	"github.com/prometheus/client_golang/prometheus"
 
@@ -46,7 +49,6 @@ import (
 	statesyncclient "github.com/ava-labs/subnet-evm/sync/client"
 	"github.com/ava-labs/subnet-evm/sync/client/stats"
 	"github.com/ava-labs/subnet-evm/warp"
-	"github.com/ava-labs/subnet-evm/warp/handlers"
 
 	// Force-load tracer engine to trigger registration
 	//
@@ -205,6 +207,8 @@ type VM struct {
 	// [acceptedBlockDB] is the database to store the last accepted
 	// block.
 	acceptedBlockDB database.Database
+	// [warpDB] is the database to store warp messages
+	warpDB database.Database
 
 	toEngine chan<- commonEng.Message
 
@@ -246,7 +250,8 @@ type VM struct {
 	ethTxPushGossiper  avalancheUtils.Atomic[*gossip.PushGossiper[*GossipEthTx]]
 	ethTxPullGossiper  gossip.Gossiper
 
-	uptimeManager uptime.PausableManager
+	UptimeLockedCalculator avalancheUptime.LockedCalculator
+	uptimeManager          uptime.PausableManager
 
 	validatorState validators.State
 }
@@ -488,6 +493,8 @@ func (vm *VM) Initialize(
 	}
 	// TODO: add a configuration to disable tracking uptime
 	vm.uptimeManager = uptime.NewPausableManager(avalancheUptime.NewManager(vm.validatorState, &vm.clock))
+	vm.UptimeLockedCalculator = avalancheUptime.NewLockedCalculator()
+	vm.UptimeLockedCalculator.SetCalculator(&vm.bootstrapped, &chainCtx.Lock, vm.uptimeManager)
 	vm.validatorState.RegisterListener(vm.uptimeManager)
 
 	// Initialize warp backend
@@ -495,29 +502,37 @@ func (vm *VM) Initialize(
 	for i, hexMsg := range vm.config.WarpOffChainMessages {
 		offchainWarpMessages[i] = []byte(hexMsg)
 	}
+	warpSignatureCache := &cache.LRU[ids.ID, []byte]{Size: warpSignatureCacheSize}
+	meteredCache, err := metercacher.New("warp_signature_cache", vm.sdkMetrics, warpSignatureCache)
+	if err != nil {
+		return fmt.Errorf("failed to create warp signature cache: %w", err)
+	}
 
 	// Note warpDB is not part of versiondb because it is not necessary
 	// that warp signatures are committed to the database atomically with
 	// the last accepted block.
-	warpDB := prefixdb.New(warpPrefix, db)
+	vm.warpDB = prefixdb.New(warpPrefix, db)
+
+	// clear warpdb on initialization if config enabled
+	if vm.config.PruneWarpDB {
+		if err := database.Clear(vm.warpDB, ethdb.IdealBatchSize); err != nil {
+			return fmt.Errorf("failed to prune warpDB: %w", err)
+		}
+	}
+
 	vm.warpBackend, err = warp.NewBackend(
 		vm.ctx.NetworkID,
 		vm.ctx.ChainID,
 		vm.ctx.WarpSigner,
 		vm,
-		warpDB,
-		warpSignatureCacheSize,
+		vm.UptimeLockedCalculator,
+		validators.NewLockedStateReader(vm.ctx.Lock.RLocker(), vm.validatorState),
+		vm.warpDB,
+		meteredCache,
 		offchainWarpMessages,
 	)
 	if err != nil {
 		return err
-	}
-
-	// clear warpdb on initialization if config enabled
-	if vm.config.PruneWarpDB {
-		if err := vm.warpBackend.Clear(); err != nil {
-			return fmt.Errorf("failed to prune warpDB: %w", err)
-		}
 	}
 
 	if err := vm.initializeChain(lastAcceptedHash, vm.ethConfig); err != nil {
@@ -526,7 +541,16 @@ func (vm *VM) Initialize(
 
 	go vm.ctx.Log.RecoverAndPanic(vm.startContinuousProfiler)
 
-	vm.initializeHandlers()
+	// Add p2p warp message warpHandler
+	warpHandler := acp118.NewCachedHandler(meteredCache, vm.warpBackend, vm.ctx.WarpSigner)
+	vm.Network.AddHandler(p2p.SignatureRequestHandlerID, warpHandler)
+
+	vm.setAppRequestHandlers()
+
+	vm.StateSyncServer = NewStateSyncServer(&stateSyncServerConfig{
+		Chain:            vm.blockChain,
+		SyncableInterval: vm.config.StateSyncCommitInterval,
+	})
 	return vm.initializeStateSyncClient(lastAcceptedHeight)
 }
 
@@ -631,20 +655,6 @@ func (vm *VM) initializeStateSyncClient(lastAcceptedHeight uint64) error {
 	return nil
 }
 
-// initializeHandlers should be called after [vm.chain] is initialized.
-func (vm *VM) initializeHandlers() {
-	vm.StateSyncServer = NewStateSyncServer(&stateSyncServerConfig{
-		Chain:            vm.blockChain,
-		SyncableInterval: vm.config.StateSyncCommitInterval,
-	})
-
-	// Add p2p warp message warpHandler
-	warpHandler := handlers.NewSignatureRequestHandlerP2P(vm.warpBackend, vm.networkCodec)
-	vm.Network.AddHandler(p2p.SignatureRequestHandlerID, warpHandler)
-
-	vm.setAppRequestHandlers()
-}
-
 func (vm *VM) initChainState(lastAcceptedBlock *types.Block) error {
 	block := vm.newBlock(lastAcceptedBlock)
 
@@ -720,7 +730,7 @@ func (vm *VM) onNormalOperationsStarted() error {
 	if err := vm.performValidatorUpdate(ctx); err != nil {
 		return fmt.Errorf("failed to update validators: %w", err)
 	}
-	vdrIDs := vm.validatorState.GetValidatorIDs().List()
+	vdrIDs := vm.validatorState.GetNodeIDs().List()
 	// then start tracking with updated validators
 	if err := vm.uptimeManager.StartTracking(vdrIDs); err != nil {
 		return fmt.Errorf("failed to start tracking uptime: %w", err)
@@ -861,7 +871,7 @@ func (vm *VM) Shutdown(context.Context) error {
 		vm.cancel()
 	}
 	if vm.bootstrapped.Get() {
-		vdrIDs := vm.validatorState.GetValidatorIDs().List()
+		vdrIDs := vm.validatorState.GetNodeIDs().List()
 		if err := vm.uptimeManager.StopTracking(vdrIDs); err != nil {
 			return fmt.Errorf("failed to stop tracking uptime: %w", err)
 		}
