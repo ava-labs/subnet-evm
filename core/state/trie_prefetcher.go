@@ -27,7 +27,6 @@
 package state
 
 import (
-	"fmt"
 	"sync"
 
 	"github.com/ava-labs/subnet-evm/metrics"
@@ -107,12 +106,12 @@ func (p *triePrefetcher) close() {
 				}
 				p.accountWasteMeter.Mark(int64(len(fetcher.seen)))
 			} else {
-				fmt.Println("storage",
-					"root", fetcher.root,
-					"seen", len(fetcher.seen),
-					"dups", fetcher.dups,
-					"tasks", len(fetcher.tasks),
-				)
+				// fmt.Println("storage",
+				// 	"root", fetcher.root,
+				// 	"seen", len(fetcher.seen),
+				// 	"dups", fetcher.dups,
+				// 	"tasks", len(fetcher.tasks),
+				// )
 				p.storageLoadMeter.Mark(int64(len(fetcher.seen)))
 				p.storageDupMeter.Mark(int64(fetcher.dups))
 				p.storageSkipMeter.Mark(int64(len(fetcher.tasks)))

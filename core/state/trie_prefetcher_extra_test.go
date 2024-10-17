@@ -69,12 +69,17 @@ func BenchmarkPrefetcherDatabase(b *testing.B) {
 	// Make a trie on the levelDB
 	address1 := common.Address{42}
 	address2 := common.Address{43}
-	addBlock := func(levelDB ethdb.Database, db Database, snaps *snapshot.Tree, kvsPerBlock int, prefetchers int) (statedb *StateDB) {
+	addBlock := func(db Database, snaps *snapshot.Tree, kvsPerBlock int, prefetchers int) (statedb *StateDB) {
 		statedb, root, err = addKVs(db, snaps, address1, address2, root, block, kvsPerBlock, prefetchers)
 		require.NoError(err)
 		count += uint64(kvsPerBlock)
 		block++
 
+		return statedb
+	}
+
+	lastCommit := block
+	commit := func(levelDB ethdb.Database, snaps *snapshot.Tree, db Database) {
 		// update the tracking keys
 		err = levelDB.Put(rootKey, root.Bytes())
 		require.NoError(err)
@@ -83,8 +88,12 @@ func BenchmarkPrefetcherDatabase(b *testing.B) {
 		err = database.PutUInt64(levelDB, countKey, count)
 		require.NoError(err)
 
-		b.Logf("At block %d, storage root is %v", block, statedb.GetStorageRoot(address1))
-		return statedb
+		require.NoError(db.TrieDB().Commit(root, false))
+
+		for i := lastCommit + 1; i <= block; i++ {
+			require.NoError(snaps.Flatten(fakeHash(i)))
+		}
+		lastCommit = block
 	}
 
 	tdbConfig := &triedb.Config{
@@ -95,22 +104,37 @@ func BenchmarkPrefetcherDatabase(b *testing.B) {
 	db := NewDatabaseWithConfig(levelDB, tdbConfig)
 	snaps := snapshot.NewTestTree(levelDB, fakeHash(block), root)
 	for count < uint64(wantKVs) {
-		_ = addBlock(levelDB, db, snaps, 100_000, 0)
+		previous := root
+		_ = addBlock(db, snaps, 100_000, 0) // Note this updates root and count
 		b.Logf("Root: %v, kvs: %d, block: %d", root, count, block)
+
+		// Commit every 10 blocks or on the last iteration
+		if block%10 == 0 || count >= uint64(wantKVs) {
+			commit(levelDB, snaps, db)
+			b.Logf("Root: %v, kvs: %d, block: %d (committed)", root, count, block)
+		}
+		if previous != root {
+			require.NoError(db.TrieDB().Dereference(previous))
+		} else {
+			panic("root did not change")
+		}
 	}
 	require.NoError(levelDB.Close())
 	b.Logf("Starting benchmarks")
 	b.Logf("Root: %v, kvs: %d, block: %d", root, count, block)
-	for _, updates := range []int{1_000, 10_000, 100_000} {
+	for _, updates := range []int{100, 200, 500, 1_000, 10_000, 100_000} {
 		for _, prefetchers := range []int{0, 1, 4, 16} {
 			b.Run(fmt.Sprintf("updates_%d_prefetchers_%d", updates, prefetchers), func(b *testing.B) {
+				startRoot, startBlock, startCount := root, block, count
+				defer func() { root, block, count = startRoot, startBlock, startCount }()
+
 				levelDB, err := rawdb.NewLevelDBDatabase(path.Join(dir, "level.db"), 0, 0, "", false)
 				require.NoError(err)
 				snaps := snapshot.NewTestTree(levelDB, fakeHash(block), root)
 				db := NewDatabaseWithConfig(levelDB, tdbConfig)
 				storage := int64(0)
 				for i := 0; i < b.N; i++ {
-					_ = addBlock(levelDB, db, snaps, updates, prefetchers)
+					_ = addBlock(db, snaps, updates, prefetchers)
 					meter := metrics.GetOrRegisterMeter(prefix+"/storage/skip", nil)
 					storage += meter.Snapshot().Count()
 				}
@@ -164,9 +188,5 @@ func addKVs(
 	if err != nil {
 		return nil, common.Hash{}, err
 	}
-	if err := statedb.db.TrieDB().Commit(root, false); err != nil {
-		return nil, common.Hash{}, err
-	}
-	err = snaps.Flatten(fakeHash(block + 1))
 	return statedb, root, err
 }
