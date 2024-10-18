@@ -14,6 +14,7 @@ import (
 
 	"github.com/ava-labs/avalanchego/ids"
 	commonEng "github.com/ava-labs/avalanchego/snow/engine/common"
+	"github.com/ava-labs/avalanchego/snow/engine/enginetest"
 	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
 	"github.com/ava-labs/avalanchego/snow/validators"
 	"github.com/ava-labs/avalanchego/snow/validators/validatorstest"
@@ -35,6 +36,7 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/contracts/warp"
 	"github.com/ava-labs/subnet-evm/predicate"
 	"github.com/ava-labs/subnet-evm/utils"
+	corewarp "github.com/ava-labs/subnet-evm/warp"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/stretchr/testify/require"
@@ -751,6 +753,8 @@ func TestMessageSignatureRequestsToVM(t *testing.T) {
 	require.NoError(t, err)
 	signature, err := vm.warpBackend.GetMessageSignature(warpMessage)
 	require.NoError(t, err)
+	var knownSignature [bls.SignatureLen]byte
+	copy(knownSignature[:], signature)
 
 	tests := map[string]struct {
 		messageID        ids.ID
@@ -758,7 +762,7 @@ func TestMessageSignatureRequestsToVM(t *testing.T) {
 	}{
 		"known": {
 			messageID:        warpMessage.ID(),
-			expectedResponse: signature,
+			expectedResponse: knownSignature,
 		},
 		"unknown": {
 			messageID:        ids.GenerateTestID(),
@@ -807,6 +811,8 @@ func TestBlockSignatureRequestsToVM(t *testing.T) {
 
 	signature, err := vm.warpBackend.GetBlockSignature(lastAcceptedID)
 	require.NoError(t, err)
+	var knownSignature [bls.SignatureLen]byte
+	copy(knownSignature[:], signature)
 
 	tests := map[string]struct {
 		blockID          ids.ID
@@ -814,7 +820,7 @@ func TestBlockSignatureRequestsToVM(t *testing.T) {
 	}{
 		"known": {
 			blockID:          lastAcceptedID,
-			expectedResponse: signature,
+			expectedResponse: knownSignature,
 		},
 		"unknown": {
 			blockID:          ids.GenerateTestID(),
@@ -847,5 +853,62 @@ func TestBlockSignatureRequestsToVM(t *testing.T) {
 			require.NoError(t, err)
 			require.True(t, calledSendAppResponseFn)
 		})
+	}
+}
+
+func TestClearWarpDB(t *testing.T) {
+	ctx, db, genesisBytes, issuer, _ := setupGenesis(t, genesisJSONLatest)
+	vm := &VM{}
+	err := vm.Initialize(context.Background(), ctx, db, genesisBytes, []byte{}, []byte{}, issuer, []*commonEng.Fx{}, &enginetest.Sender{})
+	require.NoError(t, err)
+
+	// use multiple messages to test that all messages get cleared
+	payloads := [][]byte{[]byte("test1"), []byte("test2"), []byte("test3"), []byte("test4"), []byte("test5")}
+	messages := []*avalancheWarp.UnsignedMessage{}
+
+	// add all messages
+	for _, payload := range payloads {
+		unsignedMsg, err := avalancheWarp.NewUnsignedMessage(vm.ctx.NetworkID, vm.ctx.ChainID, payload)
+		require.NoError(t, err)
+		err = vm.warpBackend.AddMessage(unsignedMsg)
+		require.NoError(t, err)
+		// ensure that the message was added
+		_, err = vm.warpBackend.GetMessageSignature(unsignedMsg)
+		require.NoError(t, err)
+		messages = append(messages, unsignedMsg)
+	}
+
+	require.NoError(t, vm.Shutdown(context.Background()))
+
+	// Restart VM with the same database default should not prune the warp db
+	vm = &VM{}
+	ctx, _, _, _, _ = setupGenesis(t, genesisJSONLatest)
+	err = vm.Initialize(context.Background(), ctx, db, genesisBytes, []byte{}, []byte{}, issuer, []*commonEng.Fx{}, &enginetest.Sender{})
+	require.NoError(t, err)
+
+	// check messages are still present
+	for _, message := range messages {
+		bytes, err := vm.warpBackend.GetMessageSignature(message)
+		require.NoError(t, err)
+		require.NotEmpty(t, bytes)
+	}
+
+	require.NoError(t, vm.Shutdown(context.Background()))
+
+	// restart the VM with pruning enabled
+	vm = &VM{}
+	config := `{"prune-warp-db-enabled": true}`
+	ctx, _, _, _, _ = setupGenesis(t, genesisJSONLatest)
+	err = vm.Initialize(context.Background(), ctx, db, genesisBytes, []byte{}, []byte(config), issuer, []*commonEng.Fx{}, &enginetest.Sender{})
+	require.NoError(t, err)
+
+	it := vm.warpDB.NewIterator()
+	require.False(t, it.Next())
+	it.Release()
+
+	// ensure all messages have been deleted
+	for _, message := range messages {
+		_, err := vm.warpBackend.GetMessageSignature(message)
+		require.ErrorIs(t, err, &commonEng.AppError{Code: corewarp.ParseErrCode})
 	}
 }
