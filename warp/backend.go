@@ -73,13 +73,11 @@ func NewBackend(
 	offchainMessages [][]byte,
 ) (Backend, error) {
 	b := &backend{
-		networkID:     networkID,
-		sourceChainID: sourceChainID,
-		db:            db,
-		warpSigner:    warpSigner,
-		blockClient:   blockClient,
-		// sdkCache returns sdk.SignatureResponse proto bytes,
-		// and it must be wrapped to return Signature bytes.
+		networkID:                 networkID,
+		sourceChainID:             sourceChainID,
+		db:                        db,
+		warpSigner:                warpSigner,
+		blockClient:               blockClient,
 		signatureCache:            signatureCache,
 		messageCache:              &cache.LRU[ids.ID, *avalancheWarp.UnsignedMessage]{Size: messageCacheSize},
 		stats:                     newVerifierStats(),

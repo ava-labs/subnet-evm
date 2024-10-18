@@ -84,7 +84,7 @@ func TestGetBlockSignature(t *testing.T) {
 	sk, err := bls.NewSecretKey()
 	require.NoError(err)
 	warpSigner := avalancheWarp.NewSigner(sk, networkID, sourceChainID)
-	messageSignatureCache := &cache.LRU[ids.ID, []byte]{}
+	messageSignatureCache := &cache.LRU[ids.ID, []byte]{Size: 500}
 	backend, err := NewBackend(networkID, sourceChainID, warpSigner, blockClient, db, messageSignatureCache, nil)
 	require.NoError(err)
 
@@ -165,7 +165,7 @@ func TestOffChainMessages(t *testing.T) {
 			require := require.New(t)
 			db := memdb.New()
 
-			messageSignatureCache := &cache.LRU[ids.ID, []byte]{Size: 500}
+			messageSignatureCache := &cache.LRU[ids.ID, []byte]{Size: 0}
 			backend, err := NewBackend(networkID, sourceChainID, warpSigner, nil, db, messageSignatureCache, test.offchainMessages)
 			require.ErrorIs(err, test.err)
 			if test.check != nil {

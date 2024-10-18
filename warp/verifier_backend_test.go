@@ -79,8 +79,8 @@ func TestAddressedCallSignatures(t *testing.T) {
 				return unknownMessage.Bytes(), nil
 			},
 			verifyStats: func(t *testing.T, stats *verifierStats) {
-				require.EqualValues(t, 0, stats.messageParseFail.Snapshot().Count())
-				require.EqualValues(t, 1, stats.addressedCallSignatureValidationFail.Snapshot().Count())
+				require.EqualValues(t, 1, stats.messageParseFail.Snapshot().Count())
+				require.EqualValues(t, 0, stats.addressedCallSignatureValidationFail.Snapshot().Count())
 				require.EqualValues(t, 0, stats.blockSignatureValidationFail.Snapshot().Count())
 			},
 			err: &common.AppError{Code: ParseErrCode},

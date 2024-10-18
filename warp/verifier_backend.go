@@ -49,13 +49,11 @@ func (b *backend) verifyMessage(unsignedMessage *avalancheWarp.UnsignedMessage) 
 	case *payload.AddressedCall:
 		apperr := b.verifyAddressedCall(p)
 		if apperr != nil {
-			b.stats.IncAddressedCallSignatureValidationFail()
 			return apperr
 		}
 	case *payload.Hash:
 		apperr := b.verifyBlockMessage(p)
 		if apperr != nil {
-			b.stats.IncBlockSignatureValidationFail()
 			return apperr
 		}
 	default:
@@ -73,6 +71,7 @@ func (b *backend) verifyBlockMessage(blockHashPayload *payload.Hash) *common.App
 	blockID := blockHashPayload.Hash
 	_, err := b.blockClient.GetAcceptedBlock(context.TODO(), blockID)
 	if err != nil {
+		b.stats.IncBlockSignatureValidationFail()
 		return &common.AppError{
 			Code:    VerifyErrCode,
 			Message: fmt.Sprintf("failed to get block %s: %s", blockID, err.Error()),
@@ -87,6 +86,7 @@ func (b *backend) verifyAddressedCall(addressedCall *payload.AddressedCall) *com
 	// Further, parse the payload to see if it is a known type.
 	parsed, err := messages.Parse(addressedCall.Payload)
 	if err != nil {
+		b.stats.IncMessageParseFail()
 		return &common.AppError{
 			Code:    ParseErrCode,
 			Message: "failed to parse addressed call message: " + err.Error(),
@@ -95,6 +95,7 @@ func (b *backend) verifyAddressedCall(addressedCall *payload.AddressedCall) *com
 
 	switch p := parsed.(type) {
 	default:
+		b.stats.IncMessageParseFail()
 		return &common.AppError{
 			Code:    ParseErrCode,
 			Message: fmt.Sprintf("unknown message type: %T", p),
