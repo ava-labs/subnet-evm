@@ -69,7 +69,7 @@ func NewBackend(
 	warpSigner avalancheWarp.Signer,
 	blockClient BlockClient,
 	db database.Database,
-	sdkCache cache.Cacher[ids.ID, []byte],
+	signatureCache cache.Cacher[ids.ID, []byte],
 	offchainMessages [][]byte,
 ) (Backend, error) {
 	b := &backend{
@@ -80,7 +80,7 @@ func NewBackend(
 		blockClient:   blockClient,
 		// sdkCache returns sdk.SignatureResponse proto bytes,
 		// and it must be wrapped to return Signature bytes.
-		signatureCache:            NewWrappedCache(sdkCache),
+		signatureCache:            signatureCache,
 		messageCache:              &cache.LRU[ids.ID, *avalancheWarp.UnsignedMessage]{Size: messageCacheSize},
 		stats:                     newVerifierStats(),
 		offchainAddressedCallMsgs: make(map[ids.ID]*avalancheWarp.UnsignedMessage),
