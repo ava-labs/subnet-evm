@@ -353,7 +353,7 @@ func (st *StateTransition) preCheck() error {
 				msg.From.Hex(), codeHash)
 		}
 		// Make sure the sender is not prohibited
-		if vm.IsProhibited(msg.From) {
+		if st.evm.Config.IsProhibited != nil && st.evm.Config.IsProhibited(msg.From) {
 			return fmt.Errorf("%w: address %v", vmerrs.ErrAddrProhibited, msg.From)
 		}
 
