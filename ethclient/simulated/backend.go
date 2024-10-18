@@ -185,14 +185,13 @@ func (n *Backend) buildBlock(accept bool, gap uint64) (common.Hash, error) {
 		if err := n.acceptAncestors(block); err != nil {
 			return common.Hash{}, err
 		}
-		chain.DrainAcceptorQueue()
 	}
 	return block.Hash(), nil
 }
 
 func (n *Backend) acceptAncestors(block *types.Block) error {
 	chain := n.eth.BlockChain()
-	lastAccepted := chain.LastConsensusAcceptedBlock()
+	lastAccepted := chain.LastAcceptedBlock()
 
 	// Accept all ancestors of the block
 	toAccept := []*types.Block{block}
