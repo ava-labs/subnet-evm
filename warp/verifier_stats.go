@@ -9,22 +9,15 @@ import (
 
 type verifierStats struct {
 	messageParseFail metrics.Counter
-	// AddressedCall metrics
-	addressedCallSignatureValidationFail metrics.Counter
 	// BlockRequest metrics
 	blockSignatureValidationFail metrics.Counter
 }
 
 func newVerifierStats() *verifierStats {
 	return &verifierStats{
-		messageParseFail:                     metrics.NewRegisteredCounter("message_parse_fail", nil),
-		addressedCallSignatureValidationFail: metrics.NewRegisteredCounter("addressed_call_signature_validation_fail", nil),
-		blockSignatureValidationFail:         metrics.NewRegisteredCounter("block_signature_validation_fail", nil),
+		messageParseFail:             metrics.NewRegisteredCounter("message_parse_fail", nil),
+		blockSignatureValidationFail: metrics.NewRegisteredCounter("block_signature_validation_fail", nil),
 	}
-}
-
-func (h *verifierStats) IncAddressedCallSignatureValidationFail() {
-	h.addressedCallSignatureValidationFail.Inc(1)
 }
 
 func (h *verifierStats) IncBlockSignatureValidationFail() {

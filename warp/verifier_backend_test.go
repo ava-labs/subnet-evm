@@ -56,7 +56,6 @@ func TestAddressedCallSignatures(t *testing.T) {
 			},
 			verifyStats: func(t *testing.T, stats *verifierStats) {
 				require.EqualValues(t, 0, stats.messageParseFail.Snapshot().Count())
-				require.EqualValues(t, 0, stats.addressedCallSignatureValidationFail.Snapshot().Count())
 				require.EqualValues(t, 0, stats.blockSignatureValidationFail.Snapshot().Count())
 			},
 		},
@@ -66,7 +65,6 @@ func TestAddressedCallSignatures(t *testing.T) {
 			},
 			verifyStats: func(t *testing.T, stats *verifierStats) {
 				require.EqualValues(t, 0, stats.messageParseFail.Snapshot().Count())
-				require.EqualValues(t, 0, stats.addressedCallSignatureValidationFail.Snapshot().Count())
 				require.EqualValues(t, 0, stats.blockSignatureValidationFail.Snapshot().Count())
 			},
 		},
@@ -80,7 +78,6 @@ func TestAddressedCallSignatures(t *testing.T) {
 			},
 			verifyStats: func(t *testing.T, stats *verifierStats) {
 				require.EqualValues(t, 1, stats.messageParseFail.Snapshot().Count())
-				require.EqualValues(t, 0, stats.addressedCallSignatureValidationFail.Snapshot().Count())
 				require.EqualValues(t, 0, stats.blockSignatureValidationFail.Snapshot().Count())
 			},
 			err: &common.AppError{Code: ParseErrCode},
@@ -147,17 +144,19 @@ func TestBlockSignatures(t *testing.T) {
 	require.NoError(t, err)
 
 	warpSigner := avalancheWarp.NewSigner(blsSecretKey, snowCtx.NetworkID, snowCtx.ChainID)
-	blkID := ids.GenerateTestID()
-	blockClient := warptest.MakeBlockClient(blkID)
-
-	unknownBlockID := ids.GenerateTestID()
+	knownBlkID := ids.GenerateTestID()
+	blockClient := warptest.MakeBlockClient(knownBlkID)
 
 	toMessageBytes := func(id ids.ID) []byte {
 		idPayload, err := payload.NewHash(id)
-		require.NoError(t, err)
+		if err != nil {
+			panic(err)
+		}
 
 		msg, err := avalancheWarp.NewUnsignedMessage(snowCtx.NetworkID, snowCtx.ChainID, idPayload.Bytes())
-		require.NoError(t, err)
+		if err != nil {
+			panic(err)
+		}
 
 		return msg.Bytes()
 	}
@@ -169,26 +168,25 @@ func TestBlockSignatures(t *testing.T) {
 	}{
 		"known block": {
 			setup: func() (request []byte, expectedResponse []byte) {
-				hashPayload, err := payload.NewHash(blkID)
+				hashPayload, err := payload.NewHash(knownBlkID)
 				require.NoError(t, err)
 				unsignedMessage, err := avalancheWarp.NewUnsignedMessage(snowCtx.NetworkID, snowCtx.ChainID, hashPayload.Bytes())
 				require.NoError(t, err)
 				signature, err := warpSigner.Sign(unsignedMessage)
 				require.NoError(t, err)
-				return toMessageBytes(blkID), signature[:]
+				return toMessageBytes(knownBlkID), signature[:]
 			},
 			verifyStats: func(t *testing.T, stats *verifierStats) {
-				require.EqualValues(t, 0, stats.addressedCallSignatureValidationFail.Snapshot().Count())
 				require.EqualValues(t, 0, stats.blockSignatureValidationFail.Snapshot().Count())
 				require.EqualValues(t, 0, stats.messageParseFail.Snapshot().Count())
 			},
 		},
 		"unknown block": {
 			setup: func() (request []byte, expectedResponse []byte) {
+				unknownBlockID := ids.GenerateTestID()
 				return toMessageBytes(unknownBlockID), nil
 			},
 			verifyStats: func(t *testing.T, stats *verifierStats) {
-				require.EqualValues(t, 0, stats.addressedCallSignatureValidationFail.Snapshot().Count())
 				require.EqualValues(t, 1, stats.blockSignatureValidationFail.Snapshot().Count())
 				require.EqualValues(t, 0, stats.messageParseFail.Snapshot().Count())
 			},

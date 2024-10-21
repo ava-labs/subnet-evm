@@ -21,10 +21,7 @@ const (
 
 // Verify implements the acp118.Verifier interface
 func (b *backend) Verify(_ context.Context, unsignedMessage *avalancheWarp.UnsignedMessage, _ []byte) *common.AppError {
-	if err := b.verifyMessage(unsignedMessage); err != nil {
-		return err
-	}
-	return nil
+	return b.verifyMessage(unsignedMessage)
 }
 
 // verifyMessage verifies the signature of the message
@@ -66,7 +63,8 @@ func (b *backend) verifyMessage(unsignedMessage *avalancheWarp.UnsignedMessage) 
 	return nil
 }
 
-// verifyBlockMessage verifies the block message (payload.Hash)
+// verifyBlockMessage returns nil if blockHashPayload contains the ID
+// of an accepted block indicating it should be signed by the VM.
 func (b *backend) verifyBlockMessage(blockHashPayload *payload.Hash) *common.AppError {
 	blockID := blockHashPayload.Hash
 	_, err := b.blockClient.GetAcceptedBlock(context.TODO(), blockID)
@@ -81,9 +79,12 @@ func (b *backend) verifyBlockMessage(blockHashPayload *payload.Hash) *common.App
 	return nil
 }
 
-// verifyAddressedCall verifies the addressed call message
+// verifyAddressedCall returns nil if addressedCall is parseable to a known payload type and
+// passes type specific validation, indicating it should be signed by the VM.
+// Note currently there are no valid payload types so this call always returns common.AppError
+// with ParseErrCode.
 func (b *backend) verifyAddressedCall(addressedCall *payload.AddressedCall) *common.AppError {
-	// Further, parse the payload to see if it is a known type.
+	// Parse the payload to see if it is a known type.
 	parsed, err := messages.Parse(addressedCall.Payload)
 	if err != nil {
 		b.stats.IncMessageParseFail()
