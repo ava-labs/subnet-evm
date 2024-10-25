@@ -130,9 +130,9 @@ func TestSendWarpMessage(t *testing.T) {
 	require.NoError(err)
 
 	// Verify the signature cannot be fetched before the block is accepted
-	_, err = vm.warpBackend.GetMessageSignature(unsignedMessage)
+	_, err = vm.warpBackend.GetMessageSignature(context.TODO(), unsignedMessage)
 	require.Error(err)
-	_, err = vm.warpBackend.GetBlockSignature(blk.ID())
+	_, err = vm.warpBackend.GetBlockSignature(context.TODO(), blk.ID())
 	require.Error(err)
 
 	require.NoError(vm.SetPreference(context.Background(), blk.ID()))
@@ -140,7 +140,7 @@ func TestSendWarpMessage(t *testing.T) {
 	vm.blockChain.DrainAcceptorQueue()
 
 	// Verify the message signature after accepting the block.
-	rawSignatureBytes, err := vm.warpBackend.GetMessageSignature(unsignedMessage)
+	rawSignatureBytes, err := vm.warpBackend.GetMessageSignature(context.TODO(), unsignedMessage)
 	require.NoError(err)
 	blsSignature, err := bls.SignatureFromBytes(rawSignatureBytes[:])
 	require.NoError(err)
@@ -157,7 +157,7 @@ func TestSendWarpMessage(t *testing.T) {
 	require.True(bls.Verify(vm.ctx.PublicKey, blsSignature, unsignedMessage.Bytes()))
 
 	// Verify the blockID will now be signed by the backend and produces a valid signature.
-	rawSignatureBytes, err = vm.warpBackend.GetBlockSignature(blk.ID())
+	rawSignatureBytes, err = vm.warpBackend.GetBlockSignature(context.TODO(), blk.ID())
 	require.NoError(err)
 	blsSignature, err = bls.SignatureFromBytes(rawSignatureBytes[:])
 	require.NoError(err)
@@ -751,7 +751,7 @@ func TestMessageSignatureRequestsToVM(t *testing.T) {
 	// Add the known message and get its signature to confirm.
 	err = vm.warpBackend.AddMessage(warpMessage)
 	require.NoError(t, err)
-	signature, err := vm.warpBackend.GetMessageSignature(warpMessage)
+	signature, err := vm.warpBackend.GetMessageSignature(context.TODO(), warpMessage)
 	require.NoError(t, err)
 	var knownSignature [bls.SignatureLen]byte
 	copy(knownSignature[:], signature)
@@ -809,7 +809,7 @@ func TestBlockSignatureRequestsToVM(t *testing.T) {
 	lastAcceptedID, err := vm.LastAccepted(context.Background())
 	require.NoError(t, err)
 
-	signature, err := vm.warpBackend.GetBlockSignature(lastAcceptedID)
+	signature, err := vm.warpBackend.GetBlockSignature(context.TODO(), lastAcceptedID)
 	require.NoError(t, err)
 	var knownSignature [bls.SignatureLen]byte
 	copy(knownSignature[:], signature)
@@ -873,7 +873,7 @@ func TestClearWarpDB(t *testing.T) {
 		err = vm.warpBackend.AddMessage(unsignedMsg)
 		require.NoError(t, err)
 		// ensure that the message was added
-		_, err = vm.warpBackend.GetMessageSignature(unsignedMsg)
+		_, err = vm.warpBackend.GetMessageSignature(context.TODO(), unsignedMsg)
 		require.NoError(t, err)
 		messages = append(messages, unsignedMsg)
 	}
@@ -889,7 +889,7 @@ func TestClearWarpDB(t *testing.T) {
 
 	// check messages are still present
 	for _, message := range messages {
-		bytes, err := vm.warpBackend.GetMessageSignature(message)
+		bytes, err := vm.warpBackend.GetMessageSignature(context.TODO(), message)
 		require.NoError(t, err)
 		require.NotEmpty(t, bytes)
 	}
@@ -909,7 +909,7 @@ func TestClearWarpDB(t *testing.T) {
 
 	// ensure all messages have been deleted
 	for _, message := range messages {
-		_, err := vm.warpBackend.GetMessageSignature(message)
+		_, err := vm.warpBackend.GetMessageSignature(context.TODO(), message)
 		require.ErrorIs(t, err, &commonEng.AppError{Code: warp.ParseErrCode})
 	}
 }

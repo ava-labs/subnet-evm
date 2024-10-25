@@ -36,10 +36,10 @@ type Backend interface {
 	AddMessage(unsignedMessage *avalancheWarp.UnsignedMessage) error
 
 	// GetMessageSignature validates the message and returns the signature of the requested message.
-	GetMessageSignature(message *avalancheWarp.UnsignedMessage) ([]byte, error)
+	GetMessageSignature(ctx context.Context, message *avalancheWarp.UnsignedMessage) ([]byte, error)
 
 	// GetBlockSignature returns the signature of a hash payload containing blockID if it's the ID of an accepted block.
-	GetBlockSignature(blockID ids.ID) ([]byte, error)
+	GetBlockSignature(ctx context.Context, blockID ids.ID) ([]byte, error)
 
 	// GetMessage retrieves the [unsignedMessage] from the warp backend database if available
 	// TODO: After Etna, the backend no longer needs to store the mapping from messageHash
@@ -128,7 +128,7 @@ func (b *backend) AddMessage(unsignedMessage *avalancheWarp.UnsignedMessage) err
 	return nil
 }
 
-func (b *backend) GetMessageSignature(unsignedMessage *avalancheWarp.UnsignedMessage) ([]byte, error) {
+func (b *backend) GetMessageSignature(ctx context.Context, unsignedMessage *avalancheWarp.UnsignedMessage) ([]byte, error) {
 	messageID := unsignedMessage.ID()
 
 	log.Debug("Getting warp message from backend", "messageID", messageID)
@@ -136,13 +136,13 @@ func (b *backend) GetMessageSignature(unsignedMessage *avalancheWarp.UnsignedMes
 		return sig, nil
 	}
 
-	if err := b.verifyMessage(unsignedMessage); err != nil {
+	if err := b.Verify(ctx, unsignedMessage, nil); err != nil {
 		return nil, fmt.Errorf("failed to validate warp message: %w", err)
 	}
 	return b.signMessage(unsignedMessage)
 }
 
-func (b *backend) GetBlockSignature(blockID ids.ID) ([]byte, error) {
+func (b *backend) GetBlockSignature(ctx context.Context, blockID ids.ID) ([]byte, error) {
 	log.Debug("Getting block from backend", "blockID", blockID)
 
 	blockHashPayload, err := payload.NewHash(blockID)
@@ -159,7 +159,7 @@ func (b *backend) GetBlockSignature(blockID ids.ID) ([]byte, error) {
 		return sig, nil
 	}
 
-	if err := b.verifyBlockMessage(blockHashPayload); err != nil {
+	if err := b.verifyBlockMessage(ctx, blockHashPayload); err != nil {
 		return nil, fmt.Errorf("failed to validate block message: %w", err)
 	}
 

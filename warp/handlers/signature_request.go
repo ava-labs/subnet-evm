@@ -51,7 +51,7 @@ func (s *SignatureRequestHandler) OnMessageSignatureRequest(ctx context.Context,
 		log.Debug("Unknown warp message requested", "messageID", signatureRequest.MessageID)
 		s.stats.IncMessageSignatureMiss()
 	} else {
-		sig, err := s.backend.GetMessageSignature(unsignedMessage)
+		sig, err := s.backend.GetMessageSignature(ctx, unsignedMessage)
 		if err != nil {
 			log.Debug("Unknown warp signature requested", "messageID", signatureRequest.MessageID)
 			s.stats.IncMessageSignatureMiss()
@@ -81,7 +81,7 @@ func (s *SignatureRequestHandler) OnBlockSignatureRequest(ctx context.Context, n
 	}()
 
 	var signature [bls.SignatureLen]byte
-	sig, err := s.backend.GetBlockSignature(request.BlockID)
+	sig, err := s.backend.GetBlockSignature(ctx, request.BlockID)
 	if err != nil {
 		log.Debug("Unknown warp signature requested", "blockID", request.BlockID)
 		s.stats.IncBlockSignatureMiss()
