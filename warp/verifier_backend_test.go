@@ -48,11 +48,11 @@ func TestAddressedCallSignatures(t *testing.T) {
 				require.NoError(t, err)
 				msg, err := avalancheWarp.NewUnsignedMessage(snowCtx.NetworkID, snowCtx.ChainID, knownPayload.Bytes())
 				require.NoError(t, err)
-				offchainSignature, err := warpSigner.Sign(msg)
+				signature, err := warpSigner.Sign(msg)
 				require.NoError(t, err)
 
 				backend.AddMessage(msg)
-				return msg.Bytes(), offchainSignature[:]
+				return msg.Bytes(), signature[:]
 			},
 			verifyStats: func(t *testing.T, stats *verifierStats) {
 				require.EqualValues(t, 0, stats.messageParseFail.Snapshot().Count())
