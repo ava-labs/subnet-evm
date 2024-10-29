@@ -63,8 +63,6 @@ const (
 	defaultStateSyncRequestSize = 1024 // the number of key/values to ask peers for per request
 
 	defaultValidatorsAPIEnabled = true
-	// TODO: decide for a sane value for this
-	defaultLoadValidatorsFrequency = 5 * time.Minute
 
 	defaultDBType = pebbledb.Name
 )
@@ -236,9 +234,6 @@ type Config struct {
 	// RPC settings
 	HttpBodyLimit uint64 `json:"http-body-limit"`
 
-	// LoadValidatorsFrequency is the frequency at which the node should load the validators
-	LoadValidatorsFrequency time.Duration `json:"load-validators-frequency"`
-
 	// Database settings
 	UseStandaloneDatabase *PBool `json:"use-standalone-database"`
 	DatabaseConfigContent string `json:"database-config"`
@@ -306,7 +301,6 @@ func (c *Config) SetDefaults() {
 	c.AllowUnprotectedTxHashes = defaultAllowUnprotectedTxHashes
 	c.AcceptedCacheSize = defaultAcceptedCacheSize
 	c.ValidatorsAPIEnabled = defaultValidatorsAPIEnabled
-	c.LoadValidatorsFrequency = defaultLoadValidatorsFrequency
 	c.DatabaseType = defaultDBType
 }
 

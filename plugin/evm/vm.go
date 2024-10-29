@@ -134,6 +134,8 @@ const (
 	txGossipThrottlingPeriod             = 10 * time.Second
 	txGossipThrottlingLimit              = 2
 	txGossipPollSize                     = 1
+
+	loadValidatorsFrequency = 1 * time.Minute
 )
 
 // Define the API endpoints for the VM
@@ -506,7 +508,7 @@ func (vm *VM) Initialize(
 	if err != nil {
 		return fmt.Errorf("failed to initialize validator state: %w", err)
 	}
-	// TODO: add a configuration to disable tracking uptime
+
 	vm.uptimeManager = uptime.NewPausableManager(avalancheUptime.NewManager(vm.validatorState, &vm.clock))
 	vm.validatorState.RegisterListener(vm.uptimeManager)
 
@@ -1424,7 +1426,7 @@ func (vm *VM) Disconnected(ctx context.Context, nodeID ids.NodeID) error {
 }
 
 func (vm *VM) dispatchUpdateValidators(ctx context.Context) {
-	ticker := time.NewTicker(vm.config.LoadValidatorsFrequency)
+	ticker := time.NewTicker(loadValidatorsFrequency)
 	defer ticker.Stop()
 
 	for {
@@ -1464,6 +1466,7 @@ func (vm *VM) performValidatorUpdate(ctx context.Context) error {
 		return fmt.Errorf("failed to write validator state: %w", err)
 	}
 
+	// TODO: add metrics
 	log.Debug("validator update complete", "duration", time.Since(now))
 	return nil
 }

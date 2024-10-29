@@ -33,7 +33,6 @@ type CurrentValidator struct {
 	Uptime       time.Duration `json:"uptime"`
 }
 
-// GetUptime returns the uptime of the node
 func (api *ValidatorsAPI) GetCurrentValidators(_ *http.Request, args *GetCurrentValidatorsRequest, reply *GetCurrentValidatorsResponse) error {
 	api.vm.ctx.Lock.RLock()
 	defer api.vm.ctx.Lock.RUnlock()
