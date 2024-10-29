@@ -32,8 +32,7 @@ type pausableManager struct {
 	uptime.Manager
 	pausedVdrs set.Set[ids.NodeID]
 	// connectedVdrs is a set of nodes that are connected to the manager.
-	// This is used to keep track of the nodes that are connected to the manager
-	// but are paused.
+	// This is used to immediately connect nodes when they are unpaused.
 	connectedVdrs set.Set[ids.NodeID]
 }
 
@@ -150,7 +149,7 @@ func (p *pausableManager) resume(nodeID ids.NodeID) error {
 		return errNotPaused
 	}
 	p.pausedVdrs.Remove(nodeID)
-	if p.connectedVdrs.Contains(nodeID) {
+	if p.connectedVdrs.Contains(nodeID) && !p.Manager.IsConnected(nodeID) {
 		return p.Manager.Connect(nodeID)
 	}
 	return nil

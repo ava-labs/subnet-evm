@@ -182,6 +182,7 @@ func SetupGenesisBlock(
 		rawdb.WriteChainConfig(db, stored, newcfg)
 		return newcfg, stored, nil
 	}
+	storedcfg.SetEthUpgrades(storedcfg.NetworkUpgrades)
 	// Check config compatibility and write the config. Compatibility errors
 	// are returned to the caller unless we're already at block zero.
 	// we use last accepted block for cfg compatibility check. Note this allows
@@ -327,7 +328,7 @@ func (g *Genesis) toBlock(db ethdb.Database, triedb *triedb.Database) *types.Blo
 		}
 	}
 
-	statedb.Commit(0, false, false)
+	statedb.Commit(0, false)
 	// Commit newly generated states into disk if it's not empty.
 	if root != types.EmptyRootHash {
 		if err := triedb.Commit(root, true); err != nil {

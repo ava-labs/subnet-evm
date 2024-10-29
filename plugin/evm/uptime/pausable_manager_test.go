@@ -19,7 +19,7 @@ func TestPausableManager(t *testing.T) {
 	startTime := time.Now()
 	require := require.New(t)
 
-	// Connect before pause before tracking
+	// Case 1: Connect, pause, start tracking
 	{
 		up, clk, _ := setupTestEnv(nodeID0, startTime)
 
@@ -45,7 +45,7 @@ func TestPausableManager(t *testing.T) {
 		checkUptime(t, up, nodeID0, 0*time.Second, currentTime)
 	}
 
-	// Paused after tracking resumed after tracking
+	// Case 2: Start tracking, connect, pause, re-connect, resume
 	{
 		up, clk, _ := setupTestEnv(nodeID0, startTime)
 
@@ -91,7 +91,7 @@ func TestPausableManager(t *testing.T) {
 		checkUptime(t, up, nodeID0, 8*time.Second, currentTime)
 	}
 
-	// Paused before tracking resumed after tracking
+	// Case 3: Pause, start tracking, connect, re-connect, resume
 	{
 		up, clk, _ := setupTestEnv(nodeID0, startTime)
 
@@ -128,7 +128,7 @@ func TestPausableManager(t *testing.T) {
 		checkUptime(t, up, nodeID0, 6*time.Second, currentTime)
 	}
 
-	// Paused after tracking resumed before tracking
+	// Case 4: Start tracking, connect, pause, stop tracking, resume tracking.
 	{
 		up, clk, s := setupTestEnv(nodeID0, startTime)
 
