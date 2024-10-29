@@ -61,10 +61,7 @@ const (
 	// - state sync time: ~6 hrs.
 	defaultStateSyncMinBlocks   = 300_000
 	defaultStateSyncRequestSize = 1024 // the number of key/values to ask peers for per request
-
-	defaultValidatorsAPIEnabled = true
-
-	defaultDBType = pebbledb.Name
+	defaultDBType               = pebbledb.Name
 )
 
 type PBool bool
@@ -94,11 +91,10 @@ type Config struct {
 	AirdropFile string `json:"airdrop"`
 
 	// Subnet EVM APIs
-	SnowmanAPIEnabled    bool   `json:"snowman-api-enabled"`
-	ValidatorsAPIEnabled bool   `json:"validators-api-enabled"`
-	AdminAPIEnabled      bool   `json:"admin-api-enabled"`
-	AdminAPIDir          string `json:"admin-api-dir"`
-	WarpAPIEnabled       bool   `json:"warp-api-enabled"`
+	SnowmanAPIEnabled bool   `json:"snowman-api-enabled"`
+	AdminAPIEnabled   bool   `json:"admin-api-enabled"`
+	AdminAPIDir       string `json:"admin-api-dir"`
+	WarpAPIEnabled    bool   `json:"warp-api-enabled"`
 
 	// EnabledEthAPIs is a list of Ethereum services that should be enabled
 	// If none is specified, then we use the default list [defaultEnabledAPIs]
@@ -300,7 +296,6 @@ func (c *Config) SetDefaults() {
 	c.StateSyncRequestSize = defaultStateSyncRequestSize
 	c.AllowUnprotectedTxHashes = defaultAllowUnprotectedTxHashes
 	c.AcceptedCacheSize = defaultAcceptedCacheSize
-	c.ValidatorsAPIEnabled = defaultValidatorsAPIEnabled
 	c.DatabaseType = defaultDBType
 }
 
