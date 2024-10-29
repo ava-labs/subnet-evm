@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 
 	"github.com/ava-labs/avalanchego/codec"
 	"github.com/ava-labs/avalanchego/database"
@@ -216,92 +217,34 @@ func TestStateListener(t *testing.T) {
 	db := memdb.New()
 	state, err := NewState(db)
 	require.NoError(err)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
 
 	expectedvID := ids.GenerateTestID()
 	expectedNodeID := ids.GenerateTestNodeID()
 	expectedStartTime := time.Now()
+	mockListener := NewMockStateCallbackListener(ctrl)
+	// add initial validator to test RegisterListener
+	initialvID := ids.GenerateTestID()
+	initialNodeID := ids.GenerateTestNodeID()
+	initialStartTime := time.Now()
 
-	// add listener
-	listener := &testCallbackListener{
-		t: t,
-		onAdd: func(vID ids.ID, nodeID ids.NodeID, startTime uint64, isActive bool) {
-			require.Equal(expectedvID, vID)
-			require.Equal(expectedNodeID, nodeID)
-			require.Equal(uint64(expectedStartTime.Unix()), startTime)
-			require.True(isActive)
-		},
-		onRemove: func(vID ids.ID, nodeID ids.NodeID) {
-			require.Equal(expectedvID, vID)
-			require.Equal(expectedNodeID, nodeID)
-		},
-		onStatusUpdate: func(vID ids.ID, nodeID ids.NodeID, isActive bool) {
-			require.Equal(expectedvID, vID)
-			require.Equal(expectedNodeID, nodeID)
-			require.False(isActive)
-		},
-	}
-	state.RegisterListener(listener)
+	// add initial validator
+	require.NoError(state.AddValidator(initialvID, initialNodeID, uint64(initialStartTime.Unix()), true))
+
+	// register listener
+	mockListener.EXPECT().OnValidatorAdded(initialvID, initialNodeID, uint64(initialStartTime.Unix()), true)
+	state.RegisterListener(mockListener)
 
 	// add new validator
+	mockListener.EXPECT().OnValidatorAdded(expectedvID, expectedNodeID, uint64(expectedStartTime.Unix()), true)
 	require.NoError(state.AddValidator(expectedvID, expectedNodeID, uint64(expectedStartTime.Unix()), true))
 
 	// set status
+	mockListener.EXPECT().OnValidatorStatusUpdated(expectedvID, expectedNodeID, false)
 	require.NoError(state.SetStatus(expectedvID, false))
 
 	// remove validator
+	mockListener.EXPECT().OnValidatorRemoved(expectedvID, expectedNodeID)
 	require.NoError(state.DeleteValidator(expectedvID))
-
-	require.Equal(3, listener.called)
-
-	// test case: check initial trigger when registering listener
-	// add new validator
-	state.AddValidator(expectedvID, expectedNodeID, uint64(expectedStartTime.Unix()), true)
-	newListener := &testCallbackListener{
-		t: t,
-		onAdd: func(vID ids.ID, nodeID ids.NodeID, startTime uint64, isActive bool) {
-			require.Equal(expectedvID, vID)
-			require.Equal(expectedNodeID, nodeID)
-			require.Equal(uint64(expectedStartTime.Unix()), startTime)
-			require.True(isActive)
-		},
-	}
-	state.RegisterListener(newListener)
-	require.Equal(1, newListener.called)
-}
-
-var _ StateCallbackListener = (*testCallbackListener)(nil)
-
-type testCallbackListener struct {
-	t              *testing.T
-	called         int
-	onAdd          func(vID ids.ID, nodeID ids.NodeID, startTime uint64, isActive bool)
-	onRemove       func(ids.ID, ids.NodeID)
-	onStatusUpdate func(ids.ID, ids.NodeID, bool)
-}
-
-func (t *testCallbackListener) OnValidatorAdded(vID ids.ID, nodeID ids.NodeID, startTime uint64, isActive bool) {
-	t.called++
-	if t.onAdd != nil {
-		t.onAdd(vID, nodeID, startTime, isActive)
-	} else {
-		t.t.Fail()
-	}
-}
-
-func (t *testCallbackListener) OnValidatorRemoved(vID ids.ID, nodeID ids.NodeID) {
-	t.called++
-	if t.onRemove != nil {
-		t.onRemove(vID, nodeID)
-	} else {
-		t.t.Fail()
-	}
-}
-
-func (t *testCallbackListener) OnValidatorStatusUpdated(vID ids.ID, nodeID ids.NodeID, isActive bool) {
-	t.called++
-	if t.onStatusUpdate != nil {
-		t.onStatusUpdate(vID, nodeID, isActive)
-	} else {
-		t.t.Fail()
-	}
 }
