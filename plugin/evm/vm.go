@@ -1408,7 +1408,7 @@ func (vm *VM) createDatabase(dbConfig avalancheNode.DatabaseConfig) (database.Da
 
 func (vm *VM) Connected(ctx context.Context, nodeID ids.NodeID, version *version.Application) error {
 	if err := vm.uptimeManager.Connect(nodeID); err != nil {
-		return err
+		return fmt.Errorf("uptime manager failed to connect node %s: %w", nodeID, err)
 	}
 	return vm.Network.Connected(ctx, nodeID, version)
 }
