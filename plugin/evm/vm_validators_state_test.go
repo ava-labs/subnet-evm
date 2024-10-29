@@ -2,7 +2,6 @@ package evm
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -97,15 +96,13 @@ func TestValidatorState(t *testing.T) {
 	require.False(vm.uptimeManager.StartedTracking())
 
 	vm = &VM{}
-	validatorsLoadFrequency := 5 * time.Second
-	configJSON := fmt.Sprintf(`{"load-validators-frequency": %g}`, validatorsLoadFrequency.Seconds())
 	err = vm.Initialize(
 		context.Background(),
 		NewContext(), // this context does not have validators state, making VM to source it from the database
 		dbManager,
 		genesisBytes,
 		[]byte(""),
-		[]byte(configJSON),
+		[]byte(""),
 		issuer,
 		[]*commonEng.Fx{},
 		appSender,
@@ -156,7 +153,7 @@ func TestValidatorState(t *testing.T) {
 		newValidator, err := vm.validatorState.GetValidator(newNodeID)
 		assert.NoError(c, err)
 		assert.Equal(c, newNodeID, newValidator.NodeID)
-	}, validatorsLoadFrequency*2, validatorsLoadFrequency/2)
+	}, loadValidatorsFrequency*2, 5*time.Second)
 }
 
 func TestLoadNewValidators(t *testing.T) {

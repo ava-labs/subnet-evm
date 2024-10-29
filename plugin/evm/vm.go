@@ -224,6 +224,8 @@ type VM struct {
 	// set to a prefixDB with the prefix [warpPrefix]
 	warpDB database.Database
 
+	validatorsDB database.Database
+
 	toEngine chan<- commonEng.Message
 
 	syntacticBlockValidator BlockValidator
@@ -503,8 +505,7 @@ func (vm *VM) Initialize(
 	vm.Network = peer.NewNetwork(p2pNetwork, appSender, vm.networkCodec, chainCtx.NodeID, vm.config.MaxOutboundActiveRequests)
 	vm.client = peer.NewNetworkClient(vm.Network)
 
-	validatorsDB := prefixdb.New(validatorsDBPrefix, vm.db)
-	vm.validatorState, err = validators.NewState(validatorsDB)
+	vm.validatorState, err = validators.NewState(vm.validatorsDB)
 	if err != nil {
 		return fmt.Errorf("failed to initialize validator state: %w", err)
 	}
@@ -1345,6 +1346,7 @@ func (vm *VM) initializeDBs(avaDB database.Database) error {
 	// [warpDB] is used to store warp message signatures
 	// set to a prefixDB with the prefix [warpPrefix]
 	vm.warpDB = prefixdb.New(warpPrefix, db)
+	vm.validatorsDB = prefixdb.New(validatorsDBPrefix, db)
 	return nil
 }
 
