@@ -43,7 +43,7 @@ func TestValidatorState(t *testing.T) {
 		ids.GenerateTestID(),
 	}
 	ctx.ValidatorState = &validatorstest.State{
-		GetCurrentValidatorSetF: func(ctx context.Context, subnetID ids.ID) (map[ids.ID]*avagoValidators.GetCurrentValidatorOutput, uint64, error) {
+		GetCurrentValidatorSetF: func(ctx context.Context, subnetID ids.ID) (map[ids.ID]*avagoValidators.GetCurrentValidatorOutput, uint64, bool, error) {
 			return map[ids.ID]*avagoValidators.GetCurrentValidatorOutput{
 				testValidationIDs[0]: {
 					NodeID:    testNodeIDs[0],
@@ -60,7 +60,7 @@ func TestValidatorState(t *testing.T) {
 					PublicKey: nil,
 					Weight:    1,
 				},
-			}, 0, nil
+			}, 0, false, nil
 		},
 	}
 	appSender.SendAppGossipF = func(context.Context, commonEng.SendConfig, []byte) error { return nil }
@@ -120,7 +120,7 @@ func TestValidatorState(t *testing.T) {
 	newValidationID := ids.GenerateTestID()
 	newNodeID := ids.GenerateTestNodeID()
 	testState := &validatorstest.State{
-		GetCurrentValidatorSetF: func(ctx context.Context, subnetID ids.ID) (map[ids.ID]*avagoValidators.GetCurrentValidatorOutput, uint64, error) {
+		GetCurrentValidatorSetF: func(ctx context.Context, subnetID ids.ID) (map[ids.ID]*avagoValidators.GetCurrentValidatorOutput, uint64, bool, error) {
 			return map[ids.ID]*avagoValidators.GetCurrentValidatorOutput{
 				testValidationIDs[0]: {
 					NodeID:    testNodeIDs[0],
@@ -142,7 +142,7 @@ func TestValidatorState(t *testing.T) {
 					PublicKey: nil,
 					Weight:    1,
 				},
-			}, 0, nil
+			}, 0, false, nil
 		},
 	}
 	vm.ctx.ValidatorState = testState

@@ -19,17 +19,9 @@ const (
 	VerifyErrCode
 )
 
-// Verify implements the acp118.Verifier interface
-func (b *backend) Verify(_ context.Context, unsignedMessage *avalancheWarp.UnsignedMessage, _ []byte) *common.AppError {
-	if err := b.verifyMessage(unsignedMessage); err != nil {
-		return err
-	}
-	return nil
-}
-
-// verifyMessage verifies the signature of the message
-// This is moved to a separate function to avoid having to use a context.Context
-func (b *backend) verifyMessage(unsignedMessage *avalancheWarp.UnsignedMessage) *common.AppError {
+// Verify verifies the signature of the message
+// It also implements the acp118.Verifier interface
+func (b *backend) Verify(ctx context.Context, unsignedMessage *avalancheWarp.UnsignedMessage, _ []byte) *common.AppError {
 	messageID := unsignedMessage.ID()
 	// Known on-chain messages should be signed
 	if _, err := b.GetMessage(messageID); err == nil {
@@ -47,17 +39,9 @@ func (b *backend) verifyMessage(unsignedMessage *avalancheWarp.UnsignedMessage) 
 
 	switch p := parsed.(type) {
 	case *payload.AddressedCall:
-		apperr := b.verifyAddressedCall(p)
-		if apperr != nil {
-			b.stats.IncAddressedCallSignatureValidationFail()
-			return apperr
-		}
+		return b.verifyAddressedCall(p)
 	case *payload.Hash:
-		apperr := b.verifyBlockMessage(p)
-		if apperr != nil {
-			b.stats.IncBlockSignatureValidationFail()
-			return apperr
-		}
+		return b.verifyBlockMessage(ctx, p)
 	default:
 		b.stats.IncMessageParseFail()
 		return &common.AppError{
@@ -65,14 +49,15 @@ func (b *backend) verifyMessage(unsignedMessage *avalancheWarp.UnsignedMessage) 
 			Message: fmt.Sprintf("unknown payload type: %T", p),
 		}
 	}
-	return nil
 }
 
-// verifyBlockMessage verifies the block message (payload.Hash)
-func (b *backend) verifyBlockMessage(blockHashPayload *payload.Hash) *common.AppError {
+// verifyBlockMessage returns nil if blockHashPayload contains the ID
+// of an accepted block indicating it should be signed by the VM.
+func (b *backend) verifyBlockMessage(ctx context.Context, blockHashPayload *payload.Hash) *common.AppError {
 	blockID := blockHashPayload.Hash
-	_, err := b.blockClient.GetAcceptedBlock(context.TODO(), blockID)
+	_, err := b.blockClient.GetAcceptedBlock(ctx, blockID)
 	if err != nil {
+		b.stats.IncBlockValidationFail()
 		return &common.AppError{
 			Code:    VerifyErrCode,
 			Message: fmt.Sprintf("failed to get block %s: %s", blockID, err.Error()),
@@ -87,6 +72,7 @@ func (b *backend) verifyAddressedCall(addressedCall *payload.AddressedCall) *com
 	// Further, parse the payload to see if it is a known type.
 	parsed, err := messages.Parse(addressedCall.Payload)
 	if err != nil {
+		b.stats.IncMessageParseFail()
 		return &common.AppError{
 			Code:    ParseErrCode,
 			Message: "failed to parse addressed call message: " + err.Error(),
@@ -95,13 +81,19 @@ func (b *backend) verifyAddressedCall(addressedCall *payload.AddressedCall) *com
 
 	switch p := parsed.(type) {
 	case *messages.ValidatorUptime:
-		return b.verifyUptimeMessage(p)
+		if err := b.verifyUptimeMessage(p); err != nil {
+			b.stats.IncUptimeValidationFail()
+			return err
+		}
 	default:
+		b.stats.IncMessageParseFail()
 		return &common.AppError{
 			Code:    ParseErrCode,
 			Message: fmt.Sprintf("unknown message type: %T", p),
 		}
 	}
+
+	return nil
 }
 
 func (b *backend) verifyUptimeMessage(uptimeMsg *messages.ValidatorUptime) *common.AppError {

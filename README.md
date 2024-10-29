@@ -7,7 +7,7 @@
 Each blockchain is an instance of a Virtual Machine (VM), much like an object in an object-oriented language is an instance of a class.
 That is, the VM defines the behavior of the blockchain.
 
-Subnet EVM is the [Virtual Machine (VM)](https://docs.avax.network/learn/avalanche/virtual-machines) that defines the Subnet Contract Chains. Subnet EVM is a simplified version of [Coreth VM (C-Chain)](https://github.com/ava-labs/coreth).
+Subnet EVM is the [Virtual Machine (VM)](https://docs.avax.network/learn/virtual-machines) that defines the Subnet Contract Chains. Subnet EVM is a simplified version of [Coreth VM (C-Chain)](https://github.com/ava-labs/coreth).
 
 This chain implements the Ethereum Virtual Machine and supports Solidity smart contracts as well as most other Ethereum client functionality.
 
@@ -27,8 +27,9 @@ The Subnet EVM runs in a separate process from the main AvalancheGo process and 
 [v0.6.6] AvalancheGo@v1.11.3-v1.11.9 (Protocol Version: 35)
 [v0.6.7] AvalancheGo@v1.11.3-v1.11.9 (Protocol Version: 35)
 [v0.6.8] AvalancheGo@v1.11.10 (Protocol Version: 36)
-[v0.6.9] AvalancheGo@v1.11.11 (Protocol Version: 37)
-[v0.6.10] AvalancheGo@v1.11.11 (Protocol Version: 37)
+[v0.6.9] AvalancheGo@v1.11.11-v1.11.12 (Protocol Version: 37)
+[v0.6.10] AvalancheGo@v1.11.11-v1.11.12 (Protocol Version: 37)
+[v0.6.11] AvalancheGo@v1.11.11-v1.11.12 (Protocol Version: 37)
 ```
 
 ## API

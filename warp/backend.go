@@ -38,10 +38,10 @@ type Backend interface {
 	AddMessage(unsignedMessage *avalancheWarp.UnsignedMessage) error
 
 	// GetMessageSignature validates the message and returns the signature of the requested message.
-	GetMessageSignature(message *avalancheWarp.UnsignedMessage) ([]byte, error)
+	GetMessageSignature(ctx context.Context, message *avalancheWarp.UnsignedMessage) ([]byte, error)
 
-	// GetBlockSignature validates blockID and returns the signature of the requested message hash.
-	GetBlockSignature(blockID ids.ID) ([]byte, error)
+	// GetBlockSignature returns the signature of a hash payload containing blockID if it's the ID of an accepted block.
+	GetBlockSignature(ctx context.Context, blockID ids.ID) ([]byte, error)
 
 	// GetMessage retrieves the [unsignedMessage] from the warp backend database if available
 	// TODO: After Etna, the backend no longer needs to store the mapping from messageHash
@@ -75,20 +75,18 @@ func NewBackend(
 	uptimeCalculator uptime.Calculator,
 	validatorsState validators.StateReader,
 	db database.Database,
-	sdkCache cache.Cacher[ids.ID, []byte],
+	signatureCache cache.Cacher[ids.ID, []byte],
 	offchainMessages [][]byte,
 ) (Backend, error) {
 	b := &backend{
-		networkID:        networkID,
-		sourceChainID:    sourceChainID,
-		db:               db,
-		warpSigner:       warpSigner,
-		blockClient:      blockClient,
-		uptimeCalculator: uptimeCalculator,
-		validatorState:   validatorsState,
-		// sdkCache returns sdk.SignatureResponse proto bytes,
-		// and it must be wrapped to return Signature bytes.
-		signatureCache:            NewWrappedCache(sdkCache),
+		networkID:                 networkID,
+		sourceChainID:             sourceChainID,
+		db:                        db,
+		warpSigner:                warpSigner,
+		blockClient:               blockClient,
+		signatureCache:            signatureCache,
+		uptimeCalculator:          uptimeCalculator,
+		validatorState:            validatorsState,
 		messageCache:              &cache.LRU[ids.ID, *avalancheWarp.UnsignedMessage]{Size: messageCacheSize},
 		stats:                     newVerifierStats(),
 		offchainAddressedCallMsgs: make(map[ids.ID]*avalancheWarp.UnsignedMessage),
@@ -123,6 +121,7 @@ func (b *backend) initOffChainMessages(offchainMessages [][]byte) error {
 
 func (b *backend) AddMessage(unsignedMessage *avalancheWarp.UnsignedMessage) error {
 	messageID := unsignedMessage.ID()
+	log.Debug("Adding warp message to backend", "messageID", messageID)
 
 	// In the case when a node restarts, and possibly changes its bls key, the cache gets emptied but the database does not.
 	// So to avoid having incorrect signatures saved in the database after a bls key change, we save the full message in the database.
@@ -131,17 +130,13 @@ func (b *backend) AddMessage(unsignedMessage *avalancheWarp.UnsignedMessage) err
 		return fmt.Errorf("failed to put warp signature in db: %w", err)
 	}
 
-	sig, err := b.warpSigner.Sign(unsignedMessage)
-	if err != nil {
+	if _, err := b.signMessage(unsignedMessage); err != nil {
 		return fmt.Errorf("failed to sign warp message: %w", err)
 	}
-
-	b.signatureCache.Put(messageID, sig)
-	log.Debug("Adding warp message to backend", "messageID", messageID)
 	return nil
 }
 
-func (b *backend) GetMessageSignature(unsignedMessage *avalancheWarp.UnsignedMessage) ([]byte, error) {
+func (b *backend) GetMessageSignature(ctx context.Context, unsignedMessage *avalancheWarp.UnsignedMessage) ([]byte, error) {
 	messageID := unsignedMessage.ID()
 
 	log.Debug("Getting warp message from backend", "messageID", messageID)
@@ -149,36 +144,36 @@ func (b *backend) GetMessageSignature(unsignedMessage *avalancheWarp.UnsignedMes
 		return sig, nil
 	}
 
-	if err := b.verifyMessage(unsignedMessage); err != nil {
-		return []byte{}, fmt.Errorf("failed to validate warp message: %w", err)
+	if err := b.Verify(ctx, unsignedMessage, nil); err != nil {
+		return nil, fmt.Errorf("failed to validate warp message: %w", err)
 	}
 	return b.signMessage(unsignedMessage)
 }
 
-func (b *backend) GetBlockSignature(blockID ids.ID) ([]byte, error) {
+func (b *backend) GetBlockSignature(ctx context.Context, blockID ids.ID) ([]byte, error) {
 	log.Debug("Getting block from backend", "blockID", blockID)
 
 	blockHashPayload, err := payload.NewHash(blockID)
 	if err != nil {
-		return []byte{}, fmt.Errorf("failed to create new block hash payload: %w", err)
+		return nil, fmt.Errorf("failed to create new block hash payload: %w", err)
 	}
 
 	unsignedMessage, err := avalancheWarp.NewUnsignedMessage(b.networkID, b.sourceChainID, blockHashPayload.Bytes())
 	if err != nil {
-		return []byte{}, fmt.Errorf("failed to create new unsigned warp message: %w", err)
+		return nil, fmt.Errorf("failed to create new unsigned warp message: %w", err)
 	}
 
 	if sig, ok := b.signatureCache.Get(unsignedMessage.ID()); ok {
 		return sig, nil
 	}
 
-	if err := b.verifyBlockMessage(blockHashPayload); err != nil {
-		return []byte{}, fmt.Errorf("failed to validate block message: %w", err)
+	if err := b.verifyBlockMessage(ctx, blockHashPayload); err != nil {
+		return nil, fmt.Errorf("failed to validate block message: %w", err)
 	}
 
 	sig, err := b.signMessage(unsignedMessage)
 	if err != nil {
-		return []byte{}, fmt.Errorf("failed to sign block message: %w", err)
+		return nil, fmt.Errorf("failed to sign block message: %w", err)
 	}
 	return sig, nil
 }
@@ -208,7 +203,7 @@ func (b *backend) GetMessage(messageID ids.ID) (*avalancheWarp.UnsignedMessage, 
 func (b *backend) signMessage(unsignedMessage *avalancheWarp.UnsignedMessage) ([]byte, error) {
 	sig, err := b.warpSigner.Sign(unsignedMessage)
 	if err != nil {
-		return []byte{}, fmt.Errorf("failed to sign warp message: %w", err)
+		return nil, fmt.Errorf("failed to sign warp message: %w", err)
 	}
 
 	b.signatureCache.Put(unsignedMessage.ID(), sig)

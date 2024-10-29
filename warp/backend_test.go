@@ -4,6 +4,7 @@
 package warp
 
 import (
+	"context"
 	"testing"
 
 	"github.com/ava-labs/avalanchego/cache"
@@ -53,7 +54,7 @@ func TestAddAndGetValidMessage(t *testing.T) {
 	require.NoError(t, err)
 
 	// Verify that a signature is returned successfully, and compare to expected signature.
-	signature, err := backend.GetMessageSignature(testUnsignedMessage)
+	signature, err := backend.GetMessageSignature(context.TODO(), testUnsignedMessage)
 	require.NoError(t, err)
 
 	expectedSig, err := warpSigner.Sign(testUnsignedMessage)
@@ -72,7 +73,7 @@ func TestAddAndGetUnknownMessage(t *testing.T) {
 	require.NoError(t, err)
 
 	// Try getting a signature for a message that was not added.
-	_, err = backend.GetMessageSignature(testUnsignedMessage)
+	_, err = backend.GetMessageSignature(context.TODO(), testUnsignedMessage)
 	require.Error(t, err)
 }
 
@@ -86,7 +87,7 @@ func TestGetBlockSignature(t *testing.T) {
 	sk, err := bls.NewSecretKey()
 	require.NoError(err)
 	warpSigner := avalancheWarp.NewSigner(sk, networkID, sourceChainID)
-	messageSignatureCache := &cache.LRU[ids.ID, []byte]{}
+	messageSignatureCache := &cache.LRU[ids.ID, []byte]{Size: 500}
 	backend, err := NewBackend(networkID, sourceChainID, warpSigner, blockClient, uptime.NoOpCalculator, validators.NoOpState, db, messageSignatureCache, nil)
 	require.NoError(err)
 
@@ -97,11 +98,11 @@ func TestGetBlockSignature(t *testing.T) {
 	expectedSig, err := warpSigner.Sign(unsignedMessage)
 	require.NoError(err)
 
-	signature, err := backend.GetBlockSignature(blkID)
+	signature, err := backend.GetBlockSignature(context.TODO(), blkID)
 	require.NoError(err)
 	require.Equal(expectedSig, signature[:])
 
-	_, err = backend.GetBlockSignature(ids.GenerateTestID())
+	_, err = backend.GetBlockSignature(context.TODO(), ids.GenerateTestID())
 	require.Error(err)
 }
 
@@ -122,7 +123,7 @@ func TestZeroSizedCache(t *testing.T) {
 	require.NoError(t, err)
 
 	// Verify that a signature is returned successfully, and compare to expected signature.
-	signature, err := backend.GetMessageSignature(testUnsignedMessage)
+	signature, err := backend.GetMessageSignature(context.TODO(), testUnsignedMessage)
 	require.NoError(t, err)
 
 	expectedSig, err := warpSigner.Sign(testUnsignedMessage)
@@ -151,7 +152,7 @@ func TestOffChainMessages(t *testing.T) {
 				require.NoError(err)
 				require.Equal(testUnsignedMessage.Bytes(), msg.Bytes())
 
-				signature, err := b.GetMessageSignature(testUnsignedMessage)
+				signature, err := b.GetMessageSignature(context.TODO(), testUnsignedMessage)
 				require.NoError(err)
 				expectedSignatureBytes, err := warpSigner.Sign(msg)
 				require.NoError(err)
@@ -167,7 +168,7 @@ func TestOffChainMessages(t *testing.T) {
 			require := require.New(t)
 			db := memdb.New()
 
-			messageSignatureCache := &cache.LRU[ids.ID, []byte]{Size: 500}
+			messageSignatureCache := &cache.LRU[ids.ID, []byte]{Size: 0}
 			backend, err := NewBackend(networkID, sourceChainID, warpSigner, nil, uptime.NoOpCalculator, validators.NoOpState, db, messageSignatureCache, test.offchainMessages)
 			require.ErrorIs(err, test.err)
 			if test.check != nil {

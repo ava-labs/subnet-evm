@@ -33,10 +33,10 @@ import (
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
-	"github.com/ava-labs/subnet-evm/precompile/contracts/warp"
+	warpcontract "github.com/ava-labs/subnet-evm/precompile/contracts/warp"
 	"github.com/ava-labs/subnet-evm/predicate"
 	"github.com/ava-labs/subnet-evm/utils"
-	corewarp "github.com/ava-labs/subnet-evm/warp"
+	"github.com/ava-labs/subnet-evm/warp"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/stretchr/testify/require"
@@ -68,7 +68,7 @@ func TestSendWarpMessage(t *testing.T) {
 	genesis := &core.Genesis{}
 	require.NoError(genesis.UnmarshalJSON([]byte(genesisJSONDurango)))
 	genesis.Config.GenesisPrecompiles = params.Precompiles{
-		warp.ConfigKey: warp.NewDefaultConfig(utils.TimeToNewUint64(upgrade.InitiallyActiveTime)),
+		warpcontract.ConfigKey: warpcontract.NewDefaultConfig(utils.TimeToNewUint64(upgrade.InitiallyActiveTime)),
 	}
 	genesisJSON, err := genesis.MarshalJSON()
 	require.NoError(err)
@@ -84,7 +84,7 @@ func TestSendWarpMessage(t *testing.T) {
 
 	payloadData := avagoUtils.RandomBytes(100)
 
-	warpSendMessageInput, err := warp.PackSendWarpMessage(payloadData)
+	warpSendMessageInput, err := warpcontract.PackSendWarpMessage(payloadData)
 	require.NoError(err)
 	addressedPayload, err := payload.NewAddressedCall(
 		testEthAddrs[0].Bytes(),
@@ -99,7 +99,7 @@ func TestSendWarpMessage(t *testing.T) {
 	require.NoError(err)
 
 	// Submit a transaction to trigger sending a warp message
-	tx0 := types.NewTransaction(uint64(0), warp.ContractAddress, big.NewInt(1), 100_000, big.NewInt(testMinGasPrice), warpSendMessageInput)
+	tx0 := types.NewTransaction(uint64(0), warpcontract.ContractAddress, big.NewInt(1), 100_000, big.NewInt(testMinGasPrice), warpSendMessageInput)
 	signedTx0, err := types.SignTx(tx0, types.LatestSignerForChainID(vm.chainConfig.ChainID), testKeys[0])
 	require.NoError(err)
 
@@ -120,19 +120,19 @@ func TestSendWarpMessage(t *testing.T) {
 
 	require.Len(receipts[0].Logs, 1)
 	expectedTopics := []common.Hash{
-		warp.WarpABI.Events["SendWarpMessage"].ID,
+		warpcontract.WarpABI.Events["SendWarpMessage"].ID,
 		common.BytesToHash(testEthAddrs[0].Bytes()),
 		common.Hash(expectedUnsignedMessage.ID()),
 	}
 	require.Equal(expectedTopics, receipts[0].Logs[0].Topics)
 	logData := receipts[0].Logs[0].Data
-	unsignedMessage, err := warp.UnpackSendWarpEventDataToMessage(logData)
+	unsignedMessage, err := warpcontract.UnpackSendWarpEventDataToMessage(logData)
 	require.NoError(err)
 
 	// Verify the signature cannot be fetched before the block is accepted
-	_, err = vm.warpBackend.GetMessageSignature(unsignedMessage)
+	_, err = vm.warpBackend.GetMessageSignature(context.TODO(), unsignedMessage)
 	require.Error(err)
-	_, err = vm.warpBackend.GetBlockSignature(blk.ID())
+	_, err = vm.warpBackend.GetBlockSignature(context.TODO(), blk.ID())
 	require.Error(err)
 
 	require.NoError(vm.SetPreference(context.Background(), blk.ID()))
@@ -140,7 +140,7 @@ func TestSendWarpMessage(t *testing.T) {
 	vm.blockChain.DrainAcceptorQueue()
 
 	// Verify the message signature after accepting the block.
-	rawSignatureBytes, err := vm.warpBackend.GetMessageSignature(unsignedMessage)
+	rawSignatureBytes, err := vm.warpBackend.GetMessageSignature(context.TODO(), unsignedMessage)
 	require.NoError(err)
 	blsSignature, err := bls.SignatureFromBytes(rawSignatureBytes[:])
 	require.NoError(err)
@@ -157,7 +157,7 @@ func TestSendWarpMessage(t *testing.T) {
 	require.True(bls.Verify(vm.ctx.PublicKey, blsSignature, unsignedMessage.Bytes()))
 
 	// Verify the blockID will now be signed by the backend and produces a valid signature.
-	rawSignatureBytes, err = vm.warpBackend.GetBlockSignature(blk.ID())
+	rawSignatureBytes, err = vm.warpBackend.GetBlockSignature(context.TODO(), blk.ID())
 	require.NoError(err)
 	blsSignature, err = bls.SignatureFromBytes(rawSignatureBytes[:])
 	require.NoError(err)
@@ -265,7 +265,7 @@ func testWarpVMTransaction(t *testing.T, unsignedMessage *avalancheWarp.Unsigned
 	genesis := &core.Genesis{}
 	require.NoError(genesis.UnmarshalJSON([]byte(genesisJSONDurango)))
 	genesis.Config.GenesisPrecompiles = params.Precompiles{
-		warp.ConfigKey: warp.NewDefaultConfig(utils.TimeToNewUint64(upgrade.InitiallyActiveTime)),
+		warpcontract.ConfigKey: warpcontract.NewDefaultConfig(utils.TimeToNewUint64(upgrade.InitiallyActiveTime)),
 	}
 	genesisJSON, err := genesis.MarshalJSON()
 	require.NoError(err)
@@ -357,7 +357,7 @@ func testWarpVMTransaction(t *testing.T, unsignedMessage *avalancheWarp.Unsigned
 			common.Big0,
 			txPayload,
 			types.AccessList{},
-			warp.ContractAddress,
+			warpcontract.ContractAddress,
 			signedMessage.Bytes(),
 		),
 		types.LatestSignerForChainID(vm.chainConfig.ChainID),
@@ -423,18 +423,18 @@ func TestReceiveWarpMessage(t *testing.T) {
 	genesis.Config.GenesisPrecompiles = params.Precompiles{
 		// Note that warp is enabled without RequirePrimaryNetworkSigners
 		// by default in the genesis configuration.
-		warp.ConfigKey: warp.NewDefaultConfig(utils.TimeToNewUint64(upgrade.InitiallyActiveTime)),
+		warpcontract.ConfigKey: warpcontract.NewDefaultConfig(utils.TimeToNewUint64(upgrade.InitiallyActiveTime)),
 	}
 	genesisJSON, err := genesis.MarshalJSON()
 	require.NoError(err)
 
 	// disable warp so we can re-enable it with RequirePrimaryNetworkSigners
 	disableTime := upgrade.InitiallyActiveTime.Add(10 * time.Second)
-	disableConfig := warp.NewDisableConfig(utils.TimeToNewUint64(disableTime))
+	disableConfig := warpcontract.NewDisableConfig(utils.TimeToNewUint64(disableTime))
 
 	// re-enable warp with RequirePrimaryNetworkSigners
 	reEnableTime := disableTime.Add(10 * time.Second)
-	reEnableConfig := warp.NewConfig(
+	reEnableConfig := warpcontract.NewConfig(
 		utils.TimeToNewUint64(reEnableTime),
 		0,    // QuorumNumerator
 		true, // RequirePrimaryNetworkSigners
@@ -630,20 +630,20 @@ func testReceiveWarpMessage(
 	)
 	require.NoError(err)
 
-	getWarpMsgInput, err := warp.PackGetVerifiedWarpMessage(0)
+	getWarpMsgInput, err := warpcontract.PackGetVerifiedWarpMessage(0)
 	require.NoError(err)
 	getVerifiedWarpMessageTx, err := types.SignTx(
 		predicate.NewPredicateTx(
 			vm.chainConfig.ChainID,
 			vm.txPool.Nonce(testEthAddrs[0]),
-			&warp.Module.Address,
+			&warpcontract.Module.Address,
 			1_000_000,
 			big.NewInt(225*params.GWei),
 			big.NewInt(params.GWei),
 			common.Big0,
 			getWarpMsgInput,
 			types.AccessList{},
-			warp.ContractAddress,
+			warpcontract.ContractAddress,
 			signedMessage.Bytes(),
 		),
 		types.LatestSignerForChainID(vm.chainConfig.ChainID),
@@ -676,7 +676,7 @@ func testReceiveWarpMessage(
 	// An empty bitset indicates success.
 	txResultsBytes := results.GetResults(
 		getVerifiedWarpMessageTx.Hash(),
-		warp.ContractAddress,
+		warpcontract.ContractAddress,
 	)
 	bitset := set.BitsFromBytes(txResultsBytes)
 	require.Zero(bitset.Len()) // Empty bitset indicates success
@@ -709,8 +709,8 @@ func testReceiveWarpMessage(
 	verifiedMessageTxReceipt := verifiedMessageReceipts[0]
 	require.Equal(types.ReceiptStatusSuccessful, verifiedMessageTxReceipt.Status)
 
-	expectedOutput, err := warp.PackGetVerifiedWarpMessageOutput(warp.GetVerifiedWarpMessageOutput{
-		Message: warp.WarpMessage{
+	expectedOutput, err := warpcontract.PackGetVerifiedWarpMessageOutput(warpcontract.GetVerifiedWarpMessageOutput{
+		Message: warpcontract.WarpMessage{
 			SourceChainID:       common.Hash(sourceChainID),
 			OriginSenderAddress: testEthAddrs[0],
 			Payload:             payloadData,
@@ -751,7 +751,7 @@ func TestMessageSignatureRequestsToVM(t *testing.T) {
 	// Add the known message and get its signature to confirm.
 	err = vm.warpBackend.AddMessage(warpMessage)
 	require.NoError(t, err)
-	signature, err := vm.warpBackend.GetMessageSignature(warpMessage)
+	signature, err := vm.warpBackend.GetMessageSignature(context.TODO(), warpMessage)
 	require.NoError(t, err)
 	var knownSignature [bls.SignatureLen]byte
 	copy(knownSignature[:], signature)
@@ -809,7 +809,7 @@ func TestBlockSignatureRequestsToVM(t *testing.T) {
 	lastAcceptedID, err := vm.LastAccepted(context.Background())
 	require.NoError(t, err)
 
-	signature, err := vm.warpBackend.GetBlockSignature(lastAcceptedID)
+	signature, err := vm.warpBackend.GetBlockSignature(context.TODO(), lastAcceptedID)
 	require.NoError(t, err)
 	var knownSignature [bls.SignatureLen]byte
 	copy(knownSignature[:], signature)
@@ -873,7 +873,7 @@ func TestClearWarpDB(t *testing.T) {
 		err = vm.warpBackend.AddMessage(unsignedMsg)
 		require.NoError(t, err)
 		// ensure that the message was added
-		_, err = vm.warpBackend.GetMessageSignature(unsignedMsg)
+		_, err = vm.warpBackend.GetMessageSignature(context.TODO(), unsignedMsg)
 		require.NoError(t, err)
 		messages = append(messages, unsignedMsg)
 	}
@@ -882,13 +882,14 @@ func TestClearWarpDB(t *testing.T) {
 
 	// Restart VM with the same database default should not prune the warp db
 	vm = &VM{}
+	// we need new context since the previous one has registered metrics.
 	ctx, _, _, _, _ = setupGenesis(t, genesisJSONLatest)
 	err = vm.Initialize(context.Background(), ctx, db, genesisBytes, []byte{}, []byte{}, issuer, []*commonEng.Fx{}, &enginetest.Sender{})
 	require.NoError(t, err)
 
 	// check messages are still present
 	for _, message := range messages {
-		bytes, err := vm.warpBackend.GetMessageSignature(message)
+		bytes, err := vm.warpBackend.GetMessageSignature(context.TODO(), message)
 		require.NoError(t, err)
 		require.NotEmpty(t, bytes)
 	}
@@ -908,7 +909,7 @@ func TestClearWarpDB(t *testing.T) {
 
 	// ensure all messages have been deleted
 	for _, message := range messages {
-		_, err := vm.warpBackend.GetMessageSignature(message)
-		require.ErrorIs(t, err, &commonEng.AppError{Code: corewarp.ParseErrCode})
+		_, err := vm.warpBackend.GetMessageSignature(context.TODO(), message)
+		require.ErrorIs(t, err, &commonEng.AppError{Code: warp.ParseErrCode})
 	}
 }

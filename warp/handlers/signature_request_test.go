@@ -42,9 +42,9 @@ func TestMessageSignatureHandler(t *testing.T) {
 	require.NoError(t, err)
 	messageID := msg.ID()
 	require.NoError(t, backend.AddMessage(msg))
-	signature, err := backend.GetMessageSignature(msg)
+	signature, err := backend.GetMessageSignature(context.TODO(), msg)
 	require.NoError(t, err)
-	offchainSignature, err := backend.GetMessageSignature(offchainMessage)
+	offchainSignature, err := backend.GetMessageSignature(context.TODO(), offchainMessage)
 	require.NoError(t, err)
 
 	unknownMessageID := ids.GenerateTestID()
@@ -149,7 +149,7 @@ func TestBlockSignatureHandler(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	signature, err := backend.GetBlockSignature(blkID)
+	signature, err := backend.GetBlockSignature(context.TODO(), blkID)
 	require.NoError(t, err)
 	unknownMessageID := ids.GenerateTestID()
 
