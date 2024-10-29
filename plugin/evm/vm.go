@@ -208,6 +208,9 @@ type VM struct {
 	// [db] is the VM's current database managed by ChainState
 	db *versiondb.Database
 
+	// metadataDB is used to store one off keys.
+	metadataDB database.Database
+
 	// [chaindb] is the database supplied to the Ethereum backend
 	chaindb ethdb.Database
 
@@ -491,7 +494,6 @@ func (vm *VM) Initialize(
 	if err != nil {
 		return fmt.Errorf("failed to initialize p2p network: %w", err)
 	}
-	// TODO: consider using p2p validators for Subnet-EVM's validatorState
 	vm.validators = p2p.NewValidators(p2pNetwork.Peers, vm.ctx.Log, vm.ctx.SubnetID, vm.ctx.ValidatorState, maxValidatorSetStaleness)
 	vm.networkCodec = message.Codec
 	vm.Network = peer.NewNetwork(p2pNetwork, appSender, vm.networkCodec, chainCtx.NodeID, vm.config.MaxOutboundActiveRequests)
@@ -609,7 +611,6 @@ func (vm *VM) initializeStateSyncClient(lastAcceptedHeight uint64) error {
 		}
 	}
 
-	metadataDB := prefixdb.New(metadataPrefix, vm.db)
 	vm.StateSyncClient = NewStateSyncClient(&stateSyncClientConfig{
 		chain: vm.eth,
 		state: vm.State,
@@ -628,7 +629,7 @@ func (vm *VM) initializeStateSyncClient(lastAcceptedHeight uint64) error {
 		stateSyncRequestSize: vm.config.StateSyncRequestSize,
 		lastAcceptedHeight:   lastAcceptedHeight, // TODO clean up how this is passed around
 		chaindb:              vm.chaindb,
-		metadataDB:           metadataDB,
+		metadataDB:           vm.metadataDB,
 		acceptedBlockDB:      vm.acceptedBlockDB,
 		db:                   vm.db,
 		toEngine:             vm.toEngine,
