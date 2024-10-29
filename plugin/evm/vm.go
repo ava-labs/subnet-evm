@@ -1447,7 +1447,7 @@ func (vm *VM) performValidatorUpdate(ctx context.Context) error {
 	now := time.Now()
 	log.Debug("performing validator update")
 	// get current validator set
-	currentValidatorSet, _, err := vm.ctx.ValidatorState.GetCurrentValidatorSet(ctx, vm.ctx.SubnetID)
+	currentValidatorSet, _, _, err := vm.ctx.ValidatorState.GetCurrentValidatorSet(ctx, vm.ctx.SubnetID)
 	if err != nil {
 		return fmt.Errorf("failed to get current validator set: %w", err)
 	}
