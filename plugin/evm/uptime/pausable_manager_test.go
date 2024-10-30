@@ -152,6 +152,7 @@ func TestPausableManager(t *testing.T) {
 		// Stop tracking and reinitialize manager
 		currentTime = addTime(clk, 3*time.Second)
 		require.NoError(up.StopTracking([]ids.NodeID{nodeID0}))
+		checkUptime(t, up, nodeID0, 2*time.Second, currentTime)
 		up = NewPausableManager(uptime.NewManager(s, clk))
 
 		// Uptime should not have increased since the node was paused
@@ -206,6 +207,7 @@ func addTime(clk *mockable.Clock, duration time.Duration) time.Time {
 }
 
 func checkUptime(t *testing.T, up PausableManager, nodeID ids.NodeID, expectedUptime time.Duration, expectedLastUpdate time.Time) {
+	t.Helper()
 	uptime, lastUpdated, err := up.CalculateUptime(nodeID)
 	require.NoError(t, err)
 	require.Equal(t, expectedLastUpdate.Unix(), lastUpdated.Unix())
