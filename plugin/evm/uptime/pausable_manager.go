@@ -16,11 +16,7 @@ import (
 
 var _ validators.StateCallbackListener = &pausableManager{}
 
-var (
-	errPausedDisconnect = errors.New("paused node cannot be disconnected")
-	errAlreadyPaused    = errors.New("node is already paused")
-	errNotPaused        = errors.New("node is not paused")
-)
+var errPausedDisconnect = errors.New("paused node cannot be disconnected")
 
 type PausableManager interface {
 	uptime.Manager
@@ -127,9 +123,6 @@ func (p *pausableManager) IsPaused(nodeID ids.NodeID) bool {
 // pause can disconnect the node from the uptime.Manager if it is connected.
 // Returns an error if the node is already paused.
 func (p *pausableManager) pause(nodeID ids.NodeID) error {
-	if p.IsPaused(nodeID) {
-		return errAlreadyPaused
-	}
 	p.pausedVdrs.Add(nodeID)
 	if p.Manager.IsConnected(nodeID) {
 		// If the node is connected, then we need to disconnect it from
@@ -145,9 +138,6 @@ func (p *pausableManager) pause(nodeID ids.NodeID) error {
 // resume can connect the node to the uptime.Manager if it was connected.
 // Returns an error if the node is not paused.
 func (p *pausableManager) resume(nodeID ids.NodeID) error {
-	if !p.IsPaused(nodeID) {
-		return errNotPaused
-	}
 	p.pausedVdrs.Remove(nodeID)
 	if p.connectedVdrs.Contains(nodeID) && !p.Manager.IsConnected(nodeID) {
 		return p.Manager.Connect(nodeID)

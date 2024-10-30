@@ -29,6 +29,7 @@ func TestPausableManager(t *testing.T) {
 
 		// Pause before tracking
 		up.OnValidatorStatusUpdated(vID, nodeID0, false)
+		require.True(up.IsPaused(nodeID0))
 
 		// Elapse Time
 		addTime(clk, time.Second)
@@ -59,6 +60,7 @@ func TestPausableManager(t *testing.T) {
 		// Pause
 		addTime(clk, time.Second)
 		up.OnValidatorStatusUpdated(vID, nodeID0, false)
+		require.True(up.IsPaused(nodeID0))
 
 		// Elapse time
 		currentTime := addTime(clk, 2*time.Second)
@@ -81,6 +83,7 @@ func TestPausableManager(t *testing.T) {
 		// Resume and check uptime
 		currentTime = addTime(clk, 6*time.Second)
 		up.OnValidatorStatusUpdated(vID, nodeID0, true)
+		require.False(up.IsPaused(nodeID0))
 		// Uptime should not have increased since the node was paused
 		// and we just resumed it
 		checkUptime(t, up, nodeID0, 1*time.Second, currentTime)
@@ -97,6 +100,7 @@ func TestPausableManager(t *testing.T) {
 
 		// Pause before tracking
 		up.OnValidatorStatusUpdated(vID, nodeID0, false)
+		require.True(up.IsPaused(nodeID0))
 
 		// Start tracking
 		addTime(clk, time.Second)
@@ -121,6 +125,7 @@ func TestPausableManager(t *testing.T) {
 		require.NoError(up.Connect(nodeID0))
 		addTime(clk, 5*time.Second)
 		up.OnValidatorStatusUpdated(vID, nodeID0, true)
+		require.False(up.IsPaused(nodeID0))
 
 		// Check uptime after resume
 		currentTime = addTime(clk, 6*time.Second)
@@ -140,6 +145,7 @@ func TestPausableManager(t *testing.T) {
 		// Pause and check uptime
 		currentTime := addTime(clk, 2*time.Second)
 		up.OnValidatorStatusUpdated(vID, nodeID0, false)
+		require.True(up.IsPaused(nodeID0))
 		// Uptime should be 2 seconds since the node was paused after 2 seconds
 		checkUptime(t, up, nodeID0, 2*time.Second, currentTime)
 
@@ -154,12 +160,14 @@ func TestPausableManager(t *testing.T) {
 
 		// Pause and check uptime
 		up.OnValidatorStatusUpdated(vID, nodeID0, false)
+		require.True(up.IsPaused(nodeID0))
 		// Uptime should not have increased since the node was paused
 		checkUptime(t, up, nodeID0, 2*time.Second, currentTime)
 
 		// Resume and check uptime
 		currentTime = addTime(clk, 5*time.Second)
 		up.OnValidatorStatusUpdated(vID, nodeID0, true)
+		require.False(up.IsPaused(nodeID0))
 		// Uptime should have increased by 5 seconds since the node was resumed
 		checkUptime(t, up, nodeID0, 7*time.Second, currentTime)
 
