@@ -7,6 +7,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/ava-labs/subnet-evm/warp/messages"
+
 	"github.com/ava-labs/avalanchego/snow/engine/common"
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
@@ -36,6 +38,8 @@ func (b *backend) Verify(ctx context.Context, unsignedMessage *avalancheWarp.Uns
 	}
 
 	switch p := parsed.(type) {
+	case *payload.AddressedCall:
+		return b.verifyAddressedCall(p)
 	case *payload.Hash:
 		return b.verifyBlockMessage(ctx, p)
 	default:
@@ -60,5 +64,38 @@ func (b *backend) verifyBlockMessage(ctx context.Context, blockHashPayload *payl
 		}
 	}
 
+	return nil
+}
+
+// verifyAddressedCall verifies the addressed call message
+func (b *backend) verifyAddressedCall(addressedCall *payload.AddressedCall) *common.AppError {
+	// Further, parse the payload to see if it is a known type.
+	parsed, err := messages.Parse(addressedCall.Payload)
+	if err != nil {
+		b.stats.IncMessageParseFail()
+		return &common.AppError{
+			Code:    ParseErrCode,
+			Message: "failed to parse addressed call message: " + err.Error(),
+		}
+	}
+
+	switch p := parsed.(type) {
+	case *messages.ValidatorUptime:
+		if err := b.verifyUptimeMessage(p); err != nil {
+			b.stats.IncUptimeValidationFail()
+			return err
+		}
+	default:
+		b.stats.IncMessageParseFail()
+		return &common.AppError{
+			Code:    ParseErrCode,
+			Message: fmt.Sprintf("unknown message type: %T", p),
+		}
+	}
+
+	return nil
+}
+
+func (b *backend) verifyUptimeMessage(uptimeMsg *messages.ValidatorUptime) *common.AppError {
 	return nil
 }

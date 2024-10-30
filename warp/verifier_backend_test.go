@@ -18,6 +18,7 @@ import (
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
 	"github.com/ava-labs/subnet-evm/utils"
+	"github.com/ava-labs/subnet-evm/warp/messages"
 	"github.com/ava-labs/subnet-evm/warp/warptest"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
@@ -251,5 +252,53 @@ func TestBlockSignatures(t *testing.T) {
 				require.Equal(t, expectedResponse, response.Signature)
 			})
 		}
+	}
+}
+
+func TestUptimeSignatures(t *testing.T) {
+	database := memdb.New()
+	snowCtx := utils.TestSnowContext()
+	blsSecretKey, err := bls.NewSecretKey()
+	require.NoError(t, err)
+	warpSigner := avalancheWarp.NewSigner(blsSecretKey, snowCtx.NetworkID, snowCtx.ChainID)
+
+	getUptimeMessageBytes := func(vID ids.ID, totalUptime uint64) ([]byte, *avalancheWarp.UnsignedMessage) {
+		uptimePayload, err := messages.NewValidatorUptime(vID, 80)
+		require.NoError(t, err)
+		addressedCall, err := payload.NewAddressedCall([]byte{1, 2, 3}, uptimePayload.Bytes())
+		require.NoError(t, err)
+		unsignedMessage, err := avalancheWarp.NewUnsignedMessage(snowCtx.NetworkID, snowCtx.ChainID, addressedCall.Bytes())
+		require.NoError(t, err)
+
+		protoMsg := &sdk.SignatureRequest{Message: unsignedMessage.Bytes()}
+		protoBytes, err := proto.Marshal(protoMsg)
+		require.NoError(t, err)
+		return protoBytes, unsignedMessage
+	}
+
+	for _, withCache := range []bool{true, false} {
+		var sigCache cache.Cacher[ids.ID, []byte]
+		if withCache {
+			sigCache = &cache.LRU[ids.ID, []byte]{Size: 100}
+		} else {
+			sigCache = &cache.Empty[ids.ID, []byte]{}
+		}
+		require.NoError(t, err)
+		warpBackend, err := NewBackend(snowCtx.NetworkID, snowCtx.ChainID, warpSigner, warptest.EmptyBlockClient, database, sigCache, nil)
+		require.NoError(t, err)
+		handler := acp118.NewCachedHandler(sigCache, warpBackend, warpSigner)
+
+		validationID := ids.GenerateTestID()
+		nodeID := ids.GenerateTestNodeID()
+
+		// valid uptime
+		protoBytes, msg := getUptimeMessageBytes(validationID, 80)
+		responseBytes, appErr := handler.AppRequest(context.Background(), nodeID, time.Time{}, protoBytes)
+		require.Nil(t, appErr)
+		expectedSignature, err := warpSigner.Sign(msg)
+		require.NoError(t, err)
+		response := &sdk.SignatureResponse{}
+		require.NoError(t, proto.Unmarshal(responseBytes, response))
+		require.Equal(t, expectedSignature[:], response.Signature)
 	}
 }

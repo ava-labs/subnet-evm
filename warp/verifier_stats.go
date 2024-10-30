@@ -11,6 +11,8 @@ type verifierStats struct {
 	messageParseFail metrics.Counter
 	// BlockRequest metrics
 	blockSignatureValidationFail metrics.Counter
+	// Uptime metrics
+	uptimeValidationFail metrics.Counter
 }
 
 func newVerifierStats() *verifierStats {
@@ -26,4 +28,8 @@ func (h *verifierStats) IncBlockSignatureValidationFail() {
 
 func (h *verifierStats) IncMessageParseFail() {
 	h.messageParseFail.Inc(1)
+}
+
+func (h *verifierStats) IncUptimeValidationFail() {
+	h.uptimeValidationFail.Inc(1)
 }
