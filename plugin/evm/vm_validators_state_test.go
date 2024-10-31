@@ -108,7 +108,7 @@ func TestValidatorState(t *testing.T) {
 		appSender,
 	)
 	require.NoError(err, "error initializing GenesisVM")
-	require.Len(vm.validatorState.GetValidationIDs().Len(), 3)
+	require.Len(vm.validatorState.GetValidationIDs(), 3)
 	_, _, err = vm.uptimeManager.CalculateUptime(testNodeIDs[0])
 	require.NoError(err)
 	require.False(vm.uptimeManager.StartedTracking())
