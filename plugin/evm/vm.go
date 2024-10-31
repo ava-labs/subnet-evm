@@ -143,6 +143,7 @@ const (
 	adminEndpoint        = "/admin"
 	ethRPCEndpoint       = "/rpc"
 	ethWSEndpoint        = "/ws"
+	validatorsEndpoint   = "/validators"
 	ethTxGossipNamespace = "eth_tx_gossip"
 )
 
@@ -1087,6 +1088,16 @@ func (vm *VM) CreateHandlers(context.Context) (map[string]http.Handler, error) {
 		enabledAPIs = append(enabledAPIs, "subnet-evm-admin")
 	}
 
+	if vm.config.ValidatorsAPIEnabled {
+		validatorsAPI, err := newHandler("validators", &ValidatorsAPI{vm})
+		if err != nil {
+			return nil, fmt.Errorf("failed to register service for validators API due to %w", err)
+		}
+		apis[validatorsEndpoint] = validatorsAPI
+		enabledAPIs = append(enabledAPIs, "validators")
+	}
+
+	// RPC APIs
 	if vm.config.SnowmanAPIEnabled {
 		if err := handler.RegisterName("snowman", &SnowmanAPI{vm}); err != nil {
 			return nil, err
@@ -1467,7 +1478,6 @@ func (vm *VM) performValidatorUpdate(ctx context.Context) error {
 	return nil
 }
 
-// TODO: cache the last updated height and then load if needed
 // loadValidators loads the [validators] into the validator state [validatorState]
 func loadValidators(validatorState validators.State, validators map[ids.ID]*avalancheValidators.GetCurrentValidatorOutput) error {
 	currentValidationIDs := validatorState.GetValidationIDs()
