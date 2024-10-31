@@ -77,15 +77,15 @@ func TestValidatorState(t *testing.T) {
 	require.NoError(err, "error initializing GenesisVM")
 
 	// Test case 1: state should not be populated until bootstrapped
+	require.NoError(vm.SetState(context.Background(), snow.Bootstrapping))
 	require.Equal(0, vm.validatorState.GetValidationIDs().Len())
 	_, _, err = vm.uptimeManager.CalculateUptime(testNodeIDs[0])
 	require.ErrorIs(database.ErrNotFound, err)
 	require.False(vm.uptimeManager.StartedTracking())
 
 	// Test case 2: state should be populated after bootstrapped
-	require.NoError(vm.SetState(context.Background(), snow.Bootstrapping))
 	require.NoError(vm.SetState(context.Background(), snow.NormalOp))
-	require.Equal(3, vm.validatorState.GetValidationIDs().Len())
+	require.Len(vm.validatorState.GetValidationIDs(), 3)
 	_, _, err = vm.uptimeManager.CalculateUptime(testNodeIDs[0])
 	require.NoError(err)
 	require.True(vm.uptimeManager.StartedTracking())
@@ -108,7 +108,7 @@ func TestValidatorState(t *testing.T) {
 		appSender,
 	)
 	require.NoError(err, "error initializing GenesisVM")
-	require.Equal(3, vm.validatorState.GetValidationIDs().Len())
+	require.Len(vm.validatorState.GetValidationIDs(), 3)
 	_, _, err = vm.uptimeManager.CalculateUptime(testNodeIDs[0])
 	require.NoError(err)
 	require.False(vm.uptimeManager.StartedTracking())
@@ -149,7 +149,7 @@ func TestValidatorState(t *testing.T) {
 
 	// new validator should be added to the state eventually after validatorsLoadFrequency
 	require.EventuallyWithT(func(c *assert.CollectT) {
-		assert.Equal(c, 4, vm.validatorState.GetValidatorIDs().Len())
+		assert.Len(c, vm.validatorState.GetValidatorIDs(), 4)
 		newValidator, err := vm.validatorState.GetValidator(newNodeID)
 		assert.NoError(c, err)
 		assert.Equal(c, newNodeID, newValidator.NodeID)

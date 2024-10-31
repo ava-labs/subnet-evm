@@ -1473,7 +1473,6 @@ func (vm *VM) performValidatorUpdate(ctx context.Context) error {
 	return nil
 }
 
-// TODO: cache the last updated height and then load if needed
 // loadValidators loads the [validators] into the validator state [validatorState]
 func loadValidators(validatorState validators.State, validators map[ids.ID]*avalancheValidators.GetCurrentValidatorOutput) error {
 	currentValidationIDs := validatorState.GetValidationIDs()
