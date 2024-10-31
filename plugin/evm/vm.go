@@ -1086,7 +1086,7 @@ func (vm *VM) CreateHandlers(context.Context) (map[string]http.Handler, error) {
 	if vm.config.ValidatorsAPIEnabled {
 		validatorsAPI, err := newHandler("validators", &ValidatorsAPI{vm})
 		if err != nil {
-			return nil, fmt.Errorf("failed to register service for admin API due to %w", err)
+			return nil, fmt.Errorf("failed to register service for validators API due to %w", err)
 		}
 		apis[validatorsEndpoint] = validatorsAPI
 		enabledAPIs = append(enabledAPIs, "validators")
