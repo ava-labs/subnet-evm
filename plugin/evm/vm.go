@@ -1461,8 +1461,6 @@ func (vm *VM) performValidatorUpdate(ctx context.Context) error {
 		return fmt.Errorf("failed to get current validator set: %w", err)
 	}
 
-	log.Info("updating validators", "validatorSet", currentValidatorSet)
-
 	// load the current validator set into the validator state
 	if err := loadValidators(vm.validatorState, currentValidatorSet); err != nil {
 		return fmt.Errorf("failed to load current validators: %w", err)
@@ -1504,7 +1502,7 @@ func loadValidators(validatorState validators.State, validators map[ids.ID]*aval
 				}
 			}
 		} else {
-			if err := validatorState.AddValidator(vID, vdr.NodeID, vdr.StartTime, vdr.IsActive); err != nil {
+			if err := validatorState.AddValidator(vID, vdr.NodeID, vdr.Weight, vdr.StartTime, vdr.IsActive, vdr.IsSoV); err != nil {
 				return err
 			}
 		}
