@@ -307,7 +307,7 @@ func TestUptimeSignatures(t *testing.T) {
 		// uptime is less than requested (not connected)
 		validationID := ids.GenerateTestID()
 		nodeID := ids.GenerateTestNodeID()
-		require.NoError(t, state.AddValidator(validationID, nodeID, clk.Unix(), true))
+		require.NoError(t, state.AddValidator(validationID, nodeID, 1, clk.Unix(), true, true))
 		protoBytes, _ = getUptimeMessageBytes(validationID, 80)
 		_, appErr = handler.AppRequest(context.Background(), nodeID, time.Time{}, protoBytes)
 		require.ErrorIs(t, appErr, &common.AppError{Code: VerifyErrCode})

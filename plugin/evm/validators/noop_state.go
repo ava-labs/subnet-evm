@@ -17,7 +17,7 @@ func (n *noOpState) GetValidationIDs() set.Set[ids.ID] { return set.NewSet[ids.I
 
 func (n *noOpState) GetNodeIDs() set.Set[ids.NodeID] { return set.NewSet[ids.NodeID](0) }
 
-func (n *noOpState) GetValidator(nodeID ids.NodeID) (*ValidatorOutput, error) {
+func (n *noOpState) GetValidator(nodeID ids.NodeID) (*Validator, error) {
 	return nil, nil
 }
 
@@ -45,7 +45,7 @@ func (n *noOpState) GetStartTime(
 	return time.Time{}, nil
 }
 
-func (n *noOpState) AddValidator(vID ids.ID, nodeID ids.NodeID, startTimestamp uint64, isActive bool) error {
+func (n *noOpState) AddValidator(vID ids.ID, nodeID ids.NodeID, weight uint64, startTimestamp uint64, isActive bool, isSoV bool) error {
 	return nil
 }
 

@@ -35,13 +35,13 @@ func TestState(t *testing.T) {
 	require.ErrorIs(err, database.ErrNotFound)
 
 	// add new validator
-	state.AddValidator(vID, nodeID, uint64(startTime.Unix()), true)
+	state.AddValidator(vID, nodeID, 1, uint64(startTime.Unix()), true, true)
 
 	// adding the same validator should fail
-	err = state.AddValidator(vID, ids.GenerateTestNodeID(), uint64(startTime.Unix()), true)
+	err = state.AddValidator(vID, ids.GenerateTestNodeID(), 1, uint64(startTime.Unix()), true, true)
 	require.ErrorIs(err, ErrAlreadyExists)
 	// adding the same nodeID should fail
-	err = state.AddValidator(ids.GenerateTestID(), nodeID, uint64(startTime.Unix()), true)
+	err = state.AddValidator(ids.GenerateTestID(), nodeID, 1, uint64(startTime.Unix()), true, true)
 	require.ErrorIs(err, ErrAlreadyExists)
 
 	// get uptime
@@ -87,7 +87,7 @@ func TestWriteValidator(t *testing.T) {
 	nodeID := ids.GenerateTestNodeID()
 	vID := ids.GenerateTestID()
 	startTime := time.Now()
-	require.NoError(state.AddValidator(vID, nodeID, uint64(startTime.Unix()), true))
+	require.NoError(state.AddValidator(vID, nodeID, uint64(startTime.Unix()), 1, true, true))
 
 	// write state, should reflect to DB
 	require.NoError(state.WriteState())
@@ -230,7 +230,7 @@ func TestStateListener(t *testing.T) {
 	initialStartTime := time.Now()
 
 	// add initial validator
-	require.NoError(state.AddValidator(initialvID, initialNodeID, uint64(initialStartTime.Unix()), true))
+	require.NoError(state.AddValidator(initialvID, initialNodeID, 1, uint64(initialStartTime.Unix()), true, true))
 
 	// register listener
 	mockListener.EXPECT().OnValidatorAdded(initialvID, initialNodeID, uint64(initialStartTime.Unix()), true)
@@ -238,7 +238,7 @@ func TestStateListener(t *testing.T) {
 
 	// add new validator
 	mockListener.EXPECT().OnValidatorAdded(expectedvID, expectedNodeID, uint64(expectedStartTime.Unix()), true)
-	require.NoError(state.AddValidator(expectedvID, expectedNodeID, uint64(expectedStartTime.Unix()), true))
+	require.NoError(state.AddValidator(expectedvID, expectedNodeID, 1, uint64(expectedStartTime.Unix()), true, true))
 
 	// set status
 	mockListener.EXPECT().OnValidatorStatusUpdated(expectedvID, expectedNodeID, false)
