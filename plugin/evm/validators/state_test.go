@@ -35,13 +35,34 @@ func TestState(t *testing.T) {
 	require.ErrorIs(err, database.ErrNotFound)
 
 	// add new validator
-	state.AddValidator(vID, nodeID, 1, uint64(startTime.Unix()), true, true)
+	state.AddValidator(Validator{
+		ValidationID:   vID,
+		NodeID:         nodeID,
+		Weight:         1,
+		StartTimestamp: uint64(startTime.Unix()),
+		IsActive:       true,
+		IsSoV:          true,
+	})
 
 	// adding the same validator should fail
-	err = state.AddValidator(vID, ids.GenerateTestNodeID(), 1, uint64(startTime.Unix()), true, true)
+	err = state.AddValidator(Validator{
+		ValidationID:   vID,
+		NodeID:         ids.GenerateTestNodeID(),
+		Weight:         1,
+		StartTimestamp: uint64(startTime.Unix()),
+		IsActive:       true,
+		IsSoV:          true,
+	})
 	require.ErrorIs(err, ErrAlreadyExists)
 	// adding the same nodeID should fail
-	err = state.AddValidator(ids.GenerateTestID(), nodeID, 1, uint64(startTime.Unix()), true, true)
+	err = state.AddValidator(Validator{
+		ValidationID:   ids.GenerateTestID(),
+		NodeID:         nodeID,
+		Weight:         1,
+		StartTimestamp: uint64(startTime.Unix()),
+		IsActive:       true,
+		IsSoV:          true,
+	})
 	require.ErrorIs(err, ErrAlreadyExists)
 
 	// get uptime
@@ -87,7 +108,14 @@ func TestWriteValidator(t *testing.T) {
 	nodeID := ids.GenerateTestNodeID()
 	vID := ids.GenerateTestID()
 	startTime := time.Now()
-	require.NoError(state.AddValidator(vID, nodeID, uint64(startTime.Unix()), 1, true, true))
+	require.NoError(state.AddValidator(Validator{
+		ValidationID:   vID,
+		NodeID:         nodeID,
+		Weight:         1,
+		StartTimestamp: uint64(startTime.Unix()),
+		IsActive:       true,
+		IsSoV:          true,
+	}))
 
 	// write state, should reflect to DB
 	require.NoError(state.WriteState())
@@ -230,7 +258,14 @@ func TestStateListener(t *testing.T) {
 	initialStartTime := time.Now()
 
 	// add initial validator
-	require.NoError(state.AddValidator(initialvID, initialNodeID, 1, uint64(initialStartTime.Unix()), true, true))
+	require.NoError(state.AddValidator(Validator{
+		ValidationID:   initialvID,
+		NodeID:         initialNodeID,
+		Weight:         1,
+		StartTimestamp: uint64(initialStartTime.Unix()),
+		IsActive:       true,
+		IsSoV:          true,
+	}))
 
 	// register listener
 	mockListener.EXPECT().OnValidatorAdded(initialvID, initialNodeID, uint64(initialStartTime.Unix()), true)
@@ -238,7 +273,14 @@ func TestStateListener(t *testing.T) {
 
 	// add new validator
 	mockListener.EXPECT().OnValidatorAdded(expectedvID, expectedNodeID, uint64(expectedStartTime.Unix()), true)
-	require.NoError(state.AddValidator(expectedvID, expectedNodeID, 1, uint64(expectedStartTime.Unix()), true, true))
+	require.NoError(state.AddValidator(Validator{
+		ValidationID:   expectedvID,
+		NodeID:         expectedNodeID,
+		Weight:         1,
+		StartTimestamp: uint64(expectedStartTime.Unix()),
+		IsActive:       true,
+		IsSoV:          true,
+	}))
 
 	// set status
 	mockListener.EXPECT().OnValidatorStatusUpdated(expectedvID, expectedNodeID, false)

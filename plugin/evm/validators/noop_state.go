@@ -45,7 +45,7 @@ func (n *noOpState) GetStartTime(
 	return time.Time{}, nil
 }
 
-func (n *noOpState) AddValidator(vID ids.ID, nodeID ids.NodeID, weight uint64, startTimestamp uint64, isActive bool, isSoV bool) error {
+func (n *noOpState) AddValidator(vdr Validator) error {
 	return nil
 }
 
