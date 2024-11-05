@@ -1445,8 +1445,6 @@ func (vm *VM) performValidatorUpdate(ctx context.Context) error {
 		return fmt.Errorf("failed to get current validator set: %w", err)
 	}
 
-	log.Info("updating validators", "validatorSet", currentValidatorSet)
-
 	// load the current validator set into the validator state
 	if err := loadValidators(vm.validatorState, currentValidatorSet); err != nil {
 		return fmt.Errorf("failed to load current validators: %w", err)
