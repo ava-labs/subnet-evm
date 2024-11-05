@@ -20,8 +20,9 @@ import (
 )
 
 var (
-	TestCChainID = ids.ID{'c', 'c', 'h', 'a', 'i', 'n', 't', 'e', 's', 't'}
+	testCChainID = ids.ID{'c', 'c', 'h', 'a', 'i', 'n', 't', 'e', 's', 't'}
 	testXChainID = ids.ID{'t', 'e', 's', 't', 'x'}
+	testChainID  = ids.ID{'t', 'e', 's', 't', 'c', 'h', 'a', 'i', 'n'}
 )
 
 func TestSnowContext() *snow.Context {
@@ -31,7 +32,7 @@ func TestSnowContext() *snow.Context {
 	}
 	pk := bls.PublicFromSecretKey(sk)
 	networkID := constants.UnitTestID
-	chainID := ids.GenerateTestID()
+	chainID := testChainID
 
 	ctx := &snow.Context{
 		NetworkID:       networkID,
@@ -39,7 +40,7 @@ func TestSnowContext() *snow.Context {
 		ChainID:         chainID,
 		NodeID:          ids.GenerateTestNodeID(),
 		XChainID:        testXChainID,
-		CChainID:        TestCChainID,
+		CChainID:        testCChainID,
 		NetworkUpgrades: upgradetest.GetConfig(upgradetest.Latest),
 		PublicKey:       pk,
 		WarpSigner:      warp.NewSigner(sk, networkID, chainID),
@@ -51,8 +52,8 @@ func TestSnowContext() *snow.Context {
 	}
 
 	aliaser := ctx.BCLookup.(ids.Aliaser)
-	_ = aliaser.Alias(TestCChainID, "C")
-	_ = aliaser.Alias(TestCChainID, TestCChainID.String())
+	_ = aliaser.Alias(testCChainID, "C")
+	_ = aliaser.Alias(testCChainID, testCChainID.String())
 	_ = aliaser.Alias(testXChainID, "X")
 	_ = aliaser.Alias(testXChainID, testXChainID.String())
 
@@ -68,7 +69,7 @@ func NewTestValidatorState() *validatorstest.State {
 			subnetID, ok := map[ids.ID]ids.ID{
 				constants.PlatformChainID: constants.PrimaryNetworkID,
 				testXChainID:              constants.PrimaryNetworkID,
-				TestCChainID:              constants.PrimaryNetworkID,
+				testCChainID:              constants.PrimaryNetworkID,
 			}[chainID]
 			if !ok {
 				return ids.Empty, errors.New("unknown chain")
