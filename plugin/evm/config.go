@@ -61,10 +61,7 @@ const (
 	// - state sync time: ~6 hrs.
 	defaultStateSyncMinBlocks   = 300_000
 	defaultStateSyncRequestSize = 1024 // the number of key/values to ask peers for per request
-
-	defaultValidatorsAPIEnabled = true
-
-	defaultDBType = pebbledb.Name
+	defaultDBType               = pebbledb.Name
 )
 
 type PBool bool
@@ -300,7 +297,6 @@ func (c *Config) SetDefaults() {
 	c.StateSyncRequestSize = defaultStateSyncRequestSize
 	c.AllowUnprotectedTxHashes = defaultAllowUnprotectedTxHashes
 	c.AcceptedCacheSize = defaultAcceptedCacheSize
-	c.ValidatorsAPIEnabled = defaultValidatorsAPIEnabled
 	c.DatabaseType = defaultDBType
 }
 
