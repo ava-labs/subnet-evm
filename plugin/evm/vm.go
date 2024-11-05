@@ -267,7 +267,7 @@ type VM struct {
 	ethTxPushGossiper  avalancheUtils.Atomic[*gossip.PushGossiper[*GossipEthTx]]
 	ethTxPullGossiper  gossip.Gossiper
 
-	UptimeLockedCalculator avalancheUptime.LockedCalculator
+	lockedUptimeCalculator avalancheUptime.LockedCalculator
 	uptimeManager          uptime.PausableManager
 	validatorState         validators.State
 
@@ -512,8 +512,8 @@ func (vm *VM) Initialize(
 	}
 
 	vm.uptimeManager = uptime.NewPausableManager(avalancheUptime.NewManager(vm.validatorState, &vm.clock))
-	vm.UptimeLockedCalculator = avalancheUptime.NewLockedCalculator()
-	vm.UptimeLockedCalculator.SetCalculator(&vm.bootstrapped, &chainCtx.Lock, vm.uptimeManager)
+	vm.lockedUptimeCalculator = avalancheUptime.NewLockedCalculator()
+	vm.lockedUptimeCalculator.SetCalculator(&vm.bootstrapped, &chainCtx.Lock, vm.uptimeManager)
 	vm.validatorState.RegisterListener(vm.uptimeManager)
 
 	// Initialize warp backend
@@ -539,7 +539,7 @@ func (vm *VM) Initialize(
 		vm.ctx.ChainID,
 		vm.ctx.WarpSigner,
 		vm,
-		vm.UptimeLockedCalculator,
+		vm.lockedUptimeCalculator,
 		validators.NewLockedStateReader(vm.ctx.Lock.RLocker(), vm.validatorState),
 		vm.warpDB,
 		meteredCache,
@@ -1349,8 +1349,8 @@ func (vm *VM) initializeDBs(avaDB database.Database) error {
 	// remains the same regardless of the provided baseDB type.
 	vm.chaindb = rawdb.NewDatabase(Database{prefixdb.NewNested(ethDBPrefix, db)})
 	vm.db = versiondb.New(db)
-	vm.acceptedBlockDB = prefixdb.New(acceptedPrefix, db)
-	vm.metadataDB = prefixdb.New(metadataPrefix, db)
+	vm.acceptedBlockDB = prefixdb.New(acceptedPrefix, vm.db)
+	vm.metadataDB = prefixdb.New(metadataPrefix, vm.db)
 	// Note warpDB is not part of versiondb because it is not necessary
 	// that warp signatures are committed to the database atomically with
 	// the last accepted block.

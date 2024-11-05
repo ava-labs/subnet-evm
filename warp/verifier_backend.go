@@ -81,7 +81,7 @@ func (b *backend) verifyAddressedCall(addressedCall *payload.AddressedCall) *com
 
 	switch p := parsed.(type) {
 	case *messages.ValidatorUptime:
-		if err := b.verifyUptimeMessage(p); err != nil {
+		if err := b.verifyUptimeMessage(addressedCall.SourceAddress, p); err != nil {
 			b.stats.IncUptimeValidationFail()
 			return err
 		}
@@ -96,7 +96,14 @@ func (b *backend) verifyAddressedCall(addressedCall *payload.AddressedCall) *com
 	return nil
 }
 
-func (b *backend) verifyUptimeMessage(uptimeMsg *messages.ValidatorUptime) *common.AppError {
+func (b *backend) verifyUptimeMessage(sourceAddress []byte, uptimeMsg *messages.ValidatorUptime) *common.AppError {
+	if len(sourceAddress) != 0 {
+		return &common.AppError{
+			Code:    VerifyErrCode,
+			Message: "source address should be empty for uptime message",
+		}
+	}
+
 	// first get the validator's nodeID
 	nodeID, err := b.validatorState.GetNodeID(uptimeMsg.ValidationID)
 	if err != nil {
