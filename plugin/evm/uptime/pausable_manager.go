@@ -69,7 +69,7 @@ func (p *pausableManager) Disconnect(nodeID ids.NodeID) error {
 // StartTracking starts tracking uptime for the nodes with the given IDs
 // If a node is paused, it will not be tracked
 func (p *pausableManager) StartTracking(nodeIDs []ids.NodeID) error {
-	var activeNodeIDs []ids.NodeID
+	activeNodeIDs := make([]ids.NodeID, 0, len(nodeIDs))
 	for _, nodeID := range nodeIDs {
 		if !p.IsPaused(nodeID) {
 			activeNodeIDs = append(activeNodeIDs, nodeID)
@@ -121,7 +121,6 @@ func (p *pausableManager) IsPaused(nodeID ids.NodeID) bool {
 
 // pause pauses uptime tracking for the node with the given ID
 // pause can disconnect the node from the uptime.Manager if it is connected.
-// Returns an error if the node is already paused.
 func (p *pausableManager) pause(nodeID ids.NodeID) error {
 	p.pausedVdrs.Add(nodeID)
 	if p.Manager.IsConnected(nodeID) {
@@ -136,7 +135,6 @@ func (p *pausableManager) pause(nodeID ids.NodeID) error {
 
 // resume resumes uptime tracking for the node with the given ID
 // resume can connect the node to the uptime.Manager if it was connected.
-// Returns an error if the node is not paused.
 func (p *pausableManager) resume(nodeID ids.NodeID) error {
 	p.pausedVdrs.Remove(nodeID)
 	if p.connectedVdrs.Contains(nodeID) && !p.Manager.IsConnected(nodeID) {
