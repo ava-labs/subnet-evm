@@ -30,7 +30,11 @@ import (
 
 func main() {
 	uri := primary.LocalAPIURI
+	// The following IDs are placeholders and should be replaced with real values
+	// before running the code.
+	// The validationID is for the validation period that the uptime message is signed for.
 	validationID := ids.FromStringOrPanic("p3NUAY4PbcAnyCyvUTjGVjezNEQCdnVdfAbJcZScvKpxP5tJr")
+	// The sourceChainID is the ID of the chain.
 	sourceChainID := ids.FromStringOrPanic("2UZWB4xjNadRcHSpXarQoCryiVdcGWoT5w1dUztNfMKkAd2hJX")
 	reqUptime := uint64(3486)
 	infoClient := info.NewClient(uri)
