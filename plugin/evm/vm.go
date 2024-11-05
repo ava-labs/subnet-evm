@@ -267,7 +267,7 @@ type VM struct {
 	ethTxPushGossiper  avalancheUtils.Atomic[*gossip.PushGossiper[*GossipEthTx]]
 	ethTxPullGossiper  gossip.Gossiper
 
-	UptimeLockedCalculator avalancheUptime.LockedCalculator
+	lockedUptimeCalculator avalancheUptime.LockedCalculator
 	uptimeManager          uptime.PausableManager
 	validatorState         validators.State
 
@@ -512,8 +512,8 @@ func (vm *VM) Initialize(
 	}
 
 	vm.uptimeManager = uptime.NewPausableManager(avalancheUptime.NewManager(vm.validatorState, &vm.clock))
-	vm.UptimeLockedCalculator = avalancheUptime.NewLockedCalculator()
-	vm.UptimeLockedCalculator.SetCalculator(&vm.bootstrapped, &chainCtx.Lock, vm.uptimeManager)
+	vm.lockedUptimeCalculator = avalancheUptime.NewLockedCalculator()
+	vm.lockedUptimeCalculator.SetCalculator(&vm.bootstrapped, &chainCtx.Lock, vm.uptimeManager)
 	vm.validatorState.RegisterListener(vm.uptimeManager)
 
 	// Initialize warp backend
@@ -539,7 +539,7 @@ func (vm *VM) Initialize(
 		vm.ctx.ChainID,
 		vm.ctx.WarpSigner,
 		vm,
-		vm.UptimeLockedCalculator,
+		vm.lockedUptimeCalculator,
 		validators.NewLockedStateReader(vm.ctx.Lock.RLocker(), vm.validatorState),
 		vm.warpDB,
 		meteredCache,

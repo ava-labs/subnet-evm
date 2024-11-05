@@ -31,13 +31,13 @@ func TestSnowContext() *snow.Context {
 	}
 	pk := bls.PublicFromSecretKey(sk)
 	networkID := constants.UnitTestID
-	chainID := ids.Empty
+	chainID := ids.GenerateTestID()
 
 	ctx := &snow.Context{
 		NetworkID:       networkID,
 		SubnetID:        ids.Empty,
 		ChainID:         chainID,
-		NodeID:          ids.EmptyNodeID,
+		NodeID:          ids.GenerateTestNodeID(),
 		XChainID:        testXChainID,
 		CChainID:        TestCChainID,
 		NetworkUpgrades: upgradetest.GetConfig(upgradetest.Latest),
@@ -76,10 +76,10 @@ func NewTestValidatorState() *validatorstest.State {
 			return subnetID, nil
 		},
 		GetValidatorSetF: func(context.Context, uint64, ids.ID) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
-			return make(map[ids.NodeID]*validators.GetValidatorOutput), nil
+			return map[ids.NodeID]*validators.GetValidatorOutput{}, nil
 		},
 		GetCurrentValidatorSetF: func(context.Context, ids.ID) (map[ids.ID]*validators.GetCurrentValidatorOutput, uint64, error) {
-			return make(map[ids.ID]*validators.GetCurrentValidatorOutput), 0, nil
+			return map[ids.ID]*validators.GetCurrentValidatorOutput{}, 0, nil
 		},
 	}
 }
