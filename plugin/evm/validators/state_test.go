@@ -159,8 +159,14 @@ func TestParseValidator(t *testing.T) {
 			name:  "nil",
 			bytes: nil,
 			expected: &validatorData{
-				LastUpdated: 0,
-				StartTime:   0,
+				LastUpdated:  0,
+				StartTime:    0,
+				validationID: ids.Empty,
+				NodeID:       ids.EmptyNodeID,
+				UpDuration:   0,
+				Weight:       0,
+				IsActive:     false,
+				IsSoV:        false,
 			},
 			expectedErr: nil,
 		},
@@ -168,8 +174,14 @@ func TestParseValidator(t *testing.T) {
 			name:  "empty",
 			bytes: []byte{},
 			expected: &validatorData{
-				LastUpdated: 0,
-				StartTime:   0,
+				LastUpdated:  0,
+				StartTime:    0,
+				validationID: ids.Empty,
+				NodeID:       ids.EmptyNodeID,
+				UpDuration:   0,
+				Weight:       0,
+				IsActive:     false,
+				IsSoV:        false,
 			},
 			expectedErr: nil,
 		},
@@ -186,9 +198,13 @@ func TestParseValidator(t *testing.T) {
 				0x7e, 0xef, 0xe8, 0x8a, 0x45, 0xfb, 0x7a, 0xc4,
 				0xb0, 0x59, 0xc9, 0x33, 0x71, 0x0a, 0x57, 0x33,
 				0xff, 0x9f, 0x4b, 0xab,
+				// weight
+				0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
 				// start time
 				0x00, 0x00, 0x00, 0x00, 0x00, 0x5B, 0x8D, 0x80,
 				// status
+				0x01,
+				// is SoV
 				0x01,
 			},
 			expected: &validatorData{
@@ -197,6 +213,8 @@ func TestParseValidator(t *testing.T) {
 				NodeID:      testNodeID,
 				StartTime:   6000000,
 				IsActive:    true,
+				Weight:      1,
+				IsSoV:       true,
 			},
 		},
 		{
