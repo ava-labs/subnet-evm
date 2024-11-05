@@ -25,13 +25,6 @@ const (
 	deleted dbUpdateStatus = false
 )
 
-type ValidatorOutput struct {
-	ValidationID ids.ID     `json:"validationID"`
-	NodeID       ids.NodeID `json:"nodeID"`
-	StartTime    time.Time  `json:"startTime"`
-	IsActive     bool       `json:"isActive"`
-}
-
 type validatorData struct {
 	UpDuration  time.Duration `serialize:"true"`
 	LastUpdated uint64        `serialize:"true"`
@@ -217,12 +210,12 @@ func (s *state) GetValidatorIDs() set.Set[ids.NodeID] {
 }
 
 // GetValidator returns the validator data for the given nodeID
-func (s *state) GetValidator(nodeID ids.NodeID) (*ValidatorOutput, error) {
+func (s *state) GetValidator(nodeID ids.NodeID) (*interfaces.ValidatorOutput, error) {
 	data, err := s.getData(nodeID)
 	if err != nil {
 		return nil, err
 	}
-	return &ValidatorOutput{
+	return &interfaces.ValidatorOutput{
 		ValidationID: data.validationID,
 		NodeID:       data.NodeID,
 		StartTime:    data.getStartTime(),

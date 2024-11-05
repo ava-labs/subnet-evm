@@ -15,6 +15,7 @@ import (
 	"github.com/ava-labs/avalanchego/snow/validators/validatorstest"
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/plugin/evm/validators"
+	"github.com/ava-labs/subnet-evm/plugin/evm/validators/interfaces"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -171,13 +172,13 @@ func TestLoadNewValidators(t *testing.T) {
 		name                      string
 		initialValidators         map[ids.ID]*avagoValidators.GetCurrentValidatorOutput
 		newValidators             map[ids.ID]*avagoValidators.GetCurrentValidatorOutput
-		registerMockListenerCalls func(*validators.MockStateCallbackListener)
+		registerMockListenerCalls func(*interfaces.MockStateCallbackListener)
 	}{
 		{
 			name:                      "before empty/after empty",
 			initialValidators:         map[ids.ID]*avagoValidators.GetCurrentValidatorOutput{},
 			newValidators:             map[ids.ID]*avagoValidators.GetCurrentValidatorOutput{},
-			registerMockListenerCalls: func(*validators.MockStateCallbackListener) {},
+			registerMockListenerCalls: func(*interfaces.MockStateCallbackListener) {},
 		},
 		{
 			name:              "before empty/after one",
@@ -189,7 +190,7 @@ func TestLoadNewValidators(t *testing.T) {
 					StartTime: 0,
 				},
 			},
-			registerMockListenerCalls: func(mock *validators.MockStateCallbackListener) {
+			registerMockListenerCalls: func(mock *interfaces.MockStateCallbackListener) {
 				mock.EXPECT().OnValidatorAdded(testValidationIDs[0], testNodeIDs[0], uint64(0), true).Times(1)
 			},
 		},
@@ -203,7 +204,7 @@ func TestLoadNewValidators(t *testing.T) {
 				},
 			},
 			newValidators: map[ids.ID]*avagoValidators.GetCurrentValidatorOutput{},
-			registerMockListenerCalls: func(mock *validators.MockStateCallbackListener) {
+			registerMockListenerCalls: func(mock *interfaces.MockStateCallbackListener) {
 				// initial validator will trigger first
 				mock.EXPECT().OnValidatorAdded(testValidationIDs[0], testNodeIDs[0], uint64(0), true).Times(1)
 				// then it will be removed
@@ -226,7 +227,7 @@ func TestLoadNewValidators(t *testing.T) {
 					StartTime: 0,
 				},
 			},
-			registerMockListenerCalls: func(mock *validators.MockStateCallbackListener) {
+			registerMockListenerCalls: func(mock *interfaces.MockStateCallbackListener) {
 				mock.EXPECT().OnValidatorAdded(testValidationIDs[0], testNodeIDs[0], uint64(0), true).Times(1)
 			},
 		},
@@ -251,7 +252,7 @@ func TestLoadNewValidators(t *testing.T) {
 					StartTime: 0,
 				},
 			},
-			registerMockListenerCalls: func(mock *validators.MockStateCallbackListener) {
+			registerMockListenerCalls: func(mock *interfaces.MockStateCallbackListener) {
 				// initial validator will trigger first
 				mock.EXPECT().OnValidatorAdded(testValidationIDs[0], testNodeIDs[0], uint64(0), true).Times(1)
 				// then it will be updated
@@ -276,7 +277,7 @@ func TestLoadNewValidators(t *testing.T) {
 					StartTime: 0,
 				},
 			},
-			registerMockListenerCalls: func(mock *validators.MockStateCallbackListener) {
+			registerMockListenerCalls: func(mock *interfaces.MockStateCallbackListener) {
 				// initial validator will trigger first
 				mock.EXPECT().OnValidatorAdded(testValidationIDs[0], testNodeIDs[0], uint64(0), true).Times(1)
 				// then it will be removed
@@ -301,7 +302,7 @@ func TestLoadNewValidators(t *testing.T) {
 					StartTime: 0,
 				},
 			},
-			registerMockListenerCalls: func(mock *validators.MockStateCallbackListener) {
+			registerMockListenerCalls: func(mock *interfaces.MockStateCallbackListener) {
 				// initial validator will trigger first
 				mock.EXPECT().OnValidatorAdded(testValidationIDs[0], testNodeIDs[0], uint64(0), true).Times(1)
 				// then it won't be called since we don't track the node ID changes
@@ -323,7 +324,7 @@ func TestLoadNewValidators(t *testing.T) {
 			}
 			// enable mock listener
 			ctrl := gomock.NewController(tt)
-			mockListener := validators.NewMockStateCallbackListener(ctrl)
+			mockListener := interfaces.NewMockStateCallbackListener(ctrl)
 			test.registerMockListenerCalls(mockListener)
 
 			validatorState.RegisterListener(mockListener)

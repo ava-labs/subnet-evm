@@ -42,7 +42,9 @@ import (
 	"github.com/ava-labs/subnet-evm/peer"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
 	"github.com/ava-labs/subnet-evm/plugin/evm/uptime"
+	uptimeinterfaces "github.com/ava-labs/subnet-evm/plugin/evm/uptime/interfaces"
 	"github.com/ava-labs/subnet-evm/plugin/evm/validators"
+	validatorsinterfaces "github.com/ava-labs/subnet-evm/plugin/evm/validators/interfaces"
 	"github.com/ava-labs/subnet-evm/triedb"
 	"github.com/ava-labs/subnet-evm/triedb/hashdb"
 
@@ -266,8 +268,8 @@ type VM struct {
 	ethTxPushGossiper  avalancheUtils.Atomic[*gossip.PushGossiper[*GossipEthTx]]
 	ethTxPullGossiper  gossip.Gossiper
 
-	uptimeManager  uptime.PausableManager
-	validatorState validators.State
+	uptimeManager  uptimeinterfaces.PausableManager
+	validatorState validatorsinterfaces.State
 
 	chainAlias string
 	// RPC handlers (should be stopped before closing chaindb)
@@ -1461,7 +1463,7 @@ func (vm *VM) performValidatorUpdate(ctx context.Context) error {
 }
 
 // loadValidators loads the [validators] into the validator state [validatorState]
-func loadValidators(validatorState validators.State, validators map[ids.ID]*avalancheValidators.GetCurrentValidatorOutput) error {
+func loadValidators(validatorState validatorsinterfaces.State, validators map[ids.ID]*avalancheValidators.GetCurrentValidatorOutput) error {
 	currentValidationIDs := validatorState.GetValidationIDs()
 	// first check if we need to delete any existing validators
 	for vID := range currentValidationIDs {

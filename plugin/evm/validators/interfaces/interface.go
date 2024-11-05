@@ -4,6 +4,8 @@
 package interfaces
 
 import (
+	"time"
+
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow/uptime"
 	"github.com/ava-labs/avalanchego/utils/set"
@@ -27,6 +29,8 @@ type State interface {
 	GetValidationIDs() set.Set[ids.ID]
 	// GetValidatorIDs returns the validator node IDs in the state
 	GetValidatorIDs() set.Set[ids.NodeID]
+	// GetValidator returns the validator data for the given nodeID
+	GetValidator(nodeID ids.NodeID) (*ValidatorOutput, error)
 
 	// RegisterListener registers a listener to the state
 	RegisterListener(StateCallbackListener)
@@ -40,4 +44,11 @@ type StateCallbackListener interface {
 	OnValidatorRemoved(vID ids.ID, nodeID ids.NodeID)
 	// OnValidatorStatusUpdated is called when a validator status is updated
 	OnValidatorStatusUpdated(vID ids.ID, nodeID ids.NodeID, isActive bool)
+}
+
+type ValidatorOutput struct {
+	ValidationID ids.ID     `json:"validationID"`
+	NodeID       ids.NodeID `json:"nodeID"`
+	StartTime    time.Time  `json:"startTime"`
+	IsActive     bool       `json:"isActive"`
 }
