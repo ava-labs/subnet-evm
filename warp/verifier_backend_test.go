@@ -321,7 +321,7 @@ func TestUptimeSignatures(t *testing.T) {
 			IsActive:       true,
 			IsSoV:          true,
 		}))
-		protoBytes, _ = getUptimeMessageBytes(validationID, 80)
+		protoBytes, _ = getUptimeMessageBytes([]byte{}, validationID, 80)
 		_, appErr = handler.AppRequest(context.Background(), nodeID, time.Time{}, protoBytes)
 		require.ErrorIs(t, appErr, &common.AppError{Code: VerifyErrCode})
 		require.Contains(t, appErr.Error(), "current uptime 0 is less than queried uptime 80")
