@@ -10,6 +10,7 @@ import (
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow/uptime"
 	"github.com/ava-labs/avalanchego/utils/timer/mockable"
+	"github.com/ava-labs/subnet-evm/plugin/evm/uptime/interfaces"
 	"github.com/stretchr/testify/require"
 )
 
@@ -21,11 +22,11 @@ func TestPausableManager(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		testFunc func(t *testing.T, up PausableManager, clk *mockable.Clock, s uptime.State)
+		testFunc func(t *testing.T, up interfaces.PausableManager, clk *mockable.Clock, s uptime.State)
 	}{
 		{
 			name: "Case 1: Connect, pause, start tracking",
-			testFunc: func(t *testing.T, up PausableManager, clk *mockable.Clock, s uptime.State) {
+			testFunc: func(t *testing.T, up interfaces.PausableManager, clk *mockable.Clock, s uptime.State) {
 				// Connect before tracking
 				require.NoError(up.Connect(nodeID0))
 				addTime(clk, time.Second)
@@ -52,7 +53,7 @@ func TestPausableManager(t *testing.T) {
 		},
 		{
 			name: "Case 2: Start tracking, connect, pause, re-connect, resume",
-			testFunc: func(t *testing.T, up PausableManager, clk *mockable.Clock, s uptime.State) {
+			testFunc: func(t *testing.T, up interfaces.PausableManager, clk *mockable.Clock, s uptime.State) {
 				// Start tracking
 				require.NoError(up.StartTracking([]ids.NodeID{nodeID0}))
 
@@ -101,7 +102,7 @@ func TestPausableManager(t *testing.T) {
 		},
 		{
 			name: "Case 3: Pause, start tracking, connect, re-connect, resume",
-			testFunc: func(t *testing.T, up PausableManager, clk *mockable.Clock, s uptime.State) {
+			testFunc: func(t *testing.T, up interfaces.PausableManager, clk *mockable.Clock, s uptime.State) {
 				// Pause before tracking
 				up.OnValidatorStatusUpdated(vID, nodeID0, false)
 				require.True(up.IsPaused(nodeID0))
@@ -141,7 +142,7 @@ func TestPausableManager(t *testing.T) {
 		},
 		{
 			name: "Case 4: Start tracking, connect, pause, stop tracking, resume tracking",
-			testFunc: func(t *testing.T, up PausableManager, clk *mockable.Clock, s uptime.State) {
+			testFunc: func(t *testing.T, up interfaces.PausableManager, clk *mockable.Clock, s uptime.State) {
 				// Start tracking and connect
 				require.NoError(up.StartTracking([]ids.NodeID{nodeID0}))
 				addTime(clk, time.Second)
@@ -211,7 +212,7 @@ func TestPausableManager(t *testing.T) {
 	}
 }
 
-func setupTestEnv(nodeID ids.NodeID, startTime time.Time) (PausableManager, *mockable.Clock, uptime.State) {
+func setupTestEnv(nodeID ids.NodeID, startTime time.Time) (interfaces.PausableManager, *mockable.Clock, uptime.State) {
 	clk := mockable.Clock{}
 	clk.Set(startTime)
 	s := uptime.NewTestState()
@@ -225,7 +226,7 @@ func addTime(clk *mockable.Clock, duration time.Duration) time.Time {
 	return clk.Time()
 }
 
-func checkUptime(t *testing.T, up PausableManager, nodeID ids.NodeID, expectedUptime time.Duration, expectedLastUpdate time.Time) {
+func checkUptime(t *testing.T, up interfaces.PausableManager, nodeID ids.NodeID, expectedUptime time.Duration, expectedLastUpdate time.Time) {
 	t.Helper()
 	uptime, lastUpdated, err := up.CalculateUptime(nodeID)
 	require.NoError(t, err)
