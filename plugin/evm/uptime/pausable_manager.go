@@ -72,7 +72,7 @@ func (p *pausableManager) StartTracking(nodeIDs []ids.NodeID) error {
 
 // OnValidatorAdded is called when a validator is added.
 // If the node is inactive, it will be paused.
-func (p *pausableManager) OnValidatorAdded(vID ids.ID, nodeID ids.NodeID, startTime uint64, isActive bool) {
+func (p *pausableManager) OnValidatorAdded(_ ids.ID, nodeID ids.NodeID, _ uint64, isActive bool) {
 	if !isActive {
 		err := p.pause(nodeID)
 		if err != nil {
@@ -83,7 +83,7 @@ func (p *pausableManager) OnValidatorAdded(vID ids.ID, nodeID ids.NodeID, startT
 
 // OnValidatorRemoved is called when a validator is removed.
 // If the node is already paused, it will be resumed.
-func (p *pausableManager) OnValidatorRemoved(vID ids.ID, nodeID ids.NodeID) {
+func (p *pausableManager) OnValidatorRemoved(_ ids.ID, nodeID ids.NodeID) {
 	if p.IsPaused(nodeID) {
 		err := p.resume(nodeID)
 		if err != nil {
@@ -94,7 +94,7 @@ func (p *pausableManager) OnValidatorRemoved(vID ids.ID, nodeID ids.NodeID) {
 
 // OnValidatorStatusUpdated is called when the status of a validator is updated.
 // If the node is active, it will be resumed. If the node is inactive, it will be paused.
-func (p *pausableManager) OnValidatorStatusUpdated(vID ids.ID, nodeID ids.NodeID, isActive bool) {
+func (p *pausableManager) OnValidatorStatusUpdated(_ ids.ID, nodeID ids.NodeID, isActive bool) {
 	var err error
 	if isActive {
 		err = p.resume(nodeID)

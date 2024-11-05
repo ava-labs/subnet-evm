@@ -18,7 +18,6 @@ func TestPausableManager(t *testing.T) {
 	vID := ids.GenerateTestID()
 	nodeID0 := ids.GenerateTestNodeID()
 	startTime := time.Now()
-	require := require.New(t)
 
 	tests := []struct {
 		name     string
@@ -27,6 +26,8 @@ func TestPausableManager(t *testing.T) {
 		{
 			name: "Case 1: Connect, pause, start tracking",
 			testFunc: func(t *testing.T, up interfaces.PausableManager, clk *mockable.Clock, s uptime.State) {
+				require := require.New(t)
+
 				// Connect before tracking
 				require.NoError(up.Connect(nodeID0))
 				addTime(clk, time.Second)
@@ -54,6 +55,8 @@ func TestPausableManager(t *testing.T) {
 		{
 			name: "Case 2: Start tracking, connect, pause, re-connect, resume",
 			testFunc: func(t *testing.T, up interfaces.PausableManager, clk *mockable.Clock, s uptime.State) {
+				require := require.New(t)
+
 				// Start tracking
 				require.NoError(up.StartTracking([]ids.NodeID{nodeID0}))
 
@@ -103,6 +106,8 @@ func TestPausableManager(t *testing.T) {
 		{
 			name: "Case 3: Pause, start tracking, connect, re-connect, resume",
 			testFunc: func(t *testing.T, up interfaces.PausableManager, clk *mockable.Clock, s uptime.State) {
+				require := require.New(t)
+
 				// Pause before tracking
 				up.OnValidatorStatusUpdated(vID, nodeID0, false)
 				require.True(up.IsPaused(nodeID0))
@@ -143,6 +148,8 @@ func TestPausableManager(t *testing.T) {
 		{
 			name: "Case 4: Start tracking, connect, pause, stop tracking, resume tracking",
 			testFunc: func(t *testing.T, up interfaces.PausableManager, clk *mockable.Clock, s uptime.State) {
+				require := require.New(t)
+
 				// Start tracking and connect
 				require.NoError(up.StartTracking([]ids.NodeID{nodeID0}))
 				addTime(clk, time.Second)
