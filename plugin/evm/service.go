@@ -27,8 +27,10 @@ type GetCurrentValidatorsResponse struct {
 type CurrentValidator struct {
 	ValidationID ids.ID        `json:"validationID"`
 	NodeID       ids.NodeID    `json:"nodeID"`
+	Weight       uint64        `json:"weight"`
 	StartTime    time.Time     `json:"startTime"`
 	IsActive     bool          `json:"isActive"`
+	IsSoV        bool          `json:"isSoV"`
 	IsConnected  bool          `json:"isConnected"`
 	Uptime       time.Duration `json:"uptime"`
 }
@@ -63,8 +65,10 @@ func (api *ValidatorsAPI) GetCurrentValidators(_ *http.Request, args *GetCurrent
 		reply.Validators = append(reply.Validators, CurrentValidator{
 			ValidationID: validator.ValidationID,
 			NodeID:       nodeID,
-			StartTime:    validator.StartTime,
+			StartTime:    validator.StartTime(),
+			Weight:       validator.Weight,
 			IsActive:     validator.IsActive,
+			IsSoV:        validator.IsSoV,
 			IsConnected:  isConnected,
 			Uptime:       time.Duration(uptime.Seconds()),
 		})

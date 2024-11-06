@@ -319,7 +319,14 @@ func TestLoadNewValidators(t *testing.T) {
 
 			// set initial validators
 			for vID, validator := range test.initialValidators {
-				err := validatorState.AddValidator(vID, validator.NodeID, validator.StartTime, validator.IsActive)
+				err := validatorState.AddValidator(validators.Validator{
+					ValidationID:   vID,
+					NodeID:         validator.NodeID,
+					Weight:         validator.Weight,
+					StartTimestamp: validator.StartTime,
+					IsActive:       validator.IsActive,
+					IsSoV:          validator.IsSoV,
+				})
 				require.NoError(err)
 			}
 			// enable mock listener

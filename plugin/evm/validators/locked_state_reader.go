@@ -40,7 +40,7 @@ func (s *lockedStateReader) GetNodeIDs() set.Set[ids.NodeID] {
 	return s.s.GetNodeIDs()
 }
 
-func (s *lockedStateReader) GetValidator(nodeID ids.NodeID) (*ValidatorOutput, error) {
+func (s *lockedStateReader) GetValidator(nodeID ids.NodeID) (*Validator, error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 

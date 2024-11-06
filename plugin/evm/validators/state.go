@@ -32,7 +32,7 @@ type StateReader interface {
 	// GetNodeIDs returns the validator node IDs in the state
 	GetNodeIDs() set.Set[ids.NodeID]
 	// GetValidator returns the validator data for the given nodeID
-	GetValidator(nodeID ids.NodeID) (*ValidatorOutput, error)
+	GetValidator(nodeID ids.NodeID) (*Validator, error)
 	// GetNodeID returns the node ID for the given validation ID
 	GetNodeID(vID ids.ID) (ids.NodeID, error)
 }
@@ -41,7 +41,7 @@ type State interface {
 	uptime.State
 	StateReader
 	// AddValidator adds a new validator to the state
-	AddValidator(vID ids.ID, nodeID ids.NodeID, startTimestamp uint64, isActive bool) error
+	AddValidator(vdr Validator) error
 	// DeleteValidator deletes the validator from the state
 	DeleteValidator(vID ids.ID) error
 	// WriteState writes the validator state to the disk
@@ -64,19 +64,14 @@ type StateCallbackListener interface {
 	OnValidatorStatusUpdated(vID ids.ID, nodeID ids.NodeID, isActive bool)
 }
 
-type ValidatorOutput struct {
-	ValidationID ids.ID     `json:"validationID"`
-	NodeID       ids.NodeID `json:"nodeID"`
-	StartTime    time.Time  `json:"startTime"`
-	IsActive     bool       `json:"isActive"`
-}
-
 type validatorData struct {
 	UpDuration  time.Duration `serialize:"true"`
 	LastUpdated uint64        `serialize:"true"`
 	NodeID      ids.NodeID    `serialize:"true"`
+	Weight      uint64        `serialize:"true"`
 	StartTime   uint64        `serialize:"true"`
 	IsActive    bool          `serialize:"true"`
+	IsSoV       bool          `serialize:"true"`
 
 	validationID ids.ID // database key
 }
@@ -144,23 +139,25 @@ func (s *state) GetStartTime(nodeID ids.NodeID) (time.Time, error) {
 
 // AddValidator adds a new validator to the state
 // the new validator is marked as updated and will be written to the disk when WriteState is called
-func (s *state) AddValidator(vID ids.ID, nodeID ids.NodeID, startTimestamp uint64, isActive bool) error {
+func (s *state) AddValidator(vdr Validator) error {
 	data := &validatorData{
-		NodeID:       nodeID,
-		validationID: vID,
-		IsActive:     isActive,
-		StartTime:    startTimestamp,
+		NodeID:       vdr.NodeID,
+		validationID: vdr.ValidationID,
+		IsActive:     vdr.IsActive,
+		StartTime:    vdr.StartTimestamp,
 		UpDuration:   0,
-		LastUpdated:  startTimestamp,
+		LastUpdated:  vdr.StartTimestamp,
+		IsSoV:        vdr.IsSoV,
+		Weight:       vdr.Weight,
 	}
-	if err := s.addData(vID, data); err != nil {
+	if err := s.addData(vdr.ValidationID, data); err != nil {
 		return err
 	}
 
-	s.updatedData[vID] = updated
+	s.updatedData[vdr.ValidationID] = updated
 
 	for _, listener := range s.listeners {
-		listener.OnValidatorAdded(vID, nodeID, startTimestamp, isActive)
+		listener.OnValidatorAdded(vdr.ValidationID, vdr.NodeID, vdr.StartTimestamp, vdr.IsActive)
 	}
 	return nil
 }
@@ -256,16 +253,18 @@ func (s *state) GetNodeIDs() set.Set[ids.NodeID] {
 }
 
 // GetValidator returns the validator data for the given nodeID
-func (s *state) GetValidator(nodeID ids.NodeID) (*ValidatorOutput, error) {
+func (s *state) GetValidator(nodeID ids.NodeID) (*Validator, error) {
 	data, err := s.getData(nodeID)
 	if err != nil {
 		return nil, err
 	}
-	return &ValidatorOutput{
-		ValidationID: data.validationID,
-		NodeID:       data.NodeID,
-		StartTime:    data.getStartTime(),
-		IsActive:     data.IsActive,
+	return &Validator{
+		ValidationID:   data.validationID,
+		NodeID:         data.NodeID,
+		StartTimestamp: data.StartTime,
+		IsActive:       data.IsActive,
+		Weight:         data.Weight,
+		IsSoV:          data.IsSoV,
 	}, nil
 }
 

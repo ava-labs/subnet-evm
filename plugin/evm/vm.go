@@ -1461,8 +1461,6 @@ func (vm *VM) performValidatorUpdate(ctx context.Context) error {
 		return fmt.Errorf("failed to get current validator set: %w", err)
 	}
 
-	log.Info("updating validators", "validatorSet", currentValidatorSet)
-
 	// load the current validator set into the validator state
 	if err := loadValidators(vm.validatorState, currentValidatorSet); err != nil {
 		return fmt.Errorf("failed to load current validators: %w", err)
@@ -1479,19 +1477,19 @@ func (vm *VM) performValidatorUpdate(ctx context.Context) error {
 }
 
 // loadValidators loads the [validators] into the validator state [validatorState]
-func loadValidators(validatorState validators.State, validators map[ids.ID]*avalancheValidators.GetCurrentValidatorOutput) error {
+func loadValidators(validatorState validators.State, vdrs map[ids.ID]*avalancheValidators.GetCurrentValidatorOutput) error {
 	currentValidationIDs := validatorState.GetValidationIDs()
 	// first check if we need to delete any existing validators
 	for vID := range currentValidationIDs {
 		// if the validator is not in the new set of validators
 		// delete the validator
-		if _, exists := validators[vID]; !exists {
+		if _, exists := vdrs[vID]; !exists {
 			validatorState.DeleteValidator(vID)
 		}
 	}
 
 	// then load the new validators
-	for vID, vdr := range validators {
+	for vID, vdr := range vdrs {
 		if currentValidationIDs.Contains(vID) {
 			// Check if IsActive has changed
 			isActive, err := validatorState.GetStatus(vID)
@@ -1504,7 +1502,14 @@ func loadValidators(validatorState validators.State, validators map[ids.ID]*aval
 				}
 			}
 		} else {
-			if err := validatorState.AddValidator(vID, vdr.NodeID, vdr.StartTime, vdr.IsActive); err != nil {
+			if err := validatorState.AddValidator(validators.Validator{
+				ValidationID:   vID,
+				NodeID:         vdr.NodeID,
+				Weight:         vdr.Weight,
+				StartTimestamp: vdr.StartTime,
+				IsActive:       vdr.IsActive,
+				IsSoV:          vdr.IsSoV,
+			}); err != nil {
 				return err
 			}
 		}
