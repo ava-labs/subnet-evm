@@ -17,7 +17,7 @@ import (
 	"github.com/ava-labs/avalanchego/snow/uptime"
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
-	"github.com/ava-labs/subnet-evm/plugin/evm/validators"
+	"github.com/ava-labs/subnet-evm/plugin/evm/validators/interfaces"
 	"github.com/ethereum/go-ethereum/log"
 )
 
@@ -60,7 +60,7 @@ type backend struct {
 	warpSigner                avalancheWarp.Signer
 	blockClient               BlockClient
 	uptimeCalculator          uptime.Calculator
-	validatorState            validators.StateReader
+	validatorState            interfaces.State
 	stateLock                 sync.Locker
 	signatureCache            cache.Cacher[ids.ID, []byte]
 	messageCache              *cache.LRU[ids.ID, *avalancheWarp.UnsignedMessage]
@@ -75,7 +75,7 @@ func NewBackend(
 	warpSigner avalancheWarp.Signer,
 	blockClient BlockClient,
 	uptimeCalculator uptime.Calculator,
-	validatorsState validators.StateReader,
+	validatorsState interfaces.State,
 	stateLock sync.Locker,
 	db database.Database,
 	signatureCache cache.Cacher[ids.ID, []byte],

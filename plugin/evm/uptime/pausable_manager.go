@@ -6,7 +6,7 @@ package uptime
 import (
 	"errors"
 
-	"github.com/ava-labs/subnet-evm/plugin/evm/validators"
+	"github.com/ava-labs/subnet-evm/plugin/evm/uptime/interfaces"
 	"github.com/ethereum/go-ethereum/log"
 
 	"github.com/ava-labs/avalanchego/ids"
@@ -14,15 +14,7 @@ import (
 	"github.com/ava-labs/avalanchego/utils/set"
 )
 
-var _ validators.StateCallbackListener = &pausableManager{}
-
 var errPausedDisconnect = errors.New("paused node cannot be disconnected")
-
-type PausableManager interface {
-	uptime.Manager
-	validators.StateCallbackListener
-	IsPaused(nodeID ids.NodeID) bool
-}
 
 type pausableManager struct {
 	uptime.Manager
@@ -33,7 +25,7 @@ type pausableManager struct {
 }
 
 // NewPausableManager takes an uptime.Manager and returns a PausableManager
-func NewPausableManager(manager uptime.Manager) PausableManager {
+func NewPausableManager(manager uptime.Manager) interfaces.PausableManager {
 	return &pausableManager{
 		pausedVdrs:    make(set.Set[ids.NodeID]),
 		connectedVdrs: make(set.Set[ids.NodeID]),
@@ -69,7 +61,7 @@ func (p *pausableManager) Disconnect(nodeID ids.NodeID) error {
 // StartTracking starts tracking uptime for the nodes with the given IDs
 // If a node is paused, it will not be tracked
 func (p *pausableManager) StartTracking(nodeIDs []ids.NodeID) error {
-	var activeNodeIDs []ids.NodeID
+	activeNodeIDs := make([]ids.NodeID, 0, len(nodeIDs))
 	for _, nodeID := range nodeIDs {
 		if !p.IsPaused(nodeID) {
 			activeNodeIDs = append(activeNodeIDs, nodeID)
@@ -80,7 +72,7 @@ func (p *pausableManager) StartTracking(nodeIDs []ids.NodeID) error {
 
 // OnValidatorAdded is called when a validator is added.
 // If the node is inactive, it will be paused.
-func (p *pausableManager) OnValidatorAdded(vID ids.ID, nodeID ids.NodeID, startTime uint64, isActive bool) {
+func (p *pausableManager) OnValidatorAdded(_ ids.ID, nodeID ids.NodeID, _ uint64, isActive bool) {
 	if !isActive {
 		err := p.pause(nodeID)
 		if err != nil {
@@ -91,7 +83,7 @@ func (p *pausableManager) OnValidatorAdded(vID ids.ID, nodeID ids.NodeID, startT
 
 // OnValidatorRemoved is called when a validator is removed.
 // If the node is already paused, it will be resumed.
-func (p *pausableManager) OnValidatorRemoved(vID ids.ID, nodeID ids.NodeID) {
+func (p *pausableManager) OnValidatorRemoved(_ ids.ID, nodeID ids.NodeID) {
 	if p.IsPaused(nodeID) {
 		err := p.resume(nodeID)
 		if err != nil {
@@ -102,7 +94,7 @@ func (p *pausableManager) OnValidatorRemoved(vID ids.ID, nodeID ids.NodeID) {
 
 // OnValidatorStatusUpdated is called when the status of a validator is updated.
 // If the node is active, it will be resumed. If the node is inactive, it will be paused.
-func (p *pausableManager) OnValidatorStatusUpdated(vID ids.ID, nodeID ids.NodeID, isActive bool) {
+func (p *pausableManager) OnValidatorStatusUpdated(_ ids.ID, nodeID ids.NodeID, isActive bool) {
 	var err error
 	if isActive {
 		err = p.resume(nodeID)
@@ -121,7 +113,6 @@ func (p *pausableManager) IsPaused(nodeID ids.NodeID) bool {
 
 // pause pauses uptime tracking for the node with the given ID
 // pause can disconnect the node from the uptime.Manager if it is connected.
-// Returns an error if the node is already paused.
 func (p *pausableManager) pause(nodeID ids.NodeID) error {
 	p.pausedVdrs.Add(nodeID)
 	if p.Manager.IsConnected(nodeID) {
@@ -136,7 +127,6 @@ func (p *pausableManager) pause(nodeID ids.NodeID) error {
 
 // resume resumes uptime tracking for the node with the given ID
 // resume can connect the node to the uptime.Manager if it was connected.
-// Returns an error if the node is not paused.
 func (p *pausableManager) resume(nodeID ids.NodeID) error {
 	p.pausedVdrs.Remove(nodeID)
 	if p.connectedVdrs.Contains(nodeID) && !p.Manager.IsConnected(nodeID) {

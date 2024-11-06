@@ -1,4 +1,4 @@
-package validators
+package interfaces
 
 import (
 	"time"
@@ -17,8 +17,8 @@ func (n *noOpState) GetValidationIDs() set.Set[ids.ID] { return set.NewSet[ids.I
 
 func (n *noOpState) GetNodeIDs() set.Set[ids.NodeID] { return set.NewSet[ids.NodeID](0) }
 
-func (n *noOpState) GetValidator(nodeID ids.NodeID) (*Validator, error) {
-	return nil, nil
+func (n *noOpState) GetValidator(nodeID ids.NodeID) (Validator, error) {
+	return Validator{}, nil
 }
 
 func (n *noOpState) GetNodeID(vID ids.ID) (ids.NodeID, error) { return ids.NodeID{}, nil }
