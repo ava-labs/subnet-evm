@@ -6,7 +6,7 @@ package allowlist
 import (
 	"testing"
 
-	"github.com/ava-labs/coreth/core/state"
+	"github.com/ava-labs/coreth/core/extstate"
 	"github.com/ava-labs/coreth/precompile/contract"
 	"github.com/ava-labs/coreth/precompile/modules"
 	"github.com/ava-labs/coreth/precompile/precompileconfig"
@@ -62,7 +62,7 @@ func TestAllowListRun(t *testing.T) {
 		Configurator: &dummyConfigurator{},
 		ConfigKey:    "dummy",
 	}
-	RunPrecompileWithAllowListTests(t, dummyModule, state.NewTestStateDB, nil)
+	RunPrecompileWithAllowListTests(t, dummyModule, extstate.NewTestStateDB, nil)
 }
 
 func BenchmarkAllowList(b *testing.B) {
@@ -72,5 +72,5 @@ func BenchmarkAllowList(b *testing.B) {
 		Configurator: &dummyConfigurator{},
 		ConfigKey:    "dummy",
 	}
-	BenchPrecompileWithAllowList(b, dummyModule, state.NewTestStateDB, nil)
+	BenchPrecompileWithAllowList(b, dummyModule, extstate.NewTestStateDB, nil)
 }

@@ -37,12 +37,12 @@ import (
 	"github.com/ava-labs/coreth/core"
 	"github.com/ava-labs/coreth/core/rawdb"
 	"github.com/ava-labs/coreth/core/types"
-	"github.com/ava-labs/coreth/core/vm"
 	"github.com/ava-labs/coreth/params"
 	"github.com/ava-labs/coreth/precompile/contracts/feemanager"
 	"github.com/ava-labs/coreth/rpc"
 	"github.com/ava-labs/coreth/utils"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/stretchr/testify/require"
@@ -390,14 +390,14 @@ func TestSuggestGasPriceAfterFeeConfigUpdate(t *testing.T) {
 	}
 
 	// create a chain config with fee manager enabled at genesis with [addr] as the admin
-	chainConfig := *params.TestChainConfig
-	chainConfig.GenesisPrecompiles = params.Precompiles{
+	chainConfig := params.Copy(params.TestChainConfig)
+	params.GetExtra(&chainConfig).GenesisPrecompiles = params.Precompiles{
 		feemanager.ConfigKey: feemanager.NewConfig(utils.NewUint64(0), []common.Address{addr}, nil, nil, nil),
 	}
 
 	// create a fee config with higher MinBaseFee and prepare it for inclusion in a tx
 	signer := types.LatestSigner(params.TestChainConfig)
-	highFeeConfig := chainConfig.FeeConfig
+	highFeeConfig := params.GetExtra(&chainConfig).FeeConfig
 	highFeeConfig.MinBaseFee = big.NewInt(28_000_000_000)
 	data, err := feemanager.PackSetFeeConfig(highFeeConfig)
 	require.NoError(err)
@@ -410,7 +410,7 @@ func TestSuggestGasPriceAfterFeeConfigUpdate(t *testing.T) {
 	require.NoError(err)
 	got, err := oracle.SuggestPrice(context.Background())
 	require.NoError(err)
-	require.Equal(chainConfig.FeeConfig.MinBaseFee, got)
+	require.Equal(params.GetExtra(&chainConfig).FeeConfig.MinBaseFee, got)
 
 	// issue the block with tx that changes the fee
 	genesis := backend.chain.Genesis()
@@ -424,9 +424,9 @@ func TestSuggestGasPriceAfterFeeConfigUpdate(t *testing.T) {
 			ChainID:   chainConfig.ChainID,
 			Nonce:     b.TxNonce(addr),
 			To:        &feemanager.ContractAddress,
-			Gas:       chainConfig.FeeConfig.GasLimit.Uint64(),
+			Gas:       params.GetExtra(&chainConfig).FeeConfig.GasLimit.Uint64(),
 			Value:     common.Big0,
-			GasFeeCap: chainConfig.FeeConfig.MinBaseFee, // give low fee, it should work since we still haven't applied high fees
+			GasFeeCap: params.GetExtra(&chainConfig).FeeConfig.MinBaseFee, // give low fee, it should work since we still haven't applied high fees
 			GasTipCap: common.Big0,
 			Data:      data,
 		})
