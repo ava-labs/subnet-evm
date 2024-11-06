@@ -1337,12 +1337,14 @@ func (vm *VM) initializeDBs(avaDB database.Database) error {
 	vm.db = versiondb.New(db)
 	vm.acceptedBlockDB = prefixdb.New(acceptedPrefix, vm.db)
 	vm.metadataDB = prefixdb.New(metadataPrefix, vm.db)
-	// Note warpDB is not part of versiondb because it is not necessary
-	// that warp signatures are committed to the database atomically with
+	// Note warpDB and validatorsDB are not part of versiondb because it is not necessary
+	// that they are committed to the database atomically with
 	// the last accepted block.
 	// [warpDB] is used to store warp message signatures
 	// set to a prefixDB with the prefix [warpPrefix]
 	vm.warpDB = prefixdb.New(warpPrefix, db)
+	// [validatorsDB] is used to store the current validator set and uptimes
+	// set to a prefixDB with the prefix [validatorsDBPrefix]
 	vm.validatorsDB = prefixdb.New(validatorsDBPrefix, db)
 	return nil
 }
