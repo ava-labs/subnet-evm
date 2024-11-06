@@ -243,7 +243,7 @@ func (s *state) GetValidationIDs() set.Set[ids.ID] {
 	return ids
 }
 
-// GetNodeIDs returns the validator IDs in the state
+// GetNodeIDs returns the node IDs of validators in the state
 func (s *state) GetNodeIDs() set.Set[ids.NodeID] {
 	ids := set.NewSet[ids.NodeID](len(s.index))
 	for nodeID := range s.index {
