@@ -102,7 +102,7 @@ func TestAddressedCallSignatures(t *testing.T) {
 				} else {
 					sigCache = &cache.Empty[ids.ID, []byte]{}
 				}
-				warpBackend, err := NewBackend(snowCtx.NetworkID, snowCtx.ChainID, warpSigner, warptest.EmptyBlockClient, uptime.NoOpCalculator, validators.NoOpState, database, sigCache, [][]byte{offchainMessage.Bytes()})
+				warpBackend, err := NewBackend(snowCtx.NetworkID, snowCtx.ChainID, warpSigner, warptest.EmptyBlockClient, uptime.NoOpCalculator, validators.NoOpState, snowCtx.Lock.RLocker(), database, sigCache, [][]byte{offchainMessage.Bytes()})
 				require.NoError(t, err)
 				handler := acp118.NewCachedHandler(sigCache, warpBackend, warpSigner)
 
@@ -219,6 +219,7 @@ func TestBlockSignatures(t *testing.T) {
 					blockClient,
 					uptime.NoOpCalculator,
 					validators.NoOpState,
+					snowCtx.Lock.RLocker(),
 					database,
 					sigCache,
 					nil,
@@ -293,7 +294,7 @@ func TestUptimeSignatures(t *testing.T) {
 		clk := &mockable.Clock{}
 		uptimeManager := uptime.NewManager(state, clk)
 		uptimeManager.StartTracking([]ids.NodeID{})
-		warpBackend, err := NewBackend(snowCtx.NetworkID, snowCtx.ChainID, warpSigner, warptest.EmptyBlockClient, uptimeManager, state, database, sigCache, nil)
+		warpBackend, err := NewBackend(snowCtx.NetworkID, snowCtx.ChainID, warpSigner, warptest.EmptyBlockClient, uptimeManager, state, snowCtx.Lock.RLocker(), database, sigCache, nil)
 		require.NoError(t, err)
 		handler := acp118.NewCachedHandler(sigCache, warpBackend, warpSigner)
 

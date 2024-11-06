@@ -104,6 +104,8 @@ func (b *backend) verifyUptimeMessage(sourceAddress []byte, uptimeMsg *messages.
 		}
 	}
 
+	b.stateLock.Lock()
+	defer b.stateLock.Unlock()
 	// first get the validator's nodeID
 	nodeID, err := b.validatorState.GetNodeID(uptimeMsg.ValidationID)
 	if err != nil {
