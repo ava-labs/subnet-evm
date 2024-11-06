@@ -42,7 +42,9 @@ import (
 	"github.com/ava-labs/subnet-evm/peer"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
 	"github.com/ava-labs/subnet-evm/plugin/evm/uptime"
+	uptimeinterfaces "github.com/ava-labs/subnet-evm/plugin/evm/uptime/interfaces"
 	"github.com/ava-labs/subnet-evm/plugin/evm/validators"
+	validatorsinterfaces "github.com/ava-labs/subnet-evm/plugin/evm/validators/interfaces"
 	"github.com/ava-labs/subnet-evm/triedb"
 	"github.com/ava-labs/subnet-evm/triedb/hashdb"
 
@@ -267,8 +269,8 @@ type VM struct {
 	ethTxPushGossiper  avalancheUtils.Atomic[*gossip.PushGossiper[*GossipEthTx]]
 	ethTxPullGossiper  gossip.Gossiper
 
-	uptimeManager  uptime.PausableManager
-	validatorState validators.State
+	uptimeManager  uptimeinterfaces.PausableManager
+	validatorState validatorsinterfaces.State
 
 	chainAlias string
 	// RPC handlers (should be stopped before closing chaindb)
@@ -1346,12 +1348,14 @@ func (vm *VM) initializeDBs(avaDB database.Database) error {
 	vm.db = versiondb.New(db)
 	vm.acceptedBlockDB = prefixdb.New(acceptedPrefix, vm.db)
 	vm.metadataDB = prefixdb.New(metadataPrefix, vm.db)
-	// Note warpDB is not part of versiondb because it is not necessary
-	// that warp signatures are committed to the database atomically with
+	// Note warpDB and validatorsDB are not part of versiondb because it is not necessary
+	// that they are committed to the database atomically with
 	// the last accepted block.
 	// [warpDB] is used to store warp message signatures
 	// set to a prefixDB with the prefix [warpPrefix]
 	vm.warpDB = prefixdb.New(warpPrefix, db)
+	// [validatorsDB] is used to store the current validator set and uptimes
+	// set to a prefixDB with the prefix [validatorsDBPrefix]
 	vm.validatorsDB = prefixdb.New(validatorsDBPrefix, db)
 	return nil
 }
@@ -1456,8 +1460,6 @@ func (vm *VM) performValidatorUpdate(ctx context.Context) error {
 		return fmt.Errorf("failed to get current validator set: %w", err)
 	}
 
-	log.Info("updating validators", "validatorSet", currentValidatorSet)
-
 	// load the current validator set into the validator state
 	if err := loadValidators(vm.validatorState, currentValidatorSet); err != nil {
 		return fmt.Errorf("failed to load current validators: %w", err)
@@ -1474,7 +1476,7 @@ func (vm *VM) performValidatorUpdate(ctx context.Context) error {
 }
 
 // loadValidators loads the [validators] into the validator state [validatorState]
-func loadValidators(validatorState validators.State, validators map[ids.ID]*avalancheValidators.GetCurrentValidatorOutput) error {
+func loadValidators(validatorState validatorsinterfaces.State, validators map[ids.ID]*avalancheValidators.GetCurrentValidatorOutput) error {
 	currentValidationIDs := validatorState.GetValidationIDs()
 	// first check if we need to delete any existing validators
 	for vID := range currentValidationIDs {
