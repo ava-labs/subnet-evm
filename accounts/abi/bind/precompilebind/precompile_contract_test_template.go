@@ -14,12 +14,12 @@ import (
 	"testing"
 	"math/big"
 
-	"github.com/ava-labs/subnet-evm/core/state"
+	"github.com/ava-labs/coreth/core/state"
 	{{- if .Contract.AllowList}}
-	"github.com/ava-labs/subnet-evm/precompile/allowlist"
+	"github.com/ava-labs/coreth/precompile/allowlist"
 	{{- end}}
-	"github.com/ava-labs/subnet-evm/precompile/testutils"
-	"github.com/ava-labs/subnet-evm/vmerrs"
+	"github.com/ava-labs/coreth/precompile/testutils"
+	"github.com/ava-labs/coreth/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 )

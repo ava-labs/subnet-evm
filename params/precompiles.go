@@ -6,8 +6,8 @@ package params
 import (
 	"encoding/json"
 
-	"github.com/ava-labs/subnet-evm/precompile/modules"
-	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
+	"github.com/ava-labs/coreth/precompile/modules"
+	"github.com/ava-labs/coreth/precompile/precompileconfig"
 )
 
 type Precompiles map[string]precompileconfig.Config

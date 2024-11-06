@@ -14,7 +14,7 @@ import (
 	"github.com/ava-labs/avalanchego/utils/crypto/bls"
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
-	"github.com/ava-labs/subnet-evm/warp/warptest"
+	"github.com/ava-labs/coreth/warp/warptest"
 	"github.com/stretchr/testify/require"
 )
 
