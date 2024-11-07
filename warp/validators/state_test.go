@@ -11,7 +11,7 @@ import (
 	"github.com/ava-labs/avalanchego/snow/validators"
 	"github.com/ava-labs/avalanchego/snow/validators/validatorsmock"
 	"github.com/ava-labs/avalanchego/utils/constants"
-	"github.com/ava-labs/coreth/utils"
+	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )

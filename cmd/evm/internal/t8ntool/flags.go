@@ -30,7 +30,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ava-labs/coreth/tests"
+	"github.com/ava-labs/subnet-evm/tests"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/urfave/cli/v2"
 )

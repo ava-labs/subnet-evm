@@ -7,13 +7,13 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ava-labs/coreth/commontype"
-	"github.com/ava-labs/coreth/core/extstate"
-	"github.com/ava-labs/coreth/precompile/allowlist"
-	"github.com/ava-labs/coreth/precompile/contract"
-	"github.com/ava-labs/coreth/precompile/precompileconfig"
-	"github.com/ava-labs/coreth/precompile/testutils"
-	"github.com/ava-labs/coreth/vmerrs"
+	"github.com/ava-labs/subnet-evm/commontype"
+	"github.com/ava-labs/subnet-evm/core/extstate"
+	"github.com/ava-labs/subnet-evm/precompile/allowlist"
+	"github.com/ava-labs/subnet-evm/precompile/contract"
+	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
+	"github.com/ava-labs/subnet-evm/precompile/testutils"
+	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -356,7 +356,7 @@ var (
 				assertFeeEvent(t, logsTopics, logsData, allowlist.TestEnabledAddr, zeroFeeConfig, testFeeConfig)
 			},
 		},
-		// from https://github.com/ava-labs/coreth/issues/487
+		// from https://github.com/ava-labs/subnet-evm/issues/487
 		"setFeeConfig regression test should fail before Durango": {
 			Caller:     allowlist.TestEnabledAddr,
 			BeforeHook: allowlist.SetDefaultRoles(Module.Address),

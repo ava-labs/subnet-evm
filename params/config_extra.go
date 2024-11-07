@@ -10,9 +10,9 @@ import (
 	"math/big"
 
 	"github.com/ava-labs/avalanchego/snow"
-	"github.com/ava-labs/coreth/commontype"
-	"github.com/ava-labs/coreth/predicate"
-	"github.com/ava-labs/coreth/utils"
+	"github.com/ava-labs/subnet-evm/commontype"
+	"github.com/ava-labs/subnet-evm/predicate"
+	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 	gethparams "github.com/ethereum/go-ethereum/params"
 )

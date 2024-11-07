@@ -6,8 +6,8 @@ package params
 import (
 	"math/big"
 
-	"github.com/ava-labs/coreth/precompile/modules"
-	"github.com/ava-labs/coreth/precompile/precompileconfig"
+	"github.com/ava-labs/subnet-evm/precompile/modules"
+	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ethereum/go-ethereum/common"
 	gethparams "github.com/ethereum/go-ethereum/params"
 )

@@ -2,11 +2,11 @@
 
 ## Pending Release
 
-## [v0.6.11](https://github.com/ava-labs/coreth/releases/tag/v0.6.11)
+## [v0.6.11](https://github.com/ava-labs/subnet-evm/releases/tag/v0.6.11)
 
 This release focuses on Standalone DB and database configs.
 
-This version is backwards compatible to [v0.6.0](https://github.com/ava-labs/coreth/releases/tag/v0.6.0). It is optional, but encouraged.
+This version is backwards compatible to [v0.6.0](https://github.com/ava-labs/subnet-evm/releases/tag/v0.6.0). It is optional, but encouraged.
 
 The plugin version is unchanged at 37 and is compatible with AvalancheGo versions v1.11.12.
 

@@ -10,7 +10,7 @@ import (
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp"
-	"github.com/ava-labs/coreth/commontype"
+	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ethereum/go-ethereum/common"
 )
 

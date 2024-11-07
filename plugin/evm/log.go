@@ -10,7 +10,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/ava-labs/coreth/log"
+	"github.com/ava-labs/subnet-evm/log"
 	gethlog "github.com/ethereum/go-ethereum/log"
 	"golang.org/x/exp/slog"
 )

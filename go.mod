@@ -1,4 +1,4 @@
-module github.com/ava-labs/coreth
+module github.com/ava-labs/subnet-evm
 
 go 1.22.8
 
@@ -47,6 +47,7 @@ require (
 	github.com/DataDog/zstd v1.5.2 // indirect
 	github.com/Microsoft/go-winio v0.6.1 // indirect
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
+	github.com/ava-labs/coreth v0.13.8 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bits-and-blooms/bitset v1.10.0 // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.3.2 // indirect

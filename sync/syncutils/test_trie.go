@@ -10,11 +10,11 @@ import (
 	"testing"
 
 	"github.com/ava-labs/avalanchego/utils/wrappers"
-	"github.com/ava-labs/coreth/core/types"
-	"github.com/ava-labs/coreth/trie"
-	"github.com/ava-labs/coreth/trie/trienode"
-	"github.com/ava-labs/coreth/triedb"
-	"github.com/ava-labs/coreth/utils"
+	"github.com/ava-labs/subnet-evm/core/types"
+	"github.com/ava-labs/subnet-evm/trie"
+	"github.com/ava-labs/subnet-evm/trie/trienode"
+	"github.com/ava-labs/subnet-evm/triedb"
+	"github.com/ava-labs/subnet-evm/utils"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethdb"

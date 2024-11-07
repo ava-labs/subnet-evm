@@ -6,8 +6,8 @@ package deployerallowlist
 import (
 	"testing"
 
-	"github.com/ava-labs/coreth/core/extstate"
-	"github.com/ava-labs/coreth/precompile/allowlist"
+	"github.com/ava-labs/subnet-evm/core/extstate"
+	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 )
 
 func TestContractDeployerAllowListRun(t *testing.T) {
