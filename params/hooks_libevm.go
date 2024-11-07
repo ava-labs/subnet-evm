@@ -4,11 +4,13 @@
 package params
 
 import (
+	"fmt"
 	"math/big"
 
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
+	"github.com/ava-labs/subnet-evm/precompile/contracts/deployerallowlist"
 	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/predicate"
@@ -23,6 +25,15 @@ func (r RulesExtra) CanCreateContract(ac *libevm.AddressContext, gas uint64, sta
 	// IsProhibited
 	if ac.Self == constants.BlackholeAddr || modules.ReservedAddress(ac.Self) {
 		return gas, vmerrs.ErrAddrProhibited
+	}
+
+	// If the allow list is enabled, check that [ac.Origin] has permission to deploy a contract.
+	if r.IsPrecompileEnabled(deployerallowlist.ContractAddress) {
+		allowListRole := deployerallowlist.GetContractDeployerAllowListStatus(state, ac.Origin)
+		if !allowListRole.IsEnabled() {
+			gas = 0
+			return gas, fmt.Errorf("tx.origin %s is not authorized to deploy a contract", ac.Origin)
+		}
 	}
 
 	return gas, nil
