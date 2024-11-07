@@ -2291,10 +2291,9 @@ func TestVerifyManagerConfig(t *testing.T) {
 	require.NoError(t, genesis.UnmarshalJSON([]byte(genesisJSONDurango)))
 
 	durangoTimestamp := time.Now().Add(10 * time.Hour)
-	configExtra := params.GetExtra(genesis.Config)
-	configExtra.DurangoTimestamp = utils.TimeToNewUint64(durangoTimestamp)
+	params.GetExtra(genesis.Config).DurangoTimestamp = utils.TimeToNewUint64(durangoTimestamp)
 	// this manager role should not be activated because DurangoTimestamp is in the future
-	configExtra.GenesisPrecompiles = params.Precompiles{
+	params.GetExtra(genesis.Config).GenesisPrecompiles = params.Precompiles{
 		txallowlist.ConfigKey: txallowlist.NewConfig(utils.NewUint64(0), testEthAddrs[0:1], nil, []common.Address{testEthAddrs[1]}),
 	}
 
@@ -2318,7 +2317,7 @@ func TestVerifyManagerConfig(t *testing.T) {
 
 	genesis = &core.Genesis{}
 	require.NoError(t, genesis.UnmarshalJSON([]byte(genesisJSONDurango)))
-	configExtra.DurangoTimestamp = utils.TimeToNewUint64(durangoTimestamp)
+	params.GetExtra(genesis.Config).DurangoTimestamp = utils.TimeToNewUint64(durangoTimestamp)
 	genesisJSON, err = genesis.MarshalJSON()
 	require.NoError(t, err)
 	// use an invalid upgrade now with managers set before Durango
