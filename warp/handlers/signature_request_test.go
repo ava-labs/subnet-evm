@@ -15,7 +15,6 @@ import (
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
-	"github.com/ava-labs/subnet-evm/plugin/evm/validators"
 	"github.com/ava-labs/subnet-evm/plugin/evm/validators/interfaces"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ava-labs/subnet-evm/warp"
@@ -143,7 +142,7 @@ func TestBlockSignatureHandler(t *testing.T) {
 		warpSigner,
 		blockClient,
 		uptime.NoOpCalculator,
-		validators.NoOpState,
+		interfaces.NoOpState,
 		snowCtx.Lock.RLocker(),
 		database,
 		messageSignatureCache,

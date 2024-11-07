@@ -39,7 +39,7 @@ func (b *backend) Verify(ctx context.Context, unsignedMessage *avalancheWarp.Uns
 
 	switch p := parsed.(type) {
 	case *payload.AddressedCall:
-		return b.verifyAddressedCall(p)
+		return b.verifyOffchainAddressCall(p)
 	case *payload.Hash:
 		return b.verifyBlockMessage(ctx, p)
 	default:
@@ -67,8 +67,8 @@ func (b *backend) verifyBlockMessage(ctx context.Context, blockHashPayload *payl
 	return nil
 }
 
-// verifyAddressedCall verifies the addressed call message
-func (b *backend) verifyAddressedCall(addressedCall *payload.AddressedCall) *common.AppError {
+// verifyOffchainAddressCall verifies the addressed call message
+func (b *backend) verifyOffchainAddressCall(addressedCall *payload.AddressedCall) *common.AppError {
 	// Further, parse the payload to see if it is a known type.
 	parsed, err := messages.Parse(addressedCall.Payload)
 	if err != nil {
@@ -79,9 +79,16 @@ func (b *backend) verifyAddressedCall(addressedCall *payload.AddressedCall) *com
 		}
 	}
 
+	if len(addressedCall.SourceAddress) != 0 {
+		return &common.AppError{
+			Code:    VerifyErrCode,
+			Message: "source address should be empty for offchain addressed messages",
+		}
+	}
+
 	switch p := parsed.(type) {
 	case *messages.ValidatorUptime:
-		if err := b.verifyUptimeMessage(addressedCall.SourceAddress, p); err != nil {
+		if err := b.verifyUptimeMessage(p); err != nil {
 			b.stats.IncUptimeValidationFail()
 			return err
 		}
@@ -96,14 +103,7 @@ func (b *backend) verifyAddressedCall(addressedCall *payload.AddressedCall) *com
 	return nil
 }
 
-func (b *backend) verifyUptimeMessage(sourceAddress []byte, uptimeMsg *messages.ValidatorUptime) *common.AppError {
-	if len(sourceAddress) != 0 {
-		return &common.AppError{
-			Code:    VerifyErrCode,
-			Message: "source address should be empty for uptime message",
-		}
-	}
-
+func (b *backend) verifyUptimeMessage(uptimeMsg *messages.ValidatorUptime) *common.AppError {
 	b.stateLock.Lock()
 	defer b.stateLock.Unlock()
 	// first get the validator's nodeID
