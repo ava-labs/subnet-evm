@@ -391,13 +391,14 @@ func TestSuggestGasPriceAfterFeeConfigUpdate(t *testing.T) {
 
 	// create a chain config with fee manager enabled at genesis with [addr] as the admin
 	chainConfig := params.Copy(params.TestChainConfig)
-	params.GetExtra(&chainConfig).GenesisPrecompiles = params.Precompiles{
+	chainConfigExtra := params.GetExtra(&chainConfig)
+	chainConfigExtra.GenesisPrecompiles = params.Precompiles{
 		feemanager.ConfigKey: feemanager.NewConfig(utils.NewUint64(0), []common.Address{addr}, nil, nil, nil),
 	}
 
 	// create a fee config with higher MinBaseFee and prepare it for inclusion in a tx
 	signer := types.LatestSigner(params.TestChainConfig)
-	highFeeConfig := params.GetExtra(&chainConfig).FeeConfig
+	highFeeConfig := chainConfigExtra.FeeConfig
 	highFeeConfig.MinBaseFee = big.NewInt(28_000_000_000)
 	data, err := feemanager.PackSetFeeConfig(highFeeConfig)
 	require.NoError(err)
@@ -410,7 +411,7 @@ func TestSuggestGasPriceAfterFeeConfigUpdate(t *testing.T) {
 	require.NoError(err)
 	got, err := oracle.SuggestPrice(context.Background())
 	require.NoError(err)
-	require.Equal(params.GetExtra(&chainConfig).FeeConfig.MinBaseFee, got)
+	require.Equal(chainConfigExtra.FeeConfig.MinBaseFee, got)
 
 	// issue the block with tx that changes the fee
 	genesis := backend.chain.Genesis()
@@ -424,9 +425,9 @@ func TestSuggestGasPriceAfterFeeConfigUpdate(t *testing.T) {
 			ChainID:   chainConfig.ChainID,
 			Nonce:     b.TxNonce(addr),
 			To:        &feemanager.ContractAddress,
-			Gas:       params.GetExtra(&chainConfig).FeeConfig.GasLimit.Uint64(),
+			Gas:       chainConfigExtra.FeeConfig.GasLimit.Uint64(),
 			Value:     common.Big0,
-			GasFeeCap: params.GetExtra(&chainConfig).FeeConfig.MinBaseFee, // give low fee, it should work since we still haven't applied high fees
+			GasFeeCap: chainConfigExtra.FeeConfig.MinBaseFee, // give low fee, it should work since we still haven't applied high fees
 			GasTipCap: common.Big0,
 			Data:      data,
 		})

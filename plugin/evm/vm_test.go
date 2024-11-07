@@ -2291,9 +2291,10 @@ func TestVerifyManagerConfig(t *testing.T) {
 	require.NoError(t, genesis.UnmarshalJSON([]byte(genesisJSONDurango)))
 
 	durangoTimestamp := time.Now().Add(10 * time.Hour)
-	params.GetExtra(genesis.Config).DurangoTimestamp = utils.TimeToNewUint64(durangoTimestamp)
+	configExtra := params.GetExtra(genesis.Config)
+	configExtra.DurangoTimestamp = utils.TimeToNewUint64(durangoTimestamp)
 	// this manager role should not be activated because DurangoTimestamp is in the future
-	params.GetExtra(genesis.Config).GenesisPrecompiles = params.Precompiles{
+	configExtra.GenesisPrecompiles = params.Precompiles{
 		txallowlist.ConfigKey: txallowlist.NewConfig(utils.NewUint64(0), testEthAddrs[0:1], nil, []common.Address{testEthAddrs[1]}),
 	}
 
@@ -2317,7 +2318,7 @@ func TestVerifyManagerConfig(t *testing.T) {
 
 	genesis = &core.Genesis{}
 	require.NoError(t, genesis.UnmarshalJSON([]byte(genesisJSONDurango)))
-	params.GetExtra(genesis.Config).DurangoTimestamp = utils.TimeToNewUint64(durangoTimestamp)
+	configExtra.DurangoTimestamp = utils.TimeToNewUint64(durangoTimestamp)
 	genesisJSON, err = genesis.MarshalJSON()
 	require.NoError(t, err)
 	// use an invalid upgrade now with managers set before Durango
@@ -2470,7 +2471,8 @@ func TestFeeManagerChangeFee(t *testing.T) {
 	if err := genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)); err != nil {
 		t.Fatal(err)
 	}
-	params.GetExtra(genesis.Config).GenesisPrecompiles = params.Precompiles{
+	configExtra := params.GetExtra(genesis.Config)
+	configExtra.GenesisPrecompiles = params.Precompiles{
 		feemanager.ConfigKey: feemanager.NewConfig(utils.NewUint64(0), testEthAddrs[0:1], nil, nil, nil),
 	}
 
@@ -2488,7 +2490,7 @@ func TestFeeManagerChangeFee(t *testing.T) {
 		BlockGasCostStep: big.NewInt(500_000),
 	}
 
-	params.GetExtra(genesis.Config).FeeConfig = testLowFeeConfig
+	configExtra.FeeConfig = testLowFeeConfig
 	genesisJSON, err := genesis.MarshalJSON()
 	if err != nil {
 		t.Fatal(err)
@@ -2571,7 +2573,7 @@ func TestFeeManagerChangeFee(t *testing.T) {
 		ChainID:   genesis.Config.ChainID,
 		Nonce:     uint64(1),
 		To:        &feemanager.ContractAddress,
-		Gas:       params.GetExtra(genesis.Config).FeeConfig.GasLimit.Uint64(),
+		Gas:       configExtra.FeeConfig.GasLimit.Uint64(),
 		Value:     common.Big0,
 		GasFeeCap: testLowFeeConfig.MinBaseFee, // this is too low for applied config, should fail
 		GasTipCap: common.Big0,
