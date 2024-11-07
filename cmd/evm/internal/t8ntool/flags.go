@@ -31,7 +31,7 @@ import (
 	"strings"
 
 	"github.com/ava-labs/coreth/tests"
-	"github.com/ethereum/go-ethereum/core/vm"
+	"github.com/ava-labs/libevm/core/vm"
 	"github.com/urfave/cli/v2"
 )
 

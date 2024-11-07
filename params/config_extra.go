@@ -13,8 +13,8 @@ import (
 	"github.com/ava-labs/coreth/commontype"
 	"github.com/ava-labs/coreth/predicate"
 	"github.com/ava-labs/coreth/utils"
-	"github.com/ethereum/go-ethereum/common"
-	gethparams "github.com/ethereum/go-ethereum/params"
+	"github.com/ava-labs/libevm/common"
+	gethparams "github.com/ava-labs/libevm/params"
 )
 
 const (

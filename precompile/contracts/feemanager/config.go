@@ -7,7 +7,7 @@ import (
 	"github.com/ava-labs/coreth/commontype"
 	"github.com/ava-labs/coreth/precompile/allowlist"
 	"github.com/ava-labs/coreth/precompile/precompileconfig"
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/ava-labs/libevm/common"
 )
 
 var _ precompileconfig.Config = &Config{}

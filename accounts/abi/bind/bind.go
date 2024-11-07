@@ -40,7 +40,7 @@ import (
 	"unicode"
 
 	"github.com/ava-labs/coreth/accounts/abi"
-	"github.com/ethereum/go-ethereum/log"
+	"github.com/ava-labs/libevm/log"
 )
 
 // BindHook is a callback function that can be used to customize the binding.

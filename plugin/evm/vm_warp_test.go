@@ -37,8 +37,8 @@ import (
 	"github.com/ava-labs/coreth/predicate"
 	"github.com/ava-labs/coreth/utils"
 	"github.com/ava-labs/coreth/warp"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/crypto"
 	"github.com/stretchr/testify/require"
 )
 

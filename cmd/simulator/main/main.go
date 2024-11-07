@@ -12,7 +12,7 @@ import (
 	"github.com/ava-labs/coreth/cmd/simulator/config"
 	"github.com/ava-labs/coreth/cmd/simulator/load"
 	"github.com/ava-labs/coreth/log"
-	gethlog "github.com/ethereum/go-ethereum/log"
+	gethlog "github.com/ava-labs/libevm/log"
 	"github.com/spf13/pflag"
 )
 

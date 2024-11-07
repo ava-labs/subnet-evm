@@ -11,7 +11,7 @@ import (
 
 	"github.com/ava-labs/coreth/precompile/contract"
 	"github.com/ava-labs/coreth/vmerrs"
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/ava-labs/libevm/common"
 )
 
 // AllowList is an abstraction that allows other precompiles to manage

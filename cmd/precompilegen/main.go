@@ -39,7 +39,7 @@ import (
 	"github.com/ava-labs/coreth/accounts/abi/bind/precompilebind"
 	"github.com/ava-labs/coreth/cmd/utils"
 	"github.com/ava-labs/coreth/internal/flags"
-	"github.com/ethereum/go-ethereum/log"
+	"github.com/ava-labs/libevm/log"
 	"github.com/urfave/cli/v2"
 )
 

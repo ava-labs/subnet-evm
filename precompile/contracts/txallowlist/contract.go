@@ -6,7 +6,7 @@ package txallowlist
 import (
 	"github.com/ava-labs/coreth/precompile/allowlist"
 	"github.com/ava-labs/coreth/precompile/contract"
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/ava-labs/libevm/common"
 )
 
 // Singleton StatefulPrecompiledContract for W/R access to the tx allow list.

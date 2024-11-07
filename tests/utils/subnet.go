@@ -21,7 +21,7 @@ import (
 	wallet "github.com/ava-labs/avalanchego/wallet/subnet/primary"
 	"github.com/ava-labs/coreth/core"
 	"github.com/ava-labs/coreth/plugin/evm"
-	"github.com/ethereum/go-ethereum/log"
+	"github.com/ava-labs/libevm/log"
 	"github.com/go-cmd/cmd"
 	"github.com/onsi/ginkgo/v2"
 	"github.com/stretchr/testify/require"

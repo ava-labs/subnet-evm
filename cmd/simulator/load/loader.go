@@ -21,9 +21,9 @@ import (
 	"github.com/ava-labs/coreth/core/types"
 	"github.com/ava-labs/coreth/ethclient"
 	"github.com/ava-labs/coreth/params"
-	"github.com/ethereum/go-ethereum/common"
-	ethcrypto "github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/log"
+	"github.com/ava-labs/libevm/common"
+	ethcrypto "github.com/ava-labs/libevm/crypto"
+	"github.com/ava-labs/libevm/log"
 	"golang.org/x/sync/errgroup"
 )
 

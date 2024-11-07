@@ -7,7 +7,7 @@ import (
 	"errors"
 
 	"github.com/ava-labs/coreth/plugin/evm/uptime/interfaces"
-	"github.com/ethereum/go-ethereum/log"
+	"github.com/ava-labs/libevm/log"
 
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow/uptime"

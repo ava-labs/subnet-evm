@@ -10,7 +10,7 @@ import (
 
 	"github.com/ava-labs/coreth/core/types"
 	"github.com/ava-labs/coreth/ethclient"
-	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+	ethcrypto "github.com/ava-labs/libevm/crypto"
 )
 
 var _ TxSequence[*types.Transaction] = (*txSequence)(nil)

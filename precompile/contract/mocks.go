@@ -15,8 +15,8 @@ import (
 
 	snow "github.com/ava-labs/avalanchego/snow"
 	precompileconfig "github.com/ava-labs/coreth/precompile/precompileconfig"
-	common "github.com/ethereum/go-ethereum/common"
-	types "github.com/ethereum/go-ethereum/core/types"
+	common "github.com/ava-labs/libevm/common"
+	types "github.com/ava-labs/libevm/core/types"
 	uint256 "github.com/holiman/uint256"
 	gomock "go.uber.org/mock/gomock"
 )

@@ -15,7 +15,7 @@ import (
 	{{- if .Contract.AllowList}}
 	"github.com/ava-labs/coreth/precompile/allowlist"
 
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/ava-labs/libevm/common"
 	{{- end}}
 
 )

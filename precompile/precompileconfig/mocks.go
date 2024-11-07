@@ -13,7 +13,7 @@ import (
 	reflect "reflect"
 
 	commontype "github.com/ava-labs/coreth/commontype"
-	common "github.com/ethereum/go-ethereum/common"
+	common "github.com/ava-labs/libevm/common"
 	gomock "go.uber.org/mock/gomock"
 )
 

@@ -12,8 +12,8 @@ import (
 	"github.com/ava-labs/coreth/commontype"
 	"github.com/ava-labs/coreth/core/types"
 	"github.com/ava-labs/coreth/params"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/math"
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/common/math"
 )
 
 // CalcBaseFee takes the previous header and the timestamp of its child block

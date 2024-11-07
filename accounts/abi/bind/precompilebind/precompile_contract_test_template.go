@@ -20,7 +20,7 @@ import (
 	{{- end}}
 	"github.com/ava-labs/coreth/precompile/testutils"
 	"github.com/ava-labs/coreth/vmerrs"
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/ava-labs/libevm/common"
 	"github.com/stretchr/testify/require"
 )
 
