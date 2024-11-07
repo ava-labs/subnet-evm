@@ -1,12 +1,13 @@
 // (c) 2019-2023, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-package allowlist
+package allowlist_test
 
 import (
 	"testing"
 
 	"github.com/ava-labs/subnet-evm/core/extstate"
+	. "github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
