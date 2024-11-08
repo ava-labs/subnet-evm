@@ -36,34 +36,23 @@ func TestState(t *testing.T) {
 	require.ErrorIs(err, database.ErrNotFound)
 
 	// add new validator
-	state.AddValidator(interfaces.Validator{
+	vdr := interfaces.Validator{
 		ValidationID:   vID,
 		NodeID:         nodeID,
 		Weight:         1,
 		StartTimestamp: uint64(startTime.Unix()),
 		IsActive:       true,
 		IsSoV:          true,
-	})
+	}
+	state.AddValidator(vdr)
 
 	// adding the same validator should fail
-	err = state.AddValidator(interfaces.Validator{
-		ValidationID:   vID,
-		NodeID:         ids.GenerateTestNodeID(),
-		Weight:         1,
-		StartTimestamp: uint64(startTime.Unix()),
-		IsActive:       true,
-		IsSoV:          true,
-	})
+	err = state.AddValidator(vdr)
 	require.ErrorIs(err, ErrAlreadyExists)
 	// adding the same nodeID should fail
-	err = state.AddValidator(interfaces.Validator{
-		ValidationID:   ids.GenerateTestID(),
-		NodeID:         nodeID,
-		Weight:         1,
-		StartTimestamp: uint64(startTime.Unix()),
-		IsActive:       true,
-		IsSoV:          true,
-	})
+	newVdr := vdr
+	newVdr.ValidationID = ids.GenerateTestID()
+	err = state.AddValidator(newVdr)
 	require.ErrorIs(err, ErrAlreadyExists)
 
 	// get uptime
@@ -83,11 +72,26 @@ func TestState(t *testing.T) {
 	require.Equal(newLastUpdated, lastUpdated)
 
 	// set status
-	require.NoError(state.SetStatus(vID, false))
+	vdr.IsActive = false
+	require.NoError(state.UpdateValidator(vdr))
 	// get status
-	status, err := state.GetStatus(vID)
+	data, err := state.GetValidator(vID)
 	require.NoError(err)
-	require.False(status)
+	require.False(data.IsActive)
+
+	// set weight
+	newWeight := uint64(2)
+	vdr.Weight = newWeight
+	require.NoError(state.UpdateValidator(vdr))
+	// get weight
+	data, err = state.GetValidator(vID)
+	require.NoError(err)
+	require.Equal(newWeight, data.Weight)
+
+	// set a different node ID should fail
+	newNodeID := ids.GenerateTestNodeID()
+	vdr.NodeID = newNodeID
+	require.ErrorIs(state.UpdateValidator(vdr), ErrImmutableField)
 
 	// delete uptime
 	require.NoError(state.DeleteValidator(vID))
@@ -292,18 +296,23 @@ func TestStateListener(t *testing.T) {
 
 	// add new validator
 	mockListener.EXPECT().OnValidatorAdded(expectedvID, expectedNodeID, uint64(expectedStartTime.Unix()), true)
-	require.NoError(state.AddValidator(interfaces.Validator{
+	vdr := interfaces.Validator{
 		ValidationID:   expectedvID,
 		NodeID:         expectedNodeID,
 		Weight:         1,
 		StartTimestamp: uint64(expectedStartTime.Unix()),
 		IsActive:       true,
 		IsSoV:          true,
-	}))
+	}
+	require.NoError(state.AddValidator(vdr))
 
 	// set status
 	mockListener.EXPECT().OnValidatorStatusUpdated(expectedvID, expectedNodeID, false)
-	require.NoError(state.SetStatus(expectedvID, false))
+	vdr.IsActive = false
+	require.NoError(state.UpdateValidator(vdr))
+
+	// set status twice should not trigger listener
+	require.NoError(state.UpdateValidator(vdr))
 
 	// remove validator
 	mockListener.EXPECT().OnValidatorRemoved(expectedvID, expectedNodeID)

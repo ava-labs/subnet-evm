@@ -1480,39 +1480,33 @@ func (vm *VM) performValidatorUpdate(ctx context.Context) error {
 }
 
 // loadValidators loads the [validators] into the validator state [validatorState]
-func loadValidators(validatorState validatorsinterfaces.State, validators map[ids.ID]*avalancheValidators.GetCurrentValidatorOutput) error {
+func loadValidators(validatorState validatorsinterfaces.State, newValidators map[ids.ID]*avalancheValidators.GetCurrentValidatorOutput) error {
 	currentValidationIDs := validatorState.GetValidationIDs()
 	// first check if we need to delete any existing validators
 	for vID := range currentValidationIDs {
 		// if the validator is not in the new set of validators
 		// delete the validator
-		if _, exists := validators[vID]; !exists {
+		if _, exists := newValidators[vID]; !exists {
 			validatorState.DeleteValidator(vID)
 		}
 	}
 
 	// then load the new validators
-	for vID, vdr := range validators {
-		if currentValidationIDs.Contains(vID) {
-			// Check if IsActive has changed
-			isActive, err := validatorState.GetStatus(vID)
-			if err != nil {
+	for newVID, newVdr := range newValidators {
+		currentVdr := validatorsinterfaces.Validator{
+			ValidationID:   newVID,
+			NodeID:         newVdr.NodeID,
+			Weight:         newVdr.Weight,
+			StartTimestamp: newVdr.StartTime,
+			IsActive:       newVdr.IsActive,
+			IsSoV:          newVdr.IsSoV,
+		}
+		if currentValidationIDs.Contains(newVID) {
+			if err := validatorState.UpdateValidator(currentVdr); err != nil {
 				return err
 			}
-			if isActive != vdr.IsActive {
-				if err := validatorState.SetStatus(vID, vdr.IsActive); err != nil {
-					return err
-				}
-			}
 		} else {
-			if err := validatorState.AddValidator(validatorsinterfaces.Validator{
-				ValidationID:   vID,
-				NodeID:         vdr.NodeID,
-				Weight:         vdr.Weight,
-				StartTimestamp: vdr.StartTime,
-				IsActive:       vdr.IsActive,
-				IsSoV:          vdr.IsSoV,
-			}); err != nil {
+			if err := validatorState.AddValidator(currentVdr); err != nil {
 				return err
 			}
 		}

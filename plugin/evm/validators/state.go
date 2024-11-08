@@ -18,11 +18,14 @@ var _ uptime.State = &state{}
 
 type dbUpdateStatus bool
 
-var ErrAlreadyExists = fmt.Errorf("validator already exists")
+var (
+	ErrAlreadyExists  = fmt.Errorf("validator already exists")
+	ErrImmutableField = fmt.Errorf("immutable field cannot be updated")
+)
 
 const (
-	updated dbUpdateStatus = true
-	deleted dbUpdateStatus = false
+	updatedStatus dbUpdateStatus = true
+	deletedStatus dbUpdateStatus = false
 )
 
 type validatorData struct {
@@ -85,7 +88,7 @@ func (s *state) SetUptime(
 	data.UpDuration = upDuration
 	data.setLastUpdated(lastUpdated)
 
-	s.updatedData[data.validationID] = updated
+	s.updatedData[data.validationID] = updatedStatus
 	return nil
 }
 
@@ -115,10 +118,42 @@ func (s *state) AddValidator(vdr interfaces.Validator) error {
 		return err
 	}
 
-	s.updatedData[vdr.ValidationID] = updated
+	s.updatedData[vdr.ValidationID] = updatedStatus
 
 	for _, listener := range s.listeners {
 		listener.OnValidatorAdded(vdr.ValidationID, vdr.NodeID, vdr.StartTimestamp, vdr.IsActive)
+	}
+	return nil
+}
+
+// UpdateValidator updates the validator in the state
+// returns an error if the validator does not exist or if the immutable fields are modified
+func (s *state) UpdateValidator(vdr interfaces.Validator) error {
+	data, exists := s.data[vdr.ValidationID]
+	if !exists {
+		return database.ErrNotFound
+	}
+	// check immutable fields
+	if !data.constantsAreUnmodified(vdr) {
+		return ErrImmutableField
+	}
+	// check if mutable fields have changed
+	updated := false
+	if data.IsActive != vdr.IsActive {
+		data.IsActive = vdr.IsActive
+		updated = true
+		for _, listener := range s.listeners {
+			listener.OnValidatorStatusUpdated(data.validationID, data.NodeID, data.IsActive)
+		}
+	}
+
+	if data.Weight != vdr.Weight {
+		data.Weight = vdr.Weight
+		updated = true
+	}
+
+	if updated {
+		s.updatedData[vdr.ValidationID] = updatedStatus
 	}
 	return nil
 }
@@ -134,7 +169,7 @@ func (s *state) DeleteValidator(vID ids.ID) error {
 	delete(s.index, data.NodeID)
 
 	// mark as deleted for WriteValidator
-	s.updatedData[data.validationID] = deleted
+	s.updatedData[data.validationID] = deletedStatus
 
 	for _, listener := range s.listeners {
 		listener.OnValidatorRemoved(vID, data.NodeID)
@@ -148,7 +183,7 @@ func (s *state) WriteState() error {
 	batch := s.db.NewBatch()
 	for vID, updateStatus := range s.updatedData {
 		switch updateStatus {
-		case updated:
+		case updatedStatus:
 			data := s.data[vID]
 
 			dataBytes, err := vdrCodec.Marshal(codecVersion, data)
@@ -158,7 +193,7 @@ func (s *state) WriteState() error {
 			if err := batch.Put(vID[:], dataBytes); err != nil {
 				return err
 			}
-		case deleted:
+		case deletedStatus:
 			if err := batch.Delete(vID[:]); err != nil {
 				return err
 			}
@@ -178,21 +213,12 @@ func (s *state) SetStatus(vID ids.ID, isActive bool) error {
 		return database.ErrNotFound
 	}
 	data.IsActive = isActive
-	s.updatedData[vID] = updated
+	s.updatedData[vID] = updatedStatus
 
 	for _, listener := range s.listeners {
 		listener.OnValidatorStatusUpdated(vID, data.NodeID, isActive)
 	}
 	return nil
-}
-
-// GetStatus returns the active status of the validator with the given vID
-func (s *state) GetStatus(vID ids.ID) (bool, error) {
-	data, exists := s.data[vID]
-	if !exists {
-		return false, database.ErrNotFound
-	}
-	return data.IsActive, nil
 }
 
 // GetValidationIDs returns the validation IDs in the state
@@ -213,11 +239,11 @@ func (s *state) GetNodeIDs() set.Set[ids.NodeID] {
 	return ids
 }
 
-// GetValidator returns the validator data for the given nodeID
-func (s *state) GetValidator(nodeID ids.NodeID) (interfaces.Validator, error) {
-	data, err := s.getData(nodeID)
-	if err != nil {
-		return interfaces.Validator{}, err
+// GetValidator returns the validator data for the given validationID
+func (s *state) GetValidator(vID ids.ID) (interfaces.Validator, error) {
+	data, ok := s.data[vID]
+	if !ok {
+		return interfaces.Validator{}, database.ErrNotFound
 	}
 	return interfaces.Validator{
 		ValidationID:   data.validationID,
@@ -321,4 +347,15 @@ func (v *validatorData) getLastUpdated() time.Time {
 
 func (v *validatorData) getStartTime() time.Time {
 	return time.Unix(int64(v.StartTime), 0)
+}
+
+// constantsAreUnmodified returns true if the constants of this validator have
+// not been modified compared to the other validator.
+func (v *validatorData) constantsAreUnmodified(o interfaces.Validator) bool {
+	if v.validationID != o.ValidationID {
+		return true
+	}
+	return v.NodeID == o.NodeID &&
+		v.IsSoV == o.IsSoV &&
+		v.StartTime == o.StartTimestamp
 }

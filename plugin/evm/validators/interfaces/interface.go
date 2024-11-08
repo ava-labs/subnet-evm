@@ -15,24 +15,19 @@ type State interface {
 	uptime.State
 	// AddValidator adds a new validator to the state
 	AddValidator(vdr Validator) error
+	// UpdateValidator updates the validator in the state
+	UpdateValidator(vdr Validator) error
+	// GetValidator returns the validator data for the given validation ID
+	GetValidator(vID ids.ID) (Validator, error)
 	// DeleteValidator deletes the validator from the state
 	DeleteValidator(vID ids.ID) error
 	// WriteState writes the validator state to the disk
 	WriteState() error
 
-	// SetStatus sets the active status of the validator with the given vID
-	SetStatus(vID ids.ID, isActive bool) error
-	// GetStatus returns the active status of the validator with the given vID
-	GetStatus(vID ids.ID) (bool, error)
-
 	// GetValidationIDs returns the validation IDs in the state
 	GetValidationIDs() set.Set[ids.ID]
 	// GetNodeIDs returns the validator node IDs in the state
 	GetNodeIDs() set.Set[ids.NodeID]
-	// GetNodeID returns the node ID for the given validation ID
-	GetNodeID(vID ids.ID) (ids.NodeID, error)
-	// GetValidator returns the validator data for the given nodeID
-	GetValidator(nodeID ids.NodeID) (Validator, error)
 
 	// RegisterListener registers a listener to the state
 	RegisterListener(StateCallbackListener)
