@@ -16,6 +16,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/plugin/evm/validators"
 	"github.com/ava-labs/subnet-evm/plugin/evm/validators/interfaces"
+	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -43,7 +44,7 @@ func TestValidatorState(t *testing.T) {
 		ids.GenerateTestID(),
 	}
 	ctx.ValidatorState = &validatorstest.State{
-		GetCurrentValidatorSetF: func(ctx context.Context, subnetID ids.ID) (map[ids.ID]*avagoValidators.GetCurrentValidatorOutput, uint64, bool, error) {
+		GetCurrentValidatorSetF: func(ctx context.Context, subnetID ids.ID) (map[ids.ID]*avagoValidators.GetCurrentValidatorOutput, uint64, error) {
 			return map[ids.ID]*avagoValidators.GetCurrentValidatorOutput{
 				testValidationIDs[0]: {
 					NodeID:    testNodeIDs[0],
@@ -60,7 +61,7 @@ func TestValidatorState(t *testing.T) {
 					PublicKey: nil,
 					Weight:    1,
 				},
-			}, 0, false, nil
+			}, 0, nil
 		},
 	}
 	appSender.SendAppGossipF = func(context.Context, commonEng.SendConfig, []byte) error { return nil }
@@ -99,7 +100,7 @@ func TestValidatorState(t *testing.T) {
 	vm = &VM{}
 	err = vm.Initialize(
 		context.Background(),
-		NewContext(), // this context does not have validators state, making VM to source it from the database
+		utils.TestSnowContext(), // this context does not have validators state, making VM to source it from the database
 		dbManager,
 		genesisBytes,
 		[]byte(""),
@@ -118,7 +119,7 @@ func TestValidatorState(t *testing.T) {
 	newValidationID := ids.GenerateTestID()
 	newNodeID := ids.GenerateTestNodeID()
 	testState := &validatorstest.State{
-		GetCurrentValidatorSetF: func(ctx context.Context, subnetID ids.ID) (map[ids.ID]*avagoValidators.GetCurrentValidatorOutput, uint64, bool, error) {
+		GetCurrentValidatorSetF: func(ctx context.Context, subnetID ids.ID) (map[ids.ID]*avagoValidators.GetCurrentValidatorOutput, uint64, error) {
 			return map[ids.ID]*avagoValidators.GetCurrentValidatorOutput{
 				testValidationIDs[0]: {
 					NodeID:    testNodeIDs[0],
@@ -140,7 +141,7 @@ func TestValidatorState(t *testing.T) {
 					PublicKey: nil,
 					Weight:    1,
 				},
-			}, 0, false, nil
+			}, 0, nil
 		},
 	}
 	vm.ctx.ValidatorState = testState
@@ -150,8 +151,8 @@ func TestValidatorState(t *testing.T) {
 
 	// new validator should be added to the state eventually after validatorsLoadFrequency
 	require.EventuallyWithT(func(c *assert.CollectT) {
-		assert.Len(c, vm.validatorState.GetValidatorIDs(), 4)
-		newValidator, err := vm.validatorState.GetValidator(newNodeID)
+		assert.Len(c, vm.validatorState.GetNodeIDs(), 4)
+		newValidator, err := vm.validatorState.GetValidator(newValidationID)
 		assert.NoError(c, err)
 		assert.Equal(c, newNodeID, newValidator.NodeID)
 	}, loadValidatorsFrequency*2, 5*time.Second)
@@ -173,6 +174,7 @@ func TestLoadNewValidators(t *testing.T) {
 		initialValidators         map[ids.ID]*avagoValidators.GetCurrentValidatorOutput
 		newValidators             map[ids.ID]*avagoValidators.GetCurrentValidatorOutput
 		registerMockListenerCalls func(*interfaces.MockStateCallbackListener)
+		expectedLoadErr           error
 	}{
 		{
 			name:                      "before empty/after empty",
@@ -232,12 +234,13 @@ func TestLoadNewValidators(t *testing.T) {
 			},
 		},
 		{
-			name: "status change and new one",
+			name: "status and weight change and new one",
 			initialValidators: map[ids.ID]*avagoValidators.GetCurrentValidatorOutput{
 				testValidationIDs[0]: {
 					NodeID:    testNodeIDs[0],
 					IsActive:  true,
 					StartTime: 0,
+					Weight:    1,
 				},
 			},
 			newValidators: map[ids.ID]*avagoValidators.GetCurrentValidatorOutput{
@@ -245,6 +248,7 @@ func TestLoadNewValidators(t *testing.T) {
 					NodeID:    testNodeIDs[0],
 					IsActive:  false,
 					StartTime: 0,
+					Weight:    2,
 				},
 				testValidationIDs[1]: {
 					NodeID:    testNodeIDs[1],
@@ -302,6 +306,7 @@ func TestLoadNewValidators(t *testing.T) {
 					StartTime: 0,
 				},
 			},
+			expectedLoadErr: validators.ErrImmutableField,
 			registerMockListenerCalls: func(mock *interfaces.MockStateCallbackListener) {
 				// initial validator will trigger first
 				mock.EXPECT().OnValidatorAdded(testValidationIDs[0], testNodeIDs[0], uint64(0), true).Times(1)
@@ -319,7 +324,14 @@ func TestLoadNewValidators(t *testing.T) {
 
 			// set initial validators
 			for vID, validator := range test.initialValidators {
-				err := validatorState.AddValidator(vID, validator.NodeID, validator.StartTime, validator.IsActive)
+				err := validatorState.AddValidator(interfaces.Validator{
+					ValidationID:   vID,
+					NodeID:         validator.NodeID,
+					Weight:         validator.Weight,
+					StartTimestamp: validator.StartTime,
+					IsActive:       validator.IsActive,
+					IsSoV:          validator.IsSoV,
+				})
 				require.NoError(err)
 			}
 			// enable mock listener
@@ -328,8 +340,24 @@ func TestLoadNewValidators(t *testing.T) {
 			test.registerMockListenerCalls(mockListener)
 
 			validatorState.RegisterListener(mockListener)
-			require.NoError(loadValidators(validatorState, test.newValidators))
-			ctrl.Finish()
+			// load new validators
+			err = loadValidators(validatorState, test.newValidators)
+			if test.expectedLoadErr != nil {
+				require.Error(err)
+				return
+			}
+			require.NoError(err)
+			// check if the state is as expected
+			require.Equal(len(test.newValidators), validatorState.GetValidationIDs().Len())
+			for vID, validator := range test.newValidators {
+				v, err := validatorState.GetValidator(vID)
+				require.NoError(err)
+				require.Equal(validator.NodeID, v.NodeID)
+				require.Equal(validator.Weight, v.Weight)
+				require.Equal(validator.StartTime, v.StartTimestamp)
+				require.Equal(validator.IsActive, v.IsActive)
+				require.Equal(validator.IsSoV, v.IsSoV)
+			}
 		})
 	}
 }
