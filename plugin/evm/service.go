@@ -7,9 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/avalanchego/utils/set"
 )
 
 type ValidatorsAPI struct {
@@ -27,44 +25,42 @@ type GetCurrentValidatorsResponse struct {
 type CurrentValidator struct {
 	ValidationID ids.ID        `json:"validationID"`
 	NodeID       ids.NodeID    `json:"nodeID"`
+	Weight       uint64        `json:"weight"`
 	StartTime    time.Time     `json:"startTime"`
 	IsActive     bool          `json:"isActive"`
+	IsSoV        bool          `json:"isSoV"`
 	IsConnected  bool          `json:"isConnected"`
 	Uptime       time.Duration `json:"uptime"`
 }
 
-func (api *ValidatorsAPI) GetCurrentValidators(_ *http.Request, args *GetCurrentValidatorsRequest, reply *GetCurrentValidatorsResponse) error {
+func (api *ValidatorsAPI) GetCurrentValidators(_ *http.Request, _ *struct{}, reply *GetCurrentValidatorsResponse) error {
 	api.vm.ctx.Lock.RLock()
 	defer api.vm.ctx.Lock.RUnlock()
 
-	nodeIDs := set.Of(args.NodeIDs...)
-	if nodeIDs.Len() == 0 {
-		nodeIDs = api.vm.validatorState.GetValidatorIDs()
-	}
+	vIDs := api.vm.validatorState.GetValidationIDs()
 
-	reply.Validators = make([]CurrentValidator, 0, nodeIDs.Len())
+	reply.Validators = make([]CurrentValidator, 0, vIDs.Len())
 
-	for _, nodeID := range nodeIDs.List() {
-		validator, err := api.vm.validatorState.GetValidator(nodeID)
-		switch {
-		case err == database.ErrNotFound:
-			continue
-		case err != nil:
+	for _, vID := range vIDs.List() {
+		validator, err := api.vm.validatorState.GetValidator(vID)
+		if err != nil {
 			return err
 		}
 
-		isConnected := api.vm.uptimeManager.IsConnected(nodeID)
+		isConnected := api.vm.uptimeManager.IsConnected(validator.NodeID)
 
-		uptime, _, err := api.vm.uptimeManager.CalculateUptime(nodeID)
+		uptime, _, err := api.vm.uptimeManager.CalculateUptime(validator.NodeID)
 		if err != nil {
 			return err
 		}
 
 		reply.Validators = append(reply.Validators, CurrentValidator{
 			ValidationID: validator.ValidationID,
-			NodeID:       nodeID,
-			StartTime:    validator.StartTime,
+			NodeID:       validator.NodeID,
+			StartTime:    validator.StartTime(),
+			Weight:       validator.Weight,
 			IsActive:     validator.IsActive,
+			IsSoV:        validator.IsSoV,
 			IsConnected:  isConnected,
 			Uptime:       time.Duration(uptime.Seconds()),
 		})
