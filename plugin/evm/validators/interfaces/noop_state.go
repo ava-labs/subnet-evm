@@ -17,13 +17,30 @@ func (n *noOpState) GetValidationIDs() set.Set[ids.ID] { return set.NewSet[ids.I
 
 func (n *noOpState) GetNodeIDs() set.Set[ids.NodeID] { return set.NewSet[ids.NodeID](0) }
 
-func (n *noOpState) GetValidator(nodeID ids.NodeID) (Validator, error) {
+func (n *noOpState) GetValidator(vID ids.ID) (Validator, error) {
 	return Validator{}, nil
 }
 
 func (n *noOpState) GetNodeID(vID ids.ID) (ids.NodeID, error) { return ids.NodeID{}, nil }
 
-func (n *noOpState) GetSubnetID(chainID ids.ID) (ids.ID, error) { return ids.ID{}, nil }
+func (n *noOpState) AddValidator(vdr Validator) error {
+	return nil
+}
+
+func (n *noOpState) UpdateValidator(vdr Validator) error {
+	return nil
+}
+
+func (n *noOpState) DeleteValidator(vID ids.ID) error {
+	return nil
+}
+func (n *noOpState) WriteState() error { return nil }
+
+func (n *noOpState) SetStatus(vID ids.ID, isActive bool) error { return nil }
+
+func (n *noOpState) SetWeight(vID ids.ID, newWeight uint64) error { return nil }
+
+func (n *noOpState) RegisterListener(StateCallbackListener) {}
 
 func (n *noOpState) GetUptime(
 	nodeID ids.NodeID,
@@ -44,16 +61,3 @@ func (n *noOpState) GetStartTime(
 ) (startTime time.Time, err error) {
 	return time.Time{}, nil
 }
-
-func (n *noOpState) AddValidator(vdr Validator) error {
-	return nil
-}
-
-func (n *noOpState) DeleteValidator(vID ids.ID) error {
-	return nil
-}
-func (n *noOpState) WriteState() error { return nil }
-
-func (n *noOpState) SetStatus(vID ids.ID, isActive bool) error { return nil }
-
-func (n *noOpState) RegisterListener(StateCallbackListener) {}

@@ -28,6 +28,8 @@ import (
 	p2pmessage "github.com/ava-labs/avalanchego/message"
 )
 
+// An example application demonstrating how to request a signature for
+// an uptime message from a node running locally.
 func main() {
 	uri := primary.LocalAPIURI
 	// The following IDs are placeholders and should be replaced with real values

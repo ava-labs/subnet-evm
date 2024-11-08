@@ -39,7 +39,7 @@ func (b *backend) Verify(ctx context.Context, unsignedMessage *avalancheWarp.Uns
 
 	switch p := parsed.(type) {
 	case *payload.AddressedCall:
-		return b.verifyOffchainAddressCall(p)
+		return b.verifyOffchainAddressedCall(p)
 	case *payload.Hash:
 		return b.verifyBlockMessage(ctx, p)
 	default:
@@ -67,8 +67,8 @@ func (b *backend) verifyBlockMessage(ctx context.Context, blockHashPayload *payl
 	return nil
 }
 
-// verifyOffchainAddressCall verifies the addressed call message
-func (b *backend) verifyOffchainAddressCall(addressedCall *payload.AddressedCall) *common.AppError {
+// verifyOffchainAddressedCall verifies the addressed call message
+func (b *backend) verifyOffchainAddressedCall(addressedCall *payload.AddressedCall) *common.AppError {
 	// Further, parse the payload to see if it is a known type.
 	parsed, err := messages.Parse(addressedCall.Payload)
 	if err != nil {
@@ -107,13 +107,14 @@ func (b *backend) verifyUptimeMessage(uptimeMsg *messages.ValidatorUptime) *comm
 	b.stateLock.Lock()
 	defer b.stateLock.Unlock()
 	// first get the validator's nodeID
-	nodeID, err := b.validatorState.GetNodeID(uptimeMsg.ValidationID)
+	vdr, err := b.validatorState.GetValidator(uptimeMsg.ValidationID)
 	if err != nil {
 		return &common.AppError{
 			Code:    VerifyErrCode,
 			Message: fmt.Sprintf("failed to get validator for validationID %s: %s", uptimeMsg.ValidationID, err.Error()),
 		}
 	}
+	nodeID := vdr.NodeID
 
 	// then get the current uptime
 	currentUptime, _, err := b.uptimeCalculator.CalculateUptime(nodeID)
