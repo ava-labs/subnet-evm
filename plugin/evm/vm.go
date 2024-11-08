@@ -512,6 +512,7 @@ func (vm *VM) Initialize(
 		return fmt.Errorf("failed to initialize validator state: %w", err)
 	}
 
+	// Initialize uptime manager
 	vm.uptimeManager = uptime.NewPausableManager(avalancheUptime.NewManager(vm.validatorState, &vm.clock))
 	vm.validatorState.RegisterListener(vm.uptimeManager)
 
@@ -740,7 +741,7 @@ func (vm *VM) onNormalOperationsStarted() error {
 	if err := vm.performValidatorUpdate(ctx); err != nil {
 		return fmt.Errorf("failed to update validators: %w", err)
 	}
-	vdrIDs := vm.validatorState.GetValidatorIDs().List()
+	vdrIDs := vm.validatorState.GetNodeIDs().List()
 	// then start tracking with updated validators
 	if err := vm.uptimeManager.StartTracking(vdrIDs); err != nil {
 		return fmt.Errorf("failed to start tracking uptime: %w", err)
@@ -881,7 +882,7 @@ func (vm *VM) Shutdown(context.Context) error {
 		vm.cancel()
 	}
 	if vm.bootstrapped.Get() {
-		vdrIDs := vm.validatorState.GetValidatorIDs().List()
+		vdrIDs := vm.validatorState.GetNodeIDs().List()
 		if err := vm.uptimeManager.StopTracking(vdrIDs); err != nil {
 			return fmt.Errorf("failed to stop tracking uptime: %w", err)
 		}
@@ -1455,7 +1456,7 @@ func (vm *VM) performValidatorUpdate(ctx context.Context) error {
 	now := time.Now()
 	log.Debug("performing validator update")
 	// get current validator set
-	currentValidatorSet, _, _, err := vm.ctx.ValidatorState.GetCurrentValidatorSet(ctx, vm.ctx.SubnetID)
+	currentValidatorSet, _, err := vm.ctx.ValidatorState.GetCurrentValidatorSet(ctx, vm.ctx.SubnetID)
 	if err != nil {
 		return fmt.Errorf("failed to get current validator set: %w", err)
 	}
@@ -1476,32 +1477,33 @@ func (vm *VM) performValidatorUpdate(ctx context.Context) error {
 }
 
 // loadValidators loads the [validators] into the validator state [validatorState]
-func loadValidators(validatorState validatorsinterfaces.State, validators map[ids.ID]*avalancheValidators.GetCurrentValidatorOutput) error {
+func loadValidators(validatorState validatorsinterfaces.State, newValidators map[ids.ID]*avalancheValidators.GetCurrentValidatorOutput) error {
 	currentValidationIDs := validatorState.GetValidationIDs()
 	// first check if we need to delete any existing validators
 	for vID := range currentValidationIDs {
 		// if the validator is not in the new set of validators
 		// delete the validator
-		if _, exists := validators[vID]; !exists {
+		if _, exists := newValidators[vID]; !exists {
 			validatorState.DeleteValidator(vID)
 		}
 	}
 
 	// then load the new validators
-	for vID, vdr := range validators {
-		if currentValidationIDs.Contains(vID) {
-			// Check if IsActive has changed
-			isActive, err := validatorState.GetStatus(vID)
-			if err != nil {
+	for newVID, newVdr := range newValidators {
+		currentVdr := validatorsinterfaces.Validator{
+			ValidationID:   newVID,
+			NodeID:         newVdr.NodeID,
+			Weight:         newVdr.Weight,
+			StartTimestamp: newVdr.StartTime,
+			IsActive:       newVdr.IsActive,
+			IsSoV:          newVdr.IsSoV,
+		}
+		if currentValidationIDs.Contains(newVID) {
+			if err := validatorState.UpdateValidator(currentVdr); err != nil {
 				return err
 			}
-			if isActive != vdr.IsActive {
-				if err := validatorState.SetStatus(vID, vdr.IsActive); err != nil {
-					return err
-				}
-			}
 		} else {
-			if err := validatorState.AddValidator(vID, vdr.NodeID, vdr.StartTime, vdr.IsActive); err != nil {
+			if err := validatorState.AddValidator(currentVdr); err != nil {
 				return err
 			}
 		}
