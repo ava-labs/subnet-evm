@@ -230,7 +230,7 @@ func TestPausableManager(t *testing.T) {
 				require.NoError(up.StopTracking([]ids.NodeID{nodeID0}))
 
 				// Pause after a while
-				currentTime = addTime(clk, 3*time.Second)
+				addTime(clk, 3*time.Second)
 				// expectedUptime should increase since we stopped tracking
 				expectedUptime += 3 * time.Second
 				up.OnValidatorStatusUpdated(vID, nodeID0, false)
@@ -272,7 +272,7 @@ func TestPausableManager(t *testing.T) {
 				require.NoError(up.StopTracking([]ids.NodeID{nodeID0}))
 
 				// Resume after a while
-				currentTime = addTime(clk, 4*time.Second)
+				addTime(clk, 4*time.Second)
 				// expectedUptime should increase since we stopped tracking
 				expectedUptime += 4 * time.Second
 				up.OnValidatorStatusUpdated(vID, nodeID0, true)
