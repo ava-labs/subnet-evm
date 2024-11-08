@@ -31,6 +31,7 @@ func TestPausableManager(t *testing.T) {
 				// Connect before tracking
 				require.NoError(up.Connect(nodeID0))
 				addTime(clk, time.Second)
+				expectedUptime := 1 * time.Second
 
 				// Pause before tracking
 				up.OnValidatorStatusUpdated(vID, nodeID0, false)
@@ -39,13 +40,13 @@ func TestPausableManager(t *testing.T) {
 				// Elapse Time
 				addTime(clk, time.Second)
 				// The node was paused before we started tracking
-				expectedUptime := 1 * time.Second
+				expectedUptime += 1 * time.Second
 
 				// Start tracking
 				require.NoError(up.StartTracking([]ids.NodeID{nodeID0}))
+				// Uptime here should not increase after start tracking
+				// since the node is still paused after we started tracking
 				currentTime := addTime(clk, time.Second)
-				// Uptime should have increased  since the node was paused before we started tracking
-				expectedUptime += 1 * time.Second
 				checkUptime(t, up, nodeID0, expectedUptime, currentTime)
 
 				// Disconnect
@@ -116,12 +117,12 @@ func TestPausableManager(t *testing.T) {
 
 				// Start tracking
 				addTime(clk, time.Second)
+				// Uptime should be 1 since the node was paused before we started tracking
+				expectedUptime := 1 * time.Second
 				require.NoError(up.StartTracking([]ids.NodeID{nodeID0}))
 
 				// Connect and check uptime
 				addTime(clk, 1*time.Second)
-				// Uptime should be 1 since the node was paused before we started tracking
-				expectedUptime := 1 * time.Second
 				checkUptime(t, up, nodeID0, expectedUptime, clk.Time())
 				require.NoError(up.Connect(nodeID0))
 
