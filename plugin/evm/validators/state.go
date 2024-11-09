@@ -255,15 +255,6 @@ func (s *state) GetValidator(vID ids.ID) (interfaces.Validator, error) {
 	}, nil
 }
 
-// GetNodeID returns the node ID for the given validation ID
-func (s *state) GetNodeID(vID ids.ID) (ids.NodeID, error) {
-	data, exists := s.data[vID]
-	if !exists {
-		return ids.NodeID{}, database.ErrNotFound
-	}
-	return data.NodeID, nil
-}
-
 // RegisterListener registers a listener to the state
 // OnValidatorAdded is called for all current validators on the provided listener before this function returns
 func (s *state) RegisterListener(listener interfaces.StateCallbackListener) {
