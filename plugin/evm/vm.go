@@ -1255,8 +1255,7 @@ func (vm *VM) initializeDBs(avaDB database.Database) error {
 	// skip standalone database initialization if we are running in unit tests
 	if vm.ctx.NetworkID != avalancheconstants.UnitTestID {
 		// first initialize the accepted block database to check if we need to use a standalone database
-		verDB := versiondb.New(avaDB)
-		acceptedDB := prefixdb.New(acceptedPrefix, verDB)
+		acceptedDB := prefixdb.New(acceptedPrefix, avaDB)
 		useStandAloneDB, err := vm.useStandaloneDatabase(acceptedDB)
 		if err != nil {
 			return err
@@ -1279,8 +1278,8 @@ func (vm *VM) initializeDBs(avaDB database.Database) error {
 	// remains the same regardless of the provided baseDB type.
 	vm.chaindb = rawdb.NewDatabase(Database{prefixdb.NewNested(ethDBPrefix, db)})
 	vm.db = versiondb.New(db)
-	vm.acceptedBlockDB = prefixdb.New(acceptedPrefix, vm.db)
-	vm.metadataDB = prefixdb.New(metadataPrefix, vm.db)
+	vm.acceptedBlockDB = prefixdb.New(acceptedPrefix, db)
+	vm.metadataDB = prefixdb.New(metadataPrefix, db)
 	// Note warpDB is not part of versiondb because it is not necessary
 	// that warp signatures are committed to the database atomically with
 	// the last accepted block.
