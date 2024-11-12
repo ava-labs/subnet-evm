@@ -5,7 +5,6 @@ package evm
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -24,7 +23,6 @@ import (
 	"github.com/ava-labs/avalanchego/network/p2p/gossip"
 	"github.com/prometheus/client_golang/prometheus"
 
-	avalancheNode "github.com/ava-labs/avalanchego/node"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
 	"github.com/ava-labs/subnet-evm/constants"
@@ -70,10 +68,6 @@ import (
 	avalancheRPC "github.com/gorilla/rpc/v2"
 
 	"github.com/ava-labs/avalanchego/codec"
-	"github.com/ava-labs/avalanchego/database/leveldb"
-	"github.com/ava-labs/avalanchego/database/memdb"
-	"github.com/ava-labs/avalanchego/database/meterdb"
-	"github.com/ava-labs/avalanchego/database/pebbledb"
 	"github.com/ava-labs/avalanchego/database/prefixdb"
 	"github.com/ava-labs/avalanchego/database/versiondb"
 	"github.com/ava-labs/avalanchego/ids"
@@ -88,7 +82,6 @@ import (
 
 	commonEng "github.com/ava-labs/avalanchego/snow/engine/common"
 
-	avalanchemetrics "github.com/ava-labs/avalanchego/api/metrics"
 	"github.com/ava-labs/avalanchego/database"
 	avalancheUtils "github.com/ava-labs/avalanchego/utils"
 	avalancheconstants "github.com/ava-labs/avalanchego/utils/constants"
@@ -329,12 +322,9 @@ func (vm *VM) Initialize(
 	}
 
 	if vm.config.InspectDatabase {
-		start := time.Now()
-		log.Info("Starting database inspection")
-		if err := rawdb.InspectDatabase(vm.chaindb, nil, nil); err != nil {
+		if err := vm.inspectDatabases(); err != nil {
 			return err
 		}
-		log.Info("Completed database inspection", "elapsed", time.Since(start))
 	}
 
 	g := new(core.Genesis)
@@ -1195,58 +1185,6 @@ func attachEthService(handler *rpc.Server, apis []rpc.API, names []string) error
 	return nil
 }
 
-// useStandaloneDatabase returns true if the chain can and should use a standalone database
-// other than given by [db] in Initialize()
-func (vm *VM) useStandaloneDatabase(acceptedDB database.Database) (bool, error) {
-	// no config provided, use default
-	standaloneDBFlag := vm.config.UseStandaloneDatabase
-	if standaloneDBFlag != nil {
-		return standaloneDBFlag.Bool(), nil
-	}
-
-	// check if the chain can use a standalone database
-	_, err := acceptedDB.Get(lastAcceptedKey)
-	if err == database.ErrNotFound {
-		// If there is nothing in the database, we can use the standalone database
-		return true, nil
-	}
-	return false, err
-}
-
-// getDatabaseConfig returns the database configuration for the chain
-// to be used by separate, standalone database.
-func getDatabaseConfig(config Config, chainDataDir string) (avalancheNode.DatabaseConfig, error) {
-	var (
-		configBytes []byte
-		err         error
-	)
-	if len(config.DatabaseConfigContent) != 0 {
-		dbConfigContent := config.DatabaseConfigContent
-		configBytes, err = base64.StdEncoding.DecodeString(dbConfigContent)
-		if err != nil {
-			return avalancheNode.DatabaseConfig{}, fmt.Errorf("unable to decode base64 content: %w", err)
-		}
-	} else if len(config.DatabaseConfigFile) != 0 {
-		configPath := config.DatabaseConfigFile
-		configBytes, err = os.ReadFile(configPath)
-		if err != nil {
-			return avalancheNode.DatabaseConfig{}, err
-		}
-	}
-
-	dbPath := filepath.Join(chainDataDir, "db")
-	if len(config.DatabasePath) != 0 {
-		dbPath = config.DatabasePath
-	}
-
-	return avalancheNode.DatabaseConfig{
-		Name:     config.DatabaseType,
-		ReadOnly: config.DatabaseReadOnly,
-		Path:     dbPath,
-		Config:   configBytes,
-	}, nil
-}
-
 // initializeDBs initializes the databases used by the VM.
 // If [useStandaloneDB] is true, the chain will use a standalone database for its state.
 // Otherwise, the chain will use the provided [avaDB] for its state.
@@ -1277,7 +1215,7 @@ func (vm *VM) initializeDBs(avaDB database.Database) error {
 	}
 	// Use NewNested rather than New so that the structure of the database
 	// remains the same regardless of the provided baseDB type.
-	vm.chaindb = rawdb.NewDatabase(Database{prefixdb.NewNested(ethDBPrefix, db)})
+	vm.chaindb = rawdb.NewDatabase(WrappedDatabase{prefixdb.NewNested(ethDBPrefix, db)})
 	vm.db = versiondb.New(db)
 	vm.acceptedBlockDB = prefixdb.New(acceptedPrefix, vm.db)
 	vm.metadataDB = prefixdb.New(metadataPrefix, vm.db)
@@ -1290,58 +1228,21 @@ func (vm *VM) initializeDBs(avaDB database.Database) error {
 	return nil
 }
 
-// createDatabase returns a new database instance with the provided configuration
-func (vm *VM) createDatabase(dbConfig avalancheNode.DatabaseConfig) (database.Database, error) {
-	dbRegisterer, err := avalanchemetrics.MakeAndRegister(
-		vm.ctx.Metrics,
-		dbMetricsPrefix,
-	)
-	if err != nil {
-		return nil, err
+func (vm *VM) inspectDatabases() error {
+	start := time.Now()
+	log.Info("Starting database inspection")
+	if err := rawdb.InspectDatabase(vm.chaindb, nil, nil); err != nil {
+		return err
 	}
-	var db database.Database
-	// start the db
-	switch dbConfig.Name {
-	case leveldb.Name:
-		dbPath := filepath.Join(dbConfig.Path, leveldb.Name)
-		db, err = leveldb.New(dbPath, dbConfig.Config, vm.ctx.Log, dbRegisterer)
-		if err != nil {
-			return nil, fmt.Errorf("couldn't create %s at %s: %w", leveldb.Name, dbPath, err)
-		}
-	case memdb.Name:
-		db = memdb.New()
-	case pebbledb.Name:
-		dbPath := filepath.Join(dbConfig.Path, pebbledb.Name)
-		db, err = pebbledb.New(dbPath, dbConfig.Config, vm.ctx.Log, dbRegisterer)
-		if err != nil {
-			return nil, fmt.Errorf("couldn't create %s at %s: %w", pebbledb.Name, dbPath, err)
-		}
-	default:
-		return nil, fmt.Errorf(
-			"db-type was %q but should have been one of {%s, %s, %s}",
-			dbConfig.Name,
-			leveldb.Name,
-			memdb.Name,
-			pebbledb.Name,
-		)
+	if err := inspectDB(vm.acceptedBlockDB, "acceptedBlockDB"); err != nil {
+		return err
 	}
-
-	if dbConfig.ReadOnly && dbConfig.Name != memdb.Name {
-		db = versiondb.New(db)
+	if err := inspectDB(vm.metadataDB, "metadataDB"); err != nil {
+		return err
 	}
-
-	meterDBReg, err := avalanchemetrics.MakeAndRegister(
-		vm.ctx.Metrics,
-		"meterdb",
-	)
-	if err != nil {
-		return nil, err
+	if err := inspectDB(vm.warpDB, "warpDB"); err != nil {
+		return err
 	}
-
-	db, err = meterdb.New(meterDBReg, db)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create meterdb: %w", err)
-	}
-
-	return db, nil
+	log.Info("Completed database inspection", "elapsed", time.Since(start))
+	return nil
 }
