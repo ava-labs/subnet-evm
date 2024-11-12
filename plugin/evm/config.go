@@ -62,6 +62,7 @@ const (
 	defaultStateSyncMinBlocks   = 300_000
 	defaultStateSyncRequestSize = 1024 // the number of key/values to ask peers for per request
 	defaultDBType               = pebbledb.Name
+	defaultValidatorAPIEnabled  = true
 )
 
 type PBool bool
@@ -298,6 +299,7 @@ func (c *Config) SetDefaults() {
 	c.AllowUnprotectedTxHashes = defaultAllowUnprotectedTxHashes
 	c.AcceptedCacheSize = defaultAcceptedCacheSize
 	c.DatabaseType = defaultDBType
+	c.ValidatorsAPIEnabled = defaultValidatorAPIEnabled
 }
 
 func (d *Duration) UnmarshalJSON(data []byte) (err error) {
