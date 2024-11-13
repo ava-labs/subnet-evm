@@ -3155,7 +3155,7 @@ func TestParentBeaconRootBlock(t *testing.T) {
 func TestStandaloneDB(t *testing.T) {
 	vm := &VM{}
 	ctx, dbManager, genesisBytes, issuer, _ := setupGenesis(t, genesisJSONLatest)
-	// alter network ID to use standalone database
+	// alter network ID to use standalone database, as by default unit test network does not use it.
 	ctx.NetworkID = 123456
 	appSender := &enginetest.Sender{T: t}
 	appSender.CantSendAppGossip = true
