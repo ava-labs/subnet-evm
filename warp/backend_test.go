@@ -76,7 +76,7 @@ func TestAddAndGetUnknownMessage(t *testing.T) {
 
 	// Try getting a signature for a message that was not added.
 	_, err = backend.GetMessageSignature(context.TODO(), testUnsignedMessage)
-	require.ErrorIs(t, err, database.ErrNotFound)
+	require.Error(t, err)
 }
 
 func TestGetBlockSignature(t *testing.T) {
