@@ -3115,7 +3115,7 @@ func TestParentBeaconRootBlock(t *testing.T) {
 
 func TestStandaloneDB(t *testing.T) {
 	vm := &VM{}
-	ctx := NewContext()
+	ctx := utils.TestSnowContext()
 	baseDB := memdb.New()
 	atomicMemory := atomic.NewMemory(prefixdb.New([]byte{0}, baseDB))
 	ctx.SharedMemory = atomicMemory.NewSharedMemory(ctx.ChainID)

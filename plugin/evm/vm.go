@@ -741,7 +741,9 @@ func (vm *VM) onNormalOperationsStarted() error {
 		return fmt.Errorf("failed to update validators: %w", err)
 	}
 	vdrIDs := vm.validatorState.GetNodeIDs().List()
-	// then start tracking with updated validators
+	// Then start tracking with updated validators
+	// StartTracking initializes the uptime tracking with the known validators
+	// and update their uptime to account for the time we were being offline.
 	if err := vm.uptimeManager.StartTracking(vdrIDs); err != nil {
 		return fmt.Errorf("failed to start tracking uptime: %w", err)
 	}
