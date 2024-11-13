@@ -745,7 +745,9 @@ func (vm *VM) onNormalOperationsStarted() error {
 		return fmt.Errorf("failed to update validators: %w", err)
 	}
 	vdrIDs := vm.validatorState.GetNodeIDs().List()
-	// then start tracking with updated validators
+	// Then start tracking with updated validators
+	// StartTracking initializes the uptime tracking with the known validators
+	// and update their uptime to account for the time we were being offline.
 	if err := vm.uptimeManager.StartTracking(vdrIDs); err != nil {
 		return fmt.Errorf("failed to start tracking uptime: %w", err)
 	}
@@ -1326,8 +1328,7 @@ func (vm *VM) initializeDBs(avaDB database.Database) error {
 	// skip standalone database initialization if we are running in unit tests
 	if vm.ctx.NetworkID != avalancheconstants.UnitTestID {
 		// first initialize the accepted block database to check if we need to use a standalone database
-		verDB := versiondb.New(avaDB)
-		acceptedDB := prefixdb.New(acceptedPrefix, verDB)
+		acceptedDB := prefixdb.New(acceptedPrefix, avaDB)
 		useStandAloneDB, err := vm.useStandaloneDatabase(acceptedDB)
 		if err != nil {
 			return err
