@@ -207,7 +207,8 @@ func setupGenesis(
 	ctx.Keystore = userKeystore.NewBlockchainKeyStore(ctx.ChainID)
 
 	issuer := make(chan commonEng.Message, 1)
-	return ctx, baseDB, genesisBytes, issuer, atomicMemory
+	prefixedDB := prefixdb.New([]byte{1}, baseDB)
+	return ctx, prefixedDB, genesisBytes, issuer, atomicMemory
 }
 
 // GenesisVM creates a VM instance with the genesis test bytes and returns
@@ -3154,24 +3155,32 @@ func TestParentBeaconRootBlock(t *testing.T) {
 
 func TestStandaloneDB(t *testing.T) {
 	vm := &VM{}
-	ctx, dbManager, genesisBytes, issuer, _ := setupGenesis(t, genesisJSONLatest)
-	// alter network ID to use standalone database, as by default unit test network does not use it.
+	ctx := NewContext()
+	baseDB := memdb.New()
+	atomicMemory := atomic.NewMemory(prefixdb.New([]byte{0}, baseDB))
+	ctx.SharedMemory = atomicMemory.NewSharedMemory(ctx.ChainID)
+	issuer := make(chan commonEng.Message, 1)
+	sharedDB := prefixdb.New([]byte{1}, baseDB)
+	genesisBytes := buildGenesisTest(t, genesisJSONLatest)
+	// alter network ID to use standalone database
 	ctx.NetworkID = 123456
 	appSender := &enginetest.Sender{T: t}
 	appSender.CantSendAppGossip = true
 	appSender.SendAppGossipF = func(context.Context, commonEng.SendConfig, []byte) error { return nil }
 	configJSON := `{"database-type": "memdb"}`
+
 	isDBEmpty := func(db database.Database) bool {
 		it := db.NewIterator()
 		defer it.Release()
 		return !it.Next()
 	}
 	// Ensure that the database is empty
-	require.True(t, isDBEmpty(dbManager))
+	require.True(t, isDBEmpty(baseDB))
+
 	err := vm.Initialize(
 		context.Background(),
 		ctx,
-		dbManager,
+		sharedDB,
 		genesisBytes,
 		nil,
 		[]byte(configJSON),
@@ -3181,7 +3190,6 @@ func TestStandaloneDB(t *testing.T) {
 	)
 	defer vm.Shutdown(context.Background())
 	require.NoError(t, err, "error initializing VM")
-
 	require.NoError(t, vm.SetState(context.Background(), snow.Bootstrapping))
 	require.NoError(t, vm.SetState(context.Background(), snow.NormalOp))
 
@@ -3200,7 +3208,7 @@ func TestStandaloneDB(t *testing.T) {
 	require.Equal(t, newBlock.Block.Hash(), common.Hash(blk.ID()))
 
 	// Ensure that the shared database is empty
-	assert.True(t, isDBEmpty(dbManager))
+	assert.True(t, isDBEmpty(baseDB))
 	// Ensure that the standalone database is not empty
 	assert.False(t, isDBEmpty(vm.db))
 	assert.False(t, isDBEmpty(vm.acceptedBlockDB))
