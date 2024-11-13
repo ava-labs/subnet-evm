@@ -21,6 +21,7 @@ import (
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
 	"github.com/ava-labs/subnet-evm/plugin/evm/validators"
 	"github.com/ava-labs/subnet-evm/plugin/evm/validators/interfaces"
+	"github.com/ava-labs/subnet-evm/plugin/evm/validators/validatorstest"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ava-labs/subnet-evm/warp/messages"
 	"github.com/ava-labs/subnet-evm/warp/warptest"
@@ -103,7 +104,7 @@ func TestAddressedCallSignatures(t *testing.T) {
 				} else {
 					sigCache = &cache.Empty[ids.ID, []byte]{}
 				}
-				warpBackend, err := NewBackend(snowCtx.NetworkID, snowCtx.ChainID, warpSigner, warptest.EmptyBlockClient, uptime.NoOpCalculator, interfaces.NoOpState, snowCtx.Lock.RLocker(), database, sigCache, [][]byte{offchainMessage.Bytes()})
+				warpBackend, err := NewBackend(snowCtx.NetworkID, snowCtx.ChainID, warpSigner, warptest.EmptyBlockClient, uptime.NoOpCalculator, validatorstest.NoOpState, snowCtx.Lock.RLocker(), database, sigCache, [][]byte{offchainMessage.Bytes()})
 				require.NoError(t, err)
 				handler := acp118.NewCachedHandler(sigCache, warpBackend, warpSigner)
 
@@ -219,7 +220,7 @@ func TestBlockSignatures(t *testing.T) {
 					warpSigner,
 					blockClient,
 					uptime.NoOpCalculator,
-					interfaces.NoOpState,
+					validatorstest.NoOpState,
 					snowCtx.Lock.RLocker(),
 					database,
 					sigCache,

@@ -1,13 +1,14 @@
-package interfaces
+package validatorstest
 
 import (
 	"time"
 
 	ids "github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/set"
+	"github.com/ava-labs/subnet-evm/plugin/evm/validators/interfaces"
 )
 
-var NoOpState State = &noOpState{}
+var NoOpState interfaces.State = &noOpState{}
 
 type noOpState struct{}
 
@@ -17,17 +18,17 @@ func (n *noOpState) GetValidationIDs() set.Set[ids.ID] { return set.NewSet[ids.I
 
 func (n *noOpState) GetNodeIDs() set.Set[ids.NodeID] { return set.NewSet[ids.NodeID](0) }
 
-func (n *noOpState) GetValidator(vID ids.ID) (Validator, error) {
-	return Validator{}, nil
+func (n *noOpState) GetValidator(vID ids.ID) (interfaces.Validator, error) {
+	return interfaces.Validator{}, nil
 }
 
 func (n *noOpState) GetNodeID(vID ids.ID) (ids.NodeID, error) { return ids.NodeID{}, nil }
 
-func (n *noOpState) AddValidator(vdr Validator) error {
+func (n *noOpState) AddValidator(vdr interfaces.Validator) error {
 	return nil
 }
 
-func (n *noOpState) UpdateValidator(vdr Validator) error {
+func (n *noOpState) UpdateValidator(vdr interfaces.Validator) error {
 	return nil
 }
 
@@ -40,7 +41,7 @@ func (n *noOpState) SetStatus(vID ids.ID, isActive bool) error { return nil }
 
 func (n *noOpState) SetWeight(vID ids.ID, newWeight uint64) error { return nil }
 
-func (n *noOpState) RegisterListener(StateCallbackListener) {}
+func (n *noOpState) RegisterListener(interfaces.StateCallbackListener) {}
 
 func (n *noOpState) GetUptime(
 	nodeID ids.NodeID,
