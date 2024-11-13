@@ -137,7 +137,6 @@ func TestSendWarpMessage(t *testing.T) {
 
 	require.NoError(vm.SetPreference(context.Background(), blk.ID()))
 	require.NoError(blk.Accept(context.Background()))
-	vm.blockChain.DrainAcceptorQueue()
 
 	// Verify the message signature after accepting the block.
 	rawSignatureBytes, err := vm.warpBackend.GetMessageSignature(context.TODO(), unsignedMessage)
@@ -390,7 +389,6 @@ func testWarpVMTransaction(t *testing.T, unsignedMessage *avalancheWarp.Unsigned
 	require.NoError(warpBlockVerifyWithCtx.VerifyWithContext(context.Background(), blockCtx))
 	require.NoError(vm.SetPreference(context.Background(), warpBlock.ID()))
 	require.NoError(warpBlock.Accept(context.Background()))
-	vm.blockChain.DrainAcceptorQueue()
 
 	ethBlock := warpBlock.(*chain.BlockWrapper).Block.(*Block).ethBlock
 	verifiedMessageReceipts := vm.blockChain.GetReceiptsByHash(ethBlock.Hash())
@@ -702,7 +700,6 @@ func testReceiveWarpMessage(
 
 	// Accept the block after performing multiple VerifyWithContext operations
 	require.NoError(block2.Accept(context.Background()))
-	vm.blockChain.DrainAcceptorQueue()
 
 	verifiedMessageReceipts := vm.blockChain.GetReceiptsByHash(ethBlock.Hash())
 	require.Len(verifiedMessageReceipts, 1)
