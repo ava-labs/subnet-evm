@@ -63,7 +63,7 @@ func (m *manager) DispatchSync(ctx context.Context) {
 		case <-ticker.C:
 			m.chainCtx.Lock.Lock()
 			if err := m.Sync(ctx); err != nil {
-				log.Error("failed to update validators", "error", err)
+				log.Error("failed to sync validators", "error", err)
 			}
 			m.chainCtx.Lock.Unlock()
 		case <-ctx.Done():

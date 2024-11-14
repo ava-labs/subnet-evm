@@ -93,6 +93,18 @@ func TestState(t *testing.T) {
 	vdr.NodeID = newNodeID
 	require.ErrorIs(state.UpdateValidator(vdr), ErrImmutableField)
 
+	// set a different start time should fail
+	vdr.StartTimestamp = vdr.StartTimestamp + 100
+	require.ErrorIs(state.UpdateValidator(vdr), ErrImmutableField)
+
+	// set SoV should fail
+	vdr.IsSoV = false
+	require.ErrorIs(state.UpdateValidator(vdr), ErrImmutableField)
+
+	// set validation ID should result in not found
+	vdr.ValidationID = ids.GenerateTestID()
+	require.ErrorIs(state.UpdateValidator(vdr), database.ErrNotFound)
+
 	// delete uptime
 	require.NoError(state.DeleteValidator(vID))
 

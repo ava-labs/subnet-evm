@@ -9,6 +9,7 @@ import (
 
 	"github.com/ava-labs/subnet-evm/warp/messages"
 
+	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/snow/engine/common"
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
@@ -26,6 +27,11 @@ func (b *backend) Verify(ctx context.Context, unsignedMessage *avalancheWarp.Uns
 	// Known on-chain messages should be signed
 	if _, err := b.GetMessage(messageID); err == nil {
 		return nil
+	} else if err != database.ErrNotFound {
+		return &common.AppError{
+			Code:    ParseErrCode,
+			Message: fmt.Sprintf("failed to get message %s: %s", messageID, err.Error()),
+		}
 	}
 
 	parsed, err := payload.Parse(unsignedMessage.Payload)

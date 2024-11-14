@@ -341,12 +341,10 @@ func (v *validatorData) getStartTime() time.Time {
 }
 
 // constantsAreUnmodified returns true if the constants of this validator have
-// not been modified compared to the other validator.
-func (v *validatorData) constantsAreUnmodified(o interfaces.Validator) bool {
-	if v.validationID != o.ValidationID {
-		return true
-	}
-	return v.NodeID == o.NodeID &&
-		v.IsSoV == o.IsSoV &&
-		v.StartTime == o.StartTimestamp
+// not been modified compared to the updated validator.
+func (v *validatorData) constantsAreUnmodified(u interfaces.Validator) bool {
+	return v.validationID == u.ValidationID &&
+		v.NodeID == u.NodeID &&
+		v.IsSoV == u.IsSoV &&
+		v.StartTime == u.StartTimestamp
 }

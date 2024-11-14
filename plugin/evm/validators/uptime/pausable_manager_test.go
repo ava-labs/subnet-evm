@@ -39,7 +39,8 @@ func TestPausableManager(t *testing.T) {
 
 				// Elapse Time
 				addTime(clk, time.Second)
-				// The node was paused before we started tracking
+				// Since we have not started tracking this node yet, its observed uptime should
+				// be incremented even though it is actually paused.
 				expectedUptime += 1 * time.Second
 
 				// Start tracking

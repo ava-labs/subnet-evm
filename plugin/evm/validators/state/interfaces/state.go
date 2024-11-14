@@ -4,8 +4,6 @@
 package interfaces
 
 import (
-	"time"
-
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow/uptime"
 	"github.com/ava-labs/avalanchego/utils/set"
@@ -29,7 +27,6 @@ type State interface {
 	UpdateValidator(vdr Validator) error
 	// DeleteValidator deletes the validator from the state
 	DeleteValidator(vID ids.ID) error
-
 	// WriteState writes the validator state to the disk
 	WriteState() error
 	// RegisterListener registers a listener to the state
@@ -54,5 +51,3 @@ type Validator struct {
 	IsActive       bool       `json:"isActive"`
 	IsSoV          bool       `json:"isSoV"`
 }
-
-func (v *Validator) StartTime() time.Time { return time.Unix(int64(v.StartTimestamp), 0) }
