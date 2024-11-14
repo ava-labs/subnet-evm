@@ -104,10 +104,10 @@ func (b *backend) verifyOffchainAddressedCall(addressedCall *payload.AddressedCa
 }
 
 func (b *backend) verifyUptimeMessage(uptimeMsg *messages.ValidatorUptime) *common.AppError {
-	b.stateLock.Lock()
-	defer b.stateLock.Unlock()
+	b.validatorLock.Lock()
+	defer b.validatorLock.Unlock()
 	// first get the validator's nodeID
-	vdr, err := b.validatorState.GetValidator(uptimeMsg.ValidationID)
+	vdr, err := b.validatorReader.GetValidator(uptimeMsg.ValidationID)
 	if err != nil {
 		return &common.AppError{
 			Code:    VerifyErrCode,
@@ -117,7 +117,7 @@ func (b *backend) verifyUptimeMessage(uptimeMsg *messages.ValidatorUptime) *comm
 	nodeID := vdr.NodeID
 
 	// then get the current uptime
-	currentUptime, _, err := b.uptimeCalculator.CalculateUptime(nodeID)
+	currentUptime, _, err := b.validatorReader.CalculateUptime(nodeID)
 	if err != nil {
 		return &common.AppError{
 			Code:    VerifyErrCode,

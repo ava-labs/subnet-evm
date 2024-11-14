@@ -11,12 +11,10 @@ import (
 	"github.com/ava-labs/avalanchego/cache"
 	"github.com/ava-labs/avalanchego/database/memdb"
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/avalanchego/snow/uptime"
 	"github.com/ava-labs/avalanchego/utils"
 	"github.com/ava-labs/avalanchego/utils/crypto/bls"
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
-	"github.com/ava-labs/subnet-evm/plugin/evm/validators/interfaces"
 	"github.com/ava-labs/subnet-evm/warp/warptest"
 	"github.com/stretchr/testify/require"
 )
@@ -47,7 +45,7 @@ func TestAddAndGetValidMessage(t *testing.T) {
 	require.NoError(t, err)
 	warpSigner := avalancheWarp.NewSigner(sk, networkID, sourceChainID)
 	messageSignatureCache := &cache.LRU[ids.ID, []byte]{Size: 500}
-	backend, err := NewBackend(networkID, sourceChainID, warpSigner, nil, uptime.NoOpCalculator, interfaces.NoOpState, &sync.RWMutex{}, db, messageSignatureCache, nil)
+	backend, err := NewBackend(networkID, sourceChainID, warpSigner, nil, warptest.NoOpValidatorReader{}, &sync.RWMutex{}, db, messageSignatureCache, nil)
 	require.NoError(t, err)
 
 	// Add testUnsignedMessage to the warp backend
@@ -70,7 +68,7 @@ func TestAddAndGetUnknownMessage(t *testing.T) {
 	require.NoError(t, err)
 	warpSigner := avalancheWarp.NewSigner(sk, networkID, sourceChainID)
 	messageSignatureCache := &cache.LRU[ids.ID, []byte]{Size: 500}
-	backend, err := NewBackend(networkID, sourceChainID, warpSigner, nil, uptime.NoOpCalculator, interfaces.NoOpState, &sync.RWMutex{}, db, messageSignatureCache, nil)
+	backend, err := NewBackend(networkID, sourceChainID, warpSigner, nil, warptest.NoOpValidatorReader{}, &sync.RWMutex{}, db, messageSignatureCache, nil)
 	require.NoError(t, err)
 
 	// Try getting a signature for a message that was not added.
@@ -89,7 +87,7 @@ func TestGetBlockSignature(t *testing.T) {
 	require.NoError(err)
 	warpSigner := avalancheWarp.NewSigner(sk, networkID, sourceChainID)
 	messageSignatureCache := &cache.LRU[ids.ID, []byte]{Size: 500}
-	backend, err := NewBackend(networkID, sourceChainID, warpSigner, blockClient, uptime.NoOpCalculator, interfaces.NoOpState, &sync.RWMutex{}, db, messageSignatureCache, nil)
+	backend, err := NewBackend(networkID, sourceChainID, warpSigner, blockClient, warptest.NoOpValidatorReader{}, &sync.RWMutex{}, db, messageSignatureCache, nil)
 	require.NoError(err)
 
 	blockHashPayload, err := payload.NewHash(blkID)
@@ -116,7 +114,7 @@ func TestZeroSizedCache(t *testing.T) {
 
 	// Verify zero sized cache works normally, because the lru cache will be initialized to size 1 for any size parameter <= 0.
 	messageSignatureCache := &cache.LRU[ids.ID, []byte]{Size: 0}
-	backend, err := NewBackend(networkID, sourceChainID, warpSigner, nil, uptime.NoOpCalculator, interfaces.NoOpState, &sync.RWMutex{}, db, messageSignatureCache, nil)
+	backend, err := NewBackend(networkID, sourceChainID, warpSigner, nil, warptest.NoOpValidatorReader{}, &sync.RWMutex{}, db, messageSignatureCache, nil)
 	require.NoError(t, err)
 
 	// Add testUnsignedMessage to the warp backend
@@ -170,7 +168,7 @@ func TestOffChainMessages(t *testing.T) {
 			db := memdb.New()
 
 			messageSignatureCache := &cache.LRU[ids.ID, []byte]{Size: 0}
-			backend, err := NewBackend(networkID, sourceChainID, warpSigner, nil, uptime.NoOpCalculator, interfaces.NoOpState, &sync.RWMutex{}, db, messageSignatureCache, test.offchainMessages)
+			backend, err := NewBackend(networkID, sourceChainID, warpSigner, nil, warptest.NoOpValidatorReader{}, &sync.RWMutex{}, db, messageSignatureCache, test.offchainMessages)
 			require.ErrorIs(err, test.err)
 			if test.check != nil {
 				test.check(require, backend)
@@ -178,3 +176,5 @@ func TestOffChainMessages(t *testing.T) {
 		})
 	}
 }
+
+type noOpValidatorReader struct{}

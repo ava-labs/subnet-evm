@@ -1,7 +1,7 @@
 // Copyright (C) 2019-2024, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-package validators
+package state
 
 import (
 	"testing"
@@ -15,7 +15,7 @@ import (
 	"github.com/ava-labs/avalanchego/database/memdb"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/wrappers"
-	"github.com/ava-labs/subnet-evm/plugin/evm/validators/interfaces"
+	"github.com/ava-labs/subnet-evm/plugin/evm/validators/state/interfaces"
 )
 
 func TestState(t *testing.T) {

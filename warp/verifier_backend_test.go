@@ -14,13 +14,12 @@ import (
 	"github.com/ava-labs/avalanchego/network/p2p/acp118"
 	"github.com/ava-labs/avalanchego/proto/pb/sdk"
 	"github.com/ava-labs/avalanchego/snow/engine/common"
-	"github.com/ava-labs/avalanchego/snow/uptime"
 	"github.com/ava-labs/avalanchego/utils/crypto/bls"
 	"github.com/ava-labs/avalanchego/utils/timer/mockable"
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
 	"github.com/ava-labs/subnet-evm/plugin/evm/validators"
-	"github.com/ava-labs/subnet-evm/plugin/evm/validators/interfaces"
+	stateinterfaces "github.com/ava-labs/subnet-evm/plugin/evm/validators/state/interfaces"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ava-labs/subnet-evm/warp/messages"
 	"github.com/ava-labs/subnet-evm/warp/warptest"
@@ -103,7 +102,7 @@ func TestAddressedCallSignatures(t *testing.T) {
 				} else {
 					sigCache = &cache.Empty[ids.ID, []byte]{}
 				}
-				warpBackend, err := NewBackend(snowCtx.NetworkID, snowCtx.ChainID, warpSigner, warptest.EmptyBlockClient, uptime.NoOpCalculator, interfaces.NoOpState, snowCtx.Lock.RLocker(), database, sigCache, [][]byte{offchainMessage.Bytes()})
+				warpBackend, err := NewBackend(snowCtx.NetworkID, snowCtx.ChainID, warpSigner, warptest.EmptyBlockClient, warptest.NoOpValidatorReader{}, snowCtx.Lock.RLocker(), database, sigCache, [][]byte{offchainMessage.Bytes()})
 				require.NoError(t, err)
 				handler := acp118.NewCachedHandler(sigCache, warpBackend, warpSigner)
 
@@ -218,8 +217,7 @@ func TestBlockSignatures(t *testing.T) {
 					snowCtx.ChainID,
 					warpSigner,
 					blockClient,
-					uptime.NoOpCalculator,
-					interfaces.NoOpState,
+					warptest.NoOpValidatorReader{},
 					snowCtx.Lock.RLocker(),
 					database,
 					sigCache,
@@ -290,12 +288,12 @@ func TestUptimeSignatures(t *testing.T) {
 		} else {
 			sigCache = &cache.Empty[ids.ID, []byte]{}
 		}
-		state, err := validators.NewState(memdb.New())
-		require.NoError(t, err)
+		chainCtx := utils.TestSnowContext()
 		clk := &mockable.Clock{}
-		uptimeManager := uptime.NewManager(state, clk)
-		uptimeManager.StartTracking([]ids.NodeID{})
-		warpBackend, err := NewBackend(snowCtx.NetworkID, snowCtx.ChainID, warpSigner, warptest.EmptyBlockClient, uptimeManager, state, snowCtx.Lock.RLocker(), database, sigCache, nil)
+		validatorsManager, err := validators.NewManager(chainCtx, memdb.New(), clk)
+		require.NoError(t, err)
+		validatorsManager.StartTracking([]ids.NodeID{})
+		warpBackend, err := NewBackend(snowCtx.NetworkID, snowCtx.ChainID, warpSigner, warptest.EmptyBlockClient, validatorsManager, snowCtx.Lock.RLocker(), database, sigCache, nil)
 		require.NoError(t, err)
 		handler := acp118.NewCachedHandler(sigCache, warpBackend, warpSigner)
 
@@ -315,7 +313,7 @@ func TestUptimeSignatures(t *testing.T) {
 		// uptime is less than requested (not connected)
 		validationID := ids.GenerateTestID()
 		nodeID := ids.GenerateTestNodeID()
-		require.NoError(t, state.AddValidator(interfaces.Validator{
+		require.NoError(t, validatorsManager.AddValidator(stateinterfaces.Validator{
 			ValidationID:   validationID,
 			NodeID:         nodeID,
 			Weight:         1,
@@ -329,7 +327,7 @@ func TestUptimeSignatures(t *testing.T) {
 		require.Contains(t, appErr.Error(), "current uptime 0 is less than queried uptime 80")
 
 		// uptime is less than requested (not enough)
-		require.NoError(t, uptimeManager.Connect(nodeID))
+		require.NoError(t, validatorsManager.Connect(nodeID))
 		clk.Set(clk.Time().Add(40 * time.Second))
 		protoBytes, _ = getUptimeMessageBytes([]byte{}, validationID, 80)
 		_, appErr = handler.AppRequest(context.Background(), nodeID, time.Time{}, protoBytes)

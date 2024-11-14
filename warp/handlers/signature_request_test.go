@@ -10,12 +10,10 @@ import (
 	"github.com/ava-labs/avalanchego/cache"
 	"github.com/ava-labs/avalanchego/database/memdb"
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/avalanchego/snow/uptime"
 	"github.com/ava-labs/avalanchego/utils/crypto/bls"
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
-	"github.com/ava-labs/subnet-evm/plugin/evm/validators/interfaces"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ava-labs/subnet-evm/warp"
 	"github.com/ava-labs/subnet-evm/warp/warptest"
@@ -35,7 +33,7 @@ func TestMessageSignatureHandler(t *testing.T) {
 	require.NoError(t, err)
 
 	messageSignatureCache := &cache.LRU[ids.ID, []byte]{Size: 100}
-	backend, err := warp.NewBackend(snowCtx.NetworkID, snowCtx.ChainID, warpSigner, warptest.EmptyBlockClient, uptime.NoOpCalculator, interfaces.NoOpState, snowCtx.Lock.RLocker(), database, messageSignatureCache, [][]byte{offchainMessage.Bytes()})
+	backend, err := warp.NewBackend(snowCtx.NetworkID, snowCtx.ChainID, warpSigner, warptest.EmptyBlockClient, warptest.NoOpValidatorReader{}, snowCtx.Lock.RLocker(), database, messageSignatureCache, [][]byte{offchainMessage.Bytes()})
 	require.NoError(t, err)
 
 	msg, err := avalancheWarp.NewUnsignedMessage(snowCtx.NetworkID, snowCtx.ChainID, []byte("test"))
@@ -141,8 +139,7 @@ func TestBlockSignatureHandler(t *testing.T) {
 		snowCtx.ChainID,
 		warpSigner,
 		blockClient,
-		uptime.NoOpCalculator,
-		interfaces.NoOpState,
+		warptest.NoOpValidatorReader{},
 		snowCtx.Lock.RLocker(),
 		database,
 		messageSignatureCache,
