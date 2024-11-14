@@ -132,8 +132,6 @@ const (
 	txGossipThrottlingPeriod             = 10 * time.Second
 	txGossipThrottlingLimit              = 2
 	txGossipPollSize                     = 1
-
-	loadValidatorsFrequency = 1 * time.Minute
 )
 
 // Define the API endpoints for the VM
