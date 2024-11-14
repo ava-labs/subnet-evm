@@ -1,7 +1,7 @@
 // (c) 2019-2020, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-package evm
+package database
 
 import (
 	"errors"
@@ -11,27 +11,29 @@ import (
 )
 
 var (
-	_ ethdb.KeyValueStore = &WrappedDatabase{}
+	_ ethdb.KeyValueStore = &ethDbWrapper{}
 
 	ErrSnapshotNotSupported = errors.New("snapshot is not supported")
 )
 
-// WrappedDatabase implements ethdb.Database
-type WrappedDatabase struct{ database.Database }
+// ethDbWrapper implements ethdb.Database
+type ethDbWrapper struct{ database.Database }
+
+func WrapDatabase(db database.Database) ethdb.KeyValueStore { return ethDbWrapper{db} }
 
 // Stat implements ethdb.Database
-func (db WrappedDatabase) Stat(string) (string, error) { return "", database.ErrNotFound }
+func (db ethDbWrapper) Stat(string) (string, error) { return "", database.ErrNotFound }
 
 // NewBatch implements ethdb.Database
-func (db WrappedDatabase) NewBatch() ethdb.Batch { return Batch{db.Database.NewBatch()} }
+func (db ethDbWrapper) NewBatch() ethdb.Batch { return wrappedBatch{db.Database.NewBatch()} }
 
 // NewBatchWithSize implements ethdb.Database
 // TODO: propagate size through avalanchego Database interface
-func (db WrappedDatabase) NewBatchWithSize(size int) ethdb.Batch {
-	return Batch{db.Database.NewBatch()}
+func (db ethDbWrapper) NewBatchWithSize(size int) ethdb.Batch {
+	return wrappedBatch{db.Database.NewBatch()}
 }
 
-func (db WrappedDatabase) NewSnapshot() (ethdb.Snapshot, error) {
+func (db ethDbWrapper) NewSnapshot() (ethdb.Snapshot, error) {
 	return nil, ErrSnapshotNotSupported
 }
 
@@ -39,7 +41,7 @@ func (db WrappedDatabase) NewSnapshot() (ethdb.Snapshot, error) {
 //
 // Note: This method assumes that the prefix is NOT part of the start, so there's
 // no need for the caller to prepend the prefix to the start.
-func (db WrappedDatabase) NewIterator(prefix []byte, start []byte) ethdb.Iterator {
+func (db ethDbWrapper) NewIterator(prefix []byte, start []byte) ethdb.Iterator {
 	// avalanchego's database implementation assumes that the prefix is part of the
 	// start, so it is added here (if it is provided).
 	if len(prefix) > 0 {
@@ -52,15 +54,15 @@ func (db WrappedDatabase) NewIterator(prefix []byte, start []byte) ethdb.Iterato
 }
 
 // NewIteratorWithStart implements ethdb.Database
-func (db WrappedDatabase) NewIteratorWithStart(start []byte) ethdb.Iterator {
+func (db ethDbWrapper) NewIteratorWithStart(start []byte) ethdb.Iterator {
 	return db.Database.NewIteratorWithStart(start)
 }
 
-// Batch implements ethdb.Batch
-type Batch struct{ database.Batch }
+// wrappedBatch implements ethdb.wrappedBatch
+type wrappedBatch struct{ database.Batch }
 
 // ValueSize implements ethdb.Batch
-func (batch Batch) ValueSize() int { return batch.Batch.Size() }
+func (batch wrappedBatch) ValueSize() int { return batch.Batch.Size() }
 
 // Replay implements ethdb.Batch
-func (batch Batch) Replay(w ethdb.KeyValueWriter) error { return batch.Batch.Replay(w) }
+func (batch wrappedBatch) Replay(w ethdb.KeyValueWriter) error { return batch.Batch.Replay(w) }

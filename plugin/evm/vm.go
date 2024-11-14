@@ -68,7 +68,6 @@ import (
 	avalancheRPC "github.com/gorilla/rpc/v2"
 
 	"github.com/ava-labs/avalanchego/codec"
-	"github.com/ava-labs/avalanchego/database/prefixdb"
 	"github.com/ava-labs/avalanchego/database/versiondb"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow"
@@ -84,7 +83,6 @@ import (
 
 	"github.com/ava-labs/avalanchego/database"
 	avalancheUtils "github.com/ava-labs/avalanchego/utils"
-	avalancheconstants "github.com/ava-labs/avalanchego/utils/constants"
 	avalancheJSON "github.com/ava-labs/avalanchego/utils/json"
 )
 
@@ -109,7 +107,6 @@ const (
 	ethMetricsPrefix        = "eth"
 	sdkMetricsPrefix        = "sdk"
 	chainStateMetricsPrefix = "chain_state"
-	dbMetricsPrefix         = "db"
 
 	// gossip constants
 	pushGossipDiscardedElements          = 16_384
@@ -1182,67 +1179,5 @@ func attachEthService(handler *rpc.Server, apis []rpc.API, names []string) error
 		}
 	}
 
-	return nil
-}
-
-// initializeDBs initializes the databases used by the VM.
-// If [useStandaloneDB] is true, the chain will use a standalone database for its state.
-// Otherwise, the chain will use the provided [avaDB] for its state.
-func (vm *VM) initializeDBs(avaDB database.Database) error {
-	db := avaDB
-	// skip standalone database initialization if we are running in unit tests
-	if vm.ctx.NetworkID != avalancheconstants.UnitTestID {
-		// first initialize the accepted block database to check if we need to use a standalone database
-		verDB := versiondb.New(avaDB)
-		acceptedDB := prefixdb.New(acceptedPrefix, verDB)
-		useStandAloneDB, err := vm.useStandaloneDatabase(acceptedDB)
-		if err != nil {
-			return err
-		}
-		if useStandAloneDB {
-			// If we are using a standalone database, we need to create a new database
-			// for the chain state.
-			dbConfig, err := getDatabaseConfig(vm.config, vm.ctx.ChainDataDir)
-			if err != nil {
-				return err
-			}
-			log.Info("Using standalone database for the chain state", "DatabaseConfig", dbConfig)
-			db, err = vm.createDatabase(dbConfig)
-			if err != nil {
-				return err
-			}
-		}
-	}
-	// Use NewNested rather than New so that the structure of the database
-	// remains the same regardless of the provided baseDB type.
-	vm.chaindb = rawdb.NewDatabase(WrappedDatabase{prefixdb.NewNested(ethDBPrefix, db)})
-	vm.db = versiondb.New(db)
-	vm.acceptedBlockDB = prefixdb.New(acceptedPrefix, vm.db)
-	vm.metadataDB = prefixdb.New(metadataPrefix, vm.db)
-	// Note warpDB is not part of versiondb because it is not necessary
-	// that warp signatures are committed to the database atomically with
-	// the last accepted block.
-	// [warpDB] is used to store warp message signatures
-	// set to a prefixDB with the prefix [warpPrefix]
-	vm.warpDB = prefixdb.New(warpPrefix, db)
-	return nil
-}
-
-func (vm *VM) inspectDatabases() error {
-	start := time.Now()
-	log.Info("Starting database inspection")
-	if err := rawdb.InspectDatabase(vm.chaindb, nil, nil); err != nil {
-		return err
-	}
-	if err := inspectDB(vm.acceptedBlockDB, "acceptedBlockDB"); err != nil {
-		return err
-	}
-	if err := inspectDB(vm.metadataDB, "metadataDB"); err != nil {
-		return err
-	}
-	if err := inspectDB(vm.warpDB, "warpDB"); err != nil {
-		return err
-	}
-	log.Info("Completed database inspection", "elapsed", time.Since(start))
 	return nil
 }
