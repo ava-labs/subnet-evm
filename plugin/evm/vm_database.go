@@ -29,8 +29,7 @@ func (vm *VM) initializeDBs(avaDB avalanchedatabase.Database) error {
 	// skip standalone database initialization if we are running in unit tests
 	if vm.ctx.NetworkID != avalancheconstants.UnitTestID {
 		// first initialize the accepted block database to check if we need to use a standalone database
-		verDB := versiondb.New(avaDB)
-		acceptedDB := prefixdb.New(acceptedPrefix, verDB)
+		acceptedDB := prefixdb.New(acceptedPrefix, avaDB)
 		useStandAloneDB, err := vm.useStandaloneDatabase(acceptedDB)
 		if err != nil {
 			return err
@@ -55,12 +54,15 @@ func (vm *VM) initializeDBs(avaDB avalanchedatabase.Database) error {
 	vm.db = versiondb.New(db)
 	vm.acceptedBlockDB = prefixdb.New(acceptedPrefix, vm.db)
 	vm.metadataDB = prefixdb.New(metadataPrefix, vm.db)
-	// Note warpDB is not part of versiondb because it is not necessary
-	// that warp signatures are committed to the database atomically with
+	// Note warpDB and validatorsDB are not part of versiondb because it is not necessary
+	// that they are committed to the database atomically with
 	// the last accepted block.
 	// [warpDB] is used to store warp message signatures
 	// set to a prefixDB with the prefix [warpPrefix]
 	vm.warpDB = prefixdb.New(warpPrefix, db)
+	// [validatorsDB] is used to store the current validator set and uptimes
+	// set to a prefixDB with the prefix [validatorsDBPrefix]
+	vm.validatorsDB = prefixdb.New(validatorsDBPrefix, db)
 	return nil
 }
 
@@ -77,6 +79,9 @@ func (vm *VM) inspectDatabases() error {
 		return err
 	}
 	if err := inspectDB(vm.warpDB, "warpDB"); err != nil {
+		return err
+	}
+	if err := inspectDB(vm.validatorsDB, "validatorsDB"); err != nil {
 		return err
 	}
 	log.Info("Completed database inspection", "elapsed", time.Since(start))
