@@ -330,7 +330,7 @@ func TestLoadNewValidators(t *testing.T) {
 					Weight:         validator.Weight,
 					StartTimestamp: validator.StartTime,
 					IsActive:       validator.IsActive,
-					IsSoV:          validator.IsSoV,
+					IsL1Validator:  validator.IsSoV,
 				})
 				require.NoError(err)
 			}
@@ -356,7 +356,7 @@ func TestLoadNewValidators(t *testing.T) {
 				require.Equal(validator.Weight, v.Weight)
 				require.Equal(validator.StartTime, v.StartTimestamp)
 				require.Equal(validator.IsActive, v.IsActive)
-				require.Equal(validator.IsSoV, v.IsSoV)
+				require.Equal(validator.IsSoV, v.IsL1Validator)
 			}
 		})
 	}

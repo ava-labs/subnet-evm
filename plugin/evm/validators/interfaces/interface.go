@@ -49,7 +49,7 @@ type Validator struct {
 	Weight         uint64     `json:"weight"`
 	StartTimestamp uint64     `json:"startTimestamp"`
 	IsActive       bool       `json:"isActive"`
-	IsSoV          bool       `json:"isSoV"`
+	IsL1Validator  bool       `json:"isL1Validator"`
 }
 
 func (v *Validator) StartTime() time.Time { return time.Unix(int64(v.StartTimestamp), 0) }
