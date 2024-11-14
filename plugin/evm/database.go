@@ -81,7 +81,7 @@ func (vm *VM) createDatabase(dbConfig avalancheNode.DatabaseConfig) (database.Da
 // useStandaloneDatabase returns true if the chain can and should use a standalone database
 // other than given by [db] in Initialize()
 func (vm *VM) useStandaloneDatabase(acceptedDB database.Database) (bool, error) {
-	// no config provided, use default
+	// use the explicit configuration option if provided
 	standaloneDBFlag := vm.config.UseStandaloneDatabase
 	if standaloneDBFlag != nil {
 		return standaloneDBFlag.Bool(), nil
