@@ -5,7 +5,6 @@ package evm
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -24,7 +23,6 @@ import (
 	"github.com/ava-labs/avalanchego/network/p2p/gossip"
 	"github.com/prometheus/client_golang/prometheus"
 
-	avalancheNode "github.com/ava-labs/avalanchego/node"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
 	"github.com/ava-labs/subnet-evm/constants"
@@ -41,10 +39,8 @@ import (
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/peer"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
-	"github.com/ava-labs/subnet-evm/plugin/evm/uptime"
-	uptimeinterfaces "github.com/ava-labs/subnet-evm/plugin/evm/uptime/interfaces"
 	"github.com/ava-labs/subnet-evm/plugin/evm/validators"
-	validatorsinterfaces "github.com/ava-labs/subnet-evm/plugin/evm/validators/interfaces"
+	"github.com/ava-labs/subnet-evm/plugin/evm/validators/interfaces"
 	"github.com/ava-labs/subnet-evm/triedb"
 	"github.com/ava-labs/subnet-evm/triedb/hashdb"
 
@@ -74,18 +70,11 @@ import (
 	avalancheRPC "github.com/gorilla/rpc/v2"
 
 	"github.com/ava-labs/avalanchego/codec"
-	"github.com/ava-labs/avalanchego/database/leveldb"
-	"github.com/ava-labs/avalanchego/database/memdb"
-	"github.com/ava-labs/avalanchego/database/meterdb"
-	"github.com/ava-labs/avalanchego/database/pebbledb"
-	"github.com/ava-labs/avalanchego/database/prefixdb"
 	"github.com/ava-labs/avalanchego/database/versiondb"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/avalanchego/snow/consensus/snowman"
 	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
-	avalancheUptime "github.com/ava-labs/avalanchego/snow/uptime"
-	avalancheValidators "github.com/ava-labs/avalanchego/snow/validators"
 	"github.com/ava-labs/avalanchego/utils/perms"
 	"github.com/ava-labs/avalanchego/utils/profiler"
 	"github.com/ava-labs/avalanchego/utils/timer/mockable"
@@ -95,10 +84,8 @@ import (
 
 	commonEng "github.com/ava-labs/avalanchego/snow/engine/common"
 
-	avalanchemetrics "github.com/ava-labs/avalanchego/api/metrics"
 	"github.com/ava-labs/avalanchego/database"
 	avalancheUtils "github.com/ava-labs/avalanchego/utils"
-	avalancheconstants "github.com/ava-labs/avalanchego/utils/constants"
 	avalancheJSON "github.com/ava-labs/avalanchego/utils/json"
 )
 
@@ -123,7 +110,6 @@ const (
 	ethMetricsPrefix        = "eth"
 	sdkMetricsPrefix        = "sdk"
 	chainStateMetricsPrefix = "chain_state"
-	dbMetricsPrefix         = "db"
 
 	// gossip constants
 	pushGossipDiscardedElements          = 16_384
@@ -136,8 +122,6 @@ const (
 	txGossipThrottlingPeriod             = 10 * time.Second
 	txGossipThrottlingLimit              = 2
 	txGossipPollSize                     = 1
-
-	loadValidatorsFrequency = 1 * time.Minute
 )
 
 // Define the API endpoints for the VM
@@ -247,7 +231,7 @@ type VM struct {
 	client       peer.NetworkClient
 	networkCodec codec.Manager
 
-	validators *p2p.Validators
+	p2pValidators *p2p.Validators
 
 	// Metrics
 	sdkMetrics *prometheus.Registry
@@ -269,8 +253,7 @@ type VM struct {
 	ethTxPushGossiper  avalancheUtils.Atomic[*gossip.PushGossiper[*GossipEthTx]]
 	ethTxPullGossiper  gossip.Gossiper
 
-	uptimeManager  uptimeinterfaces.PausableManager
-	validatorState validatorsinterfaces.State
+	validatorsManager interfaces.Manager
 
 	chainAlias string
 	// RPC handlers (should be stopped before closing chaindb)
@@ -345,12 +328,9 @@ func (vm *VM) Initialize(
 	}
 
 	if vm.config.InspectDatabase {
-		start := time.Now()
-		log.Info("Starting database inspection")
-		if err := rawdb.InspectDatabase(vm.chaindb, nil, nil); err != nil {
+		if err := vm.inspectDatabases(); err != nil {
 			return err
 		}
-		log.Info("Completed database inspection", "elapsed", time.Since(start))
 	}
 
 	g := new(core.Genesis)
@@ -502,19 +482,15 @@ func (vm *VM) Initialize(
 	if err != nil {
 		return fmt.Errorf("failed to initialize p2p network: %w", err)
 	}
-	vm.validators = p2p.NewValidators(p2pNetwork.Peers, vm.ctx.Log, vm.ctx.SubnetID, vm.ctx.ValidatorState, maxValidatorSetStaleness)
+	vm.p2pValidators = p2p.NewValidators(p2pNetwork.Peers, vm.ctx.Log, vm.ctx.SubnetID, vm.ctx.ValidatorState, maxValidatorSetStaleness)
 	vm.networkCodec = message.Codec
 	vm.Network = peer.NewNetwork(p2pNetwork, appSender, vm.networkCodec, chainCtx.NodeID, vm.config.MaxOutboundActiveRequests)
 	vm.client = peer.NewNetworkClient(vm.Network)
 
-	vm.validatorState, err = validators.NewState(vm.validatorsDB)
+	vm.validatorsManager, err = validators.NewManager(vm.ctx, vm.validatorsDB, &vm.clock)
 	if err != nil {
-		return fmt.Errorf("failed to initialize validator state: %w", err)
+		return fmt.Errorf("failed to initialize validators manager: %w", err)
 	}
-
-	// Initialize uptime manager
-	vm.uptimeManager = uptime.NewPausableManager(avalancheUptime.NewManager(vm.validatorState, &vm.clock))
-	vm.validatorState.RegisterListener(vm.uptimeManager)
 
 	// Initialize warp backend
 	offchainWarpMessages := make([][]byte, len(vm.config.WarpOffChainMessages))
@@ -539,9 +515,7 @@ func (vm *VM) Initialize(
 		vm.ctx.ChainID,
 		vm.ctx.WarpSigner,
 		vm,
-		vm.uptimeManager,
-		vm.validatorState,
-		vm.ctx.Lock.RLocker(),
+		vm.validatorsManager,
 		vm.warpDB,
 		meteredCache,
 		offchainWarpMessages,
@@ -740,28 +714,28 @@ func (vm *VM) onNormalOperationsStarted() error {
 	ctx, cancel := context.WithCancel(context.TODO())
 	vm.cancel = cancel
 
-	// update validators first
-	if err := vm.performValidatorUpdate(ctx); err != nil {
+	// sync validators first
+	if err := vm.validatorsManager.Sync(ctx); err != nil {
 		return fmt.Errorf("failed to update validators: %w", err)
 	}
-	vdrIDs := vm.validatorState.GetNodeIDs().List()
+	vdrIDs := vm.validatorsManager.GetNodeIDs().List()
 	// Then start tracking with updated validators
 	// StartTracking initializes the uptime tracking with the known validators
 	// and update their uptime to account for the time we were being offline.
-	if err := vm.uptimeManager.StartTracking(vdrIDs); err != nil {
+	if err := vm.validatorsManager.StartTracking(vdrIDs); err != nil {
 		return fmt.Errorf("failed to start tracking uptime: %w", err)
 	}
 	// dispatch validator set update
 	vm.shutdownWg.Add(1)
 	go func() {
-		vm.dispatchUpdateValidators(ctx)
+		vm.validatorsManager.DispatchSync(ctx)
 		vm.shutdownWg.Done()
 	}()
 
 	// Initialize goroutines related to block building
 	// once we enter normal operation as there is no need to handle mempool gossip before this point.
 	ethTxGossipMarshaller := GossipEthTxMarshaller{}
-	ethTxGossipClient := vm.Network.NewClient(p2p.TxGossipHandlerID, p2p.WithValidatorSampling(vm.validators))
+	ethTxGossipClient := vm.Network.NewClient(p2p.TxGossipHandlerID, p2p.WithValidatorSampling(vm.p2pValidators))
 	ethTxGossipMetrics, err := gossip.NewMetrics(vm.sdkMetrics, ethTxGossipNamespace)
 	if err != nil {
 		return fmt.Errorf("failed to initialize eth tx gossip metrics: %w", err)
@@ -791,7 +765,7 @@ func (vm *VM) onNormalOperationsStarted() error {
 		ethTxPushGossiper, err = gossip.NewPushGossiper[*GossipEthTx](
 			ethTxGossipMarshaller,
 			ethTxPool,
-			vm.validators,
+			vm.p2pValidators,
 			ethTxGossipClient,
 			ethTxGossipMetrics,
 			pushGossipParams,
@@ -821,7 +795,7 @@ func (vm *VM) onNormalOperationsStarted() error {
 			txGossipTargetMessageSize,
 			txGossipThrottlingPeriod,
 			txGossipThrottlingLimit,
-			vm.validators,
+			vm.p2pValidators,
 		)
 	}
 
@@ -842,7 +816,7 @@ func (vm *VM) onNormalOperationsStarted() error {
 		vm.ethTxPullGossiper = gossip.ValidatorGossiper{
 			Gossiper:   ethTxPullGossiper,
 			NodeID:     vm.ctx.NodeID,
-			Validators: vm.validators,
+			Validators: vm.p2pValidators,
 		}
 	}
 
@@ -887,11 +861,11 @@ func (vm *VM) Shutdown(context.Context) error {
 		vm.cancel()
 	}
 	if vm.bootstrapped.Get() {
-		vdrIDs := vm.validatorState.GetNodeIDs().List()
-		if err := vm.uptimeManager.StopTracking(vdrIDs); err != nil {
+		vdrIDs := vm.validatorsManager.GetNodeIDs().List()
+		if err := vm.validatorsManager.StopTracking(vdrIDs); err != nil {
 			return fmt.Errorf("failed to stop tracking uptime: %w", err)
 		}
-		if err := vm.validatorState.WriteState(); err != nil {
+		if err := vm.validatorsManager.WriteState(); err != nil {
 			return fmt.Errorf("failed to write validator: %w", err)
 		}
 	}
@@ -1268,249 +1242,17 @@ func attachEthService(handler *rpc.Server, apis []rpc.API, names []string) error
 	return nil
 }
 
-// useStandaloneDatabase returns true if the chain can and should use a standalone database
-// other than given by [db] in Initialize()
-func (vm *VM) useStandaloneDatabase(acceptedDB database.Database) (bool, error) {
-	// no config provided, use default
-	standaloneDBFlag := vm.config.UseStandaloneDatabase
-	if standaloneDBFlag != nil {
-		return standaloneDBFlag.Bool(), nil
-	}
-
-	// check if the chain can use a standalone database
-	_, err := acceptedDB.Get(lastAcceptedKey)
-	if err == database.ErrNotFound {
-		// If there is nothing in the database, we can use the standalone database
-		return true, nil
-	}
-	return false, err
-}
-
-// getDatabaseConfig returns the database configuration for the chain
-// to be used by separate, standalone database.
-func getDatabaseConfig(config Config, chainDataDir string) (avalancheNode.DatabaseConfig, error) {
-	var (
-		configBytes []byte
-		err         error
-	)
-	if len(config.DatabaseConfigContent) != 0 {
-		dbConfigContent := config.DatabaseConfigContent
-		configBytes, err = base64.StdEncoding.DecodeString(dbConfigContent)
-		if err != nil {
-			return avalancheNode.DatabaseConfig{}, fmt.Errorf("unable to decode base64 content: %w", err)
-		}
-	} else if len(config.DatabaseConfigFile) != 0 {
-		configPath := config.DatabaseConfigFile
-		configBytes, err = os.ReadFile(configPath)
-		if err != nil {
-			return avalancheNode.DatabaseConfig{}, err
-		}
-	}
-
-	dbPath := filepath.Join(chainDataDir, "db")
-	if len(config.DatabasePath) != 0 {
-		dbPath = config.DatabasePath
-	}
-
-	return avalancheNode.DatabaseConfig{
-		Name:     config.DatabaseType,
-		ReadOnly: config.DatabaseReadOnly,
-		Path:     dbPath,
-		Config:   configBytes,
-	}, nil
-}
-
-// initializeDBs initializes the databases used by the VM.
-// If [useStandaloneDB] is true, the chain will use a standalone database for its state.
-// Otherwise, the chain will use the provided [avaDB] for its state.
-func (vm *VM) initializeDBs(avaDB database.Database) error {
-	db := avaDB
-	// skip standalone database initialization if we are running in unit tests
-	if vm.ctx.NetworkID != avalancheconstants.UnitTestID {
-		// first initialize the accepted block database to check if we need to use a standalone database
-		acceptedDB := prefixdb.New(acceptedPrefix, avaDB)
-		useStandAloneDB, err := vm.useStandaloneDatabase(acceptedDB)
-		if err != nil {
-			return err
-		}
-		if useStandAloneDB {
-			// If we are using a standalone database, we need to create a new database
-			// for the chain state.
-			dbConfig, err := getDatabaseConfig(vm.config, vm.ctx.ChainDataDir)
-			if err != nil {
-				return err
-			}
-			log.Info("Using standalone database for the chain state", "DatabaseConfig", dbConfig)
-			db, err = vm.createDatabase(dbConfig)
-			if err != nil {
-				return err
-			}
-		}
-	}
-	// Use NewNested rather than New so that the structure of the database
-	// remains the same regardless of the provided baseDB type.
-	vm.chaindb = rawdb.NewDatabase(Database{prefixdb.NewNested(ethDBPrefix, db)})
-	vm.db = versiondb.New(db)
-	vm.acceptedBlockDB = prefixdb.New(acceptedPrefix, vm.db)
-	vm.metadataDB = prefixdb.New(metadataPrefix, vm.db)
-	// Note warpDB and validatorsDB are not part of versiondb because it is not necessary
-	// that they are committed to the database atomically with
-	// the last accepted block.
-	// [warpDB] is used to store warp message signatures
-	// set to a prefixDB with the prefix [warpPrefix]
-	vm.warpDB = prefixdb.New(warpPrefix, db)
-	// [validatorsDB] is used to store the current validator set and uptimes
-	// set to a prefixDB with the prefix [validatorsDBPrefix]
-	vm.validatorsDB = prefixdb.New(validatorsDBPrefix, db)
-	return nil
-}
-
-// createDatabase returns a new database instance with the provided configuration
-func (vm *VM) createDatabase(dbConfig avalancheNode.DatabaseConfig) (database.Database, error) {
-	dbRegisterer, err := avalanchemetrics.MakeAndRegister(
-		vm.ctx.Metrics,
-		dbMetricsPrefix,
-	)
-	if err != nil {
-		return nil, err
-	}
-	var db database.Database
-	// start the db
-	switch dbConfig.Name {
-	case leveldb.Name:
-		dbPath := filepath.Join(dbConfig.Path, leveldb.Name)
-		db, err = leveldb.New(dbPath, dbConfig.Config, vm.ctx.Log, dbRegisterer)
-		if err != nil {
-			return nil, fmt.Errorf("couldn't create %s at %s: %w", leveldb.Name, dbPath, err)
-		}
-	case memdb.Name:
-		db = memdb.New()
-	case pebbledb.Name:
-		dbPath := filepath.Join(dbConfig.Path, pebbledb.Name)
-		db, err = pebbledb.New(dbPath, dbConfig.Config, vm.ctx.Log, dbRegisterer)
-		if err != nil {
-			return nil, fmt.Errorf("couldn't create %s at %s: %w", pebbledb.Name, dbPath, err)
-		}
-	default:
-		return nil, fmt.Errorf(
-			"db-type was %q but should have been one of {%s, %s, %s}",
-			dbConfig.Name,
-			leveldb.Name,
-			memdb.Name,
-			pebbledb.Name,
-		)
-	}
-
-	if dbConfig.ReadOnly && dbConfig.Name != memdb.Name {
-		db = versiondb.New(db)
-	}
-
-	meterDBReg, err := avalanchemetrics.MakeAndRegister(
-		vm.ctx.Metrics,
-		"meterdb",
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	db, err = meterdb.New(meterDBReg, db)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create meterdb: %w", err)
-	}
-
-	return db, nil
-}
-
 func (vm *VM) Connected(ctx context.Context, nodeID ids.NodeID, version *version.Application) error {
-	if err := vm.uptimeManager.Connect(nodeID); err != nil {
+	if err := vm.validatorsManager.Connect(nodeID); err != nil {
 		return fmt.Errorf("uptime manager failed to connect node %s: %w", nodeID, err)
 	}
 	return vm.Network.Connected(ctx, nodeID, version)
 }
 
 func (vm *VM) Disconnected(ctx context.Context, nodeID ids.NodeID) error {
-	if err := vm.uptimeManager.Disconnect(nodeID); err != nil {
+	if err := vm.validatorsManager.Disconnect(nodeID); err != nil {
 		return fmt.Errorf("uptime manager failed to disconnect node %s: %w", nodeID, err)
 	}
 
 	return vm.Network.Disconnected(ctx, nodeID)
-}
-
-func (vm *VM) dispatchUpdateValidators(ctx context.Context) {
-	ticker := time.NewTicker(loadValidatorsFrequency)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ticker.C:
-			vm.ctx.Lock.Lock()
-			if err := vm.performValidatorUpdate(ctx); err != nil {
-				log.Error("failed to update validators", "error", err)
-			}
-			vm.ctx.Lock.Unlock()
-		case <-ctx.Done():
-			return
-		}
-	}
-}
-
-// performValidatorUpdate updates the validator state with the current validator set
-// and writes the state to the database.
-func (vm *VM) performValidatorUpdate(ctx context.Context) error {
-	now := time.Now()
-	log.Debug("performing validator update")
-	// get current validator set
-	currentValidatorSet, _, err := vm.ctx.ValidatorState.GetCurrentValidatorSet(ctx, vm.ctx.SubnetID)
-	if err != nil {
-		return fmt.Errorf("failed to get current validator set: %w", err)
-	}
-
-	// load the current validator set into the validator state
-	if err := loadValidators(vm.validatorState, currentValidatorSet); err != nil {
-		return fmt.Errorf("failed to load current validators: %w", err)
-	}
-
-	// write validators to the database
-	if err := vm.validatorState.WriteState(); err != nil {
-		return fmt.Errorf("failed to write validator state: %w", err)
-	}
-
-	// TODO: add metrics
-	log.Debug("validator update complete", "duration", time.Since(now))
-	return nil
-}
-
-// loadValidators loads the [validators] into the validator state [validatorState]
-func loadValidators(validatorState validatorsinterfaces.State, newValidators map[ids.ID]*avalancheValidators.GetCurrentValidatorOutput) error {
-	currentValidationIDs := validatorState.GetValidationIDs()
-	// first check if we need to delete any existing validators
-	for vID := range currentValidationIDs {
-		// if the validator is not in the new set of validators
-		// delete the validator
-		if _, exists := newValidators[vID]; !exists {
-			validatorState.DeleteValidator(vID)
-		}
-	}
-
-	// then load the new validators
-	for newVID, newVdr := range newValidators {
-		currentVdr := validatorsinterfaces.Validator{
-			ValidationID:   newVID,
-			NodeID:         newVdr.NodeID,
-			Weight:         newVdr.Weight,
-			StartTimestamp: newVdr.StartTime,
-			IsActive:       newVdr.IsActive,
-			IsL1Validator:  newVdr.IsSoV,
-		}
-		if currentValidationIDs.Contains(newVID) {
-			if err := validatorState.UpdateValidator(currentVdr); err != nil {
-				return err
-			}
-		} else {
-			if err := validatorState.AddValidator(currentVdr); err != nil {
-				return err
-			}
-		}
-	}
-	return nil
 }
