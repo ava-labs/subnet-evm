@@ -13,7 +13,7 @@ import (
 )
 
 type ValidatorReader interface {
-	// GetValidatorUptime returns the uptime of the validator specified by validationID
+	// GetValidatorAndUptime returns the uptime of the validator specified by validationID
 	GetValidatorAndUptime(validationID ids.ID) (stateinterfaces.Validator, time.Duration, time.Time, error)
 }
 
