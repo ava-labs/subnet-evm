@@ -529,7 +529,6 @@ func (vm *VM) Initialize(
 		vm.ctx.WarpSigner,
 		vm,
 		vm.validatorsManager,
-		vm.ctx.Lock.RLocker(),
 		vm.warpDB,
 		meteredCache,
 		offchainWarpMessages,

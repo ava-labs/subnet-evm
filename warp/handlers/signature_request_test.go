@@ -33,7 +33,7 @@ func TestMessageSignatureHandler(t *testing.T) {
 	require.NoError(t, err)
 
 	messageSignatureCache := &cache.LRU[ids.ID, []byte]{Size: 100}
-	backend, err := warp.NewBackend(snowCtx.NetworkID, snowCtx.ChainID, warpSigner, warptest.EmptyBlockClient, warptest.NoOpValidatorReader{}, snowCtx.Lock.RLocker(), database, messageSignatureCache, [][]byte{offchainMessage.Bytes()})
+	backend, err := warp.NewBackend(snowCtx.NetworkID, snowCtx.ChainID, warpSigner, warptest.EmptyBlockClient, warptest.NoOpValidatorReader{}, database, messageSignatureCache, [][]byte{offchainMessage.Bytes()})
 	require.NoError(t, err)
 
 	msg, err := avalancheWarp.NewUnsignedMessage(snowCtx.NetworkID, snowCtx.ChainID, []byte("test"))
@@ -140,7 +140,6 @@ func TestBlockSignatureHandler(t *testing.T) {
 		warpSigner,
 		blockClient,
 		warptest.NoOpValidatorReader{},
-		snowCtx.Lock.RLocker(),
 		database,
 		messageSignatureCache,
 		nil,

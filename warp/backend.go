@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sync"
 
 	"github.com/ava-labs/avalanchego/cache"
 	"github.com/ava-labs/avalanchego/database"
@@ -59,7 +58,6 @@ type backend struct {
 	warpSigner                avalancheWarp.Signer
 	blockClient               BlockClient
 	validatorReader           interfaces.ValidatorReader
-	validatorLock             sync.Locker
 	signatureCache            cache.Cacher[ids.ID, []byte]
 	messageCache              *cache.LRU[ids.ID, *avalancheWarp.UnsignedMessage]
 	offchainAddressedCallMsgs map[ids.ID]*avalancheWarp.UnsignedMessage
@@ -73,7 +71,6 @@ func NewBackend(
 	warpSigner avalancheWarp.Signer,
 	blockClient BlockClient,
 	validatorReader interfaces.ValidatorReader,
-	validatorLock sync.Locker,
 	db database.Database,
 	signatureCache cache.Cacher[ids.ID, []byte],
 	offchainMessages [][]byte,
@@ -86,7 +83,6 @@ func NewBackend(
 		blockClient:               blockClient,
 		signatureCache:            signatureCache,
 		validatorReader:           validatorReader,
-		validatorLock:             validatorLock,
 		messageCache:              &cache.LRU[ids.ID, *avalancheWarp.UnsignedMessage]{Size: messageCacheSize},
 		stats:                     newVerifierStats(),
 		offchainAddressedCallMsgs: make(map[ids.ID]*avalancheWarp.UnsignedMessage),

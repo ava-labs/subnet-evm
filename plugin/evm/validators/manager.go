@@ -33,6 +33,8 @@ type manager struct {
 	uptimeinterfaces.PausableManager
 }
 
+// NewManager returns a new validator manager
+// that manages the validator state and the uptime manager.
 func NewManager(
 	ctx *snow.Context,
 	db database.Database,
@@ -54,6 +56,30 @@ func NewManager(
 	}, nil
 }
 
+// GetValidatorUptime returns the calculated uptime of the validator specified by validationID
+// and the last updated time.
+// GetValidatorUptime holds the chain context lock while performing the operation and can be called concurrently.
+func (m *manager) GetValidatorAndUptime(validationID ids.ID) (stateinterfaces.Validator, time.Duration, time.Time, error) {
+	// lock the state
+	m.chainCtx.Lock.RLock()
+	defer m.chainCtx.Lock.RUnlock()
+
+	// Get validator first
+	vdr, err := m.GetValidator(validationID)
+	if err != nil {
+		return stateinterfaces.Validator{}, 0, time.Time{}, fmt.Errorf("failed to get validator: %w", err)
+	}
+
+	uptime, lastUpdated, err := m.CalculateUptime(vdr.NodeID)
+	if err != nil {
+		return stateinterfaces.Validator{}, 0, time.Time{}, fmt.Errorf("failed to get uptime: %w", err)
+	}
+
+	return vdr, uptime, lastUpdated, nil
+}
+
+// DispatchSync starts the sync process
+// DispatchSync holds the chain context lock while performing the sync.
 func (m *manager) DispatchSync(ctx context.Context) {
 	ticker := time.NewTicker(SyncFrequency)
 	defer ticker.Stop()
@@ -74,6 +100,7 @@ func (m *manager) DispatchSync(ctx context.Context) {
 
 // Sync synchronizes the validator state with the current validator set
 // and writes the state to the database.
+// Sync is not safe to call concurrently and should be called with the chain context locked.
 func (m *manager) Sync(ctx context.Context) error {
 	now := time.Now()
 	log.Debug("performing validator sync")
