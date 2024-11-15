@@ -56,9 +56,9 @@ func NewManager(
 	}, nil
 }
 
-// GetValidatorUptime returns the calculated uptime of the validator specified by validationID
+// GetValidatorAndUptime returns the calculated uptime of the validator specified by validationID
 // and the last updated time.
-// GetValidatorUptime holds the chain context lock while performing the operation and can be called concurrently.
+// GetValidatorAndUptime holds the chain context lock while performing the operation and can be called concurrently.
 func (m *manager) GetValidatorAndUptime(validationID ids.ID) (stateinterfaces.Validator, time.Duration, time.Time, error) {
 	// lock the state
 	m.chainCtx.Lock.RLock()
