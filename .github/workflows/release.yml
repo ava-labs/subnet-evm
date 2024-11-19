@@ -25,6 +25,7 @@ jobs:
         run: |
           git -C subnet-evm fetch origin try
           git -C subnet-evm checkout origin/try -- .goreleaser.yml
+          echo ".goreleaser.yml" >> subnet-evm/.gitignore
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
