@@ -1377,7 +1377,7 @@ func (bc *BlockChain) insertBlock(block *types.Block, writes bool) error {
 	blockStateInitTimer.Inc(time.Since(substart).Milliseconds())
 
 	// Enable prefetching to pull in trie node paths while processing transactions
-	statedb.StartPrefetcher("chain", bc.cacheConfig.TriePrefetcherParallelism)
+	statedb.StartPrefetcher("chain")
 	activeState = statedb
 
 	// Process block using the parent state as reference point
@@ -1736,7 +1736,7 @@ func (bc *BlockChain) reprocessBlock(parent *types.Block, current *types.Block) 
 	}
 
 	// Enable prefetching to pull in trie node paths while processing transactions
-	statedb.StartPrefetcher("chain", bc.cacheConfig.TriePrefetcherParallelism)
+	statedb.StartPrefetcher("chain")
 	defer func() {
 		statedb.StopPrefetcher()
 	}()
@@ -2134,7 +2134,10 @@ func (bc *BlockChain) ResetToStateSyncedBlock(block *types.Block) error {
 	bc.hc.SetCurrentHeader(block.Header())
 
 	lastAcceptedHash := block.Hash()
-	bc.stateCache = state.NewDatabaseWithNodeDB(bc.db, bc.triedb)
+	bc.stateCache = state.WithPrefetcher(
+		state.NewDatabaseWithNodeDB(bc.db, bc.triedb),
+		bc.cacheConfig.TriePrefetcherParallelism,
+	)
 
 	if err := bc.loadLastState(lastAcceptedHash); err != nil {
 		return err
