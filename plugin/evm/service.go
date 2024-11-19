@@ -6,6 +6,7 @@ package evm
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/set"
@@ -32,6 +33,7 @@ type CurrentValidator struct {
 	IsL1Validator    bool       `json:"isL1Validator"`
 	IsConnected      bool       `json:"isConnected"`
 	UptimePercentage float32    `json:"uptimePercentage"`
+	UptimeSeconds    uint64     `json:"uptimeSeconds"`
 }
 
 func (api *ValidatorsAPI) GetCurrentValidators(_ *http.Request, req *GetCurrentValidatorsRequest, reply *GetCurrentValidatorsResponse) error {
@@ -62,9 +64,17 @@ func (api *ValidatorsAPI) GetCurrentValidators(_ *http.Request, req *GetCurrentV
 
 		isConnected := api.vm.validatorsManager.IsConnected(validator.NodeID)
 
-		uptimeFloat, err := api.vm.validatorsManager.CalculateUptimePercent(validator.NodeID)
+		upDuration, lastUpdated, err := api.vm.validatorsManager.CalculateUptime(validator.NodeID)
 		if err != nil {
-			return fmt.Errorf("couldn't calculate uptime percentage for validation ID %s", vID)
+			return err
+		}
+		var uptimeFloat float64
+		startTime := time.Unix(int64(validator.StartTimestamp), 0)
+		bestPossibleUpDuration := lastUpdated.Sub(startTime)
+		if bestPossibleUpDuration == 0 {
+			uptimeFloat = 1
+		} else {
+			uptimeFloat = float64(upDuration) / float64(bestPossibleUpDuration)
 		}
 
 		// Transform this to a percentage (0-100) to make it consistent
@@ -80,6 +90,7 @@ func (api *ValidatorsAPI) GetCurrentValidators(_ *http.Request, req *GetCurrentV
 			IsL1Validator:    validator.IsL1Validator,
 			IsConnected:      isConnected,
 			UptimePercentage: uptimePercentage,
+			UptimeSeconds:    uint64(upDuration.Seconds()),
 		})
 	}
 	return nil
