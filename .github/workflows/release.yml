@@ -23,7 +23,7 @@ jobs:
           ref: ${{ github.event.inputs.tag }}
       - name: Patch .goreleaser.yml
         run: |
-          git -C subnet-evm fetch try
+          git -C subnet-evm fetch origin try
           git -C subnet-evm checkout try -- .goreleaser.yml
       - name: Set up Go
         uses: actions/setup-go@v5
