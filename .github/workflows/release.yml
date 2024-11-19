@@ -21,10 +21,6 @@ jobs:
           fetch-depth: 0
           path: subnet-evm
           ref: ${{ github.event.inputs.tag }}
-      - name: Patch .goreleaser.yml
-        run: |
-          git -C subnet-evm fetch origin try
-          git -C subnet-evm show origin/try:.goreleaser.yml > .goreleaser.yml
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
@@ -52,7 +48,7 @@ jobs:
         with:
           distribution: goreleaser
           version: latest
-          args: release --clean --config ../.goreleaser.yml
+          args: release --clean
           workdir: ./subnet-evm/
         env:
           # https://docs.github.com/en/actions/security-guides/automatic-token-authentication#about-the-github_token-secret
