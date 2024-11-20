@@ -54,28 +54,26 @@ func BenchmarkPrefetcherDatabase(b *testing.B) {
 	countKey := []byte("count")
 	blockKey := []byte("block")
 	got, err := levelDB.Get(rootKey)
-	if err == nil {
+	if err == nil { // on success
 		root = common.BytesToHash(got)
 	}
 	got, err = levelDB.Get(countKey)
-	if err == nil {
+	if err == nil { // on success
 		count = binary.BigEndian.Uint64(got)
 	}
 	got, err = levelDB.Get(blockKey)
-	if err == nil {
+	if err == nil { // on success
 		block = binary.BigEndian.Uint64(got)
 	}
 
 	// Make a trie on the levelDB
 	address1 := common.Address{42}
 	address2 := common.Address{43}
-	addBlock := func(db Database, snaps *snapshot.Tree, kvsPerBlock int, prefetchers int) (statedb *StateDB) {
-		statedb, root, err = addKVs(db, snaps, address1, address2, root, block, kvsPerBlock, prefetchers)
+	addBlock := func(db Database, snaps *snapshot.Tree, kvsPerBlock int, prefetchers int) {
+		_, root, err = addKVs(db, snaps, address1, address2, root, block, kvsPerBlock, prefetchers)
 		require.NoError(err)
 		count += uint64(kvsPerBlock)
 		block++
-
-		return statedb
 	}
 
 	lastCommit := block
@@ -88,12 +86,9 @@ func BenchmarkPrefetcherDatabase(b *testing.B) {
 		lastCommit = block
 
 		// update the tracking keys
-		err = levelDB.Put(rootKey, root.Bytes())
-		require.NoError(err)
-		err = database.PutUInt64(levelDB, blockKey, block)
-		require.NoError(err)
-		err = database.PutUInt64(levelDB, countKey, count)
-		require.NoError(err)
+		require.NoError(levelDB.Put(rootKey, root.Bytes()))
+		require.NoError(database.PutUInt64(levelDB, blockKey, block))
+		require.NoError(database.PutUInt64(levelDB, countKey, count))
 	}
 
 	tdbConfig := &triedb.Config{
@@ -105,7 +100,7 @@ func BenchmarkPrefetcherDatabase(b *testing.B) {
 	snaps := snapshot.NewTestTree(levelDB, fakeHash(block), root)
 	for count < uint64(wantKVs) {
 		previous := root
-		_ = addBlock(db, snaps, 100_000, 0) // Note this updates root and count
+		addBlock(db, snaps, 100_000, 0) // Note this updates root and count
 		b.Logf("Root: %v, kvs: %d, block: %d", root, count, block)
 
 		// Commit every 10 blocks or on the last iteration
@@ -116,7 +111,7 @@ func BenchmarkPrefetcherDatabase(b *testing.B) {
 		if previous != root {
 			require.NoError(db.TrieDB().Dereference(previous))
 		} else {
-			panic("root did not change")
+			b.Fatal("root did not change")
 		}
 	}
 	require.NoError(levelDB.Close())
@@ -138,7 +133,7 @@ func BenchmarkPrefetcherDatabase(b *testing.B) {
 				}
 				startLoads := getMetric("load")
 				for i := 0; i < b.N; i++ {
-					_ = addBlock(db, snaps, updates, prefetchers)
+					addBlock(db, snaps, updates, prefetchers)
 				}
 				require.NoError(levelDB.Close())
 				b.ReportMetric(float64(getMetric("load")-startLoads)/float64(b.N), "loads")
@@ -170,23 +165,16 @@ func addKVs(
 		statedb.StartPrefetcher(namespace, WithConcurrentWorkers(prefetchers))
 		defer statedb.StopPrefetcher()
 	}
-	statedb.SetNonce(address1, 1)
-	for i := 0; i < count/2; i++ {
-		key := make([]byte, 32)
-		value := make([]byte, 32)
-		rand.Read(key)
-		rand.Read(value)
+	for _, address := range []common.Address{address1, address2} {
+		statedb.SetNonce(address, 1)
+		for i := 0; i < count/2; i++ {
+			key := make([]byte, 32)
+			value := make([]byte, 32)
+			rand.Read(key)
+			rand.Read(value)
 
-		statedb.SetState(address1, common.BytesToHash(key), common.BytesToHash(value))
-	}
-	statedb.SetNonce(address2, 1)
-	for i := 0; i < count/2; i++ {
-		key := make([]byte, 32)
-		value := make([]byte, 32)
-		rand.Read(key)
-		rand.Read(value)
-
-		statedb.SetState(address2, common.BytesToHash(key), common.BytesToHash(value))
+			statedb.SetState(address, common.BytesToHash(key), common.BytesToHash(value))
+		}
 	}
 	root, err = statedb.CommitWithSnap(block+1, true, snaps, fakeHash(block+1), fakeHash(block))
 	if err != nil {
