@@ -82,8 +82,7 @@ type environment struct {
 	// way that the gas pool and state is reset.
 	predicateResults *predicate.Results
 
-	start   time.Time // Time that block building began
-	cleanup func()    // Cleanup function to be called when the environment is no longer needed
+	start time.Time // Time that block building began
 }
 
 // worker is the main object which takes care of submitting new work to consensus engine
@@ -226,9 +225,6 @@ func (w *worker) commitNewWork(predicateContext *precompileconfig.PredicateConte
 			return
 		}
 		env.state.StopPrefetcher()
-		if env.cleanup != nil {
-			env.cleanup()
-		}
 	}()
 	// Configure any upgrades that should go into effect during this block.
 	err = core.ApplyUpgrades(w.chainConfig, &parent.Time, types.NewBlockWithHeader(header), env.state)
@@ -288,7 +284,7 @@ func (w *worker) createCurrentEnvironment(predicateContext *precompileconfig.Pre
 	if err != nil {
 		return nil, err
 	}
-	opt, cleanup := state.WithConcurrentWorkers(w.chain.CacheConfig().TriePrefetcherParallelism)
+	opt := state.WithConcurrentWorkers(w.chain.CacheConfig().TriePrefetcherParallelism)
 	currentState.StartPrefetcher("miner", opt)
 	return &environment{
 		signer:           types.MakeSigner(w.chainConfig, header.Number, header.Time),
@@ -301,7 +297,6 @@ func (w *worker) createCurrentEnvironment(predicateContext *precompileconfig.Pre
 		predicateContext: predicateContext,
 		predicateResults: predicate.NewResults(),
 		start:            tstart,
-		cleanup:          cleanup,
 	}, nil
 }
 
