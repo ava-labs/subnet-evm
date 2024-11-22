@@ -336,15 +336,8 @@ func (sf *subfetcher) loop() {
 			sf.lock.Unlock()
 
 			// Prefetch any tasks until the loop is interrupted
-			for i, task := range tasks {
+			for _, task := range tasks {
 				select {
-				case <-sf.stop:
-					// If termination is requested, add any leftover back and return
-					sf.lock.Lock()
-					sf.tasks = append(sf.tasks, tasks[i:]...)
-					sf.lock.Unlock()
-					return
-
 				case ch := <-sf.copy:
 					// Somebody wants a copy of the current trie, grant them
 					ch <- sf.db.CopyTrie(sf.trie)
