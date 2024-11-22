@@ -219,7 +219,7 @@ func (wp *workerPool) Execute(f func()) {
 	})
 }
 
-func WorkerOpt(prefetchers int) (PrefetcherOption, func()) {
+func WithConcurrentWorkers(prefetchers int) (PrefetcherOption, func()) {
 	pool := utils.NewBoundedWorkers(prefetchers)
 	cleanup := func() { _ = pool.Wait() }
 	return WithWorkerPools(func() WorkerPool {

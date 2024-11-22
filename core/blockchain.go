@@ -1367,7 +1367,7 @@ func (bc *BlockChain) insertBlock(block *types.Block, writes bool) error {
 	blockStateInitTimer.Inc(time.Since(substart).Milliseconds())
 
 	// Enable prefetching to pull in trie node paths while processing transactions
-	opt, cleanup := state.WorkerOpt(bc.cacheConfig.TriePrefetcherParallelism)
+	opt, cleanup := state.WithConcurrentWorkers(bc.cacheConfig.TriePrefetcherParallelism)
 	defer cleanup()
 
 	statedb.StartPrefetcher("chain", opt)
@@ -1729,7 +1729,7 @@ func (bc *BlockChain) reprocessBlock(parent *types.Block, current *types.Block) 
 	}
 
 	// Enable prefetching to pull in trie node paths while processing transactions
-	opt, cleanup := state.WorkerOpt(bc.cacheConfig.TriePrefetcherParallelism)
+	opt, cleanup := state.WithConcurrentWorkers(bc.cacheConfig.TriePrefetcherParallelism)
 	defer cleanup()
 
 	statedb.StartPrefetcher("chain", opt)
