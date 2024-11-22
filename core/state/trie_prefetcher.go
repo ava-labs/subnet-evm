@@ -79,6 +79,7 @@ func newTriePrefetcher(db Database, root common.Hash, namespace string, opts ...
 // close iterates over all the subfetchers, aborts any that were left spinning
 // and reports the stats to the metrics subsystem.
 func (p *triePrefetcher) close() {
+	p.abortFetchersAndReleaseWorkerPools()
 	for _, fetcher := range p.fetchers {
 		fetcher.abort() // safe to do multiple times
 
@@ -305,7 +306,7 @@ func (sf *subfetcher) abort() {
 func (sf *subfetcher) loop() {
 	// No matter how the loop stops, signal anyone waiting that it's terminated
 	defer func() {
-		sf.wait()
+		sf.pool.wait()
 		close(sf.term)
 	}()
 
@@ -350,9 +351,9 @@ func (sf *subfetcher) loop() {
 						sf.dups++
 					} else {
 						if len(task) == common.AddressLength {
-							sf.GetAccount(common.BytesToAddress(task))
+							sf.pool.GetAccount(common.BytesToAddress(task))
 						} else {
-							sf.GetStorage(sf.addr, task)
+							sf.pool.GetStorage(sf.addr, task)
 						}
 						sf.seen[string(task)] = struct{}{}
 					}

@@ -205,7 +205,9 @@ type workerPool struct {
 	*utils.BoundedWorkers
 }
 
-func (wp *workerPool) Wait() {
+func (wp *workerPool) Done() {
+	// Done is guaranteed to only be called after all work is already complete,
+	// so Wait()ing is redundant, but it also releases resources.
 	wp.BoundedWorkers.Wait()
 }
 
