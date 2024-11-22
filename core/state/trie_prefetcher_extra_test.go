@@ -132,9 +132,6 @@ func BenchmarkPrefetcherDatabase(b *testing.B) {
 				require.NoError(err)
 				snaps := snapshot.NewTestTree(levelDB, fakeHash(block), root)
 				db := NewDatabaseWithConfig(levelDB, tdbConfig)
-				if prefetchers > 0 {
-					db = WithPrefetcher(db, prefetchers)
-				}
 				getMetric := func(metric string) int64 {
 					meter := metrics.GetOrRegisterMeter(triePrefetchMetricsPrefix+namespace+"/storage/"+metric, nil)
 					return meter.Snapshot().Count()
@@ -170,7 +167,7 @@ func addKVs(
 		return nil, common.Hash{}, err
 	}
 	if prefetchers > 0 {
-		statedb.StartPrefetcher(namespace)
+		statedb.StartPrefetcher(namespace, WorkerOpt(prefetchers))
 		defer statedb.StopPrefetcher()
 	}
 	statedb.SetNonce(address1, 1)

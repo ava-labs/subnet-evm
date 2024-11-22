@@ -59,8 +59,7 @@ func filledStateDB() *StateDB {
 
 func TestCopyAndClose(t *testing.T) {
 	db := filledStateDB()
-	prefetchDb := newPrefetcherDatabase(db.db, maxConcurrency)
-	prefetcher := newTriePrefetcher(prefetchDb, db.originalRoot, "")
+	prefetcher := newTriePrefetcher(db.db, db.originalRoot, "", WorkerOpt(maxConcurrency))
 	skey := common.HexToHash("aaa")
 	prefetcher.prefetch(common.Hash{}, db.originalRoot, common.Address{}, [][]byte{skey.Bytes()})
 	prefetcher.prefetch(common.Hash{}, db.originalRoot, common.Address{}, [][]byte{skey.Bytes()})
@@ -85,8 +84,7 @@ func TestCopyAndClose(t *testing.T) {
 
 func TestUseAfterClose(t *testing.T) {
 	db := filledStateDB()
-	prefetchDb := newPrefetcherDatabase(db.db, maxConcurrency)
-	prefetcher := newTriePrefetcher(prefetchDb, db.originalRoot, "")
+	prefetcher := newTriePrefetcher(db.db, db.originalRoot, "")
 	skey := common.HexToHash("aaa")
 	prefetcher.prefetch(common.Hash{}, db.originalRoot, common.Address{}, [][]byte{skey.Bytes()})
 	a := prefetcher.trie(common.Hash{}, db.originalRoot)
@@ -102,8 +100,7 @@ func TestUseAfterClose(t *testing.T) {
 
 func TestCopyClose(t *testing.T) {
 	db := filledStateDB()
-	prefetchDb := newPrefetcherDatabase(db.db, maxConcurrency)
-	prefetcher := newTriePrefetcher(prefetchDb, db.originalRoot, "")
+	prefetcher := newTriePrefetcher(db.db, db.originalRoot, "")
 	skey := common.HexToHash("aaa")
 	prefetcher.prefetch(common.Hash{}, db.originalRoot, common.Address{}, [][]byte{skey.Bytes()})
 	cpy := prefetcher.copy()
