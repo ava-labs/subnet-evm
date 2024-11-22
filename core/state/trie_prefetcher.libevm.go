@@ -79,13 +79,17 @@ func (sf *subfetcher) wait() {
 // configured with a [WorkerPool] then it is used for function execution,
 // otherwise `fn` is just called directly.
 func (sf *subfetcher) execute(fn func(Trie)) {
-	trie := sf.pool.tries.Get().(Trie)
 	if w := sf.pool.workers; w != nil {
-		w.Execute(func() { fn(trie) })
+		w.Execute(func() {
+			trie := sf.pool.tries.Get().(Trie)
+			fn(trie)
+			sf.pool.tries.Put(trie)
+		})
 	} else {
+		trie := sf.pool.tries.Get().(Trie)
 		fn(trie)
+		sf.pool.tries.Put(trie)
 	}
-	sf.pool.tries.Put(trie)
 }
 
 // GetAccount optimistically pre-fetches an account, dropping the returned value

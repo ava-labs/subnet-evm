@@ -30,6 +30,7 @@ package state
 import (
 	"fmt"
 	"sort"
+	"sync"
 	"time"
 
 	"github.com/ava-labs/subnet-evm/core/rawdb"
@@ -201,15 +202,31 @@ func NewWithSnapshot(root common.Hash, db Database, snap snapshot.Snapshot) (*St
 	return sdb, nil
 }
 
-type workerPool struct{ *utils.BoundedWorkers }
-
-func (wp workerPool) Wait() {
-	_ = wp.BoundedWorkers.Wait()
+type workerPool struct {
+	*utils.BoundedWorkers
+	wg sync.WaitGroup
 }
 
-func WorkerOpt(prefetchers int) PrefetcherOption {
-	pool := workerPool{utils.NewBoundedWorkers(prefetchers)}
-	return WithWorkerPools(func() WorkerPool { return pool })
+func (wp *workerPool) Wait() {
+	wp.wg.Wait()
+}
+
+func (wp *workerPool) Execute(f func()) {
+	wp.wg.Add(1)
+	wp.BoundedWorkers.Execute(func() {
+		f()
+		wp.wg.Done()
+	})
+}
+
+func WorkerOpt(prefetchers int) (PrefetcherOption, func()) {
+	pool := utils.NewBoundedWorkers(prefetchers)
+	cleanup := func() { _ = pool.Wait() }
+	return WithWorkerPools(func() WorkerPool {
+		return &workerPool{
+			BoundedWorkers: pool,
+		}
+	}), cleanup
 }
 
 // StartPrefetcher initializes a new trie prefetcher to pull in nodes from the

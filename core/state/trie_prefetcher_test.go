@@ -59,7 +59,9 @@ func filledStateDB() *StateDB {
 
 func TestCopyAndClose(t *testing.T) {
 	db := filledStateDB()
-	prefetcher := newTriePrefetcher(db.db, db.originalRoot, "", WorkerOpt(maxConcurrency))
+	opt, cleanup := WorkerOpt(maxConcurrency)
+	defer cleanup()
+	prefetcher := newTriePrefetcher(db.db, db.originalRoot, "", opt)
 	skey := common.HexToHash("aaa")
 	prefetcher.prefetch(common.Hash{}, db.originalRoot, common.Address{}, [][]byte{skey.Bytes()})
 	prefetcher.prefetch(common.Hash{}, db.originalRoot, common.Address{}, [][]byte{skey.Bytes()})
