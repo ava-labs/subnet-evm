@@ -104,6 +104,7 @@ func (p *triePrefetcher) close() {
 			}
 		}
 	}
+	p.releaseWorkerPools()
 	// Clear out all fetchers (will crash on a second call, deliberate)
 	p.fetchers = nil
 }
@@ -303,9 +304,11 @@ func (sf *subfetcher) abort() {
 // loop waits for new tasks to be scheduled and keeps loading them until it runs
 // out of tasks or its underlying trie is retrieved for committing.
 func (sf *subfetcher) loop() {
-	defer sf.wait()
 	// No matter how the loop stops, signal anyone waiting that it's terminated
-	defer close(sf.term)
+	defer func() {
+		sf.pool.wait()
+		close(sf.term)
+	}()
 
 	// Start by opening the trie and stop processing if it fails
 	if sf.owner == (common.Hash{}) {
@@ -348,9 +351,9 @@ func (sf *subfetcher) loop() {
 						sf.dups++
 					} else {
 						if len(task) == common.AddressLength {
-							sf.GetAccount(common.BytesToAddress(task))
+							sf.pool.GetAccount(common.BytesToAddress(task))
 						} else {
-							sf.GetStorage(sf.addr, task)
+							sf.pool.GetStorage(sf.addr, task)
 						}
 						sf.seen[string(task)] = struct{}{}
 					}

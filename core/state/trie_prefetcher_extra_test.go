@@ -167,9 +167,7 @@ func addKVs(
 		return nil, common.Hash{}, err
 	}
 	if prefetchers > 0 {
-		opt, cleanup := WithConcurrentWorkers(prefetchers)
-		defer cleanup()
-
+		opt := WithConcurrentWorkers(prefetchers)
 		statedb.StartPrefetcher(namespace, opt)
 		defer statedb.StopPrefetcher()
 	}
