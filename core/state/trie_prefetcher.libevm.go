@@ -17,9 +17,8 @@
 package state
 
 import (
-	"sync"
-
 	"github.com/ava-labs/subnet-evm/libevm/options"
+	"github.com/ava-labs/subnet-evm/libevm/sync"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 )
@@ -50,7 +49,7 @@ func WithWorkerPools(ctor func() WorkerPool) PrefetcherOption {
 
 type subfetcherPool struct {
 	workers WorkerPool
-	tries   sync.Pool
+	tries   sync.Pool[Trie]
 	wg      sync.WaitGroup
 }
 
@@ -58,10 +57,10 @@ type subfetcherPool struct {
 // with a [PrefetcherOption].
 func (c *prefetcherConfig) applyTo(sf *subfetcher) {
 	sf.pool = &subfetcherPool{
-		tries: sync.Pool{
+		tries: sync.Pool[Trie]{
 			// Although the workers may be shared between all subfetchers, each
 			// MUST have its own Trie pool.
-			New: func() any {
+			New: func() Trie {
 				return sf.db.CopyTrie(sf.trie)
 			},
 		},
@@ -71,22 +70,11 @@ func (c *prefetcherConfig) applyTo(sf *subfetcher) {
 	}
 }
 
-func (p *triePrefetcher) abortFetchersAndReleaseWorkerPools() {
-	// Calling abort() sequentially may result in later fetchers accepting new
-	// work in the interim.
-	var wg sync.WaitGroup
-	for _, f := range p.fetchers {
-		wg.Add(1)
-		go func(f *subfetcher) {
-			f.abort()
-			wg.Done()
-		}(f)
-	}
-
-	// A WorkerPool is allowed to be shared between fetchers so we MUST wait for
-	// them to finish all tasks otherwise they could call Execute() after
-	// Done(), which we guarantee in the public API to be impossible.
-	wg.Wait()
+// releaseWorkerPools calls Done() on all [WorkerPool]s. This MUST only be
+// called after [subfetcher.abort] returns on ALL fetchers as a pool is allowed
+// to be shared between them. This is because we guarantee in the public API
+// that no further calls will be made to Execute() after a call to Done().
+func (p *triePrefetcher) releaseWorkerPools() {
 	for _, f := range p.fetchers {
 		if w := f.pool.workers; w != nil {
 			w.Done()
@@ -105,7 +93,7 @@ func (p *subfetcherPool) wait() {
 func (p *subfetcherPool) execute(fn func(Trie)) {
 	p.wg.Add(1)
 	do := func() {
-		t := p.tries.Get().(Trie)
+		t := p.tries.Get()
 		fn(t)
 		p.tries.Put(t)
 		p.wg.Done()

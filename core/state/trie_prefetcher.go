@@ -79,7 +79,6 @@ func newTriePrefetcher(db Database, root common.Hash, namespace string, opts ...
 // close iterates over all the subfetchers, aborts any that were left spinning
 // and reports the stats to the metrics subsystem.
 func (p *triePrefetcher) close() {
-	p.abortFetchersAndReleaseWorkerPools()
 	for _, fetcher := range p.fetchers {
 		fetcher.abort() // safe to do multiple times
 
@@ -105,6 +104,7 @@ func (p *triePrefetcher) close() {
 			}
 		}
 	}
+	p.releaseWorkerPools()
 	// Clear out all fetchers (will crash on a second call, deliberate)
 	p.fetchers = nil
 }
