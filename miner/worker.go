@@ -284,8 +284,8 @@ func (w *worker) createCurrentEnvironment(predicateContext *precompileconfig.Pre
 	if err != nil {
 		return nil, err
 	}
-	opt := state.WithConcurrentWorkers(w.chain.CacheConfig().TriePrefetcherParallelism)
-	currentState.StartPrefetcher("miner", opt)
+	numPrefetchers := w.chain.CacheConfig().TriePrefetcherParallelism
+	currentState.StartPrefetcher("miner", state.WithConcurrentWorkers(numPrefetchers))
 	return &environment{
 		signer:           types.MakeSigner(w.chainConfig, header.Number, header.Time),
 		state:            currentState,

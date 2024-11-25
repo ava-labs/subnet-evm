@@ -2,6 +2,8 @@
 
 ## Pending Release
 
+* Refactored trie_prefetcher.go to be structurally similar to upstream.
+
 ## [v0.6.11](https://github.com/ava-labs/subnet-evm/releases/tag/v0.6.11)
 
 This release focuses on Standalone DB and database configs.
