@@ -12,7 +12,7 @@ The state package stores the validator state and uptime information. The state p
 
 For L1 validators, an `active` status implies the validator balance on the P-Chain is sufficient to cover the continuous validation fee. When an L1 validator balance is depleted, it is marked as `inactive` on the P-Chain and this information is passed to the Subnet-EVM's state.
 
-The State interface allows a listener to register to the state changes including validator addition, removal and active status change. The listener always receives the full state when it first subscribes.
+The state interface allows a listener to register state changes including validator addition, removal, and active status change. The listener always receives the full state when it first subscribes.
 
 The package defines how to serialize the data according to the codec. It can read and write the validator state and uptime information within the database.
 
