@@ -24,17 +24,33 @@ The uptime package must be run on at least one L1 node, referred to in this docu
 
 Uptime tracking works as follows:
 
-1- StartTracking: Nodes can start uptime tracking with `StartTracking` method when they're bootstrapped. This method updates the uptime of up-to-date validators by adding the duration between their last updated and tracker node's initializing time to their uptimes. This effectively adds the offline duration of tracker node's to the uptime of validators and optimistically assumes that the validators are online during this period. Subnet-EVM's Pausable manager does not directly modifies this behaviour and it also updates validators that were paused/inactive before the node initialized. Pausable Uptime Manager assumes peers are online and active (has enough fees) when tracker nodes are offline.
+### StartTracking
 
-2- Connected: Avalanche Uptime manager records the time when a peer is connected to the tracker node (the node running the uptime tracking). When a paused (inactive) validator is connected, pausable uptime manager does not directly invokes the `Connected` on Avalanche Uptime manager, thus the connection time is not directly recorded. Instead, pausable uptime manager waits for the validator to be resumed (top-up fee balance). When the validator is resumed, the tracker records the resumed time and starts tracking the uptime of the validator. Note: Uptime manager does not check if the connected peer is a validator or not. It records the connection time assuming that a non-validator peer can become a validator whilst they're connected to the uptime manager.
+Nodes can start uptime tracking with the `StartTracking` method once they're bootstrapped. This method updates the uptime of up-to-date validators by adding the duration between their last updated time and tracker node's initializing time to their uptime. This effectively adds the tracker node's offline duration to the validator's uptime and optimistically assumes that the validators are online during this period. Subnet-EVM's pausable manager does not directly modify this behavior and it also updates validators that were paused/inactive before the node initialized. The pausable uptime manager assumes peers are online and `active` when the tracker nodes are offline.
 
-3- Disconnected: When a peer validator is disconnected, Avalanche Uptime manager updates the uptime of the validator by adding the duration between the connection time and the disconnection time to the uptime of the validator. The pausable uptime manager handles the inactive peers as if they were disconnected when they are paused, thus it assumes that no paused peers can be disconnected again from the pausable uptime manager.
+### Connected 
 
-4- Pause: Pausable Uptime Manager can listen the validator status change via subscribing to the state. When state invokes the `OnValidatorStatusChange` method, pausable uptime manager pauses the uptime tracking of the validator if the validator is inactive. When a validator is paused, it is treated as if it is disconnected from the tracker node; thus it's uptime is updated from the connection time to the pause time and uptime manager stops tracking the uptime of the validator.
+The AvalancheGo uptime manager records the time when a peer is connected to the tracker node. When a paused/ `inactive` validator is connected, the pausable uptime manager does not directly invoke the `Connected` method on the AvalancheGo uptime manager, thus the connection time is not directly recorded. Instead, the pausable uptime manager waits for the validator to increase it's continuous validation fee balance and resume operation. When the validator resumes, the tracker node records the resumed time and starts tracking the uptime of the validator. 
 
-5- Resume: When a paused validator peer resumes (status become active), pausable uptime manager resumes the uptime tracking of the validator. It basically treat the peer as if it is connected to the tracker node. Note: Pausable uptime manager holds the set of connected peers that does track the connected peer in p2p layer. The set is used to start tracking the uptime of the paused validators when they resume; this is because the inner AvalancheGo manager thinks that the peer is completely disconnected when it is paused. Pausable uptime manager is able to re-connect them to the inner manager by using this additional connected set.
+Note: The uptime manager does not check if the connected peer is a validator or not. It records the connection time assuming that a non-validator peer can become a validator whilst they're connected to the uptime manager.
 
-6- CalculateUptime: The CalculateUptime method calculates a node's updated uptime based on its connection status, connected time and the current time. It first retrieves the node's current uptime and last update time from the state, returning an error if retrieval fails. If tracking hasn’t started, it assumes the node has been online since the last update, adding this duration to its uptime. If the node is not connected and tracking is active, uptime remains unchanged and returned. For connected nodes, the method ensures the connection time does not predate the last update to avoid double-counting. Finally, it adds the duration since the connection time to the node's uptime and returns the updated values.
+### Disconnected
+
+When a peer validator is disconnected, the AvalancheGo uptime manager updates the uptime of the validator by adding the duration between the connection time and the disconnection time to the uptime of the validator. When a validator is paused/`inactive`, the pausable uptime manager handles the `inactive` peers as if they were disconnected. Thus the uptime manager assumes that no paused peers can be disconnected again from the pausable uptime manager.
+
+### Pause
+
+The pausable uptime manager can listen for validator status changes by subscribing to the state. When the state invokes the `OnValidatorStatusChange` method, the pausable uptime manager pauses the uptime tracking of the validator if the validator is currently `inactive`. When a validator is paused, it is treated as if it is disconnected from the tracker node; thus, it's uptime is updated from the connection time to the pause time and uptime manager stops tracking the uptime of the validator.
+
+### Resume
+
+When a paused validator peer resumes, meaning its status become `active`, the pausable uptime manager resumes the uptime tracking of the validator. It treats the peer as if it is connected to the tracker node. 
+
+Note: The pausable uptime manager holds the set of connected peers that tracks the connected peers in the p2p layer. This set is used to start tracking the uptime of the paused/`inactive` validators when they resume; this is because the AvalancheGo uptime manager thinks that the peer is completely disconnected when it is paused. The pausable uptime manager is able to reconnect them to the inner manager by using this additional connected set.
+
+### CalculateUptime
+
+The `CalculateUptime` method calculates a node's uptime based on its connection status, connected time, and the current time. It first retrieves the node's current uptime and last update time from the state, returning an error if retrieval fails. If tracking hasn’t started, it assumes the node has been online since the last update, adding this duration to its uptime. If the node is not connected and tracking is `active`, uptime remains unchanged and returned. For connected nodes, the method ensures the connection time does not predate the last update to avoid double counting. Finally, it adds the duration since the last connection time to the node's uptime and returns the updated values.
 
 ## Validator Manager Struct
 
