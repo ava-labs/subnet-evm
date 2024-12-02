@@ -26,7 +26,7 @@
 
 package blobpool
 
-import "github.com/ava-labs/subnet-evm/metrics"
+import "github.com/ava-labs/coreth/metrics"
 
 var (
 	// datacapGauge tracks the user's configured capacity for the blob pool. It

@@ -27,7 +27,7 @@
 package node
 
 import (
-	"github.com/ava-labs/subnet-evm/rpc"
+	"github.com/ava-labs/coreth/rpc"
 	"github.com/ethereum/go-ethereum/accounts"
 )
 

@@ -21,7 +21,7 @@ import (
 	"io"
 	"math/big"
 
-	"github.com/ava-labs/subnet-evm/eth/tracers"
+	"github.com/ava-labs/coreth/eth/tracers"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/log"

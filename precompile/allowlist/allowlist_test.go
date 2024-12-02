@@ -6,11 +6,11 @@ package allowlist_test
 import (
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/core/extstate"
-	. "github.com/ava-labs/subnet-evm/precompile/allowlist"
-	"github.com/ava-labs/subnet-evm/precompile/contract"
-	"github.com/ava-labs/subnet-evm/precompile/modules"
-	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
+	"github.com/ava-labs/coreth/core/extstate"
+	. "github.com/ava-labs/coreth/precompile/allowlist"
+	"github.com/ava-labs/coreth/precompile/contract"
+	"github.com/ava-labs/coreth/precompile/modules"
+	"github.com/ava-labs/coreth/precompile/precompileconfig"
 	"github.com/ethereum/go-ethereum/common"
 )
 

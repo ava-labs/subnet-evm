@@ -23,12 +23,12 @@ import (
 	"github.com/ava-labs/avalanchego/tests/antithesis"
 	"github.com/ava-labs/avalanchego/tests/fixture/tmpnet"
 
-	"github.com/ava-labs/subnet-evm/accounts/abi/bind"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/ethclient"
-	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/tests"
-	"github.com/ava-labs/subnet-evm/tests/utils"
+	"github.com/ava-labs/coreth/accounts/abi/bind"
+	"github.com/ava-labs/coreth/core/types"
+	"github.com/ava-labs/coreth/ethclient"
+	"github.com/ava-labs/coreth/params"
+	"github.com/ava-labs/coreth/tests"
+	"github.com/ava-labs/coreth/tests/utils"
 
 	ago_tests "github.com/ava-labs/avalanchego/tests"
 	timerpkg "github.com/ava-labs/avalanchego/utils/timer"
