@@ -40,6 +40,8 @@ func (r RulesExtra) CanCreateContract(ac *libevm.AddressContext, gas uint64, sta
 }
 
 func (r RulesExtra) CanExecuteTransaction(_ common.Address, _ *common.Address, _ libevm.StateReader) error {
+	// TODO: Migrate call for txallowlist precompile to here from core/state_transition.go
+	// when that is used from libevm.
 	return nil
 }
 
