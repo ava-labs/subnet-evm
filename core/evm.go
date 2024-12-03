@@ -30,16 +30,16 @@ import (
 	"bytes"
 	"math/big"
 
-	"github.com/ava-labs/coreth/consensus"
-	"github.com/ava-labs/coreth/consensus/misc/eip4844"
-	"github.com/ava-labs/coreth/core/extstate"
-	"github.com/ava-labs/coreth/core/types"
-	"github.com/ava-labs/coreth/params"
-	"github.com/ava-labs/coreth/predicate"
 	"github.com/ava-labs/libevm/common"
 	ethtypes "github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/libevm/core/vm"
 	"github.com/ava-labs/libevm/log"
+	"github.com/ava-labs/subnet-evm/consensus"
+	"github.com/ava-labs/subnet-evm/consensus/misc/eip4844"
+	"github.com/ava-labs/subnet-evm/core/extstate"
+	"github.com/ava-labs/subnet-evm/core/types"
+	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/predicate"
 	"github.com/holiman/uint256"
 )
 

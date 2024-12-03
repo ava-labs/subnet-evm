@@ -6,7 +6,7 @@ package params
 import (
 	"testing"
 
-	"github.com/ava-labs/coreth/utils"
+	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/stretchr/testify/assert"
 )
 

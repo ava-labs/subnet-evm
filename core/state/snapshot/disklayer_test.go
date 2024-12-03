@@ -30,10 +30,10 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/ava-labs/coreth/core/rawdb"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/ethdb/memorydb"
 	"github.com/ava-labs/libevm/rlp"
+	"github.com/ava-labs/subnet-evm/core/rawdb"
 )
 
 // reverse reverses the contents of a byte slice. It's used to update random accs

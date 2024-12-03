@@ -31,10 +31,10 @@ import (
 	"errors"
 	"time"
 
-	"github.com/ava-labs/coreth/core/types"
-	"github.com/ava-labs/coreth/interfaces"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/log"
+	"github.com/ava-labs/subnet-evm/core/types"
+	"github.com/ava-labs/subnet-evm/interfaces"
 )
 
 // WaitMined waits for tx to be mined on the blockchain.

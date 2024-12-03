@@ -11,13 +11,13 @@ import (
 	"sync"
 
 	"github.com/ava-labs/avalanchego/utils/wrappers"
-	"github.com/ava-labs/coreth/core/rawdb"
-	syncclient "github.com/ava-labs/coreth/sync/client"
-	"github.com/ava-labs/coreth/utils"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/ethdb"
 	"github.com/ava-labs/libevm/log"
 	"github.com/ava-labs/libevm/trie"
+	"github.com/ava-labs/subnet-evm/core/rawdb"
+	syncclient "github.com/ava-labs/subnet-evm/sync/client"
+	"github.com/ava-labs/subnet-evm/utils"
 )
 
 var (

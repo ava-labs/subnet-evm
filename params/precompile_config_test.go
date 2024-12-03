@@ -8,14 +8,14 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ava-labs/coreth/commontype"
-	"github.com/ava-labs/coreth/precompile/contracts/deployerallowlist"
-	"github.com/ava-labs/coreth/precompile/contracts/feemanager"
-	"github.com/ava-labs/coreth/precompile/contracts/nativeminter"
-	"github.com/ava-labs/coreth/precompile/contracts/rewardmanager"
-	"github.com/ava-labs/coreth/precompile/contracts/txallowlist"
-	"github.com/ava-labs/coreth/utils"
 	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/subnet-evm/commontype"
+	"github.com/ava-labs/subnet-evm/precompile/contracts/deployerallowlist"
+	"github.com/ava-labs/subnet-evm/precompile/contracts/feemanager"
+	"github.com/ava-labs/subnet-evm/precompile/contracts/nativeminter"
+	"github.com/ava-labs/subnet-evm/precompile/contracts/rewardmanager"
+	"github.com/ava-labs/subnet-evm/precompile/contracts/txallowlist"
+	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/stretchr/testify/require"
 )
 

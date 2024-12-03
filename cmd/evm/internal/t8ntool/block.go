@@ -34,12 +34,12 @@ import (
 	"math/big"
 	"os"
 
-	"github.com/ava-labs/coreth/core/types"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/common/hexutil"
 	"github.com/ava-labs/libevm/common/math"
 	"github.com/ava-labs/libevm/crypto"
 	"github.com/ava-labs/libevm/rlp"
+	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/urfave/cli/v2"
 )
 

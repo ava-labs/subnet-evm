@@ -6,8 +6,8 @@ package stateupgrade
 import (
 	"math/big"
 
-	"github.com/ava-labs/coreth/params"
 	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/subnet-evm/params"
 	"github.com/holiman/uint256"
 )
 

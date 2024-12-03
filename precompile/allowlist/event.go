@@ -7,8 +7,8 @@ package allowlist
 import (
 	"math/big"
 
-	"github.com/ava-labs/coreth/precompile/contract"
 	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/subnet-evm/precompile/contract"
 )
 
 const (

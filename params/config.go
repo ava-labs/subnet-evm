@@ -31,8 +31,8 @@ import (
 
 	"github.com/ava-labs/avalanchego/upgrade"
 	"github.com/ava-labs/avalanchego/utils/constants"
-	"github.com/ava-labs/coreth/utils"
 	ethparams "github.com/ava-labs/libevm/params"
+	"github.com/ava-labs/subnet-evm/utils"
 )
 
 // Guarantees extras initialisation before a call to [ChainConfig.Rules].

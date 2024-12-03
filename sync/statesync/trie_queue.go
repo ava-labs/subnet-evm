@@ -4,9 +4,9 @@
 package statesync
 
 import (
-	"github.com/ava-labs/coreth/core/rawdb"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/ethdb"
+	"github.com/ava-labs/subnet-evm/core/rawdb"
 )
 
 // trieQueue persists storage trie roots with their associated

@@ -10,8 +10,8 @@ import (
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp"
-	"github.com/ava-labs/coreth/commontype"
 	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/subnet-evm/commontype"
 )
 
 // StatefulPrecompileConfig defines the interface for a stateful precompile to

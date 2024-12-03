@@ -38,8 +38,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ava-labs/coreth/core/types"
 	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/subnet-evm/core/types"
 )
 
 func TestNewID(t *testing.T) {

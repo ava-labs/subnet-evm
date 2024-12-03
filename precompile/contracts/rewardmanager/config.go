@@ -7,9 +7,9 @@
 package rewardmanager
 
 import (
-	"github.com/ava-labs/coreth/precompile/allowlist"
-	"github.com/ava-labs/coreth/precompile/contract"
-	"github.com/ava-labs/coreth/precompile/precompileconfig"
+	"github.com/ava-labs/subnet-evm/precompile/allowlist"
+	"github.com/ava-labs/subnet-evm/precompile/contract"
+	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 
 	"github.com/ava-labs/libevm/common"
 )

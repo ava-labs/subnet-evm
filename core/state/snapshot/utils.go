@@ -31,10 +31,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ava-labs/coreth/core/rawdb"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/ethdb"
 	"github.com/ava-labs/libevm/log"
+	"github.com/ava-labs/subnet-evm/core/rawdb"
 )
 
 // CheckDanglingStorage iterates the snap storage data, and verifies that all

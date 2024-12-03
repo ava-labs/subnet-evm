@@ -32,12 +32,12 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/ava-labs/coreth/internal/blocktest"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/common/math"
 	"github.com/ava-labs/libevm/crypto"
 	"github.com/ava-labs/libevm/params"
 	"github.com/ava-labs/libevm/rlp"
+	"github.com/ava-labs/subnet-evm/internal/blocktest"
 )
 
 func TestBlockEncoding(t *testing.T) {

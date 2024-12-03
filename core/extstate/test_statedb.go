@@ -5,10 +5,10 @@ package extstate
 import (
 	"testing"
 
-	"github.com/ava-labs/coreth/core/rawdb"
-	"github.com/ava-labs/coreth/core/state"
-	"github.com/ava-labs/coreth/precompile/contract"
 	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/subnet-evm/core/rawdb"
+	"github.com/ava-labs/subnet-evm/core/state"
+	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/stretchr/testify/require"
 )
 

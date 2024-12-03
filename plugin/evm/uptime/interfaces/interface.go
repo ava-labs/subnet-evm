@@ -6,7 +6,7 @@ package interfaces
 import (
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow/uptime"
-	validatorsinterfaces "github.com/ava-labs/coreth/plugin/evm/validators/interfaces"
+	validatorsinterfaces "github.com/ava-labs/subnet-evm/plugin/evm/validators/interfaces"
 )
 
 type PausableManager interface {

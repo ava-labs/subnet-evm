@@ -38,8 +38,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ava-labs/coreth/metrics"
 	"github.com/ava-labs/libevm/log"
+	"github.com/ava-labs/subnet-evm/metrics"
 	"golang.org/x/time/rate"
 )
 

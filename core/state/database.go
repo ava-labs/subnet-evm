@@ -30,7 +30,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ava-labs/coreth/core/rawdb"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/common/lru"
 	ethstate "github.com/ava-labs/libevm/core/state"
@@ -39,6 +38,7 @@ import (
 	"github.com/ava-labs/libevm/trie"
 	"github.com/ava-labs/libevm/trie/utils"
 	"github.com/ava-labs/libevm/triedb"
+	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/crate-crypto/go-ipa/banderwagon"
 )
 

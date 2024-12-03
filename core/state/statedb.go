@@ -28,9 +28,9 @@
 package state
 
 import (
-	"github.com/ava-labs/coreth/utils"
 	"github.com/ava-labs/libevm/common"
 	ethstate "github.com/ava-labs/libevm/core/state"
+	"github.com/ava-labs/subnet-evm/utils"
 )
 
 // StateDB structs within the ethereum protocol are used to store anything

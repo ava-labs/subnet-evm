@@ -29,8 +29,8 @@ package runtime_test
 import (
 	"fmt"
 
-	"github.com/ava-labs/coreth/core/vm/runtime"
 	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/subnet-evm/core/vm/runtime"
 )
 
 func ExampleExecute() {

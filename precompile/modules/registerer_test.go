@@ -7,8 +7,8 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ava-labs/coreth/constants"
 	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/stretchr/testify/require"
 )
 

@@ -39,8 +39,8 @@ import (
 	"text/template"
 	"unicode"
 
-	"github.com/ava-labs/coreth/accounts/abi"
 	"github.com/ava-labs/libevm/log"
+	"github.com/ava-labs/subnet-evm/accounts/abi"
 )
 
 // BindHook is a callback function that can be used to customize the binding.

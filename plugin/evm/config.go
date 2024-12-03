@@ -9,10 +9,10 @@ import (
 	"time"
 
 	"github.com/ava-labs/avalanchego/database/pebbledb"
-	"github.com/ava-labs/coreth/core/txpool/legacypool"
-	"github.com/ava-labs/coreth/eth"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/common/hexutil"
+	"github.com/ava-labs/subnet-evm/core/txpool/legacypool"
+	"github.com/ava-labs/subnet-evm/eth"
 	"github.com/spf13/cast"
 )
 

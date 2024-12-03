@@ -8,9 +8,9 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/ava-labs/coreth/accounts/abi"
-	"github.com/ava-labs/coreth/vmerrs"
 	"github.com/ava-labs/libevm/crypto"
+	"github.com/ava-labs/subnet-evm/accounts/abi"
+	"github.com/ava-labs/subnet-evm/vmerrs"
 )
 
 // Gas costs for stateful precompiles
