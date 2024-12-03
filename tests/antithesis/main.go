@@ -22,6 +22,7 @@ import (
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/tests/antithesis"
 	"github.com/ava-labs/avalanchego/tests/fixture/tmpnet"
+	"github.com/ava-labs/avalanchego/utils/logging"
 
 	"github.com/ava-labs/subnet-evm/accounts/abi/bind"
 	"github.com/ava-labs/subnet-evm/core/types"
@@ -37,7 +38,7 @@ import (
 const NumKeys = 5
 
 func main() {
-	tc := ago_tests.NewTestContext()
+	tc := ago_tests.NewTestContext(logging.NoLog{})
 	defer tc.Cleanup()
 	require := require.New(tc)
 
@@ -116,7 +117,7 @@ type workload struct {
 func (w *workload) run(ctx context.Context) {
 	timer := timerpkg.StoppedTimer()
 
-	tc := ago_tests.NewTestContext()
+	tc := ago_tests.NewTestContext(logging.NoLog{})
 	defer tc.Cleanup()
 	require := require.New(tc)
 

@@ -12,8 +12,8 @@ package precompileconfig
 import (
 	reflect "reflect"
 
-	commontype "github.com/ava-labs/subnet-evm/commontype"
 	common "github.com/ava-labs/libevm/common"
+	commontype "github.com/ava-labs/subnet-evm/commontype"
 	gomock "go.uber.org/mock/gomock"
 )
 

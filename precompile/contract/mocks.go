@@ -14,9 +14,9 @@ import (
 	reflect "reflect"
 
 	snow "github.com/ava-labs/avalanchego/snow"
-	precompileconfig "github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	common "github.com/ava-labs/libevm/common"
 	types "github.com/ava-labs/libevm/core/types"
+	precompileconfig "github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	uint256 "github.com/holiman/uint256"
 	gomock "go.uber.org/mock/gomock"
 )
