@@ -17,9 +17,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/log"
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/crypto"
+	"github.com/ava-labs/libevm/log"
 
 	"github.com/stretchr/testify/require"
 
@@ -41,6 +41,7 @@ import (
 	"github.com/ava-labs/avalanchego/utils/logging"
 	"github.com/ava-labs/avalanchego/vms/components/chain"
 
+	"github.com/ava-labs/libevm/trie"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
 	"github.com/ava-labs/subnet-evm/constants"
@@ -56,7 +57,6 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/contracts/rewardmanager"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/txallowlist"
 	"github.com/ava-labs/subnet-evm/rpc"
-	"github.com/ava-labs/subnet-evm/trie"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 

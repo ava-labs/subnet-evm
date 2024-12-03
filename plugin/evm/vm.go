@@ -24,6 +24,7 @@ import (
 	"github.com/ava-labs/avalanchego/network/p2p/gossip"
 	"github.com/prometheus/client_golang/prometheus"
 
+	"github.com/ava-labs/libevm/triedb"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
 	"github.com/ava-labs/subnet-evm/constants"
@@ -40,7 +41,6 @@ import (
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/peer"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
-	"github.com/ava-labs/subnet-evm/triedb"
 	"github.com/ava-labs/subnet-evm/triedb/hashdb"
 
 	warpcontract "github.com/ava-labs/subnet-evm/precompile/contracts/warp"
@@ -54,17 +54,17 @@ import (
 	// We must import this package (not referenced elsewhere) so that the native "callTracer"
 	// is added to a map of client-accessible tracers. In geth, this is done
 	// inside of cmd/geth.
-	_ "github.com/ethereum/go-ethereum/eth/tracers/js"
-	_ "github.com/ethereum/go-ethereum/eth/tracers/native"
+	_ "github.com/ava-labs/libevm/eth/tracers/js"
+	_ "github.com/ava-labs/libevm/eth/tracers/native"
 
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	// Force-load precompiles to trigger registration
 	_ "github.com/ava-labs/subnet-evm/precompile/registry"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/ethdb"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/ethdb"
+	"github.com/ava-labs/libevm/log"
+	"github.com/ava-labs/libevm/rlp"
 
 	avalancheRPC "github.com/gorilla/rpc/v2"
 
@@ -814,9 +814,9 @@ func (vm *VM) setAppRequestHandlers() {
 	evmTrieDB := triedb.NewDatabase(
 		vm.chaindb,
 		&triedb.Config{
-			HashDB: &hashdb.Config{
+			DBOverride: hashdb.Config{
 				CleanCacheSize: vm.config.StateSyncServerTrieCache * units.MiB,
-			},
+			}.BackendConstructor,
 		},
 	)
 
