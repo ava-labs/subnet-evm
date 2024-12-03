@@ -36,7 +36,7 @@ import (
 	"github.com/ava-labs/coreth/core/rawdb"
 	"github.com/ava-labs/coreth/core/state"
 	"github.com/ava-labs/coreth/core/types"
-	"github.com/ava-labs/coreth/triedb"
+	"github.com/ava-labs/libevm/triedb"
 	"github.com/holiman/uint256"
 
 	"github.com/davecgh/go-spew/spew"

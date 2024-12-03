@@ -39,10 +39,10 @@ import (
 	"github.com/ava-labs/coreth/params"
 	"github.com/ava-labs/coreth/precompile/contracts/feemanager"
 	"github.com/ava-labs/coreth/precompile/contracts/rewardmanager"
-	"github.com/ava-labs/coreth/triedb"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/vm"
 	"github.com/ava-labs/libevm/event"
+	"github.com/ava-labs/libevm/triedb"
 )
 
 // CurrentHeader retrieves the current head header of the canonical chain. The

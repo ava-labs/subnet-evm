@@ -37,8 +37,6 @@ import (
 	"github.com/ava-labs/coreth/core/state"
 	"github.com/ava-labs/coreth/core/types"
 	"github.com/ava-labs/coreth/params"
-	"github.com/ava-labs/coreth/trie"
-	"github.com/ava-labs/coreth/triedb"
 	"github.com/ava-labs/coreth/triedb/pathdb"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/common/hexutil"
@@ -46,6 +44,8 @@ import (
 	"github.com/ava-labs/libevm/crypto"
 	"github.com/ava-labs/libevm/ethdb"
 	"github.com/ava-labs/libevm/log"
+	"github.com/ava-labs/libevm/trie"
+	"github.com/ava-labs/libevm/triedb"
 	"github.com/holiman/uint256"
 )
 
@@ -230,8 +230,8 @@ func (g *Genesis) trieConfig() *triedb.Config {
 		return nil
 	}
 	return &triedb.Config{
-		PathDB:   pathdb.Defaults,
-		IsVerkle: true,
+		DBOverride: pathdb.Defaults.BackendConstructor,
+		IsVerkle:   true,
 	}
 }
 

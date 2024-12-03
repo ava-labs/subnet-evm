@@ -125,7 +125,10 @@ func TestWaitDeployedCornerCases(t *testing.T) {
 	// Create a transaction to an account.
 	code := "6060604052600a8060106000396000f360606040526008565b00"
 	tx := types.NewTransaction(0, common.HexToAddress("0x01"), big.NewInt(0), 3000000, gasPrice, common.FromHex(code))
-	tx, _ = types.SignTx(tx, types.LatestSignerForChainID(big.NewInt(1337)), testKey)
+	tx, err := types.SignTx(tx, types.LatestSignerForChainID(big.NewInt(1337)), testKey)
+	if err != nil {
+		t.Fatalf("Failed to sign transaction: %s", err)
+	}
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	if err := backend.Client().SendTransaction(ctx, tx); err != nil {

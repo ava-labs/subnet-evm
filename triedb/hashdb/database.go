@@ -36,13 +36,16 @@ import (
 	"github.com/ava-labs/coreth/core/rawdb"
 	"github.com/ava-labs/coreth/core/types"
 	"github.com/ava-labs/coreth/metrics"
-	"github.com/ava-labs/coreth/trie/trienode"
-	"github.com/ava-labs/coreth/trie/triestate"
 	"github.com/ava-labs/coreth/utils"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/ethdb"
 	"github.com/ava-labs/libevm/log"
 	"github.com/ava-labs/libevm/rlp"
+	"github.com/ava-labs/libevm/trie"
+	"github.com/ava-labs/libevm/trie/trienode"
+	"github.com/ava-labs/libevm/trie/triestate"
+	"github.com/ava-labs/libevm/triedb"
+	"github.com/ava-labs/libevm/triedb/database"
 )
 
 const (
@@ -100,6 +103,17 @@ type Config struct {
 	CleanCacheSize                  int    // Maximum memory allowance (in bytes) for caching clean nodes
 	StatsPrefix                     string // Prefix for cache stats (disabled if empty)
 	ReferenceRootAtomicallyOnUpdate bool   // Whether to reference the root node on update
+}
+
+func (c Config) BackendConstructor(diskdb ethdb.Database, config *triedb.Config) triedb.DBOverride {
+	var resolver ChildResolver
+	if config.IsVerkle {
+		// TODO define verkle resolver
+		log.Crit("Verkle node resolver is not defined")
+	} else {
+		resolver = trie.MerkleResolver{}
+	}
+	return New(diskdb, &c, resolver)
 }
 
 // Defaults is the default setting for database if it's not specified.
@@ -726,7 +740,7 @@ func (db *Database) Scheme() string {
 
 // Reader retrieves a node reader belonging to the given state root.
 // An error will be returned if the requested state is not available.
-func (db *Database) Reader(root common.Hash) (*reader, error) {
+func (db *Database) Reader(root common.Hash) (database.Reader, error) {
 	if _, err := db.node(root); err != nil {
 		return nil, fmt.Errorf("state %#x is not available, %v", root, err)
 	}

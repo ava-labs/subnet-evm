@@ -56,9 +56,9 @@ import (
 	"github.com/ava-labs/coreth/precompile/contracts/rewardmanager"
 	"github.com/ava-labs/coreth/precompile/contracts/txallowlist"
 	"github.com/ava-labs/coreth/rpc"
-	"github.com/ava-labs/coreth/trie"
 	"github.com/ava-labs/coreth/utils"
 	"github.com/ava-labs/coreth/vmerrs"
+	"github.com/ava-labs/libevm/trie"
 
 	avagoconstants "github.com/ava-labs/avalanchego/utils/constants"
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
