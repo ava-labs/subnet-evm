@@ -46,6 +46,7 @@ func (vm *VM) initializeDBs(avaDB avalanchedatabase.Database) error {
 			if err != nil {
 				return err
 			}
+			vm.usingStandaloneDB = true
 		}
 	}
 	// Use NewNested rather than New so that the structure of the database

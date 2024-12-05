@@ -207,6 +207,8 @@ type VM struct {
 	// [chaindb] is the database supplied to the Ethereum backend
 	chaindb ethdb.Database
 
+	usingStandaloneDB bool
+
 	// [acceptedBlockDB] is the database to store the last accepted
 	// block.
 	acceptedBlockDB database.Database
@@ -883,10 +885,12 @@ func (vm *VM) Shutdown(context.Context) error {
 	}
 	vm.eth.Stop()
 	log.Info("Ethereum backend stop completed")
-	if err := vm.db.Close(); err != nil {
-		log.Error("failed to close database: %w", err)
-	} else {
-		log.Info("Database closed")
+	if vm.usingStandaloneDB {
+		if err := vm.db.Close(); err != nil {
+			log.Error("failed to close database: %w", err)
+		} else {
+			log.Info("Database closed")
+		}
 	}
 	vm.shutdownWg.Wait()
 	log.Info("Subnet-EVM Shutdown completed")
