@@ -430,8 +430,8 @@ func testSyncerVM(t *testing.T, vmSetup *syncVMSetup, test syncTest) {
 	err = syncerVM.StateSyncClient.Error()
 	if test.expectedErr != nil {
 		require.ErrorIs(err, test.expectedErr)
-		// Note we re-open the database here to avoid a closed error when the test is for a shutdown VM.
-		chaindb := database.WrapDatabase(prefixdb.NewNested(ethDBPrefix, syncerVM.db))
+		// Note we re-open the database here to avoid a closed error verdb the test is for a shutdown VM.
+		chaindb := database.WrapDatabase(prefixdb.NewNested(ethDBPrefix, syncerVM.verdb))
 		assertSyncPerformedHeights(t, chaindb, map[uint64]struct{}{})
 		return
 	}
