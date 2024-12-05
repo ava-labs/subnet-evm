@@ -195,8 +195,8 @@ type VM struct {
 	blockChain *core.BlockChain
 	miner      *miner.Miner
 
-	// [verdb] is the VM's current versioned database
-	verdb *versiondb.Database
+	// [versiondb] is the VM's current versioned database
+	versiondb *versiondb.Database
 
 	// [db] is the VM's current database
 	db database.Database
@@ -633,7 +633,7 @@ func (vm *VM) initializeStateSyncClient(lastAcceptedHeight uint64) error {
 		chaindb:              vm.chaindb,
 		metadataDB:           vm.metadataDB,
 		acceptedBlockDB:      vm.acceptedBlockDB,
-		db:                   vm.verdb,
+		db:                   vm.versiondb,
 		toEngine:             vm.toEngine,
 	})
 
