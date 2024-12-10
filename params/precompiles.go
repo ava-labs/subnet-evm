@@ -6,7 +6,6 @@ package params
 import (
 	"encoding/json"
 
-	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 )
 
@@ -22,7 +21,7 @@ func (ccp *Precompiles) UnmarshalJSON(data []byte) error {
 	}
 
 	*ccp = make(Precompiles)
-	for _, module := range modules.RegisteredModules() {
+	for _, module := range precompileconfig.RegisteredModules() {
 		key := module.ConfigKey
 		if value, ok := raw[key]; ok {
 			conf := module.MakeConfig()
