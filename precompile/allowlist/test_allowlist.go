@@ -499,7 +499,7 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]testutils.Pr
 			},
 			SuppliedGas: ReadAllowListGasCost,
 			ReadOnly:    false,
-			ExpectedRes: common.Hash(NoRole).Bytes(),
+			ExpectedRes: NoRole.Bytes(),
 		},
 		"admin role read allow list": {
 			Caller:     TestAdminAddr,
@@ -511,7 +511,7 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]testutils.Pr
 				return input
 			}, SuppliedGas: ReadAllowListGasCost,
 			ReadOnly:    false,
-			ExpectedRes: common.Hash(AdminRole).Bytes(),
+			ExpectedRes: AdminRole.Bytes(),
 		},
 		"admin read allow list with readOnly enabled": {
 			Caller:     TestAdminAddr,
@@ -523,7 +523,7 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]testutils.Pr
 				return input
 			}, SuppliedGas: ReadAllowListGasCost,
 			ReadOnly:    true,
-			ExpectedRes: common.Hash(NoRole).Bytes(),
+			ExpectedRes: NoRole.Bytes(),
 		},
 		"radmin read allow list out of gas": {
 			Caller:     TestAdminAddr,
