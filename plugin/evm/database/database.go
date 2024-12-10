@@ -81,16 +81,16 @@ func NewStandaloneDatabase(dbConfig avalanchenode.DatabaseConfig, gatherer metri
 }
 
 func NewPebbleDB(file string, configBytes []byte, log logging.Logger, dbRegisterer prometheus.Registerer) (database.Database, error) {
-	pebbleDefaults := pebbledb.DefaultConfig
+	cfg := pebbledb.DefaultConfig
 	// Use no sync for pebble db
-	pebbleDefaults.Sync = false
+	cfg.Sync = false
 	if len(configBytes) > 0 {
-		if err := json.Unmarshal(configBytes, &pebbleDefaults); err != nil {
+		if err := json.Unmarshal(configBytes, &cfg); err != nil {
 			return nil, err
 		}
 	}
 	// Marshal the config back to bytes to ensure that new defaults are applied
-	newCfgBytes, err := json.Marshal(pebbleDefaults)
+	newCfgBytes, err := json.Marshal(cfg)
 	if err != nil {
 		return nil, err
 	}
