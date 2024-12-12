@@ -22,9 +22,9 @@ clone_avalanchego "${AVALANCHE_VERSION}"
 AVALANCHEGO_IMAGE_TAG="$(avalanchego_image_tag_from_clone)"
 
 # Build avalanchego node image in the clone path
-pushd "${AVALANCHEGO_CLONE_PATH}" > /dev/null
-  NODE_ONLY=1 TEST_SETUP=avalanchego IMAGE_TAG="${AVALANCHEGO_IMAGE_TAG}" bash -x "${AVALANCHEGO_CLONE_PATH}"/scripts/build_antithesis_images.sh
-popd > /dev/null
+#pushd "${AVALANCHEGO_CLONE_PATH}" > /dev/null
+  #NODE_ONLY=1 TEST_SETUP=avalanchego IMAGE_TAG="${AVALANCHEGO_IMAGE_TAG}" bash -x "${AVALANCHEGO_CLONE_PATH}"/scripts/build_antithesis_images.sh
+#popd > /dev/null
 
 # Specifying an image prefix will ensure the image is pushed after build
 IMAGE_PREFIX="${IMAGE_PREFIX:-}"
@@ -47,8 +47,7 @@ source "${AVALANCHEGO_CLONE_PATH}"/scripts/lib_build_antithesis_images.sh
 build_antithesis_builder_image "${GO_VERSION}" "antithesis-subnet-evm-builder:${IMAGE_TAG}" "${AVALANCHEGO_CLONE_PATH}" "${SUBNET_EVM_PATH}"
 
 # Ensure avalanchego and subnet-evm binaries are available to create an initial db state that includes subnets.
-pushd "${AVALANCHEGO_CLONE_PATH}" && go mod tidy && echo "Ran go mod tidy" && git diff && popd
-"${AVALANCHEGO_CLONE_PATH}"/scripts/build.sh
+pushd "${AVALANCHEGO_CLONE_PATH}" && "./scripts/build.sh" && popd
 "${SUBNET_EVM_PATH}"/scripts/build.sh
 
 echo "Generating compose configuration"
