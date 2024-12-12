@@ -22,9 +22,9 @@ clone_avalanchego "${AVALANCHE_VERSION}"
 AVALANCHEGO_IMAGE_TAG="$(avalanchego_image_tag_from_clone)"
 
 # Build avalanchego node image in the clone path
-#pushd "${AVALANCHEGO_CLONE_PATH}" > /dev/null
-  #NODE_ONLY=1 TEST_SETUP=avalanchego IMAGE_TAG="${AVALANCHEGO_IMAGE_TAG}" bash -x "${AVALANCHEGO_CLONE_PATH}"/scripts/build_antithesis_images.sh
-#popd > /dev/null
+pushd "${AVALANCHEGO_CLONE_PATH}" > /dev/null
+  NODE_ONLY=1 TEST_SETUP=avalanchego IMAGE_TAG="${AVALANCHEGO_IMAGE_TAG}" bash -x "${AVALANCHEGO_CLONE_PATH}"/scripts/build_antithesis_images.sh
+popd > /dev/null
 
 # Specifying an image prefix will ensure the image is pushed after build
 IMAGE_PREFIX="${IMAGE_PREFIX:-}"
