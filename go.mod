@@ -5,7 +5,7 @@ go 1.22.8
 require (
 	github.com/VictoriaMetrics/fastcache v1.12.1
 	github.com/antithesishq/antithesis-sdk-go v0.3.8
-	github.com/ava-labs/avalanchego v1.12.1-0.20241212225857-76243f2e94f8
+	github.com/ava-labs/avalanchego v1.12.1-0.20241213005147-46b99d748279
 	github.com/ava-labs/libevm v1.13.14-0.1.0.rc-2
 	github.com/crate-crypto/go-ipa v0.0.0-20231025140028-3c0104f4b233
 	github.com/davecgh/go-spew v1.1.1
@@ -47,7 +47,7 @@ require (
 	github.com/DataDog/zstd v1.5.2 // indirect
 	github.com/Microsoft/go-winio v0.6.1 // indirect
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
-	github.com/ava-labs/coreth v0.13.9-0.20241212225319-0011692590f7 // indirect
+	github.com/ava-labs/coreth v0.13.9-0.20241213004938-d537b69672b1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bits-and-blooms/bitset v1.10.0 // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.3.2 // indirect
