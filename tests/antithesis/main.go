@@ -33,6 +33,8 @@ import (
 
 	ago_tests "github.com/ava-labs/avalanchego/tests"
 	timerpkg "github.com/ava-labs/avalanchego/utils/timer"
+
+	_ "github.com/jackpal/gateway"
 )
 
 const NumKeys = 5
