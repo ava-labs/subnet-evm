@@ -19,9 +19,9 @@ import (
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/vms/secp256k1fx"
 	wallet "github.com/ava-labs/avalanchego/wallet/subnet/primary"
+	"github.com/ava-labs/libevm/log"
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/plugin/evm"
-	"github.com/ethereum/go-ethereum/log"
 	"github.com/go-cmd/cmd"
 	"github.com/onsi/ginkgo/v2"
 	"github.com/stretchr/testify/require"
@@ -118,11 +118,7 @@ func CreateNewSubnet(ctx context.Context, genesisFilePath string) string {
 
 	// MakeWallet fetches the available UTXOs owned by [kc] on the network
 	// that [LocalAPIURI] is hosting.
-	wallet, err := wallet.MakeWallet(ctx, &wallet.WalletConfig{
-		URI:          DefaultLocalNodeURI,
-		AVAXKeychain: kc,
-		EthKeychain:  kc,
-	})
+	wallet, err := wallet.MakeWallet(ctx, DefaultLocalNodeURI, kc, kc, wallet.WalletConfig{})
 	require.NoError(err)
 
 	pWallet := wallet.P()
