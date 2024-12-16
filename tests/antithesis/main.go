@@ -40,7 +40,8 @@ import (
 const NumKeys = 5
 
 func main() {
-	tc := ago_tests.NewTestContext(logging.NoLog{})
+	logger := ago_tests.NewDefaultLogger("")
+	tc := ago_tests.NewTestContext(logger)
 	defer tc.Cleanup()
 	require := require.New(tc)
 
