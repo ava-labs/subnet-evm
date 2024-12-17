@@ -33,7 +33,7 @@ const namespace = "chain"
 // the trie after 100, 200, and 500 storage slot updates per iteration,
 // simulating a block with that number of storage slot updates. For performance
 // reasons, when making changes involving the trie prefetcher, this benchmark
-// should be run against state including with around 100m storage entries.
+// should be run against a state including around 100m storage entries.
 func BenchmarkPrefetcherDatabase(b *testing.B) {
 	require := require.New(b)
 
