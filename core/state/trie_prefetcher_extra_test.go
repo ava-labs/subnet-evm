@@ -26,9 +26,14 @@ import (
 
 const namespace = "chain"
 
-// Write a test to add 100m kvs to a leveldb so that we can test the prefetcher
-// performance.
-
+// BenchmarkPrefetcherDatabase benchmarks the performance of the trie
+// prefetcher. By default, a state with 100k storage keys is created and stored
+// in a temporary directory. Setting the TEST_DB_KVS and TEST_DB_DIR environment
+// variables modifies the defaults. The benchmark measures the time to update
+// the trie after 100, 200, and 500 storage slot updates per iteration,
+// simulating a block with that number of storage slot updates. For performance
+// reasons, when making changes involving the trie prefetcher, this benchmark
+// should be run against state including with around 100m storage entries.
 func BenchmarkPrefetcherDatabase(b *testing.B) {
 	require := require.New(b)
 
