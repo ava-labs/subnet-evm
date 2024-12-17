@@ -178,7 +178,7 @@ func addKVs(
 	}
 	root, err = statedb.CommitWithSnap(block+1, true, snaps, fakeHash(block+1), fakeHash(block))
 	if err != nil {
-		return nil, common.Hash{}, err
+		return nil, common.Hash{}, fmt.Errorf("committing with snap: %w", err)
 	}
 	return statedb, root, err
 }
