@@ -180,5 +180,5 @@ func addKVs(
 	if err != nil {
 		return nil, common.Hash{}, fmt.Errorf("committing with snap: %w", err)
 	}
-	return statedb, root, err
+	return statedb, root, nil
 }
