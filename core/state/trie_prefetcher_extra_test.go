@@ -159,7 +159,7 @@ func addKVs(
 	}
 	statedb, err := NewWithSnapshot(root, db, snap)
 	if err != nil {
-		return nil, common.Hash{}, err
+		return nil, common.Hash{}, fmt.Errorf("creating state with snapshot: %w", err)
 	}
 	if prefetchers > 0 {
 		statedb.StartPrefetcher(namespace, WithConcurrentWorkers(prefetchers))
