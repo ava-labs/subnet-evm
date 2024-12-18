@@ -884,6 +884,7 @@ func (vm *VM) Shutdown(context.Context) error {
 		handler.Stop()
 	}
 	vm.eth.Stop()
+	vm.db.Close()
 	log.Info("Ethereum backend stop completed")
 	if vm.usingStandaloneDB {
 		if err := vm.db.Close(); err != nil {
