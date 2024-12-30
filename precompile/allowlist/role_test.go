@@ -10,35 +10,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestIsNoRole(t *testing.T) {
-	tests := []struct {
-		role     Role
-		expected bool
-	}{
-		{
-			role:     ManagerRole,
-			expected: false,
-		},
-		{
-			role:     AdminRole,
-			expected: false,
-		},
-		{
-			role:     EnabledRole,
-			expected: false,
-		},
-		{
-			role:     NoRole,
-			expected: true,
-		},
-	}
-
-	for index, test := range tests {
-		isNoRole := test.role.IsNoRole()
-		require.Equal(t, test.expected, isNoRole, fmt.Sprintf("test index: %d", index))
-	}
-}
-
 func TestIsEnabled(t *testing.T) {
 	tests := []struct {
 		role     Role
@@ -58,6 +29,10 @@ func TestIsEnabled(t *testing.T) {
 		},
 		{
 			role:     NoRole,
+			expected: false,
+		},
+		{
+			role:     firstInvalidRole,
 			expected: false,
 		},
 	}
