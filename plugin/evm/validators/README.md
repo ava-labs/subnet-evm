@@ -40,7 +40,7 @@ When a peer validator is disconnected, the AvalancheGo uptime manager updates th
 
 ### Pause
 
-The pausable uptime manager can listen for validator status changes by subscribing to the state. When the state invokes the `OnValidatorStatusChange` method, the pausable uptime manager pauses the uptime tracking of the validator if the validator is currently `inactive`. When a validator is paused, it is treated as if it is disconnected from the tracker node; thus, it's uptime is updated from the connection time to the pause time and uptime manager stops tracking the uptime of the validator.
+The pausable uptime manager can listen for validator status changes by subscribing to the state. When the state invokes the `OnValidatorStatusChange` method, the pausable uptime manager pauses the uptime tracking of the validator if the validator is currently `inactive`. When a validator is paused, it is treated as if it is disconnected from the tracker node; thus, its uptime is updated from the connection time to the pause time, and uptime manager stops tracking the uptime of the validator.
 
 ### Resume
 
