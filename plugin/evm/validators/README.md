@@ -18,7 +18,7 @@ The package defines how to serialize the data according to the codec. It can rea
 
 ## Uptime Package
 
-The uptime package manages the uptime tracking of the L1 validators. It wraps [AvalancheGo's uptime tracking manager](https://pkg.go.dev/github.com/ava-labs/avalanchego/snow/uptime) under the hood and additionally introduces pausable uptime manager interface. The pausable uptime manager interface allows the manager to pause and resume the uptime tracking for a specific validator.
+The uptime package manages the uptime tracking of the L1 validators. It wraps [AvalancheGo's uptime tracking manager](https://pkg.go.dev/github.com/ava-labs/avalanchego/snow/uptime) under the hood and additionally introduces pausable uptime manager interface. The pausable uptime manager interface allows the manager to pause the uptime tracking for a specific validator when it becomes `inactive` and resume it when it becomes `active` again.
 
 The uptime package must be run on at least one L1 node, referred to in this document as the "tracker node".
 
@@ -30,7 +30,7 @@ Nodes can start uptime tracking with the `StartTracking` method once they're boo
 
 ### Connected
 
-The AvalancheGo uptime manager records the time when a peer is connected to the tracker node. When a paused/ `inactive` validator is connected, the pausable uptime manager does not directly invoke the `Connected` method on the AvalancheGo uptime manager, thus the connection time is not directly recorded. Instead, the pausable uptime manager waits for the validator to increase it's continuous validation fee balance and resume operation. When the validator resumes, the tracker node records the resumed time and starts tracking the uptime of the validator.
+The AvalancheGo uptime manager records the time when a peer is connected to the tracker node. When a paused/ `inactive` validator is connected, the pausable uptime manager does not directly invoke the `Connected` method on the AvalancheGo uptime manager, thus the connection time is not directly recorded. Instead, the pausable uptime manager waits for the validator to increase its continuous validation fee balance and resume operation. When the validator resumes, the tracker node records the resumed time and starts tracking the uptime of the validator.
 
 Note: The uptime manager does not check if the connected peer is a validator or not. It records the connection time assuming that a non-validator peer can become a validator whilst they're connected to the uptime manager.
 
@@ -40,7 +40,7 @@ When a peer validator is disconnected, the AvalancheGo uptime manager updates th
 
 ### Pause
 
-The pausable uptime manager can listen for validator status changes by subscribing to the state. When the state invokes the `OnValidatorStatusChange` method, the pausable uptime manager pauses the uptime tracking of the validator if the validator is currently `inactive`. When a validator is paused, it is treated as if it is disconnected from the tracker node; thus, it's uptime is updated from the connection time to the pause time and uptime manager stops tracking the uptime of the validator.
+The pausable uptime manager can listen for validator status changes by subscribing to the state. When the state invokes the `OnValidatorStatusChange` method, the pausable uptime manager pauses the uptime tracking of the validator if the validator is currently `inactive`. When a validator is paused, it is treated as if it is disconnected from the tracker node; thus, its uptime is updated from the connection time to the pause time, and uptime manager stops tracking the uptime of the validator.
 
 ### Resume
 
@@ -54,7 +54,7 @@ The `CalculateUptime` method calculates a node's uptime based on its connection 
 
 ## Manager Struct
 
-`Manager` struct in `validators` pacakge, is responsible for managing the state of the validators by fetching the information from P-Chain state (via `GetCurrentValidatorSet` in chain context) and updating the state accordingly. It dispatches a `goroutine` to sync the validator state every 60 seconds. The manager fetches the up-to-date validator set from P-Chain and performs the sync operation. The sync operation first performs removing the validators from the state that are not in the P-Chain validator set. Then it adds new validators and updates the existing validators in the state. This order of operations ensures that the uptimes of validators being removed and re-added under same nodeIDs are updated in the same sync operation despite having different validationIDs.
+`Manager` struct in `validators` package is responsible for managing the state of the validators by fetching the information from P-Chain state (via `GetCurrentValidatorSet` in chain context) and updating the state accordingly. It dispatches a `goroutine` to sync the validator state every 60 seconds. The manager fetches the up-to-date validator set from P-Chain and performs the sync operation. The sync operation first performs removing the validators from the state that are not in the P-Chain validator set. Then it adds new validators and updates the existing validators in the state. This order of operations ensures that the uptimes of validators being removed and re-added under same nodeIDs are updated in the same sync operation despite having different validationIDs.
 
 P-Chain's `GetCurrentValidatorSet` can report both L1 and Subnet validators. Subnet-EVM's uptime manager also tracks both of these validator types. So even if a the Subnet has not yet been converted to an L1, the uptime and validator state tracking is still performed by Subnet-EVM.
 
