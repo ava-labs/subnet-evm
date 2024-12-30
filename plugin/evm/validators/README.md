@@ -18,7 +18,7 @@ The package defines how to serialize the data according to the codec. It can rea
 
 ## Uptime Package
 
-The uptime package manages the uptime tracking of the L1 validators. It wraps [AvalancheGo's uptime tracking manager](https://pkg.go.dev/github.com/ava-labs/avalanchego/snow/uptime) under the hood and additionally introduces pausable uptime manager interface. The pausable uptime manager interface allows the manager to pause and resume the uptime tracking for a specific validator.
+The uptime package manages the uptime tracking of the L1 validators. It wraps [AvalancheGo's uptime tracking manager](https://pkg.go.dev/github.com/ava-labs/avalanchego/snow/uptime) under the hood and additionally introduces pausable uptime manager interface. The pausable uptime manager interface allows the manager to pause the uptime tracking for a specific validator when it becomes `inactive` and resume it when it becomes `active` again.
 
 The uptime package must be run on at least one L1 node, referred to in this document as the "tracker node".
 
