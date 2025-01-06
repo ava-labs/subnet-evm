@@ -33,6 +33,9 @@ if [[ $# -eq 1 ]]; then
   VM_ID=$1
 fi
 
+# WARNING: this will use the most recent commit even if there are un-committed changes present
+BUILD_IMAGE_ID=${BUILD_IMAGE_ID:-"${CURRENT_BRANCH}"}
+
 # buildx (BuildKit) improves the speed and UI of builds over the legacy builder and
 # simplifies creation of multi-arch images.
 #
@@ -54,9 +57,6 @@ fi
 if [[ -n "${PLATFORMS}" ]]; then
   DOCKER_CMD="${DOCKER_CMD} --platform=${PLATFORMS}"
 fi
-
-# WARNING: this will use the most recent commit even if there are un-committed changes present
-BUILD_IMAGE_ID=${BUILD_IMAGE_ID:-"${CURRENT_BRANCH}"}
 
 VM_ID=${VM_ID:-"${DEFAULT_VM_ID}"}
 if [[ "${VM_ID}" != "${DEFAULT_VM_ID}" ]]; then
