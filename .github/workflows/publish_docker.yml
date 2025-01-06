@@ -4,8 +4,8 @@ on:
   workflow_dispatch:
     inputs:
       vm_id:
-        description: "The ID of the VM (binary dst in Docker image)"
-        default: ""
+        description: 'The ID of the VM (binary dst in Docker image)'
+        default: ''
         required: false
         type: string
 
