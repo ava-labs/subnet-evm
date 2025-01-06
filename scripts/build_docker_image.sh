@@ -29,9 +29,7 @@ source "$SUBNET_EVM_PATH"/scripts/constants.sh
 source "$SUBNET_EVM_PATH"/scripts/versions.sh
 
 # Set the vm id if provided
-if [[ $# -eq 1 ]]; then
-  VM_ID=$1
-fi
+VM_ID="${VM_ID:-"${DEFAULT_VM_ID}"}"
 
 # WARNING: this will use the most recent commit even if there are un-committed changes present
 BUILD_IMAGE_ID=${BUILD_IMAGE_ID:-"${CURRENT_BRANCH}"}
@@ -40,7 +38,7 @@ BUILD_IMAGE_ID=${BUILD_IMAGE_ID:-"${CURRENT_BRANCH}"}
 # simplifies creation of multi-arch images.
 #
 # Reference: https://docs.docker.com/build/buildkit/
-DOCKER_CMD="docker buildx build ${*}"
+DOCKER_CMD="docker buildx build"
 
 if [[ -n "${PUBLISH}" ]]; then
   DOCKER_CMD="${DOCKER_CMD} --push"
@@ -67,7 +65,7 @@ fi
 AVALANCHEGO_NODE_IMAGE="${AVALANCHEGO_NODE_IMAGE:-${AVALANCHEGO_IMAGE_NAME}:${AVALANCHE_VERSION}}"
 
 echo "Building Docker Image: $DOCKERHUB_REPO:$BUILD_IMAGE_ID based of AvalancheGo@$AVALANCHE_VERSION"
-${DOCKER_CMD} -t "$DOCKERHUB_REPO:$BUILD_IMAGE_ID" -t "$DOCKERHUB_REPO:${DOCKERHUB_TAG}" \
+echo ${DOCKER_CMD} -t "$DOCKERHUB_REPO:$BUILD_IMAGE_ID" -t "$DOCKERHUB_REPO:${DOCKERHUB_TAG}" \
   "$SUBNET_EVM_PATH" -f "$SUBNET_EVM_PATH/Dockerfile" \
   --build-arg AVALANCHEGO_NODE_IMAGE="$AVALANCHEGO_NODE_IMAGE" \
   --build-arg SUBNET_EVM_COMMIT="$SUBNET_EVM_COMMIT" \

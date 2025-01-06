@@ -27,6 +27,7 @@ jobs:
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
           DOCKER_PASS: ${{ secrets.DOCKER_PASS }}
           DOCKER_REPO: "avaplatform/subnet-evm"
+          VM_ID: ${{ inputs.vm_id }}
           PUBLISH: 1
           PLATFORMS: "linux/amd64,linux/arm64"
-        run: scripts/build_docker_image.sh ${{ inputs.vm_id }}
+        run: scripts/build_docker_image.sh
