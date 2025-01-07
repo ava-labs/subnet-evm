@@ -9,8 +9,6 @@ import (
 	"time"
 
 	"github.com/ava-labs/avalanchego/database/pebbledb"
-	"github.com/ava-labs/subnet-evm/core/txpool/legacypool"
-	"github.com/ava-labs/subnet-evm/eth"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/spf13/cast"
@@ -241,28 +239,37 @@ type Config struct {
 	DatabaseReadOnly      bool   `json:"database-read-only"`
 }
 
+// TxPoolConfig contains the transaction pool config to be passed
+// to [Config.SetDefaults].
+type TxPoolConfig struct {
+	PriceLimit   uint64
+	PriceBump    uint64
+	AccountSlots uint64
+	GlobalSlots  uint64
+	AccountQueue uint64
+	GlobalQueue  uint64
+	Lifetime     time.Duration
+}
+
 // EthAPIs returns an array of strings representing the Eth APIs that should be enabled
 func (c Config) EthAPIs() []string {
 	return c.EnabledEthAPIs
 }
 
-func (c Config) EthBackendSettings() eth.Settings {
-	return eth.Settings{MaxBlocksPerRequest: c.MaxBlocksPerRequest}
-}
-
-func (c *Config) SetDefaults() {
+func (c *Config) SetDefaults(txPoolConfig TxPoolConfig) {
 	c.EnabledEthAPIs = defaultEnabledAPIs
 	c.RPCGasCap = defaultRpcGasCap
 	c.RPCTxFeeCap = defaultRpcTxFeeCap
 	c.MetricsExpensiveEnabled = defaultMetricsExpensiveEnabled
 
-	c.TxPoolPriceLimit = legacypool.DefaultConfig.PriceLimit
-	c.TxPoolPriceBump = legacypool.DefaultConfig.PriceBump
-	c.TxPoolAccountSlots = legacypool.DefaultConfig.AccountSlots
-	c.TxPoolGlobalSlots = legacypool.DefaultConfig.GlobalSlots
-	c.TxPoolAccountQueue = legacypool.DefaultConfig.AccountQueue
-	c.TxPoolGlobalQueue = legacypool.DefaultConfig.GlobalQueue
-	c.TxPoolLifetime.Duration = legacypool.DefaultConfig.Lifetime
+	// TxPool settings
+	c.TxPoolPriceLimit = txPoolConfig.PriceLimit
+	c.TxPoolPriceBump = txPoolConfig.PriceBump
+	c.TxPoolAccountSlots = txPoolConfig.AccountSlots
+	c.TxPoolGlobalSlots = txPoolConfig.GlobalSlots
+	c.TxPoolAccountQueue = txPoolConfig.AccountQueue
+	c.TxPoolGlobalQueue = txPoolConfig.GlobalQueue
+	c.TxPoolLifetime.Duration = txPoolConfig.Lifetime
 
 	c.APIMaxDuration.Duration = defaultApiMaxDuration
 	c.WSCPURefillRate.Duration = defaultWsCpuRefillRate

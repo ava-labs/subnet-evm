@@ -1,7 +1,7 @@
 // (c) 2019-2020, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-package evm
+package client
 
 import (
 	"context"
@@ -17,6 +17,18 @@ import (
 
 // Interface compliance
 var _ Client = (*client)(nil)
+
+type CurrentValidator struct {
+	ValidationID     ids.ID     `json:"validationID"`
+	NodeID           ids.NodeID `json:"nodeID"`
+	Weight           uint64     `json:"weight"`
+	StartTimestamp   uint64     `json:"startTimestamp"`
+	IsActive         bool       `json:"isActive"`
+	IsL1Validator    bool       `json:"isL1Validator"`
+	IsConnected      bool       `json:"isConnected"`
+	UptimePercentage float32    `json:"uptimePercentage"`
+	UptimeSeconds    uint64     `json:"uptimeSeconds"`
+}
 
 // Client interface for interacting with EVM [chain]
 type Client interface {
@@ -64,6 +76,10 @@ func (c *client) LockProfile(ctx context.Context, options ...rpc.Option) error {
 	return c.adminRequester.SendRequest(ctx, "admin.lockProfile", struct{}{}, &api.EmptyReply{}, options...)
 }
 
+type SetLogLevelArgs struct {
+	Level string `json:"level"`
+}
+
 // SetLogLevel dynamically sets the log level for the C Chain
 func (c *client) SetLogLevel(ctx context.Context, level slog.Level, options ...rpc.Option) error {
 	return c.adminRequester.SendRequest(ctx, "admin.setLogLevel", &SetLogLevelArgs{
@@ -71,11 +87,23 @@ func (c *client) SetLogLevel(ctx context.Context, level slog.Level, options ...r
 	}, &api.EmptyReply{}, options...)
 }
 
+type ConfigReply struct {
+	Config *config.Config `json:"config"`
+}
+
 // GetVMConfig returns the current config of the VM
 func (c *client) GetVMConfig(ctx context.Context, options ...rpc.Option) (*config.Config, error) {
 	res := &ConfigReply{}
 	err := c.adminRequester.SendRequest(ctx, "admin.getVMConfig", struct{}{}, res, options...)
 	return res.Config, err
+}
+
+type GetCurrentValidatorsRequest struct {
+	NodeIDs []ids.NodeID `json:"nodeIDs"`
+}
+
+type GetCurrentValidatorsResponse struct {
+	Validators []CurrentValidator `json:"validators"`
 }
 
 // GetCurrentValidators returns the current validators
