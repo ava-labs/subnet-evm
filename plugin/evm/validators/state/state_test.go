@@ -1,7 +1,7 @@
 // Copyright (C) 2019-2024, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-package validators
+package state
 
 import (
 	"testing"
@@ -15,7 +15,7 @@ import (
 	"github.com/ava-labs/avalanchego/database/memdb"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/wrappers"
-	"github.com/ava-labs/subnet-evm/plugin/evm/validators/interfaces"
+	"github.com/ava-labs/subnet-evm/plugin/evm/validators/state/interfaces"
 )
 
 func TestState(t *testing.T) {
@@ -36,13 +36,23 @@ func TestState(t *testing.T) {
 	require.ErrorIs(err, database.ErrNotFound)
 
 	// add new validator
-	state.AddValidator(vID, nodeID, uint64(startTime.Unix()), true)
+	vdr := interfaces.Validator{
+		ValidationID:   vID,
+		NodeID:         nodeID,
+		Weight:         1,
+		StartTimestamp: uint64(startTime.Unix()),
+		IsActive:       true,
+		IsL1Validator:  true,
+	}
+	state.AddValidator(vdr)
 
 	// adding the same validator should fail
-	err = state.AddValidator(vID, ids.GenerateTestNodeID(), uint64(startTime.Unix()), true)
+	err = state.AddValidator(vdr)
 	require.ErrorIs(err, ErrAlreadyExists)
 	// adding the same nodeID should fail
-	err = state.AddValidator(ids.GenerateTestID(), nodeID, uint64(startTime.Unix()), true)
+	newVdr := vdr
+	newVdr.ValidationID = ids.GenerateTestID()
+	err = state.AddValidator(newVdr)
 	require.ErrorIs(err, ErrAlreadyExists)
 
 	// get uptime
@@ -62,11 +72,38 @@ func TestState(t *testing.T) {
 	require.Equal(newLastUpdated, lastUpdated)
 
 	// set status
-	require.NoError(state.SetStatus(vID, false))
+	vdr.IsActive = false
+	require.NoError(state.UpdateValidator(vdr))
 	// get status
-	status, err := state.GetStatus(vID)
+	data, err := state.GetValidator(vID)
 	require.NoError(err)
-	require.False(status)
+	require.False(data.IsActive)
+
+	// set weight
+	newWeight := uint64(2)
+	vdr.Weight = newWeight
+	require.NoError(state.UpdateValidator(vdr))
+	// get weight
+	data, err = state.GetValidator(vID)
+	require.NoError(err)
+	require.Equal(newWeight, data.Weight)
+
+	// set a different node ID should fail
+	newNodeID := ids.GenerateTestNodeID()
+	vdr.NodeID = newNodeID
+	require.ErrorIs(state.UpdateValidator(vdr), ErrImmutableField)
+
+	// set a different start time should fail
+	vdr.StartTimestamp = vdr.StartTimestamp + 100
+	require.ErrorIs(state.UpdateValidator(vdr), ErrImmutableField)
+
+	// set IsL1Validator should fail
+	vdr.IsL1Validator = false
+	require.ErrorIs(state.UpdateValidator(vdr), ErrImmutableField)
+
+	// set validation ID should result in not found
+	vdr.ValidationID = ids.GenerateTestID()
+	require.ErrorIs(state.UpdateValidator(vdr), database.ErrNotFound)
 
 	// delete uptime
 	require.NoError(state.DeleteValidator(vID))
@@ -88,7 +125,14 @@ func TestWriteValidator(t *testing.T) {
 	nodeID := ids.GenerateTestNodeID()
 	vID := ids.GenerateTestID()
 	startTime := time.Now()
-	require.NoError(state.AddValidator(vID, nodeID, uint64(startTime.Unix()), true))
+	require.NoError(state.AddValidator(interfaces.Validator{
+		ValidationID:   vID,
+		NodeID:         nodeID,
+		Weight:         1,
+		StartTimestamp: uint64(startTime.Unix()),
+		IsActive:       true,
+		IsL1Validator:  true,
+	}))
 
 	// write state, should reflect to DB
 	require.NoError(state.WriteState())
@@ -132,8 +176,14 @@ func TestParseValidator(t *testing.T) {
 			name:  "nil",
 			bytes: nil,
 			expected: &validatorData{
-				LastUpdated: 0,
-				StartTime:   0,
+				LastUpdated:   0,
+				StartTime:     0,
+				validationID:  ids.Empty,
+				NodeID:        ids.EmptyNodeID,
+				UpDuration:    0,
+				Weight:        0,
+				IsActive:      false,
+				IsL1Validator: false,
 			},
 			expectedErr: nil,
 		},
@@ -141,8 +191,14 @@ func TestParseValidator(t *testing.T) {
 			name:  "empty",
 			bytes: []byte{},
 			expected: &validatorData{
-				LastUpdated: 0,
-				StartTime:   0,
+				LastUpdated:   0,
+				StartTime:     0,
+				validationID:  ids.Empty,
+				NodeID:        ids.EmptyNodeID,
+				UpDuration:    0,
+				Weight:        0,
+				IsActive:      false,
+				IsL1Validator: false,
 			},
 			expectedErr: nil,
 		},
@@ -159,17 +215,23 @@ func TestParseValidator(t *testing.T) {
 				0x7e, 0xef, 0xe8, 0x8a, 0x45, 0xfb, 0x7a, 0xc4,
 				0xb0, 0x59, 0xc9, 0x33, 0x71, 0x0a, 0x57, 0x33,
 				0xff, 0x9f, 0x4b, 0xab,
+				// weight
+				0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
 				// start time
 				0x00, 0x00, 0x00, 0x00, 0x00, 0x5B, 0x8D, 0x80,
 				// status
 				0x01,
+				// IsL1Validator
+				0x01,
 			},
 			expected: &validatorData{
-				UpDuration:  time.Duration(6000000),
-				LastUpdated: 900000,
-				NodeID:      testNodeID,
-				StartTime:   6000000,
-				IsActive:    true,
+				UpDuration:    time.Duration(6000000),
+				LastUpdated:   900000,
+				NodeID:        testNodeID,
+				StartTime:     6000000,
+				IsActive:      true,
+				Weight:        1,
+				IsL1Validator: true,
 			},
 		},
 		{
@@ -231,7 +293,14 @@ func TestStateListener(t *testing.T) {
 	initialStartTime := time.Now()
 
 	// add initial validator
-	require.NoError(state.AddValidator(initialvID, initialNodeID, uint64(initialStartTime.Unix()), true))
+	require.NoError(state.AddValidator(interfaces.Validator{
+		ValidationID:   initialvID,
+		NodeID:         initialNodeID,
+		Weight:         1,
+		StartTimestamp: uint64(initialStartTime.Unix()),
+		IsActive:       true,
+		IsL1Validator:  true,
+	}))
 
 	// register listener
 	mockListener.EXPECT().OnValidatorAdded(initialvID, initialNodeID, uint64(initialStartTime.Unix()), true)
@@ -239,11 +308,23 @@ func TestStateListener(t *testing.T) {
 
 	// add new validator
 	mockListener.EXPECT().OnValidatorAdded(expectedvID, expectedNodeID, uint64(expectedStartTime.Unix()), true)
-	require.NoError(state.AddValidator(expectedvID, expectedNodeID, uint64(expectedStartTime.Unix()), true))
+	vdr := interfaces.Validator{
+		ValidationID:   expectedvID,
+		NodeID:         expectedNodeID,
+		Weight:         1,
+		StartTimestamp: uint64(expectedStartTime.Unix()),
+		IsActive:       true,
+		IsL1Validator:  true,
+	}
+	require.NoError(state.AddValidator(vdr))
 
 	// set status
 	mockListener.EXPECT().OnValidatorStatusUpdated(expectedvID, expectedNodeID, false)
-	require.NoError(state.SetStatus(expectedvID, false))
+	vdr.IsActive = false
+	require.NoError(state.UpdateValidator(vdr))
+
+	// set status twice should not trigger listener
+	require.NoError(state.UpdateValidator(vdr))
 
 	// remove validator
 	mockListener.EXPECT().OnValidatorRemoved(expectedvID, expectedNodeID)
