@@ -62,10 +62,10 @@ github.com/antithesishq/antithesis-sdk-go v0.3.8/go.mod h1:IUpT2DPAKh6i/YhSbt6Gl
 github.com/armon/consul-api v0.0.0-20180202201655-eb2c6b5be1b6/go.mod h1:grANhF5doyWs3UAsr3K4I6qtAmlQcZDesFNEHPZAzj8=
 github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5 h1:0CwZNZbxp69SHPdPJAN/hZIm0C4OItdklCFmMRWYpio=
 github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5/go.mod h1:wHh0iHkYZB8zMSxRWpUBQtwG5a7fFgvEO+odwuTv2gs=
-github.com/ava-labs/avalanchego v1.12.1-0.20250109181952-d82a8841f6d7 h1:hn3FJddR4bGEBw+eheUZcGhNdU4j7j2JNgI2qPb8dFU=
-github.com/ava-labs/avalanchego v1.12.1-0.20250109181952-d82a8841f6d7/go.mod h1:NfMp5LXjdDIjd9PmDn2XS9TiQTUwLvCyGwmuflZh194=
-github.com/ava-labs/coreth v0.13.9-0.20250109181626-6493558fa52c h1:R6p+y6mKdowDOvAbxG4xw3eawVc3547PwV9JbK5qdRQ=
-github.com/ava-labs/coreth v0.13.9-0.20250109181626-6493558fa52c/go.mod h1:RHovHXYBauSKgWEg0wlu37kL0vFXDdINGTwbdiQn5EE=
+github.com/ava-labs/avalanchego v1.12.1-0.20250109213120-2fb6d3f63236 h1:s2tPHtOjMJLfqC7n4QB4QwbWMUJAiZWImUmMjcDQD+E=
+github.com/ava-labs/avalanchego v1.12.1-0.20250109213120-2fb6d3f63236/go.mod h1:yGx8w2ZkxQRpv+I3WszsvtZk1bGSwkrmL3CudLEQNec=
+github.com/ava-labs/coreth v0.13.9-0.20250109212847-a0898a97c321 h1:Ou3VYMpQT/9VxRVZpFSpOEq9kN2SdIto9ta1GOdQ+04=
+github.com/ava-labs/coreth v0.13.9-0.20250109212847-a0898a97c321/go.mod h1:RHovHXYBauSKgWEg0wlu37kL0vFXDdINGTwbdiQn5EE=
 github.com/ava-labs/libevm v1.13.14-0.1.0.rc-2 h1:CVbn0hSsPCl6gCkTCnqwuN4vtJgdVbkCqLXzYAE7qF8=
 github.com/ava-labs/libevm v1.13.14-0.1.0.rc-2/go.mod h1:yBctIV/wnxXTF38h95943jvpuk4aj07TrjbpoGor6LQ=
 github.com/aymerick/raymond v2.0.3-0.20180322193309-b565731e1464+incompatible/go.mod h1:osfaiScAUVup+UC9Nfq76eWqDhXlp+4UYaA8uhTBO6g=

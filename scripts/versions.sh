@@ -4,5 +4,5 @@
 # shellcheck disable=SC2034
 
 # Don't export them as they're used in the context of other calls
-AVALANCHE_VERSION=${AVALANCHE_VERSION:-'d82a8841'}
+AVALANCHE_VERSION=${AVALANCHE_VERSION:-'2fb6d3f6'}
 GINKGO_VERSION=${GINKGO_VERSION:-'v2.2.0'}
