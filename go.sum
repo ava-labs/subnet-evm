@@ -64,6 +64,8 @@ github.com/ava-labs/avalanchego v1.12.1 h1:NL04K5+gciC2XqGZbDcIu0nuVApEddzc6Yyuj
 github.com/ava-labs/avalanchego v1.12.1/go.mod h1:xnVvN86jhxndxfS8e0U7v/0woyfx9BhX/feld7XDjDE=
 github.com/ava-labs/coreth v0.13.9-rc.2-encapsulate-signer h1:mRB03tLPUvgNko4nP4VwWQdiHeHaLHtdwsnqwxrsGec=
 github.com/ava-labs/coreth v0.13.9-rc.2-encapsulate-signer/go.mod h1:tqRAe+7bGLo2Rq/Ph4iYMSch72ag/Jn0DiDMDz1Xa9E=
+github.com/ava-labs/libevm v0.0.0-20250113110843-18c93de8be7f h1:KeKggoIyyF+o/GeGofo2+UO93WN7ulqMcVlP2K3iUzM=
+github.com/ava-labs/libevm v0.0.0-20250113110843-18c93de8be7f/go.mod h1:M8TCw2g1D5GBB7hu7g1F4aot5bRHGSxnBawNVmHE9Z0=
 github.com/aymerick/raymond v2.0.3-0.20180322193309-b565731e1464+incompatible/go.mod h1:osfaiScAUVup+UC9Nfq76eWqDhXlp+4UYaA8uhTBO6g=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
 github.com/beorn7/perks v1.0.1/go.mod h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6rlkpw=
