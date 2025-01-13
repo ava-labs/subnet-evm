@@ -16,6 +16,10 @@ import (
 	dto "github.com/prometheus/client_model/go"
 )
 
+func init() {
+	metrics.Enabled = true
+}
+
 type Gatherer struct {
 	registry Registry
 }
