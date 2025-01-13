@@ -19,6 +19,7 @@ import (
 	"github.com/ava-labs/avalanchego/utils/timer/mockable"
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
+	"github.com/ava-labs/libevm/metrics"
 	"github.com/ava-labs/subnet-evm/plugin/evm/validators"
 	stateinterfaces "github.com/ava-labs/subnet-evm/plugin/evm/validators/state/interfaces"
 	"github.com/ava-labs/subnet-evm/utils"
@@ -29,6 +30,11 @@ import (
 )
 
 func TestAddressedCallSignatures(t *testing.T) {
+	metrics.Enabled = true
+	t.Cleanup(func() {
+		metrics.Enabled = false
+	})
+
 	database := memdb.New()
 	snowCtx := utils.TestSnowContext()
 	blsSecretKey, err := localsigner.New()
@@ -143,6 +149,11 @@ func TestAddressedCallSignatures(t *testing.T) {
 }
 
 func TestBlockSignatures(t *testing.T) {
+	metrics.Enabled = true
+	t.Cleanup(func() {
+		metrics.Enabled = false
+	})
+
 	database := memdb.New()
 	snowCtx := utils.TestSnowContext()
 	blsSecretKey, err := localsigner.New()

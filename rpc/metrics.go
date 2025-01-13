@@ -30,7 +30,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ava-labs/subnet-evm/metrics"
+	"github.com/ava-labs/libevm/metrics"
 )
 
 var (
