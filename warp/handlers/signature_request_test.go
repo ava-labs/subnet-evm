@@ -23,10 +23,13 @@ import (
 )
 
 func TestMessageSignatureHandler(t *testing.T) {
-	metrics.Enabled = true
-	t.Cleanup(func() {
-		metrics.Enabled = false
-	})
+	metricsEnabled := metrics.Enabled
+	if !metricsEnabled {
+		metrics.Enabled = true
+		t.Cleanup(func() {
+			metrics.Enabled = false
+		})
+	}
 
 	database := memdb.New()
 	snowCtx := utils.TestSnowContext()
@@ -132,10 +135,13 @@ func TestMessageSignatureHandler(t *testing.T) {
 }
 
 func TestBlockSignatureHandler(t *testing.T) {
-	metrics.Enabled = true
-	t.Cleanup(func() {
-		metrics.Enabled = false
-	})
+	metricsEnabled := metrics.Enabled
+	if !metricsEnabled {
+		metrics.Enabled = true
+		t.Cleanup(func() {
+			metrics.Enabled = false
+		})
+	}
 
 	database := memdb.New()
 	snowCtx := utils.TestSnowContext()

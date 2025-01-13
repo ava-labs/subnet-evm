@@ -30,10 +30,13 @@ import (
 )
 
 func TestAddressedCallSignatures(t *testing.T) {
-	metrics.Enabled = true
-	t.Cleanup(func() {
-		metrics.Enabled = false
-	})
+	metricsEnabled := metrics.Enabled
+	if !metricsEnabled {
+		metrics.Enabled = true
+		t.Cleanup(func() {
+			metrics.Enabled = false
+		})
+	}
 
 	database := memdb.New()
 	snowCtx := utils.TestSnowContext()
@@ -149,10 +152,13 @@ func TestAddressedCallSignatures(t *testing.T) {
 }
 
 func TestBlockSignatures(t *testing.T) {
-	metrics.Enabled = true
-	t.Cleanup(func() {
-		metrics.Enabled = false
-	})
+	metricsEnabled := metrics.Enabled
+	if !metricsEnabled {
+		metrics.Enabled = true
+		t.Cleanup(func() {
+			metrics.Enabled = false
+		})
+	}
 
 	database := memdb.New()
 	snowCtx := utils.TestSnowContext()
