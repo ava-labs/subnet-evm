@@ -8,7 +8,6 @@ import (
 
 	"github.com/ava-labs/avalanchego/codec"
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/libevm/metrics"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
 	syncHandlers "github.com/ava-labs/subnet-evm/sync/handlers"
 	syncStats "github.com/ava-labs/subnet-evm/sync/handlers/stats"
@@ -16,6 +15,7 @@ import (
 	"github.com/ava-labs/subnet-evm/warp"
 	warpHandlers "github.com/ava-labs/subnet-evm/warp/handlers"
 	"github.com/ethereum/go-ethereum/ethdb"
+	"github.com/ethereum/go-ethereum/metrics"
 )
 
 var _ message.RequestHandler = &networkHandler{}

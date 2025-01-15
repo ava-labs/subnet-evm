@@ -19,10 +19,10 @@ package state
 import (
 	"sync"
 
-	"github.com/ava-labs/libevm/metrics"
 	"github.com/ava-labs/subnet-evm/libevm/options"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/ethereum/go-ethereum/metrics"
 )
 
 var (

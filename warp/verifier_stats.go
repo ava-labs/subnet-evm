@@ -4,7 +4,7 @@
 package warp
 
 import (
-	"github.com/ava-labs/libevm/metrics"
+	"github.com/ethereum/go-ethereum/metrics"
 )
 
 type verifierStats struct {

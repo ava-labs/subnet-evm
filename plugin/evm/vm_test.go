@@ -37,7 +37,6 @@ import (
 	"github.com/ava-labs/avalanchego/utils/formatting"
 	"github.com/ava-labs/avalanchego/vms/components/chain"
 
-	"github.com/ava-labs/libevm/metrics"
 	accountKeystore "github.com/ava-labs/subnet-evm/accounts/keystore"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
@@ -56,6 +55,7 @@ import (
 	"github.com/ava-labs/subnet-evm/trie"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ava-labs/subnet-evm/vmerrs"
+	"github.com/ethereum/go-ethereum/metrics"
 
 	avagoconstants "github.com/ava-labs/avalanchego/utils/constants"
 )

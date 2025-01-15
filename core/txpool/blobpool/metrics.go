@@ -26,7 +26,7 @@
 
 package blobpool
 
-import "github.com/ava-labs/libevm/metrics"
+import "github.com/ethereum/go-ethereum/metrics"
 
 var (
 	// datacapGauge tracks the user's configured capacity for the blob pool. It
