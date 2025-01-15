@@ -165,7 +165,7 @@ func metricFamily(registry Registry, name string) (mf *dto.MetricFamily, err err
 	case metrics.ResettingTimer:
 		snapshot := m.Snapshot()
 		if snapshot.Count() == 0 {
-			return nil, fmt.Errorf("%w: resetting timer metric count is zero", errMetricSkip)
+			return nil, fmt.Errorf("%w: %q resetting timer metric count is zero", errMetricSkip, name)
 		}
 
 		pvShortPercent := []float64{50, 95, 99}
@@ -191,6 +191,6 @@ func metricFamily(registry Registry, name string) (mf *dto.MetricFamily, err err
 			}},
 		}, nil
 	default:
-		return nil, fmt.Errorf("metric type is not supported: %T", metric)
+		return nil, fmt.Errorf("metric %q: type is not supported: %T", name, metric)
 	}
 }
