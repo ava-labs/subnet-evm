@@ -28,6 +28,10 @@ func TestGatherer_Gather(t *testing.T) {
 	counter.Inc(12345)
 	register(t, "test/counter", counter)
 
+	counterFloat64 := metrics.NewCounterFloat64()
+	counterFloat64.Inc(1.1)
+	register(t, "test/counter_float64", counterFloat64)
+
 	gauge := metrics.NewGauge()
 	gauge.Update(23456)
 	register(t, "test/gauge", gauge)
@@ -75,6 +79,7 @@ func TestGatherer_Gather(t *testing.T) {
 	}
 	want := []string{
 		`name:"test_counter" type:COUNTER metric:<counter:<value:12345 > > `,
+		`name:"test_counter_float64" type:COUNTER metric:<counter:<value:1.1 > > `,
 		`name:"test_gauge" type:GAUGE metric:<gauge:<value:23456 > > `,
 		`name:"test_gauge_float64" type:GAUGE metric:<gauge:<value:34567.89 > > `,
 		`name:"test_histogram" type:SUMMARY metric:<summary:<sample_count:0 sample_sum:0 quantile:<quantile:0.5 value:0 > quantile:<quantile:0.75 value:0 > quantile:<quantile:0.95 value:0 > quantile:<quantile:0.99 value:0 > quantile:<quantile:0.999 value:0 > quantile:<quantile:0.9999 value:0 > > > `,
@@ -83,4 +88,9 @@ func TestGatherer_Gather(t *testing.T) {
 		`name:"test_timer" type:SUMMARY metric:<summary:<sample_count:6 sample_sum:2.3e+08 quantile:<quantile:0.5 value:2.25e+07 > quantile:<quantile:0.75 value:4.8e+07 > quantile:<quantile:0.95 value:1.2e+08 > quantile:<quantile:0.99 value:1.2e+08 > quantile:<quantile:0.999 value:1.2e+08 > quantile:<quantile:0.9999 value:1.2e+08 > > > `,
 	}
 	assert.Equal(t, want, familyStrings)
+
+	register(t, "unsupported", metrics.NewGaugeInfo())
+	families, err = g.Gather()
+	assert.EqualError(t, err, "metric type is not supported: *metrics.StandardGaugeInfo")
+	assert.Empty(t, families)
 }
