@@ -14,21 +14,15 @@ import (
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
+	"github.com/ava-labs/subnet-evm/plugin/evm/testutils"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ava-labs/subnet-evm/warp"
 	"github.com/ava-labs/subnet-evm/warp/warptest"
-	"github.com/ethereum/go-ethereum/metrics"
 	"github.com/stretchr/testify/require"
 )
 
 func TestMessageSignatureHandler(t *testing.T) {
-	metricsEnabled := metrics.Enabled
-	if !metricsEnabled {
-		metrics.Enabled = true
-		t.Cleanup(func() {
-			metrics.Enabled = false
-		})
-	}
+	testutils.WithMetrics(t)
 
 	database := memdb.New()
 	snowCtx := utils.TestSnowContext()
@@ -134,13 +128,7 @@ func TestMessageSignatureHandler(t *testing.T) {
 }
 
 func TestBlockSignatureHandler(t *testing.T) {
-	metricsEnabled := metrics.Enabled
-	if !metricsEnabled {
-		metrics.Enabled = true
-		t.Cleanup(func() {
-			metrics.Enabled = false
-		})
-	}
+	testutils.WithMetrics(t)
 
 	database := memdb.New()
 	snowCtx := utils.TestSnowContext()

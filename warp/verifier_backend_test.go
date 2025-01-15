@@ -18,24 +18,18 @@ import (
 	"github.com/ava-labs/avalanchego/utils/timer/mockable"
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
+	"github.com/ava-labs/subnet-evm/plugin/evm/testutils"
 	"github.com/ava-labs/subnet-evm/plugin/evm/validators"
 	stateinterfaces "github.com/ava-labs/subnet-evm/plugin/evm/validators/state/interfaces"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ava-labs/subnet-evm/warp/messages"
 	"github.com/ava-labs/subnet-evm/warp/warptest"
-	"github.com/ethereum/go-ethereum/metrics"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 )
 
 func TestAddressedCallSignatures(t *testing.T) {
-	metricsEnabled := metrics.Enabled
-	if !metricsEnabled {
-		metrics.Enabled = true
-		t.Cleanup(func() {
-			metrics.Enabled = false
-		})
-	}
+	testutils.WithMetrics(t)
 
 	database := memdb.New()
 	snowCtx := utils.TestSnowContext()
@@ -151,13 +145,7 @@ func TestAddressedCallSignatures(t *testing.T) {
 }
 
 func TestBlockSignatures(t *testing.T) {
-	metricsEnabled := metrics.Enabled
-	if !metricsEnabled {
-		metrics.Enabled = true
-		t.Cleanup(func() {
-			metrics.Enabled = false
-		})
-	}
+	testutils.WithMetrics(t)
 
 	database := memdb.New()
 	snowCtx := utils.TestSnowContext()
