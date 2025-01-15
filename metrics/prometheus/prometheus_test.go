@@ -1,4 +1,4 @@
-// (c) 2021-2025 Ava Labs, Inc. All rights reserved.
+// (c) 2021-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package prometheus
@@ -69,9 +69,9 @@ func TestGatherer_Gather(t *testing.T) {
 	emptyResettingTimer.Update(time.Second) // no effect because of snapshot below
 	register(t, "test/empty_resetting_timer_snapshot", emptyResettingTimer.Snapshot())
 
-	g := NewGatherer(registry)
+	gatherer := NewGatherer(registry)
 
-	families, err := g.Gather()
+	families, err := gatherer.Gather()
 	require.NoError(t, err)
 	familyStrings := make([]string, len(families))
 	for i := range families {
@@ -90,7 +90,7 @@ func TestGatherer_Gather(t *testing.T) {
 	assert.Equal(t, want, familyStrings)
 
 	register(t, "unsupported", metrics.NewGaugeInfo())
-	families, err = g.Gather()
+	families, err = gatherer.Gather()
 	assert.EqualError(t, err, "metric \"unsupported\": type is not supported: *metrics.StandardGaugeInfo")
 	assert.Empty(t, families)
 }

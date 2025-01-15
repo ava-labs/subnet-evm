@@ -1,4 +1,4 @@
-// (c) 2021-2025 Ava Labs, Inc. All rights reserved.
+// (c) 2021-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package prometheus
@@ -16,20 +16,23 @@ import (
 	dto "github.com/prometheus/client_model/go"
 )
 
+// Gatherer implements [prometheus.Gatherer] interface by
+// gathering all metrics from the given Prometheus registry.
 type Gatherer struct {
 	registry Registry
 }
 
 var _ prometheus.Gatherer = (*Gatherer)(nil)
 
-// NewGatherer returns a gatherer using the given registry.
-// Note this gatherer implements the [prometheus.Gatherer] interface.
+// NewGatherer returns a [Gatherer] using the given registry.
 func NewGatherer(registry Registry) *Gatherer {
 	return &Gatherer{
 		registry: registry,
 	}
 }
 
+// Gather gathers metrics from the registry and converts them to
+// a slice of metric families.
 func (g *Gatherer) Gather() (mfs []*dto.MetricFamily, err error) {
 	// Gather and pre-sort the metrics to avoid random listings
 	var names []string
@@ -42,8 +45,8 @@ func (g *Gatherer) Gather() (mfs []*dto.MetricFamily, err error) {
 	for _, name := range names {
 		mf, err := metricFamily(g.registry, name)
 		if err != nil {
-		if errors.Is(err, errMetricSkip) {
-			continue
+			if errors.Is(err, errMetricSkip) {
+				continue
 			}
 			return nil, err
 		}
@@ -184,9 +187,7 @@ func metricFamily(registry Registry, name string) (mf *dto.MetricFamily, err err
 			Metric: []*dto.Metric{{
 				Summary: &dto.Summary{
 					SampleCount: ptrTo(uint64(snapshot.Count())), //nolint:gosec
-					// TODO: do we need to specify SampleSum here? and if so
-					// what should that be?
-					Quantile: dtoQuantiles,
+					Quantile:    dtoQuantiles,
 				},
 			}},
 		}, nil
