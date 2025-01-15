@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ava-labs/avalanchego/api/metrics"
 	"github.com/ava-labs/avalanchego/snow"
 	commonEng "github.com/ava-labs/avalanchego/snow/engine/common"
 	"github.com/ava-labs/avalanchego/snow/engine/enginetest"
@@ -27,7 +28,6 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/metrics"
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -94,12 +94,10 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 	}
 
 	// restart the vm
-	// Hack: registering metrics uses global variables, so we need to disable metrics here so that we
-	// can initialize the VM twice.
-	metrics.Enabled = false
-	defer func() {
-		metrics.Enabled = true
-	}()
+
+	// Reset metrics to allow re-initialization
+	vm.ctx.Metrics = metrics.NewPrefixGatherer()
+
 	if err := vm.Initialize(
 		context.Background(), vm.ctx, dbManager, []byte(genesisJSONSubnetEVM), upgradeBytesJSON, []byte{}, issuer, []*commonEng.Fx{}, appSender,
 	); err != nil {

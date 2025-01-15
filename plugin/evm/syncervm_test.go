@@ -24,6 +24,7 @@ import (
 	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
 	"github.com/ava-labs/avalanchego/utils/set"
 
+	"github.com/ava-labs/avalanchego/api/metrics"
 	"github.com/ava-labs/subnet-evm/accounts/keystore"
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
 	"github.com/ava-labs/subnet-evm/constants"
@@ -40,7 +41,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/metrics"
 	"github.com/ethereum/go-ethereum/rlp"
 )
 
@@ -83,11 +83,6 @@ func TestStateSyncFromScratchExceedParent(t *testing.T) {
 
 func TestStateSyncToggleEnabledToDisabled(t *testing.T) {
 	rand.Seed(1)
-	// Hack: registering metrics uses global variables, so we need to disable metrics here so that we can initialize the VM twice.
-	metrics.Enabled = false
-	defer func() {
-		metrics.Enabled = true
-	}()
 
 	var lock sync.Mutex
 	reqCount := 0
@@ -137,7 +132,8 @@ func TestStateSyncToggleEnabledToDisabled(t *testing.T) {
 		go vmSetup.serverVM.AppRequest(ctx, nodeID, requestID, time.Now().Add(1*time.Second), request)
 		return nil
 	}
-	// Disable metrics to prevent duplicate registerer
+	// Reset metrics to allow re-initialization
+	vmSetup.syncerVM.ctx.Metrics = metrics.NewPrefixGatherer()
 	stateSyncDisabledConfigJSON := `{"state-sync-enabled":false}`
 	if err := syncDisabledVM.Initialize(
 		context.Background(),
@@ -202,6 +198,8 @@ func TestStateSyncToggleEnabledToDisabled(t *testing.T) {
 		`{"state-sync-enabled":true, "state-sync-min-blocks":%d}`,
 		test.stateSyncMinBlocks,
 	)
+	// Reset metrics to allow re-initialization
+	vmSetup.syncerVM.ctx.Metrics = metrics.NewPrefixGatherer()
 	if err := syncReEnabledVM.Initialize(
 		context.Background(),
 		vmSetup.syncerVM.ctx,
