@@ -98,3 +98,80 @@ There are two options when using the Avalanche-CLI:
 
 1. Use an official Subnet-EVM release: https://docs.avax.network/subnets/build-first-subnet
 2. Build and deploy a locally built (and optionally modified) version of Subnet-EVM: https://docs.avax.network/subnets/create-custom-subnet
+
+## Run in Docker
+
+### Configuration
+
+You can configure the `subnet-evm` Docker container using both environment variables and standard AvalancheGo config files.
+
+- **Environment Variables**: Use uppercase variables prefixed with `AVAGO_`. For example, `AVAGO_NETWORK_ID` corresponds to the `--network-id` flag in AvalancheGo.
+- **Config Files**: Configure as you would with the regular AvalancheGo binary using config files. Ensure `HOME` is set to `/home/avalanche` and mount the config directory with `-v ~/.avalanchego:/home/avalanche/.avalanchego`.
+
+### Data Persistence
+
+To persist data across container restarts, you need to mount the `.avalanchego` directory.
+
+- **Create Directory**: Run `mkdir -p ~/.avalanchego/staking` beforehand to create the necessary directories and avoid file system access issues.
+- **Set Permissions**: Run the container with `--user $(id -u):$(id -g)` to ensure proper access rights.
+- **Set Home and Mount**: Set `HOME` to `/home/avalanche` and mount the data directory with `-v ~/.avalanchego:/home/avalanche/.avalanchego`.
+
+### Updating
+
+Run `docker stop avago; docker rm avago;` then start a new container with the latest version tag in your `docker run` command.
+
+### Networking
+
+Using `--network host` is recommended to avoid any issues.
+
+If you know what you are doing, you will need port `AVAGO_STAKING_PORT` (default `9651`) open for the validator to connect to the subnet. For the RPC server, open `AVAGO_HTTP_PORT` (default `9650`). Do not attempt to remap `AVAGO_STAKING_PORT` using the Docker `-p` flag (e.g., `-p 9651:1234`); it will not work. Instead, set `AVAGO_STAKING_PORT=1234` and then use `-p 1234:1234`.
+
+### Example Configs
+
+#### Fuji Subnet Validator
+
+```bash
+mkdir -p ~/.avalanchego/staking; docker run -it -d \
+  --name avago \
+  --network host \
+  -v ~/.avalanchego:/home/avalanche/.avalanchego \
+  -e AVAGO_NETWORK_ID=fuji \
+  -e AVAGO_PARTIAL_SYNC_PRIMARY_NETWORK=true \
+  -e AVAGO_TRACK_SUBNETS=REPLACE_THIS_WITH_YOUR_SUBNET_ID \
+  -e AVAGO_PUBLIC_IP_RESOLUTION_SERVICE=ifconfigme \
+  -e AVAGO_PLUGIN_DIR=/avalanchego/build/plugins/ \
+  -e HOME=/home/avalanche \
+  --user $(id -u):$(id -g) \
+  avaplatform/subnet-evm:v0.7.1
+```
+
+- `AVAGO_PARTIAL_SYNC_PRIMARY_NETWORK`: Ensures you don't sync the X and C-Chains.
+- `AVAGO_PLUGIN_DIR`: Sets the directory for the `subnet-evm` plugin.
+- `AVAGO_TRACK_SUBNETS`: Sets the subnet ID to track. It will track all chains in the subnet.
+- `AVAGO_NETWORK_ID=fuji`: Sets the network ID to Fuji. Remove to sync Mainnet.
+- `AVAGO_PUBLIC_IP_RESOLUTION_SERVICE=ifconfigme`: Required for AWS EC2 instances to be accessed from outside AWS.
+
+#### Fuji Subnet RPC
+
+```bash
+const dockerCommand = (subnetID: string, chainID: string) => `mkdir -p ~/.avalanchego_rpc/staking; docker run -it -d \\
+  --name rpc \\
+  --network host \\
+  -v ~/.avalanchego_rpc/:/home/avalanche/.avalanchego \\
+  -e AVAGO_NETWORK_ID=fuji \\
+  -e AVAGO_PARTIAL_SYNC_PRIMARY_NETWORK=true \\
+  -e AVAGO_TRACK_SUBNETS=REPLACE_THIS_WITH_YOUR_SUBNET_ID \\
+  -e AVAGO_HTTP_PORT=8080 \\
+  -e AVAGO_STAKING_PORT=9653 \\
+  -e AVAGO_HTTP_ALLOWED_HOSTS="*" \\
+  -e AVAGO_HTTP_HOST=0.0.0.0 \\
+  -e AVAGO_PUBLIC_IP_RESOLUTION_SERVICE=ifconfigme \\
+  -e AVAGO_PLUGIN_DIR=/avalanchego/build/plugins/ \\
+  -e HOME=/home/avalanche \\
+  --user $(id -u):$(id -g) \\
+  avaplatform/subnet-evm:v0.7.1`;
+```
+
+- `AVAGO_STAKING_PORT` is set to `9653` in case you want to run this on the same machine as the validator.
+- `AVAGO_HTTP_PORT` is set to `8080` instead of `9650` to avoid conflicts with the validator.
+- `AVAGO_HTTP_ALLOWED_HOSTS` and `AVAGO_HTTP_HOST` are required to allow the RPC server to be accessed from outside. You'll need to secure it with HTTPS; Caddy is recommended.
