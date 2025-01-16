@@ -154,24 +154,26 @@ mkdir -p ~/.avalanchego/staking; docker run -it -d \
 #### Fuji Subnet RPC
 
 ```bash
-const dockerCommand = (subnetID: string, chainID: string) => `mkdir -p ~/.avalanchego_rpc/staking; docker run -it -d \\
-  --name rpc \\
-  --network host \\
-  -v ~/.avalanchego_rpc/:/home/avalanche/.avalanchego \\
-  -e AVAGO_NETWORK_ID=fuji \\
-  -e AVAGO_PARTIAL_SYNC_PRIMARY_NETWORK=true \\
-  -e AVAGO_TRACK_SUBNETS=REPLACE_THIS_WITH_YOUR_SUBNET_ID \\
-  -e AVAGO_HTTP_PORT=8080 \\
-  -e AVAGO_STAKING_PORT=9653 \\
-  -e AVAGO_HTTP_ALLOWED_HOSTS="*" \\
-  -e AVAGO_HTTP_HOST=0.0.0.0 \\
-  -e AVAGO_PUBLIC_IP_RESOLUTION_SERVICE=ifconfigme \\
-  -e AVAGO_PLUGIN_DIR=/avalanchego/build/plugins/ \\
-  -e HOME=/home/avalanche \\
-  --user $(id -u):$(id -g) \\
-  avaplatform/subnet-evm:v0.7.1`;
+mkdir -p ~/.avalanchego_rpc/staking; docker run -it -d \
+  --name rpc \
+  --network host \
+  -v ~/.avalanchego_rpc/:/home/avalanche/.avalanchego \
+  -e AVAGO_NETWORK_ID=fuji \
+  -e AVAGO_PARTIAL_SYNC_PRIMARY_NETWORK=true \
+  -e AVAGO_TRACK_SUBNETS=REPLACE_THIS_WITH_YOUR_SUBNET_ID \
+  -e AVAGO_HTTP_PORT=8080 \
+  -e AVAGO_STAKING_PORT=9653 \
+  -e AVAGO_HTTP_ALLOWED_HOSTS="*" \
+  -e AVAGO_HTTP_HOST=0.0.0.0 \
+  -e AVAGO_PUBLIC_IP_RESOLUTION_SERVICE=ifconfigme \
+  -e AVAGO_PLUGIN_DIR=/avalanchego/build/plugins/ \
+  -e HOME=/home/avalanche \
+  --user $(id -u):$(id -g) \
+  avaplatform/subnet-evm:v0.7.1
 ```
 
 - `AVAGO_STAKING_PORT` is set to `9653` in case you want to run this on the same machine as the validator.
 - `AVAGO_HTTP_PORT` is set to `8080` instead of `9650` to avoid conflicts with the validator.
 - `AVAGO_HTTP_ALLOWED_HOSTS` and `AVAGO_HTTP_HOST` are required to allow the RPC server to be accessed from outside. You'll need to secure it with HTTPS; Caddy is recommended.
+
+RPC example uses another folder `~/.avalanchego_rpc` to avoid conflicts with the validator if you want to run both on the same machine.
