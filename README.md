@@ -101,6 +101,8 @@ There are two options when using the Avalanche-CLI:
 
 ## Run in Docker
 
+The `subnet-evm` Docker image comes with AvalancheGo pre-installed, making it easy to run a node. You can find the latest image tags on [Docker Hub](https://hub.docker.com/r/avaplatform/subnet-evm/tags).
+
 ### Configuration
 
 You can configure the `subnet-evm` Docker container using both environment variables and standard AvalancheGo config files.
