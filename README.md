@@ -105,7 +105,7 @@ The `subnet-evm` Docker image comes with AvalancheGo pre-installed, making it ea
 
 ### Configuration
 
-You can configure the `subnet-evm` Docker container using both environment variables and standard AvalancheGo config files.
+You can configure the `subnet-evm` Docker container using environment variables, flags or standard AvalancheGo config files.
 
 - **Environment Variables**: Use uppercase variables prefixed with `AVAGO_`. For example, `AVAGO_NETWORK_ID` corresponds to the `--network-id` flag in AvalancheGo.
 - **Config Files**: Configure as you would with the regular AvalancheGo binary using config files. Ensure `HOME` is set to `/home/avalanche` and mount the config directory with `-v ~/.avalanchego:/home/avalanche/.avalanchego`.
