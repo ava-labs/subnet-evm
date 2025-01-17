@@ -141,14 +141,12 @@ mkdir -p ~/.avalanchego/staking; docker run -it -d \
   -e AVAGO_PARTIAL_SYNC_PRIMARY_NETWORK=true \
   -e AVAGO_TRACK_SUBNETS=REPLACE_THIS_WITH_YOUR_SUBNET_ID \
   -e AVAGO_PUBLIC_IP_RESOLUTION_SERVICE=ifconfigme \
-  -e AVAGO_PLUGIN_DIR=/avalanchego/build/plugins/ \
   -e HOME=/home/avalanche \
   --user $(id -u):$(id -g) \
   avaplatform/subnet-evm:v0.7.1
 ```
 
 - `AVAGO_PARTIAL_SYNC_PRIMARY_NETWORK`: Ensures you don't sync the X and C-Chains.
-- `AVAGO_PLUGIN_DIR`: Sets the directory for the `subnet-evm` plugin.
 - `AVAGO_TRACK_SUBNETS`: Sets the subnet ID to track. It will track all chains in the subnet.
 - `AVAGO_NETWORK_ID=fuji`: Sets the network ID to Fuji. Remove to sync Mainnet.
 - `AVAGO_PUBLIC_IP_RESOLUTION_SERVICE=ifconfigme`: Required for AWS EC2 instances to be accessed from outside AWS.
@@ -168,7 +166,6 @@ mkdir -p ~/.avalanchego_rpc/staking; docker run -it -d \
   -e AVAGO_HTTP_ALLOWED_HOSTS="*" \
   -e AVAGO_HTTP_HOST=0.0.0.0 \
   -e AVAGO_PUBLIC_IP_RESOLUTION_SERVICE=ifconfigme \
-  -e AVAGO_PLUGIN_DIR=/avalanchego/build/plugins/ \
   -e HOME=/home/avalanche \
   --user $(id -u):$(id -g) \
   avaplatform/subnet-evm:v0.7.1

@@ -32,5 +32,6 @@ RUN export SUBNET_EVM_COMMIT=$SUBNET_EVM_COMMIT && export CURRENT_BRANCH=$CURREN
 FROM $AVALANCHEGO_NODE_IMAGE AS builtImage
 
 # Copy the evm binary into the correct location in the container
+ENV AVAGO_PLUGIN_DIR=/avalanchego/build/plugins/
 ARG VM_ID=srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
 COPY --from=builder /build/build/subnet-evm /avalanchego/build/plugins/$VM_ID
