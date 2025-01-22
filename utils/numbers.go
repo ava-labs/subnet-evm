@@ -4,6 +4,7 @@
 package utils
 
 import (
+	"math/big"
 	"time"
 )
 
@@ -17,6 +18,15 @@ func TimeToNewUint64(time time.Time) *uint64 {
 func Uint64ToTime(val *uint64) time.Time {
 	timestamp := int64(*val)
 	return time.Unix(timestamp, 0)
+}
+
+// BigNumEqual returns true if x and y are equivalent ie. both nil or both
+// contain the same value.
+func BigNumEqual(x, y *big.Int) bool {
+	if x == nil || y == nil {
+		return x == y
+	}
+	return x.Cmp(y) == 0
 }
 
 // Uint64PtrEqual returns true if x and y pointers are equivalent ie. both nil or both
