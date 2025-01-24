@@ -18,7 +18,7 @@ type (
 )
 
 // BindHook is a callback function that can be used to customize the binding.
-type BindHook func(lang Lang, pkg string, types []string, contracts map[string]*tmplContract, structs map[string]*tmplStruct) (data interface{}, templateSource string, err error)
+type BindHook func(lang Lang, pkg string, types []string, contracts map[string]*tmplContract, structs map[string]*tmplStruct) (data any, templateSource string, err error)
 
 func IsKeyWord(arg string) bool {
 	return isKeyWord(arg)
