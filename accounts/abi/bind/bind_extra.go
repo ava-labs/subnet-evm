@@ -61,7 +61,7 @@ func bindTypeNewGo(kind abi.Type, structs map[string]*tmplStruct) string {
 	}
 }
 
-func mkList(args ...interface{}) []interface{} {
+func mkList(args ...any) []any {
 	return args
 }
 
