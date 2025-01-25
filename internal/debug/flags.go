@@ -223,7 +223,7 @@ func Setup(ctx *cli.Context) error {
 		output = io.MultiWriter(terminalOutput, logOutputFile)
 	} else if logFile != "" {
 		var err error
-		if logOutputFile, err = os.OpenFile(logFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644); err != nil {
+		if logOutputFile, err = os.OpenFile(logFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644); err != nil {
 			return err
 		}
 		output = io.MultiWriter(logOutputFile, terminalOutput)

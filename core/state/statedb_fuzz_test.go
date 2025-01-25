@@ -115,7 +115,7 @@ func newStateTestAction(addr common.Address, r *rand.Rand, index int) testAction
 			},
 		},
 	}
-	var nonRandom = index != -1
+	nonRandom := index != -1
 	if index == -1 {
 		index = r.Intn(len(actions))
 	}

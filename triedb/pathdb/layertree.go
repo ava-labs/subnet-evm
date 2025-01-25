@@ -60,7 +60,7 @@ func (tree *layerTree) reset(head layer) {
 	tree.lock.Lock()
 	defer tree.lock.Unlock()
 
-	var layers = make(map[common.Hash]layer)
+	layers := make(map[common.Hash]layer)
 	for head != nil {
 		layers[head.rootHash()] = head
 		head = head.parentLayer()

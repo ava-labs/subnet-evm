@@ -26,7 +26,7 @@ func PackNativeCoinMintedEvent(sender common.Address, recipient common.Address, 
 
 // UnpackNativeCoinMintedEventData attempts to unpack non-indexed [dataBytes].
 func UnpackNativeCoinMintedEventData(dataBytes []byte) (*big.Int, error) {
-	var eventData = struct {
+	eventData := struct {
 		Amount *big.Int
 	}{}
 	err := NativeMinterABI.UnpackIntoInterface(&eventData, "NativeCoinMinted", dataBytes)

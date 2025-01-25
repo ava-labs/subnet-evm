@@ -217,7 +217,6 @@ func (c *Config) VerifyPredicate(predicateContext *precompileconfig.PredicateCon
 		quorumNumerator,
 		WarpQuorumDenominator,
 	)
-
 	if err != nil {
 		log.Debug("failed to verify warp signature", "msgID", warpMsg.ID(), "err", err)
 		return fmt.Errorf("%w: %w", errFailedVerification, err)

@@ -93,7 +93,7 @@ func (bloom *stateBloom) Commit(filename, tempname string) error {
 		return err
 	}
 	// Ensure the file is synced to disk
-	f, err := os.OpenFile(tempname, os.O_RDWR, 0666)
+	f, err := os.OpenFile(tempname, os.O_RDWR, 0o666)
 	if err != nil {
 		return err
 	}

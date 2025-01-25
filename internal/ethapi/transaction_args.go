@@ -47,9 +47,7 @@ import (
 	"github.com/holiman/uint256"
 )
 
-var (
-	maxBlobsPerTransaction = params.MaxBlobGasPerBlock / params.BlobTxBlobGasPerBlob
-)
+var maxBlobsPerTransaction = params.MaxBlobGasPerBlock / params.BlobTxBlobGasPerBlob
 
 // TransactionArgs represents the arguments to construct a new transaction
 // or a message call.

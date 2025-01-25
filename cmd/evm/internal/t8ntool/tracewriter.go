@@ -76,6 +76,7 @@ func (t *traceWriter) CaptureExit(output []byte, gasUsed uint64, err error) {
 func (t *traceWriter) CaptureState(pc uint64, op vm.OpCode, gas, cost uint64, scope *vm.ScopeContext, rData []byte, depth int, err error) {
 	t.inner.CaptureState(pc, op, gas, cost, scope, rData, depth, err)
 }
+
 func (t *traceWriter) CaptureFault(pc uint64, op vm.OpCode, gas, cost uint64, scope *vm.ScopeContext, depth int, err error) {
 	t.inner.CaptureFault(pc, op, gas, cost, scope, depth, err)
 }

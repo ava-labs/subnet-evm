@@ -33,7 +33,7 @@ import (
 )
 
 func TestTracker(t *testing.T) {
-	var cases = []struct {
+	cases := []struct {
 		limit   int
 		calls   []uint64
 		expHead uint64
@@ -76,7 +76,7 @@ func TestTracker(t *testing.T) {
 		}
 	}
 
-	var calls = []struct {
+	calls := []struct {
 		number  uint64
 		expUsed []bool
 		expHead uint64

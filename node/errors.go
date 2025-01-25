@@ -30,6 +30,4 @@ import (
 	"errors"
 )
 
-var (
-	ErrNodeStopped = errors.New("node not started")
-)
+var ErrNodeStopped = errors.New("node not started")

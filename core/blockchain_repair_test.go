@@ -281,6 +281,7 @@ func testLongDeepRepair(t *testing.T, snapshots bool) {
 func TestLongOldForkedShallowRepair(t *testing.T) {
 	testLongOldForkedShallowRepair(t, false)
 }
+
 func TestLongOldForkedShallowRepairWithSnapshots(t *testing.T) {
 	testLongOldForkedShallowRepair(t, true)
 }
@@ -359,6 +360,7 @@ func testLongOldForkedDeepRepair(t *testing.T, snapshots bool) {
 func TestLongNewerForkedShallowRepair(t *testing.T) {
 	testLongNewerForkedShallowRepair(t, false)
 }
+
 func TestLongNewerForkedShallowRepairWithSnapshots(t *testing.T) {
 	testLongNewerForkedShallowRepair(t, true)
 }
@@ -511,7 +513,7 @@ func testRepair(t *testing.T, tt *rewindTest, snapshots bool) {
 
 func testRepairWithScheme(t *testing.T, tt *rewindTest, snapshots bool, scheme string) {
 	// It's hard to follow the test case, visualize the input
-	//log.Root().SetHandler(log.LvlFilterHandler(log.LvlTrace, log.StreamHandler(os.Stderr, log.TerminalFormat(true))))
+	// log.Root().SetHandler(log.LvlFilterHandler(log.LvlTrace, log.StreamHandler(os.Stderr, log.TerminalFormat(true))))
 	// fmt.Println(tt.dump(true))
 
 	// Create a temporary persistent database

@@ -12,9 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
-var (
-	_ Request = BlockRequest{}
-)
+var _ Request = BlockRequest{}
 
 // BlockRequest is a request to retrieve Parents number of blocks starting from Hash from newest-oldest manner
 type BlockRequest struct {

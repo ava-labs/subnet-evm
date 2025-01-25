@@ -41,11 +41,9 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 )
 
-var (
-	// ErrOverdraft is returned if a transaction would cause the senders balance to go negative
-	// thus invalidating a potential large number of transactions.
-	ErrOverdraft = errors.New("transaction would cause overdraft")
-)
+// ErrOverdraft is returned if a transaction would cause the senders balance to go negative
+// thus invalidating a potential large number of transactions.
+var ErrOverdraft = errors.New("transaction would cause overdraft")
 
 // TxStatus is the current status of a transaction as seen by the pool.
 type TxStatus uint
@@ -56,14 +54,12 @@ const (
 	TxStatusPending
 )
 
-var (
-	// reservationsGaugeName is the prefix of a per-subpool address reservation
-	// metric.
-	//
-	// This is mostly a sanity metric to ensure there's no bug that would make
-	// some subpool hog all the reservations due to mis-accounting.
-	reservationsGaugeName = "txpool/reservations"
-)
+// reservationsGaugeName is the prefix of a per-subpool address reservation
+// metric.
+//
+// This is mostly a sanity metric to ensure there's no bug that would make
+// some subpool hog all the reservations due to mis-accounting.
+var reservationsGaugeName = "txpool/reservations"
 
 // BlockChain defines the minimal set of methods needed to back a tx pool with
 // a chain. Exists to allow mocking the live chain out of tests.

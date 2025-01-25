@@ -54,9 +54,11 @@ const (
 func (vs *ValidationMessages) Crit(msg string) {
 	vs.Messages = append(vs.Messages, ValidationInfo{CRIT, msg})
 }
+
 func (vs *ValidationMessages) Warn(msg string) {
 	vs.Messages = append(vs.Messages, ValidationInfo{WARN, msg})
 }
+
 func (vs *ValidationMessages) Info(msg string) {
 	vs.Messages = append(vs.Messages, ValidationInfo{INFO, msg})
 }

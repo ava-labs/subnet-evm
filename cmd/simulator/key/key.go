@@ -35,7 +35,7 @@ func Load(file string) (*Key, error) {
 // LoadAll loads all keys in [dir].
 func LoadAll(ctx context.Context, dir string) ([]*Key, error) {
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		if err := os.MkdirAll(dir, 0755); err != nil {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
 			return nil, fmt.Errorf("unable to create %s: %w", dir, err)
 		}
 

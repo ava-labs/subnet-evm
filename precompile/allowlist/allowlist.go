@@ -91,7 +91,6 @@ func createAllowListRoleSetter(precompileAddr common.Address, role Role) contrac
 		// do not use strict mode after Durango
 		useStrictMode := !contract.IsDurangoActivated(evm)
 		modifyAddress, err := UnpackModifyAllowListInput(input, role, useStrictMode)
-
 		if err != nil {
 			return nil, remainingGas, err
 		}

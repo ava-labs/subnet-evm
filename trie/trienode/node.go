@@ -142,7 +142,7 @@ func (set *NodeSet) Hashes() []common.Hash {
 
 // Summary returns a string-representation of the NodeSet.
 func (set *NodeSet) Summary() string {
-	var out = new(strings.Builder)
+	out := new(strings.Builder)
 	fmt.Fprintf(out, "nodeset owner: %v\n", set.Owner)
 	if set.Nodes != nil {
 		for path, n := range set.Nodes {

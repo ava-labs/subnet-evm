@@ -145,7 +145,7 @@ func testNodeIteratorCoverage(t *testing.T, scheme string) {
 	db, nodeDb, trie, _ := makeTestTrie(scheme)
 
 	// Gather all the node hashes found by the iterator
-	var elements = make(map[common.Hash]iterationElement)
+	elements := make(map[common.Hash]iterationElement)
 	for it := trie.MustNodeIterator(nil); it.Next(true); {
 		if it.Hash() != (common.Hash{}) {
 			elements[it.Hash()] = iterationElement{
@@ -496,9 +496,7 @@ func testIteratorContinueAfterSeekError(t *testing.T, memonly bool, scheme strin
 	if !memonly {
 		triedb.Commit(root)
 	}
-	var (
-		barNodeBlob []byte
-	)
+	var barNodeBlob []byte
 	tr, _ := New(TrieID(root), triedb)
 	if memonly {
 		tr.reader.banned = map[string]struct{}{string(barNodePath): {}}
@@ -569,7 +567,7 @@ func testIteratorNodeBlob(t *testing.T, scheme string) {
 	triedb.Update(root, types.EmptyRootHash, trienode.NewWithNodeSet(nodes))
 	triedb.Commit(root)
 
-	var found = make(map[common.Hash][]byte)
+	found := make(map[common.Hash][]byte)
 	trie, _ = New(TrieID(root), triedb)
 	it := trie.MustNodeIterator(nil)
 	for it.Next(true) {

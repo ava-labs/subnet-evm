@@ -78,7 +78,7 @@ func makeGasSStoreFunc() gasFunc {
 		}
 
 		// EIP-2200 original clause:
-		//return params.SloadGasEIP2200, nil // dirty update (2.2)
+		// return params.SloadGasEIP2200, nil // dirty update (2.2)
 		return cost + params.WarmStorageReadCostEIP2929, nil // dirty update (2.2)
 	}
 }

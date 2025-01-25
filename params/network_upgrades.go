@@ -11,9 +11,7 @@ import (
 	"github.com/ava-labs/subnet-evm/utils"
 )
 
-var (
-	errCannotBeNil = fmt.Errorf("timestamp cannot be nil")
-)
+var errCannotBeNil = fmt.Errorf("timestamp cannot be nil")
 
 // NetworkUpgrades contains timestamps that enable network upgrades.
 // Avalanche specific network upgrades are also included here.
