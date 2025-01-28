@@ -9,6 +9,7 @@ import (
 
 	"github.com/ava-labs/avalanchego/api"
 	"github.com/ava-labs/avalanchego/utils/profiler"
+	"github.com/ava-labs/subnet-evm/plugin/evm/config"
 	"github.com/ethereum/go-ethereum/log"
 )
 
@@ -82,7 +83,7 @@ func (p *Admin) SetLogLevel(_ *http.Request, args *SetLogLevelArgs, reply *api.E
 }
 
 type ConfigReply struct {
-	Config *Config `json:"config"`
+	Config *config.Config `json:"config"`
 }
 
 func (p *Admin) GetVMConfig(_ *http.Request, _ *struct{}, reply *ConfigReply) error {

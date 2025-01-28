@@ -38,6 +38,7 @@ import (
 	"github.com/ava-labs/subnet-evm/node"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/peer"
+	"github.com/ava-labs/subnet-evm/plugin/evm/config"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
 	"github.com/ava-labs/subnet-evm/plugin/evm/validators"
 	"github.com/ava-labs/subnet-evm/plugin/evm/validators/interfaces"
@@ -182,7 +183,7 @@ type VM struct {
 	// with an efficient caching layer.
 	*chain.State
 
-	config Config
+	config config.Config
 
 	networkID   uint64
 	genesisHash common.Hash
