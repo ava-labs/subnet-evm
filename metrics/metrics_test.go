@@ -63,7 +63,7 @@ func BenchmarkMetrics(b *testing.B) {
 	for i := 0; i < FANOUT; i++ {
 		go func(i int) {
 			defer wg.Done()
-			//log.Println("go", i)
+			// log.Println("go", i)
 			for i := 0; i < b.N; i++ {
 				c.Inc(1)
 				cf.Inc(1.0)
@@ -73,7 +73,7 @@ func BenchmarkMetrics(b *testing.B) {
 				m.Mark(1)
 				t.Update(1)
 			}
-			//log.Println("done", i)
+			// log.Println("done", i)
 		}(i)
 	}
 	wg.Wait()

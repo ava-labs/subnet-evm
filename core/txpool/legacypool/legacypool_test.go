@@ -941,6 +941,7 @@ func TestQueueAccountLimiting(t *testing.T) {
 func TestQueueGlobalLimiting(t *testing.T) {
 	testQueueGlobalLimiting(t, false)
 }
+
 func TestQueueGlobalLimitingNoLocals(t *testing.T) {
 	testQueueGlobalLimiting(t, true)
 }
@@ -1032,6 +1033,7 @@ func testQueueGlobalLimiting(t *testing.T, nolocals bool) {
 func TestQueueTimeLimiting(t *testing.T) {
 	testQueueTimeLimiting(t, false)
 }
+
 func TestQueueTimeLimitingNoLocals(t *testing.T) {
 	testQueueTimeLimiting(t, true)
 }

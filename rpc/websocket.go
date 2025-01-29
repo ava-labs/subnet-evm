@@ -62,7 +62,7 @@ func (s *Server) WebsocketHandler(allowedOrigins []string) http.Handler {
 }
 
 func (s *Server) WebsocketHandlerWithDuration(allowedOrigins []string, apiMaxDuration, refillRate, maxStored time.Duration) http.Handler {
-	var upgrader = websocket.Upgrader{
+	upgrader := websocket.Upgrader{
 		ReadBufferSize:  wsReadBuffer,
 		WriteBufferSize: wsWriteBuffer,
 		WriteBufferPool: wsBufferPool,
@@ -360,7 +360,7 @@ func (wc *websocketCodec) writeJSONSkipDeadline(ctx context.Context, v interface
 
 // pingLoop sends periodic ping frames when the connection is idle.
 func (wc *websocketCodec) pingLoop() {
-	var pingTimer = time.NewTimer(wsPingInterval)
+	pingTimer := time.NewTimer(wsPingInterval)
 	defer wc.wg.Done()
 	defer pingTimer.Stop()
 

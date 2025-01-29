@@ -97,7 +97,8 @@ var (
 	TupleF, _           = NewType("tuple", "struct Overloader.F", []ArgumentMarshaling{
 		{Name: "_f", Type: "uint256"},
 		{Name: "__f", Type: "uint256"},
-		{Name: "f", Type: "uint256"}})
+		{Name: "f", Type: "uint256"},
+	})
 )
 
 var methods = map[string]Method{
@@ -905,12 +906,12 @@ func TestUnpackMethodIntoMap(t *testing.T) {
 func TestUnpackIntoMapNamingConflict(t *testing.T) {
 	t.Parallel()
 	// Two methods have the same name
-	var abiJSON = `[{"constant":false,"inputs":[{"name":"memo","type":"bytes"}],"name":"get","outputs":[],"payable":true,"stateMutability":"payable","type":"function"},{"constant":false,"inputs":[],"name":"send","outputs":[{"name":"amount","type":"uint256"}],"payable":true,"stateMutability":"payable","type":"function"},{"constant":false,"inputs":[{"name":"addr","type":"address"}],"name":"get","outputs":[{"name":"hash","type":"bytes"}],"payable":true,"stateMutability":"payable","type":"function"}]`
+	abiJSON := `[{"constant":false,"inputs":[{"name":"memo","type":"bytes"}],"name":"get","outputs":[],"payable":true,"stateMutability":"payable","type":"function"},{"constant":false,"inputs":[],"name":"send","outputs":[{"name":"amount","type":"uint256"}],"payable":true,"stateMutability":"payable","type":"function"},{"constant":false,"inputs":[{"name":"addr","type":"address"}],"name":"get","outputs":[{"name":"hash","type":"bytes"}],"payable":true,"stateMutability":"payable","type":"function"}]`
 	abi, err := JSON(strings.NewReader(abiJSON))
 	if err != nil {
 		t.Fatal(err)
 	}
-	var hexdata = `00000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000000158`
+	hexdata := `00000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000000158`
 	data, err := hex.DecodeString(hexdata)
 	if err != nil {
 		t.Fatal(err)
@@ -1198,7 +1199,7 @@ func TestUnnamedEventParam(t *testing.T) {
 func TestUnpackRevert(t *testing.T) {
 	t.Parallel()
 
-	var cases = []struct {
+	cases := []struct {
 		input     string
 		expect    string
 		expectErr error
@@ -1276,7 +1277,8 @@ func TestABI_PackEvent(t *testing.T) {
 			},
 			expectedTopics: []common.Hash{},
 			expectedData:   common.Hex2Bytes("000000000000000000000000376c47978271565f56deb45495afa69e59c16ab20000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000018800000000000000000000000000000000000000000000000000000000000000"),
-		}, {
+		},
+		{
 			name: "Transfer",
 			json: `[
 				{ "constant": true, "inputs": [], "name": "name", "outputs": [ { "name": "", "type": "string" } ], "payable": false, "stateMutability": "view", "type": "function" },

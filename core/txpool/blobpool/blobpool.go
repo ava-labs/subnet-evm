@@ -361,11 +361,11 @@ func (p *BlobPool) Init(gasTip uint64, head *types.Header, reserve txpool.Addres
 	)
 	if p.config.Datadir != "" {
 		queuedir = filepath.Join(p.config.Datadir, pendingTransactionStore)
-		if err := os.MkdirAll(queuedir, 0700); err != nil {
+		if err := os.MkdirAll(queuedir, 0o700); err != nil {
 			return err
 		}
 		limbodir = filepath.Join(p.config.Datadir, limboedTransactionStore)
-		if err := os.MkdirAll(limbodir, 0700); err != nil {
+		if err := os.MkdirAll(limbodir, 0o700); err != nil {
 			return err
 		}
 	}

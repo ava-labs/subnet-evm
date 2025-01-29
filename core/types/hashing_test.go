@@ -159,7 +159,7 @@ func genTxs(num uint64) (types.Transactions, error) {
 	if err != nil {
 		return nil, err
 	}
-	var addr = crypto.PubkeyToAddress(key.PublicKey)
+	addr := crypto.PubkeyToAddress(key.PublicKey)
 	newTx := func(i uint64) (*types.Transaction, error) {
 		signer := types.NewEIP155Signer(big.NewInt(18))
 		utx := types.NewTransaction(i, addr, new(big.Int), 0, new(big.Int).SetUint64(10000000), nil)
@@ -218,6 +218,7 @@ type flatList []string
 func (f flatList) Len() int {
 	return len(f)
 }
+
 func (f flatList) EncodeIndex(i int, w *bytes.Buffer) {
 	w.Write(hexutil.MustDecode(f[i]))
 }

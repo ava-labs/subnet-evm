@@ -448,7 +448,8 @@ func assertRewardAddressChanged(
 	logsData [][]byte,
 	caller,
 	oldAddress,
-	newAddress common.Address) {
+	newAddress common.Address,
+) {
 	require.Len(t, logsTopics, 1)
 	require.Len(t, logsData, 1)
 	topics := logsTopics[0]
@@ -464,7 +465,8 @@ func assertRewardsDisabled(
 	t testing.TB,
 	logsTopics [][]common.Hash,
 	logsData [][]byte,
-	caller common.Address) {
+	caller common.Address,
+) {
 	require.Len(t, logsTopics, 1)
 	require.Len(t, logsData, 1)
 	topics := logsTopics[0]
@@ -478,7 +480,8 @@ func assertFeeRecipientsAllowed(
 	t testing.TB,
 	logsTopics [][]common.Hash,
 	logsData [][]byte,
-	caller common.Address) {
+	caller common.Address,
+) {
 	require.Len(t, logsTopics, 1)
 	require.Len(t, logsData, 1)
 	topics := logsTopics[0]

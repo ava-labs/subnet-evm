@@ -225,10 +225,10 @@ func DialOptions(ctx context.Context, rawurl string, options ...ClientOption) (*
 			return nil, err
 		}
 		reconnect = rc
-	//case "stdio":
-	//reconnect = newClientTransportIO(os.Stdin, os.Stdout)
-	//case "":
-	//reconnect = newClientTransportIPC(rawurl)
+	// case "stdio":
+	// reconnect = newClientTransportIO(os.Stdin, os.Stdout)
+	// case "":
+	// reconnect = newClientTransportIPC(rawurl)
 	default:
 		return nil, fmt.Errorf("no known transport for URL scheme %q", u.Scheme)
 	}

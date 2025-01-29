@@ -53,7 +53,7 @@ func createBasedir(ctx *cli.Context) (string, error) {
 	baseDir := ""
 	if ctx.IsSet(OutputBasedir.Name) {
 		if base := ctx.String(OutputBasedir.Name); len(base) > 0 {
-			err := os.MkdirAll(base, 0755) // //rw-r--r--
+			err := os.MkdirAll(base, 0o755) // //rw-r--r--
 			if err != nil {
 				return "", err
 			}

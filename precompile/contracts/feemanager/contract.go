@@ -296,7 +296,6 @@ func UnpackGetFeeConfigOutput(output []byte, skipLenCheck bool) (commontype.FeeC
 	}
 	outputStruct := FeeConfigABIStruct{}
 	err := FeeManagerABI.UnpackIntoInterface(&outputStruct, "getFeeConfig", output)
-
 	if err != nil {
 		return commontype.FeeConfig{}, err
 	}

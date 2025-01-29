@@ -42,11 +42,9 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 )
 
-var (
-	// blobTxMinBlobGasPrice is the big.Int version of the configured protocol
-	// parameter to avoid constucting a new big integer for every transaction.
-	blobTxMinBlobGasPrice = big.NewInt(params.BlobTxMinBlobGasprice)
-)
+// blobTxMinBlobGasPrice is the big.Int version of the configured protocol
+// parameter to avoid constucting a new big integer for every transaction.
+var blobTxMinBlobGasPrice = big.NewInt(params.BlobTxMinBlobGasprice)
 
 // ValidationOptions define certain differences between transaction validation
 // across the different pools without having to duplicate those checks.

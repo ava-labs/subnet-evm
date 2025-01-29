@@ -12,6 +12,7 @@ func BenchmarkMeter(b *testing.B) {
 		m.Mark(1)
 	}
 }
+
 func TestMeter(t *testing.T) {
 	m := NewMeter()
 	m.Mark(47)
@@ -19,6 +20,7 @@ func TestMeter(t *testing.T) {
 		t.Fatalf("have %d want %d", v, 47)
 	}
 }
+
 func TestGetOrRegisterMeter(t *testing.T) {
 	r := NewRegistry()
 	NewRegisteredMeter("foo", r).Mark(47)

@@ -27,6 +27,7 @@ func BenchmarkCompute1000(b *testing.B) {
 		SampleVariance(mean, s)
 	}
 }
+
 func BenchmarkCompute1000000(b *testing.B) {
 	s := make([]int64, 1000000)
 	var sum int64
@@ -40,6 +41,7 @@ func BenchmarkCompute1000000(b *testing.B) {
 		SampleVariance(mean, s)
 	}
 }
+
 func BenchmarkCopy1000(b *testing.B) {
 	s := make([]int64, 1000)
 	for i := 0; i < len(s); i++ {
@@ -51,6 +53,7 @@ func BenchmarkCopy1000(b *testing.B) {
 		copy(sCopy, s)
 	}
 }
+
 func BenchmarkCopy1000000(b *testing.B) {
 	s := make([]int64, 1000000)
 	for i := 0; i < len(s); i++ {

@@ -28,7 +28,7 @@ func RegisterAsyncTests() {
 	}
 	subnetsSuite := utils.CreateSubnetsSuite(genesisFiles)
 
-	var _ = ginkgo.Describe("[Asynchronized Precompile Tests]", func() {
+	_ = ginkgo.Describe("[Asynchronized Precompile Tests]", func() {
 		// Register the ping test first
 		utils.RegisterPingTest()
 

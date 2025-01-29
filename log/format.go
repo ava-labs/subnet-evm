@@ -43,7 +43,7 @@ type TerminalStringer interface {
 
 func (h *TerminalHandler) format(buf []byte, r slog.Record, usecolor bool) []byte {
 	msg := escapeMessage(r.Message)
-	var color = ""
+	color := ""
 	if usecolor {
 		switch r.Level {
 		case LevelCrit:
@@ -88,7 +88,7 @@ func (h *TerminalHandler) format(buf []byte, r slog.Record, usecolor bool) []byt
 	b.WriteString(msg)
 
 	// try to justify the log output for short messages
-	//length := utf8.RuneCountInString(msg)
+	// length := utf8.RuneCountInString(msg)
 	length := len(msg)
 	if (r.NumAttrs()+len(h.attrs)) > 0 && length < termMsgJust {
 		b.Write(spaces[:termMsgJust-length])
@@ -102,21 +102,21 @@ func (h *TerminalHandler) format(buf []byte, r slog.Record, usecolor bool) []byt
 func (h *TerminalHandler) formatAttributes(buf *bytes.Buffer, r slog.Record, color string) {
 	// tmp is a temporary buffer we use, until bytes.Buffer.AvailableBuffer() (1.21)
 	// can be used.
-	var tmp = make([]byte, 40)
+	tmp := make([]byte, 40)
 	writeAttr := func(attr slog.Attr, _, last bool) {
 		buf.WriteByte(' ')
 
 		if color != "" {
 			buf.WriteString(color)
-			//buf.Write(appendEscapeString(buf.AvailableBuffer(), attr.Key))
+			// buf.Write(appendEscapeString(buf.AvailableBuffer(), attr.Key))
 			buf.Write(appendEscapeString(tmp[:0], attr.Key))
 			buf.WriteString("\x1b[0m=")
 		} else {
-			//buf.Write(appendEscapeString(buf.AvailableBuffer(), attr.Key))
+			// buf.Write(appendEscapeString(buf.AvailableBuffer(), attr.Key))
 			buf.Write(appendEscapeString(tmp[:0], attr.Key))
 			buf.WriteByte('=')
 		}
-		//val := FormatSlogValue(attr.Value, true, buf.AvailableBuffer())
+		// val := FormatSlogValue(attr.Value, true, buf.AvailableBuffer())
 		val := FormatSlogValue(attr.Value, tmp[:0])
 
 		padding := h.fieldPadding[attr.Key]
@@ -131,8 +131,8 @@ func (h *TerminalHandler) formatAttributes(buf *bytes.Buffer, r slog.Record, col
 			buf.Write(spaces[:padding-length])
 		}
 	}
-	var n = 0
-	var nAttrs = len(h.attrs) + r.NumAttrs()
+	n := 0
+	nAttrs := len(h.attrs) + r.NumAttrs()
 	for _, attr := range h.attrs {
 		writeAttr(attr, n == 0, n == nAttrs-1)
 		n++

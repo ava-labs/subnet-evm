@@ -50,7 +50,7 @@ import (
 var testBlockHash = common.HexToHash("0xdeadbeef")
 
 func hashData(input []byte) common.Hash {
-	var hasher = sha3.NewLegacyKeccak256()
+	hasher := sha3.NewLegacyKeccak256()
 	var hash common.Hash
 	hasher.Reset()
 	hasher.Write(input)
@@ -68,7 +68,7 @@ func testGeneration(t *testing.T, scheme string) {
 	// We can't use statedb to make a test trie (circular dependency), so make
 	// a fake one manually. We're going with a small account trie of 3 accounts,
 	// two of which also has the same 3-slot storage trie attached.
-	var helper = newHelper(scheme)
+	helper := newHelper(scheme)
 	stRoot := helper.makeStorageTrie(common.Hash{}, []string{"key-1", "key-2", "key-3"}, []string{"val-1", "val-2", "val-3"}, false)
 
 	helper.addTrieAccount("acc-1", &types.StateAccount{Balance: uint256.NewInt(1), Root: stRoot, CodeHash: types.EmptyCodeHash.Bytes()})
@@ -108,7 +108,7 @@ func testGenerateExistentState(t *testing.T, scheme string) {
 	// We can't use statedb to make a test trie (circular dependency), so make
 	// a fake one manually. We're going with a small account trie of 3 accounts,
 	// two of which also has the same 3-slot storage trie attached.
-	var helper = newHelper(scheme)
+	helper := newHelper(scheme)
 
 	stRoot := helper.makeStorageTrie(hashData([]byte("acc-1")), []string{"key-1", "key-2", "key-3"}, []string{"val-1", "val-2", "val-3"}, true)
 	helper.addTrieAccount("acc-1", &types.StateAccount{Balance: uint256.NewInt(1), Root: stRoot, CodeHash: types.EmptyCodeHash.Bytes()})
@@ -766,7 +766,7 @@ func TestGenerateFromEmptySnap(t *testing.T) {
 }
 
 func testGenerateFromEmptySnap(t *testing.T, scheme string) {
-	//enableLogging()
+	// enableLogging()
 	helper := newHelper(scheme)
 	// Add 1K accounts to the trie
 	for i := 0; i < 400; i++ {
@@ -907,7 +907,7 @@ func TestGenerateCompleteSnapshotWithDanglingStorage(t *testing.T) {
 }
 
 func testGenerateCompleteSnapshotWithDanglingStorage(t *testing.T, scheme string) {
-	var helper = newHelper(scheme)
+	helper := newHelper(scheme)
 
 	stRoot := helper.makeStorageTrie(hashData([]byte("acc-1")), []string{"key-1", "key-2", "key-3"}, []string{"val-1", "val-2", "val-3"}, true)
 	helper.addAccount("acc-1", &types.StateAccount{Balance: uint256.NewInt(1), Root: stRoot, CodeHash: types.EmptyCodeHash.Bytes()})
@@ -947,7 +947,7 @@ func TestGenerateBrokenSnapshotWithDanglingStorage(t *testing.T) {
 }
 
 func testGenerateBrokenSnapshotWithDanglingStorage(t *testing.T, scheme string) {
-	var helper = newHelper(scheme)
+	helper := newHelper(scheme)
 
 	stRoot := helper.makeStorageTrie(hashData([]byte("acc-1")), []string{"key-1", "key-2", "key-3"}, []string{"val-1", "val-2", "val-3"}, true)
 	helper.addTrieAccount("acc-1", &types.StateAccount{Balance: uint256.NewInt(1), Root: stRoot, CodeHash: types.EmptyCodeHash.Bytes()})

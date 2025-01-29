@@ -127,7 +127,7 @@ func newTester(t *testing.T, historyLimit uint64) *tester {
 		}
 	)
 	for i := 0; i < 2*128; i++ {
-		var parent = types.EmptyRootHash
+		parent := types.EmptyRootHash
 		if len(obj.roots) != 0 {
 			parent = obj.roots[len(obj.roots)-1]
 		}
@@ -401,7 +401,7 @@ func TestDatabaseRecoverable(t *testing.T) {
 	)
 	defer tester.release()
 
-	var cases = []struct {
+	cases := []struct {
 		root   common.Hash
 		expect bool
 	}{

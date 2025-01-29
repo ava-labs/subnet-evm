@@ -42,7 +42,7 @@ import (
 )
 
 func TestFeeHistory(t *testing.T) {
-	var cases = []struct {
+	cases := []struct {
 		pending      bool
 		maxCallBlock uint64
 		maxBlock     uint64

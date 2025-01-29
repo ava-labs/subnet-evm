@@ -707,7 +707,7 @@ func (db *Database) Size() (common.StorageSize, common.StorageSize) {
 	// db.dirtiesSize only contains the useful data in the cache, but when reporting
 	// the total memory consumption, the maintenance metadata is also needed to be
 	// counted.
-	var metadataSize = common.StorageSize(len(db.dirties) * cachedNodeSize)
+	metadataSize := common.StorageSize(len(db.dirties) * cachedNodeSize)
 	return 0, db.dirtiesSize + db.childrenSize + metadataSize
 }
 

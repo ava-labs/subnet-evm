@@ -55,6 +55,7 @@ func FuzzPackGetFeeConfigOutputEqualTest(f *testing.F) {
 func TestOldPackGetFeeConfigOutputEqual(t *testing.T) {
 	testOldPackGetFeeConfigOutputEqual(t, testFeeConfig, true)
 }
+
 func TestPackGetFeeConfigOutputPanic(t *testing.T) {
 	require.Panics(t, func() {
 		_, _ = OldPackFeeConfig(commontype.FeeConfig{})

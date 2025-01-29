@@ -44,7 +44,7 @@ import (
 type Code []byte
 
 func (c Code) String() string {
-	return string(c) //strings.Join(Disassemble(c), " ")
+	return string(c) // strings.Join(Disassemble(c), " ")
 }
 
 type Storage map[common.Hash]common.Hash

@@ -18,7 +18,5 @@ package rawdb
 
 import "errors"
 
-var (
-	// errNotSupported is returned if the database doesn't support the required operation.
-	errNotSupported = errors.New("this operation is not supported")
-)
+// errNotSupported is returned if the database doesn't support the required operation.
+var errNotSupported = errors.New("this operation is not supported")

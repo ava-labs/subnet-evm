@@ -106,14 +106,18 @@ func TestTypeRegexp(t *testing.T) {
 		// {"fixed[2]", nil, Type{}},
 		// {"fixed128x128[]", nil, Type{}},
 		// {"fixed128x128[2]", nil, Type{}},
-		{"tuple", []ArgumentMarshaling{{Name: "a", Type: "int64"}}, Type{T: TupleTy, TupleType: reflect.TypeOf(struct {
-			A int64 `json:"a"`
-		}{}), stringKind: "(int64)",
-			TupleElems: []*Type{{T: IntTy, Size: 64, stringKind: "int64"}}, TupleRawNames: []string{"a"}}},
-		{"tuple with long name", []ArgumentMarshaling{{Name: "aTypicalParamName", Type: "int64"}}, Type{T: TupleTy, TupleType: reflect.TypeOf(struct {
-			ATypicalParamName int64 `json:"aTypicalParamName"`
-		}{}), stringKind: "(int64)",
-			TupleElems: []*Type{{T: IntTy, Size: 64, stringKind: "int64"}}, TupleRawNames: []string{"aTypicalParamName"}}},
+		{"tuple", []ArgumentMarshaling{{Name: "a", Type: "int64"}}, Type{
+			T: TupleTy, TupleType: reflect.TypeOf(struct {
+				A int64 `json:"a"`
+			}{}), stringKind: "(int64)",
+			TupleElems: []*Type{{T: IntTy, Size: 64, stringKind: "int64"}}, TupleRawNames: []string{"a"},
+		}},
+		{"tuple with long name", []ArgumentMarshaling{{Name: "aTypicalParamName", Type: "int64"}}, Type{
+			T: TupleTy, TupleType: reflect.TypeOf(struct {
+				ATypicalParamName int64 `json:"aTypicalParamName"`
+			}{}), stringKind: "(int64)",
+			TupleElems: []*Type{{T: IntTy, Size: 64, stringKind: "int64"}}, TupleRawNames: []string{"aTypicalParamName"},
+		}},
 	}
 
 	for _, tt := range tests {
@@ -346,7 +350,7 @@ func TestInternalType(t *testing.T) {
 
 func TestGetTypeSize(t *testing.T) {
 	t.Parallel()
-	var testCases = []struct {
+	testCases := []struct {
 		typ        string
 		components []ArgumentMarshaling
 		typSize    int
