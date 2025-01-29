@@ -62,14 +62,8 @@ github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5 h1:0CwZNZbxp69SHPd
 github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5/go.mod h1:wHh0iHkYZB8zMSxRWpUBQtwG5a7fFgvEO+odwuTv2gs=
 github.com/ava-labs/avalanchego v1.12.3-0.20250218154446-f1ec9a13b90a h1:cBuGdwpaB1TBnfHS0w7oJyBJlM2UGOS4CEioxqMCG2g=
 github.com/ava-labs/avalanchego v1.12.3-0.20250218154446-f1ec9a13b90a/go.mod h1:pgUuh27zaeaXeMiIqqu/OWpbAhJQkYMJMft6nxXG9FE=
-github.com/ava-labs/avalanchego v1.12.3-warp-verify h1:/+6dKNBsifKMVgN/MLLb+sQ1vNDMbyybIC+Gf8QwGhs=
-github.com/ava-labs/avalanchego v1.12.3-warp-verify/go.mod h1:qYmed64WiJdfcWqFacJWOVia/C2gSpa2osP8qnpGp7I=
-github.com/ava-labs/avalanchego v1.12.3-warp-verify4 h1:8YsFAZUC7PyvgZVpZe+kwpHBa7p1e3pDedS8/NeXQhU=
-github.com/ava-labs/avalanchego v1.12.3-warp-verify4/go.mod h1:Er2qCyxI4qQKDlNjwwWdOa+/cxCbuEy/z8WgxtXy0N0=
 github.com/ava-labs/coreth v0.14.1-rc.1.0.20250217192834-6060a4a6a6d3 h1:0OrQidq+b3kb7KlnDqc5mkB/73i1zxYEMiXioWSU4+w=
 github.com/ava-labs/coreth v0.14.1-rc.1.0.20250217192834-6060a4a6a6d3/go.mod h1:/XrU+CAm/0wiY5Ui05TLj2/n+czbCV6/Qrw/UMWp5aI=
-github.com/ava-labs/coreth v0.14.2-verify-interface4 h1:AYeN8R6ZnNu/K8KwBQD4ELphvLpvNxAjkX3SBcJ+bps=
-github.com/ava-labs/coreth v0.14.2-verify-interface4/go.mod h1:wQaeiolUP0vCHS1mC0lIMXzHF05vbjugSLCBFDnO4Gs=
 github.com/aymerick/raymond v2.0.3-0.20180322193309-b565731e1464+incompatible/go.mod h1:osfaiScAUVup+UC9Nfq76eWqDhXlp+4UYaA8uhTBO6g=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
 github.com/beorn7/perks v1.0.1/go.mod h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6rlkpw=
