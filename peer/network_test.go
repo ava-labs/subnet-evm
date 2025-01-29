@@ -31,7 +31,7 @@ import (
 )
 
 const (
-	codecVersion uint16 = 0
+	testCodecVersion uint16 = 1
 )
 
 var (
@@ -395,7 +395,7 @@ func TestRequestMinVersion(t *testing.T) {
 			go func() {
 				time.Sleep(200 * time.Millisecond)
 				atomic.AddUint32(&callNum, 1)
-				responseBytes, err := codecManager.Marshal(codecVersion, TestMessage{Message: "this is a response"})
+				responseBytes, err := codecManager.Marshal(testCodecVersion, TestMessage{Message: "this is a response"})
 				if err != nil {
 					panic(err)
 				}
@@ -616,14 +616,14 @@ func buildCodec(t *testing.T, types ...interface{}) codec.Manager {
 	for _, typ := range types {
 		assert.NoError(t, c.RegisterType(typ))
 	}
-	assert.NoError(t, codecManager.RegisterCodec(codecVersion, c))
+	assert.NoError(t, codecManager.RegisterCodec(testCodecVersion, c))
 	return codecManager
 }
 
 // marshalStruct is a helper method used to marshal an object as `interface{}`
 // so that the codec is able to include the TypeID in the resulting bytes
 func marshalStruct(codec codec.Manager, obj interface{}) ([]byte, error) {
-	return codec.Marshal(codecVersion, &obj)
+	return codec.Marshal(testCodecVersion, &obj)
 }
 
 type testAppSender struct {
@@ -693,11 +693,11 @@ type HelloGreetingRequestHandler struct {
 }
 
 func (h *HelloGreetingRequestHandler) HandleHelloRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, request *HelloRequest) ([]byte, error) {
-	return h.codec.Marshal(codecVersion, HelloResponse{Response: "Hi"})
+	return h.codec.Marshal(testCodecVersion, HelloResponse{Response: "Hi"})
 }
 
 func (h *HelloGreetingRequestHandler) HandleGreetingRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, request *GreetingRequest) ([]byte, error) {
-	return h.codec.Marshal(codecVersion, GreetingResponse{Greet: "Hey there"})
+	return h.codec.Marshal(testCodecVersion, GreetingResponse{Greet: "Hey there"})
 }
 
 type TestMessage struct {
