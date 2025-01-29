@@ -45,6 +45,8 @@ ARG SUBNET_EVM_COMMIT
 ARG CURRENT_BRANCH
 
 RUN . ./build_env.sh && \
+  echo "{CC=$CC, TARGETPLATFORM=$TARGETPLATFORM, BUILDPLATFORM=$BUILDPLATFORM}" && \
+  export GOARCH=$(echo ${TARGETPLATFORM} | cut -d / -f2) && \
   export SUBNET_EVM_COMMIT=$SUBNET_EVM_COMMIT && export CURRENT_BRANCH=$CURRENT_BRANCH && ./scripts/build.sh build/subnet-evm
 
 # ============= Cleanup Stage ================
