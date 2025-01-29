@@ -513,7 +513,7 @@ func TestHandleInvalidMessages(t *testing.T) {
 
 	// Ensure a valid gossip message sent as any App specific message type does not trigger a fatal error
 	marshaller := helloGossipMarshaller{codec: codecManager}
-	gossipMsg, err := marshaller.MarshalGossip(&HelloGossip{Msg: "hello sthere!"})
+	gossipMsg, err := marshaller.MarshalGossip(&HelloGossip{Msg: "hello there!"})
 	assert.NoError(t, err)
 
 	// Ensure a valid request message sent as any App specific message type does not trigger a fatal error
@@ -730,8 +730,8 @@ func (g helloGossipMarshaller) MarshalGossip(tx *HelloGossip) ([]byte, error) {
 
 func (g helloGossipMarshaller) UnmarshalGossip(bytes []byte) (*HelloGossip, error) {
 	h := &HelloGossip{}
-	_, error := g.codec.Unmarshal(bytes, h)
-	return h, error
+	_, err := g.codec.Unmarshal(bytes, h)
+	return h, err
 }
 
 type testRequestHandler struct {
