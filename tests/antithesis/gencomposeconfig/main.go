@@ -35,7 +35,7 @@ func main() {
 	// Path to the plugin dir on subnet-evm node images that will be run by docker compose.
 	runtimePluginDir := "/avalanchego/build/plugins"
 
-	if err := antithesis.GenerateComposeConfig(network, baseImageName, runtimePluginDir); err != nil {
+	if err := antithesis.GenerateComposeConfig(network, baseImageName); err != nil {
 		log.Fatalf("failed to generate compose config: %v", err)
 	}
 }
