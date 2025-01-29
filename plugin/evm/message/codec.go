@@ -21,6 +21,9 @@ func init() {
 	Codec = codec.NewManager(maxMessageSize)
 	c := linearcodec.NewDefault()
 
+	// Skip registration to keep registeredTypes unchanged after legacy gossip deprecation
+	c.SkipRegistrations(1)
+
 	errs := wrappers.Errs{}
 	errs.Add(
 		// Types for state sync frontier consensus
