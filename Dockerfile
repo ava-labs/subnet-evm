@@ -15,7 +15,6 @@ ARG BUILDPLATFORM
 
 # Configure a cross-compiler if the target platform differs from the build platform.
 #
-# build_env.sh is used to capture the environmental changes required by the build step since RUN
 # environment state is not otherwise persistent.
 RUN if [ "$TARGETPLATFORM" = "linux/arm64" ] && [ "$BUILDPLATFORM" != "linux/arm64" ]; then \
   apt-get update && apt-get install -y gcc-aarch64-linux-gnu \
