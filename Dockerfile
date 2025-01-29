@@ -9,19 +9,6 @@ FROM --platform=$BUILDPLATFORM golang:1.22.8-bullseye AS builder
 
 WORKDIR /build
 
-
-ARG TARGETPLATFORM
-ARG BUILDPLATFORM
-
-# Configure a cross-compiler if the target platform differs from the build platform.
-#
-# environment state is not otherwise persistent.
-RUN if [ "$TARGETPLATFORM" = "linux/arm64" ] && [ "$BUILDPLATFORM" != "linux/arm64" ]; then \
-  apt-get update && apt-get install -y gcc-aarch64-linux-gnu \
-  ; elif [ "$TARGETPLATFORM" = "linux/amd64" ] && [ "$BUILDPLATFORM" != "linux/amd64" ]; then \
-  apt-get update && apt-get install -y gcc-x86-64-linux-gnu \
-  ; fi
-
 # Copy avalanche dependencies first (intermediate docker image caching)
 # Copy avalanchego directory if present (for manual CI case, which uses local dependency)
 COPY go.mod go.sum avalanchego* ./
