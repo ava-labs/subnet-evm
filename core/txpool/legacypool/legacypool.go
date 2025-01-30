@@ -69,9 +69,11 @@ const (
 	txMaxSize = 4 * txSlotSize // 128KB
 )
 
-// ErrTxPoolOverflow is returned if the transaction pool is full and can't accept
-// another remote transaction.
-var ErrTxPoolOverflow = errors.New("txpool is full")
+var (
+	// ErrTxPoolOverflow is returned if the transaction pool is full and can't accept
+	// another remote transaction.
+	ErrTxPoolOverflow = errors.New("txpool is full")
+)
 
 var (
 	evictionInterval      = time.Minute      // Time interval to check for evictable transactions
@@ -1073,7 +1075,7 @@ func (pool *LegacyPool) Add(txs []*types.Transaction, local, sync bool) []error 
 	newErrs, dirtyAddrs := pool.addTxsLocked(news, local)
 	pool.mu.Unlock()
 
-	nilSlot := 0
+	var nilSlot = 0
 	for _, err := range newErrs {
 		for errs[nilSlot] != nil {
 			nilSlot++
