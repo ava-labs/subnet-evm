@@ -1,0 +1,59 @@
+{
+  "nodes": {
+    "avalanchego": {
+      "inputs": {
+        "nixpkgs": "nixpkgs"
+      },
+      "locked": {
+        "lastModified": 1738472227,
+        "narHash": "sha256-sb8DUnfadea12Zcz/EZGdPTZTqPt3rmbHPigw39dV74=",
+        "owner": "ava-labs",
+        "repo": "avalanchego",
+        "rev": "15c496b09f92cc5ac23b5aa2937d17a258d9a14f",
+        "type": "github"
+      },
+      "original": {
+        "owner": "ava-labs",
+        "ref": "15c496b09",
+        "repo": "avalanchego",
+        "type": "github"
+      }
+    },
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1721949857,
+        "narHash": "sha256-DID446r8KsmJhbCzx4el8d9SnPiE8qa6+eEQOJ40vR0=",
+        "rev": "a1cc729dcbc31d9b0d11d86dc7436163548a9665",
+        "revCount": 633481,
+        "type": "tarball",
+        "url": "https://api.flakehub.com/f/pinned/NixOS/nixpkgs/0.2405.633481%2Brev-a1cc729dcbc31d9b0d11d86dc7436163548a9665/0190ef32-8438-79be-9d83-2e97dc792840/source.tar.gz"
+      },
+      "original": {
+        "type": "tarball",
+        "url": "https://flakehub.com/f/NixOS/nixpkgs/0.2405.%2A.tar.gz"
+      }
+    },
+    "nixpkgs_2": {
+      "locked": {
+        "lastModified": 1735563628,
+        "narHash": "sha256-OnSAY7XDSx7CtDoqNh8jwVwh4xNL/2HaJxGjryLWzX8=",
+        "rev": "b134951a4c9f3c995fd7be05f3243f8ecd65d798",
+        "revCount": 637546,
+        "type": "tarball",
+        "url": "https://api.flakehub.com/f/pinned/NixOS/nixpkgs/0.2405.637546%2Brev-b134951a4c9f3c995fd7be05f3243f8ecd65d798/01941dc2-2ab2-7453-8ebd-88712e28efae/source.tar.gz"
+      },
+      "original": {
+        "type": "tarball",
+        "url": "https://flakehub.com/f/NixOS/nixpkgs/0.2405.%2A.tar.gz"
+      }
+    },
+    "root": {
+      "inputs": {
+        "avalanchego": "avalanchego",
+        "nixpkgs": "nixpkgs_2"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}
