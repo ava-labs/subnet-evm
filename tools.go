@@ -4,5 +4,6 @@
 package subnetevm
 
 import (
-	_ "golang.org/x/mod/modfile" // golang.org/x/mod to satisfy requirement for go.uber.org/mock/mockgen@v0.4
+	_ "github.com/ava-labs/avalanchego/tests/fixture/tmpnet/cmd" // tmpnetctl
+	_ "golang.org/x/mod/modfile"                                 // golang.org/x/mod to satisfy requirement for go.uber.org/mock/mockgen@v0.4
 )
