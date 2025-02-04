@@ -127,6 +127,12 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.min_go_version }}
+      - name: Install nix
+        uses: cachix/install-nix-action@v30
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install flake dependencies
+        run: nix develop --command echo "dependencies installed"
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
@@ -147,12 +153,12 @@ jobs:
         shell: bash
         run: ./scripts/build.sh
       - name: Run Warp E2E Tests
-        uses: ava-labs/avalanchego/.github/actions/run-monitored-tmpnet-cmd@v1.11.13
+        uses: ava-labs/avalanchego/.github/actions/run-monitored-tmpnet-cmd@15c496b09f92cc5ac23b5aa2937d17a258d9a14f
         with:
-          run: AVALANCHEGO_BUILD_PATH=/tmp/e2e-test/avalanchego ./scripts/run_ginkgo_warp.sh
-          prometheus_id: ${{ secrets.PROMETHEUS_ID || '' }}
+          run: AVALANCHEGO_BUILD_PATH=/tmp/e2e-test/avalanchego nix develop --impure --command ./scripts/run_ginkgo_warp.sh --enable-collectors
+          prometheus_username: ${{ secrets.PROMETHEUS_ID || '' }}
           prometheus_password: ${{ secrets.PROMETHEUS_PASSWORD || '' }}
-          loki_id: ${{ secrets.LOKI_ID || '' }}
+          loki_username: ${{ secrets.LOKI_ID || '' }}
           loki_password: ${{ secrets.LOKI_PASSWORD || '' }}
       - name: Upload tmpnet network dir for warp testing
         uses: ava-labs/avalanchego/.github/actions/upload-tmpnet-artifact@v1-actions
@@ -171,6 +177,12 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.min_go_version }}
+      - name: Install nix
+        uses: cachix/install-nix-action@v30
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install flake dependencies
+        run: nix develop --command echo "dependencies installed"
       - name: Install AvalancheGo Release
         shell: bash
         run: BASEDIR=/tmp/e2e-test AVALANCHEGO_BUILD_PATH=/tmp/e2e-test/avalanchego ./scripts/install_avalanchego_release.sh
@@ -178,12 +190,12 @@ jobs:
         shell: bash
         run: ./scripts/build.sh
       - name: Run E2E Load Tests
-        uses: ava-labs/avalanchego/.github/actions/run-monitored-tmpnet-cmd@v1.11.13
+        uses: ava-labs/avalanchego/.github/actions/run-monitored-tmpnet-cmd@15c496b09f92cc5ac23b5aa2937d17a258d9a14f
         with:
-          run: AVALANCHEGO_BUILD_PATH=/tmp/e2e-test/avalanchego ./scripts/run_ginkgo_load.sh
-          prometheus_id: ${{ secrets.PROMETHEUS_ID || '' }}
+          run: AVALANCHEGO_BUILD_PATH=/tmp/e2e-test/avalanchego nix develop --impure --command ./scripts/run_ginkgo_load.sh --enable-collectors
+          prometheus_username: ${{ secrets.PROMETHEUS_ID || '' }}
           prometheus_password: ${{ secrets.PROMETHEUS_PASSWORD || '' }}
-          loki_id: ${{ secrets.LOKI_ID || '' }}
+          loki_username: ${{ secrets.LOKI_ID || '' }}
           loki_password: ${{ secrets.LOKI_PASSWORD || '' }}
       - name: Upload tmpnet network dir for load testing
         uses: ava-labs/avalanchego/.github/actions/upload-tmpnet-artifact@v1-actions
