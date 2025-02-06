@@ -210,7 +210,7 @@ func ProcessBeaconBlockRoot(beaconRoot common.Hash, vmenv *vm.EVM, statedb *stat
 // This function is called within genesis setup to configure the starting state for precompiles enabled at genesis.
 // In block processing and building, ApplyUpgrades is called instead which also applies state upgrades.
 func ApplyPrecompileActivations(c *params.ChainConfig, parentTimestamp *uint64, blockContext contract.ConfigurationBlockContext, statedb *state.StateDB) error {
-	blockTimestamp := blockContext.Timestamp()
+	blockTimestamp := blockContext.Time()
 	// Note: RegisteredModules returns precompiles sorted by module addresses.
 	// This ensures that the order we call Configure for each precompile is consistent.
 	// This ensures even if precompiles read/write state other than their own they will observe
@@ -261,7 +261,7 @@ func ApplyPrecompileActivations(c *params.ChainConfig, parentTimestamp *uint64, 
 func applyStateUpgrades(c *params.ChainConfig, parentTimestamp *uint64, blockContext contract.ConfigurationBlockContext, statedb *state.StateDB) error {
 	// Apply state upgrades
 	configExtra := params.GetExtra(c)
-	for _, upgrade := range configExtra.GetActivatingStateUpgrades(parentTimestamp, blockContext.Timestamp(), configExtra.StateUpgrades) {
+	for _, upgrade := range configExtra.GetActivatingStateUpgrades(parentTimestamp, blockContext.Time(), configExtra.StateUpgrades) {
 		log.Info("Applying state upgrade", "blockNumber", blockContext.Number(), "upgrade", upgrade)
 		if err := stateupgrade.Configure(&upgrade, c, statedb, blockContext); err != nil {
 			return fmt.Errorf("could not configure state upgrade: %w", err)
@@ -284,16 +284,16 @@ func ApplyUpgrades(c *params.ChainConfig, parentTimestamp *uint64, blockContext 
 }
 
 type blockContext struct {
-	number    *big.Int
-	timestamp uint64
+	number *big.Int
+	time   uint64
 }
 
-func NewBlockContext(number *big.Int, timestamp uint64) *blockContext {
+func NewBlockContext(number *big.Int, time uint64) *blockContext {
 	return &blockContext{
-		number:    number,
-		timestamp: timestamp,
+		number: number,
+		time:   time,
 	}
 }
 
-func (bc *blockContext) Number() *big.Int  { return bc.number }
-func (bc *blockContext) Timestamp() uint64 { return bc.timestamp }
+func (bc *blockContext) Number() *big.Int { return bc.number }
+func (bc *blockContext) Time() uint64     { return bc.time }
