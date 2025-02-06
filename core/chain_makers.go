@@ -187,8 +187,8 @@ func (b *BlockGen) Number() *big.Int {
 	return new(big.Int).Set(b.header.Number)
 }
 
-// Time returns the time of the block being generated.
-func (b *BlockGen) Time() uint64 {
+// Timestamp returns the timestamp of the block being generated.
+func (b *BlockGen) Timestamp() uint64 {
 	return b.header.Time
 }
 
