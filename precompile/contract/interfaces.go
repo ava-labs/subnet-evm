@@ -62,7 +62,7 @@ type AccessibleState interface {
 // ConfigurationBlockContext defines the interface required to configure a precompile.
 type ConfigurationBlockContext interface {
 	Number() *big.Int
-	Time() uint64
+	Timestamp() uint64
 }
 
 type BlockContext interface {

@@ -73,18 +73,18 @@ func (mr *MockBlockContextMockRecorder) Number() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Number", reflect.TypeOf((*MockBlockContext)(nil).Number))
 }
 
-// Time mocks base method.
-func (m *MockBlockContext) Time() uint64 {
+// Timestamp mocks base method.
+func (m *MockBlockContext) Timestamp() uint64 {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Time")
+	ret := m.ctrl.Call(m, "Timestamp")
 	ret0, _ := ret[0].(uint64)
 	return ret0
 }
 
-// Time indicates an expected call of Time.
-func (mr *MockBlockContextMockRecorder) Time() *gomock.Call {
+// Timestamp indicates an expected call of Timestamp.
+func (mr *MockBlockContextMockRecorder) Timestamp() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Time", reflect.TypeOf((*MockBlockContext)(nil).Time))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Timestamp", reflect.TypeOf((*MockBlockContext)(nil).Timestamp))
 }
 
 // MockAccessibleState is a mock of AccessibleState interface.

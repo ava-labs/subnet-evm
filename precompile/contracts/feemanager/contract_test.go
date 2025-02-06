@@ -144,7 +144,7 @@ var (
 			ExpectedRes: []byte{},
 			SetupBlockContext: func(mbc *contract.MockBlockContext) {
 				mbc.EXPECT().Number().Return(testBlockNumber).AnyTimes()
-				mbc.EXPECT().Time().Return(uint64(0)).AnyTimes()
+				mbc.EXPECT().Timestamp().Return(uint64(0)).AnyTimes()
 			},
 			AfterHook: func(t testing.TB, state contract.StateDB) {
 				feeConfig := GetStoredFeeConfig(state)
@@ -321,7 +321,7 @@ var (
 			ExpectedErr: ErrInvalidLen.Error(),
 			SetupBlockContext: func(mbc *contract.MockBlockContext) {
 				mbc.EXPECT().Number().Return(testBlockNumber).AnyTimes()
-				mbc.EXPECT().Time().Return(uint64(0)).AnyTimes()
+				mbc.EXPECT().Timestamp().Return(uint64(0)).AnyTimes()
 			},
 		},
 		"set config with extra padded bytes should succeed with Durango": {
@@ -344,7 +344,7 @@ var (
 			ExpectedRes: []byte{},
 			SetupBlockContext: func(mbc *contract.MockBlockContext) {
 				mbc.EXPECT().Number().Return(testBlockNumber).AnyTimes()
-				mbc.EXPECT().Time().Return(uint64(0)).AnyTimes()
+				mbc.EXPECT().Timestamp().Return(uint64(0)).AnyTimes()
 			},
 			AfterHook: func(t testing.TB, state contract.StateDB) {
 				feeConfig := GetStoredFeeConfig(state)
@@ -371,7 +371,7 @@ var (
 			ReadOnly:    false,
 			SetupBlockContext: func(mbc *contract.MockBlockContext) {
 				mbc.EXPECT().Number().Return(testBlockNumber).AnyTimes()
-				mbc.EXPECT().Time().Return(uint64(0)).AnyTimes()
+				mbc.EXPECT().Timestamp().Return(uint64(0)).AnyTimes()
 			},
 		},
 		"setFeeConfig regression test should succeed after Durango": {
@@ -388,7 +388,7 @@ var (
 			ExpectedRes: []byte{},
 			SetupBlockContext: func(mbc *contract.MockBlockContext) {
 				mbc.EXPECT().Number().Return(testBlockNumber).AnyTimes()
-				mbc.EXPECT().Time().Return(uint64(0)).AnyTimes()
+				mbc.EXPECT().Timestamp().Return(uint64(0)).AnyTimes()
 			},
 			AfterHook: func(t testing.TB, state contract.StateDB) {
 				feeConfig := GetStoredFeeConfig(state)

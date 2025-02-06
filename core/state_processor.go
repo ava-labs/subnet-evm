@@ -83,7 +83,8 @@ func (p *StateProcessor) Process(block *types.Block, parent *types.Header, state
 	)
 
 	// Configure any upgrades that should go into effect during this block.
-	err := ApplyUpgrades(p.config, &parent.Time, block, statedb)
+	blockContext := NewBlockContext(block.Number(), block.Time())
+	err := ApplyUpgrades(p.config, &parent.Time, blockContext, statedb)
 	if err != nil {
 		log.Error("failed to configure precompiles processing block", "hash", block.Hash(), "number", block.NumberU64(), "timestamp", block.Time(), "err", err)
 		return nil, nil, 0, err
@@ -210,7 +211,7 @@ func ProcessBeaconBlockRoot(beaconRoot common.Hash, vmenv *vm.EVM, statedb *stat
 // This function is called within genesis setup to configure the starting state for precompiles enabled at genesis.
 // In block processing and building, ApplyUpgrades is called instead which also applies state upgrades.
 func ApplyPrecompileActivations(c *params.ChainConfig, parentTimestamp *uint64, blockContext contract.ConfigurationBlockContext, statedb *state.StateDB) error {
-	blockTimestamp := blockContext.Time()
+	blockTimestamp := blockContext.Timestamp()
 	// Note: RegisteredModules returns precompiles sorted by module addresses.
 	// This ensures that the order we call Configure for each precompile is consistent.
 	// This ensures even if precompiles read/write state other than their own they will observe
@@ -261,7 +262,7 @@ func ApplyPrecompileActivations(c *params.ChainConfig, parentTimestamp *uint64, 
 func applyStateUpgrades(c *params.ChainConfig, parentTimestamp *uint64, blockContext contract.ConfigurationBlockContext, statedb *state.StateDB) error {
 	// Apply state upgrades
 	configExtra := params.GetExtra(c)
-	for _, upgrade := range configExtra.GetActivatingStateUpgrades(parentTimestamp, blockContext.Time(), configExtra.StateUpgrades) {
+	for _, upgrade := range configExtra.GetActivatingStateUpgrades(parentTimestamp, blockContext.Timestamp(), configExtra.StateUpgrades) {
 		log.Info("Applying state upgrade", "blockNumber", blockContext.Number(), "upgrade", upgrade)
 		if err := stateupgrade.Configure(&upgrade, c, statedb, blockContext); err != nil {
 			return fmt.Errorf("could not configure state upgrade: %w", err)
@@ -295,5 +296,5 @@ func NewBlockContext(number *big.Int, time uint64) *blockContext {
 	}
 }
 
-func (bc *blockContext) Number() *big.Int { return bc.number }
-func (bc *blockContext) Time() uint64     { return bc.time }
+func (bc *blockContext) Number() *big.Int  { return bc.number }
+func (bc *blockContext) Timestamp() uint64 { return bc.time }

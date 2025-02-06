@@ -141,7 +141,7 @@ func (p *precompileBlockContext) Number() *big.Int {
 	return p.number
 }
 
-func (p *precompileBlockContext) Time() uint64 {
+func (p *precompileBlockContext) Timestamp() uint64 {
 	return p.time
 }
 
