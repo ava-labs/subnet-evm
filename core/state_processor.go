@@ -285,16 +285,16 @@ func ApplyUpgrades(c *params.ChainConfig, parentTimestamp *uint64, blockContext 
 }
 
 type blockContext struct {
-	number *big.Int
-	time   uint64
+	number    *big.Int
+	timestamp uint64
 }
 
-func NewBlockContext(number *big.Int, time uint64) *blockContext {
+func NewBlockContext(number *big.Int, timestamp uint64) *blockContext {
 	return &blockContext{
-		number: number,
-		time:   time,
+		number:    number,
+		timestamp: timestamp,
 	}
 }
 
 func (bc *blockContext) Number() *big.Int  { return bc.number }
-func (bc *blockContext) Timestamp() uint64 { return bc.time }
+func (bc *blockContext) Timestamp() uint64 { return bc.timestamp }
