@@ -47,14 +47,14 @@ source "${AVALANCHEGO_CLONE_PATH}"/scripts/lib_build_antithesis_images.sh
 build_antithesis_builder_image "${GO_VERSION}" "antithesis-subnet-evm-builder:${IMAGE_TAG}" "${AVALANCHEGO_CLONE_PATH}" "${SUBNET_EVM_PATH}"
 
 # Ensure avalanchego and subnet-evm binaries are available to create an initial db state that includes subnets.
-"${AVALANCHEGO_CLONE_PATH}"/scripts/build.sh
+pushd "${AVALANCHEGO_CLONE_PATH}" && ./scripts/build.sh && popd
 "${SUBNET_EVM_PATH}"/scripts/build.sh
 
 echo "Generating compose configuration"
 gen_antithesis_compose_config "${IMAGE_TAG}" "${SUBNET_EVM_PATH}/tests/antithesis/gencomposeconfig" \
                               "${SUBNET_EVM_PATH}/build/antithesis" \
                               "AVALANCHEGO_PATH=${AVALANCHEGO_CLONE_PATH}/build/avalanchego \
-                              AVALANCHEGO_PLUGIN_DIR=${DEFAULT_PLUGIN_DIR}"
+                              AVAGO_PLUGIN_DIR=${DEFAULT_PLUGIN_DIR}"
 
 build_antithesis_images "${GO_VERSION}" "${IMAGE_PREFIX}" "antithesis-subnet-evm" "${IMAGE_TAG}" \
                         "${AVALANCHEGO_IMAGE_TAG}" "${SUBNET_EVM_PATH}/tests/antithesis/Dockerfile" \
