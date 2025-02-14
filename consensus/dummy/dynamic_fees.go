@@ -4,6 +4,7 @@
 package dummy
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
 
@@ -18,6 +19,9 @@ import (
 const ApricotPhase3BlockGasFee = 1_000_000
 
 var (
+	MaxUint256Plus1 = new(big.Int).Lsh(common.Big1, 256)
+	MaxUint256      = new(big.Int).Sub(MaxUint256Plus1, common.Big1)
+
 	ApricotPhase3MinBaseFee     = big.NewInt(params.ApricotPhase3MinBaseFee)
 	ApricotPhase3MaxBaseFee     = big.NewInt(params.ApricotPhase3MaxBaseFee)
 	ApricotPhase4MinBaseFee     = big.NewInt(params.ApricotPhase4MinBaseFee)
@@ -27,6 +31,8 @@ var (
 
 	ApricotPhase4BaseFeeChangeDenominator = new(big.Int).SetUint64(params.ApricotPhase4BaseFeeChangeDenominator)
 	ApricotPhase5BaseFeeChangeDenominator = new(big.Int).SetUint64(params.ApricotPhase5BaseFeeChangeDenominator)
+
+	errEstimateBaseFeeWithoutActivation = errors.New("cannot estimate base fee for chain without apricot phase 3 scheduled")
 )
 
 // CalcBaseFee takes the previous header and the timestamp of its child block
@@ -61,9 +67,9 @@ func CalcBaseFee(config *params.ChainConfig, parent *types.Header, timestamp uin
 	// If AP5, use a less responsive BaseFeeChangeDenominator and a higher gas
 	// block limit
 	var (
-		baseFee                  = new(big.Int).Set(parent.BaseFee)
-		baseFeeChangeDenominator = ApricotPhase4BaseFeeChangeDenominator
-		parentGasTarget          = params.ApricotPhase3TargetGas
+		baseFee                         = new(big.Int).Set(parent.BaseFee)
+		baseFeeChangeDenominator        = ApricotPhase4BaseFeeChangeDenominator
+		parentGasTarget          uint64 = params.ApricotPhase3TargetGas
 	)
 	if isApricotPhase5 {
 		baseFeeChangeDenominator = ApricotPhase5BaseFeeChangeDenominator
@@ -155,9 +161,9 @@ func CalcBaseFee(config *params.ChainConfig, parent *types.Header, timestamp uin
 	// Ensure that the base fee does not increase/decrease outside of the bounds
 	switch {
 	case isEtna:
-		baseFee = selectBigWithinBounds(EtnaMinBaseFee, baseFee, nil)
+		baseFee = selectBigWithinBounds(EtnaMinBaseFee, baseFee, MaxUint256)
 	case isApricotPhase5:
-		baseFee = selectBigWithinBounds(ApricotPhase4MinBaseFee, baseFee, nil)
+		baseFee = selectBigWithinBounds(ApricotPhase4MinBaseFee, baseFee, MaxUint256)
 	case isApricotPhase4:
 		baseFee = selectBigWithinBounds(ApricotPhase4MinBaseFee, baseFee, ApricotPhase4MaxBaseFee)
 	default:
@@ -167,15 +173,20 @@ func CalcBaseFee(config *params.ChainConfig, parent *types.Header, timestamp uin
 	return dynamicFeeWindowBytes, baseFee, nil
 }
 
-// EstimateNextBaseFee attempts to estimate the next base fee based on a block with [parent] being built at
-// [timestamp].
-// If [timestamp] is less than the timestamp of [parent], then it uses the same timestamp as parent.
-// Warning: This function should only be used in estimation and should not be used when calculating the canonical
-// base fee for a subsequent block.
+// EstimateNextBaseFee attempts to estimate the base fee of a block built at
+// `timestamp` on top of `parent`.
+//
+// If timestamp is before parent.Time or the AP3 activation time, then timestamp
+// is set to the maximum of parent.Time and the AP3 activation time.
+//
+// Warning: This function should only be used in estimation and should not be
+// used when calculating the canonical base fee for a block.
 func EstimateNextBaseFee(config *params.ChainConfig, parent *types.Header, timestamp uint64) (*big.Int, error) {
-	if timestamp < parent.Time {
-		timestamp = parent.Time
+	if config.ApricotPhase3BlockTimestamp == nil {
+		return nil, errEstimateBaseFeeWithoutActivation
 	}
+
+	timestamp = max(timestamp, parent.Time, *config.ApricotPhase3BlockTimestamp)
 	_, baseFee, err := CalcBaseFee(config, parent, timestamp)
 	return baseFee, err
 }
