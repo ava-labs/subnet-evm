@@ -180,6 +180,6 @@ type Config struct {
 	// TransactionHistory can be still used to control unindexing old transactions.
 	SkipTxIndexing bool
 
-	// TODO: remove once we move SuggestPriceOptions API
+	// TODO: remove once we move SuggestPriceOptions to AVAX/custom API
 	PriceOptionConfig ethapi.PriceOptionConfig
 }
