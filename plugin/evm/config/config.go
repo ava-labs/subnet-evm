@@ -368,7 +368,7 @@ func (c *Config) Validate(networkID uint32) error {
 		return fmt.Errorf("push-gossip-percent-stake is %f but must be in the range [0, 1]", c.PushGossipPercentStake)
 	}
 
-	if c.PriceOptionMaxBaseFee < uint64(minAllowedBaseFee) {
+	if c.PriceOptionMaxBaseFee < minAllowedBaseFee {
 		return fmt.Errorf("max base fee %d is less than the minimum base fee %d", c.PriceOptionMaxBaseFee, minAllowedBaseFee)
 	}
 	return nil
