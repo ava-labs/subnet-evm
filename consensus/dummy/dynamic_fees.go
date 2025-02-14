@@ -4,6 +4,7 @@
 package dummy
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
 
@@ -15,8 +16,9 @@ import (
 )
 
 var (
-	MaxUint256Plus1 = new(big.Int).Lsh(common.Big1, 256)
-	MaxUint256      = new(big.Int).Sub(MaxUint256Plus1, common.Big1)
+	MaxUint256Plus1                     = new(big.Int).Lsh(common.Big1, 256)
+	MaxUint256                          = new(big.Int).Sub(MaxUint256Plus1, common.Big1)
+	errEstimateBaseFeeWithoutActivation = errors.New("cannot estimate base fee for chain without activation")
 )
 
 // CalcBaseFee takes the previous header and the timestamp of its child block
@@ -41,12 +43,12 @@ func CalcBaseFee(config *params.ChainConfig, feeConfig commontype.FeeConfig, par
 	}
 	timeElapsed := timestamp - parent.Time
 
-	// start off with parent's base fee
-	baseFee := new(big.Int).Set(parent.BaseFee)
-	baseFeeChangeDenominator := feeConfig.BaseFeeChangeDenominator
-
-	parentGasTargetBig := feeConfig.TargetGas
-	parentGasTarget := parentGasTargetBig.Uint64()
+	var (
+		baseFee                  = new(big.Int).Set(parent.BaseFee)
+		baseFeeChangeDenominator = feeConfig.BaseFeeChangeDenominator
+		parentGasTargetBig       = feeConfig.TargetGas
+		parentGasTarget          = parentGasTargetBig.Uint64()
+	)
 
 	// Compute the new state of the gas rolling window.
 	dynamicFeeWindow.Add(parent.GasUsed)
@@ -100,15 +102,20 @@ func CalcBaseFee(config *params.ChainConfig, feeConfig commontype.FeeConfig, par
 	return dynamicFeeWindowBytes, baseFee, nil
 }
 
-// EstimateNextBaseFee attempts to estimate the next base fee based on a block with [parent] being built at
-// [timestamp].
-// If [timestamp] is less than the timestamp of [parent], then it uses the same timestamp as parent.
-// Warning: This function should only be used in estimation and should not be used when calculating the canonical
-// base fee for a subsequent block.
+// EstimateNextBaseFee attempts to estimate the base fee of a block built at
+// `timestamp` on top of `parent`.
+//
+// If timestamp is before parent.Time or the activation time, then timestamp
+// is set to the maximum of parent.Time and the activation time.
+//
+// Warning: This function should only be used in estimation and should not be
+// used when calculating the canonical base fee for a block.
 func EstimateNextBaseFee(config *params.ChainConfig, feeConfig commontype.FeeConfig, parent *types.Header, timestamp uint64) (*big.Int, error) {
-	if timestamp < parent.Time {
-		timestamp = parent.Time
+	if config.SubnetEVMTimestamp == nil {
+		return nil, errEstimateBaseFeeWithoutActivation
 	}
+
+	timestamp = max(timestamp, parent.Time, *config.SubnetEVMTimestamp)
 	_, baseFee, err := CalcBaseFee(config, feeConfig, parent, timestamp)
 	return baseFee, err
 }
