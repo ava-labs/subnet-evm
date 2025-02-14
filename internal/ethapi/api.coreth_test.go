@@ -42,6 +42,11 @@ func TestSuggestPriceOptions(t *testing.T) {
 		MaxBaseFee:        100 * params.GWei,
 		MaxTip:            20 * params.GWei,
 	}
+	slowFeeNumerator := testCfg.SlowFeePercentage
+	fastFeeNumerator := testCfg.FastFeePercentage
+	maxNormalGasTip := testCfg.MaxTip
+	maxNormalBaseFee := testCfg.MaxBaseFee
+
 	tests := []struct {
 		name             string
 		estimateBaseFee  *big.Int
@@ -77,14 +82,14 @@ func TestSuggestPriceOptions(t *testing.T) {
 				),
 				Fast: newPrice(
 					minGasTip,
-					(testCfg.FastFeePercentage*uint64(minBaseFee)/feeDenominator)+(testCfg.FastFeePercentage*uint64(minGasTip)/feeDenominator),
+					(fastFeeNumerator*uint64(minBaseFee)/feeDenominator)+(fastFeeNumerator*uint64(minGasTip)/feeDenominator),
 				),
 			},
 		},
 		{
 			name:             "maximum_values_1_slow_perc_2_fast_perc",
-			estimateBaseFee:  new(big.Int).SetUint64(testCfg.MaxBaseFee),
-			suggestGasTipCap: new(big.Int).SetUint64(testCfg.MaxTip),
+			estimateBaseFee:  new(big.Int).SetUint64(maxNormalBaseFee),
+			suggestGasTipCap: new(big.Int).SetUint64(maxNormalGasTip),
 			cfg: PriceOptionConfig{
 				SlowFeePercentage: 100,
 				FastFeePercentage: 200,
@@ -109,40 +114,40 @@ func TestSuggestPriceOptions(t *testing.T) {
 		{
 			name:             "maximum_values",
 			cfg:              testCfg,
-			estimateBaseFee:  new(big.Int).SetUint64(testCfg.MaxBaseFee),
-			suggestGasTipCap: new(big.Int).SetUint64(testCfg.MaxTip),
+			estimateBaseFee:  new(big.Int).SetUint64(maxNormalBaseFee),
+			suggestGasTipCap: new(big.Int).SetUint64(maxNormalGasTip),
 			want: &PriceOptions{
 				Slow: newPrice(
-					((testCfg.SlowFeePercentage * testCfg.MaxTip) / feeDenominator),
-					((testCfg.SlowFeePercentage*testCfg.MaxBaseFee)/feeDenominator)+((testCfg.SlowFeePercentage*testCfg.MaxTip)/feeDenominator),
+					((slowFeeNumerator * maxNormalGasTip) / feeDenominator),
+					((slowFeeNumerator*maxNormalBaseFee)/feeDenominator)+((slowFeeNumerator*maxNormalGasTip)/feeDenominator),
 				),
 				Normal: newPrice(
-					testCfg.MaxTip,
-					testCfg.MaxBaseFee+testCfg.MaxTip,
+					maxNormalGasTip,
+					maxNormalBaseFee+maxNormalGasTip,
 				),
 				Fast: newPrice(
-					((testCfg.FastFeePercentage * testCfg.MaxTip) / feeDenominator),
-					((testCfg.FastFeePercentage*testCfg.MaxBaseFee)/feeDenominator)+((testCfg.FastFeePercentage*testCfg.MaxTip)/feeDenominator),
+					((fastFeeNumerator * maxNormalGasTip) / feeDenominator),
+					((fastFeeNumerator*maxNormalBaseFee)/feeDenominator)+((fastFeeNumerator*maxNormalGasTip)/feeDenominator),
 				),
 			},
 		},
 		{
 			name:             "double_maximum_values",
-			estimateBaseFee:  big.NewInt(2 * int64(testCfg.MaxBaseFee)),
-			suggestGasTipCap: big.NewInt(2 * int64(testCfg.MaxTip)),
+			estimateBaseFee:  big.NewInt(2 * int64(maxNormalBaseFee)),
+			suggestGasTipCap: big.NewInt(2 * int64(maxNormalGasTip)),
 			cfg:              testCfg,
 			want: &PriceOptions{
 				Slow: newPrice(
-					((testCfg.SlowFeePercentage * testCfg.MaxTip) / feeDenominator),
-					((testCfg.SlowFeePercentage*testCfg.MaxBaseFee)/feeDenominator)+((testCfg.SlowFeePercentage*testCfg.MaxTip)/feeDenominator),
+					((slowFeeNumerator * maxNormalGasTip) / feeDenominator),
+					((slowFeeNumerator*maxNormalBaseFee)/feeDenominator)+((slowFeeNumerator*maxNormalGasTip)/feeDenominator),
 				),
 				Normal: newPrice(
-					testCfg.MaxTip,
-					testCfg.MaxBaseFee+testCfg.MaxTip,
+					maxNormalGasTip,
+					maxNormalBaseFee+maxNormalGasTip,
 				),
 				Fast: newPrice(
-					((testCfg.FastFeePercentage * testCfg.MaxTip * 2) / feeDenominator),
-					((testCfg.FastFeePercentage*testCfg.MaxBaseFee*2)/feeDenominator)+((testCfg.FastFeePercentage*testCfg.MaxTip*2)/feeDenominator),
+					((fastFeeNumerator * maxNormalGasTip * 2) / feeDenominator),
+					((fastFeeNumerator*maxNormalBaseFee*2)/feeDenominator)+((fastFeeNumerator*maxNormalGasTip*2)/feeDenominator),
 				),
 			},
 		},
