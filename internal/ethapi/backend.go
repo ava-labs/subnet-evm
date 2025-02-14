@@ -60,6 +60,7 @@ type Backend interface {
 	RPCGasCap() uint64            // global gas cap for eth_call over rpc: DoS protection
 	RPCEVMTimeout() time.Duration // global timeout for eth_call over rpc: DoS protection
 	RPCTxFeeCap() float64         // global tx fee cap for all transaction related APIs
+	PriceOptionsConfig() PriceOptionConfig
 
 	UnprotectedAllowed(tx *types.Transaction) bool // allows only for EIP155 transactions.
 
