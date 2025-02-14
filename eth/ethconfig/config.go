@@ -181,5 +181,5 @@ type Config struct {
 	SkipTxIndexing bool
 
 	// TODO: remove once we move SuggestPriceOptions API
-	ethapi.PriceOptionConfig `toml:",omitempty"`
+	PriceOptionConfig ethapi.PriceOptionConfig
 }

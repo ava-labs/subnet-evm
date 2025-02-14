@@ -65,22 +65,22 @@ func (s *EthereumAPI) SuggestPriceOptions(ctx context.Context) (*PriceOptions, e
 	}
 
 	cfg := s.b.PriceOptionsConfig()
-	bigSlowFeePerc := new(big.Int).SetUint64(cfg.SlowFeePercentage)
-	bigFastFeePerc := new(big.Int).SetUint64(cfg.FastFeePercentage)
+	bigSlowFeePercent := new(big.Int).SetUint64(cfg.SlowFeePercentage)
+	bigFastFeePercent := new(big.Int).SetUint64(cfg.FastFeePercentage)
 
 	baseFees := calculateFeeSpeeds(
 		bigMinBaseFee,
 		baseFee,
 		big.NewInt(int64(cfg.MaxBaseFee)),
-		bigSlowFeePerc,
-		bigFastFeePerc,
+		bigSlowFeePercent,
+		bigFastFeePercent,
 	)
 	gasTips := calculateFeeSpeeds(
 		bigMinGasTip,
 		gasTip,
 		big.NewInt(int64(cfg.MaxTip)),
-		bigSlowFeePerc,
-		bigFastFeePerc,
+		bigSlowFeePercent,
+		bigFastFeePercent,
 	)
 	slowGasFee := new(big.Int).Add(baseFees.slow, gasTips.slow)
 	normalGasFee := new(big.Int).Add(baseFees.normal, gasTips.normal)
