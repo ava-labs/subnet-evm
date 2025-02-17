@@ -10,7 +10,6 @@ import (
 // If the [metrics.Enabled] is already true, nothing is done.
 // Otherwise, it is set to true and is reverted to false when the test finishes.
 func WithMetrics(t *testing.T) {
-	panicIfCallsFromNonTest()
 	if metrics.Enabled {
 		return
 	}
