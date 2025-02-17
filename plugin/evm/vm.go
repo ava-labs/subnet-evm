@@ -556,6 +556,8 @@ func (vm *VM) Initialize(
 }
 
 func (vm *VM) initializeMetrics() error {
+	// [metrics.Enabled] is a global variable imported from go-ethereum/metrics
+	// and must be set to true to enable metrics collection.
 	metrics.Enabled = true
 	vm.sdkMetrics = prometheus.NewRegistry()
 	gatherer := subnetevmprometheus.NewGatherer(metrics.DefaultRegistry)
