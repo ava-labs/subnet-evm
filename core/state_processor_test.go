@@ -444,10 +444,9 @@ func GenerateBadBlock(parent *types.Block, engine consensus.Engine, txs types.Tr
 		Time:      parent.Time() + 10,
 		UncleHash: types.EmptyUncleHash,
 	}
-
+	header.Extra, _ = dummy.CalcExtraPrefix(config, config.FeeConfig, parent.Header(), header.Time)
+	header.BaseFee, _ = dummy.CalcBaseFee(config, config.FeeConfig, parent.Header(), header.Time)
 	if config.IsSubnetEVM(header.Time) {
-		header.Extra, _ = dummy.CalcExtraPrefix(config, config.FeeConfig, parent.Header(), header.Time)
-		header.BaseFee, _ = dummy.CalcBaseFee(config, config.FeeConfig, parent.Header(), header.Time)
 		header.BlockGasCost = big.NewInt(0)
 	}
 	var receipts []*types.Receipt
