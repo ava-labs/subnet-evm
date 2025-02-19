@@ -37,13 +37,13 @@ import (
 	"time"
 
 	"github.com/ava-labs/subnet-evm/commontype"
-	"github.com/ava-labs/subnet-evm/consensus/dummy"
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/core/txpool"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/metrics"
 	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/plugin/evm/header"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/feemanager"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
@@ -69,11 +69,9 @@ const (
 	txMaxSize = 4 * txSlotSize // 128KB
 )
 
-var (
-	// ErrTxPoolOverflow is returned if the transaction pool is full and can't accept
-	// another remote transaction.
-	ErrTxPoolOverflow = errors.New("txpool is full")
-)
+// ErrTxPoolOverflow is returned if the transaction pool is full and can't accept
+// another remote transaction.
+var ErrTxPoolOverflow = errors.New("txpool is full")
 
 var (
 	evictionInterval      = time.Minute      // Time interval to check for evictable transactions
@@ -1075,7 +1073,7 @@ func (pool *LegacyPool) Add(txs []*types.Transaction, local, sync bool) []error 
 	newErrs, dirtyAddrs := pool.addTxsLocked(news, local)
 	pool.mu.Unlock()
 
-	var nilSlot = 0
+	nilSlot := 0
 	for _, err := range newErrs {
 		for errs[nilSlot] != nil {
 			nilSlot++
@@ -1837,7 +1835,7 @@ func (pool *LegacyPool) updateBaseFeeAt(head *types.Header) error {
 	if err != nil {
 		return err
 	}
-	baseFeeEstimate, err := dummy.EstimateNextBaseFee(pool.chainconfig, feeConfig, head, uint64(time.Now().Unix()))
+	baseFeeEstimate, err := header.EstimateNextBaseFee(pool.chainconfig, feeConfig, head, uint64(time.Now().Unix()))
 	if err != nil {
 		return err
 	}

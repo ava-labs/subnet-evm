@@ -281,6 +281,7 @@ func testLongDeepRepair(t *testing.T, snapshots bool) {
 func TestLongOldForkedShallowRepair(t *testing.T) {
 	testLongOldForkedShallowRepair(t, false)
 }
+
 func TestLongOldForkedShallowRepairWithSnapshots(t *testing.T) {
 	testLongOldForkedShallowRepair(t, true)
 }
@@ -359,6 +360,7 @@ func testLongOldForkedDeepRepair(t *testing.T, snapshots bool) {
 func TestLongNewerForkedShallowRepair(t *testing.T) {
 	testLongNewerForkedShallowRepair(t, false)
 }
+
 func TestLongNewerForkedShallowRepairWithSnapshots(t *testing.T) {
 	testLongNewerForkedShallowRepair(t, true)
 }
@@ -511,7 +513,7 @@ func testRepair(t *testing.T, tt *rewindTest, snapshots bool) {
 
 func testRepairWithScheme(t *testing.T, tt *rewindTest, snapshots bool, scheme string) {
 	// It's hard to follow the test case, visualize the input
-	//log.Root().SetHandler(log.LvlFilterHandler(log.LvlTrace, log.StreamHandler(os.Stderr, log.TerminalFormat(true))))
+	// log.Root().SetHandler(log.LvlFilterHandler(log.LvlTrace, log.StreamHandler(os.Stderr, log.TerminalFormat(true))))
 	// fmt.Println(tt.dump(true))
 
 	// Create a temporary persistent database
@@ -567,7 +569,7 @@ func testRepairWithScheme(t *testing.T, tt *rewindTest, snapshots bool, scheme s
 		gspec.MustCommit(genDb, triedb.NewDatabase(genDb, nil))
 		sideblocks, _, err = GenerateChain(gspec.Config, gspec.ToBlock(), engine, genDb, tt.sidechainBlocks, 10, func(i int, b *BlockGen) {
 			b.SetCoinbase(common.Address{0x01})
-			tx, err := types.SignTx(types.NewTransaction(b.TxNonce(addr1), common.Address{0x01}, big.NewInt(10000), params.TxGas, common.Big1, nil), signer, key1)
+			tx, err := types.SignTx(types.NewTransaction(b.TxNonce(addr1), common.Address{0x01}, big.NewInt(10000), params.TxGas, chainConfig.FeeConfig.MinBaseFee, nil), signer, key1)
 			require.NoError(err)
 			b.AddTx(tx)
 		})
@@ -581,7 +583,7 @@ func testRepairWithScheme(t *testing.T, tt *rewindTest, snapshots bool, scheme s
 	canonblocks, _, err := GenerateChain(gspec.Config, gspec.ToBlock(), engine, genDb, tt.canonicalBlocks, 10, func(i int, b *BlockGen) {
 		b.SetCoinbase(common.Address{0x02})
 		b.SetDifficulty(big.NewInt(1000000))
-		tx, err := types.SignTx(types.NewTransaction(b.TxNonce(addr1), common.Address{0x02}, big.NewInt(10000), params.TxGas, common.Big1, nil), signer, key1)
+		tx, err := types.SignTx(types.NewTransaction(b.TxNonce(addr1), common.Address{0x02}, big.NewInt(10000), params.TxGas, chainConfig.FeeConfig.MinBaseFee, nil), signer, key1)
 		require.NoError(err)
 		b.AddTx(tx)
 	})
