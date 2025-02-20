@@ -118,16 +118,16 @@ func TestSuggestPriceOptions(t *testing.T) {
 			suggestGasTipCap: new(big.Int).SetUint64(maxNormalGasTip),
 			want: &PriceOptions{
 				Slow: newPrice(
-					((slowFeeNumerator * maxNormalGasTip) / feeDenominator),
-					((slowFeeNumerator*maxNormalBaseFee)/feeDenominator)+((slowFeeNumerator*maxNormalGasTip)/feeDenominator),
+					(slowFeeNumerator*maxNormalGasTip)/feeDenominator,
+					(slowFeeNumerator*maxNormalBaseFee)/feeDenominator+(slowFeeNumerator*maxNormalGasTip)/feeDenominator,
 				),
 				Normal: newPrice(
 					maxNormalGasTip,
 					maxNormalBaseFee+maxNormalGasTip,
 				),
 				Fast: newPrice(
-					((fastFeeNumerator * maxNormalGasTip) / feeDenominator),
-					((fastFeeNumerator*maxNormalBaseFee)/feeDenominator)+((fastFeeNumerator*maxNormalGasTip)/feeDenominator),
+					(fastFeeNumerator*maxNormalGasTip)/feeDenominator,
+					(fastFeeNumerator*maxNormalBaseFee)/feeDenominator+(fastFeeNumerator*maxNormalGasTip)/feeDenominator,
 				),
 			},
 		},
@@ -138,16 +138,16 @@ func TestSuggestPriceOptions(t *testing.T) {
 			cfg:              testCfg,
 			want: &PriceOptions{
 				Slow: newPrice(
-					((slowFeeNumerator * maxNormalGasTip) / feeDenominator),
-					((slowFeeNumerator*maxNormalBaseFee)/feeDenominator)+((slowFeeNumerator*maxNormalGasTip)/feeDenominator),
+					(slowFeeNumerator*maxNormalGasTip)/feeDenominator,
+					(slowFeeNumerator*maxNormalBaseFee)/feeDenominator+(slowFeeNumerator*maxNormalGasTip)/feeDenominator,
 				),
 				Normal: newPrice(
 					maxNormalGasTip,
 					maxNormalBaseFee+maxNormalGasTip,
 				),
 				Fast: newPrice(
-					((fastFeeNumerator * maxNormalGasTip * 2) / feeDenominator),
-					((fastFeeNumerator*maxNormalBaseFee*2)/feeDenominator)+((fastFeeNumerator*maxNormalGasTip*2)/feeDenominator),
+					(fastFeeNumerator*2*maxNormalGasTip)/feeDenominator,
+					(fastFeeNumerator*2*maxNormalBaseFee)/feeDenominator+(fastFeeNumerator*2*maxNormalGasTip)/feeDenominator,
 				),
 			},
 		},
