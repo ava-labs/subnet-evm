@@ -22,6 +22,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 
 	customheader "github.com/ava-labs/coreth/plugin/evm/header"
+	"github.com/ava-labs/coreth/plugin/evm/upgrade/ap1"
+	"github.com/ava-labs/coreth/plugin/evm/upgrade/cortina"
 )
 
 var (
@@ -121,12 +123,12 @@ func (eng *DummyEngine) verifyHeaderGasFields(config *params.ChainConfig, header
 		return fmt.Errorf("invalid gasUsed: have %d, gasLimit %d", header.GasUsed, header.GasLimit)
 	}
 	if config.IsCortina(header.Time) {
-		if header.GasLimit != params.CortinaGasLimit {
-			return fmt.Errorf("expected gas limit to be %d in Cortina, but found %d", params.CortinaGasLimit, header.GasLimit)
+		if header.GasLimit != cortina.GasLimit {
+			return fmt.Errorf("expected gas limit to be %d in Cortina, but found %d", cortina.GasLimit, header.GasLimit)
 		}
 	} else if config.IsApricotPhase1(header.Time) {
-		if header.GasLimit != params.ApricotPhase1GasLimit {
-			return fmt.Errorf("expected gas limit to be %d in ApricotPhase1, but found %d", params.ApricotPhase1GasLimit, header.GasLimit)
+		if header.GasLimit != ap1.GasLimit {
+			return fmt.Errorf("expected gas limit to be %d in ApricotPhase1, but found %d", ap1.GasLimit, header.GasLimit)
 		}
 	} else {
 		// Verify that the gas limit remains within allowed bounds

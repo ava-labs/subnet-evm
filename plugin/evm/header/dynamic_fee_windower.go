@@ -12,9 +12,10 @@ import (
 	"github.com/ava-labs/avalanchego/utils/wrappers"
 	"github.com/ava-labs/coreth/core/types"
 	"github.com/ava-labs/coreth/params"
-	"github.com/ava-labs/coreth/plugin/evm/ap3"
-	"github.com/ava-labs/coreth/plugin/evm/ap4"
-	"github.com/ava-labs/coreth/plugin/evm/ap5"
+	"github.com/ava-labs/coreth/plugin/evm/upgrade/ap3"
+	"github.com/ava-labs/coreth/plugin/evm/upgrade/ap4"
+	"github.com/ava-labs/coreth/plugin/evm/upgrade/ap5"
+	"github.com/ava-labs/coreth/plugin/evm/upgrade/etna"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 )
@@ -32,7 +33,7 @@ var (
 	// EtnaMinBaseFee is exported so that it can be modified by tests.
 	//
 	// TODO: Unexport this.
-	EtnaMinBaseFee = big.NewInt(params.EtnaMinBaseFee)
+	EtnaMinBaseFee = big.NewInt(etna.MinBaseFee)
 
 	ap3MaxBaseFee = big.NewInt(ap3.MaxBaseFee)
 	ap4MaxBaseFee = big.NewInt(ap4.MaxBaseFee)
@@ -40,6 +41,7 @@ var (
 	ap3BaseFeeChangeDenominator = big.NewInt(ap3.BaseFeeChangeDenominator)
 	ap5BaseFeeChangeDenominator = big.NewInt(ap5.BaseFeeChangeDenominator)
 
+	errInvalidTimestamp                   = errors.New("invalid timestamp")
 	errDynamicFeeWindowInsufficientLength = errors.New("insufficient length for dynamic fee window")
 )
 
@@ -169,7 +171,8 @@ func feeWindow(
 	}
 
 	if timestamp < parent.Time {
-		return ap3.Window{}, fmt.Errorf("cannot calculate fee window for timestamp %d prior to parent timestamp %d",
+		return ap3.Window{}, fmt.Errorf("%w: timestamp %d prior to parent timestamp %d",
+			errInvalidTimestamp,
 			timestamp,
 			parent.Time,
 		)

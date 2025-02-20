@@ -39,11 +39,12 @@ import (
 	"github.com/ava-labs/coreth/node"
 	"github.com/ava-labs/coreth/params"
 	"github.com/ava-labs/coreth/peer"
-	"github.com/ava-labs/coreth/plugin/evm/ap5"
 	"github.com/ava-labs/coreth/plugin/evm/atomic"
 	"github.com/ava-labs/coreth/plugin/evm/config"
 	"github.com/ava-labs/coreth/plugin/evm/header"
 	"github.com/ava-labs/coreth/plugin/evm/message"
+	"github.com/ava-labs/coreth/plugin/evm/upgrade/ap5"
+	"github.com/ava-labs/coreth/plugin/evm/upgrade/etna"
 	"github.com/ava-labs/coreth/triedb"
 	"github.com/ava-labs/coreth/triedb/hashdb"
 	"github.com/ava-labs/coreth/utils"
@@ -672,7 +673,7 @@ func (vm *VM) initializeChain(lastAcceptedHash common.Hash) error {
 	// Set the gas parameters for the tx pool to the minimum gas price for the
 	// latest upgrade.
 	vm.txPool.SetGasTip(big.NewInt(0))
-	vm.txPool.SetMinFee(big.NewInt(params.EtnaMinBaseFee))
+	vm.txPool.SetMinFee(big.NewInt(etna.MinBaseFee))
 
 	vm.eth.Start()
 	return vm.initChainState(vm.blockChain.LastAcceptedBlock())
