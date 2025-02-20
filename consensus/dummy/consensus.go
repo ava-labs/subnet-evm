@@ -29,8 +29,6 @@ var (
 
 	errInvalidBlockTime       = errors.New("timestamp less than parent's")
 	errUnclesUnsupported      = errors.New("uncles unsupported")
-	errBlockGasCostNil        = errors.New("block gas cost is nil")
-	errBaseFeeNil             = errors.New("base fee is nil")
 	errExtDataGasUsedNil      = errors.New("extDataGasUsed is nil")
 	errExtDataGasUsedTooLarge = errors.New("extDataGasUsed is not uint64")
 )
@@ -139,23 +137,22 @@ func (eng *DummyEngine) verifyHeaderGasFields(config *params.ChainConfig, header
 		}
 	}
 
-	if !config.IsApricotPhase3(header.Time) {
-		// Verify BaseFee is not present before AP3
-		if header.BaseFee != nil {
-			return fmt.Errorf("invalid baseFee before fork: have %d, want <nil>", header.BaseFee)
-		}
-	} else {
-		// Verify header.Extra and header.BaseFee match their expected values.
-		expectedExtraPrefix, expectedBaseFee, err := CalcBaseFee(config, parent, header.Time)
-		if err != nil {
-			return fmt.Errorf("failed to calculate base fee: %w", err)
-		}
-		if !bytes.HasPrefix(header.Extra, expectedExtraPrefix) {
-			return fmt.Errorf("expected header.Extra to have prefix: %x, found %x", expectedExtraPrefix, header.Extra)
-		}
-		if !utils.BigEqual(header.BaseFee, expectedBaseFee) {
-			return fmt.Errorf("expected base fee (%d), found (%d)", expectedBaseFee, header.BaseFee)
-		}
+	// Verify header.Extra matches the expected value.
+	expectedExtraPrefix, err := customheader.ExtraPrefix(config, parent, header.Time)
+	if err != nil {
+		return fmt.Errorf("failed to calculate extra prefix: %w", err)
+	}
+	if !bytes.HasPrefix(header.Extra, expectedExtraPrefix) {
+		return fmt.Errorf("expected header.Extra to have prefix: %x, found %x", expectedExtraPrefix, header.Extra)
+	}
+
+	// Verify header.BaseFee matches the expected value.
+	expectedBaseFee, err := customheader.BaseFee(config, parent, header.Time)
+	if err != nil {
+		return fmt.Errorf("failed to calculate base fee: %w", err)
+	}
+	if !utils.BigEqual(header.BaseFee, expectedBaseFee) {
+		return fmt.Errorf("expected base fee %d, found %d", expectedBaseFee, header.BaseFee)
 	}
 
 	// Verify BlockGasCost, ExtDataGasUsed not present before AP4
