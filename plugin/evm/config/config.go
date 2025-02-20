@@ -9,14 +9,14 @@ import (
 	"time"
 
 	"github.com/ava-labs/avalanchego/utils/constants"
+	"github.com/ava-labs/coreth/plugin/evm/upgrade/etna"
+	"github.com/ava-labs/coreth/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/spf13/cast"
 )
 
 const (
-	gwei = 1_000_000_000
-
 	defaultAcceptorQueueLimit                     = 64 // Provides 2 minutes of buffer (2s block target) for a commit delay
 	defaultPruningEnabled                         = true
 	defaultCommitInterval                         = 4096
@@ -67,10 +67,8 @@ const (
 	// Price Option Defaults
 	defaultPriceOptionSlowFeePercentage = uint64(95)
 	defaultPriceOptionFastFeePercentage = uint64(105)
-	defaultPriceOptionMaxBaseFee        = uint64(100 * gwei)
-	defaultPriceOptionMaxTip            = uint64(20 * gwei)
-
-	minAllowedBaseFee = uint64(1 * gwei) // avoids circular-dependency with params.EtnaMinBaseFee
+	defaultPriceOptionMaxBaseFee        = uint64(100 * utils.GWei)
+	defaultPriceOptionMaxTip            = uint64(20 * utils.GWei)
 )
 
 var (
@@ -368,8 +366,8 @@ func (c *Config) Validate(networkID uint32) error {
 		return fmt.Errorf("push-gossip-percent-stake is %f but must be in the range [0, 1]", c.PushGossipPercentStake)
 	}
 
-	if c.PriceOptionMaxBaseFee < minAllowedBaseFee {
-		return fmt.Errorf("max base fee %d is less than the minimum base fee %d", c.PriceOptionMaxBaseFee, minAllowedBaseFee)
+	if c.PriceOptionMaxBaseFee < etna.MinBaseFee {
+		return fmt.Errorf("max base fee %d is less than the minimum base fee %d", c.PriceOptionMaxBaseFee, etna.MinBaseFee)
 	}
 	return nil
 }
