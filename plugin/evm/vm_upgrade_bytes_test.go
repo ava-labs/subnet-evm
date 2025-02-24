@@ -23,11 +23,11 @@ import (
 	"github.com/ava-labs/libevm/crypto"
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/types"
+	customvm "github.com/ava-labs/subnet-evm/core/vm"
 	"github.com/ava-labs/subnet-evm/metrics"
 	"github.com/ava-labs/subnet-evm/params/extras"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/txallowlist"
 	"github.com/ava-labs/subnet-evm/utils"
-	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -71,7 +71,7 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 		t.Fatal(err)
 	}
 	errs = vm.txPool.AddRemotesSync([]*types.Transaction{signedTx1})
-	if err := errs[0]; !errors.Is(err, vmerrs.ErrSenderAddressNotAllowListed) {
+	if err := errs[0]; !errors.Is(err, customvm.ErrSenderAddressNotAllowListed) {
 		t.Fatalf("expected ErrSenderAddressNotAllowListed, got: %s", err)
 	}
 
@@ -130,7 +130,7 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 
 	// Submit a rejected transaction, should throw an error
 	errs = vm.txPool.AddRemotesSync([]*types.Transaction{signedTx1})
-	if err := errs[0]; !errors.Is(err, vmerrs.ErrSenderAddressNotAllowListed) {
+	if err := errs[0]; !errors.Is(err, customvm.ErrSenderAddressNotAllowListed) {
 		t.Fatalf("expected ErrSenderAddressNotAllowListed, got: %s", err)
 	}
 
