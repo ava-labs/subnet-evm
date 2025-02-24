@@ -5,7 +5,7 @@ go 1.23.6
 require (
 	github.com/VictoriaMetrics/fastcache v1.12.1
 	github.com/antithesishq/antithesis-sdk-go v0.3.8
-	github.com/ava-labs/avalanchego v1.12.3-warp-verify4
+	github.com/ava-labs/avalanchego v1.12.3-0.20250224213359-424f7dc65171
 	github.com/cespare/cp v0.1.0
 	github.com/crate-crypto/go-ipa v0.0.0-20231025140028-3c0104f4b233
 	github.com/davecgh/go-spew v1.1.1
@@ -57,7 +57,7 @@ require (
 require (
 	github.com/DataDog/zstd v1.5.2 // indirect
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
-	github.com/ava-labs/coreth v0.14.2-verify-interface4 // indirect
+	github.com/ava-labs/coreth v0.14.1-rc.1.0.20250219185827-6a9db205a450 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bits-and-blooms/bitset v1.10.0 // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.3.2 // indirect
@@ -174,5 +174,3 @@ require (
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.1 // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect
 )
-
-replace github.com/ava-labs/avalanchego => github.com/ava-labs/avalanchego v1.12.3-0.20250202045707-15c496b09f92
