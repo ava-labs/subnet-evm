@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ava-labs/subnet-evm/plugin/evm/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -15,7 +14,11 @@ import (
 )
 
 func TestGatherer_Gather(t *testing.T) {
-	testutils.WithMetrics(t)
+	enabledOriginal := metrics.Enabled
+	t.Cleanup(func() {
+		metrics.Enabled = enabledOriginal
+	})
+	metrics.Enabled = true
 
 	registry := metrics.NewRegistry()
 	register := func(t *testing.T, name string, collector any) {
@@ -68,6 +71,35 @@ func TestGatherer_Gather(t *testing.T) {
 
 	emptyResettingTimer.Update(time.Second) // no effect because of snapshot below
 	register(t, "test/empty_resetting_timer_snapshot", emptyResettingTimer.Snapshot())
+
+	// Nil metrics
+	metrics.Enabled = false
+	nilCounter := metrics.NewCounter()
+	register(t, "nil/counter", nilCounter)
+	nilCounterFloat64 := metrics.NewCounterFloat64()
+	register(t, "nil/counter_float64", nilCounterFloat64)
+	nilEWMA := &metrics.NilEWMA{}
+	register(t, "nil/ewma", nilEWMA)
+	nilGauge := metrics.NewGauge()
+	register(t, "nil/gauge", nilGauge)
+	nilGaugeFloat64 := metrics.NewGaugeFloat64()
+	register(t, "nil/gauge_float64", nilGaugeFloat64)
+	nilGaugeInfo := metrics.NewGaugeInfo()
+	register(t, "nil/gauge_info", nilGaugeInfo)
+	nilHealthcheck := metrics.NewHealthcheck(nil)
+	register(t, "nil/healthcheck", nilHealthcheck)
+	nilHistogram := metrics.NewHistogram(nil)
+	register(t, "nil/histogram", nilHistogram)
+	nilMeter := metrics.NewMeter()
+	register(t, "nil/meter", nilMeter)
+	nilResettingTimer := metrics.NewResettingTimer()
+	register(t, "nil/resetting_timer", nilResettingTimer)
+	nilSample := metrics.NewUniformSample(1028)
+	register(t, "nil/sample", nilSample)
+	nilTimer := metrics.NewTimer()
+	register(t, "nil/timer", nilTimer)
+
+	metrics.Enabled = true
 
 	gatherer := NewGatherer(registry)
 
