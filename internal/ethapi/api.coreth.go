@@ -109,9 +109,9 @@ type feeSpeeds struct {
 // calculateFeeSpeeds returns the slow, normal, and fast price options for a
 // given min, estimate, and max,
 //
-// slow   = max(slowPerc/100 * min(estimate, maxFee), minFee)
+// slow   = max(slowFeePerc/100 * min(estimate, maxFee), minFee)
 // normal = min(estimate, maxFee)
-// fast   = fastPerc/100 * estimate
+// fast   = fastFeePerc/100 * estimate
 func calculateFeeSpeeds(
 	minFee *big.Int,
 	estimate *big.Int,
