@@ -19,23 +19,26 @@ func TestBlockGasCost(t *testing.T) {
 		TargetBlockRate:  2,
 		BlockGasCostStep: big.NewInt(50_000),
 	}
-	BlockGasCostTest(t, testFeeConfig)
-
+	t.Run("normal", func(t *testing.T) {
+		BlockGasCostTest(t, testFeeConfig)
+	})
 	testFeeConfigDouble := commontype.FeeConfig{
 		MinBlockGasCost:  big.NewInt(2),
 		MaxBlockGasCost:  big.NewInt(2_000_000),
 		TargetBlockRate:  4,
 		BlockGasCostStep: big.NewInt(100_000),
 	}
-	BlockGasCostTest(t, testFeeConfigDouble)
+	t.Run("double", func(t *testing.T) {
+		BlockGasCostTest(t, testFeeConfigDouble)
+	})
 }
 
-func BlockGasCostTest(t *testing.T, testFeeConfig commontype.FeeConfig) {
-	maxBlockGasCostBig := testFeeConfig.MaxBlockGasCost
-	maxBlockGasCost := testFeeConfig.MaxBlockGasCost.Uint64()
-	blockGasCostStep := testFeeConfig.BlockGasCostStep.Uint64()
-	minBlockGasCost := testFeeConfig.MinBlockGasCost.Uint64()
-	targetBlockRate := testFeeConfig.TargetBlockRate
+func BlockGasCostTest(t *testing.T, feeConfig commontype.FeeConfig) {
+	maxBlockGasCostBig := feeConfig.MaxBlockGasCost
+	maxBlockGasCost := feeConfig.MaxBlockGasCost.Uint64()
+	blockGasCostStep := feeConfig.BlockGasCostStep.Uint64()
+	minBlockGasCost := feeConfig.MinBlockGasCost.Uint64()
+	targetBlockRate := feeConfig.TargetBlockRate
 
 	tests := []struct {
 		name       string
@@ -54,7 +57,7 @@ func BlockGasCostTest(t *testing.T, testFeeConfig commontype.FeeConfig) {
 		{
 			name:       "negative_time_elapsed",
 			parentTime: 10,
-			parentCost: maxBlockGasCostBig,
+			parentCost: feeConfig.MinBlockGasCost,
 			timestamp:  9,
 			expected:   minBlockGasCost + blockGasCostStep*targetBlockRate,
 		},
@@ -68,7 +71,7 @@ func BlockGasCostTest(t *testing.T, testFeeConfig commontype.FeeConfig) {
 			}
 
 			assert.Equal(t, test.expected, BlockGasCost(
-				testFeeConfig,
+				feeConfig,
 				parent,
 				test.timestamp,
 			))
@@ -83,22 +86,26 @@ func TestBlockGasCostWithStep(t *testing.T) {
 		TargetBlockRate:  2,
 		BlockGasCostStep: big.NewInt(50_000),
 	}
-	BlockGasCostWithStepTest(t, testFeeConfig)
+	t.Run("normal", func(t *testing.T) {
+		BlockGasCostWithStepTest(t, testFeeConfig)
+	})
 
 	testFeeConfigDouble := commontype.FeeConfig{
-		MinBlockGasCost:  big.NewInt(2),
+		MinBlockGasCost:  big.NewInt(200_000),
 		MaxBlockGasCost:  big.NewInt(2_000_000),
 		TargetBlockRate:  4,
 		BlockGasCostStep: big.NewInt(100_000),
 	}
-	BlockGasCostWithStepTest(t, testFeeConfigDouble)
+	t.Run("double", func(t *testing.T) {
+		BlockGasCostWithStepTest(t, testFeeConfigDouble)
+	})
 }
 
-func BlockGasCostWithStepTest(t *testing.T, testFeeConfig commontype.FeeConfig) {
-	minBlockGasCost := testFeeConfig.MinBlockGasCost.Uint64()
-	blockGasCostStep := testFeeConfig.BlockGasCostStep.Uint64()
-	targetBlockRate := testFeeConfig.TargetBlockRate
-	bigMaxBlockGasCost := testFeeConfig.MaxBlockGasCost
+func BlockGasCostWithStepTest(t *testing.T, feeConfig commontype.FeeConfig) {
+	minBlockGasCost := feeConfig.MinBlockGasCost.Uint64()
+	blockGasCostStep := feeConfig.BlockGasCostStep.Uint64()
+	targetBlockRate := feeConfig.TargetBlockRate
+	bigMaxBlockGasCost := feeConfig.MaxBlockGasCost
 	maxBlockGasCost := bigMaxBlockGasCost.Uint64()
 	tests := []struct {
 		name        string
@@ -149,41 +156,35 @@ func BlockGasCostWithStepTest(t *testing.T, testFeeConfig commontype.FeeConfig) 
 			expected:    900_000,
 		},
 		{
-			name:        "timeElapsed_over_target_3",
+			name:        "timeElapsed_over_target_1",
 			parentCost:  bigMaxBlockGasCost,
-			timeElapsed: 3,
-			expected:    maxBlockGasCost - (3-targetBlockRate)*blockGasCostStep,
+			timeElapsed: targetBlockRate + 1,
+			expected:    maxBlockGasCost - blockGasCostStep,
 		},
 		{
 			name:        "timeElapsed_over_target_10",
 			parentCost:  bigMaxBlockGasCost,
-			timeElapsed: 10,
-			expected:    maxBlockGasCost - (10-targetBlockRate)*blockGasCostStep,
+			timeElapsed: targetBlockRate + 10,
+			expected:    maxBlockGasCost - 10*blockGasCostStep,
 		},
 		{
-			name:        "timeElapsed_over_target_20",
+			name:        "timeElapsed_over_target_15",
 			parentCost:  bigMaxBlockGasCost,
-			timeElapsed: 20,
-			expected:    maxBlockGasCost - (20-targetBlockRate)*blockGasCostStep,
-		},
-		{
-			name:        "timeElapsed_over_target_22",
-			parentCost:  bigMaxBlockGasCost,
-			timeElapsed: 22,
-			expected:    maxBlockGasCost - (22-targetBlockRate)*blockGasCostStep,
+			timeElapsed: targetBlockRate + 15,
+			expected:    maxBlockGasCost - 15*blockGasCostStep,
 		},
 		{
 			name:        "timeElapsed_large_clamped_to_0",
 			parentCost:  bigMaxBlockGasCost,
-			timeElapsed: 23,
-			expected:    0,
+			timeElapsed: targetBlockRate + 100,
+			expected:    minBlockGasCost,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			assert.Equal(t, test.expected, BlockGasCostWithStep(
-				testFeeConfig,
+				feeConfig,
 				test.parentCost,
 				blockGasCostStep,
 				test.timeElapsed,
