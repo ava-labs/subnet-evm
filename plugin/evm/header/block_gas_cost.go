@@ -14,9 +14,8 @@ import (
 )
 
 var (
-	errBaseFeeNil        = errors.New("base fee is nil")
-	errBlockGasCostNil   = errors.New("block gas cost is nil")
-	errExtDataGasUsedNil = errors.New("extDataGasUsed is nil")
+	errBaseFeeNil      = errors.New("base fee is nil")
+	errBlockGasCostNil = errors.New("block gas cost is nil")
 )
 
 // BlockGasCost calculates the required block gas cost based on the parent
