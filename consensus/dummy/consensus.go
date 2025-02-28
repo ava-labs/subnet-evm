@@ -156,7 +156,7 @@ func (eng *DummyEngine) verifyHeaderGasFields(config *params.ChainConfig, header
 	}
 
 	// Verify header.Extra matches the expected value.
-	expectedExtraPrefix, err := customheader.ExtraPrefix(config, feeConfig, parent, header.Time)
+	expectedExtraPrefix, err := customheader.ExtraPrefix(config, parent, header.Time)
 	if err != nil {
 		return fmt.Errorf("failed to calculate extra prefix: %w", err)
 	}
@@ -407,6 +407,14 @@ func (eng *DummyEngine) FinalizeAndAssemble(chain consensus.ChainHeaderReader, h
 			return nil, err
 		}
 	}
+
+	// finalize the header.Extra
+	extraPrefix, err := customheader.ExtraPrefix(config, parent, header.Time)
+	if err != nil {
+		return nil, fmt.Errorf("failed to calculate new header.Extra: %w", err)
+	}
+	header.Extra = append(extraPrefix, header.Extra...)
+
 	// commit the final state root
 	header.Root = state.IntermediateRoot(config.IsEIP158(header.Number))
 
