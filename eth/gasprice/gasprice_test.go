@@ -39,6 +39,8 @@ import (
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/core/vm"
 	"github.com/ava-labs/subnet-evm/params"
+	customheader "github.com/ava-labs/subnet-evm/plugin/evm/header"
+	"github.com/ava-labs/subnet-evm/plugin/evm/upgrade/legacy"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/feemanager"
 	"github.com/ava-labs/subnet-evm/rpc"
 	"github.com/ava-labs/subnet-evm/utils"
@@ -99,7 +101,7 @@ func (b *testBackend) teardown() {
 }
 
 func newTestBackendFakerEngine(t *testing.T, config *params.ChainConfig, numBlocks int, genBlocks func(i int, b *core.BlockGen)) *testBackend {
-	var gspec = &core.Genesis{
+	gspec := &core.Genesis{
 		Config: config,
 		Alloc:  types.GenesisAlloc{addr: {Balance: bal}},
 	}
@@ -126,7 +128,7 @@ func newTestBackendFakerEngine(t *testing.T, config *params.ChainConfig, numBloc
 // newTestBackend creates a test backend. OBS: don't forget to invoke tearDown
 // after use, otherwise the blockchain instance will mem-leak via goroutines.
 func newTestBackend(t *testing.T, config *params.ChainConfig, numBlocks int, genBlocks func(i int, b *core.BlockGen)) *testBackend {
-	var gspec = &core.Genesis{
+	gspec := &core.Genesis{
 		Config: config,
 		Alloc:  types.GenesisAlloc{addr: {Balance: bal}},
 	}
@@ -150,7 +152,7 @@ func newTestBackend(t *testing.T, config *params.ChainConfig, numBlocks int, gen
 }
 
 func (b *testBackend) MinRequiredTip(ctx context.Context, header *types.Header) (*big.Int, error) {
-	return dummy.MinRequiredTip(b.chain.Config(), header)
+	return customheader.MinRequiredTip(b.chain.Config(), header)
 }
 
 func (b *testBackend) CurrentHeader() *types.Header {
@@ -339,7 +341,7 @@ func TestSuggestGasPriceSubnetEVM(t *testing.T) {
 		b.SetCoinbase(common.Address{1})
 
 		signer := types.LatestSigner(params.TestChainConfig)
-		gasPrice := big.NewInt(params.MinGasPrice)
+		gasPrice := big.NewInt(legacy.BaseFee)
 		for j := 0; j < 50; j++ {
 			tx := types.NewTx(&types.LegacyTx{
 				Nonce:    b.TxNonce(addr),
