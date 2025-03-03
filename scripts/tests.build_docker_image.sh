@@ -46,7 +46,10 @@ build_and_test() {
     SKIP_BUILD_RACE=1 DOCKER_IMAGE="${AVALANCHEGO_IMAGE_NAME}" "${AVALANCHEGO_CLONE_PATH}"/scripts/build_image.sh
   fi
 
+  local imgtag="testtag"
+
   PLATFORMS="${arches}" \
+    BUILD_IMAGE_ID="${imgtag}" \
     VM_ID=$"${vm_id}" \
     DOCKERHUB_REPO="${reponame}" \
     ./scripts/build_docker_image.sh
@@ -56,7 +59,7 @@ build_and_test() {
 
   # Check all of the images expected to have been built
   local target_images=(
-    "$reponame:$CURRENT_BRANCH"
+    "$reponame:$imgtag"
     "$reponame:$DOCKERHUB_TAG"
   )
   IFS=',' read -r -a archarray <<<"$arches"
