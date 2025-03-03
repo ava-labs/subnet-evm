@@ -38,7 +38,6 @@ RUN if [ "$TARGETPLATFORM" = "linux/arm64" ] && [ "$BUILDPLATFORM" != "linux/arm
   echo "export CC=gcc" > ./build_env.sh \
   ; fi
 
-ARG BUILD_SCRIPT=build.sh
 # Pass in SUBNET_EVM_COMMIT as an arg to allow the build script to set this externally
 ARG SUBNET_EVM_COMMIT
 ARG CURRENT_BRANCH
@@ -48,7 +47,7 @@ RUN . ./build_env.sh && \
   export GOARCH=$(echo ${TARGETPLATFORM} | cut -d / -f2) && \
   export CURRENT_BRANCH=$CURRENT_BRANCH && \
   export SUBNET_EVM_COMMIT=$SUBNET_EVM_COMMIT && \
-  ./scripts/${BUILD_SCRIPT} build/subnet-evm
+  ./scripts/build.sh build/subnet-evm
 
 # ============= Cleanup Stage ================
 FROM $AVALANCHEGO_NODE_IMAGE AS execution

@@ -25,12 +25,12 @@ build_and_test() {
 
   if [[ "${multiarch_image}" == true ]]; then
     # Assume a registry image is a multi-arch image
-    local arches=("linux/amd64,linux/arm64")
+    local arches="linux/amd64,linux/arm64"
   else
     # Test only the host platform for non-registry/single arch builds
     local host_arch
     host_arch="$(go env GOARCH)"
-    local arches=("linux/$host_arch")
+    local arches="linux/$host_arch"
   fi
 
   # Build the avalanchego image if it cannot be pulled. This will usually be due to
@@ -64,7 +64,6 @@ build_and_test() {
     for target_image in "${target_images[@]}"; do
       echo "checking sanity of image $target_image for $arch by running '${VM_ID} version'"
       docker run -t --rm --platform "$arch" "$target_image" /avalanchego/build/plugins/"${VM_ID}" --version
-      echo "\n"
     done
   done
 }
