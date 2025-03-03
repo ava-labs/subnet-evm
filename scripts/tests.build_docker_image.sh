@@ -19,7 +19,7 @@ source "$SUBNET_EVM_PATH"/scripts/versions.sh
 AVALANCHEGO_NODE_IMAGE="${AVALANCHEGO_IMAGE_NAME}:${AVALANCHE_VERSION}"
 
 build_and_test() {
-  local image_name="${1}"
+  local reponame="${1}"
   local vm_id="${2}"
   local multiarch_image="${3}"
 
@@ -46,9 +46,9 @@ build_and_test() {
     SKIP_BUILD_RACE=1 DOCKER_IMAGE="${AVALANCHEGO_IMAGE_NAME}" "${AVALANCHEGO_CLONE_PATH}"/scripts/build_image.sh
   fi
 
-  PLATFORMS="$arches" \
-    BUILD_IMAGE_ID="${image_name}" \
+  PLATFORMS="${arches}" \
     VM_ID=$"${vm_id}" \
+    DOCKERHUB_REPO="${reponame}" \
     ./scripts/build_docker_image.sh
 
   echo "listing images"
@@ -56,8 +56,8 @@ build_and_test() {
 
   # Check all of the images expected to have been built
   local target_images=(
-    "$DOCKERHUB_REPO:$image_name"
-    "$DOCKERHUB_REPO:$DOCKERHUB_TAG"
+    "$reponame:$CURRENT_BRANCH"
+    "$reponame:$DOCKERHUB_TAG"
   )
   IFS=',' read -r -a archarray <<<"$arches"
   for arch in "${archarray[@]}"; do
@@ -68,11 +68,10 @@ build_and_test() {
   done
 }
 
-VM_NAME="docker-test"
 VM_ID="${VM_ID:-${DEFAULT_VM_ID}}"
 
 echo "checking build of single-arch image"
-build_and_test "${VM_NAME}" "${VM_ID}" false
+build_and_test "subnet-evm" "${VM_ID}" false
 
 echo "starting local docker registry to allow verification of multi-arch image builds"
 REGISTRY_CONTAINER_ID="$(docker run --rm -d -P registry:2)"
@@ -93,4 +92,4 @@ function cleanup {
 trap cleanup EXIT
 
 echo "checking build of multi-arch images"
-build_and_test "${VM_NAME}-localhost-${REGISTRY_PORT}" "${VM_ID}" true
+build_and_test "localhost:${REGISTRY_PORT}/subnet-evm" "${VM_ID}" true

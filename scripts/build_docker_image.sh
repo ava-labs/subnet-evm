@@ -38,28 +38,30 @@ BUILD_IMAGE_ID=${BUILD_IMAGE_ID:-"${CURRENT_BRANCH}"}
 DOCKER_CMD="docker buildx build"
 
 if [[ -n "${PUBLISH}" ]]; then
-  DOCKER_CMD="${DOCKER_CMD} --push"
-
   echo "Pushing $DOCKERHUB_REPO:$BUILD_IMAGE_ID"
 
   # A populated DOCKER_USERNAME env var triggers login
   if [[ -n "${DOCKER_USERNAME:-}" ]]; then
     echo "$DOCKER_PASS" | docker login --username "$DOCKER_USERNAME" --password-stdin
   fi
-else
-  # Build a single-arch image since the image name does not include a slash which
-  # indicates that a registry is not available.
-  #
-  # Building a single-arch image with buildx and having the resulting image show up
-  # in the local store of docker images (ala 'docker build') requires explicitly
-  # loading it from the buildx store with '--load'.
-  DOCKER_CMD="${DOCKER_CMD} --load"
 fi
 
-# Build a multi-arch image if requested
+# Build a specified platform image if requested
 if [[ -n "${PLATFORMS}" ]]; then
   DOCKER_CMD="${DOCKER_CMD} --platform=${PLATFORMS}"
-  echo "dockcmd is $DOCKER_CMD"
+  if [[ "$PLATFORMS" == *,* ]]; then ## Multi-arch
+    DOCKER_CMD="${DOCKER_CMD} --push"
+  else ## Single arch
+    # Build a single-arch image since the image name does not include a slash which
+    # indicates that a registry is not available.
+    #
+    # Building a single-arch image with buildx and having the resulting image show up
+    # in the local store of docker images (ala 'docker build') requires explicitly
+    # loading it from the buildx store with '--load'.
+    DOCKER_CMD="${DOCKER_CMD} --load"
+  fi
+else ## Single arch no explicit platform
+  DOCKER_CMD="${DOCKER_CMD} --load"
 fi
 
 VM_ID=${VM_ID:-"${DEFAULT_VM_ID}"}
@@ -70,6 +72,7 @@ fi
 # Default to the release image. Will need to be overridden when testing against unreleased versions.
 AVALANCHEGO_NODE_IMAGE="${AVALANCHEGO_NODE_IMAGE:-${AVALANCHEGO_IMAGE_NAME}:${AVALANCHE_VERSION}}"
 
+echo "docker cmd is $DOCKER_CMD"
 echo "Building Docker Image: $DOCKERHUB_REPO:$BUILD_IMAGE_ID based of AvalancheGo@$AVALANCHE_VERSION"
 ${DOCKER_CMD} -t "$DOCKERHUB_REPO:$BUILD_IMAGE_ID" -t "$DOCKERHUB_REPO:${DOCKERHUB_TAG}" \
   "$SUBNET_EVM_PATH" -f "$SUBNET_EVM_PATH/Dockerfile" \
