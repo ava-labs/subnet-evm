@@ -46,11 +46,20 @@ if [[ -n "${PUBLISH}" ]]; then
   if [[ -n "${DOCKER_USERNAME:-}" ]]; then
     echo "$DOCKER_PASS" | docker login --username "$DOCKER_USERNAME" --password-stdin
   fi
+else
+  # Build a single-arch image since the image name does not include a slash which
+  # indicates that a registry is not available.
+  #
+  # Building a single-arch image with buildx and having the resulting image show up
+  # in the local store of docker images (ala 'docker build') requires explicitly
+  # loading it from the buildx store with '--load'.
+  DOCKER_CMD="${DOCKER_CMD} --load"
 fi
 
 # Build a multi-arch image if requested
 if [[ -n "${PLATFORMS}" ]]; then
   DOCKER_CMD="${DOCKER_CMD} --platform=${PLATFORMS}"
+  echo "dockcmd is $DOCKER_CMD"
 fi
 
 VM_ID=${VM_ID:-"${DEFAULT_VM_ID}"}
