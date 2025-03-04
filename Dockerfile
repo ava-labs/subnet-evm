@@ -55,4 +55,4 @@ FROM $AVALANCHEGO_NODE_IMAGE AS execution
 # Copy the evm binary into the correct location in the container
 ARG VM_ID=srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
 ENV AVAGO_PLUGIN_DIR="/avalanchego/build/plugins"
-COPY --from=builder /build/build/subnet-evm /avalanchego/build/plugins/$VM_ID
+COPY --from=builder /build/build/subnet-evm $AVAGO_PLUGIN_DIR/$VM_ID
