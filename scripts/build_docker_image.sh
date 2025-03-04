@@ -58,8 +58,6 @@ if [[ $ispush -eq 1 ]]; then
   DOCKER_CMD="${DOCKER_CMD} --push"
 else
   ## Single arch
-  # Build a single-arch image since the image name does not include a slash which
-  # indicates that a registry is not available.
   #
   # Building a single-arch image with buildx and having the resulting image show up
   # in the local store of docker images (ala 'docker build') requires explicitly

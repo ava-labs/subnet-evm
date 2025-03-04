@@ -21,10 +21,9 @@ build_and_test() {
   local multiarch_image="${3}"
 
   if [[ "${multiarch_image}" == true ]]; then
-    # Assume a registry image is a multi-arch image
     local arches="linux/amd64,linux/arm64"
   else
-    # Test only the host platform for non-registry/single arch builds
+    # Test only the host platform for single arch builds
     local host_arch
     host_arch="$(go env GOARCH)"
     local arches="linux/$host_arch"
