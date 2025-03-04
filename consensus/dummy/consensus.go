@@ -351,7 +351,7 @@ func (eng *DummyEngine) verifyBlockFee(
 func (eng *DummyEngine) Finalize(chain consensus.ChainHeaderReader, block *types.Block, parent *types.Header, state *state.StateDB, receipts []*types.Receipt) error {
 	config := chain.Config()
 	timestamp := block.Time()
-	if config.IsSubnetEVM(block.Time()) {
+	if config.IsSubnetEVM(timestamp) {
 		// we use the parent to determine the fee config
 		// since the current block has not been finalized yet.
 		feeConfig, _, err := chain.GetFeeConfigAt(parent)
