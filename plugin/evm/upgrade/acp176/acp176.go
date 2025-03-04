@@ -18,24 +18,24 @@ import (
 )
 
 type Config struct {
-	MinGasPrice gas.Price // M
+	MinTargetPerSecond            uint64    // P
+	MinGasPrice                   gas.Price // M
+	TargetToMax                   uint64    // multiplier to convert from target per second to max per second
+	TimeToFillCapacity            uint64    // in seconds
+	TargetToPriceUpdateConversion uint64
 }
 
 const (
-	MinTargetPerSecond  = 1_000_000                                 // P
+	MaxTargetExcessDiff = 1 << 15                                   // Q
 	TargetConversion    = MaxTargetChangeRate * MaxTargetExcessDiff // D
-	MaxTargetExcessDiff = 2 ^ 15                                    // Q
 
-	TimeToFillCapacity            = 10   // in seconds
-	TargetToMax                   = 2    // multiplier to convert from target per second to max per second
-	TargetToPriceUpdateConversion = 87   // 87s ~= 60s * ln(2) which makes the price double at most every ~60 seconds
-	MaxTargetChangeRate           = 1024 // Controls the rate that the target can change per block.
+	MaxTargetChangeRate = 1024 // Controls the rate that the target can change per block.
 
 	TargetToMaxCapacity = TargetToMax * TimeToFillCapacity
 	MinMaxPerSecond     = MinTargetPerSecond * TargetToMax
 	MinMaxCapacity      = MinMaxPerSecond * TimeToFillCapacity
 
-	maxTargetExcess = 1_024_950_627 // TargetConversion * ln(MaxUint64 / MinTargetPerSecond) + 1
+	// maxTargetExcess = 1_024_950_627 // TargetConversion * ln(MaxUint64 / MinTargetPerSecond) + 1
 )
 
 // State represents the current state of the gas pricing and constraints.
