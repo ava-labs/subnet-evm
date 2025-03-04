@@ -5,7 +5,7 @@
 - Bump golangci-lint to v1.63 and add linters
 
 - Added `eth_suggestPriceOptions` API to suggest gas prices (slow, normal, fast) based on the current network conditions
-- Added `"po-slow-fee-percentage"`, `"po-fast-fee-percentage"`, `"po-max-base-fee"`, and `"po-max-tip"` config flags to configure the new `eth_suggestPriceOptions` API
+- Added `"price-options-slow-fee-percentage"`, `"price-options-fast-fee-percentage"`, `"price-options-max-base-fee"`, and `"price-options-max-tip"` config flags to configure the new `eth_suggestPriceOptions` API
 
 ## [v0.14.1](https://github.com/ava-labs/coreth/releases/tag/v0.14.1)
 
