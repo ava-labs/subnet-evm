@@ -16,8 +16,8 @@ import (
 )
 
 var (
-	MaxUint256Plus1                     = new(big.Int).Lsh(common.Big1, 256)
-	MaxUint256                          = new(big.Int).Sub(MaxUint256Plus1, common.Big1)
+	maxUint256Plus1                     = new(big.Int).Lsh(common.Big1, 256)
+	maxUint256                          = new(big.Int).Sub(maxUint256Plus1, common.Big1)
 	errEstimateBaseFeeWithoutActivation = errors.New("cannot estimate base fee for chain without activation")
 )
 
@@ -97,7 +97,7 @@ func CalcBaseFee(config *params.ChainConfig, feeConfig commontype.FeeConfig, par
 		baseFee.Sub(baseFee, baseFeeDelta)
 	}
 
-	baseFee = selectBigWithinBounds(feeConfig.MinBaseFee, baseFee, MaxUint256)
+	baseFee = selectBigWithinBounds(feeConfig.MinBaseFee, baseFee, maxUint256)
 
 	return dynamicFeeWindowBytes, baseFee, nil
 }
