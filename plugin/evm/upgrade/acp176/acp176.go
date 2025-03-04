@@ -17,11 +17,14 @@ import (
 	safemath "github.com/ava-labs/avalanchego/utils/math"
 )
 
+type Config struct {
+	MinGasPrice gas.Price // M
+}
+
 const (
 	MinTargetPerSecond  = 1_000_000                                 // P
 	TargetConversion    = MaxTargetChangeRate * MaxTargetExcessDiff // D
-	MaxTargetExcessDiff = 1 << 15                                   // Q
-	MinGasPrice         = 1                                         // M
+	MaxTargetExcessDiff = 2 ^ 15                                    // Q
 
 	TimeToFillCapacity            = 10   // in seconds
 	TargetToMax                   = 2    // multiplier to convert from target per second to max per second
