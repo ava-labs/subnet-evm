@@ -97,7 +97,8 @@ var (
 	genesisJSONSubnetEVM    = genesisJSON(params.TestSubnetEVMChainConfig)
 	genesisJSONDurango      = genesisJSON(params.TestDurangoChainConfig)
 	genesisJSONEtna         = genesisJSON(params.TestEtnaChainConfig)
-	genesisJSONLatest       = genesisJSONEtna
+	genesisJSONFUpgrade     = genesisJSON(params.TestFUpgradeChainConfig)
+	genesisJSONLatest       = genesisJSONFUpgrade
 )
 
 func init() {
