@@ -16,7 +16,13 @@ import (
 const nAVAX = 1_000_000_000
 
 var (
-	readerTests = []struct {
+	minTargetPerSecond  = gas.Gas(DefaultAcp176Config.MinTargetPerSecond)
+	minGasPrice         = DefaultAcp176Config.MinGasPrice
+	targetToMaxCapacity = gas.Gas(DefaultAcp176Config.TargetToMax * DefaultAcp176Config.TimeToFillCapacity)
+	minMaxPerSecond     = minTargetPerSecond * gas.Gas(DefaultAcp176Config.TargetToMax)
+	minMaxCapacity      = minMaxPerSecond * gas.Gas(DefaultAcp176Config.TimeToFillCapacity)
+	maxTargetExcess     = gas.Gas(1_024_950_627) // TargetConversion * ln(MaxUint64 / MinTargetPerSecond) + 1
+	readerTests         = []struct {
 		name                        string
 		state                       State
 		skipTestDesiredTargetExcess bool
@@ -27,140 +33,152 @@ var (
 		{
 			name: "zero",
 			state: State{
+				Config: DefaultAcp176Config,
 				Gas: gas.State{
 					Excess: 0,
 				},
 				TargetExcess: 0,
 			},
-			target:      MinTargetPerSecond,
-			maxCapacity: MinMaxCapacity,
-			gasPrice:    MinGasPrice,
+			target:      minTargetPerSecond,
+			maxCapacity: minMaxCapacity,
+			gasPrice:    minGasPrice,
 		},
 		{
 			name: "almost_excess_change",
 			state: State{
+				Config: DefaultAcp176Config,
 				Gas: gas.State{
 					Excess: 60_303_808, // MinTargetPerSecond * ln(2) * TargetToPriceUpdateConversion
 				},
 				TargetExcess: 33, // Largest excess that doesn't increase the target
 			},
 			skipTestDesiredTargetExcess: true,
-			target:                      MinTargetPerSecond,
-			maxCapacity:                 MinMaxCapacity,
-			gasPrice:                    2 * MinGasPrice,
+			target:                      minTargetPerSecond,
+			maxCapacity:                 minMaxCapacity,
+			gasPrice:                    2 * minGasPrice,
 		},
 		{
 			name: "small_excess_change",
 			state: State{
+				Config: DefaultAcp176Config,
 				Gas: gas.State{
 					Excess: 60_303_868, // (MinTargetPerSecond + 1) * ln(2) * TargetToPriceUpdateConversion
 				},
 				TargetExcess: 34, // Smallest excess that increases the target
 			},
-			target:      MinTargetPerSecond + 1,
-			maxCapacity: TargetToMaxCapacity * (MinTargetPerSecond + 1),
-			gasPrice:    2 * MinGasPrice,
+			target:      minTargetPerSecond + 1,
+			maxCapacity: targetToMaxCapacity * (minTargetPerSecond + 1),
+			gasPrice:    2 * minGasPrice,
 		},
 		{
 			name: "max_initial_excess_change",
 			state: State{
+				Config: DefaultAcp176Config,
 				Gas: gas.State{
 					Excess: 95_672_652, // (MinTargetPerSecond + 977) * ln(3) * TargetToPriceUpdateConversion
 				},
 				TargetExcess: MaxTargetExcessDiff,
 			},
 			skipTestDesiredTargetExcess: true,
-			target:                      MinTargetPerSecond + 977,
-			maxCapacity:                 TargetToMaxCapacity * (MinTargetPerSecond + 977),
-			gasPrice:                    3 * MinGasPrice,
+			target:                      minTargetPerSecond + 977,
+			maxCapacity:                 targetToMaxCapacity * (minTargetPerSecond + 977),
+			gasPrice:                    3 * minGasPrice,
 		},
 		{
 			name: "current_target",
 			state: State{
+				Config: DefaultAcp176Config,
 				Gas: gas.State{
 					Excess: 2_704_386_192, // 1_500_000 * ln(nAVAX) * TargetToPriceUpdateConversion
 				},
 				TargetExcess: 13_605_152, // 2^25 * ln(1.5)
 			},
 			target:      1_500_000,
-			maxCapacity: TargetToMaxCapacity * 1_500_000,
-			gasPrice:    nAVAX*MinGasPrice + 2, // +2 due to approximation
+			maxCapacity: targetToMaxCapacity * 1_500_000,
+			gasPrice:    nAVAX*minGasPrice + 2, // +2 due to approximation
 		},
 		{
 			name: "3m_target",
 			state: State{
+				Config: DefaultAcp176Config,
 				Gas: gas.State{
 					Excess: 6_610_721_802, // 3_000_000 * ln(100*nAVAX) * TargetToPriceUpdateConversion
 				},
 				TargetExcess: 36_863_312, // 2^25 * ln(3)
 			},
 			target:      3_000_000,
-			maxCapacity: TargetToMaxCapacity * 3_000_000,
-			gasPrice:    100*nAVAX*MinGasPrice + 4, // +4 due to approximation
+			maxCapacity: targetToMaxCapacity * 3_000_000,
+			gasPrice:    100*nAVAX*minGasPrice + 4, // +4 due to approximation
 		},
 		{
 			name: "6m_target",
 			state: State{
+				Config: DefaultAcp176Config,
 				Gas: gas.State{
 					Excess: 13_221_443_604, // 6_000_000 * ln(100*nAVAX) * TargetToPriceUpdateConversion
 				},
 				TargetExcess: 60_121_472, // 2^25 * ln(6)
 			},
 			target:      6_000_000,
-			maxCapacity: TargetToMaxCapacity * 6_000_000,
-			gasPrice:    100*nAVAX*MinGasPrice + 4, // +4 due to approximation
+			maxCapacity: targetToMaxCapacity * 6_000_000,
+			gasPrice:    100*nAVAX*minGasPrice + 4, // +4 due to approximation
 		},
 		{
 			name: "10m_target",
 			state: State{
+				Config: DefaultAcp176Config,
 				Gas: gas.State{
 					Excess: 22_035_739_340, // 10_000_000 * ln(100*nAVAX) * TargetToPriceUpdateConversion
 				},
 				TargetExcess: 77_261_935, // 2^25 * ln(10)
 			},
 			target:      10_000_000,
-			maxCapacity: TargetToMaxCapacity * 10_000_000,
-			gasPrice:    100*nAVAX*MinGasPrice + 5, // +5 due to approximation
+			maxCapacity: targetToMaxCapacity * 10_000_000,
+			gasPrice:    100*nAVAX*minGasPrice + 5, // +5 due to approximation
 		},
 		{
 			name: "100m_target",
 			state: State{
+				Config: DefaultAcp176Config,
 				Gas: gas.State{
 					Excess: 220_357_393_400, // 100_000_000 * ln(100*nAVAX) * TargetToPriceUpdateConversion
 				},
 				TargetExcess: 154_523_870, // 2^25 * ln(100)
 			},
 			target:      100_000_000,
-			maxCapacity: TargetToMaxCapacity * 100_000_000,
-			gasPrice:    100*nAVAX*MinGasPrice + 5, // +5 due to approximation
+			maxCapacity: targetToMaxCapacity * 100_000_000,
+			gasPrice:    100*nAVAX*minGasPrice + 5, // +5 due to approximation
 		},
 		{
 			name: "low_1b_target",
 			state: State{
+				Config: DefaultAcp176Config,
 				Gas: gas.State{
 					Excess: 2_203_573_881_110, // (1_000_000_000 - 24) * ln(100*nAVAX) * TargetToPriceUpdateConversion
 				},
 				TargetExcess: 231_785_804, // 2^25 * ln(1000)
 			},
 			target:      1_000_000_000 - 24,
-			maxCapacity: TargetToMaxCapacity * (1_000_000_000 - 24),
-			gasPrice:    100 * nAVAX * MinGasPrice,
+			maxCapacity: targetToMaxCapacity * (1_000_000_000 - 24),
+			gasPrice:    100 * nAVAX * minGasPrice,
 		},
 		{
 			name: "high_1b_target",
 			state: State{
+				Config: DefaultAcp176Config,
 				Gas: gas.State{
 					Excess: 2_203_573_947_217, // (1_000_000_000 + 6) * ln(100*nAVAX) * TargetToPriceUpdateConversion
 				},
 				TargetExcess: 231_785_805, // 2^25 * ln(1000) + 1
 			},
 			target:      1_000_000_000 + 6,
-			maxCapacity: TargetToMaxCapacity * (1_000_000_000 + 6),
-			gasPrice:    100 * nAVAX * MinGasPrice,
+			maxCapacity: targetToMaxCapacity * (1_000_000_000 + 6),
+			gasPrice:    100 * nAVAX * minGasPrice,
 		},
 		{
 			name: "largest_max_capacity",
 			state: State{
+				Config: DefaultAcp176Config,
 				Gas: gas.State{
 					Excess: math.MaxUint64,
 				},
@@ -168,11 +186,12 @@ var (
 			},
 			target:      922_337_190_378_117_171,
 			maxCapacity: 18_446_743_807_562_343_420,
-			gasPrice:    2 * MinGasPrice,
+			gasPrice:    2 * minGasPrice,
 		},
 		{
 			name: "largest_int64_target",
 			state: State{
+				Config: DefaultAcp176Config,
 				Gas: gas.State{
 					Excess: math.MaxUint64,
 				},
@@ -180,11 +199,12 @@ var (
 			},
 			target:      9_223_371_923_824_614_091,
 			maxCapacity: math.MaxUint64,
-			gasPrice:    2 * MinGasPrice,
+			gasPrice:    2 * minGasPrice,
 		},
 		{
 			name: "second_largest_uint64_target",
 			state: State{
+				Config: DefaultAcp176Config,
 				Gas: gas.State{
 					Excess: math.MaxUint64,
 				},
@@ -192,11 +212,12 @@ var (
 			},
 			target:      18_446_743_882_783_898_031,
 			maxCapacity: math.MaxUint64,
-			gasPrice:    2 * MinGasPrice,
+			gasPrice:    2 * minGasPrice,
 		},
 		{
 			name: "largest_uint64_target",
 			state: State{
+				Config: DefaultAcp176Config,
 				Gas: gas.State{
 					Excess: math.MaxUint64,
 				},
@@ -204,11 +225,12 @@ var (
 			},
 			target:      math.MaxUint64,
 			maxCapacity: math.MaxUint64,
-			gasPrice:    2 * MinGasPrice,
+			gasPrice:    2 * minGasPrice,
 		},
 		{
 			name: "largest_excess",
 			state: State{
+				Config: DefaultAcp176Config,
 				Gas: gas.State{
 					Excess: math.MaxUint64,
 				},
@@ -217,7 +239,7 @@ var (
 			skipTestDesiredTargetExcess: true,
 			target:                      math.MaxUint64,
 			maxCapacity:                 math.MaxUint64,
-			gasPrice:                    2 * MinGasPrice,
+			gasPrice:                    2 * minGasPrice,
 		},
 	}
 	advanceTimeTests = []struct {
@@ -229,6 +251,7 @@ var (
 		{
 			name: "0_seconds",
 			initial: State{
+				Config: DefaultAcp176Config,
 				Gas: gas.State{
 					Capacity: 0,
 					Excess:   2_000_000,
@@ -238,6 +261,7 @@ var (
 			},
 			seconds: 0,
 			expected: State{
+				Config: DefaultAcp176Config,
 				Gas: gas.State{
 					Capacity: 0,
 					Excess:   2_000_000,
@@ -248,6 +272,7 @@ var (
 		{
 			name: "1_seconds",
 			initial: State{
+				Config: DefaultAcp176Config,
 				Gas: gas.State{
 					Capacity: 0,
 					Excess:   2_000_000,
@@ -257,6 +282,7 @@ var (
 			},
 			seconds: 1,
 			expected: State{
+				Config: DefaultAcp176Config,
 				Gas: gas.State{
 					Capacity: 3_000_000,
 					Excess:   500_000,
@@ -267,6 +293,7 @@ var (
 		{
 			name: "5_seconds",
 			initial: State{
+				Config: DefaultAcp176Config,
 				Gas: gas.State{
 					Capacity: 0,
 					Excess:   15_000_000,
@@ -276,6 +303,7 @@ var (
 			},
 			seconds: 5,
 			expected: State{
+				Config: DefaultAcp176Config,
 				Gas: gas.State{
 					Capacity: 15_000_000,
 					Excess:   7_500_000,
@@ -286,6 +314,7 @@ var (
 		{
 			name: "0_seconds_over_capacity",
 			initial: State{
+				Config: DefaultAcp176Config,
 				Gas: gas.State{
 					Capacity: 31_000_000, // Could happen if the targetExcess was modified
 					Excess:   2_000_000,
@@ -295,6 +324,7 @@ var (
 			},
 			seconds: 0,
 			expected: State{
+				Config: DefaultAcp176Config,
 				Gas: gas.State{
 					Capacity: 30_000_000, // capped at 30M
 					Excess:   2_000_000,  // unmodified
@@ -305,6 +335,7 @@ var (
 		{
 			name: "hit_max_capacity_boundary",
 			initial: State{
+				Config: DefaultAcp176Config,
 				Gas: gas.State{
 					Capacity: 0, // Could happen if the targetExcess was modified
 					Excess:   math.MaxUint64,
@@ -314,6 +345,7 @@ var (
 			},
 			seconds: 1,
 			expected: State{
+				Config: DefaultAcp176Config,
 				Gas: gas.State{
 					Capacity: 1_844_674_435_731_815_790,                // greater than MaxUint64/10
 					Excess:   math.MaxUint64 - 922_337_217_865_907_895, // MaxUint64 - capacity / TargetToMax
@@ -324,6 +356,7 @@ var (
 		{
 			name: "hit_max_rate_boundary",
 			initial: State{
+				Config: DefaultAcp176Config,
 				Gas: gas.State{
 					Capacity: 0, // Could happen if the targetExcess was modified
 					Excess:   math.MaxUint64,
@@ -333,6 +366,7 @@ var (
 			},
 			seconds: 1,
 			expected: State{
+				Config: DefaultAcp176Config,
 				Gas: gas.State{
 					Capacity: math.MaxUint64,            // greater than MaxUint64/10
 					Excess:   9_223_371_875_007_030_354, // less than MaxUint64/2
@@ -352,6 +386,7 @@ var (
 		{
 			name: "no_gas_used",
 			initial: State{
+				Config: DefaultAcp176Config,
 				Gas: gas.State{
 					Capacity: 1_000_000,
 					Excess:   2_000_000,
@@ -360,6 +395,7 @@ var (
 			gasUsed:      0,
 			extraGasUsed: nil,
 			expected: State{
+				Config: DefaultAcp176Config,
 				Gas: gas.State{
 					Capacity: 1_000_000,
 					Excess:   2_000_000,
@@ -369,6 +405,7 @@ var (
 		{
 			name: "some_gas_used",
 			initial: State{
+				Config: DefaultAcp176Config,
 				Gas: gas.State{
 					Capacity: 1_000_000,
 					Excess:   2_000_000,
@@ -377,6 +414,7 @@ var (
 			gasUsed:      100_000,
 			extraGasUsed: nil,
 			expected: State{
+				Config: DefaultAcp176Config,
 				Gas: gas.State{
 					Capacity: 900_000,
 					Excess:   2_100_000,
@@ -386,6 +424,7 @@ var (
 		{
 			name: "some_extra_gas_used",
 			initial: State{
+				Config: DefaultAcp176Config,
 				Gas: gas.State{
 					Capacity: 1_000_000,
 					Excess:   2_000_000,
@@ -394,6 +433,7 @@ var (
 			gasUsed:      0,
 			extraGasUsed: big.NewInt(100_000),
 			expected: State{
+				Config: DefaultAcp176Config,
 				Gas: gas.State{
 					Capacity: 900_000,
 					Excess:   2_100_000,
@@ -403,6 +443,7 @@ var (
 		{
 			name: "both_gas_used",
 			initial: State{
+				Config: DefaultAcp176Config,
 				Gas: gas.State{
 					Capacity: 1_000_000,
 					Excess:   2_000_000,
@@ -411,6 +452,7 @@ var (
 			gasUsed:      10_000,
 			extraGasUsed: big.NewInt(100_000),
 			expected: State{
+				Config: DefaultAcp176Config,
 				Gas: gas.State{
 					Capacity: 890_000,
 					Excess:   2_110_000,
@@ -420,6 +462,7 @@ var (
 		{
 			name: "gas_used_capacity_exceeded",
 			initial: State{
+				Config: DefaultAcp176Config,
 				Gas: gas.State{
 					Capacity: 1_000_000,
 					Excess:   2_000_000,
@@ -429,6 +472,7 @@ var (
 			extraGasUsed: nil,
 			expectedErr:  gas.ErrInsufficientCapacity,
 			expected: State{
+				Config: DefaultAcp176Config,
 				Gas: gas.State{
 					Capacity: 1_000_000,
 					Excess:   2_000_000,
@@ -438,6 +482,7 @@ var (
 		{
 			name: "massive_extra_gas_used",
 			initial: State{
+				Config: DefaultAcp176Config,
 				Gas: gas.State{
 					Capacity: 1_000_000,
 					Excess:   2_000_000,
@@ -447,6 +492,7 @@ var (
 			extraGasUsed: new(big.Int).Lsh(common.Big1, 64),
 			expectedErr:  gas.ErrInsufficientCapacity,
 			expected: State{
+				Config: DefaultAcp176Config,
 				Gas: gas.State{
 					Capacity: 1_000_000,
 					Excess:   2_000_000,
@@ -456,6 +502,7 @@ var (
 		{
 			name: "extra_gas_used_capacity_exceeded",
 			initial: State{
+				Config: DefaultAcp176Config,
 				Gas: gas.State{
 					Capacity: 1_000_000,
 					Excess:   2_000_000,
@@ -465,6 +512,7 @@ var (
 			extraGasUsed: big.NewInt(1_000_001),
 			expectedErr:  gas.ErrInsufficientCapacity,
 			expected: State{
+				Config: DefaultAcp176Config,
 				Gas: gas.State{
 					Capacity: 1_000_000,
 					Excess:   2_000_000,
@@ -481,6 +529,7 @@ var (
 		{
 			name: "no_change",
 			initial: State{
+				Config: DefaultAcp176Config,
 				Gas: gas.State{
 					Excess: 2_000_000,
 				},
@@ -488,6 +537,7 @@ var (
 			},
 			desiredTargetExcess: 0,
 			expected: State{
+				Config: DefaultAcp176Config,
 				Gas: gas.State{
 					Excess: 2_000_000,
 				},
@@ -497,6 +547,7 @@ var (
 		{
 			name: "max_increase",
 			initial: State{
+				Config: DefaultAcp176Config,
 				Gas: gas.State{
 					Excess: 2_000_000,
 				},
@@ -504,6 +555,7 @@ var (
 			},
 			desiredTargetExcess: MaxTargetExcessDiff + 1,
 			expected: State{
+				Config: DefaultAcp176Config,
 				Gas: gas.State{
 					Excess: 2_001_954, // 2M * NewTarget / OldTarget
 				},
@@ -513,6 +565,7 @@ var (
 		{
 			name: "inverse_max_increase",
 			initial: State{
+				Config: DefaultAcp176Config,
 				Gas: gas.State{
 					Excess: 2_001_954,
 				},
@@ -520,6 +573,7 @@ var (
 			},
 			desiredTargetExcess: 0,
 			expected: State{
+				Config: DefaultAcp176Config,
 				Gas: gas.State{
 					Excess: 2_000_000, // inverse of max_increase
 				},
@@ -529,6 +583,7 @@ var (
 		{
 			name: "max_decrease",
 			initial: State{
+				Config: DefaultAcp176Config,
 				Gas: gas.State{
 					Excess: 2_000_000_000,
 				},
@@ -536,6 +591,7 @@ var (
 			},
 			desiredTargetExcess: 0,
 			expected: State{
+				Config: DefaultAcp176Config,
 				Gas: gas.State{
 					Excess: 1_998_047_816, // 2M * NewTarget / OldTarget
 				},
@@ -545,6 +601,7 @@ var (
 		{
 			name: "inverse_max_decrease",
 			initial: State{
+				Config: DefaultAcp176Config,
 				Gas: gas.State{
 					Excess: 1_998_047_816,
 				},
@@ -552,6 +609,7 @@ var (
 			},
 			desiredTargetExcess: 2 * MaxTargetExcessDiff,
 			expected: State{
+				Config: DefaultAcp176Config,
 				Gas: gas.State{
 					Excess: 1_999_999_999, // inverse of max_decrease -1 due to rounding error
 				},
@@ -561,6 +619,7 @@ var (
 		{
 			name: "reduce_capacity",
 			initial: State{
+				Config: DefaultAcp176Config,
 				Gas: gas.State{
 					Capacity: 20_039_100, // MinTargetPerSecond * e^(2*MaxTargetExcessDiff / TargetConversion)
 					Excess:   2_000_000_000,
@@ -569,6 +628,7 @@ var (
 			},
 			desiredTargetExcess: 0,
 			expected: State{
+				Config: DefaultAcp176Config,
 				Gas: gas.State{
 					Capacity: 20_019_540,    // MinTargetPerSecond * e^(MaxTargetExcessDiff / TargetConversion)
 					Excess:   1_998_047_816, // 2M * NewTarget / OldTarget
@@ -579,6 +639,7 @@ var (
 		{
 			name: "overflow_max_capacity",
 			initial: State{
+				Config: DefaultAcp176Config,
 				Gas: gas.State{
 					Capacity: math.MaxUint64,
 					Excess:   2_000_000_000,
@@ -587,6 +648,7 @@ var (
 			},
 			desiredTargetExcess: 0,
 			expected: State{
+				Config: DefaultAcp176Config,
 				Gas: gas.State{
 					Capacity: math.MaxUint64,
 					Excess:   1_998_047_867, // 2M * NewTarget / OldTarget
@@ -721,7 +783,7 @@ func TestDesiredTargetExcess(t *testing.T) {
 			continue
 		}
 		t.Run(test.name, func(t *testing.T) {
-			require.Equal(t, test.state.TargetExcess, DesiredTargetExcess(test.target))
+			require.Equal(t, test.state.TargetExcess, DesiredTargetExcess(maxTargetExcess, test.target))
 		})
 	}
 }
@@ -733,7 +795,7 @@ func BenchmarkDesiredTargetExcess(b *testing.B) {
 		}
 		b.Run(test.name, func(b *testing.B) {
 			for range b.N {
-				DesiredTargetExcess(test.target)
+				DesiredTargetExcess(maxTargetExcess, test.target)
 			}
 		})
 	}
