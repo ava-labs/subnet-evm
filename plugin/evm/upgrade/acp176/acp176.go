@@ -17,29 +17,11 @@ import (
 	safemath "github.com/ava-labs/avalanchego/utils/math"
 )
 
-type Config struct {
-	MinTargetPerSecond            uint64    // P
-	MinGasPrice                   gas.Price // M
-	TargetToMax                   uint64    // multiplier to convert from target per second to max per second
-	TimeToFillCapacity            uint64    // in seconds
-	TargetToPriceUpdateConversion uint64
-}
-
-const (
-	MaxTargetExcessDiff = 1 << 15                                   // Q
-	TargetConversion    = MaxTargetChangeRate * MaxTargetExcessDiff // D
-
-	MaxTargetChangeRate = 1024 // Controls the rate that the target can change per block.
-
-	TargetToMaxCapacity = TargetToMax * TimeToFillCapacity
-	MinMaxPerSecond     = MinTargetPerSecond * TargetToMax
-	MinMaxCapacity      = MinMaxPerSecond * TimeToFillCapacity
-
-	// maxTargetExcess = 1_024_950_627 // TargetConversion * ln(MaxUint64 / MinTargetPerSecond) + 1
-)
+const MaxTargetExcessDiff = 1 << 15 // Q
 
 // State represents the current state of the gas pricing and constraints.
 type State struct {
+	Config       *Acp176Config
 	Gas          gas.State
 	TargetExcess gas.Gas // q
 }
@@ -48,17 +30,19 @@ type State struct {
 //
 // Target = MinTargetPerSecond * e^(TargetExcess / TargetConversion)
 func (s *State) Target() gas.Gas {
+	targetConversion := gas.Gas(s.Config.MaxTargetChangeRate) * MaxTargetExcessDiff
 	return gas.Gas(gas.CalculatePrice(
-		MinTargetPerSecond,
+		gas.Price(s.Config.MinTargetPerSecond),
 		s.TargetExcess,
-		TargetConversion,
+		targetConversion,
 	))
 }
 
 // MaxCapacity returns the maximum possible accrued gas capacity, `C`.
 func (s *State) MaxCapacity() gas.Gas {
 	targetPerSecond := s.Target()
-	return mulWithUpperBound(targetPerSecond, TargetToMaxCapacity)
+	targetToMaxCapacity := gas.Gas(s.Config.TargetToMax * s.Config.TimeToFillCapacity)
+	return mulWithUpperBound(targetPerSecond, targetToMaxCapacity)
 }
 
 // GasPrice returns the current required fee per gas.
@@ -66,16 +50,16 @@ func (s *State) MaxCapacity() gas.Gas {
 // GasPrice = MinGasPrice * e^(Excess / (Target() * TargetToPriceUpdateConversion))
 func (s *State) GasPrice() gas.Price {
 	targetPerSecond := s.Target()
-	priceUpdateConversion := mulWithUpperBound(targetPerSecond, TargetToPriceUpdateConversion) // K
-	return gas.CalculatePrice(MinGasPrice, s.Gas.Excess, priceUpdateConversion)
+	priceUpdateConversion := mulWithUpperBound(targetPerSecond, s.Config.TargetToPriceUpdateConversion) // K
+	return gas.CalculatePrice(s.Config.MinGasPrice, s.Gas.Excess, priceUpdateConversion)
 }
 
 // AdvanceTime increases the gas capacity and decreases the gas excess based on
 // the elapsed seconds.
 func (s *State) AdvanceTime(seconds uint64) {
 	targetPerSecond := s.Target()
-	maxPerSecond := mulWithUpperBound(targetPerSecond, TargetToMax)    // R
-	maxCapacity := mulWithUpperBound(maxPerSecond, TimeToFillCapacity) // C
+	maxPerSecond := mulWithUpperBound(targetPerSecond, gas.Gas(s.Config.TargetToMax))    // R
+	maxCapacity := mulWithUpperBound(maxPerSecond, gas.Gas(s.Config.TimeToFillCapacity)) // C
 	s.Gas = s.Gas.AdvanceTime(
 		maxCapacity,
 		maxPerSecond,
@@ -128,17 +112,19 @@ func (s *State) UpdateTargetExcess(desiredTargetExcess gas.Gas) {
 	)
 
 	// Ensure the gas capacity does not exceed the maximum capacity.
-	newMaxCapacity := mulWithUpperBound(newTargetPerSecond, TargetToMaxCapacity) // C
+	targetToMaxCapacity := gas.Gas(s.Config.TargetToMax * s.Config.TimeToFillCapacity)
+	newMaxCapacity := mulWithUpperBound(newTargetPerSecond, targetToMaxCapacity) // C
 	s.Gas.Capacity = min(s.Gas.Capacity, newMaxCapacity)
 }
 
 // DesiredTargetExcess calculates the optimal desiredTargetExcess given the
 // desired target.
-func DesiredTargetExcess(desiredTarget gas.Gas) gas.Gas {
+// Use maxTargetExcess = TargetConversion * ln(MaxUint64 / MinTargetPerSecond) + 1
+func DesiredTargetExcess(maxTargetExcess gas.Gas, desiredTarget gas.Gas) gas.Gas {
 	// This could be solved directly by calculating D * ln(desiredTarget / P)
 	// using floating point math. However, it introduces inaccuracies. So, we
 	// use a binary search to find the closest integer solution.
-	return gas.Gas(sort.Search(maxTargetExcess, func(targetExcessGuess int) bool {
+	return gas.Gas(sort.Search(int(maxTargetExcess), func(targetExcessGuess int) bool {
 		state := State{
 			TargetExcess: gas.Gas(targetExcessGuess),
 		}
