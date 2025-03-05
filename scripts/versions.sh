@@ -22,7 +22,17 @@ if [[ -z ${AVALANCHE_VERSION:-} ]]; then
 
     # The first 8 chars of the hash is used as the tag of avalanchego images
     AVALANCHE_VERSION="${MODULE_HASH::8}"
+
+    # Get full hash from GitHub API
+    FULL_AVALANCHEGO_VERSION="$(curl -s "https://api.github.com/repos/ava-labs/avalanchego/commits/${MODULE_HASH}" | grep '"sha":' | head -n1 | cut -d'"' -f4)"
   fi
+fi
+
+# FULL_AVALANCHEGO_VERSION needs to either be a tag or the full SHA to
+# be usable for custom github action references.
+if [[ -z "${FULL_AVALANCHEGO_VERSION:-}" ]]; then
+  # Assume AVALANCHEGO_VERSION is a tag.
+  FULL_AVALANCHEGO_VERSION="${AVALANCHE_VERSION}"
 fi
 
 GINKGO_VERSION=${GINKGO_VERSION:-'v2.2.0'}
