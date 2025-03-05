@@ -203,7 +203,7 @@ func (s *state) WriteState() error {
 		return err
 	}
 	// we've successfully flushed the updates, clear the updated marker.
-	s.updatedData = make(map[ids.ID]dbUpdateStatus)
+	clear(s.updatedData)
 	return nil
 }
 
