@@ -33,7 +33,8 @@ func GasLimit(
 		// This is calculated with core.CalcGasLimit(parent.GasUsed(), parent.GasLimit(), parent.GasLimit(), parent.GasLimit())
 		// however importing core package here would create a circular dependency.
 		// This can be fixed once we transition to libevm.
-		return calcGasLimit(parent.GasUsed, parent.GasLimit, parent.GasLimit, parent.GasLimit)
+		// return calcGasLimit(parent.GasUsed, parent.GasLimit, parent.GasLimit, parent.GasLimit)
+		return parent.GasLimit
 	}
 }
 
