@@ -16,16 +16,9 @@ import (
 
 var _ uptime.State = &state{}
 
-type dbUpdateStatus bool
-
 var (
 	ErrAlreadyExists  = fmt.Errorf("validator already exists")
 	ErrImmutableField = fmt.Errorf("immutable field cannot be updated")
-)
-
-const (
-	updatedStatus dbUpdateStatus = true
-	deletedStatus dbUpdateStatus = false
 )
 
 type validatorData struct {
@@ -44,7 +37,7 @@ type state struct {
 	data  map[ids.ID]*validatorData // vID -> validatorData
 	index map[ids.NodeID]ids.ID     // nodeID -> vID
 	// updatedData tracks the updates since WriteValidator was last called
-	updatedData map[ids.ID]dbUpdateStatus // vID -> updated status
+	updatedData map[ids.ID]bool // vID -> bool (update=true, deleted=false)
 	db          database.Database
 
 	listeners []interfaces.StateCallbackListener
@@ -55,7 +48,7 @@ func NewState(db database.Database) (interfaces.State, error) {
 	s := &state{
 		index:       make(map[ids.NodeID]ids.ID),
 		data:        make(map[ids.ID]*validatorData),
-		updatedData: make(map[ids.ID]dbUpdateStatus),
+		updatedData: make(map[ids.ID]bool),
 		db:          db,
 	}
 	if err := s.loadFromDisk(); err != nil {
@@ -88,7 +81,7 @@ func (s *state) SetUptime(
 	data.UpDuration = upDuration
 	data.setLastUpdated(lastUpdated)
 
-	s.updatedData[data.validationID] = updatedStatus
+	s.updatedData[data.validationID] = true
 	return nil
 }
 
@@ -118,7 +111,7 @@ func (s *state) AddValidator(vdr interfaces.Validator) error {
 		return err
 	}
 
-	s.updatedData[vdr.ValidationID] = updatedStatus
+	s.updatedData[vdr.ValidationID] = true
 
 	for _, listener := range s.listeners {
 		listener.OnValidatorAdded(vdr.ValidationID, vdr.NodeID, vdr.StartTimestamp, vdr.IsActive)
@@ -153,7 +146,7 @@ func (s *state) UpdateValidator(vdr interfaces.Validator) error {
 	}
 
 	if updated {
-		s.updatedData[vdr.ValidationID] = updatedStatus
+		s.updatedData[vdr.ValidationID] = true
 	}
 	return nil
 }
@@ -169,7 +162,7 @@ func (s *state) DeleteValidator(vID ids.ID) error {
 	delete(s.index, data.NodeID)
 
 	// mark as deleted for WriteValidator
-	s.updatedData[data.validationID] = deletedStatus
+	s.updatedData[data.validationID] = false
 
 	for _, listener := range s.listeners {
 		listener.OnValidatorRemoved(vID, data.NodeID)
@@ -182,8 +175,7 @@ func (s *state) WriteState() error {
 	// TODO: consider adding batch size
 	batch := s.db.NewBatch()
 	for vID, updateStatus := range s.updatedData {
-		switch updateStatus {
-		case updatedStatus:
+		if updateStatus { // updated
 			data := s.data[vID]
 
 			dataBytes, err := vdrCodec.Marshal(codecVersion, data)
@@ -193,7 +185,7 @@ func (s *state) WriteState() error {
 			if err := batch.Put(vID[:], dataBytes); err != nil {
 				return err
 			}
-		case deletedStatus:
+		} else { // deleted
 			if err := batch.Delete(vID[:]); err != nil {
 				return err
 			}
@@ -214,7 +206,7 @@ func (s *state) SetStatus(vID ids.ID, isActive bool) error {
 		return database.ErrNotFound
 	}
 	data.IsActive = isActive
-	s.updatedData[vID] = updatedStatus
+	s.updatedData[vID] = true
 
 	for _, listener := range s.listeners {
 		listener.OnValidatorStatusUpdated(vID, data.NodeID, isActive)
