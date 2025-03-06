@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -155,6 +156,9 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 	clients := make([]ethclient.Client, 0, len(config.Endpoints))
 	for i := 0; i < config.Workers; i++ {
 		clientURI := config.Endpoints[i%len(config.Endpoints)]
+		clientURI = strings.Replace(clientURI, "http://", "ws://", 1)
+		clientURI = strings.Replace(clientURI, "/rpc", "/ws", 1)
+		log.Info("Dialing client", "uri", clientURI)
 		client, err := ethclient.Dial(clientURI)
 		if err != nil {
 			return fmt.Errorf("failed to dial client at %s: %w", clientURI, err)
