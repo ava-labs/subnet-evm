@@ -79,6 +79,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          submodules: true
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
@@ -96,6 +97,18 @@ jobs:
       - name: Hardhat Compile
         run: npx hardhat compile
         working-directory: ./contracts
+      - name: Install solc
+        shell: bash
+        run: sudo add-apt-repository ppa:ethereum/ethereum && sudo apt update && sudo apt install -y solc
+      - name: Install abigen
+        shell: bash
+        run: go install github.com/ava-labs/subnet-evm/cmd/abigen
+      - name: Generate abigen bindings
+        shell: bash
+        run: go generate ./contracts/... ./testing/...
+      - name: Confirm abigen bindings up to date
+        shell: bash
+        run: .github/workflows/check-clean-branch.sh
       - name: Install AvalancheGo Release
         shell: bash
         run: BASEDIR=/tmp/e2e-test AVALANCHEGO_BUILD_PATH=/tmp/e2e-test/avalanchego ./scripts/install_avalanchego_release.sh
