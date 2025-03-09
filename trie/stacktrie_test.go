@@ -30,6 +30,7 @@ import (
 	"bytes"
 	"math/big"
 	"math/rand"
+	"slices"
 	"testing"
 
 	"github.com/ava-labs/subnet-evm/core/rawdb"
@@ -37,7 +38,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/stretchr/testify/assert"
-	"golang.org/x/exp/slices"
 )
 
 func TestStackTrieInsertAndHash(t *testing.T) {

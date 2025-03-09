@@ -30,6 +30,7 @@ import (
 	"bytes"
 	"fmt"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
@@ -38,13 +39,9 @@ import (
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/triedb"
 	"github.com/holiman/uint256"
-
 	"github.com/davecgh/go-spew/spew"
-
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
-
-	"golang.org/x/exp/slices"
 )
 
 var dumper = spew.ConfigState{Indent: "    "}
