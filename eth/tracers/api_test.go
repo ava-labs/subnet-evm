@@ -34,6 +34,7 @@ import (
 	"fmt"
 	"math/big"
 	"reflect"
+	"slices"
 	"sync/atomic"
 	"testing"
 
@@ -52,7 +53,6 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethdb"
-	"golang.org/x/exp/slices"
 )
 
 var (
