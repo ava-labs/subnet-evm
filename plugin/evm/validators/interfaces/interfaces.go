@@ -5,6 +5,7 @@ package interfaces
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/ava-labs/avalanchego/ids"
@@ -20,18 +21,14 @@ type ValidatorReader interface {
 }
 
 type Manager interface {
-	stateinterfaces.State
+	stateinterfaces.StateReader
 	avalancheuptime.Manager
-	ValidatorReader
 	// Initialize initializes the validator manager
 	// by syncing the validator state with the current validator set
 	// and starting the uptime tracking.
-	// Initialize holds the chain context lock while performing the operation.
 	Initialize(ctx context.Context) error
 	// Shutdown stops the uptime tracking and writes the validator state to the database.
-	// Shutdown holds the chain context lock while performing the operation.
 	Shutdown() error
 	// DispatchSync starts the sync process
-	// DispatchSync holds the chain context lock while performing the sync.
-	DispatchSync(ctx context.Context)
+	DispatchSync(ctx context.Context, lock sync.Locker)
 }
