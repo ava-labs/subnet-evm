@@ -8,8 +8,8 @@ import (
 	"errors"
 	"math/big"
 
+	"github.com/ava-labs/avalanchego/utils/wrappers"
 	"github.com/ava-labs/subnet-evm/params/extras"
-	"github.com/ava-labs/subnet-evm/predicate"
 	"github.com/ava-labs/subnet-evm/utils"
 )
 
@@ -17,11 +17,8 @@ const (
 	maxJSONLen = 64 * 1024 * 1024 // 64MB
 
 	// Consensus Params
-	RollupWindow uint64 = 10
-
-	// DynamicFeeExtraDataSize is defined in the predicate package to avoid a circular dependency.
-	// After Durango, the extra data past the dynamic fee rollup window represents predicate results.
-	DynamicFeeExtraDataSize = predicate.DynamicFeeExtraDataSize
+	RollupWindow            = 10 // in seconds
+	DynamicFeeExtraDataSize = wrappers.LongLen * RollupWindow
 
 	// For legacy tests
 	MinGasPrice        int64 = 225_000_000_000
@@ -62,10 +59,10 @@ func SetEthUpgrades(c *ChainConfig, avalancheUpgrades extras.NetworkUpgrades) {
 }
 
 func GetExtra(c *ChainConfig) *extras.ChainConfig {
-	ex := payloads.FromChainConfig(c)
+	ex := payloads.ChainConfig.Get(c)
 	if ex == nil {
 		ex = &extras.ChainConfig{}
-		payloads.SetOnChainConfig(c, ex)
+		payloads.ChainConfig.Set(c, ex)
 	}
 	return ex
 }
@@ -78,7 +75,7 @@ func Copy(c *ChainConfig) ChainConfig {
 
 // WithExtra sets the extra payload on `c` and returns the modified argument.
 func WithExtra(c *ChainConfig, extra *extras.ChainConfig) *ChainConfig {
-	payloads.SetOnChainConfig(c, extra)
+	payloads.ChainConfig.Set(c, extra)
 	return c
 }
 

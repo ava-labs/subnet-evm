@@ -22,6 +22,7 @@ import (
 	avagoUtils "github.com/ava-labs/avalanchego/utils"
 	"github.com/ava-labs/avalanchego/utils/constants"
 	"github.com/ava-labs/avalanchego/utils/crypto/bls"
+	"github.com/ava-labs/avalanchego/utils/crypto/bls/signer/localsigner"
 	"github.com/ava-labs/avalanchego/utils/set"
 	"github.com/ava-labs/avalanchego/vms/components/chain"
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
@@ -281,16 +282,18 @@ func testWarpVMTransaction(t *testing.T, unsignedMessage *avalancheWarp.Unsigned
 	defer logsSub.Unsubscribe()
 
 	nodeID1 := ids.GenerateTestNodeID()
-	blsSecretKey1, err := bls.NewSigner()
+	blsSecretKey1, err := localsigner.New()
 	require.NoError(err)
 	blsPublicKey1 := blsSecretKey1.PublicKey()
-	blsSignature1 := blsSecretKey1.Sign(unsignedMessage.Bytes())
+	blsSignature1, err := blsSecretKey1.Sign(unsignedMessage.Bytes())
+	require.NoError(err)
 
 	nodeID2 := ids.GenerateTestNodeID()
-	blsSecretKey2, err := bls.NewSigner()
+	blsSecretKey2, err := localsigner.New()
 	require.NoError(err)
 	blsPublicKey2 := blsSecretKey2.PublicKey()
-	blsSignature2 := blsSecretKey2.Sign(unsignedMessage.Bytes())
+	blsSignature2, err := blsSecretKey2.Sign(unsignedMessage.Bytes())
+	require.NoError(err)
 
 	blsAggregatedSignature, err := bls.AggregateSignatures([]*bls.Signature{blsSignature1, blsSignature2})
 	require.NoError(err)
@@ -551,13 +554,16 @@ func testReceiveWarpMessage(
 		weight    uint64
 	}
 	newSigner := func(networkID ids.ID, weight uint64) signer {
-		secret, err := bls.NewSigner()
+		secret, err := localsigner.New()
 		require.NoError(err)
+		sig, err := secret.Sign(unsignedMessage.Bytes())
+		require.NoError(err)
+
 		return signer{
 			networkID: networkID,
 			nodeID:    ids.GenerateTestNodeID(),
 			secret:    secret,
-			signature: secret.Sign(unsignedMessage.Bytes()),
+			signature: sig,
 			weight:    weight,
 		}
 	}
