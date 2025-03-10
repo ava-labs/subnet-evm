@@ -40,6 +40,7 @@ import (
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/params/extras"
 	"github.com/ava-labs/subnet-evm/peer"
+	"github.com/ava-labs/subnet-evm/plugin/evm/config"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
 	"github.com/ava-labs/subnet-evm/plugin/evm/validators"
 	"github.com/ava-labs/subnet-evm/plugin/evm/validators/interfaces"
@@ -183,7 +184,7 @@ type VM struct {
 	// with an efficient caching layer.
 	*chain.State
 
-	config Config
+	config config.Config
 
 	networkID   uint64
 	genesisHash common.Hash
@@ -278,7 +279,7 @@ func (vm *VM) Initialize(
 	fxs []*commonEng.Fx,
 	appSender commonEng.AppSender,
 ) error {
-	vm.config.SetDefaults()
+	vm.config.SetDefaults(defaultTxPoolConfig)
 	if len(configBytes) > 0 {
 		if err := json.Unmarshal(configBytes, &vm.config); err != nil {
 			return fmt.Errorf("failed to unmarshal config %s: %w", string(configBytes), err)
@@ -580,7 +581,7 @@ func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.
 		&vm.ethConfig,
 		&EthPushGossiper{vm: vm},
 		vm.chaindb,
-		vm.config.EthBackendSettings(),
+		eth.Settings{MaxBlocksPerRequest: vm.config.MaxBlocksPerRequest},
 		lastAcceptedHash,
 		dummy.NewFakerWithClock(&vm.clock),
 		&vm.clock,
@@ -788,10 +789,13 @@ func (vm *VM) onNormalOperationsStarted() error {
 	}
 
 	// NOTE: gossip network must be initialized first otherwise ETH tx gossip will not work.
-	gossipStats := NewGossipStats()
 	vm.builder = vm.NewBlockBuilder(vm.toEngine)
 	vm.builder.awaitSubmittedTxs()
-	vm.Network.SetGossipHandler(NewGossipHandler(vm, gossipStats))
+
+	var p2pValidators p2p.ValidatorSet = &validatorSet{}
+	if vm.config.PullGossipFrequency.Duration > 0 {
+		p2pValidators = vm.p2pValidators
+	}
 
 	if vm.ethTxGossipHandler == nil {
 		vm.ethTxGossipHandler = newTxGossipHandler[*GossipEthTx](
@@ -802,7 +806,7 @@ func (vm *VM) onNormalOperationsStarted() error {
 			txGossipTargetMessageSize,
 			txGossipThrottlingPeriod,
 			txGossipThrottlingLimit,
-			vm.p2pValidators,
+			p2pValidators,
 		)
 	}
 
@@ -827,15 +831,20 @@ func (vm *VM) onNormalOperationsStarted() error {
 		}
 	}
 
-	vm.shutdownWg.Add(2)
-	go func() {
-		gossip.Every(ctx, vm.ctx.Log, ethTxPushGossiper, vm.config.PushGossipFrequency.Duration)
-		vm.shutdownWg.Done()
-	}()
-	go func() {
-		gossip.Every(ctx, vm.ctx.Log, vm.ethTxPullGossiper, vm.config.PullGossipFrequency.Duration)
-		vm.shutdownWg.Done()
-	}()
+	if vm.config.PushGossipFrequency.Duration > 0 {
+		vm.shutdownWg.Add(1)
+		go func() {
+			gossip.Every(ctx, vm.ctx.Log, ethTxPushGossiper, vm.config.PushGossipFrequency.Duration)
+			vm.shutdownWg.Done()
+		}()
+	}
+	if vm.config.PullGossipFrequency.Duration > 0 {
+		vm.shutdownWg.Add(1)
+		go func() {
+			gossip.Every(ctx, vm.ctx.Log, vm.ethTxPullGossiper, vm.config.PullGossipFrequency.Duration)
+			vm.shutdownWg.Done()
+		}()
+	}
 
 	return nil
 }
