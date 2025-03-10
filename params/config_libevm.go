@@ -5,6 +5,7 @@ package params
 
 import (
 	"math/big"
+	"runtime/debug"
 
 	"github.com/ava-labs/libevm/common"
 	ethparams "github.com/ava-labs/libevm/params"
@@ -16,6 +17,7 @@ import (
 // libevmInit would ideally be a regular init() function, but it MUST be run
 // before any calls to [ChainConfig.Rules]. See `config.go` for its call site.
 func libevmInit() any {
+	debug.PrintStack()
 	payloads = ethparams.RegisterExtras(ethparams.Extras[*extras.ChainConfig, RulesExtra]{
 		ReuseJSONRoot: true, // Reuse the root JSON input when unmarshalling the extra payload.
 		NewRules:      constructRulesExtra,

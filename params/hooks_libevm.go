@@ -11,19 +11,19 @@ import (
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/vm"
 	"github.com/ava-labs/libevm/libevm"
+	"github.com/ava-labs/libevm/libevm/legacy"
 	"github.com/ava-labs/subnet-evm/params/extras"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/deployerallowlist"
 	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/predicate"
-	"github.com/holiman/uint256"
 )
 
 type RulesExtra extras.Rules
 
 func GetRulesExtra(r Rules) *extras.Rules {
-	rules := payloads.PointerFromRules(&r)
+	rules := payloads.Rules.GetPointer(&r)
 	return (*extras.Rules)(rules)
 }
 
@@ -81,7 +81,7 @@ func makePrecompile(contract contract.StatefulPrecompiledContract) libevm.Precom
 		}
 		return contract.Run(accessableState, env.Addresses().Caller, env.Addresses().Self, input, suppliedGas, env.ReadOnly())
 	}
-	return vm.NewStatefulPrecompile(run)
+	return vm.NewStatefulPrecompile(legacy.PrecompiledStatefulContract(run).Upgrade())
 }
 
 func (r RulesExtra) PrecompileOverride(addr common.Address) (libevm.PrecompiledContract, bool) {
@@ -127,8 +127,8 @@ func (a accessableState) GetSnowContext() *snow.Context {
 	return GetExtra(a.env.ChainConfig()).SnowCtx
 }
 
-func (a accessableState) Call(addr common.Address, input []byte, gas uint64, value *uint256.Int, _ ...vm.CallOption) (ret []byte, gasRemaining uint64, _ error) {
-	return a.env.Call(addr, input, gas, value)
+func (a accessableState) GetPrecompileEnv() vm.PrecompileEnvironment {
+	return a.env
 }
 
 type precompileBlockContext struct {

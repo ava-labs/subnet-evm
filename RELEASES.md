@@ -1,6 +1,20 @@
 # Release Notes
 
 ## Pending Release
+* Bump golang version to v1.23.6
+* Bump golangci-lint to v1.63 and add linters
+* Refactored trie_prefetcher.go to be structurally similar to upstream.
+* Remove legacy gossip handler and metrics
+
+## [v0.7.0](https://github.com/ava-labs/subnet-evm/releases/tag/v0.7.0)
+
+### Updates
+
+- Changed default write option from `Sync` to `NoSync` in PebbleDB
+
+### Fixes
+
+- Fixed database close on shutdown
 
 * Refactored trie_prefetcher.go to be structurally similar to upstream.
 
