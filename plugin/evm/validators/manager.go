@@ -109,7 +109,7 @@ func (m *manager) DispatchSync(ctx context.Context, lock sync.Locker) {
 
 // sync synchronizes the validator state with the current validator set
 // and writes the state to the database.
-// sync is not safe to call concurrently and should be called with the chain context locked.
+// sync is not safe to call concurrently and should be called with the VM locked.
 func (m *manager) sync(ctx context.Context) error {
 	now := time.Now()
 	log.Debug("performing validator sync")
