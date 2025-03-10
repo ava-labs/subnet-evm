@@ -35,7 +35,7 @@ type manager struct {
 
 // NewManager returns a new validator manager
 // that manages the validator state and the uptime manager.
-// Manager is not thread safe and should be used with the chain context locked.
+// Manager is not thread safe and should be used with the VM locked.
 func NewManager(
 	ctx *snow.Context,
 	db database.Database,

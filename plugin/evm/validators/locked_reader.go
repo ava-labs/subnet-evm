@@ -5,7 +5,6 @@ package validators
 
 import (
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/ava-labs/avalanchego/ids"
@@ -13,14 +12,19 @@ import (
 	stateinterfaces "github.com/ava-labs/subnet-evm/plugin/evm/validators/state/interfaces"
 )
 
+type RLocker interface {
+	RLock()
+	RUnlock()
+}
+
 type lockedReader struct {
 	manager interfaces.Manager
-	lock    sync.Locker
+	lock    RLocker
 }
 
 func NewLockedValidatorReader(
 	manager interfaces.Manager,
-	lock sync.Locker,
+	lock RLocker,
 ) interfaces.ValidatorReader {
 	return &lockedReader{
 		lock:    lock,
@@ -30,13 +34,11 @@ func NewLockedValidatorReader(
 
 // GetValidatorAndUptime returns the calculated uptime of the validator specified by validationID
 // and the last updated time.
-// GetValidatorAndUptime holds the chain context lock while performing the operation and can be called concurrently.
+// GetValidatorAndUptime holds the lock while performing the operation and can be called concurrently.
 func (l *lockedReader) GetValidatorAndUptime(validationID ids.ID) (stateinterfaces.Validator, time.Duration, time.Time, error) {
-	// lock the state
-	l.lock.Lock()
-	defer l.lock.Unlock()
+	l.lock.RLock()
+	defer l.lock.RUnlock()
 
-	// Get validator first
 	vdr, err := l.manager.GetValidator(validationID)
 	if err != nil {
 		return stateinterfaces.Validator{}, 0, time.Time{}, fmt.Errorf("failed to get validator: %w", err)

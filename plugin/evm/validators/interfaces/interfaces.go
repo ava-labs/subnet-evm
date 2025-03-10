@@ -16,7 +16,7 @@ import (
 type ValidatorReader interface {
 	// GetValidatorAndUptime returns the calculated uptime of the validator specified by validationID
 	// and the last updated time.
-	// GetValidatorAndUptime holds the chain context lock while performing the operation and can be called concurrently.
+	// GetValidatorAndUptime holds the VM lock while performing the operation and can be called concurrently.
 	GetValidatorAndUptime(validationID ids.ID) (stateinterfaces.Validator, time.Duration, time.Time, error)
 }
 

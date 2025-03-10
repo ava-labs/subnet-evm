@@ -177,8 +177,9 @@ var legacyApiNames = map[string]string{
 // VM implements the snowman.ChainVM interface
 type VM struct {
 	ctx *snow.Context
-	// snow.Context.Lock is deprecated and should not be used in rpcchainvm.
-	chainLock sync.RWMutex
+	// contextLock is used to coordinate global VM operations.
+	// This can be used safely instead of snow.Context.Lock which is deprecated and should not be used in rpcchainvm.
+	vmLock sync.RWMutex
 	// [cancel] may be nil until [snow.NormalOp] starts
 	cancel context.CancelFunc
 	// *chain.State helps to implement the VM interface by wrapping blocks
@@ -523,7 +524,7 @@ func (vm *VM) Initialize(
 		vm.ctx.ChainID,
 		vm.ctx.WarpSigner,
 		vm,
-		validators.NewLockedValidatorReader(vm.validatorsManager, vm.chainLock.RLocker()),
+		validators.NewLockedValidatorReader(vm.validatorsManager, &vm.vmLock),
 		vm.warpDB,
 		meteredCache,
 		offchainWarpMessages,
@@ -682,8 +683,8 @@ func (vm *VM) initChainState(lastAcceptedBlock *types.Block) error {
 }
 
 func (vm *VM) SetState(_ context.Context, state snow.State) error {
-	vm.chainLock.Lock()
-	defer vm.chainLock.Unlock()
+	vm.vmLock.Lock()
+	defer vm.vmLock.Unlock()
 	switch state {
 	case snow.StateSyncing:
 		vm.bootstrapped.Set(false)
@@ -732,7 +733,7 @@ func (vm *VM) onNormalOperationsStarted() error {
 	// dispatch validator set update
 	vm.shutdownWg.Add(1)
 	go func() {
-		vm.validatorsManager.DispatchSync(ctx, &vm.chainLock)
+		vm.validatorsManager.DispatchSync(ctx, &vm.vmLock)
 		vm.shutdownWg.Done()
 	}()
 
@@ -866,8 +867,8 @@ func (vm *VM) setAppRequestHandlers() {
 
 // Shutdown implements the snowman.ChainVM interface
 func (vm *VM) Shutdown(context.Context) error {
-	vm.chainLock.Lock()
-	defer vm.chainLock.Unlock()
+	vm.vmLock.Lock()
+	defer vm.vmLock.Unlock()
 	if vm.ctx == nil {
 		return nil
 	}
@@ -1260,8 +1261,8 @@ func attachEthService(handler *rpc.Server, apis []rpc.API, names []string) error
 }
 
 func (vm *VM) Connected(ctx context.Context, nodeID ids.NodeID, version *version.Application) error {
-	vm.chainLock.Lock()
-	defer vm.chainLock.Unlock()
+	vm.vmLock.Lock()
+	defer vm.vmLock.Unlock()
 
 	if err := vm.validatorsManager.Connect(nodeID); err != nil {
 		return fmt.Errorf("uptime manager failed to connect node %s: %w", nodeID, err)
@@ -1270,8 +1271,8 @@ func (vm *VM) Connected(ctx context.Context, nodeID ids.NodeID, version *version
 }
 
 func (vm *VM) Disconnected(ctx context.Context, nodeID ids.NodeID) error {
-	vm.chainLock.Lock()
-	defer vm.chainLock.Unlock()
+	vm.vmLock.Lock()
+	defer vm.vmLock.Unlock()
 
 	if err := vm.validatorsManager.Disconnect(nodeID); err != nil {
 		return fmt.Errorf("uptime manager failed to disconnect node %s: %w", nodeID, err)
