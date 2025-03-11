@@ -79,6 +79,8 @@ AVALANCHEGO_NODE_IMAGE="${AVALANCHEGO_NODE_IMAGE:-${AVALANCHEGO_IMAGE_NAME}:${AV
 
 # Build the avalanchego image if it cannot be pulled. This will usually be due to
 # AVALANCHE_VERSION being not yet merged since the image is published post-merge.
+#
+# The curly brackets around the docker command ensure that a failed pull does not exit the script.
 if ! docker pull "${AVALANCHEGO_NODE_IMAGE}"; then
   # Build a multi-arch avalanchego image if the subnet-evm image build is multi-arch
   BUILD_MULTI_ARCH="$([[ "$PLATFORMS" =~ , ]] && echo 1 || echo "")"
