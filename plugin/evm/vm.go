@@ -38,6 +38,7 @@ import (
 	"github.com/ava-labs/subnet-evm/node"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/peer"
+	"github.com/ava-labs/subnet-evm/plugin/evm/config"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
 	"github.com/ava-labs/subnet-evm/plugin/evm/validators"
 	"github.com/ava-labs/subnet-evm/plugin/evm/validators/interfaces"
@@ -176,13 +177,16 @@ var legacyApiNames = map[string]string{
 // VM implements the snowman.ChainVM interface
 type VM struct {
 	ctx *snow.Context
+	// contextLock is used to coordinate global VM operations.
+	// This can be used safely instead of snow.Context.Lock which is deprecated and should not be used in rpcchainvm.
+	vmLock sync.RWMutex
 	// [cancel] may be nil until [snow.NormalOp] starts
 	cancel context.CancelFunc
 	// *chain.State helps to implement the VM interface by wrapping blocks
 	// with an efficient caching layer.
 	*chain.State
 
-	config Config
+	config config.Config
 
 	networkID   uint64
 	genesisHash common.Hash
@@ -277,7 +281,7 @@ func (vm *VM) Initialize(
 	fxs []*commonEng.Fx,
 	appSender commonEng.AppSender,
 ) error {
-	vm.config.SetDefaults()
+	vm.config.SetDefaults(defaultTxPoolConfig)
 	if len(configBytes) > 0 {
 		if err := json.Unmarshal(configBytes, &vm.config); err != nil {
 			return fmt.Errorf("failed to unmarshal config %s: %w", string(configBytes), err)
@@ -520,7 +524,7 @@ func (vm *VM) Initialize(
 		vm.ctx.ChainID,
 		vm.ctx.WarpSigner,
 		vm,
-		vm.validatorsManager,
+		validators.NewLockedValidatorReader(vm.validatorsManager, &vm.vmLock),
 		vm.warpDB,
 		meteredCache,
 		offchainWarpMessages,
@@ -578,7 +582,7 @@ func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.
 		&vm.ethConfig,
 		&EthPushGossiper{vm: vm},
 		vm.chaindb,
-		vm.config.EthBackendSettings(),
+		eth.Settings{MaxBlocksPerRequest: vm.config.MaxBlocksPerRequest},
 		lastAcceptedHash,
 		dummy.NewFakerWithClock(&vm.clock),
 		&vm.clock,
@@ -679,6 +683,8 @@ func (vm *VM) initChainState(lastAcceptedBlock *types.Block) error {
 }
 
 func (vm *VM) SetState(_ context.Context, state snow.State) error {
+	vm.vmLock.Lock()
+	defer vm.vmLock.Unlock()
 	switch state {
 	case snow.StateSyncing:
 		vm.bootstrapped.Set(false)
@@ -719,21 +725,15 @@ func (vm *VM) onNormalOperationsStarted() error {
 	ctx, cancel := context.WithCancel(context.TODO())
 	vm.cancel = cancel
 
-	// sync validators first
-	if err := vm.validatorsManager.Sync(ctx); err != nil {
-		return fmt.Errorf("failed to update validators: %w", err)
+	// Start the validators manager
+	if err := vm.validatorsManager.Initialize(ctx); err != nil {
+		return fmt.Errorf("failed to initialize validators manager: %w", err)
 	}
-	vdrIDs := vm.validatorsManager.GetNodeIDs().List()
-	// Then start tracking with updated validators
-	// StartTracking initializes the uptime tracking with the known validators
-	// and update their uptime to account for the time we were being offline.
-	if err := vm.validatorsManager.StartTracking(vdrIDs); err != nil {
-		return fmt.Errorf("failed to start tracking uptime: %w", err)
-	}
+
 	// dispatch validator set update
 	vm.shutdownWg.Add(1)
 	go func() {
-		vm.validatorsManager.DispatchSync(ctx)
+		vm.validatorsManager.DispatchSync(ctx, &vm.vmLock)
 		vm.shutdownWg.Done()
 	}()
 
@@ -786,10 +786,13 @@ func (vm *VM) onNormalOperationsStarted() error {
 	}
 
 	// NOTE: gossip network must be initialized first otherwise ETH tx gossip will not work.
-	gossipStats := NewGossipStats()
 	vm.builder = vm.NewBlockBuilder(vm.toEngine)
 	vm.builder.awaitSubmittedTxs()
-	vm.Network.SetGossipHandler(NewGossipHandler(vm, gossipStats))
+
+	var p2pValidators p2p.ValidatorSet = &validatorSet{}
+	if vm.config.PullGossipFrequency.Duration > 0 {
+		p2pValidators = vm.p2pValidators
+	}
 
 	if vm.ethTxGossipHandler == nil {
 		vm.ethTxGossipHandler = newTxGossipHandler[*GossipEthTx](
@@ -800,7 +803,7 @@ func (vm *VM) onNormalOperationsStarted() error {
 			txGossipTargetMessageSize,
 			txGossipThrottlingPeriod,
 			txGossipThrottlingLimit,
-			vm.p2pValidators,
+			p2pValidators,
 		)
 	}
 
@@ -825,15 +828,20 @@ func (vm *VM) onNormalOperationsStarted() error {
 		}
 	}
 
-	vm.shutdownWg.Add(2)
-	go func() {
-		gossip.Every(ctx, vm.ctx.Log, ethTxPushGossiper, vm.config.PushGossipFrequency.Duration)
-		vm.shutdownWg.Done()
-	}()
-	go func() {
-		gossip.Every(ctx, vm.ctx.Log, vm.ethTxPullGossiper, vm.config.PullGossipFrequency.Duration)
-		vm.shutdownWg.Done()
-	}()
+	if vm.config.PushGossipFrequency.Duration > 0 {
+		vm.shutdownWg.Add(1)
+		go func() {
+			gossip.Every(ctx, vm.ctx.Log, ethTxPushGossiper, vm.config.PushGossipFrequency.Duration)
+			vm.shutdownWg.Done()
+		}()
+	}
+	if vm.config.PullGossipFrequency.Duration > 0 {
+		vm.shutdownWg.Add(1)
+		go func() {
+			gossip.Every(ctx, vm.ctx.Log, vm.ethTxPullGossiper, vm.config.PullGossipFrequency.Duration)
+			vm.shutdownWg.Done()
+		}()
+	}
 
 	return nil
 }
@@ -859,6 +867,8 @@ func (vm *VM) setAppRequestHandlers() {
 
 // Shutdown implements the snowman.ChainVM interface
 func (vm *VM) Shutdown(context.Context) error {
+	vm.vmLock.Lock()
+	defer vm.vmLock.Unlock()
 	if vm.ctx == nil {
 		return nil
 	}
@@ -866,12 +876,8 @@ func (vm *VM) Shutdown(context.Context) error {
 		vm.cancel()
 	}
 	if vm.bootstrapped.Get() {
-		vdrIDs := vm.validatorsManager.GetNodeIDs().List()
-		if err := vm.validatorsManager.StopTracking(vdrIDs); err != nil {
-			return fmt.Errorf("failed to stop tracking uptime: %w", err)
-		}
-		if err := vm.validatorsManager.WriteState(); err != nil {
-			return fmt.Errorf("failed to write validator: %w", err)
+		if err := vm.validatorsManager.Shutdown(); err != nil {
+			return fmt.Errorf("failed to shutdown validators manager: %w", err)
 		}
 	}
 	vm.Network.Shutdown()
@@ -1255,6 +1261,9 @@ func attachEthService(handler *rpc.Server, apis []rpc.API, names []string) error
 }
 
 func (vm *VM) Connected(ctx context.Context, nodeID ids.NodeID, version *version.Application) error {
+	vm.vmLock.Lock()
+	defer vm.vmLock.Unlock()
+
 	if err := vm.validatorsManager.Connect(nodeID); err != nil {
 		return fmt.Errorf("uptime manager failed to connect node %s: %w", nodeID, err)
 	}
@@ -1262,6 +1271,9 @@ func (vm *VM) Connected(ctx context.Context, nodeID ids.NodeID, version *version
 }
 
 func (vm *VM) Disconnected(ctx context.Context, nodeID ids.NodeID) error {
+	vm.vmLock.Lock()
+	defer vm.vmLock.Unlock()
+
 	if err := vm.validatorsManager.Disconnect(nodeID); err != nil {
 		return fmt.Errorf("uptime manager failed to disconnect node %s: %w", nodeID, err)
 	}

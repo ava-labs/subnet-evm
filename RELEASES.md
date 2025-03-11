@@ -1,8 +1,26 @@
 # Release Notes
 
 ## Pending Release
+* Bump golang version to v1.23.6
+* Bump golangci-lint to v1.63 and add linters
+* Fixed concurrency issue in validators/uptime manager
 
-* Refactored trie_prefetcher.go to be structurally similar to upstream.
+## [v0.7.1](https://github.com/ava-labs/subnet-evm/releases/tag/v0.7.1)
+
+This release focuses on code quality improvements and post-Etna cleanups.
+
+### Compatibility
+
+The plugin version is **updated** to 39 and is compatible with AvalancheGo version v1.12.2.
+
+### Updates
+
+* Moved client type and structs to new `plugin/evm/client` package
+* Fixed statedb improper copy issue
+* Limited the maximum number of query-able rewardPercentile by 100 in `eth_feeHistory` API
+* Refactored `trie_prefetcher.go` to be structurally similar to upstream
+* Removed deprecated legacy gossip handler and metrics
+* Removed unnecessary locks in mempool
 
 ## [v0.7.0](https://github.com/ava-labs/subnet-evm/releases/tag/v0.7.0)
 
