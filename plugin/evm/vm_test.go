@@ -24,7 +24,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/ava-labs/avalanchego/api/keystore"
 	"github.com/ava-labs/avalanchego/chains/atomic"
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/database/memdb"
@@ -36,7 +35,6 @@ import (
 	"github.com/ava-labs/avalanchego/snow/engine/enginetest"
 	"github.com/ava-labs/avalanchego/upgrade"
 	"github.com/ava-labs/avalanchego/utils/formatting"
-	"github.com/ava-labs/avalanchego/utils/logging"
 	"github.com/ava-labs/avalanchego/vms/components/chain"
 
 	accountKeystore "github.com/ava-labs/subnet-evm/accounts/keystore"
@@ -49,6 +47,7 @@ import (
 	"github.com/ava-labs/subnet-evm/eth"
 	"github.com/ava-labs/subnet-evm/metrics"
 	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/plugin/evm/config"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/deployerallowlist"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/feemanager"
@@ -68,8 +67,6 @@ var (
 	testMinGasPrice int64 = 225_000_000_000
 	testKeys        []*ecdsa.PrivateKey
 	testEthAddrs    []common.Address // testEthAddrs[i] corresponds to testKeys[i]
-	username        = "Johns"
-	password        = "CjasdjhiPeirbSenfeI13" // #nosec G101
 
 	firstTxAmount  = new(big.Int).Mul(big.NewInt(testMinGasPrice), big.NewInt(21000*100))
 	genesisBalance = new(big.Int).Mul(big.NewInt(testMinGasPrice), big.NewInt(21000*1000))
@@ -156,16 +153,6 @@ func setupGenesis(
 	atomicMemory := atomic.NewMemory(prefixdb.New([]byte{0}, baseDB))
 	ctx.SharedMemory = atomicMemory.NewSharedMemory(ctx.ChainID)
 
-	// NB: this lock is intentionally left locked when this function returns.
-	// The caller of this function is responsible for unlocking.
-	ctx.Lock.Lock()
-
-	userKeystore := keystore.New(logging.NoLog{}, memdb.New())
-	if err := userKeystore.CreateUser(username, password); err != nil {
-		t.Fatal(err)
-	}
-	ctx.Keystore = userKeystore.NewBlockchainKeyStore(ctx.ChainID)
-
 	issuer := make(chan commonEng.Message, 1)
 	prefixedDB := prefixdb.New([]byte{1}, baseDB)
 	return ctx, prefixedDB, genesisBytes, issuer, atomicMemory
@@ -228,8 +215,8 @@ func TestVMConfigDefaults(t *testing.T) {
 	configJSON := fmt.Sprintf(`{"rpc-tx-fee-cap": %g,"eth-apis": %s}`, txFeeCap, fmt.Sprintf("[%q]", enabledEthAPIs[0]))
 	_, vm, _, _ := GenesisVM(t, false, "", configJSON, "")
 
-	var vmConfig Config
-	vmConfig.SetDefaults()
+	var vmConfig config.Config
+	vmConfig.SetDefaults(defaultTxPoolConfig)
 	vmConfig.RPCTxFeeCap = txFeeCap
 	vmConfig.EnabledEthAPIs = enabledEthAPIs
 	require.Equal(t, vmConfig, vm.config, "VM Config should match default with overrides")
@@ -240,8 +227,8 @@ func TestVMNilConfig(t *testing.T) {
 	_, vm, _, _ := GenesisVM(t, false, "", "", "")
 
 	// VM Config should match defaults if no config is passed in
-	var vmConfig Config
-	vmConfig.SetDefaults()
+	var vmConfig config.Config
+	vmConfig.SetDefaults(defaultTxPoolConfig)
 	require.Equal(t, vmConfig, vm.config, "VM Config should match default config")
 	require.NoError(t, vm.Shutdown(context.Background()))
 }
@@ -2622,8 +2609,8 @@ func TestAllowFeeRecipientEnabled(t *testing.T) {
 	}
 
 	etherBase := common.HexToAddress("0x0123456789")
-	c := Config{}
-	c.SetDefaults()
+	c := config.Config{}
+	c.SetDefaults(defaultTxPoolConfig)
 	c.FeeRecipient = etherBase.String()
 	configJSON, err := json.Marshal(c)
 	if err != nil {
@@ -2682,8 +2669,8 @@ func TestRewardManagerPrecompileSetRewardAddress(t *testing.T) {
 	require.NoError(t, err)
 
 	etherBase := common.HexToAddress("0x0123456789") // give custom ether base
-	c := Config{}
-	c.SetDefaults()
+	c := config.Config{}
+	c.SetDefaults(defaultTxPoolConfig)
 	c.FeeRecipient = etherBase.String()
 	configJSON, err := json.Marshal(c)
 	require.NoError(t, err)
@@ -2823,8 +2810,8 @@ func TestRewardManagerPrecompileAllowFeeRecipients(t *testing.T) {
 	genesisJSON, err := genesis.MarshalJSON()
 	require.NoError(t, err)
 	etherBase := common.HexToAddress("0x0123456789") // give custom ether base
-	c := Config{}
-	c.SetDefaults()
+	c := config.Config{}
+	c.SetDefaults(defaultTxPoolConfig)
 	c.FeeRecipient = etherBase.String()
 	configJSON, err := json.Marshal(c)
 	require.NoError(t, err)

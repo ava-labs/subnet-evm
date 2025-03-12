@@ -29,6 +29,7 @@ package state
 
 import (
 	"fmt"
+	"maps"
 	"sort"
 	"time"
 
@@ -41,6 +42,7 @@ import (
 	"github.com/ava-labs/subnet-evm/trie"
 	"github.com/ava-labs/subnet-evm/trie/trienode"
 	"github.com/ava-labs/subnet-evm/trie/triestate"
+	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
@@ -200,16 +202,33 @@ func NewWithSnapshot(root common.Hash, db Database, snap snapshot.Snapshot) (*St
 	return sdb, nil
 }
 
+type workerPool struct {
+	*utils.BoundedWorkers
+}
+
+func (wp *workerPool) Done() {
+	// Done is guaranteed to only be called after all work is already complete,
+	// so Wait()ing is redundant, but it also releases resources.
+	wp.BoundedWorkers.Wait()
+}
+
+func WithConcurrentWorkers(prefetchers int) PrefetcherOption {
+	pool := &workerPool{
+		BoundedWorkers: utils.NewBoundedWorkers(prefetchers),
+	}
+	return WithWorkerPools(func() WorkerPool { return pool })
+}
+
 // StartPrefetcher initializes a new trie prefetcher to pull in nodes from the
 // state trie concurrently while the state is mutated so that when we reach the
 // commit phase, most of the needed data is already hot.
-func (s *StateDB) StartPrefetcher(namespace string, maxConcurrency int) {
+func (s *StateDB) StartPrefetcher(namespace string, opts ...PrefetcherOption) {
 	if s.prefetcher != nil {
 		s.prefetcher.close()
 		s.prefetcher = nil
 	}
 	if s.snap != nil {
-		s.prefetcher = newTriePrefetcher(s.db, s.originalRoot, namespace, maxConcurrency)
+		s.prefetcher = newTriePrefetcher(s.db, s.originalRoot, namespace, opts...)
 	}
 }
 
@@ -756,18 +775,18 @@ func (s *StateDB) Copy() *StateDB {
 		db:                   s.db,
 		trie:                 s.db.CopyTrie(s.trie),
 		originalRoot:         s.originalRoot,
-		accounts:             make(map[common.Hash][]byte),
-		storages:             make(map[common.Hash]map[common.Hash][]byte),
-		accountsOrigin:       make(map[common.Address][]byte),
-		storagesOrigin:       make(map[common.Address]map[common.Hash][]byte),
+		accounts:             copySet(s.accounts),
+		storages:             copy2DSet(s.storages),
+		accountsOrigin:       copySet(s.accountsOrigin),
+		storagesOrigin:       copy2DSet(s.storagesOrigin),
 		stateObjects:         make(map[common.Address]*stateObject, len(s.journal.dirties)),
 		stateObjectsPending:  make(map[common.Address]struct{}, len(s.stateObjectsPending)),
 		stateObjectsDirty:    make(map[common.Address]struct{}, len(s.journal.dirties)),
-		stateObjectsDestruct: make(map[common.Address]*types.StateAccount, len(s.stateObjectsDestruct)),
+		stateObjectsDestruct: maps.Clone(s.stateObjectsDestruct),
 		refund:               s.refund,
 		logs:                 make(map[common.Hash][]*types.Log, len(s.logs)),
 		logSize:              s.logSize,
-		preimages:            make(map[common.Hash][]byte, len(s.preimages)),
+		preimages:            maps.Clone(s.preimages),
 		journal:              newJournal(),
 		hasher:               crypto.NewKeccakState(),
 
@@ -809,16 +828,6 @@ func (s *StateDB) Copy() *StateDB {
 		}
 		state.stateObjectsDirty[addr] = struct{}{}
 	}
-	// Deep copy the destruction markers.
-	for addr, value := range s.stateObjectsDestruct {
-		state.stateObjectsDestruct[addr] = value
-	}
-	// Deep copy the state changes made in the scope of block
-	// along with their original values.
-	state.accounts = copySet(s.accounts)
-	state.storages = copy2DSet(s.storages)
-	state.accountsOrigin = copySet(state.accountsOrigin)
-	state.storagesOrigin = copy2DSet(state.storagesOrigin)
 
 	// Deep copy the logs occurred in the scope of block
 	for hash, logs := range s.logs {
@@ -828,10 +837,6 @@ func (s *StateDB) Copy() *StateDB {
 			*cpy[i] = *l
 		}
 		state.logs[hash] = cpy
-	}
-	// Deep copy the preimages occurred in the scope of block
-	for hash, preimage := range s.preimages {
-		state.preimages[hash] = preimage
 	}
 	// Do we need to copy the access list and transient storage?
 	// In practice: No. At the start of a transaction, these two lists are empty.

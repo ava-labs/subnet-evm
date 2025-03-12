@@ -1,11 +1,11 @@
 module github.com/ava-labs/subnet-evm
 
-go 1.22.8
+go 1.23.6
 
 require (
 	github.com/VictoriaMetrics/fastcache v1.12.1
 	github.com/antithesishq/antithesis-sdk-go v0.3.8
-	github.com/ava-labs/avalanchego v1.12.1
+	github.com/ava-labs/avalanchego v1.12.3-0.20250218154446-f1ec9a13b90a
 	github.com/cespare/cp v0.1.0
 	github.com/crate-crypto/go-ipa v0.0.0-20231025140028-3c0104f4b233
 	github.com/davecgh/go-spew v1.1.1
@@ -40,14 +40,16 @@ require (
 	github.com/tyler-smith/go-bip39 v1.1.0
 	github.com/urfave/cli/v2 v2.25.7
 	go.uber.org/goleak v1.3.0
-	go.uber.org/mock v0.4.0
+	go.uber.org/mock v0.5.0
 	go.uber.org/zap v1.26.0
 	golang.org/x/crypto v0.31.0
 	golang.org/x/exp v0.0.0-20231127185646-65229373498e
+	golang.org/x/mod v0.18.0
 	golang.org/x/sync v0.10.0
 	golang.org/x/sys v0.28.0
 	golang.org/x/text v0.21.0
 	golang.org/x/time v0.3.0
+	golang.org/x/tools v0.22.0
 	google.golang.org/protobuf v1.34.2
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 )
@@ -55,7 +57,7 @@ require (
 require (
 	github.com/DataDog/zstd v1.5.2 // indirect
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
-	github.com/ava-labs/coreth v0.13.9-rc.2-encapsulate-signer // indirect
+	github.com/ava-labs/coreth v0.14.1-rc.1.0.20250217192834-6060a4a6a6d3 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bits-and-blooms/bitset v1.10.0 // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.3.2 // indirect
@@ -100,9 +102,6 @@ require (
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.16.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
-	github.com/huin/goupnp v1.3.0 // indirect
-	github.com/jackpal/gateway v1.0.6 // indirect
-	github.com/jackpal/go-nat-pmp v1.0.2 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.15.15 // indirect
@@ -122,7 +121,6 @@ require (
 	github.com/mr-tron/base58 v1.2.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f // indirect
-	github.com/nbutton23/zxcvbn-go v0.0.0-20180912185939-ae427f1e4c1d // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/pelletier/go-toml v1.9.5 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.5 // indirect
@@ -154,10 +152,9 @@ require (
 	go.opentelemetry.io/otel/trace v1.22.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.0.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/net v0.28.0 // indirect
+	golang.org/x/net v0.33.0 // indirect
 	golang.org/x/oauth2 v0.21.0 // indirect
 	golang.org/x/term v0.27.0 // indirect
-	golang.org/x/tools v0.21.1-0.20240508182429-e35e4ccd0d2d // indirect
 	gonum.org/v1/gonum v0.11.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240604185151-ef581f913117 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240827150818-7e3bb234dfed // indirect
