@@ -64,7 +64,7 @@ func BlockGasCostTest(t *testing.T, feeConfig commontype.FeeConfig) {
 		expected   *big.Int
 	}{
 		{
-			name:       "before_subnet_Evm",
+			name:       "before_subnet_evm",
 			parentTime: 10,
 			upgrades:   params.TestPreSubnetEVMChainConfig.NetworkUpgrades,
 			parentCost: maxBlockGasCostBig,
