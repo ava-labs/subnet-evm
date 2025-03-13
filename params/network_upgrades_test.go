@@ -82,7 +82,7 @@ func TestCheckNetworkUpgradesCompatible(t *testing.T) {
 		valid     bool
 	}{
 		{
-			name: "Compatible same NetworkUpgrades",
+			name: "Compatible_same_NetworkUpgrades",
 			upgrades1: &NetworkUpgrades{
 				SubnetEVMTimestamp: utils.NewUint64(1),
 				DurangoTimestamp:   utils.NewUint64(2),
@@ -95,7 +95,7 @@ func TestCheckNetworkUpgradesCompatible(t *testing.T) {
 			valid: true,
 		},
 		{
-			name: "Compatible different NetworkUpgrades",
+			name: "Compatible_different_NetworkUpgrades",
 			upgrades1: &NetworkUpgrades{
 				SubnetEVMTimestamp: utils.NewUint64(1),
 				DurangoTimestamp:   utils.NewUint64(2),
@@ -108,7 +108,7 @@ func TestCheckNetworkUpgradesCompatible(t *testing.T) {
 			valid: true,
 		},
 		{
-			name: "Compatible nil NetworkUpgrades",
+			name: "Compatible_nil_NetworkUpgrades",
 			upgrades1: &NetworkUpgrades{
 				SubnetEVMTimestamp: utils.NewUint64(1),
 				DurangoTimestamp:   utils.NewUint64(2),
@@ -121,7 +121,7 @@ func TestCheckNetworkUpgradesCompatible(t *testing.T) {
 			valid: true,
 		},
 		{
-			name: "Incompatible rewinded NetworkUpgrades",
+			name: "Incompatible_rewinded_NetworkUpgrades",
 			upgrades1: &NetworkUpgrades{
 				SubnetEVMTimestamp: utils.NewUint64(1),
 				DurangoTimestamp:   utils.NewUint64(2),
@@ -134,7 +134,7 @@ func TestCheckNetworkUpgradesCompatible(t *testing.T) {
 			valid: false,
 		},
 		{
-			name: "Incompatible fastforward NetworkUpgrades",
+			name: "Incompatible_fastforward_NetworkUpgrades",
 			upgrades1: &NetworkUpgrades{
 				SubnetEVMTimestamp: utils.NewUint64(1),
 				DurangoTimestamp:   utils.NewUint64(2),
@@ -147,7 +147,7 @@ func TestCheckNetworkUpgradesCompatible(t *testing.T) {
 			valid: false,
 		},
 		{
-			name: "Incompatible nil NetworkUpgrades",
+			name: "Incompatible_nil_NetworkUpgrades",
 			upgrades1: &NetworkUpgrades{
 				SubnetEVMTimestamp: utils.NewUint64(1),
 				DurangoTimestamp:   utils.NewUint64(2),
@@ -160,7 +160,7 @@ func TestCheckNetworkUpgradesCompatible(t *testing.T) {
 			valid: false,
 		},
 		{
-			name: "Incompatible fastforward nil NetworkUpgrades",
+			name: "Incompatible_fastforward_nil_NetworkUpgrades",
 			upgrades1: func() *NetworkUpgrades {
 				upgrades := getDefaultNetworkUpgrades(upgrade.Fuji)
 				return &upgrades
@@ -174,7 +174,7 @@ func TestCheckNetworkUpgradesCompatible(t *testing.T) {
 			valid: false,
 		},
 		{
-			name: "Compatible Fortuna fastforward nil NetworkUpgrades",
+			name: "Compatible_Fortuna_fastforward_nil_NetworkUpgrades",
 			upgrades1: func() *NetworkUpgrades {
 				upgrades := getDefaultNetworkUpgrades(upgrade.Fuji)
 				return &upgrades
@@ -208,7 +208,7 @@ func TestVerifyNetworkUpgrades(t *testing.T) {
 		valid         bool
 	}{
 		{
-			name: "ValidNetworkUpgrades for latest network",
+			name: "ValidNetworkUpgrades_for_latest_network",
 			upgrades: &NetworkUpgrades{
 				SubnetEVMTimestamp: utils.NewUint64(0),
 				DurangoTimestamp:   utils.NewUint64(1607144400),
@@ -218,7 +218,7 @@ func TestVerifyNetworkUpgrades(t *testing.T) {
 			valid:         true,
 		},
 		{
-			name: "Invalid Durango nil upgrade",
+			name: "Invalid_Durango_nil_upgrade",
 			upgrades: &NetworkUpgrades{
 				SubnetEVMTimestamp: utils.NewUint64(1),
 				DurangoTimestamp:   nil,
@@ -227,7 +227,7 @@ func TestVerifyNetworkUpgrades(t *testing.T) {
 			valid:         false,
 		},
 		{
-			name: "Invalid Subnet-EVM non-zero",
+			name: "Invalid_Subnet-EVM_non-zero",
 			upgrades: &NetworkUpgrades{
 				SubnetEVMTimestamp: utils.NewUint64(1),
 				DurangoTimestamp:   utils.NewUint64(2),
@@ -236,7 +236,7 @@ func TestVerifyNetworkUpgrades(t *testing.T) {
 			valid:         false,
 		},
 		{
-			name: "Invalid Durango before default upgrade",
+			name: "Invalid_Durango_before_default_upgrade",
 			upgrades: &NetworkUpgrades{
 				SubnetEVMTimestamp: utils.NewUint64(0),
 				DurangoTimestamp:   utils.NewUint64(1),
@@ -245,7 +245,7 @@ func TestVerifyNetworkUpgrades(t *testing.T) {
 			valid:         false,
 		},
 		{
-			name: "Invalid Mainnet Durango reconfigured to Fuji",
+			name: "Invalid_Mainnet_Durango_reconfigured_to_Fuji",
 			upgrades: &NetworkUpgrades{
 				SubnetEVMTimestamp: utils.NewUint64(0),
 				DurangoTimestamp:   utils.TimeToNewUint64(upgrade.GetConfig(constants.FujiID).DurangoTime),
@@ -254,7 +254,7 @@ func TestVerifyNetworkUpgrades(t *testing.T) {
 			valid:         false,
 		},
 		{
-			name: "Valid Fuji Durango reconfigured to Mainnet",
+			name: "Valid_Fuji_Durango_reconfigured_to_Mainnet",
 			upgrades: &NetworkUpgrades{
 				SubnetEVMTimestamp: utils.NewUint64(0),
 				DurangoTimestamp:   utils.TimeToNewUint64(upgrade.GetConfig(constants.MainnetID).DurangoTime),
@@ -263,7 +263,7 @@ func TestVerifyNetworkUpgrades(t *testing.T) {
 			valid:         false,
 		},
 		{
-			name: "Invalid Etna nil",
+			name: "Invalid_Etna_nil",
 			upgrades: &NetworkUpgrades{
 				SubnetEVMTimestamp: utils.NewUint64(0),
 				DurangoTimestamp:   utils.TimeToNewUint64(upgrade.Mainnet.DurangoTime),
@@ -273,7 +273,7 @@ func TestVerifyNetworkUpgrades(t *testing.T) {
 			valid:         false,
 		},
 		{
-			name: "Invalid Etna before Durango",
+			name: "Invalid_Etna_before_Durango",
 			upgrades: &NetworkUpgrades{
 				SubnetEVMTimestamp: utils.NewUint64(0),
 				DurangoTimestamp:   utils.TimeToNewUint64(upgrade.Mainnet.DurangoTime),
@@ -283,7 +283,7 @@ func TestVerifyNetworkUpgrades(t *testing.T) {
 			valid:         false,
 		},
 		{
-			name: "Valid Fortuna nil",
+			name: "Valid_Fortuna_nil",
 			upgrades: &NetworkUpgrades{
 				SubnetEVMTimestamp: utils.NewUint64(0),
 				DurangoTimestamp:   utils.TimeToNewUint64(upgrade.Fuji.DurangoTime),
