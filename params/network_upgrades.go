@@ -15,6 +15,7 @@ var errCannotBeNil = fmt.Errorf("timestamp cannot be nil")
 
 // NetworkUpgrades contains timestamps that enable network upgrades.
 // Avalanche specific network upgrades are also included here.
+// (nil = no fork, 0 = already activated)
 type NetworkUpgrades struct {
 	// SubnetEVMTimestamp is a placeholder that activates Avalanche Upgrades prior to ApricotPhase6
 	SubnetEVMTimestamp *uint64 `json:"subnetEVMTimestamp,omitempty"`
@@ -24,8 +25,7 @@ type NetworkUpgrades struct {
 	DurangoTimestamp *uint64 `json:"durangoTimestamp,omitempty"`
 	// Placeholder for EtnaTimestamp
 	EtnaTimestamp *uint64 `json:"etnaTimestamp,omitempty"`
-	// Fortuna is a placeholder for the next upgrade.
-	// (nil = no fork, 0 = already activated)
+	// Fortuna has no effect on Subnet-EVM by itself, but is included for completeness.
 	FortunaTimestamp *uint64 `json:"fortunaTimestamp,omitempty"`
 }
 
