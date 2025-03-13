@@ -259,7 +259,7 @@ func TestVerifyNetworkUpgrades(t *testing.T) {
 				SubnetEVMTimestamp: utils.NewUint64(0),
 				DurangoTimestamp:   utils.TimeToNewUint64(upgrade.GetConfig(constants.MainnetID).DurangoTime),
 			},
-			avagoUpgrades: upgrade.Mainnet,
+			avagoUpgrades: upgrade.Fuji,
 			valid:         false,
 		},
 		{
