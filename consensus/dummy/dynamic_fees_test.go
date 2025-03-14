@@ -218,7 +218,7 @@ func testDynamicFeesStaysWithinRange(t *testing.T, test test) {
 	for index, block := range blocks[1:] {
 		testFeeConfig := commontype.FeeConfig{
 			GasLimit:        big.NewInt(8_000_000),
-			TargetBlockRate: commontype.Duration(2 * time.Second),
+			TargetBlockRate: 2000,
 
 			MinBaseFee:               test.minFee,
 			TargetGas:                big.NewInt(15_000_000),
@@ -459,7 +459,7 @@ func TestCalcBaseFeeRegression(t *testing.T) {
 
 	testFeeConfig := commontype.FeeConfig{
 		GasLimit:        big.NewInt(8_000_000),
-		TargetBlockRate: commontype.Duration(2 * time.Second),
+		TargetBlockRate: 2000,
 
 		MinBaseFee:               big.NewInt(1 * params.GWei),
 		TargetGas:                big.NewInt(15_000_000),

@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"time"
 
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/avalanchego/utils/wrappers"
@@ -37,7 +36,7 @@ var (
 
 	DefaultFeeConfig = commontype.FeeConfig{
 		GasLimit:        big.NewInt(8_000_000),
-		TargetBlockRate: commontype.Duration(2 * time.Second),
+		TargetBlockRate: 2000,
 
 		MinBaseFee:               big.NewInt(25_000_000_000),
 		TargetGas:                big.NewInt(15_000_000),

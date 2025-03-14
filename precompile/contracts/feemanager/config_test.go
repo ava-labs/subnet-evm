@@ -6,7 +6,6 @@ package feemanager
 import (
 	"math/big"
 	"testing"
-	"time"
 
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
@@ -19,7 +18,7 @@ import (
 
 var validFeeConfig = commontype.FeeConfig{
 	GasLimit:        big.NewInt(8_000_000),
-	TargetBlockRate: commontype.Duration(2 * time.Second),
+	TargetBlockRate: 2000,
 
 	MinBaseFee:               big.NewInt(25_000_000_000),
 	TargetGas:                big.NewInt(15_000_000),

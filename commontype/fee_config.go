@@ -26,9 +26,9 @@ type FeeConfig struct {
 	// GasLimit sets the max amount of gas consumed per block.
 	GasLimit *big.Int `json:"gasLimit,omitempty"`
 
-	// TargetBlockRate sets the target rate of block production as a duration string.
-	// A target of 2s will target producing a block every 2 seconds.
-	TargetBlockRate Duration `json:"targetBlockRate,omitempty"`
+	// TargetBlockRate sets the target rate of block production as a number of milliseconds.
+	// A target of 2000 will target producing a block every 2 seconds.
+	TargetBlockRate uint64 `json:"targetBlockRate,omitempty"`
 
 	// The minimum base fee sets a lower bound on the EIP-1559 base fee of a block.
 	// Since the block's base fee sets the minimum gas price for any transaction included in that block, this effectively sets a minimum
@@ -123,7 +123,7 @@ func (f *FeeConfig) checkByteLens() error {
 	if isBiggerThanHashLen(f.GasLimit) {
 		return fmt.Errorf("gasLimit exceeds %d bytes", common.HashLength)
 	}
-	if isBiggerThanHashLen(new(big.Int).SetUint64(uint64(f.TargetBlockRate.Seconds()))) {
+	if isBiggerThanHashLen(new(big.Int).SetUint64(uint64(f.TargetBlockRate / 1000))) {
 		return fmt.Errorf("targetBlockRate exceeds %d bytes", common.HashLength)
 	}
 	if isBiggerThanHashLen(f.MinBaseFee) {
