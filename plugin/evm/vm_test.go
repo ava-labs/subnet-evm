@@ -2426,7 +2426,7 @@ func TestFeeManagerChangeFee(t *testing.T) {
 	// set a lower fee config now
 	testLowFeeConfig := commontype.FeeConfig{
 		GasLimit:        big.NewInt(8_000_000),
-		TargetBlockRate: 5 * time.Second,
+		TargetBlockRate: 5000,
 
 		MinBaseFee:               big.NewInt(5_000_000_000),
 		TargetGas:                big.NewInt(18_000_000),

@@ -6,7 +6,6 @@ package feemanager
 import (
 	"math/big"
 	"testing"
-	"time"
 
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/core/state"
@@ -24,7 +23,7 @@ var (
 	regressionBytes     = "8f10b58600000000000000000000000000000000000000000000000000000000017d78400000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000012a05f20000000000000000000000000000000000000000000000000000000000047868c0000000000000000000000000000000000000000000000000000000000000005400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001bc16d674ec800000000000000000000000000000000000000000000000000000de0b6b3a764000000000000000000000000000000000000000000000000000000000000"
 	regressionFeeConfig = commontype.FeeConfig{
 		GasLimit:                 big.NewInt(25000000),
-		TargetBlockRate:          commontype.Duration(2 * time.Second),
+		TargetBlockRate:          2000,
 		MinBaseFee:               big.NewInt(5000000000),
 		TargetGas:                big.NewInt(75000000),
 		BaseFeeChangeDenominator: big.NewInt(84),
@@ -34,7 +33,7 @@ var (
 	}
 	testFeeConfig = commontype.FeeConfig{
 		GasLimit:        big.NewInt(8_000_000),
-		TargetBlockRate: commontype.Duration(2 * time.Second),
+		TargetBlockRate: 2000,
 
 		MinBaseFee:               big.NewInt(25_000_000_000),
 		TargetGas:                big.NewInt(15_000_000),

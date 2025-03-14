@@ -3,14 +3,11 @@
 
 package commontype
 
-import (
-	"math/big"
-	"time"
-)
+import "math/big"
 
 var ValidTestFeeConfig = FeeConfig{
 	GasLimit:        big.NewInt(8_000_000),
-	TargetBlockRate: Duration(2 * time.Second),
+	TargetBlockRate: 2000,
 
 	MinBaseFee:               big.NewInt(25_000_000_000),
 	TargetGas:                big.NewInt(15_000_000),

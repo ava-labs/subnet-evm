@@ -7,7 +7,6 @@ import (
 	"encoding/binary"
 	"math/big"
 	"testing"
-	"time"
 
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/core/types"
@@ -218,7 +217,7 @@ func testDynamicFeesStaysWithinRange(t *testing.T, test test) {
 	for index, block := range blocks[1:] {
 		testFeeConfig := commontype.FeeConfig{
 			GasLimit:        big.NewInt(8_000_000),
-			TargetBlockRate: commontype.Duration(2 * time.Second),
+			TargetBlockRate: 2000,
 
 			MinBaseFee:               test.minFee,
 			TargetGas:                big.NewInt(15_000_000),
@@ -432,13 +431,13 @@ func TestCalcBlockGasCost(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			got := calcBlockGasCost(
-				time.Duration(params.DefaultFeeConfig.TargetBlockRate),
+				params.DefaultFeeConfig.TargetBlockRate,
 				params.DefaultFeeConfig.MinBlockGasCost,
 				params.DefaultFeeConfig.MaxBlockGasCost,
-				testBlockGasCostStep,
+				new(big.Int).Div(testBlockGasCostStep, big.NewInt(1000)),
 				test.parentBlockGasCost,
-				time.Unix(int64(test.parentTime), 0),
-				time.Unix(int64(test.currentTime), 0),
+				test.parentTime,
+				test.currentTime,
 			)
 			assert.Equal(t, test.expected.String(), got.String())
 		})
@@ -459,7 +458,7 @@ func TestCalcBaseFeeRegression(t *testing.T) {
 
 	testFeeConfig := commontype.FeeConfig{
 		GasLimit:        big.NewInt(8_000_000),
-		TargetBlockRate: commontype.Duration(2 * time.Second),
+		TargetBlockRate: 2000,
 
 		MinBaseFee:               big.NewInt(1 * params.GWei),
 		TargetGas:                big.NewInt(15_000_000),

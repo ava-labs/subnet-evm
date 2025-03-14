@@ -120,13 +120,13 @@ func TestVerifyBlockFee(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			blockGasCost := calcBlockGasCost(
-				time.Duration(params.DefaultFeeConfig.TargetBlockRate),
+				params.DefaultFeeConfig.TargetBlockRate,
 				params.DefaultFeeConfig.MinBlockGasCost,
 				params.DefaultFeeConfig.MaxBlockGasCost,
 				testBlockGasCostStep,
 				test.parentBlockGasCost,
-				time.Unix(int64(test.parentTime), 0),
-				time.Unix(int64(test.currentTime), 0),
+				test.parentTime,
+				test.currentTime,
 			)
 			engine := NewFaker()
 			if err := engine.verifyBlockFee(test.baseFee, blockGasCost, test.txs, test.receipts); err != nil {

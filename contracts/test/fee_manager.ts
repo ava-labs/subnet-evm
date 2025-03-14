@@ -58,7 +58,7 @@ describe("ExampleFeeManager", function () {
 
 const C_FEES = {
   gasLimit: 8_000_000, // gasLimit
-  targetBlockRate: 2, // targetBlockRate
+  targetBlockRate: 2000, // targetBlockRate
   minBaseFee: 25_000_000_000, // minBaseFee
   targetGas: 15_000_000, // targetGas
   baseFeeChangeDenominator: 36, // baseFeeChangeDenominator
@@ -69,7 +69,7 @@ const C_FEES = {
 
 const WAGMI_FEES = {
   gasLimit: 20_000_000, // gasLimit
-  targetBlockRate: 2, // targetBlockRate
+  targetBlockRate: 2000, // targetBlockRate
   minBaseFee: 1_000_000_000, // minBaseFee
   targetGas: 100_000_000, // targetGas
   baseFeeChangeDenominator: 48, // baseFeeChangeDenominator
@@ -102,14 +102,14 @@ describe("IFeeManager", function () {
   it("should emit fee config changed event", async function () {
     let tx = await (contract.setFeeConfig(
       WAGMI_FEES.gasLimit,
-       WAGMI_FEES.targetBlockRate,
-       WAGMI_FEES.minBaseFee,
-       WAGMI_FEES.targetGas,
-       WAGMI_FEES.baseFeeChangeDenominator,
-       WAGMI_FEES.minBlockGasCost,
-       WAGMI_FEES.maxBlockGasCost,
-       WAGMI_FEES.blockGasCostStep)
-      )
+      WAGMI_FEES.targetBlockRate,
+      WAGMI_FEES.minBaseFee,
+      WAGMI_FEES.targetGas,
+      WAGMI_FEES.baseFeeChangeDenominator,
+      WAGMI_FEES.minBlockGasCost,
+      WAGMI_FEES.maxBlockGasCost,
+      WAGMI_FEES.blockGasCostStep)
+    )
     let receipt = await tx.wait()
     await expect(receipt)
       .to.emit(contract, 'FeeConfigChanged')
@@ -119,7 +119,7 @@ describe("IFeeManager", function () {
         [C_FEES.gasLimit, C_FEES.targetBlockRate, C_FEES.minBaseFee, C_FEES.targetGas, C_FEES.baseFeeChangeDenominator, C_FEES.minBlockGasCost, C_FEES.maxBlockGasCost, C_FEES.blockGasCostStep],
         // new config
         [WAGMI_FEES.gasLimit, WAGMI_FEES.targetBlockRate, WAGMI_FEES.minBaseFee, WAGMI_FEES.targetGas, WAGMI_FEES.baseFeeChangeDenominator, WAGMI_FEES.minBlockGasCost, WAGMI_FEES.maxBlockGasCost, WAGMI_FEES.blockGasCostStep]
-       );
+      );
   })
 })
 

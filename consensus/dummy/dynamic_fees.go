@@ -7,7 +7,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math/big"
-	"time"
 
 	"github.com/ava-labs/avalanchego/utils/wrappers"
 	"github.com/ava-labs/subnet-evm/commontype"
@@ -204,36 +203,35 @@ func updateLongWindow(window []byte, start uint64, gasConsumed uint64) {
 // calcBlockGasCost calculates the required block gas cost. If [parentTime]
 // > [currentTime], the timeElapsed will be treated as 0.
 func calcBlockGasCost(
-	targetBlockRate time.Duration,
+	targetBlockRate uint64, // milliseconds
 	minBlockGasCost *big.Int,
 	maxBlockGasCost *big.Int,
-	blockGasCostStep *big.Int, // per second
+	blockGasCostStep *big.Int, // per millisecond
 	parentBlockGasCost *big.Int,
-	parentTime, currentTime time.Time,
+	parentTime, currentTime uint64, // seconds
 ) *big.Int {
 	// Handle Subnet EVM boundary by returning the minimum value as the boundary.
 	if parentBlockGasCost == nil {
 		return new(big.Int).Set(minBlockGasCost)
 	}
 
-	blockGasCostStepPerSec, _ := blockGasCostStep.Float64()
-	blockGasCostStepPerNS := blockGasCostStepPerSec / float64(time.Second)
+	blockGasCostStepPerMs, _ := blockGasCostStep.Float64()
 
 	// Treat an invalid parent/current time combination as 0 elapsed time.
-	var timeElapsed time.Duration
-	if parentTime.Before(currentTime) {
-		timeElapsed = currentTime.Sub(parentTime)
+	var secondElapsed uint64
+	if parentTime <= currentTime {
+		secondElapsed = currentTime - parentTime
 	}
 
 	var blockGasCost *big.Int
-	if timeElapsed < targetBlockRate {
-		timeDiff := targetBlockRate - timeElapsed
-		blockGasCostDelta := blockGasCostStepPerNS * float64(timeDiff)
+	if secondElapsed < targetBlockRate/1000 {
+		timeDiffMs := targetBlockRate - secondElapsed*1000
+		blockGasCostDelta := blockGasCostStepPerMs * float64(timeDiffMs)
 		bigBlockGasCostDelta := new(big.Int).SetUint64(uint64(blockGasCostDelta))
 		blockGasCost = new(big.Int).Add(parentBlockGasCost, bigBlockGasCostDelta)
 	} else {
-		timeDiff := timeElapsed - targetBlockRate
-		blockGasCostDelta := blockGasCostStepPerNS * float64(timeDiff)
+		timeDiffMs := secondElapsed*1000 - targetBlockRate
+		blockGasCostDelta := blockGasCostStepPerMs * float64(timeDiffMs)
 		bigBlockGasCostDelta := new(big.Int).SetUint64(uint64(blockGasCostDelta))
 		blockGasCost = new(big.Int).Sub(parentBlockGasCost, bigBlockGasCostDelta)
 	}

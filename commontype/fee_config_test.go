@@ -6,7 +6,6 @@ package commontype
 import (
 	"math/big"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 )
@@ -21,7 +20,7 @@ func TestVerify(t *testing.T) {
 			name: "nil gasLimit in FeeConfig",
 			config: &FeeConfig{
 				// GasLimit:        big.NewInt(8_000_000)
-				TargetBlockRate: Duration(2 * time.Second),
+				TargetBlockRate: 2000,
 
 				MinBaseFee:               big.NewInt(25_000_000_000),
 				TargetGas:                big.NewInt(15_000_000),
@@ -41,7 +40,7 @@ func TestVerify(t *testing.T) {
 		{
 			name:          "invalid TargetBlockRate in FeeConfig",
 			config:        func() *FeeConfig { c := ValidTestFeeConfig; c.TargetBlockRate = 0; return &c }(),
-			expectedError: "targetBlockRate = 0s cannot be less than or equal to 0",
+			expectedError: "targetBlockRate = 0 cannot be less than or equal to 0",
 		},
 		{
 			name:          "invalid MinBaseFee in FeeConfig",
@@ -110,7 +109,7 @@ func TestEqual(t *testing.T) {
 			a:    &ValidTestFeeConfig,
 			b: &FeeConfig{
 				GasLimit:        big.NewInt(8_000_000),
-				TargetBlockRate: Duration(2 * time.Second),
+				TargetBlockRate: 2000,
 
 				MinBaseFee:               big.NewInt(25_000_000_000),
 				TargetGas:                big.NewInt(15_000_000),
