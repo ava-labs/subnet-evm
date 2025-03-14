@@ -33,7 +33,7 @@ func FuzzPackGetFeeConfigOutputEqualTest(f *testing.F) {
 		bigIntVal := new(big.Int).SetBytes(bigIntBytes)
 		feeConfig := commontype.FeeConfig{
 			GasLimit:                 bigIntVal,
-			TargetBlockRate:          blockRate * 1000,
+			TargetBlockRate:          blockRate,
 			MinBaseFee:               bigIntVal,
 			TargetGas:                bigIntVal,
 			BaseFeeChangeDenominator: bigIntVal,
@@ -346,6 +346,10 @@ func testOldPackGetFeeConfigOutputEqual(t *testing.T, feeConfig commontype.FeeCo
 			return
 		}
 		require.NoError(t, err2)
+
+		// The packing only takes care of seconds, so the precision of milliseconds is lost
+		feeConfig.TargetBlockRate = (feeConfig.TargetBlockRate / 1000) * 1000
+
 		require.True(t, config.Equal(&unpacked), "not equal: config %v, unpacked %v", feeConfig, unpacked)
 		if checkOutputs {
 			require.True(t, feeConfig.Equal(&unpacked), "not equal: feeConfig %v, unpacked %v", feeConfig, unpacked)
