@@ -21,7 +21,7 @@ import (
 const (
 	// Minimum amount of time to wait after building a block before attempting to build a block
 	// a second time without changing the contents of the mempool.
-	minBlockBuildingRetryDelay = 500 * time.Millisecond
+	minBlockBuildingRetryDelay = 100 * time.Millisecond
 )
 
 type blockBuilder struct {
