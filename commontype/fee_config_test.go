@@ -40,7 +40,7 @@ func TestVerify(t *testing.T) {
 		{
 			name:          "invalid TargetBlockRate in FeeConfig",
 			config:        func() *FeeConfig { c := ValidTestFeeConfig; c.TargetBlockRate = 0; return &c }(),
-			expectedError: "targetBlockRate = 0s cannot be less than or equal to 0",
+			expectedError: "targetBlockRate = 0 cannot be less than or equal to 0",
 		},
 		{
 			name:          "invalid MinBaseFee in FeeConfig",
