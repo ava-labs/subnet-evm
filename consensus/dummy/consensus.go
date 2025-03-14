@@ -184,7 +184,8 @@ func (eng *DummyEngine) verifyHeaderGasFields(config *params.ChainConfig, header
 		feeConfig.MaxBlockGasCost,
 		feeConfig.BlockGasCostStep,
 		parent.BlockGasCost,
-		parent.Time, header.Time,
+		time.Unix(int64(parent.Time), 0),
+		time.Unix(int64(header.Time), 0),
 	)
 	if header.BlockGasCost == nil {
 		return errBlockGasCostNil
@@ -379,7 +380,8 @@ func (eng *DummyEngine) Finalize(chain consensus.ChainHeaderReader, block *types
 			feeConfig.MaxBlockGasCost,
 			feeConfig.BlockGasCostStep,
 			parent.BlockGasCost,
-			parent.Time, block.Time(),
+			time.Unix(int64(parent.Time), 0),
+			time.Unix(int64(block.Time()), 0),
 		)
 		// Verify the BlockGasCost set in the header matches the calculated value.
 		if blockBlockGasCost := block.BlockGasCost(); blockBlockGasCost == nil || !blockBlockGasCost.IsUint64() || blockBlockGasCost.Cmp(blockGasCost) != 0 {
@@ -416,7 +418,8 @@ func (eng *DummyEngine) FinalizeAndAssemble(chain consensus.ChainHeaderReader, h
 			feeConfig.MaxBlockGasCost,
 			feeConfig.BlockGasCostStep,
 			parent.BlockGasCost,
-			parent.Time, header.Time,
+			time.Unix(int64(parent.Time), 0),
+			time.Unix(int64(header.Time), 0),
 		)
 		// Verify that this block covers the block fee.
 		if err := eng.verifyBlockFee(

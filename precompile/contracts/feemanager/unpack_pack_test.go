@@ -193,7 +193,7 @@ func FuzzPackSetFeeConfigEqualTest(f *testing.F) {
 		bigIntVal := new(big.Int).SetBytes(bigIntBytes)
 		feeConfig := commontype.FeeConfig{
 			GasLimit:                 bigIntVal,
-			TargetBlockRate:          blockRate,
+			TargetBlockRate:          blockRate * 1000,
 			MinBaseFee:               bigIntVal,
 			TargetGas:                bigIntVal,
 			BaseFeeChangeDenominator: bigIntVal,
@@ -346,6 +346,10 @@ func testOldPackGetFeeConfigOutputEqual(t *testing.T, feeConfig commontype.FeeCo
 			return
 		}
 		require.NoError(t, err2)
+
+		// The packing only takes care of seconds, so the precision of milliseconds is lost
+		feeConfig.TargetBlockRate = (feeConfig.TargetBlockRate / 1000) * 1000
+
 		require.True(t, config.Equal(&unpacked), "not equal: config %v, unpacked %v", feeConfig, unpacked)
 		if checkOutputs {
 			require.True(t, feeConfig.Equal(&unpacked), "not equal: feeConfig %v, unpacked %v", feeConfig, unpacked)
@@ -417,7 +421,7 @@ func OldUnpackFeeConfig(input []byte) (commontype.FeeConfig, error) {
 		case gasLimitKey:
 			feeConfig.GasLimit = new(big.Int).SetBytes(packedElement)
 		case targetBlockRateKey:
-			feeConfig.TargetBlockRate = new(big.Int).SetBytes(packedElement).Uint64()
+			feeConfig.TargetBlockRate = new(big.Int).SetBytes(packedElement).Uint64() * 1000
 		case minBaseFeeKey:
 			feeConfig.MinBaseFee = new(big.Int).SetBytes(packedElement)
 		case targetGasKey:
@@ -441,7 +445,7 @@ func OldUnpackFeeConfig(input []byte) (commontype.FeeConfig, error) {
 func packFeeConfigHelper(feeConfig commontype.FeeConfig, useSelector bool) ([]byte, error) {
 	hashes := []common.Hash{
 		common.BigToHash(feeConfig.GasLimit),
-		common.BigToHash(new(big.Int).SetUint64(feeConfig.TargetBlockRate)),
+		common.BigToHash(new(big.Int).SetUint64(feeConfig.TargetBlockRate / 1000)),
 		common.BigToHash(feeConfig.MinBaseFee),
 		common.BigToHash(feeConfig.TargetGas),
 		common.BigToHash(feeConfig.BaseFeeChangeDenominator),

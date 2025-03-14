@@ -18,7 +18,7 @@ import (
 
 var validFeeConfig = commontype.FeeConfig{
 	GasLimit:        big.NewInt(8_000_000),
-	TargetBlockRate: 2, // in seconds
+	TargetBlockRate: 2000,
 
 	MinBaseFee:               big.NewInt(25_000_000_000),
 	TargetGas:                big.NewInt(15_000_000),
