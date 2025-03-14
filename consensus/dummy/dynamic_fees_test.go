@@ -432,10 +432,10 @@ func TestCalcBlockGasCost(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			got := calcBlockGasCost(
-				time.Duration(params.DefaultFeeConfig.TargetBlockRate),
+				params.DefaultFeeConfig.TargetBlockRate,
 				params.DefaultFeeConfig.MinBlockGasCost,
 				params.DefaultFeeConfig.MaxBlockGasCost,
-				testBlockGasCostStep,
+				new(big.Int).Div(testBlockGasCostStep, big.NewInt(1000)),
 				test.parentBlockGasCost,
 				time.Unix(int64(test.parentTime), 0),
 				time.Unix(int64(test.currentTime), 0),

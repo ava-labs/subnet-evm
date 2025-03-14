@@ -179,7 +179,7 @@ func (eng *DummyEngine) verifyHeaderGasFields(config *params.ChainConfig, header
 
 	// Enforce BlockGasCost constraints
 	expectedBlockGasCost := calcBlockGasCost(
-		time.Duration(feeConfig.TargetBlockRate),
+		feeConfig.TargetBlockRate,
 		feeConfig.MinBlockGasCost,
 		feeConfig.MaxBlockGasCost,
 		feeConfig.BlockGasCostStep,
@@ -375,7 +375,7 @@ func (eng *DummyEngine) Finalize(chain consensus.ChainHeaderReader, block *types
 		// Calculate the expected blockGasCost for this block.
 		// Note: this is a deterministic transtion that defines an exact block fee for this block.
 		blockGasCost := calcBlockGasCost(
-			time.Duration(feeConfig.TargetBlockRate),
+			feeConfig.TargetBlockRate,
 			feeConfig.MinBlockGasCost,
 			feeConfig.MaxBlockGasCost,
 			feeConfig.BlockGasCostStep,
@@ -413,7 +413,7 @@ func (eng *DummyEngine) FinalizeAndAssemble(chain consensus.ChainHeaderReader, h
 		}
 		// Calculate the required block gas cost for this block.
 		header.BlockGasCost = calcBlockGasCost(
-			time.Duration(feeConfig.TargetBlockRate),
+			feeConfig.TargetBlockRate,
 			feeConfig.MinBlockGasCost,
 			feeConfig.MaxBlockGasCost,
 			feeConfig.BlockGasCostStep,

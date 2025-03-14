@@ -120,7 +120,7 @@ func TestVerifyBlockFee(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			blockGasCost := calcBlockGasCost(
-				time.Duration(params.DefaultFeeConfig.TargetBlockRate),
+				params.DefaultFeeConfig.TargetBlockRate,
 				params.DefaultFeeConfig.MinBlockGasCost,
 				params.DefaultFeeConfig.MaxBlockGasCost,
 				testBlockGasCostStep,
