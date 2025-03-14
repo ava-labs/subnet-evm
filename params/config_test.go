@@ -292,7 +292,7 @@ func TestChainConfigMarshalWithUpgrades(t *testing.T) {
 		"chainId": 1,
 		"feeConfig": {
 			"gasLimit": 8000000,
-			"targetBlockRate": 2,
+			"targetBlockRate": "2s",
 			"minBaseFee": 25000000000,
 			"targetGas": 15000000,
 			"baseFeeChangeDenominator": 36,

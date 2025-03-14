@@ -6,6 +6,7 @@ package feemanager
 
 import (
 	"math/big"
+	"time"
 
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
@@ -52,7 +53,7 @@ func UnpackFeeConfigChangedEventData(dataBytes []byte) (commontype.FeeConfig, co
 func convertFromCommonConfig(config commontype.FeeConfig) changeFeeConfigEventData {
 	return changeFeeConfigEventData{
 		GasLimit:                 config.GasLimit,
-		TargetBlockRate:          new(big.Int).SetUint64(config.TargetBlockRate),
+		TargetBlockRate:          new(big.Int).SetUint64(uint64(config.TargetBlockRate.Seconds())),
 		MinBaseFee:               config.MinBaseFee,
 		TargetGas:                config.TargetGas,
 		BaseFeeChangeDenominator: config.BaseFeeChangeDenominator,
@@ -63,9 +64,9 @@ func convertFromCommonConfig(config commontype.FeeConfig) changeFeeConfigEventDa
 }
 
 func convertToCommonConfig(config changeFeeConfigEventData) commontype.FeeConfig {
-	var targetBlockRate uint64
+	var targetBlockRate commontype.Duration
 	if config.TargetBlockRate != nil {
-		targetBlockRate = config.TargetBlockRate.Uint64()
+		targetBlockRate = commontype.Duration(time.Duration(config.TargetBlockRate.Uint64()) * time.Second)
 	}
 	return commontype.FeeConfig{
 		GasLimit:                 config.GasLimit,

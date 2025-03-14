@@ -1511,7 +1511,7 @@ func TestStatefulPrecompiles(t *testing.T, create func(db ethdb.Database, gspec 
 	}
 	testFeeConfig := commontype.FeeConfig{
 		GasLimit:        big.NewInt(11_000_000),
-		TargetBlockRate: 5, // in seconds
+		TargetBlockRate: commontype.Duration(5 * time.Second),
 
 		MinBaseFee:               big.NewInt(28_000_000_000),
 		TargetGas:                big.NewInt(18_000_000),

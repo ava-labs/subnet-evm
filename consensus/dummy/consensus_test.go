@@ -4,9 +4,9 @@
 package dummy
 
 import (
-	"math"
 	"math/big"
 	"testing"
+	"time"
 
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
@@ -96,8 +96,8 @@ func TestVerifyBlockFee(t *testing.T) {
 		"tx only base fee after large time window": {
 			baseFee:            big.NewInt(100),
 			parentBlockGasCost: big.NewInt(100_000),
-			parentTime:         0,
-			currentTime:        math.MaxUint64,
+			parentTime:         0, // 1970
+			currentTime:        uint64(time.Date(2025, 0, 0, 0, 0, 0, 0, time.UTC).Unix()),
 			txs: []*types.Transaction{
 				types.NewTransaction(0, common.HexToAddress("7ef5a6135f1fd6a02593eedc869c6d41d934aef8"), big.NewInt(0), 100, big.NewInt(100), nil),
 			},
@@ -120,12 +120,13 @@ func TestVerifyBlockFee(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			blockGasCost := calcBlockGasCost(
-				params.DefaultFeeConfig.TargetBlockRate,
+				time.Duration(params.DefaultFeeConfig.TargetBlockRate),
 				params.DefaultFeeConfig.MinBlockGasCost,
 				params.DefaultFeeConfig.MaxBlockGasCost,
 				testBlockGasCostStep,
 				test.parentBlockGasCost,
-				test.parentTime, test.currentTime,
+				time.Unix(int64(test.parentTime), 0),
+				time.Unix(int64(test.currentTime), 0),
 			)
 			engine := NewFaker()
 			if err := engine.verifyBlockFee(test.baseFee, blockGasCost, test.txs, test.receipts); err != nil {

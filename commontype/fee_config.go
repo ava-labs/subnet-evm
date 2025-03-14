@@ -4,8 +4,11 @@
 package commontype
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"math/big"
+	"time"
 
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
@@ -23,9 +26,9 @@ type FeeConfig struct {
 	// GasLimit sets the max amount of gas consumed per block.
 	GasLimit *big.Int `json:"gasLimit,omitempty"`
 
-	// TargetBlockRate sets the target rate of block production in seconds.
-	// A target of 2 will target producing a block every 2 seconds.
-	TargetBlockRate uint64 `json:"targetBlockRate,omitempty"`
+	// TargetBlockRate sets the target rate of block production as a duration string.
+	// A target of 2s will target producing a block every 2 seconds.
+	TargetBlockRate Duration `json:"targetBlockRate,omitempty"`
 
 	// The minimum base fee sets a lower bound on the EIP-1559 base fee of a block.
 	// Since the block's base fee sets the minimum gas price for any transaction included in that block, this effectively sets a minimum
@@ -48,7 +51,7 @@ type FeeConfig struct {
 	MaxBlockGasCost *big.Int `json:"maxBlockGasCost,omitempty"`
 	// BlockGasCostStep determines how much to increase/decrease the block gas cost depending on the amount of time elapsed since the previous block.
 	// If the block is produced at the target rate, the block gas cost will stay the same as the block gas cost for the parent block.
-	// If it is produced faster/slower, the block gas cost will be increased/decreased by the step value for each second faster/slower than the target
+	// If it is produced faster/slower, the block gas cost will be increased/decreased by the step value for each nanosecond faster/slower than the target
 	// block rate accordingly.
 	// Note: if the BlockGasCostStep is set to a very large number, it effectively requires block production to go no faster than the TargetBlockRate.
 	//
@@ -82,7 +85,7 @@ func (f *FeeConfig) Verify() error {
 	case f.GasLimit.Cmp(common.Big0) != 1:
 		return fmt.Errorf("gasLimit = %d cannot be less than or equal to 0", f.GasLimit)
 	case f.TargetBlockRate <= 0:
-		return fmt.Errorf("targetBlockRate = %d cannot be less than or equal to 0", f.TargetBlockRate)
+		return fmt.Errorf("targetBlockRate = %s cannot be less than or equal to 0", f.TargetBlockRate)
 	case f.MinBaseFee.Cmp(common.Big0) == -1:
 		return fmt.Errorf("minBaseFee = %d cannot be less than 0", f.MinBaseFee)
 	case f.TargetGas.Cmp(common.Big0) != 1:
@@ -120,7 +123,7 @@ func (f *FeeConfig) checkByteLens() error {
 	if isBiggerThanHashLen(f.GasLimit) {
 		return fmt.Errorf("gasLimit exceeds %d bytes", common.HashLength)
 	}
-	if isBiggerThanHashLen(new(big.Int).SetUint64(f.TargetBlockRate)) {
+	if isBiggerThanHashLen(new(big.Int).SetUint64(uint64(f.TargetBlockRate.Seconds()))) {
 		return fmt.Errorf("targetBlockRate exceeds %d bytes", common.HashLength)
 	}
 	if isBiggerThanHashLen(f.MinBaseFee) {
@@ -148,4 +151,62 @@ func isBiggerThanHashLen(bigint *big.Int) bool {
 	buf := bigint.Bytes()
 	isBigger := len(buf) > common.HashLength
 	return isBigger
+}
+
+type Duration time.Duration
+
+func (d Duration) MarshalJSON() ([]byte, error) {
+	return json.Marshal(time.Duration(d).String())
+}
+
+func (d *Duration) UnmarshalJSON(b []byte) error {
+	var v interface{}
+	if err := json.Unmarshal(b, &v); err != nil {
+		return err
+	}
+	switch value := v.(type) {
+	case float64:
+		*d = Duration(time.Duration(value))
+		return nil
+	case string:
+		tmp, err := time.ParseDuration(value)
+		if err != nil {
+			return err
+		}
+		*d = Duration(tmp)
+		return nil
+	default:
+		return errors.New("invalid duration")
+	}
+}
+
+func (d Duration) Abs() time.Duration {
+	return time.Duration(d).Abs()
+}
+func (d Duration) Hours() float64 {
+	return time.Duration(d).Hours()
+}
+func (d Duration) Microseconds() int64 {
+	return time.Duration(d).Microseconds()
+}
+func (d Duration) Milliseconds() int64 {
+	return time.Duration(d).Milliseconds()
+}
+func (d Duration) Minutes() float64 {
+	return time.Duration(d).Minutes()
+}
+func (d Duration) Nanoseconds() int64 {
+	return time.Duration(d).Nanoseconds()
+}
+func (d Duration) Round(m time.Duration) time.Duration {
+	return time.Duration(d).Round(m)
+}
+func (d Duration) Seconds() float64 {
+	return time.Duration(d).Seconds()
+}
+func (d Duration) String() string {
+	return time.Duration(d).String()
+}
+func (d Duration) Truncate(m time.Duration) time.Duration {
+	return time.Duration(d).Truncate(m)
 }
