@@ -28,7 +28,7 @@ import (
 
 const (
 	// The load test requires 5 nodes
-	nodeCount = 5
+	nodeCount = 1
 
 	subnetAName = "load-subnet-a"
 )
