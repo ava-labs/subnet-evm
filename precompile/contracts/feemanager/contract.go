@@ -128,7 +128,7 @@ func StoreFeeConfig(stateDB contract.StateDB, feeConfig commontype.FeeConfig, bl
 		case gasLimitKey:
 			input = common.BigToHash(feeConfig.GasLimit)
 		case targetBlockRateKey:
-			input = common.BigToHash(new(big.Int).SetUint64(uint64(feeConfig.TargetBlockRate / 1000)))
+			input = common.BigToHash(new(big.Int).SetUint64(feeConfig.TargetBlockRate / 1000))
 		case minBaseFeeKey:
 			input = common.BigToHash(feeConfig.MinBaseFee)
 		case targetGasKey:
@@ -160,7 +160,7 @@ func StoreFeeConfig(stateDB contract.StateDB, feeConfig commontype.FeeConfig, bl
 func PackSetFeeConfig(input commontype.FeeConfig) ([]byte, error) {
 	inputStruct := FeeConfigABIStruct{
 		GasLimit:                 input.GasLimit,
-		TargetBlockRate:          new(big.Int).SetUint64(uint64(input.TargetBlockRate / 1000)),
+		TargetBlockRate:          new(big.Int).SetUint64(input.TargetBlockRate / 1000),
 		MinBaseFee:               input.MinBaseFee,
 		TargetGas:                input.TargetGas,
 		BaseFeeChangeDenominator: input.BaseFeeChangeDenominator,
@@ -268,7 +268,7 @@ func PackGetFeeConfig() ([]byte, error) {
 func PackGetFeeConfigOutput(output commontype.FeeConfig) ([]byte, error) {
 	outputStruct := FeeConfigABIStruct{
 		GasLimit:                 output.GasLimit,
-		TargetBlockRate:          new(big.Int).SetUint64(uint64(output.TargetBlockRate / 1000)),
+		TargetBlockRate:          new(big.Int).SetUint64(output.TargetBlockRate / 1000),
 		MinBaseFee:               output.MinBaseFee,
 		TargetGas:                output.TargetGas,
 		BaseFeeChangeDenominator: output.BaseFeeChangeDenominator,

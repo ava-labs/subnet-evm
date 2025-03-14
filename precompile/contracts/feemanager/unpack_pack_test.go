@@ -441,7 +441,7 @@ func OldUnpackFeeConfig(input []byte) (commontype.FeeConfig, error) {
 func packFeeConfigHelper(feeConfig commontype.FeeConfig, useSelector bool) ([]byte, error) {
 	hashes := []common.Hash{
 		common.BigToHash(feeConfig.GasLimit),
-		common.BigToHash(new(big.Int).SetUint64(uint64(feeConfig.TargetBlockRate / 1000))),
+		common.BigToHash(new(big.Int).SetUint64(feeConfig.TargetBlockRate / 1000)),
 		common.BigToHash(feeConfig.MinBaseFee),
 		common.BigToHash(feeConfig.TargetGas),
 		common.BigToHash(feeConfig.BaseFeeChangeDenominator),

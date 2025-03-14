@@ -85,7 +85,7 @@ func (f *FeeConfig) Verify() error {
 	case f.GasLimit.Cmp(common.Big0) != 1:
 		return fmt.Errorf("gasLimit = %d cannot be less than or equal to 0", f.GasLimit)
 	case f.TargetBlockRate <= 0:
-		return fmt.Errorf("targetBlockRate = %s cannot be less than or equal to 0", f.TargetBlockRate)
+		return fmt.Errorf("targetBlockRate = %d cannot be less than or equal to 0", f.TargetBlockRate)
 	case f.MinBaseFee.Cmp(common.Big0) == -1:
 		return fmt.Errorf("minBaseFee = %d cannot be less than 0", f.MinBaseFee)
 	case f.TargetGas.Cmp(common.Big0) != 1:
