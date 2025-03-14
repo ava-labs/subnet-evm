@@ -171,7 +171,7 @@ func getDefaultNetworkUpgrades(agoUpgrade upgrade.Config) NetworkUpgrades {
 		SubnetEVMTimestamp: utils.NewUint64(0),
 		DurangoTimestamp:   utils.TimeToNewUint64(agoUpgrade.DurangoTime),
 		EtnaTimestamp:      utils.TimeToNewUint64(agoUpgrade.EtnaTime),
-		FortunaTimestamp:   nil, // Fortuna is optional and have no effect on Subnet-EVM
+		FortunaTimestamp:   nil, // Fortuna is optional and has no effect on Subnet-EVM
 	}
 }
 
