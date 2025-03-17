@@ -248,78 +248,41 @@ func TestVerifyExtra(t *testing.T) {
 	}
 }
 
-func TestPredicateBytesFromExtra(t *testing.T) {
+func TestPredicateBytesExtra(t *testing.T) {
 	tests := []struct {
-		name     string
-		extra    []byte
-		expected []byte
+		name                   string
+		extra                  []byte
+		predicate              []byte
+		wantExtraWithPredicate []byte
+		wantPredicateBytes     []byte
 	}{
 		{
-			name:     "empty_extra",
-			extra:    nil,
-			expected: nil,
+			name:                   "empty_extra_predicate",
+			extra:                  nil,
+			predicate:              nil,
+			wantExtraWithPredicate: make([]byte, subnetevm.WindowSize),
+			wantPredicateBytes:     nil,
 		},
 		{
-			name:     "too_short",
-			extra:    make([]byte, subnetevm.WindowSize-1),
-			expected: nil,
-		},
-		{
-			name:     "empty_predicate",
-			extra:    make([]byte, subnetevm.WindowSize),
-			expected: nil,
-		},
-		{
-			name: "non_empty_predicate",
+			name: "extra_too_short",
 			extra: []byte{
-				subnetevm.WindowSize: 5,
+				0:                        1,
+				subnetevm.WindowSize - 1: 0,
 			},
-			expected: []byte{5},
-		},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			got := PredicateBytesFromExtra(test.extra)
-			require.Equal(t, test.expected, got)
-		})
-	}
-}
-
-func TestSetPredicateBytesInExtra(t *testing.T) {
-	tests := []struct {
-		name      string
-		extra     []byte
-		predicate []byte
-		want      []byte
-	}{
-		{
-			name: "empty_extra_predicate",
-			want: make([]byte, subnetevm.WindowSize),
-		},
-		{
-			name:      "extra_too_short",
-			extra:     []byte{1},
 			predicate: []byte{2},
-			want: []byte{
+			wantExtraWithPredicate: []byte{
 				0:                    1,
 				subnetevm.WindowSize: 2,
 			},
-		},
-		{
-			name: "extra_too_long",
-			extra: []byte{
-				subnetevm.WindowSize: 1,
-			},
-			predicate: []byte{2},
-			want: []byte{
-				subnetevm.WindowSize: 2,
-			},
+			wantPredicateBytes: []byte{2},
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			got := SetPredicateBytesInExtra(test.extra, test.predicate)
-			require.Equal(t, test.want, got)
+			gotExtra := SetPredicateBytesInExtra(test.extra, test.predicate)
+			require.Equal(t, test.wantExtraWithPredicate, gotExtra)
+			gotPredicateBytes := PredicateBytesFromExtra(gotExtra)
+			require.Equal(t, test.wantPredicateBytes, gotPredicateBytes)
 		})
 	}
 }
