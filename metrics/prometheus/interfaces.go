@@ -2,8 +2,8 @@
 // See the file LICENSE for licensing terms.
 package prometheus
 
-// Registry is a narrower interface of [prometheus.Registry] containing
-// only the required functions for the [Gatherer].
+// Registry is a narrower interface of the official prometheus
+// Registry containing only the required functions for the [Gatherer].
 type Registry interface {
 	// Call the given function for each registered metric.
 	Each(func(string, any))
