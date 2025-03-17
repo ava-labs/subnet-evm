@@ -59,7 +59,7 @@ func (n *NetworkUpgrades) forkOrder() []fork {
 	}
 }
 
-// setDefaults sets the default values for the network upgrades.
+// SetDefaults sets the default values for the network upgrades.
 // This overrides deactivating the network upgrade by providing a timestamp of nil value.
 func (n *NetworkUpgrades) SetDefaults(agoUpgrades upgrade.Config) {
 	defaults := getDefaultNetworkUpgrades(agoUpgrades)
