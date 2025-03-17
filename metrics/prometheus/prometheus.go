@@ -11,7 +11,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 
-	dto2 "github.com/prometheus/client_model/go"
+	dto "github.com/prometheus/client_model/go"
 )
 
 var (
@@ -24,7 +24,7 @@ type gatherer struct {
 	reg metrics.Registry
 }
 
-func (g gatherer) Gather() ([]*dto2.MetricFamily, error) {
+func (g gatherer) Gather() ([]*dto.MetricFamily, error) {
 	// Gather and pre-sort the metrics to avoid random listings
 	var names []string
 	g.reg.Each(func(name string, i interface{}) {
@@ -32,7 +32,7 @@ func (g gatherer) Gather() ([]*dto2.MetricFamily, error) {
 	})
 	sort.Strings(names)
 
-	mfs := make([]*dto2.MetricFamily, 0, len(names))
+	mfs := make([]*dto.MetricFamily, 0, len(names))
 	for _, name := range names {
 		mIntf := g.reg.Get(name)
 		name := strings.Replace(name, "/", "_", -1)
@@ -41,22 +41,22 @@ func (g gatherer) Gather() ([]*dto2.MetricFamily, error) {
 		case metrics.Counter:
 			val := m.Snapshot().Count()
 			valFloat := float64(val)
-			mfs = append(mfs, &dto2.MetricFamily{
+			mfs = append(mfs, &dto.MetricFamily{
 				Name: &name,
-				Type: dto2.MetricType_COUNTER.Enum(),
-				Metric: []*dto2.Metric{{
-					Counter: &dto2.Counter{
+				Type: dto.MetricType_COUNTER.Enum(),
+				Metric: []*dto.Metric{{
+					Counter: &dto.Counter{
 						Value: &valFloat,
 					},
 				}},
 			})
 		case metrics.CounterFloat64:
 			val := m.Snapshot().Count()
-			mfs = append(mfs, &dto2.MetricFamily{
+			mfs = append(mfs, &dto.MetricFamily{
 				Name: &name,
-				Type: dto2.MetricType_COUNTER.Enum(),
-				Metric: []*dto2.Metric{{
-					Counter: &dto2.Counter{
+				Type: dto.MetricType_COUNTER.Enum(),
+				Metric: []*dto.Metric{{
+					Counter: &dto.Counter{
 						Value: &val,
 					},
 				}},
@@ -64,22 +64,22 @@ func (g gatherer) Gather() ([]*dto2.MetricFamily, error) {
 		case metrics.Gauge:
 			val := m.Snapshot().Value()
 			valFloat := float64(val)
-			mfs = append(mfs, &dto2.MetricFamily{
+			mfs = append(mfs, &dto.MetricFamily{
 				Name: &name,
-				Type: dto2.MetricType_GAUGE.Enum(),
-				Metric: []*dto2.Metric{{
-					Gauge: &dto2.Gauge{
+				Type: dto.MetricType_GAUGE.Enum(),
+				Metric: []*dto.Metric{{
+					Gauge: &dto.Gauge{
 						Value: &valFloat,
 					},
 				}},
 			})
 		case metrics.GaugeFloat64:
 			val := m.Snapshot().Value()
-			mfs = append(mfs, &dto2.MetricFamily{
+			mfs = append(mfs, &dto.MetricFamily{
 				Name: &name,
-				Type: dto2.MetricType_GAUGE.Enum(),
-				Metric: []*dto2.Metric{{
-					Gauge: &dto2.Gauge{
+				Type: dto.MetricType_GAUGE.Enum(),
+				Metric: []*dto.Metric{{
+					Gauge: &dto.Gauge{
 						Value: &val,
 					},
 				}},
@@ -92,21 +92,21 @@ func (g gatherer) Gather() ([]*dto2.MetricFamily, error) {
 			sumFloat := float64(sum)
 
 			ps := snapshot.Percentiles(pv)
-			qs := make([]*dto2.Quantile, len(pv))
+			qs := make([]*dto.Quantile, len(pv))
 			for i := range ps {
 				v := pv[i]
 				s := ps[i]
-				qs[i] = &dto2.Quantile{
+				qs[i] = &dto.Quantile{
 					Quantile: &v,
 					Value:    &s,
 				}
 			}
 
-			mfs = append(mfs, &dto2.MetricFamily{
+			mfs = append(mfs, &dto.MetricFamily{
 				Name: &name,
-				Type: dto2.MetricType_SUMMARY.Enum(),
-				Metric: []*dto2.Metric{{
-					Summary: &dto2.Summary{
+				Type: dto.MetricType_SUMMARY.Enum(),
+				Metric: []*dto.Metric{{
+					Summary: &dto.Summary{
 						SampleCount: &countUint,
 						SampleSum:   &sumFloat,
 						Quantile:    qs,
@@ -116,11 +116,11 @@ func (g gatherer) Gather() ([]*dto2.MetricFamily, error) {
 		case metrics.Meter:
 			val := m.Snapshot().Count()
 			valFloat := float64(val)
-			mfs = append(mfs, &dto2.MetricFamily{
+			mfs = append(mfs, &dto.MetricFamily{
 				Name: &name,
-				Type: dto2.MetricType_GAUGE.Enum(),
-				Metric: []*dto2.Metric{{
-					Gauge: &dto2.Gauge{
+				Type: dto.MetricType_GAUGE.Enum(),
+				Metric: []*dto.Metric{{
+					Gauge: &dto.Gauge{
 						Value: &valFloat,
 					},
 				}},
@@ -133,21 +133,21 @@ func (g gatherer) Gather() ([]*dto2.MetricFamily, error) {
 			sumFloat := float64(sum)
 
 			ps := snapshot.Percentiles(pv)
-			qs := make([]*dto2.Quantile, len(pv))
+			qs := make([]*dto.Quantile, len(pv))
 			for i := range ps {
 				v := pv[i]
 				s := ps[i]
-				qs[i] = &dto2.Quantile{
+				qs[i] = &dto.Quantile{
 					Quantile: &v,
 					Value:    &s,
 				}
 			}
 
-			mfs = append(mfs, &dto2.MetricFamily{
+			mfs = append(mfs, &dto.MetricFamily{
 				Name: &name,
-				Type: dto2.MetricType_SUMMARY.Enum(),
-				Metric: []*dto2.Metric{{
-					Summary: &dto2.Summary{
+				Type: dto.MetricType_SUMMARY.Enum(),
+				Metric: []*dto.Metric{{
+					Summary: &dto.Summary{
 						SampleCount: &countUint,
 						SampleSum:   &sumFloat,
 						Quantile:    qs,
@@ -163,21 +163,21 @@ func (g gatherer) Gather() ([]*dto2.MetricFamily, error) {
 			}
 
 			ps := snapshot.Percentiles(pvShortPercent)
-			qs := make([]*dto2.Quantile, len(pv))
+			qs := make([]*dto.Quantile, len(pv))
 			for i := range pvShort {
 				v := pv[i]
 				s := ps[i]
-				qs[i] = &dto2.Quantile{
+				qs[i] = &dto.Quantile{
 					Quantile: &v,
 					Value:    &s,
 				}
 			}
 
-			mfs = append(mfs, &dto2.MetricFamily{
+			mfs = append(mfs, &dto.MetricFamily{
 				Name: &name,
-				Type: dto2.MetricType_SUMMARY.Enum(),
-				Metric: []*dto2.Metric{{
-					Summary: &dto2.Summary{
+				Type: dto.MetricType_SUMMARY.Enum(),
+				Metric: []*dto.Metric{{
+					Summary: &dto.Summary{
 						SampleCount: &count,
 						// TODO: do we need to specify SampleSum here? and if so
 						// what should that be?
