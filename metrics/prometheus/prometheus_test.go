@@ -120,6 +120,6 @@ func TestGatherer_Gather(t *testing.T) {
 
 	register(t, "unsupported", metrics.NewGaugeInfo())
 	families, err = gatherer.Gather()
-	assert.EqualError(t, err, "metric \"unsupported\": type is not supported: *metrics.StandardGaugeInfo")
+	assert.ErrorIs(t, err, errMetricTypeNotSupported)
 	assert.Empty(t, families)
 }
