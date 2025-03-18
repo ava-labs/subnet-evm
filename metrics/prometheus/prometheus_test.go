@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ava-labs/subnet-evm/internal/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -14,11 +15,7 @@ import (
 )
 
 func TestGatherer_Gather(t *testing.T) {
-	enabledOriginal := metrics.Enabled
-	t.Cleanup(func() {
-		metrics.Enabled = enabledOriginal
-	})
-	metrics.Enabled = true
+	testutils.WithMetrics(t)
 
 	registry := metrics.NewRegistry()
 	register := func(t *testing.T, name string, collector any) {
