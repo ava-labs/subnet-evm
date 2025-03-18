@@ -4,13 +4,22 @@
 package types
 
 import (
+	"io"
+
 	ethtypes "github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/rlp"
 )
 
 var extras = ethtypes.RegisterExtras[
 	HeaderExtra, *HeaderExtra,
 	ethtypes.NOOPBlockBodyHooks, *ethtypes.NOOPBlockBodyHooks,
-	isMultiCoin,
+	noopStateAccountExtras,
 ]()
 
-type isMultiCoin bool
+type noopStateAccountExtras struct{}
+
+// EncodeRLP implements the [rlp.Encoder] interface.
+func (noopStateAccountExtras) EncodeRLP(w io.Writer) error { return nil }
+
+// DecodeRLP implements the [rlp.Decoder] interface.
+func (*noopStateAccountExtras) DecodeRLP(s *rlp.Stream) error { return nil }
