@@ -44,10 +44,10 @@ func (g *Gatherer) Gather() (mfs []*dto.MetricFamily, err error) {
 	mfs = make([]*dto.MetricFamily, 0, len(names))
 	for _, name := range names {
 		mf, err := metricFamily(g.registry, name)
-		if err != nil {
-			if errors.Is(err, errMetricSkip) {
-				continue
-			}
+		switch {
+		case errors.Is(err, errMetricSkip):
+			continue
+		case err != nil:
 			return nil, err
 		}
 		mfs = append(mfs, mf)
