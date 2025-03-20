@@ -2,8 +2,10 @@
 // See the file LICENSE for licensing terms.
 package prometheus
 
-// Registry is a narrower interface of the official prometheus
-// Registry containing only the required functions for the [Gatherer].
+import "github.com/ava-labs/libevm/metrics"
+
+var _ Registry = metrics.Registry(nil)
+
 type Registry interface {
 	// Call the given function for each registered metric.
 	Each(func(string, any))
