@@ -43,7 +43,7 @@ jobs:
           UNATTENDED=1 ./build.sh
           echo "$PWD/target/bin" >> "$GITHUB_PATH"
       - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v3
+        uses: goreleaser/goreleaser-action@b508e2e3ef3b19d4e4146d4f8fb3ba9db644a757 #v3
         with:
           distribution: goreleaser
           version: v2.5.1
