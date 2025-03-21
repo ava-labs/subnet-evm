@@ -41,7 +41,7 @@ jobs:
       - name: Ensure consistent avalanchego version
         shell: bash
         run: |
-          ./scripts/update_avalanchego_version.sh
+          bash -x ./scripts/update_avalanchego_version.sh
           git diff --exit-code
 
   unit_test:
