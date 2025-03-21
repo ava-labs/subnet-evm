@@ -48,3 +48,7 @@ tooling:
    is recommended.
  - Use ./scripts/dev_shell.sh to start a nix shell
  - Execute the dependency-requiring command (e.g. `ginkgo -v ./tests/warp -- --start-collectors`)
+
+This repo also defines a `.envrc` file to configure [devenv](https://direnv.net/). With `devenv`
+and `nix` installed, a shell at the root of the hypersdk repo will automatically start a nix dev
+shell.
