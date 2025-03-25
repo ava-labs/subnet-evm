@@ -8,15 +8,15 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/accounts/keystore"
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/crypto"
+	"github.com/ava-labs/libevm/ethdb"
+	"github.com/ava-labs/libevm/rlp"
+	"github.com/ava-labs/libevm/triedb"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/sync/syncutils"
-	"github.com/ava-labs/subnet-evm/triedb"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/ethdb"
-	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -116,7 +116,7 @@ func fillAccountsWithStorage(t *testing.T, serverDB ethdb.Database, serverTrieDB
 // returns the new trie root and a map of funded keys to StateAccount structs.
 func FillAccountsWithOverlappingStorage(
 	t *testing.T, trieDB *triedb.Database, root common.Hash, numAccounts int, numOverlappingStorageRoots int,
-) (common.Hash, map[*keystore.Key]*types.StateAccount) {
+) (common.Hash, map[*utils.Key]*types.StateAccount) {
 	storageRoots := make([]common.Hash, 0, numOverlappingStorageRoots)
 	for i := 0; i < numOverlappingStorageRoots; i++ {
 		storageRoot, _, _ := syncutils.GenerateTrie(t, trieDB, 16, common.HashLength)

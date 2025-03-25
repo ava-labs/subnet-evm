@@ -30,11 +30,11 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/ethdb"
+	"github.com/ava-labs/libevm/log"
+	"github.com/ava-labs/libevm/rlp"
 	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/ethdb"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/rlp"
 )
 
 // ReadDatabaseVersion retrieves the version number of the database.
@@ -80,7 +80,7 @@ func ReadChainConfig(db ethdb.KeyValueReader, hash common.Hash) *params.ChainCon
 	if len(data) == 0 {
 		return &config // return early if no upgrade config is found
 	}
-	if err := json.Unmarshal(data, &config.UpgradeConfig); err != nil {
+	if err := json.Unmarshal(data, &params.GetExtra(&config).UpgradeConfig); err != nil {
 		log.Error("Invalid upgrade config JSON", "err", err)
 		return nil
 	}
@@ -102,7 +102,7 @@ func WriteChainConfig(db ethdb.KeyValueWriter, hash common.Hash, cfg *params.Cha
 	}
 
 	// Write the upgrade config for this chain config
-	data, err = json.Marshal(cfg.UpgradeConfig)
+	data, err = json.Marshal(params.GetExtra(cfg).UpgradeConfig)
 	if err != nil {
 		log.Crit("Failed to JSON encode upgrade config", "err", err)
 	}

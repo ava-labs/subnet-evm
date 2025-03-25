@@ -17,9 +17,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/log"
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/crypto"
+	"github.com/ava-labs/libevm/log"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -37,7 +37,7 @@ import (
 	"github.com/ava-labs/avalanchego/utils/formatting"
 	"github.com/ava-labs/avalanchego/vms/components/chain"
 
-	accountKeystore "github.com/ava-labs/subnet-evm/accounts/keystore"
+	"github.com/ava-labs/libevm/trie"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/core"
@@ -46,6 +46,7 @@ import (
 	"github.com/ava-labs/subnet-evm/eth"
 	"github.com/ava-labs/subnet-evm/metrics"
 	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/params/extras"
 	"github.com/ava-labs/subnet-evm/plugin/evm/config"
 	"github.com/ava-labs/subnet-evm/plugin/evm/header"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
@@ -54,7 +55,6 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/contracts/rewardmanager"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/txallowlist"
 	"github.com/ava-labs/subnet-evm/rpc"
-	"github.com/ava-labs/subnet-evm/trie"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 
@@ -361,7 +361,7 @@ func TestBuildEthTxBlock(t *testing.T) {
 	newTxPoolHeadChan := make(chan core.NewTxPoolReorgEvent, 1)
 	vm.txPool.SubscribeNewReorgEvent(newTxPoolHeadChan)
 
-	key, err := accountKeystore.NewKey(rand.Reader)
+	key, err := utils.NewKey(rand.Reader)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1987,7 +1987,8 @@ func TestBuildSubnetEVMBlock(t *testing.T) {
 	if ethBlk.BlockGasCost() == nil || ethBlk.BlockGasCost().Cmp(big.NewInt(100)) < 0 {
 		t.Fatalf("expected blockGasCost to be at least 100 but got %d", ethBlk.BlockGasCost())
 	}
-	minRequiredTip, err := header.EstimateRequiredTip(vm.chainConfig, ethBlk.Header())
+	chainConfig := params.GetExtra(vm.chainConfig)
+	minRequiredTip, err := header.EstimateRequiredTip(chainConfig, ethBlk.Header())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -2020,7 +2021,7 @@ func TestBuildAllowListActivationBlock(t *testing.T) {
 	if err := genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)); err != nil {
 		t.Fatal(err)
 	}
-	genesis.Config.GenesisPrecompiles = params.Precompiles{
+	params.GetExtra(genesis.Config).GenesisPrecompiles = extras.Precompiles{
 		deployerallowlist.ConfigKey: deployerallowlist.NewConfig(utils.TimeToNewUint64(time.Now()), testEthAddrs, nil, nil),
 	}
 
@@ -2089,11 +2090,11 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 		t.Fatal(err)
 	}
 	// this manager role should not be activated because DurangoTimestamp is in the future
-	genesis.Config.GenesisPrecompiles = params.Precompiles{
+	params.GetExtra(genesis.Config).GenesisPrecompiles = extras.Precompiles{
 		txallowlist.ConfigKey: txallowlist.NewConfig(utils.NewUint64(0), testEthAddrs[0:1], nil, nil),
 	}
 	durangoTime := time.Now().Add(10 * time.Hour)
-	genesis.Config.DurangoTimestamp = utils.TimeToNewUint64(durangoTime)
+	params.GetExtra(genesis.Config).DurangoTimestamp = utils.TimeToNewUint64(durangoTime)
 	genesisJSON, err := genesis.MarshalJSON()
 	if err != nil {
 		t.Fatal(err)
@@ -2102,8 +2103,8 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 	// prepare the new upgrade bytes to disable the TxAllowList
 	disableAllowListTime := durangoTime.Add(10 * time.Hour)
 	reenableAllowlistTime := disableAllowListTime.Add(10 * time.Hour)
-	upgradeConfig := &params.UpgradeConfig{
-		PrecompileUpgrades: []params.PrecompileUpgrade{
+	upgradeConfig := &extras.UpgradeConfig{
+		PrecompileUpgrades: []extras.PrecompileUpgrade{
 			{
 				Config: txallowlist.NewDisableConfig(utils.TimeToNewUint64(disableAllowListTime)),
 			},
@@ -2241,9 +2242,9 @@ func TestVerifyManagerConfig(t *testing.T) {
 	require.NoError(t, genesis.UnmarshalJSON([]byte(genesisJSONDurango)))
 
 	durangoTimestamp := time.Now().Add(10 * time.Hour)
-	genesis.Config.DurangoTimestamp = utils.TimeToNewUint64(durangoTimestamp)
+	params.GetExtra(genesis.Config).DurangoTimestamp = utils.TimeToNewUint64(durangoTimestamp)
 	// this manager role should not be activated because DurangoTimestamp is in the future
-	genesis.Config.GenesisPrecompiles = params.Precompiles{
+	params.GetExtra(genesis.Config).GenesisPrecompiles = extras.Precompiles{
 		txallowlist.ConfigKey: txallowlist.NewConfig(utils.NewUint64(0), testEthAddrs[0:1], nil, []common.Address{testEthAddrs[1]}),
 	}
 
@@ -2267,12 +2268,12 @@ func TestVerifyManagerConfig(t *testing.T) {
 
 	genesis = &core.Genesis{}
 	require.NoError(t, genesis.UnmarshalJSON([]byte(genesisJSONDurango)))
-	genesis.Config.DurangoTimestamp = utils.TimeToNewUint64(durangoTimestamp)
+	params.GetExtra(genesis.Config).DurangoTimestamp = utils.TimeToNewUint64(durangoTimestamp)
 	genesisJSON, err = genesis.MarshalJSON()
 	require.NoError(t, err)
 	// use an invalid upgrade now with managers set before Durango
-	upgradeConfig := &params.UpgradeConfig{
-		PrecompileUpgrades: []params.PrecompileUpgrade{
+	upgradeConfig := &extras.UpgradeConfig{
+		PrecompileUpgrades: []extras.PrecompileUpgrade{
 			{
 				Config: txallowlist.NewConfig(utils.TimeToNewUint64(durangoTimestamp.Add(-time.Second)), nil, nil, []common.Address{testEthAddrs[1]}),
 			},
@@ -2306,7 +2307,7 @@ func TestTxAllowListDisablePrecompile(t *testing.T) {
 		t.Fatal(err)
 	}
 	enableAllowListTimestamp := upgrade.InitiallyActiveTime // enable at initially active time
-	genesis.Config.GenesisPrecompiles = params.Precompiles{
+	params.GetExtra(genesis.Config).GenesisPrecompiles = extras.Precompiles{
 		txallowlist.ConfigKey: txallowlist.NewConfig(utils.TimeToNewUint64(enableAllowListTimestamp), testEthAddrs[0:1], nil, nil),
 	}
 	genesisJSON, err := genesis.MarshalJSON()
@@ -2391,7 +2392,7 @@ func TestTxAllowListDisablePrecompile(t *testing.T) {
 	require.Equal(t, signedTx0.Hash(), txs[0].Hash())
 
 	// verify the issued block is after the network upgrade
-	require.GreaterOrEqual(t, int64(block.Timestamp()), disableAllowListTimestamp.Unix())
+	require.GreaterOrEqual(t, int64(block.Time()), disableAllowListTimestamp.Unix())
 
 	<-newTxPoolHeadChan // wait for new head in tx pool
 
@@ -2420,7 +2421,8 @@ func TestFeeManagerChangeFee(t *testing.T) {
 	if err := genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)); err != nil {
 		t.Fatal(err)
 	}
-	genesis.Config.GenesisPrecompiles = params.Precompiles{
+	configExtra := params.GetExtra(genesis.Config)
+	configExtra.GenesisPrecompiles = extras.Precompiles{
 		feemanager.ConfigKey: feemanager.NewConfig(utils.NewUint64(0), testEthAddrs[0:1], nil, nil, nil),
 	}
 
@@ -2438,7 +2440,7 @@ func TestFeeManagerChangeFee(t *testing.T) {
 		BlockGasCostStep: big.NewInt(500_000),
 	}
 
-	genesis.Config.FeeConfig = testLowFeeConfig
+	configExtra.FeeConfig = testLowFeeConfig
 	genesisJSON, err := genesis.MarshalJSON()
 	if err != nil {
 		t.Fatal(err)
@@ -2521,7 +2523,7 @@ func TestFeeManagerChangeFee(t *testing.T) {
 		ChainID:   genesis.Config.ChainID,
 		Nonce:     uint64(1),
 		To:        &feemanager.ContractAddress,
-		Gas:       genesis.Config.FeeConfig.GasLimit.Uint64(),
+		Gas:       configExtra.FeeConfig.GasLimit.Uint64(),
 		Value:     common.Big0,
 		GasFeeCap: testLowFeeConfig.MinBaseFee, // this is too low for applied config, should fail
 		GasTipCap: common.Big0,
@@ -2543,7 +2545,7 @@ func TestAllowFeeRecipientDisabled(t *testing.T) {
 	if err := genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)); err != nil {
 		t.Fatal(err)
 	}
-	genesis.Config.AllowFeeRecipients = false // set to false initially
+	params.GetExtra(genesis.Config).AllowFeeRecipients = false // set to false initially
 	genesisJSON, err := genesis.MarshalJSON()
 	if err != nil {
 		t.Fatal(err)
@@ -2603,7 +2605,7 @@ func TestAllowFeeRecipientEnabled(t *testing.T) {
 	if err := genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)); err != nil {
 		t.Fatal(err)
 	}
-	genesis.Config.AllowFeeRecipients = true
+	params.GetExtra(genesis.Config).AllowFeeRecipients = true
 	genesisJSON, err := genesis.MarshalJSON()
 	if err != nil {
 		t.Fatal(err)
@@ -2662,10 +2664,10 @@ func TestRewardManagerPrecompileSetRewardAddress(t *testing.T) {
 	genesis := &core.Genesis{}
 	require.NoError(t, genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)))
 
-	genesis.Config.GenesisPrecompiles = params.Precompiles{
+	params.GetExtra(genesis.Config).GenesisPrecompiles = extras.Precompiles{
 		rewardmanager.ConfigKey: rewardmanager.NewConfig(utils.NewUint64(0), testEthAddrs[0:1], nil, nil, nil),
 	}
-	genesis.Config.AllowFeeRecipients = true // enable this in genesis to test if this is recognized by the reward manager
+	params.GetExtra(genesis.Config).AllowFeeRecipients = true // enable this in genesis to test if this is recognized by the reward manager
 	genesisJSON, err := genesis.MarshalJSON()
 	require.NoError(t, err)
 
@@ -2770,7 +2772,7 @@ func TestRewardManagerPrecompileSetRewardAddress(t *testing.T) {
 	// to determine the coinbase for this block before full deactivation in the
 	// next block.
 	require.Equal(t, testAddr, ethBlock.Coinbase())
-	require.GreaterOrEqual(t, int64(ethBlock.Timestamp()), disableTime.Unix())
+	require.GreaterOrEqual(t, int64(ethBlock.Time()), disableTime.Unix())
 
 	vm.clock.Set(vm.clock.Time().Add(3 * time.Hour)) // let time pass to decrease gas price
 	// issue another block to verify that the reward manager is disabled
@@ -2790,7 +2792,7 @@ func TestRewardManagerPrecompileSetRewardAddress(t *testing.T) {
 	// reward manager was disabled at previous block
 	// so this block should revert back to enabling fee recipients
 	require.Equal(t, etherBase, ethBlock.Coinbase())
-	require.GreaterOrEqual(t, int64(ethBlock.Timestamp()), disableTime.Unix())
+	require.GreaterOrEqual(t, int64(ethBlock.Time()), disableTime.Unix())
 
 	// Verify that Blackhole has received fees
 	blkState, err = vm.blockChain.StateAt(ethBlock.Root())
@@ -2804,10 +2806,10 @@ func TestRewardManagerPrecompileAllowFeeRecipients(t *testing.T) {
 	genesis := &core.Genesis{}
 	require.NoError(t, genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)))
 
-	genesis.Config.GenesisPrecompiles = params.Precompiles{
+	params.GetExtra(genesis.Config).GenesisPrecompiles = extras.Precompiles{
 		rewardmanager.ConfigKey: rewardmanager.NewConfig(utils.NewUint64(0), testEthAddrs[0:1], nil, nil, nil),
 	}
-	genesis.Config.AllowFeeRecipients = false // disable this in genesis
+	params.GetExtra(genesis.Config).AllowFeeRecipients = false // disable this in genesis
 	genesisJSON, err := genesis.MarshalJSON()
 	require.NoError(t, err)
 	etherBase := common.HexToAddress("0x0123456789") // give custom ether base
@@ -2904,7 +2906,7 @@ func TestRewardManagerPrecompileAllowFeeRecipients(t *testing.T) {
 	require.Equal(t, newHead.Head.Hash(), common.Hash(blk.ID()))
 	ethBlock = blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
 	require.Equal(t, etherBase, ethBlock.Coinbase()) // reward address was activated at previous block
-	require.GreaterOrEqual(t, int64(ethBlock.Timestamp()), disableTime.Unix())
+	require.GreaterOrEqual(t, int64(ethBlock.Time()), disableTime.Unix())
 
 	vm.clock.Set(vm.clock.Time().Add(3 * time.Hour)) // let time pass so that gas price is reduced
 	tx2 = types.NewTransaction(uint64(2), testEthAddrs[0], big.NewInt(2), 21000, big.NewInt(testMinGasPrice), nil)
@@ -2921,7 +2923,7 @@ func TestRewardManagerPrecompileAllowFeeRecipients(t *testing.T) {
 	require.Equal(t, newHead.Head.Hash(), common.Hash(blk.ID()))
 	ethBlock = blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
 	require.Equal(t, constants.BlackholeAddr, ethBlock.Coinbase()) // reward address was activated at previous block
-	require.Greater(t, int64(ethBlock.Timestamp()), disableTime.Unix())
+	require.Greater(t, int64(ethBlock.Time()), disableTime.Unix())
 
 	// Verify that Blackhole has received fees
 	blkState, err = vm.blockChain.StateAt(ethBlock.Root())
@@ -2951,7 +2953,7 @@ func TestSkipChainConfigCheckCompatible(t *testing.T) {
 	newTxPoolHeadChan := make(chan core.NewTxPoolReorgEvent, 1)
 	vm.txPool.SubscribeNewReorgEvent(newTxPoolHeadChan)
 
-	key, err := accountKeystore.NewKey(rand.Reader)
+	key, err := utils.NewKey(rand.Reader)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -2979,7 +2981,7 @@ func TestSkipChainConfigCheckCompatible(t *testing.T) {
 	// is hardcoded to be allowed in core/genesis.go.
 	genesisWithUpgrade := &core.Genesis{}
 	require.NoError(t, json.Unmarshal([]byte(genesisJSONPreSubnetEVM), genesisWithUpgrade))
-	genesisWithUpgrade.Config.SubnetEVMTimestamp = utils.TimeToNewUint64(blk.Timestamp())
+	params.GetExtra(genesisWithUpgrade.Config).SubnetEVMTimestamp = utils.TimeToNewUint64(blk.Timestamp())
 	genesisWithUpgradeBytes, err := json.Marshal(genesisWithUpgrade)
 	require.NoError(t, err)
 

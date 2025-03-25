@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/ava-labs/avalanchego/utils/timer/mockable"
+	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
 	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/core"
@@ -34,7 +35,6 @@ import (
 	"github.com/ava-labs/subnet-evm/node"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/rpc"
-	"github.com/ethereum/go-ethereum/common"
 )
 
 var _ eth.PushGossiper = (*fakePushGossiper)(nil)
@@ -81,7 +81,7 @@ type Backend struct {
 //
 // A simulated backend always uses chainID 1337.
 func NewBackend(alloc types.GenesisAlloc, options ...func(nodeConf *node.Config, ethConf *ethconfig.Config)) *Backend {
-	chainConfig := *params.TestChainConfig
+	chainConfig := params.Copy(params.TestChainConfig)
 	chainConfig.ChainID = big.NewInt(1337)
 
 	// Create the default configurations for the outer node shell and the Ethereum
@@ -91,7 +91,7 @@ func NewBackend(alloc types.GenesisAlloc, options ...func(nodeConf *node.Config,
 	ethConf := ethconfig.DefaultConfig
 	ethConf.Genesis = &core.Genesis{
 		Config:   &chainConfig,
-		GasLimit: chainConfig.FeeConfig.GasLimit.Uint64(),
+		GasLimit: params.GetExtra(&chainConfig).FeeConfig.GasLimit.Uint64(),
 		Alloc:    alloc,
 	}
 	ethConf.AllowUnfinalizedQueries = true

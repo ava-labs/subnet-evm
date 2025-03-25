@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/params/extras"
 	"github.com/ava-labs/subnet-evm/plugin/evm/upgrade/subnetevm"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/stretchr/testify/require"
@@ -22,7 +22,7 @@ const (
 func TestExtraPrefix(t *testing.T) {
 	tests := []struct {
 		name     string
-		upgrades params.NetworkUpgrades
+		upgrades extras.NetworkUpgrades
 		parent   *types.Header
 		header   *types.Header
 		want     []byte
@@ -30,14 +30,14 @@ func TestExtraPrefix(t *testing.T) {
 	}{
 		{
 			name:     "pre_subnet_evm",
-			upgrades: params.TestPreSubnetEVMChainConfig.NetworkUpgrades,
+			upgrades: extras.TestPreSubnetEVMChainConfig.NetworkUpgrades,
 			header:   &types.Header{},
 			want:     nil,
 			wantErr:  nil,
 		},
 		{
 			name: "subnet_evm_first_block",
-			upgrades: params.NetworkUpgrades{
+			upgrades: extras.NetworkUpgrades{
 				SubnetEVMTimestamp: utils.NewUint64(1),
 			},
 			parent: &types.Header{
@@ -50,7 +50,7 @@ func TestExtraPrefix(t *testing.T) {
 		},
 		{
 			name:     "subnet_evm_genesis_block",
-			upgrades: params.TestSubnetEVMChainConfig.NetworkUpgrades,
+			upgrades: extras.TestSubnetEVMChainConfig.NetworkUpgrades,
 			parent: &types.Header{
 				Number: big.NewInt(0),
 			},
@@ -59,7 +59,7 @@ func TestExtraPrefix(t *testing.T) {
 		},
 		{
 			name:     "subnet_evm_invalid_fee_window",
-			upgrades: params.TestSubnetEVMChainConfig.NetworkUpgrades,
+			upgrades: extras.TestSubnetEVMChainConfig.NetworkUpgrades,
 			parent: &types.Header{
 				Number: big.NewInt(1),
 			},
@@ -68,7 +68,7 @@ func TestExtraPrefix(t *testing.T) {
 		},
 		{
 			name:     "subnet_evm_invalid_timestamp",
-			upgrades: params.TestSubnetEVMChainConfig.NetworkUpgrades,
+			upgrades: extras.TestSubnetEVMChainConfig.NetworkUpgrades,
 			parent: &types.Header{
 				Number: big.NewInt(1),
 				Time:   1,
@@ -81,7 +81,7 @@ func TestExtraPrefix(t *testing.T) {
 		},
 		{
 			name:     "subnet_evm_normal",
-			upgrades: params.TestSubnetEVMChainConfig.NetworkUpgrades,
+			upgrades: extras.TestSubnetEVMChainConfig.NetworkUpgrades,
 			parent: &types.Header{
 				Number:  big.NewInt(1),
 				GasUsed: targetGas,
@@ -107,7 +107,7 @@ func TestExtraPrefix(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			require := require.New(t)
 
-			config := &params.ChainConfig{
+			config := &extras.ChainConfig{
 				NetworkUpgrades: test.upgrades,
 			}
 			got, err := ExtraPrefix(config, test.parent, test.header)
@@ -120,20 +120,20 @@ func TestExtraPrefix(t *testing.T) {
 func TestVerifyExtraPrefix(t *testing.T) {
 	tests := []struct {
 		name     string
-		upgrades params.NetworkUpgrades
+		upgrades extras.NetworkUpgrades
 		parent   *types.Header
 		header   *types.Header
 		wantErr  error
 	}{
 		{
 			name:     "pre_subnet_evm",
-			upgrades: params.TestPreSubnetEVMChainConfig.NetworkUpgrades,
+			upgrades: extras.TestPreSubnetEVMChainConfig.NetworkUpgrades,
 			header:   &types.Header{},
 			wantErr:  nil,
 		},
 		{
 			name:     "subnet_evm_invalid_parent_header",
-			upgrades: params.TestSubnetEVMChainConfig.NetworkUpgrades,
+			upgrades: extras.TestSubnetEVMChainConfig.NetworkUpgrades,
 			parent: &types.Header{
 				Number: big.NewInt(1),
 			},
@@ -142,7 +142,7 @@ func TestVerifyExtraPrefix(t *testing.T) {
 		},
 		{
 			name:     "subnet_evm_invalid_header",
-			upgrades: params.TestSubnetEVMChainConfig.NetworkUpgrades,
+			upgrades: extras.TestSubnetEVMChainConfig.NetworkUpgrades,
 			parent: &types.Header{
 				Number: big.NewInt(0),
 			},
@@ -151,7 +151,7 @@ func TestVerifyExtraPrefix(t *testing.T) {
 		},
 		{
 			name:     "subnet_evm_valid",
-			upgrades: params.TestSubnetEVMChainConfig.NetworkUpgrades,
+			upgrades: extras.TestSubnetEVMChainConfig.NetworkUpgrades,
 			parent: &types.Header{
 				Number: big.NewInt(0),
 			},
@@ -163,7 +163,7 @@ func TestVerifyExtraPrefix(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			config := &params.ChainConfig{
+			config := &extras.ChainConfig{
 				NetworkUpgrades: test.upgrades,
 			}
 			err := VerifyExtraPrefix(config, test.parent, test.header)
@@ -175,25 +175,25 @@ func TestVerifyExtraPrefix(t *testing.T) {
 func TestVerifyExtra(t *testing.T) {
 	tests := []struct {
 		name     string
-		rules    params.AvalancheRules
+		rules    extras.AvalancheRules
 		extra    []byte
 		expected error
 	}{
 		{
 			name:     "initial_valid",
-			rules:    params.AvalancheRules{},
-			extra:    make([]byte, params.MaximumExtraDataSize),
+			rules:    extras.AvalancheRules{},
+			extra:    make([]byte, extras.MaximumExtraDataSize),
 			expected: nil,
 		},
 		{
 			name:     "initial_invalid",
-			rules:    params.AvalancheRules{},
-			extra:    make([]byte, params.MaximumExtraDataSize+1),
+			rules:    extras.AvalancheRules{},
+			extra:    make([]byte, extras.MaximumExtraDataSize+1),
 			expected: errInvalidExtraLength,
 		},
 		{
 			name: "subnet_evm_valid",
-			rules: params.AvalancheRules{
+			rules: extras.AvalancheRules{
 				IsSubnetEVM: true,
 			},
 			extra:    make([]byte, subnetevm.WindowSize),
@@ -201,7 +201,7 @@ func TestVerifyExtra(t *testing.T) {
 		},
 		{
 			name: "subnet_evm_invalid_less",
-			rules: params.AvalancheRules{
+			rules: extras.AvalancheRules{
 				IsSubnetEVM: true,
 			},
 			extra:    make([]byte, subnetevm.WindowSize-1),
@@ -209,7 +209,7 @@ func TestVerifyExtra(t *testing.T) {
 		},
 		{
 			name: "subnet_evm_invalid_more",
-			rules: params.AvalancheRules{
+			rules: extras.AvalancheRules{
 				IsSubnetEVM: true,
 			},
 			extra:    make([]byte, subnetevm.WindowSize+1),
@@ -217,7 +217,7 @@ func TestVerifyExtra(t *testing.T) {
 		},
 		{
 			name: "durango_valid_min",
-			rules: params.AvalancheRules{
+			rules: extras.AvalancheRules{
 				IsDurango: true,
 			},
 			extra:    make([]byte, subnetevm.WindowSize),
@@ -225,7 +225,7 @@ func TestVerifyExtra(t *testing.T) {
 		},
 		{
 			name: "durango_valid_extra",
-			rules: params.AvalancheRules{
+			rules: extras.AvalancheRules{
 				IsDurango: true,
 			},
 			extra:    make([]byte, subnetevm.WindowSize+1),
@@ -233,7 +233,7 @@ func TestVerifyExtra(t *testing.T) {
 		},
 		{
 			name: "durango_invalid",
-			rules: params.AvalancheRules{
+			rules: extras.AvalancheRules{
 				IsDurango: true,
 			},
 			extra:    make([]byte, subnetevm.WindowSize-1),
@@ -248,40 +248,41 @@ func TestVerifyExtra(t *testing.T) {
 	}
 }
 
-func TestPredicateBytesFromExtra(t *testing.T) {
+func TestPredicateBytesExtra(t *testing.T) {
 	tests := []struct {
-		name     string
-		rules    params.AvalancheRules
-		extra    []byte
-		expected []byte
+		name                   string
+		extra                  []byte
+		predicate              []byte
+		wantExtraWithPredicate []byte
+		wantPredicateBytes     []byte
 	}{
 		{
-			name:     "empty_extra",
-			extra:    nil,
-			expected: nil,
+			name:                   "empty_extra_predicate",
+			extra:                  nil,
+			predicate:              nil,
+			wantExtraWithPredicate: make([]byte, subnetevm.WindowSize),
+			wantPredicateBytes:     nil,
 		},
 		{
-			name:     "too_short",
-			extra:    make([]byte, subnetevm.WindowSize-1),
-			expected: nil,
-		},
-		{
-			name:     "empty_predicate",
-			extra:    make([]byte, subnetevm.WindowSize),
-			expected: nil,
-		},
-		{
-			name: "non_empty_predicate",
+			name: "extra_too_short",
 			extra: []byte{
-				subnetevm.WindowSize: 5,
+				0:                        1,
+				subnetevm.WindowSize - 1: 0,
 			},
-			expected: []byte{5},
+			predicate: []byte{2},
+			wantExtraWithPredicate: []byte{
+				0:                    1,
+				subnetevm.WindowSize: 2,
+			},
+			wantPredicateBytes: []byte{2},
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			got := PredicateBytesFromExtra(test.rules, test.extra)
-			require.Equal(t, test.expected, got)
+			gotExtra := SetPredicateBytesInExtra(test.extra, test.predicate)
+			require.Equal(t, test.wantExtraWithPredicate, gotExtra)
+			gotPredicateBytes := PredicateBytesFromExtra(gotExtra)
+			require.Equal(t, test.wantPredicateBytes, gotPredicateBytes)
 		})
 	}
 }

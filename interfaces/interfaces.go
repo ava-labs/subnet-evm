@@ -32,8 +32,9 @@ import (
 	"errors"
 	"math/big"
 
+	ethereum "github.com/ava-labs/libevm"
+	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ethereum/go-ethereum/common"
 )
 
 // NotFound is returned by API methods if the requested item does not exist.
@@ -96,12 +97,7 @@ type TransactionReader interface {
 // ChainStateReader wraps access to the state trie of the canonical blockchain. Note that
 // implementations of the interface may be unable to return state values for old blocks.
 // In many cases, using CallContract can be preferable to reading raw contract storage.
-type ChainStateReader interface {
-	BalanceAt(ctx context.Context, account common.Address, blockNumber *big.Int) (*big.Int, error)
-	StorageAt(ctx context.Context, account common.Address, key common.Hash, blockNumber *big.Int) ([]byte, error)
-	CodeAt(ctx context.Context, account common.Address, blockNumber *big.Int) ([]byte, error)
-	NonceAt(ctx context.Context, account common.Address, blockNumber *big.Int) (uint64, error)
-}
+type ChainStateReader = ethereum.ChainStateReader
 
 // CallMsg contains parameters for contract calls.
 type CallMsg struct {

@@ -27,8 +27,8 @@
 package runtime
 
 import (
+	"github.com/ava-labs/libevm/core/vm"
 	"github.com/ava-labs/subnet-evm/core"
-	"github.com/ava-labs/subnet-evm/core/vm"
 )
 
 func NewEnv(cfg *Config) *vm.EVM {
@@ -49,6 +49,7 @@ func NewEnv(cfg *Config) *vm.EVM {
 		GasLimit:    cfg.GasLimit,
 		BaseFee:     cfg.BaseFee,
 		BlobBaseFee: cfg.BlobBaseFee,
+		Random:      cfg.Random,
 	}
 
 	return vm.NewEVM(blockContext, txContext, cfg.State, cfg.ChainConfig, cfg.EVMConfig)

@@ -7,11 +7,11 @@ import (
 	"errors"
 	"math/big"
 
+	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/params/extras"
 	"github.com/ava-labs/subnet-evm/plugin/evm/blockgascost"
-	"github.com/ethereum/go-ethereum/common"
 )
 
 var (
@@ -24,7 +24,7 @@ var (
 // header and the timestamp of the new block.
 // Prior to Subnet-EVM, the returned block gas cost will be nil.
 func BlockGasCost(
-	config *params.ChainConfig,
+	config *extras.ChainConfig,
 	feeConfig commontype.FeeConfig,
 	parent *types.Header,
 	timestamp uint64,
@@ -84,7 +84,7 @@ func BlockGasCostWithStep(
 //
 // This function will return nil for all return values prior to SubnetEVM.
 func EstimateRequiredTip(
-	config *params.ChainConfig,
+	config *extras.ChainConfig,
 	header *types.Header,
 ) (*big.Int, error) {
 	switch {

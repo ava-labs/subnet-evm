@@ -7,14 +7,14 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/core/state"
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/common/math"
+	"github.com/ava-labs/subnet-evm/core/extstate"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/precompile/testutils"
 	"github.com/ava-labs/subnet-evm/vmerrs"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -256,11 +256,11 @@ var (
 )
 
 func TestContractNativeMinterRun(t *testing.T) {
-	allowlist.RunPrecompileWithAllowListTests(t, Module, state.NewTestStateDB, tests)
+	allowlist.RunPrecompileWithAllowListTests(t, Module, extstate.NewTestStateDB, tests)
 }
 
 func BenchmarkContractNativeMinter(b *testing.B) {
-	allowlist.BenchPrecompileWithAllowList(b, Module, state.NewTestStateDB, tests)
+	allowlist.BenchPrecompileWithAllowList(b, Module, extstate.NewTestStateDB, tests)
 }
 
 func assertNativeCoinMintedEvent(t testing.TB,

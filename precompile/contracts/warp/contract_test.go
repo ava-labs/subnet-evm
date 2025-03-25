@@ -13,13 +13,13 @@ import (
 	"github.com/ava-labs/avalanchego/utils/set"
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
-	"github.com/ava-labs/subnet-evm/core/state"
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/subnet-evm/core/extstate"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/precompile/testutils"
 	"github.com/ava-labs/subnet-evm/predicate"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ava-labs/subnet-evm/vmerrs"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 )
 
@@ -78,7 +78,7 @@ func TestGetBlockchainID(t *testing.T) {
 		},
 	}
 
-	testutils.RunPrecompileTests(t, Module, state.NewTestStateDB, tests)
+	testutils.RunPrecompileTests(t, Module, extstate.NewTestStateDB, tests)
 }
 
 func TestSendWarpMessage(t *testing.T) {
@@ -168,7 +168,7 @@ func TestSendWarpMessage(t *testing.T) {
 		},
 	}
 
-	testutils.RunPrecompileTests(t, Module, state.NewTestStateDB, tests)
+	testutils.RunPrecompileTests(t, Module, extstate.NewTestStateDB, tests)
 }
 
 func TestGetVerifiedWarpMessage(t *testing.T) {
@@ -453,7 +453,7 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 		},
 	}
 
-	testutils.RunPrecompileTests(t, Module, state.NewTestStateDB, tests)
+	testutils.RunPrecompileTests(t, Module, extstate.NewTestStateDB, tests)
 }
 
 func TestGetVerifiedWarpBlockHash(t *testing.T) {
@@ -731,7 +731,7 @@ func TestGetVerifiedWarpBlockHash(t *testing.T) {
 		},
 	}
 
-	testutils.RunPrecompileTests(t, Module, state.NewTestStateDB, tests)
+	testutils.RunPrecompileTests(t, Module, extstate.NewTestStateDB, tests)
 }
 
 func TestPackEvents(t *testing.T) {

@@ -20,7 +20,7 @@ import (
 	"github.com/ava-labs/subnet-evm/plugin/evm/validators/uptime"
 	uptimeinterfaces "github.com/ava-labs/subnet-evm/plugin/evm/validators/uptime/interfaces"
 
-	"github.com/ethereum/go-ethereum/log"
+	"github.com/ava-labs/libevm/log"
 )
 
 const (

@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"slices"
 
+	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
-	"github.com/ethereum/go-ethereum/common"
 )
 
 var ErrCannotAddManagersBeforeDurango = fmt.Errorf("cannot add managers before Durango")

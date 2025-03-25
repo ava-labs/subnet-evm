@@ -36,6 +36,10 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/common/prque"
+	"github.com/ava-labs/libevm/event"
+	"github.com/ava-labs/libevm/log"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/state"
@@ -46,10 +50,6 @@ import (
 	"github.com/ava-labs/subnet-evm/plugin/evm/header"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/feemanager"
 	"github.com/ava-labs/subnet-evm/utils"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/prque"
-	"github.com/ethereum/go-ethereum/event"
-	"github.com/ethereum/go-ethereum/log"
 	"github.com/holiman/uint256"
 )
 
@@ -689,6 +689,7 @@ func (pool *LegacyPool) validateTx(tx *types.Transaction, local bool) error {
 		State: pool.currentState,
 		Rules: pool.chainconfig.Rules(
 			pool.currentHead.Load().Number,
+			params.IsMergeTODO,
 			pool.currentHead.Load().Time,
 		),
 		MinimumFee: pool.minimumFee,
@@ -1366,7 +1367,7 @@ func (pool *LegacyPool) runReorg(done chan struct{}, reset *txpoolResetRequest, 
 	if reset != nil {
 		pool.demoteUnexecutables()
 		if reset.newHead != nil {
-			if pool.chainconfig.IsSubnetEVM(reset.newHead.Time) {
+			if pool.chainconfig.IsLondon(reset.newHead.Number) {
 				if err := pool.updateBaseFeeAt(reset.newHead); err != nil {
 					log.Error("error at updating base fee in tx pool", "error", err)
 				}
@@ -1502,7 +1503,8 @@ func (pool *LegacyPool) reset(oldHead, newHead *types.Header) {
 
 	// when we reset txPool we should explicitly check if fee struct for min base fee has changed
 	// so that we can correctly drop txs with < minBaseFee from tx pool.
-	if pool.chainconfig.IsPrecompileEnabled(feemanager.ContractAddress, newHead.Time) {
+	chainConfig := params.GetExtra(pool.chainconfig)
+	if chainConfig.IsPrecompileEnabled(feemanager.ContractAddress, newHead.Time) {
 		feeConfig, _, err := pool.chain.GetFeeConfigAt(newHead)
 		if err != nil {
 			log.Error("Failed to get fee config state", "err", err, "root", newHead.Root)
@@ -1782,13 +1784,13 @@ func (pool *LegacyPool) demoteUnexecutables() {
 }
 
 func (pool *LegacyPool) startPeriodicFeeUpdate() {
-	if pool.chainconfig.SubnetEVMTimestamp == nil {
+	if params.GetExtra(pool.chainconfig).SubnetEVMTimestamp == nil {
 		return
 	}
 
 	// Call updateBaseFee here to ensure that there is not a [baseFeeUpdateInterval] delay
 	// when starting up in Subnet EVM before the base fee is updated.
-	if time.Now().After(utils.Uint64ToTime(pool.chainconfig.SubnetEVMTimestamp)) {
+	if time.Now().After(utils.Uint64ToTime(params.GetExtra(pool.chainconfig).SubnetEVMTimestamp)) {
 		pool.updateBaseFee()
 	}
 
@@ -1801,7 +1803,7 @@ func (pool *LegacyPool) periodicBaseFeeUpdate() {
 
 	// Sleep until its time to start the periodic base fee update or the tx pool is shutting down
 	select {
-	case <-time.After(time.Until(utils.Uint64ToTime(pool.chainconfig.SubnetEVMTimestamp))):
+	case <-time.After(time.Until(utils.Uint64ToTime(params.GetExtra(pool.chainconfig).SubnetEVMTimestamp))):
 	case <-pool.generalShutdownChan:
 		return // Return early if shutting down
 	}
@@ -1837,7 +1839,8 @@ func (pool *LegacyPool) updateBaseFeeAt(head *types.Header) error {
 	if err != nil {
 		return err
 	}
-	baseFeeEstimate, err := header.EstimateNextBaseFee(pool.chainconfig, feeConfig, head, uint64(time.Now().Unix()))
+	chainConfig := params.GetExtra(pool.chainconfig)
+	baseFeeEstimate, err := header.EstimateNextBaseFee(chainConfig, feeConfig, head, uint64(time.Now().Unix()))
 	if err != nil {
 		return err
 	}

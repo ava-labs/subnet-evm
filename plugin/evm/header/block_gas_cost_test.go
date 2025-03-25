@@ -9,7 +9,7 @@ import (
 
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/params/extras"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -57,7 +57,7 @@ func BlockGasCostTest(t *testing.T, feeConfig commontype.FeeConfig) {
 
 	tests := []struct {
 		name       string
-		upgrades   params.NetworkUpgrades
+		upgrades   extras.NetworkUpgrades
 		parentTime uint64
 		parentCost *big.Int
 		timestamp  uint64
@@ -66,14 +66,14 @@ func BlockGasCostTest(t *testing.T, feeConfig commontype.FeeConfig) {
 		{
 			name:       "before_subnet_evm",
 			parentTime: 10,
-			upgrades:   params.TestPreSubnetEVMChainConfig.NetworkUpgrades,
+			upgrades:   extras.TestPreSubnetEVMChainConfig.NetworkUpgrades,
 			parentCost: maxBlockGasCostBig,
 			timestamp:  10 + targetBlockRate + 1,
 			expected:   nil,
 		},
 		{
 			name:       "normal",
-			upgrades:   params.TestChainConfig.NetworkUpgrades,
+			upgrades:   extras.TestChainConfig.NetworkUpgrades,
 			parentTime: 10,
 			parentCost: maxBlockGasCostBig,
 			timestamp:  10 + targetBlockRate + 1,
@@ -81,7 +81,7 @@ func BlockGasCostTest(t *testing.T, feeConfig commontype.FeeConfig) {
 		},
 		{
 			name:       "negative_time_elapsed",
-			upgrades:   params.TestChainConfig.NetworkUpgrades,
+			upgrades:   extras.TestChainConfig.NetworkUpgrades,
 			parentTime: 10,
 			parentCost: feeConfig.MinBlockGasCost,
 			timestamp:  9,
@@ -91,7 +91,7 @@ func BlockGasCostTest(t *testing.T, feeConfig commontype.FeeConfig) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			config := &params.ChainConfig{
+			config := &extras.ChainConfig{
 				NetworkUpgrades: test.upgrades,
 			}
 			parent := &types.Header{
@@ -279,8 +279,8 @@ func TestEstimateRequiredTip(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			require := require.New(t)
 
-			config := &params.ChainConfig{
-				NetworkUpgrades: params.NetworkUpgrades{
+			config := &extras.ChainConfig{
+				NetworkUpgrades: extras.NetworkUpgrades{
 					SubnetEVMTimestamp: test.subnetEVMTimestamp,
 				},
 			}

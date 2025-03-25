@@ -10,15 +10,16 @@ import (
 	"time"
 
 	"github.com/ava-labs/avalanchego/utils/timer/mockable"
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/trie"
 	"github.com/ava-labs/subnet-evm/consensus"
 	"github.com/ava-labs/subnet-evm/consensus/misc/eip4844"
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/trie"
+	"github.com/ava-labs/subnet-evm/params/extras"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ava-labs/subnet-evm/vmerrs"
-	"github.com/ethereum/go-ethereum/common"
 
 	customheader "github.com/ava-labs/subnet-evm/plugin/evm/header"
 )
@@ -103,7 +104,7 @@ func NewFullFaker() *DummyEngine {
 }
 
 // verifyCoinbase checks that the coinbase is valid for the given [header] and [parent].
-func (eng *DummyEngine) verifyCoinbase(config *params.ChainConfig, header *types.Header, parent *types.Header, chain consensus.ChainHeaderReader) error {
+func (eng *DummyEngine) verifyCoinbase(header *types.Header, parent *types.Header, chain consensus.ChainHeaderReader) error {
 	if eng.consensusMode.ModeSkipCoinbase {
 		return nil
 	}
@@ -125,7 +126,7 @@ func (eng *DummyEngine) verifyCoinbase(config *params.ChainConfig, header *types
 	return nil
 }
 
-func verifyHeaderGasFields(config *params.ChainConfig, header *types.Header, parent *types.Header, chain consensus.ChainHeaderReader) error {
+func verifyHeaderGasFields(config *extras.ChainConfig, header *types.Header, parent *types.Header, chain consensus.ChainHeaderReader) error {
 	// We verify the current block by checking the parent fee config
 	// this is because the current block cannot set the fee config for itself
 	// Fee config might depend on the state when precompile is activated
@@ -175,7 +176,7 @@ func (eng *DummyEngine) verifyHeader(chain consensus.ChainHeaderReader, header *
 	}
 
 	// Verify the extra data is well-formed.
-	config := chain.Config()
+	config := params.GetExtra(chain.Config())
 	rules := config.GetAvalancheRules(header.Time)
 	if err := customheader.VerifyExtra(rules, header.Extra); err != nil {
 		return err
@@ -186,7 +187,7 @@ func (eng *DummyEngine) verifyHeader(chain consensus.ChainHeaderReader, header *
 		return err
 	}
 	// Ensure that coinbase is valid
-	if err := eng.verifyCoinbase(config, header, parent, chain); err != nil {
+	if err := eng.verifyCoinbase(header, parent, chain); err != nil {
 		return err
 	}
 
@@ -204,7 +205,7 @@ func (eng *DummyEngine) verifyHeader(chain consensus.ChainHeaderReader, header *
 		return consensus.ErrInvalidNumber
 	}
 	// Verify the existence / non-existence of excessBlobGas
-	cancun := config.IsCancun(header.Number, header.Time)
+	cancun := chain.Config().IsCancun(header.Number, header.Time)
 	if !cancun {
 		switch {
 		case header.ExcessBlobGas != nil:
@@ -326,7 +327,7 @@ func (eng *DummyEngine) verifyBlockFee(
 }
 
 func (eng *DummyEngine) Finalize(chain consensus.ChainHeaderReader, block *types.Block, parent *types.Header, state *state.StateDB, receipts []*types.Receipt) error {
-	config := chain.Config()
+	config := params.GetExtra(chain.Config())
 	timestamp := block.Time()
 	// we use the parent to determine the fee config
 	// since the current block has not been finalized yet.
@@ -363,13 +364,14 @@ func (eng *DummyEngine) Finalize(chain consensus.ChainHeaderReader, block *types
 func (eng *DummyEngine) FinalizeAndAssemble(chain consensus.ChainHeaderReader, header *types.Header, parent *types.Header, state *state.StateDB, txs []*types.Transaction,
 	uncles []*types.Header, receipts []*types.Receipt,
 ) (*types.Block, error) {
-	config := chain.Config()
 	// we use the parent to determine the fee config
 	// since the current block has not been finalized yet.
 	feeConfig, _, err := chain.GetFeeConfigAt(parent)
 	if err != nil {
 		return nil, err
 	}
+	config := params.GetExtra(chain.Config())
+
 	// Calculate the required block gas cost for this block.
 	header.BlockGasCost = customheader.BlockGasCost(
 		config,
@@ -397,7 +399,7 @@ func (eng *DummyEngine) FinalizeAndAssemble(chain consensus.ChainHeaderReader, h
 	header.Extra = append(extraPrefix, header.Extra...)
 
 	// commit the final state root
-	header.Root = state.IntermediateRoot(config.IsEIP158(header.Number))
+	header.Root = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
 
 	// Header seems complete, assemble into a block and return
 	return types.NewBlock(
