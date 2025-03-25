@@ -18,6 +18,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/vm"
 	"github.com/ava-labs/subnet-evm/eth/tracers/logger"
 	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/plugin/evm/upgrade/legacy"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethdb"
@@ -293,7 +294,6 @@ func TestBlockChainOfflinePruningUngracefulShutdown(t *testing.T) {
 		return createBlockChain(db, pruningConfig, gspec, lastAcceptedHash)
 	}
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.Name, func(t *testing.T) {
 			t.Parallel()
 			tt.testFunc(t, create)
@@ -586,7 +586,7 @@ func testCanonicalHashMarker(t *testing.T, scheme string) {
 			gspec = &Genesis{
 				Config:  params.TestChainConfig,
 				Alloc:   types.GenesisAlloc{},
-				BaseFee: big.NewInt(params.TestInitialBaseFee),
+				BaseFee: big.NewInt(legacy.BaseFee),
 			}
 			engine = dummy.NewCoinbaseFaker()
 		)
