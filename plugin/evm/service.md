@@ -257,7 +257,7 @@ curl -X POST --data '{
 }
 ```
 
-## `validators_getCurrentValidators`
+## `validators.getCurrentValidators`
 
 This API retrieves the list of current validators for the Subnet/L1. It provides detailed information about each validator, including their ID, status, weight, connection, and uptime.
 
@@ -266,8 +266,10 @@ URL: `http://<server-uri>/ext/bc/<blockchainID>/validators`
 **Signature:**
 
 ```bash
-validators_getCurrentValidators([nodeIDs]) -> {validators: []Validator}
+validators.getCurrentValidators({nodeIDs: []string}) -> {validators: []Validator}
 ```
+
+- `nodeIDs` is an optional parameter that specifies the node IDs of the validators to retrieve. If omitted, all validators are returned.
 
 **Example Call:**
 
@@ -281,8 +283,6 @@ curl -X POST --data '{
     "id": 1
 }'  -H 'content-type:application/json;' 127.0.0.1:9650/ext/bc/C49rHzk3vLr1w9Z8sY7scrZ69TU4WcD2pRS6ZyzaSn9xA2U9F/validators
 ```
-
-- `nodeIDs` is an optional parameter that specifies the node IDs of the validators to retrieve. If omitted, all validators are returned.
 
 **Example Response:**
 
@@ -299,8 +299,8 @@ curl -X POST --data '{
         "isActive": true,
         "isL1Validator": false,
         "isConnected": true,
-        "uptimeSeconds": 36
-        "uptimePercentage": 100,
+        "uptimeSeconds": 36,
+        "uptimePercentage": 100
       }
     ]
   },
@@ -308,13 +308,14 @@ curl -X POST --data '{
 }
 ```
 
-- validationID: (string) Unique identifier for the validation. This returns validation ID for L1s, AddSubnetValidator txID for Subnets.
-- nodeID: (string) Node identifier for the validator.
-- weight: (integer) The weight of the validator, often representing stake.
-- startTimestamp: (integer) UNIX timestamp for when validation started.
-- isActive: (boolean) Indicates if the validator is active. This returns true if this is L1 validator and has enough continuous subnet staking fees in P-Chain.
-  It always return true for subnet validators.
-- isL1Validator: (boolean) Indicates if the validator is a L1 validator or a subnet validator.
-- isConnected: (boolean) Indicates if the validator node is currently connected to the callee node.
-- uptimeSeconds: (integer) The number of seconds the validator has been online.
-- uptimePercentage: (float) The percentage of time the validator has been online.
+**Response Fields:**
+
+- `validationID`: (string) Unique identifier for the validation. This returns validation ID for L1s, AddSubnetValidator txID for Subnets.
+- `nodeID`: (string) Node identifier for the validator.
+- `weight`: (integer) The weight of the validator, often representing stake.
+- `startTimestamp`: (integer) UNIX timestamp for when validation started.
+- `isActive`: (boolean) Indicates if the validator is active. This returns true if this is L1 validator and has enough continuous subnet staking fees in P-Chain. It always returns true for subnet validators.
+- `isL1Validator`: (boolean) Indicates if the validator is a L1 validator or a subnet validator.
+- `isConnected`: (boolean) Indicates if the validator node is currently connected to the callee node.
+- `uptimeSeconds`: (integer) The number of seconds the validator has been online.
+- `uptimePercentage`: (float) The percentage of time the validator has been online.
