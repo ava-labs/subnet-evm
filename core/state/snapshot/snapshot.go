@@ -42,7 +42,7 @@ import (
 	"github.com/ava-labs/libevm/log"
 	"github.com/ava-labs/libevm/triedb"
 	"github.com/ava-labs/subnet-evm/metrics"
-	customrawdb "github.com/ava-labs/subnet-evm/plugin/evm/rawdb"
+	"github.com/ava-labs/subnet-evm/plugin/evm/customrawdb"
 )
 
 const (
