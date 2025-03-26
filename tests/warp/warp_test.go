@@ -124,7 +124,10 @@ var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
 	// By default all nodes are validating all subnets
 	validatorURIs := make([]string, len(network.Nodes))
 	for i, node := range network.Nodes {
-		validatorURIs[i] = node.URI
+		uri, cancel, err := node.GetLocalURI(tc.DefaultContext())
+		require.NoError(err)
+		ginkgo.DeferCleanup(cancel)
+		validatorURIs[i] = uri
 	}
 
 	tmpnetSubnetA := network.GetSubnet(subnetAName)
@@ -145,7 +148,7 @@ var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
 		ValidatorURIs: validatorURIs,
 	}
 
-	infoClient := info.NewClient(network.Nodes[0].URI)
+	infoClient := info.NewClient(validatorURIs[0])
 	cChainBlockchainID, err := infoClient.GetBlockchainID(tc.DefaultContext(), "C")
 	require.NoError(err)
 
