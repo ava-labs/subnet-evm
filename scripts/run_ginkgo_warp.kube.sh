@@ -34,7 +34,7 @@ fi
 
 DOCKER_IMAGE="${DOCKER_IMAGE:-localhost:5001/subnet-evm}"
 if [[ -z "${SKIP_BUILD_IMAGE:-}" ]]; then
-  FORCE_TAG_LATEST=1 DOCKER_IMAGE="${DOCKER_IMAGE}" bash -x "${SUBNET_EVM_PATH}"/scripts/build_docker_image.sh
+  FORCE_TAG_LATEST=1 IMAGE_NAME="${DOCKER_IMAGE}" bash -x "${SUBNET_EVM_PATH}"/scripts/build_docker_image.sh
 fi
 
 GINKGO_ARGS=()

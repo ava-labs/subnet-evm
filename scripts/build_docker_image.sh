@@ -22,6 +22,9 @@ SUBNET_EVM_PATH=$(
   cd .. && pwd
 )
 
+# Force tagging as latest even if not the master branch
+FORCE_TAG_LATEST="${FORCE_TAG_LATEST:-}"
+
 # Load the constants
 source "$SUBNET_EVM_PATH"/scripts/constants.sh
 
@@ -37,7 +40,7 @@ BUILD_IMAGE_ID=${BUILD_IMAGE_ID:-"${CURRENT_BRANCH}"}
 # Reference: https://docs.docker.com/build/buildkit/
 DOCKER_CMD="docker buildx build"
 ispush=0
-if [[ -n "${PUBLISH}" ]]; then
+if [[ -n "${PUBLISH}" || "${IMAGE_NAME}" == *"/"*  ]]; then
   echo "Pushing $IMAGE_NAME:$BUILD_IMAGE_ID"
   ispush=1
   # A populated DOCKER_USERNAME env var triggers login
@@ -112,7 +115,7 @@ ${DOCKER_CMD} -t "$IMAGE_NAME:$BUILD_IMAGE_ID" -t "$IMAGE_NAME:${DOCKERHUB_TAG}"
   --build-arg CURRENT_BRANCH="$CURRENT_BRANCH" \
   --build-arg VM_ID="$VM_ID"
 
-if [[ -n "${PUBLISH}" && $CURRENT_BRANCH == "master" ]]; then
+if [[ -n "${FORCE_TAG_LATEST}" || (-n "${PUBLISH}" && $CURRENT_BRANCH == "master") ]]; then
   echo "Tagging current image as $IMAGE_NAME:latest"
   docker buildx imagetools create -t "$IMAGE_NAME:latest" "$IMAGE_NAME:$BUILD_IMAGE_ID"
 fi

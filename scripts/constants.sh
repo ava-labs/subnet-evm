@@ -25,7 +25,7 @@ if [ ! -d .git ]; then
     SUBNET_EVM_COMMIT=""
 else
     # Current branch
-    CURRENT_BRANCH=${CURRENT_BRANCH:-$(git describe --tags --exact-match 2>/dev/null || git symbolic-ref -q --short HEAD || git rev-parse --short HEAD || :)}
+    CURRENT_BRANCH=${CURRENT_BRANCH:-$(git describe --tags --exact-match >/dev/null 2>&1 || git symbolic-ref -q --short HEAD || git rev-parse --short HEAD || :)}
 
     # Image build id
     #
