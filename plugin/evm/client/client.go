@@ -5,6 +5,7 @@ package client
 
 import (
 	"context"
+	"fmt"
 
 	"golang.org/x/exp/slog"
 
@@ -47,7 +48,13 @@ type client struct {
 }
 
 // NewClient returns a Client for interacting with EVM [chain]
-func NewClient(url string) Client {
+func NewClient(uri, chain string) Client {
+	requestUri := fmt.Sprintf("%s/ext/bc/%s", uri, chain)
+	return NewClientWithURL(requestUri)
+}
+
+// NewClientWithURL returns a Client for interacting with EVM [chain]
+func NewClientWithURL(url string) Client {
 	return &client{
 		adminRequester: rpc.NewEndpointRequester(
 			url + "/admin",
