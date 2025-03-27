@@ -7,25 +7,24 @@ on:
     tags:
       - "*"
   pull_request:
-
-env:
-  min_go_version: "~1.22.8"
+  merge_group:
+    types: [checks_requested]
 
 jobs:
   lint_test:
     name: Lint
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - run: ./scripts/lint_allowed_geth_imports.sh
         shell: bash
       - uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.min_go_version }}
+          go-version-file: "go.mod"
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v3
+        uses: golangci/golangci-lint-action@3a919529898de77ec3da873e3063ca4b10e7f5cc #v3
         with:
-          version: v1.56
+          version: v1.63
           working-directory: .
           args: --timeout 10m
           skip-pkg-cache: true
@@ -39,6 +38,11 @@ jobs:
         run: |
           go mod tidy
           git diff --exit-code
+      - name: Ensure consistent avalanchego version
+        shell: bash
+        run: |
+          bash -x ./scripts/update_avalanchego_version.sh
+          git diff --exit-code
 
   unit_test:
     name: Golang Unit Tests (${{ matrix.os }})
@@ -46,12 +50,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, ubuntu-20.04, ubuntu-latest, windows-latest]
+        os: [macos-latest, ubuntu-22.04, ubuntu-latest, windows-latest]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.min_go_version }}
+          go-version-file: "go.mod"
       - name: Set timeout on Windows # Windows UT run slower and need a longer timeout
         shell: bash
         if: matrix.os == 'windows-latest'
@@ -85,7 +89,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.min_go_version }}
+          go-version-file: "go.mod"
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
@@ -126,7 +130,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.min_go_version }}
+          go-version-file: "go.mod"
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
@@ -147,18 +151,15 @@ jobs:
         shell: bash
         run: ./scripts/build.sh
       - name: Run Warp E2E Tests
-        uses: ava-labs/avalanchego/.github/actions/run-monitored-tmpnet-cmd@v1.11.13
+        uses: ava-labs/avalanchego/.github/actions/run-monitored-tmpnet-cmd@50f1601bf39a106d066012b4ef470c1058f5005a
         with:
-          run: AVALANCHEGO_BUILD_PATH=/tmp/e2e-test/avalanchego ./scripts/run_ginkgo_warp.sh
-          prometheus_id: ${{ secrets.PROMETHEUS_ID || '' }}
+          run: ./scripts/run_ginkgo_warp.sh
+          run_env: AVALANCHEGO_BUILD_PATH=/tmp/e2e-test/avalanchego
+          artifact_prefix: warp
+          prometheus_username: ${{ secrets.PROMETHEUS_ID || '' }}
           prometheus_password: ${{ secrets.PROMETHEUS_PASSWORD || '' }}
-          loki_id: ${{ secrets.LOKI_ID || '' }}
+          loki_username: ${{ secrets.LOKI_ID || '' }}
           loki_password: ${{ secrets.LOKI_PASSWORD || '' }}
-      - name: Upload tmpnet network dir for warp testing
-        uses: ava-labs/avalanchego/.github/actions/upload-tmpnet-artifact@v1-actions
-        if: always()
-        with:
-          name: warp-tmpnet-data
   e2e_load:
     name: e2e load tests
     runs-on: ubuntu-latest
@@ -170,7 +171,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.min_go_version }}
+          go-version-file: "go.mod"
       - name: Install AvalancheGo Release
         shell: bash
         run: BASEDIR=/tmp/e2e-test AVALANCHEGO_BUILD_PATH=/tmp/e2e-test/avalanchego ./scripts/install_avalanchego_release.sh
@@ -178,23 +179,24 @@ jobs:
         shell: bash
         run: ./scripts/build.sh
       - name: Run E2E Load Tests
-        uses: ava-labs/avalanchego/.github/actions/run-monitored-tmpnet-cmd@v1.11.13
+        uses: ava-labs/avalanchego/.github/actions/run-monitored-tmpnet-cmd@50f1601bf39a106d066012b4ef470c1058f5005a
         with:
-          run: AVALANCHEGO_BUILD_PATH=/tmp/e2e-test/avalanchego ./scripts/run_ginkgo_load.sh
-          prometheus_id: ${{ secrets.PROMETHEUS_ID || '' }}
+          run: ./scripts/run_ginkgo_load.sh
+          run_env: AVALANCHEGO_BUILD_PATH=/tmp/e2e-test/avalanchego
+          artifact_prefix: load
+          prometheus_username: ${{ secrets.PROMETHEUS_ID || '' }}
           prometheus_password: ${{ secrets.PROMETHEUS_PASSWORD || '' }}
-          loki_id: ${{ secrets.LOKI_ID || '' }}
+          loki_username: ${{ secrets.LOKI_ID || '' }}
           loki_password: ${{ secrets.LOKI_PASSWORD || '' }}
-      - name: Upload tmpnet network dir for load testing
-        uses: ava-labs/avalanchego/.github/actions/upload-tmpnet-artifact@v1-actions
-        if: always()
-        with:
-          name: load-tmpnet-data
   test_build_image:
     name: Image build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Install qemu (required for cross-platform builds)
+        run: |
+          sudo apt update
+          sudo apt -y install qemu-system qemu-user-static
       - name: Check image build
         shell: bash
         run: bash -x scripts/tests.build_docker_image.sh
@@ -205,7 +207,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.min_go_version }}
+          go-version-file: "go.mod"
       - name: Install AvalancheGo Release
         shell: bash
         run: BASEDIR=/tmp/e2e-test AVALANCHEGO_BUILD_PATH=/tmp/e2e-test/avalanchego ./scripts/install_avalanchego_release.sh

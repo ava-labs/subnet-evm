@@ -12,10 +12,12 @@ import (
 
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/plugin/evm/header"
+	"github.com/ava-labs/subnet-evm/plugin/evm/upgrade/legacy"
 	"github.com/ava-labs/subnet-evm/trie"
 )
 
-var legacyMinGasPrice = big.NewInt(params.MinGasPrice)
+var legacyMinGasPrice = big.NewInt(legacy.BaseFee)
 
 type BlockValidator interface {
 	SyntacticVerify(b *Block, rules params.Rules) error
@@ -58,30 +60,9 @@ func (v blockValidator) SyntacticVerify(b *Block, rules params.Rules) error {
 		return fmt.Errorf("invalid mix digest: %v", ethHeader.MixDigest)
 	}
 
-	// Check that the size of the header's Extra data field is correct for [rules].
-	headerExtraDataSize := len(ethHeader.Extra)
-	switch {
-	case rules.IsDurango:
-		if headerExtraDataSize < params.DynamicFeeExtraDataSize {
-			return fmt.Errorf(
-				"expected header ExtraData to be len >= %d but got %d",
-				params.DynamicFeeExtraDataSize, len(ethHeader.Extra),
-			)
-		}
-	case rules.IsSubnetEVM:
-		if headerExtraDataSize != params.DynamicFeeExtraDataSize {
-			return fmt.Errorf(
-				"expected header ExtraData to be len %d but got %d",
-				params.DynamicFeeExtraDataSize, headerExtraDataSize,
-			)
-		}
-	default:
-		if uint64(headerExtraDataSize) > params.MaximumExtraDataSize {
-			return fmt.Errorf(
-				"expected header ExtraData to be <= %d but got %d",
-				params.MaximumExtraDataSize, headerExtraDataSize,
-			)
-		}
+	// Verify the extra data is well-formed.
+	if err := header.VerifyExtra(rules.AvalancheRules, ethHeader.Extra); err != nil {
+		return err
 	}
 
 	if rules.IsSubnetEVM {

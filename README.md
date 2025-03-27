@@ -20,6 +20,7 @@ The Subnet EVM runs in a separate process from the main AvalancheGo process and 
 ```text
 [v0.7.0] AvalancheGo@v1.12.0-v1.12.1 (Protocol Version: 38)
 [v0.7.1] AvalancheGo@v1.12.2 (Protocol Version: 39)
+[v0.7.2] AvalancheGo@v1.12.2/1.13.0-fuji (Protocol Version: 39)
 ```
 
 ## API
@@ -59,7 +60,7 @@ To support these changes, there have been a number of changes to the SubnetEVM b
 
 ### Clone Subnet-evm
 
-First install Go 1.22.8 or later. Follow the instructions [here](https://go.dev/doc/install). You can verify by running `go version`.
+First install Go 1.23.6 or later. Follow the instructions [here](https://go.dev/doc/install). You can verify by running `go version`.
 
 Set `$GOPATH` environment variable properly for Go to look for Go Workspaces. Please read [this](https://go.dev/doc/code) for details. You can verify by running `echo $GOPATH`.
 
