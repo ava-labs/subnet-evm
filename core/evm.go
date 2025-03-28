@@ -31,13 +31,12 @@ import (
 	"math/big"
 
 	"github.com/ava-labs/libevm/common"
-	ethtypes "github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/libevm/core/vm"
 	"github.com/ava-labs/libevm/log"
 	"github.com/ava-labs/subnet-evm/consensus"
 	"github.com/ava-labs/subnet-evm/consensus/misc/eip4844"
 	"github.com/ava-labs/subnet-evm/core/extstate"
-	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
 	customheader "github.com/ava-labs/subnet-evm/plugin/evm/header"
 	"github.com/ava-labs/subnet-evm/predicate"
@@ -50,14 +49,14 @@ func init() {
 
 type hooks struct{}
 
-// OverrideNewEVMArgs is a hook that is called back when a new EVM is created.
+// OverrideNewEVMArgs is a hook that is called in [vm.NewEVM].
 // It allows for the modification of the EVM arguments before the EVM is created.
 // Specifically, we set Random to be the same as Difficulty since Shanghai.
 // This allows using the same jump table as upstream.
-// Then we set Difficulty to nil as it is post Merge in upstream.
+// Then we set Difficulty to 0 as it is post Merge in upstream.
 // Additionally we wrap the StateDB with the appropriate StateDB wrapper,
-// which is used in coreth to process historical pre-AP1 blocks with the
-// GetCommittedState method as it was historically.
+// which is used in subnet-evm to process historical pre-AP1 blocks with the
+// [StateDbAP1.GetCommittedState] method as it was historically.
 func (hooks) OverrideNewEVMArgs(args *vm.NewEVMArgs) *vm.NewEVMArgs {
 	rules := args.ChainConfig.Rules(args.BlockContext.BlockNumber, params.IsMergeTODO, args.BlockContext.Time)
 	args.StateDB = wrapStateDB(rules, args.StateDB)
@@ -65,7 +64,7 @@ func (hooks) OverrideNewEVMArgs(args *vm.NewEVMArgs) *vm.NewEVMArgs {
 	if rules.IsShanghai {
 		args.BlockContext.Random = new(common.Hash)
 		args.BlockContext.Random.SetBytes(args.BlockContext.Difficulty.Bytes())
-		args.BlockContext.Difficulty = nil
+		args.BlockContext.Difficulty = new(big.Int)
 	}
 
 	return args
@@ -77,7 +76,7 @@ func (hooks) OverrideEVMResetArgs(rules params.Rules, args *vm.EVMResetArgs) *vm
 }
 
 func wrapStateDB(rules params.Rules, db vm.StateDB) vm.StateDB {
-	return &extstate.StateDB{VmStateDB: db.(extstate.VmStateDB)}
+	return extstate.New(db.(extstate.VmStateDB))
 }
 
 // ChainContext supports retrieving headers and consensus parameters from the
@@ -155,7 +154,7 @@ func newEVMBlockContext(header *types.Header, chain ChainContext, author *common
 		BaseFee:     baseFee,
 		BlobBaseFee: blobBaseFee,
 		GasLimit:    header.GasLimit,
-		Header: &ethtypes.Header{
+		Header: &types.Header{
 			Number: new(big.Int).Set(header.Number),
 			Time:   header.Time,
 			Extra:  extra,

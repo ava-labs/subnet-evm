@@ -8,7 +8,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ava-labs/subnet-evm/core/types"
+	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/subnet-evm/params/extras"
 	"github.com/ava-labs/subnet-evm/plugin/evm/upgrade/subnetevm"
 )
@@ -122,8 +122,10 @@ func SetPredicateBytesInExtra(extra []byte, predicateBytes []byte) []byte {
 	if len(extra) < offset {
 		// pad extra with zeros
 		extra = append(extra, make([]byte, offset-len(extra))...)
+	} else {
+		// truncate extra to the offset
+		extra = extra[:offset]
 	}
-	extra = extra[:offset] // truncate extra to the offset
 	extra = append(extra, predicateBytes...)
 	return extra
 }

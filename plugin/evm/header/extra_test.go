@@ -7,8 +7,9 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/core/types"
+	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/subnet-evm/params/extras"
+	"github.com/ava-labs/subnet-evm/plugin/evm/customtypes"
 	"github.com/ava-labs/subnet-evm/plugin/evm/upgrade/subnetevm"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/stretchr/testify/require"
@@ -82,14 +83,18 @@ func TestExtraPrefix(t *testing.T) {
 		{
 			name:     "subnet_evm_normal",
 			upgrades: extras.TestSubnetEVMChainConfig.NetworkUpgrades,
-			parent: &types.Header{
-				Number:  big.NewInt(1),
-				GasUsed: targetGas,
-				Extra: (&subnetevm.Window{
-					1, 2, 3, 4,
-				}).Bytes(),
-				BlockGasCost: big.NewInt(blockGas),
-			},
+			parent: customtypes.WithHeaderExtra(
+				&types.Header{
+					Number:  big.NewInt(1),
+					GasUsed: targetGas,
+					Extra: (&subnetevm.Window{
+						1, 2, 3, 4,
+					}).Bytes(),
+				},
+				&customtypes.HeaderExtra{
+					BlockGasCost: big.NewInt(blockGas),
+				},
+			),
 			header: &types.Header{
 				Time: 1,
 			},
@@ -244,6 +249,82 @@ func TestVerifyExtra(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			err := VerifyExtra(test.rules, test.extra)
 			require.ErrorIs(t, err, test.expected)
+		})
+	}
+}
+
+func TestPredicateBytesFromExtra(t *testing.T) {
+	tests := []struct {
+		name     string
+		extra    []byte
+		expected []byte
+	}{
+		{
+			name:     "empty_extra",
+			extra:    nil,
+			expected: nil,
+		},
+		{
+			name:     "too_short",
+			extra:    make([]byte, subnetevm.WindowSize-1),
+			expected: nil,
+		},
+		{
+			name:     "empty_predicate",
+			extra:    make([]byte, subnetevm.WindowSize),
+			expected: nil,
+		},
+		{
+			name: "non_empty_predicate",
+			extra: []byte{
+				subnetevm.WindowSize: 5,
+			},
+			expected: []byte{5},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got := PredicateBytesFromExtra(test.extra)
+			require.Equal(t, test.expected, got)
+		})
+	}
+}
+
+func TestSetPredicateBytesInExtra(t *testing.T) {
+	tests := []struct {
+		name      string
+		extra     []byte
+		predicate []byte
+		want      []byte
+	}{
+		{
+			name: "empty_extra_predicate",
+			want: make([]byte, subnetevm.WindowSize),
+		},
+		{
+			name:      "extra_too_short",
+			extra:     []byte{1},
+			predicate: []byte{2},
+			want: []byte{
+				0:                    1,
+				subnetevm.WindowSize: 2,
+			},
+		},
+		{
+			name: "extra_too_long",
+			extra: []byte{
+				subnetevm.WindowSize: 1,
+			},
+			predicate: []byte{2},
+			want: []byte{
+				subnetevm.WindowSize: 2,
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got := SetPredicateBytesInExtra(test.extra, test.predicate)
+			require.Equal(t, test.want, got)
 		})
 	}
 }

@@ -11,15 +11,16 @@ import (
 
 	"github.com/ava-labs/avalanchego/utils/timer/mockable"
 	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/libevm/trie"
 	"github.com/ava-labs/subnet-evm/consensus"
 	"github.com/ava-labs/subnet-evm/consensus/misc/eip4844"
 	"github.com/ava-labs/subnet-evm/core/state"
-	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/params/extras"
+	"github.com/ava-labs/subnet-evm/plugin/evm/customtypes"
+	"github.com/ava-labs/subnet-evm/plugin/evm/vmerrors"
 	"github.com/ava-labs/subnet-evm/utils"
-	"github.com/ava-labs/subnet-evm/vmerrs"
 
 	customheader "github.com/ava-labs/subnet-evm/plugin/evm/header"
 )
@@ -121,7 +122,7 @@ func (eng *DummyEngine) verifyCoinbase(header *types.Header, parent *types.Heade
 	// we fetch the configured coinbase at the parent's state
 	// to check against the coinbase in [header].
 	if configuredAddressAtParent != header.Coinbase {
-		return fmt.Errorf("%w: %v does not match required coinbase address %v", vmerrs.ErrInvalidCoinbase, header.Coinbase, configuredAddressAtParent)
+		return fmt.Errorf("%w: %v does not match required coinbase address %v", vmerrors.ErrInvalidCoinbase, header.Coinbase, configuredAddressAtParent)
 	}
 	return nil
 }
@@ -162,8 +163,9 @@ func verifyHeaderGasFields(config *extras.ChainConfig, header *types.Header, par
 		parent,
 		header.Time,
 	)
-	if !utils.BigEqual(header.BlockGasCost, expectedBlockGasCost) {
-		return fmt.Errorf("invalid block gas cost: have %d, want %d", header.BlockGasCost, expectedBlockGasCost)
+	headerExtra := customtypes.GetHeaderExtra(header)
+	if !utils.BigEqual(headerExtra.BlockGasCost, expectedBlockGasCost) {
+		return fmt.Errorf("invalid block gas cost: have %d, want %d", headerExtra.BlockGasCost, expectedBlockGasCost)
 	}
 	return nil
 }
@@ -336,7 +338,7 @@ func (eng *DummyEngine) Finalize(chain consensus.ChainHeaderReader, block *types
 		return err
 	}
 	// Verify the BlockGasCost set in the header matches the expected value.
-	blockGasCost := block.BlockGasCost()
+	blockGasCost := customtypes.BlockGasCost(block)
 	expectedBlockGasCost := customheader.BlockGasCost(
 		config,
 		feeConfig,
@@ -373,7 +375,8 @@ func (eng *DummyEngine) FinalizeAndAssemble(chain consensus.ChainHeaderReader, h
 	config := params.GetExtra(chain.Config())
 
 	// Calculate the required block gas cost for this block.
-	header.BlockGasCost = customheader.BlockGasCost(
+	headerExtra := customtypes.GetHeaderExtra(header)
+	headerExtra.BlockGasCost = customheader.BlockGasCost(
 		config,
 		feeConfig,
 		parent,
@@ -383,7 +386,7 @@ func (eng *DummyEngine) FinalizeAndAssemble(chain consensus.ChainHeaderReader, h
 		// Verify that this block covers the block fee.
 		if err := eng.verifyBlockFee(
 			header.BaseFee,
-			header.BlockGasCost,
+			headerExtra.BlockGasCost,
 			txs,
 			receipts,
 		); err != nil {
