@@ -25,10 +25,8 @@ SUBNET_EVM_PATH=$(
 # Force tagging as latest even if not the master branch
 FORCE_TAG_LATEST="${FORCE_TAG_LATEST:-}"
 
-# Load the constants
 source "$SUBNET_EVM_PATH"/scripts/constants.sh
-
-# Load the versions
+source "$SUBNET_EVM_PATH"/scripts/git_commit.sh
 source "$SUBNET_EVM_PATH"/scripts/versions.sh
 
 # WARNING: this will use the most recent commit even if there are un-committed changes present
@@ -111,7 +109,7 @@ echo "Building Docker Image: $IMAGE_NAME:$BUILD_IMAGE_ID based of AvalancheGo@$A
 ${DOCKER_CMD} -t "$IMAGE_NAME:$BUILD_IMAGE_ID" -t "$IMAGE_NAME:${DOCKERHUB_TAG}" \
   "$SUBNET_EVM_PATH" -f "$SUBNET_EVM_PATH/Dockerfile" \
   --build-arg AVALANCHEGO_NODE_IMAGE="$AVALANCHEGO_NODE_IMAGE" \
-  --build-arg SUBNET_EVM_COMMIT="$SUBNET_EVM_COMMIT" \
+  --build-arg SUBNET_EVM_COMMIT="$GIT_COMMIT" \
   --build-arg CURRENT_BRANCH="$CURRENT_BRANCH" \
   --build-arg VM_ID="$VM_ID"
 

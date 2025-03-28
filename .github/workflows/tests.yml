@@ -151,7 +151,7 @@ jobs:
         shell: bash
         run: ./scripts/build.sh
       - name: Run Warp E2E Tests
-        uses: ava-labs/avalanchego/.github/actions/run-monitored-tmpnet-cmd@5875349c4e23caf84c343625c740134c07181657
+        uses: ava-labs/avalanchego/.github/actions/run-monitored-tmpnet-cmd@2f49e50fd7981f90d9ec0ad945ea57faec608c5d
         with:
           run: ./scripts/run_ginkgo_warp.sh
           run_env: AVALANCHEGO_BUILD_PATH=/tmp/e2e-test/avalanchego
@@ -179,7 +179,7 @@ jobs:
         shell: bash
         run: ./scripts/build.sh
       - name: Run E2E Load Tests
-        uses: ava-labs/avalanchego/.github/actions/run-monitored-tmpnet-cmd@5875349c4e23caf84c343625c740134c07181657
+        uses: ava-labs/avalanchego/.github/actions/run-monitored-tmpnet-cmd@2f49e50fd7981f90d9ec0ad945ea57faec608c5d
         with:
           run: ./scripts/run_ginkgo_load.sh
           run_env: AVALANCHEGO_BUILD_PATH=/tmp/e2e-test/avalanchego

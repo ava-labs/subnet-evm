@@ -62,8 +62,12 @@ github.com/antithesishq/antithesis-sdk-go v0.3.8/go.mod h1:IUpT2DPAKh6i/YhSbt6Gl
 github.com/armon/consul-api v0.0.0-20180202201655-eb2c6b5be1b6/go.mod h1:grANhF5doyWs3UAsr3K4I6qtAmlQcZDesFNEHPZAzj8=
 github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5 h1:0CwZNZbxp69SHPdPJAN/hZIm0C4OItdklCFmMRWYpio=
 github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5/go.mod h1:wHh0iHkYZB8zMSxRWpUBQtwG5a7fFgvEO+odwuTv2gs=
-github.com/ava-labs/avalanchego v1.13.1-0.20250326231048-5875349c4e23 h1:fvfgw9r8MD1tWs36ZNi8lfeoADiN91cPX6aQYp3EJGg=
-github.com/ava-labs/avalanchego v1.13.1-0.20250326231048-5875349c4e23/go.mod h1:OBxw5VpOsP1Kzh6vBL6oAZxm+uOKtf9CrjrePMTZA7U=
+github.com/ava-labs/avalanchego v1.13.1-0.20250327220527-5ee084c55baf h1:203sej5REbn5zVScU0LZAsYP2gIbSGKQDKdXT5HUvTI=
+github.com/ava-labs/avalanchego v1.13.1-0.20250327220527-5ee084c55baf/go.mod h1:OBxw5VpOsP1Kzh6vBL6oAZxm+uOKtf9CrjrePMTZA7U=
+github.com/ava-labs/avalanchego v1.13.1-0.20250327222120-18ce85043a3a h1:fOj97jACUsBqgmgFFousLVzE+qM+V9fguorwuL2yOxg=
+github.com/ava-labs/avalanchego v1.13.1-0.20250327222120-18ce85043a3a/go.mod h1:OBxw5VpOsP1Kzh6vBL6oAZxm+uOKtf9CrjrePMTZA7U=
+github.com/ava-labs/avalanchego v1.13.1-0.20250327230056-2f49e50fd798 h1:2Fh1Vz4mlfhkn0Cenx8t/tH0IY36tBZRT0/k9doBRjw=
+github.com/ava-labs/avalanchego v1.13.1-0.20250327230056-2f49e50fd798/go.mod h1:OBxw5VpOsP1Kzh6vBL6oAZxm+uOKtf9CrjrePMTZA7U=
 github.com/ava-labs/coreth v0.15.0-rc.1 h1:L+VOtS559IJvvONOIes4ZlJp0McZgzOBrunb0V0vBPE=
 github.com/ava-labs/coreth v0.15.0-rc.1/go.mod h1:u0XBMX0HHg87vodvqKuSywwq5MMYrKstWAUZaTKyTDE=
 github.com/ava-labs/libevm v0.0.0-20250320152422-7be6bee7ab32 h1:l8Q4JyvTY+22e6lMLcd6WamMYFJc36MfJmeKflis7nQ=
@@ -193,6 +197,8 @@ github.com/ethereum/go-ethereum v1.13.14 h1:EwiY3FZP94derMCIam1iW4HFVrSgIcpsu0Hw
 github.com/ethereum/go-ethereum v1.13.14/go.mod h1:TN8ZiHrdJwSe8Cb6x+p0hs5CxhJZPbqB7hHkaUXcmIU=
 github.com/fasthttp-contrib/websocket v0.0.0-20160511215533-1f3b11f56072/go.mod h1:duJ4Jxv5lDcvg4QuQr0oowTf7dz4/CR8NtyCooz9HL8=
 github.com/fatih/structs v1.1.0/go.mod h1:9NiDSp5zOcgEDl+j00MP/WkGVPOlPRLejGD8Ga6PJ7M=
+github.com/fatih/structtag v1.2.0 h1:/OdNE99OxoI/PqaW/SuSK9uxxT3f/tcSZgon/ssNSx4=
+github.com/fatih/structtag v1.2.0/go.mod h1:mBJUNpUnHmRKrKlQQlmCrh5PuhftFbNv8Ys4/aAZl94=
 github.com/frankban/quicktest v1.14.4 h1:g2rn0vABPOOXmZUj+vbmUp0lPoXEMuhTpIluN0XL9UY=
 github.com/frankban/quicktest v1.14.4/go.mod h1:4ptaffx2x8+WTWXmUCuVU6aPUX1/Mz7zb5vbUoiM6w0=
 github.com/fsnotify/fsnotify v1.4.7/go.mod h1:jwhsz4b93w/PPRr/qN1Yymfu8t87LnFCMoQvtojpjFo=

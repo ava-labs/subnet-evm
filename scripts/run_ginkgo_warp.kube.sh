@@ -33,8 +33,9 @@ fi
 "${SUBNET_EVM_PATH}"/bin/tmpnetctl start-kind-cluster
 
 DOCKER_IMAGE="${DOCKER_IMAGE:-localhost:5001/subnet-evm}"
+AVALANCHEGO_LOCAL_IMAGE_NAME="${AVALANCHEGO_LOCAL_IMAGE_NAME:-localhost:5001/avalanchego}"
 if [[ -z "${SKIP_BUILD_IMAGE:-}" ]]; then
-  FORCE_TAG_LATEST=1 IMAGE_NAME="${DOCKER_IMAGE}" bash -x "${SUBNET_EVM_PATH}"/scripts/build_docker_image.sh
+  FORCE_TAG_LATEST=1 IMAGE_NAME="${DOCKER_IMAGE}" AVALANCHEGO_LOCAL_IMAGE_NAME="${AVALANCHEGO_LOCAL_IMAGE_NAME}" bash -x "${SUBNET_EVM_PATH}"/scripts/build_docker_image.sh
 fi
 
 GINKGO_ARGS=()
