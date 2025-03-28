@@ -2,6 +2,8 @@ module github.com/ava-labs/subnet-evm
 
 go 1.23.6
 
+toolchain go1.24.1
+
 require (
 	github.com/VictoriaMetrics/fastcache v1.12.1
 	github.com/antithesishq/antithesis-sdk-go v0.3.8
@@ -51,7 +53,7 @@ require (
 	golang.org/x/time v0.3.0
 	golang.org/x/tools v0.28.0
 	google.golang.org/protobuf v1.35.2
-	gopkg.in/natefinch/lumberjack.v2 v2.0.0
+	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 )
 
 require (
