@@ -91,7 +91,7 @@ Sending messages from the X, C, or P-Chain remains unchanged.
 However, when the Subnet receives the message, it changes the semantics to the following:
 
 1. Read the `SourceChainID` of the signed message
-2. Look up the `SubnetID` that validates `SourceChainID`: Primary Network
+2. Look up the `SubnetID` that validates `SourceChainID`. In this case it will be the Primary Network's `SubnetID`
 3. Look up the validator set of the Subnet (instead of the Primary Network) and the registered BLS Public Keys of the Subnet validators at the P-Chain height specified by the ProposerVM header
 4. Continue Warp Message verification using the validator set of the Subnet instead of the Primary Network
 
