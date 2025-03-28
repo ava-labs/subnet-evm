@@ -102,14 +102,17 @@ export SEMVER_VERSION=v0.7.3
     ```
 
 1. Once the PR checks pass, squash and merge it
-1. Update your master branch, tag it and push the tag:
+1. There are two cases:
+    - You are creating a release candidate (`-rc.`): update your master branch, tag it and push the tag:
 
-    ```bash
-    git checkout master
-    git fetch origin master:master
-    git tag "$VERSION"
-    git push -u origin "$VERSION"
-    ```
+        ```bash
+        git checkout master
+        git fetch origin master:master
+        git tag "$VERSION"
+        git push -u origin "$VERSION"
+        ```
+
+    - You are creating a release (i.e. `v0.7.4`): create a new release through the [Github web interface](https://github.com/ava-labs/subnet-evm/releases/new), targeting the master branch and creating the tag there.
 
 We first deploy RC to a local node (I prefer to bootstrap canaries echo/dispatch from scratch in Fuji)
 If all good then we update echo/dispatch with RC under <https://github.com/ava-labs/external-plugins-builder>
