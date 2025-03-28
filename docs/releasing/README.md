@@ -14,7 +14,6 @@ In this document, we create a release `v0.7.3-rc.0` and the releaser Github user
 ```bash
 export VERSION=v0.7.3-rc.0
 export SEMVER_VERSION=v0.7.3
-export GITHUB_USER=myusername
 ```
 
 1. Create your branch, usually from the tip of the `master` branch:
@@ -22,7 +21,7 @@ export GITHUB_USER=myusername
     ```bash
     git fetch origin master:master
     git checkout master
-    git checkout -b "$GITHUB_USER/releases/$VERSION"
+    git checkout -b "releases/$VERSION"
     ```
 
 1. Modify [plugin/evm/version.go](../../plugin/evm/version.go)'s `Version` global string variable and set it to the desired `$SEMVER_VERSION`.
@@ -93,7 +92,7 @@ export GITHUB_USER=myusername
     ```bash
     git add plugin/evm/version.go compatibility.json go.mod go.sum README.md
     git commit -S -m "chore: release $VERSION"
-    git push -u origin "$GITHUB_USER/releases/$VERSION"
+    git push -u origin "releases/$VERSION"
     ```
 
 1. Create a pull request (PR) from your branch targeting master, for example using [`gh`](https://cli.github.com/):
@@ -111,3 +110,7 @@ export GITHUB_USER=myusername
     git tag "$VERSION"
     git push -u origin "$VERSION"
     ```
+
+We first deploy RC to a local node (I prefer to bootstrap canaries echo/dispatch from scratch in Fuji)
+If all good then we update echo/dispatch with RC under <https://github.com/ava-labs/external-plugins-builder>
+Confirm goreleaser job has successfully generated binaries by checking the releases page
