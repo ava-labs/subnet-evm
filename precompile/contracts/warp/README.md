@@ -92,7 +92,7 @@ However, when the Subnet receives the message, it changes the semantics to the f
 
 1. Read the `SourceChainID` of the signed message
 2. Look up the `SubnetID` that validates `SourceChainID`: Primary Network
-3. Look up the validator set of the Subnet (instead of the Primary Network) and the registered BLS Public Keys ofthe Subnet validators at the P-Chain height specified by the ProposerVM header
+3. Look up the validator set of the Subnet (instead of the Primary Network) and the registered BLS Public Keys of the Subnet validators at the P-Chain height specified by the ProposerVM header
 4. Continue Warp Message verification using the validator set of the Subnet instead of the Primary Network
 
 This means that Primary Network to Subnet communication only requires a threshold of stake on the receiving Subnet to sign the message instead of a threshold of stake for the entire Primary Network.
