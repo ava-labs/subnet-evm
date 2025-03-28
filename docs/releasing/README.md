@@ -90,7 +90,7 @@ export SEMVER_VERSION=v0.7.3
 1. Commit your changes and push the branch
 
     ```bash
-    git add plugin/evm/version.go compatibility.json go.mod go.sum README.md
+    git add .
     git commit -S -m "chore: release $VERSION"
     git push -u origin "releases/$VERSION"
     ```
