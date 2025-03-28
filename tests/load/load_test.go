@@ -50,10 +50,12 @@ func TestE2E(t *testing.T) {
 var _ = ginkgo.Describe("[Load Simulator]", ginkgo.Ordered, func() {
 	require := require.New(ginkgo.GinkgoT())
 
-	var env *e2e.TestEnvironment
+	var (
+		env *e2e.TestEnvironment
+		tc  = e2e.NewTestContext()
+	)
 
 	ginkgo.BeforeAll(func() {
-		tc := e2e.NewTestContext()
 		genesisPath := filepath.Join(repoRootPath, "tests/load/genesis/genesis.json")
 
 		nodes := utils.NewTmpnetNodes(nodeCount)
@@ -76,15 +78,20 @@ var _ = ginkgo.Describe("[Load Simulator]", ginkgo.Ordered, func() {
 		require.NotNil(subnet)
 		blockchainID := subnet.Chains[0].ChainID
 
-		nodeURIs := tmpnet.GetNodeURIs(network.Nodes)
 		validatorIDs := set.NewSet[ids.NodeID](len(subnet.ValidatorIDs))
 		validatorIDs.Add(subnet.ValidatorIDs...)
-		rpcEndpoints := make([]string, 0, len(nodeURIs))
-		for _, nodeURI := range nodeURIs {
-			if !validatorIDs.Contains(nodeURI.NodeID) {
+		rpcEndpoints := make([]string, 0, len(network.Nodes))
+		for _, node := range network.Nodes {
+			if node.IsEphemeral {
 				continue
 			}
-			rpcEndpoints = append(rpcEndpoints, fmt.Sprintf("%s/ext/bc/%s/rpc", nodeURI.URI, blockchainID))
+			if !validatorIDs.Contains(node.NodeID) {
+				continue
+			}
+			uri, cancel, err := node.GetLocalURI(tc.DefaultContext())
+			require.NoError(err)
+			ginkgo.DeferCleanup(cancel)
+			rpcEndpoints = append(rpcEndpoints, fmt.Sprintf("%s/ext/bc/%s/rpc", uri, blockchainID))
 		}
 		commaSeparatedRPCEndpoints := strings.Join(rpcEndpoints, ",")
 		err := os.Setenv("RPC_ENDPOINTS", commaSeparatedRPCEndpoints)

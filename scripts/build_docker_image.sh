@@ -22,10 +22,11 @@ SUBNET_EVM_PATH=$(
   cd .. && pwd
 )
 
-# Load the constants
-source "$SUBNET_EVM_PATH"/scripts/constants.sh
+# Force tagging as latest even if not the master branch
+FORCE_TAG_LATEST="${FORCE_TAG_LATEST:-}"
 
-# Load the versions
+source "$SUBNET_EVM_PATH"/scripts/constants.sh
+source "$SUBNET_EVM_PATH"/scripts/git_commit.sh
 source "$SUBNET_EVM_PATH"/scripts/versions.sh
 
 # WARNING: this will use the most recent commit even if there are un-committed changes present
@@ -37,7 +38,7 @@ BUILD_IMAGE_ID=${BUILD_IMAGE_ID:-"${CURRENT_BRANCH}"}
 # Reference: https://docs.docker.com/build/buildkit/
 DOCKER_CMD="docker buildx build"
 ispush=0
-if [[ -n "${PUBLISH}" ]]; then
+if [[ -n "${PUBLISH}" || "${IMAGE_NAME}" == *"/"*  ]]; then
   echo "Pushing $IMAGE_NAME:$BUILD_IMAGE_ID"
   ispush=1
   # A populated DOCKER_USERNAME env var triggers login
@@ -108,11 +109,11 @@ echo "Building Docker Image: $IMAGE_NAME:$BUILD_IMAGE_ID based of AvalancheGo@$A
 ${DOCKER_CMD} -t "$IMAGE_NAME:$BUILD_IMAGE_ID" -t "$IMAGE_NAME:${DOCKERHUB_TAG}" \
   "$SUBNET_EVM_PATH" -f "$SUBNET_EVM_PATH/Dockerfile" \
   --build-arg AVALANCHEGO_NODE_IMAGE="$AVALANCHEGO_NODE_IMAGE" \
-  --build-arg SUBNET_EVM_COMMIT="$SUBNET_EVM_COMMIT" \
+  --build-arg SUBNET_EVM_COMMIT="$GIT_COMMIT" \
   --build-arg CURRENT_BRANCH="$CURRENT_BRANCH" \
   --build-arg VM_ID="$VM_ID"
 
-if [[ -n "${PUBLISH}" && $CURRENT_BRANCH == "master" ]]; then
+if [[ -n "${FORCE_TAG_LATEST}" || (-n "${PUBLISH}" && $CURRENT_BRANCH == "master") ]]; then
   echo "Tagging current image as $IMAGE_NAME:latest"
   docker buildx imagetools create -t "$IMAGE_NAME:latest" "$IMAGE_NAME:$BUILD_IMAGE_ID"
 fi
