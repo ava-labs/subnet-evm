@@ -97,7 +97,7 @@ However, when the Subnet receives the message, it changes the semantics to the f
 
 This means that Primary Network to Subnet communication only requires a threshold of stake on the receiving Subnet to sign the message instead of a threshold of stake for the entire Primary Network.
 
-Since the security of the Subnet is provided by trust in its validator set, requiring a threshold of stake from the receiving Subnet's validator set instead of the whole Primary Network does not meaningfully change security of the receiving L1.
+Since the security of the Subnet is provided by trust in its validator set, requiring a threshold of stake from the receiving Subnet's validator set instead of the whole Primary Network does not meaningfully change the security of the receiving L1.
 
 Note: this special case is ONLY applied during Warp Message verification. The message sent by the Primary Network will still contain the blockchainID of the Primary Network chain that sent the message as the sourceChainID and signatures will be served by querying the source chain directly.
 
