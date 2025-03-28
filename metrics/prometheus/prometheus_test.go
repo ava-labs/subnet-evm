@@ -40,6 +40,10 @@ func TestGatherer_Gather(t *testing.T) {
 	gaugeFloat64.Update(34567.89)
 	register(t, "test/gauge_float64", gaugeFloat64)
 
+	gaugeInfo := metrics.NewGaugeInfo()
+	gaugeInfo.Update(metrics.GaugeInfoValue{"key": "value"})
+	register(t, "test/gauge_info", gaugeInfo) // skipped
+
 	sample := metrics.NewUniformSample(1028)
 	histogram := metrics.NewHistogram(sample)
 	register(t, "test/histogram", histogram)
@@ -91,7 +95,7 @@ func TestGatherer_Gather(t *testing.T) {
 	}
 	assert.Equal(t, want, familyStrings)
 
-	register(t, "unsupported", metrics.NewGaugeInfo())
+	register(t, "unsupported", metrics.NewHealthcheck(nil))
 	families, err = gatherer.Gather()
 	assert.ErrorIs(t, err, errMetricTypeNotSupported)
 	assert.Empty(t, families)

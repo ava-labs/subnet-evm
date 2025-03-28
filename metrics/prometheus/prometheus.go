@@ -113,6 +113,8 @@ func metricFamily(registry Registry, name string) (mf *dto.MetricFamily, err err
 				},
 			}},
 		}, nil
+	case metrics.GaugeInfo:
+		return nil, fmt.Errorf("%w: %q is a %T", errMetricSkip, name, m)
 	case metrics.Histogram:
 		snapshot := m.Snapshot()
 
