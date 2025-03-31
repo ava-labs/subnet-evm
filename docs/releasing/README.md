@@ -108,9 +108,10 @@ If a successful release candidate was create, you can now create a release.
 
 Following the previous example in the [Release candidate section](#release-candidate), we will create a release `v0.7.3` indicated by the `$VERSION` variable.
 
+1. Head to the last release candidate pull request, and **restore** the deleted branch at the bottom of the Github page.
 1. Create a new release through the [Github web interface](https://github.com/ava-labs/subnet-evm/releases/new)
     1. In the "Choose a tag" box, enter `$VERSION` (`v0.7.3`)
-    1. In the "Target", pick the last release candidate branch `releases/${VERSION_RC}`, for example `releases/v0.7.3-rc.0`.
+    1. In the "Target", pick the previously restored last release candidate branch `releases/${VERSION_RC}`, for example `releases/v0.7.3-rc.0`.
     Do not select `master` as the target branch to prevent adding new master branch commits to the release.
     1. Set the "Release title" to `$VERSION` (`v0.7.3`)
     1. Set the description
