@@ -40,8 +40,8 @@ export SEMVER_VERSION=v0.7.3
 
     💁 If you are unsure about the RPC chain VM protocol version:
 
-    1. Check [go.mod](../../go.mod) and spot the version used for `github.com/ava-labs/avalanchego`. For example `v1.12.3-0.20250321175346-50f1601bf39a`.
-    1. Refer to the [Avalanchego repository `version/compatibility.json` file](https://github.com/ava-labs/avalanchego/blob/master/version/compatibility.json) to find the RPC chain VM protocol version matching the subnet-evm AvalancheGo version. In our case, we use an AvalancheGo version based on top of `v1.12.2`, so the RPC chain VM protocol version is `39`:
+    1. Check [go.mod](../../go.mod) and spot the version used for `github.com/ava-labs/avalanchego`. For example `v1.13.0`.
+    1. Refer to the [Avalanchego repository `version/compatibility.json` file](https://github.com/ava-labs/avalanchego/blob/master/version/compatibility.json) to find the RPC chain VM protocol version matching the subnet-evm AvalancheGo version. In our case, we use an AvalancheGo version `v1.13.0`, so the RPC chain VM protocol version is `39`:
 
         ```json
         {
@@ -62,7 +62,7 @@ export SEMVER_VERSION=v0.7.3
 
     ```text
     ...
-    [v0.7.3] AvalancheGo@v1.12.2/1.13.0-fuji (Protocol Version: 39)
+    [v0.7.3] AvalancheGo@v1.12.2/1.13.0-fuji/1.13.0 (Protocol Version: 39)
     ```
 
 1. Commit your changes and push the branch
