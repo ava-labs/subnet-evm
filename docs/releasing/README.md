@@ -12,8 +12,8 @@
 In this document, we create a release `v0.7.3-rc.0`. We therefore assign these environment variables to simplify copying instructions:
 
 ```bash
-export VERSION=v0.7.3-rc.0
-export SEMVER_VERSION=v0.7.3
+export VERSION_RC=v0.7.3-rc.0
+export VERSION=v0.7.3
 ```
 
 1. Create your branch, usually from the tip of the `master` branch:
@@ -21,10 +21,10 @@ export SEMVER_VERSION=v0.7.3
     ```bash
     git fetch origin master:master
     git checkout master
-    git checkout -b "releases/$VERSION"
+    git checkout -b "releases/$VERSION_RC"
     ```
 
-1. Modify [plugin/evm/version.go](../../plugin/evm/version.go)'s `Version` global string variable and set it to the desired `$SEMVER_VERSION`.
+1. Modify [plugin/evm/version.go](../../plugin/evm/version.go)'s `Version` global string variable and set it to the desired `$VERSION`.
 1. Ensure the AvalancheGo version used in [go.mod](../../go.mod) is [its last release](https://github.com/ava-labs/avalanchego/releases). If not, upgrade it with, for example:
 
     ```bash
@@ -33,7 +33,7 @@ export SEMVER_VERSION=v0.7.3
     ```
 
     And fix any errors that may arise from the upgrade. If it requires significant changes, you may want to create a separate PR for the upgrade and wait for it to be merged before continuing with this procedure.
-1. Modify [compatiblity.json](../../compatibility.json) by adding `$SEMVER_VERSION` to the `"rpcChainVMProtocolVersion"` JSON object. In our example, we add it as
+1. Modify [compatiblity.json](../../compatibility.json) by adding `$VERSION` to the `"rpcChainVMProtocolVersion"` JSON object. In our example, we add it as
 
     ```json
     {
@@ -77,14 +77,14 @@ export SEMVER_VERSION=v0.7.3
 
     ```bash
     git add .
-    git commit -S -m "chore: release $VERSION"
-    git push -u origin "releases/$VERSION"
+    git commit -S -m "chore: release $VERSION_RC"
+    git push -u origin "releases/$VERSION_RC"
     ```
 
 1. Create a pull request (PR) from your branch targeting master, for example using [`gh`](https://cli.github.com/):
 
     ```bash
-    gh pr create --repo github.com/ava-labs/subnet-evm --base master --title "chore: release $VERSION"
+    gh pr create --repo github.com/ava-labs/subnet-evm --base master --title "chore: release $VERSION_RC"
     ```
 
 1. Once the PR checks pass, squash and merge it
@@ -94,8 +94,8 @@ export SEMVER_VERSION=v0.7.3
         ```bash
         git checkout master
         git fetch origin master:master
-        git tag "$VERSION"
-        git push -u origin "$VERSION"
+        git tag "$VERSION_RC"
+        git push -u origin "$VERSION_RC"
         ```
 
     - You are creating a release (i.e. `v0.7.4`): create a new release through the [Github web interface](https://github.com/ava-labs/subnet-evm/releases/new), targeting the master branch and creating the tag there.
