@@ -9,7 +9,11 @@
 
 ## Procedure
 
-In this document, we create a release `v0.7.3-rc.0`. We therefore assign these environment variables to simplify copying instructions:
+### Release candidate
+
+ℹ️ you should always create a release candidate first, and only if everything is fine, you can create a release.
+
+In this section, we create a release candidate `v0.7.3-rc.0`. We therefore assign these environment variables to simplify copying instructions:
 
 ```bash
 export VERSION_RC=v0.7.3-rc.0
@@ -88,18 +92,31 @@ export VERSION=v0.7.3
     ```
 
 1. Once the PR checks pass, squash and merge it
-1. There are two cases:
-    - You are creating a release candidate (`-rc.`): update your master branch, tag it and push the tag:
+1. Update your master branch, create a tag and push it:
 
-        ```bash
-        git checkout master
-        git fetch origin master:master
-        git tag "$VERSION_RC"
-        git push -u origin "$VERSION_RC"
-        ```
+    ```bash
+    git checkout master
+    git fetch origin master:master
+    git tag "$VERSION_RC"
+    git push -u origin "$VERSION_RC"
+    ```
 
-    - You are creating a release (i.e. `v0.7.4`): create a new release through the [Github web interface](https://github.com/ava-labs/subnet-evm/releases/new), targeting the master branch and creating the tag there.
+1. Deploy the release candidate tagged to a local node (bootstrap canaries echo/dispatch from scratch in Fuji)
+1. Update echo/dispatch with RC under <https://github.com/ava-labs/external-plugins-builder>
 
-We first deploy RC to a local node (I prefer to bootstrap canaries echo/dispatch from scratch in Fuji)
-If all good then we update echo/dispatch with RC under <https://github.com/ava-labs/external-plugins-builder>
-Confirm goreleaser job has successfully generated binaries by checking the releases page
+### Release
+
+If you have create a successful release candidate, you can now create a release.
+
+Following the previous example in the [Release candidate section](#release-candidate), we will create a release `v0.7.3` indicated by the `$VERSION` variable.
+
+1. Create a new release through the [Github web interface](https://github.com/ava-labs/subnet-evm/releases/new)
+    1. In the "Choose a tag" box, enter `$VERSION` (`v0.7.3`)
+    1. In the "Target", pick the last release candidate branch `releases/${VERSION_RC}`, for example `releases/v0.7.3-rc.0`.
+    Do not select `master` as the target branch to prevent adding new master branch commits to the release.
+    1. Set the "Release title" to `$VERSION` (`v0.7.3`)
+    1. Set the description
+    1. Only tick the box "Set as the latest release"
+    1. Click on the "Create release" button
+1. Monitor the [release Github workflow](https://github.com/ava-labs/subnet-evm/actions/workflows/release.yml) to ensure the GoReleaser step succeeds and check the binaries are then published to [the releases page](https://github.com/ava-labs/subnet-evm/releases)
+1. Monitor the [Publish Docker image workflow](https://github.com/ava-labs/subnet-evm/actions/workflows/publish_docker.yml) succeeds.
