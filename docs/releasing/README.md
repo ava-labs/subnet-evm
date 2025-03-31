@@ -25,6 +25,14 @@ export SEMVER_VERSION=v0.7.3
     ```
 
 1. Modify [plugin/evm/version.go](../../plugin/evm/version.go)'s `Version` global string variable and set it to the desired `$SEMVER_VERSION`.
+1. Ensure the AvalancheGo version used in [go.mod](../../go.mod) is [its last release](https://github.com/ava-labs/avalanchego/releases). If not, upgrade it with, for example:
+
+    ```bash
+    go get github.com/ava-labs/avalanchego@v1.13.0
+    go mod tidy
+    ```
+
+    And fix any errors that may arise from the upgrade. If it requires significant changes, you may want to create a separate PR for the upgrade and wait for it to be merged before continuing with this procedure.
 1. Modify [compatiblity.json](../../compatibility.json) by adding `$SEMVER_VERSION` to the `"rpcChainVMProtocolVersion"` JSON object. In our example, we add it as
 
     ```json
