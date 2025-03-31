@@ -9,7 +9,7 @@
 
 ## Procedure
 
-In this document, we create a release `v0.7.3-rc.0` and the releaser Github username is `myusername`. We therefore assign these environment variables to simplify copying instructions:
+In this document, we create a release `v0.7.3-rc.0`. We therefore assign these environment variables to simplify copying instructions:
 
 ```bash
 export VERSION=v0.7.3-rc.0
