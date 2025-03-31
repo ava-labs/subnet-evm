@@ -5,8 +5,6 @@
 - When [AvalancheGo](https://github.com/ava-labs/avalanchego/releases) increases its RPC chain VM protocol version, which you can also check in [its `version/compatibility.json`](https://github.com/ava-labs/avalanchego/blob/master/version/compatibility.json)
 - When Subnet-EVM needs to release a new feature or bug fix.
 
-## Version semantics
-
 ## Procedure
 
 ### Release candidate
