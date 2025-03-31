@@ -104,7 +104,7 @@ export VERSION=v0.7.3
 
 ### Release
 
-If a successful release candidate was create, you can now create a release.
+If a successful release candidate was created, you can now create a release.
 
 Following the previous example in the [Release candidate section](#release-candidate), we will create a release `v0.7.3` indicated by the `$VERSION` variable.
 
