@@ -17,8 +17,7 @@ jobs:
     steps:
       - name: Store current git commit in a variable
         id: vars
-        run: |
-          echo "GIT_COMMIT=$(git rev-parse HEAD)" >> $GITHUB_ENV
+        run: echo "GIT_COMMIT=$(git rev-parse HEAD)" >> $GITHUB_ENV
       - name: Git checkout
         uses: actions/checkout@v4
         with:
