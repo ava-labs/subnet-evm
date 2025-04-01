@@ -42,4 +42,4 @@ release:
 git:
   # Avoid picking the wrong tag when there is an RC tag and a non-RC tag
   # pointing to the same commit.
-  prerelease_suffix: "-"
+  prerelease_suffix: "-rc"
