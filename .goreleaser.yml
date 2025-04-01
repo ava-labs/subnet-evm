@@ -37,3 +37,8 @@ release:
   github:
     owner: ava-labs
     name: subnet-evm
+
+git:
+  # Avoid picking the wrong tag when there is an RC tag and a non-RC tag
+  # pointing to the same commit.
+  tag_sort: -version:creatordate
