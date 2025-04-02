@@ -89,8 +89,6 @@ export VERSION=v0.7.3
     gh pr create --repo github.com/ava-labs/subnet-evm --base master --title "chore: release $VERSION_RC"
     ```
 
-Q: what's the use to setup an AWS create platform account through okta, using the platform sandbox account.
-
 1. Once the PR checks pass, squash and merge it
 1. Update your master branch, create a tag and push it:
 
