@@ -108,7 +108,7 @@ Once the tag is created, you need to test it on the Fuji testnet both locally an
 1. Find the Dispatch and Echo L1s blockchain ID and subnet ID:
     - [Dispath L1 details](https://subnets-test.avax.network/dispatch/details). Its subnet id is `7WtoAMPhrmh5KosDUsFL9yTcvw7YSxiKHPpdfs4JsgW47oZT5`.
     - [Echo L1 details](https://subnets-test.avax.network/echo/details). Its subnet id is `i9gFpZQHPLcGfZaQLiwFAStddQD7iTKBpFfurPFJsXm1CkTZK`.
-1. Get the VM IDs of the Echo and Dispatch L1s with:
+1. Get the blockchain ID and VM ID of the Echo and Dispatch L1s with:
     - Dispatch:
 
         ```bash
@@ -148,6 +148,21 @@ Once the tag is created, you need to test it on the Fuji testnet both locally an
         Blockchain id: 98qnjenm7MBd8G2cPZoRvZrgJC33JGSAAKghsQ6eojbLCeRNp
         VM id: meq3bv7qCMZZ69L8xZRLwyKnWp6chRwyscq8VPtHWignRQVVF
         ```
+
+1. In the subnet-evm directory, build the VM using
+
+    ```bash
+    ./scripts/build.sh vm.bin
+    ```
+
+1. Copy the VM binary to the plugins directory, naming it with the VM ID:
+
+    ```bash
+    mkdir -p ~/.avalanchego/plugins
+    cp vm.bin ~/.avalanchego/plugins/mDtV8ES8wRL1j2m6Kvc1qRFAvnpq4kufhueAY1bwbzVhk336o
+    cp vm.bin ~/.avalanchego/plugins/meq3bv7qCMZZ69L8xZRLwyKnWp6chRwyscq8VPtHWignRQVVF
+    rm vm.bin
+    ```
 
 1. Clone [AvalancheGo](https://github.com/ava-labs/avalanchego):
 
