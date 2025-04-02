@@ -103,6 +103,8 @@ Once the tag is created, you need to test it on the Fuji testnet both locally an
 
 #### Local deployment
 
+💁 If your machine is too low on resources (memory, disk, CPU, network), or the subnet is quite big to bootstrap (notably *dfk*, *shrapnel* and *gunzilla*), you can run an [AWS EC2 instance](https://github.com/ava-labs/eng-resources/blob/main/dev-node-setup.md) with the following steps.
+
 1. Find the Dispatch and Echo L1s blockchain ID and subnet ID:
     - [Dispath L1 details](https://subnets-test.avax.network/dispatch/details). Its subnet id is `7WtoAMPhrmh5KosDUsFL9yTcvw7YSxiKHPpdfs4JsgW47oZT5`.
     - [Echo L1 details](https://subnets-test.avax.network/echo/details). Its subnet id is `i9gFpZQHPLcGfZaQLiwFAStddQD7iTKBpFfurPFJsXm1CkTZK`.
