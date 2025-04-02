@@ -15,11 +15,11 @@ import (
 	"github.com/ava-labs/avalanchego/database/prefixdb"
 	"github.com/ava-labs/avalanchego/database/versiondb"
 	avalancheconstants "github.com/ava-labs/avalanchego/utils/constants"
-	"github.com/ava-labs/subnet-evm/core/rawdb"
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/core/rawdb"
+	"github.com/ava-labs/libevm/log"
 	"github.com/ava-labs/subnet-evm/plugin/evm/config"
 	"github.com/ava-labs/subnet-evm/plugin/evm/database"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/log"
 )
 
 // initializeDBs initializes the databases used by the VM.

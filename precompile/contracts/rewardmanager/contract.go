@@ -11,13 +11,14 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
-	"github.com/ava-labs/subnet-evm/vmerrs"
 
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/core/vm"
 )
 
 const (
@@ -82,7 +83,7 @@ func allowFeeRecipients(accessibleState contract.AccessibleState, caller common.
 		return nil, 0, err
 	}
 	if readOnly {
-		return nil, remainingGas, vmerrs.ErrWriteProtection
+		return nil, remainingGas, vm.ErrWriteProtection
 	}
 	// no input provided for this function
 
@@ -105,12 +106,12 @@ func allowFeeRecipients(accessibleState contract.AccessibleState, caller common.
 		if err != nil {
 			return nil, remainingGas, err
 		}
-		stateDB.AddLog(
-			ContractAddress,
-			topics,
-			data,
-			accessibleState.GetBlockContext().Number().Uint64(),
-		)
+		stateDB.AddLog(&types.Log{
+			Address:     ContractAddress,
+			Topics:      topics,
+			Data:        data,
+			BlockNumber: accessibleState.GetBlockContext().Number().Uint64(),
+		})
 	}
 	EnableAllowFeeRecipients(stateDB)
 	// Return the packed output and the remaining gas
@@ -162,7 +163,7 @@ func PackCurrentRewardAddressOutput(rewardAddress common.Address) ([]byte, error
 
 // GetStoredRewardAddress returns the current value of the address stored under rewardAddressStorageKey.
 // Returns an empty address and true if allow fee recipients is enabled, otherwise returns current reward address and false.
-func GetStoredRewardAddress(stateDB contract.StateDB) (common.Address, bool) {
+func GetStoredRewardAddress(stateDB contract.StateReader) (common.Address, bool) {
 	val := stateDB.GetState(ContractAddress, rewardAddressStorageKey)
 	return common.BytesToAddress(val.Bytes()), val == allowFeeRecipientsAddressValue
 }
@@ -196,7 +197,7 @@ func setRewardAddress(accessibleState contract.AccessibleState, caller common.Ad
 		return nil, 0, err
 	}
 	if readOnly {
-		return nil, remainingGas, vmerrs.ErrWriteProtection
+		return nil, remainingGas, vm.ErrWriteProtection
 	}
 	// attempts to unpack [input] into the arguments to the SetRewardAddressInput.
 	// Assumes that [input] does not include selector
@@ -233,12 +234,12 @@ func setRewardAddress(accessibleState contract.AccessibleState, caller common.Ad
 		if err != nil {
 			return nil, remainingGas, err
 		}
-		stateDB.AddLog(
-			ContractAddress,
-			topics,
-			data,
-			accessibleState.GetBlockContext().Number().Uint64(),
-		)
+		stateDB.AddLog(&types.Log{
+			Address:     ContractAddress,
+			Topics:      topics,
+			Data:        data,
+			BlockNumber: accessibleState.GetBlockContext().Number().Uint64(),
+		})
 	}
 	StoreRewardAddress(stateDB, rewardAddress)
 	// Return the packed output and the remaining gas
@@ -273,7 +274,7 @@ func disableRewards(accessibleState contract.AccessibleState, caller common.Addr
 		return nil, 0, err
 	}
 	if readOnly {
-		return nil, remainingGas, vmerrs.ErrWriteProtection
+		return nil, remainingGas, vm.ErrWriteProtection
 	}
 	// no input provided for this function
 
@@ -296,12 +297,12 @@ func disableRewards(accessibleState contract.AccessibleState, caller common.Addr
 		if err != nil {
 			return nil, remainingGas, err
 		}
-		stateDB.AddLog(
-			ContractAddress,
-			topics,
-			data,
-			accessibleState.GetBlockContext().Number().Uint64(),
-		)
+		stateDB.AddLog(&types.Log{
+			Address:     ContractAddress,
+			Topics:      topics,
+			Data:        data,
+			BlockNumber: accessibleState.GetBlockContext().Number().Uint64(),
+		})
 	}
 	DisableFeeRewards(stateDB)
 	// Return the packed output and the remaining gas

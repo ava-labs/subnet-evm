@@ -27,7 +27,7 @@
 package node
 
 import (
-	"github.com/ava-labs/subnet-evm/accounts"
+	"github.com/ava-labs/libevm/accounts"
 	"github.com/ava-labs/subnet-evm/rpc"
 )
 

@@ -8,13 +8,14 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/ava-labs/libevm/common"
 
-	"github.com/ava-labs/subnet-evm/core/types"
+	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/trie"
 	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/plugin/evm/customtypes"
 	"github.com/ava-labs/subnet-evm/plugin/evm/header"
 	"github.com/ava-labs/subnet-evm/plugin/evm/upgrade/legacy"
-	"github.com/ava-labs/subnet-evm/trie"
 )
 
 var legacyMinGasPrice = big.NewInt(legacy.BaseFee)
@@ -30,6 +31,7 @@ func NewBlockValidator() BlockValidator {
 }
 
 func (v blockValidator) SyntacticVerify(b *Block, rules params.Rules) error {
+	rulesExtra := params.GetRulesExtra(rules)
 	if b == nil || b.ethBlock == nil {
 		return errInvalidBlock
 	}
@@ -61,11 +63,11 @@ func (v blockValidator) SyntacticVerify(b *Block, rules params.Rules) error {
 	}
 
 	// Verify the extra data is well-formed.
-	if err := header.VerifyExtra(rules.AvalancheRules, ethHeader.Extra); err != nil {
+	if err := header.VerifyExtra(rulesExtra.AvalancheRules, ethHeader.Extra); err != nil {
 		return err
 	}
 
-	if rules.IsSubnetEVM {
+	if rulesExtra.IsSubnetEVM {
 		if ethHeader.BaseFee == nil {
 			return errNilBaseFeeSubnetEVM
 		}
@@ -96,7 +98,7 @@ func (v blockValidator) SyntacticVerify(b *Block, rules params.Rules) error {
 		return errEmptyBlock
 	}
 
-	if !rules.IsSubnetEVM {
+	if !rulesExtra.IsSubnetEVM {
 		// Make sure that all the txs have the correct fee set.
 		for _, tx := range txs {
 			if tx.GasPrice().Cmp(legacyMinGasPrice) < 0 {
@@ -111,14 +113,15 @@ func (v blockValidator) SyntacticVerify(b *Block, rules params.Rules) error {
 		return fmt.Errorf("block timestamp is too far in the future: %d > allowed %d", blockTimestamp, maxBlockTime)
 	}
 
-	if rules.IsSubnetEVM {
+	if rulesExtra.IsSubnetEVM {
+		blockGasCost := customtypes.GetHeaderExtra(ethHeader).BlockGasCost
 		switch {
 		// Make sure BlockGasCost is not nil
 		// NOTE: ethHeader.BlockGasCost correctness is checked in header verification
-		case ethHeader.BlockGasCost == nil:
+		case blockGasCost == nil:
 			return errNilBlockGasCostSubnetEVM
-		case !ethHeader.BlockGasCost.IsUint64():
-			return fmt.Errorf("too large blockGasCost: %d", ethHeader.BlockGasCost)
+		case !blockGasCost.IsUint64():
+			return fmt.Errorf("too large blockGasCost: %d", blockGasCost)
 		}
 	}
 

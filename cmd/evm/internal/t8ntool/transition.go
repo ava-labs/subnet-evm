@@ -34,18 +34,18 @@ import (
 	"os"
 	"path"
 
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/common/hexutil"
+	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/core/vm"
+	"github.com/ava-labs/libevm/eth/tracers/logger"
+	"github.com/ava-labs/libevm/log"
 	"github.com/ava-labs/subnet-evm/core/state"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/core/vm"
 	"github.com/ava-labs/subnet-evm/eth/tracers"
-	"github.com/ava-labs/subnet-evm/eth/tracers/logger"
 	"github.com/ava-labs/subnet-evm/params"
 	customheader "github.com/ava-labs/subnet-evm/plugin/evm/header"
 	"github.com/ava-labs/subnet-evm/plugin/evm/upgrade/subnetevm"
 	"github.com/ava-labs/subnet-evm/tests"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/log"
 	"github.com/urfave/cli/v2"
 )
 
@@ -205,8 +205,7 @@ func Transition(ctx *cli.Context) error {
 }
 
 func applyLondonChecks(env *stEnv, chainConfig *params.ChainConfig) error {
-	// NOTE: IsLondon replaced with IsSubnetEVM here
-	if !chainConfig.IsSubnetEVM(env.Timestamp) {
+	if !chainConfig.IsLondon(new(big.Int).SetUint64(env.Number)) {
 		return nil
 	}
 	// Sanity check, to not `panic` in state_transition
@@ -230,8 +229,9 @@ func applyLondonChecks(env *stEnv, chainConfig *params.ChainConfig) error {
 		// Override the default min base fee if it's set in the env
 		feeConfig.MinBaseFee = env.MinBaseFee
 	}
+	configExtra := params.GetExtra(chainConfig)
 	var err error
-	env.BaseFee, err = customheader.BaseFee(chainConfig, feeConfig, parent, env.Timestamp)
+	env.BaseFee, err = customheader.BaseFee(configExtra, feeConfig, parent, env.Timestamp)
 	if err != nil {
 		return NewError(ErrorConfig, fmt.Errorf("failed calculating base fee: %v", err))
 	}

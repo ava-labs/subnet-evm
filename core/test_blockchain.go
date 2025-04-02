@@ -9,19 +9,20 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/core/rawdb"
+	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/crypto"
+	"github.com/ava-labs/libevm/ethdb"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
-	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/state"
-	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/params/extras"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/deployerallowlist"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/feemanager"
 	"github.com/ava-labs/subnet-evm/utils"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -1299,7 +1300,7 @@ func TestGenerateChainInvalidBlockFee(t *testing.T, create func(db ethdb.Databas
 
 	// This call generates a chain of 3 blocks.
 	signer := types.LatestSigner(params.TestChainConfig)
-	_, _, _, err = GenerateChainWithGenesis(gspec, blockchain.engine, 3, params.TestChainConfig.FeeConfig.TargetBlockRate-1, func(i int, gen *BlockGen) {
+	_, _, _, err = GenerateChainWithGenesis(gspec, blockchain.engine, 3, extras.TestChainConfig.FeeConfig.TargetBlockRate-1, func(i int, gen *BlockGen) {
 		tx := types.NewTx(&types.DynamicFeeTx{
 			ChainID:   params.TestChainConfig.ChainID,
 			Nonce:     gen.TxNonce(addr1),
@@ -1341,7 +1342,7 @@ func TestInsertChainInvalidBlockFee(t *testing.T, create func(db ethdb.Database,
 	// This call generates a chain of 3 blocks.
 	signer := types.LatestSigner(params.TestChainConfig)
 	eng := dummy.NewFakerWithMode(dummy.Mode{ModeSkipBlockFee: true, ModeSkipCoinbase: true})
-	_, chain, _, err := GenerateChainWithGenesis(gspec, eng, 3, params.TestChainConfig.FeeConfig.TargetBlockRate-1, func(i int, gen *BlockGen) {
+	_, chain, _, err := GenerateChainWithGenesis(gspec, eng, 3, extras.TestChainConfig.FeeConfig.TargetBlockRate-1, func(i int, gen *BlockGen) {
 		tx := types.NewTx(&types.DynamicFeeTx{
 			ChainID:   params.TestChainConfig.ChainID,
 			Nonce:     gen.TxNonce(addr1),
@@ -1386,7 +1387,7 @@ func TestInsertChainValidBlockFee(t *testing.T, create func(db ethdb.Database, g
 	signer := types.LatestSigner(params.TestChainConfig)
 	tip := big.NewInt(50000 * params.GWei)
 	transfer := big.NewInt(10000)
-	_, chain, _, err := GenerateChainWithGenesis(gspec, blockchain.engine, 3, params.TestChainConfig.FeeConfig.TargetBlockRate-1, func(i int, gen *BlockGen) {
+	_, chain, _, err := GenerateChainWithGenesis(gspec, blockchain.engine, 3, extras.TestChainConfig.FeeConfig.TargetBlockRate-1, func(i int, gen *BlockGen) {
 		feeCap := new(big.Int).Add(gen.BaseFee(), tip)
 		tx := types.NewTx(&types.DynamicFeeTx{
 			ChainID:   params.TestChainConfig.ChainID,
@@ -1456,9 +1457,9 @@ func TestStatefulPrecompiles(t *testing.T, create func(db ethdb.Database, gspec 
 
 	// Ensure that key1 has sufficient funds in the genesis block for all of the tests.
 	genesisBalance := new(big.Int).Mul(big.NewInt(1000000), big.NewInt(params.Ether))
-	config := *params.TestChainConfig
+	config := params.Copy(params.TestChainConfig)
 	// Set all of the required config parameters
-	config.GenesisPrecompiles = params.Precompiles{
+	params.GetExtra(&config).GenesisPrecompiles = extras.Precompiles{
 		deployerallowlist.ConfigKey: deployerallowlist.NewConfig(utils.NewUint64(0), []common.Address{addr1}, nil, nil),
 		feemanager.ConfigKey:        feemanager.NewConfig(utils.NewUint64(0), []common.Address{addr1}, nil, nil, nil),
 	}
@@ -1584,7 +1585,7 @@ func TestStatefulPrecompiles(t *testing.T, create func(db ethdb.Database, gspec 
 
 				feeConfig, _, err := blockchain.GetFeeConfigAt(blockchain.Genesis().Header())
 				assert.NoError(err)
-				assert.EqualValues(config.FeeConfig, feeConfig)
+				assert.EqualValues(params.GetExtra(&config).FeeConfig, feeConfig)
 			},
 		},
 	}

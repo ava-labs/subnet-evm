@@ -6,18 +6,18 @@ package rewardmanager
 import (
 	"testing"
 
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/core/vm"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/constants"
-	"github.com/ava-labs/subnet-evm/core/state"
+	"github.com/ava-labs/subnet-evm/core/extstate"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/precompile/testutils"
-	"github.com/ava-labs/subnet-evm/vmerrs"
 )
 
 var (
@@ -364,7 +364,7 @@ var (
 			},
 			SuppliedGas: AllowFeeRecipientsGasCost,
 			ReadOnly:    true,
-			ExpectedErr: vmerrs.ErrWriteProtection.Error(),
+			ExpectedErr: vm.ErrWriteProtection.Error(),
 		},
 		"readOnly set reward address with allowed role fails": {
 			Caller:     allowlist.TestEnabledAddr,
@@ -377,7 +377,7 @@ var (
 			},
 			SuppliedGas: SetRewardAddressGasCost,
 			ReadOnly:    true,
-			ExpectedErr: vmerrs.ErrWriteProtection.Error(),
+			ExpectedErr: vm.ErrWriteProtection.Error(),
 		},
 		"insufficient gas set reward address from allowed role": {
 			Caller:     allowlist.TestEnabledAddr,
@@ -390,7 +390,7 @@ var (
 			},
 			SuppliedGas: SetRewardAddressGasCost + RewardAddressChangedEventGasCost - 1,
 			ReadOnly:    false,
-			ExpectedErr: vmerrs.ErrOutOfGas.Error(),
+			ExpectedErr: vm.ErrOutOfGas.Error(),
 		},
 		"insufficient gas allow fee recipients from allowed role": {
 			Caller:     allowlist.TestEnabledAddr,
@@ -403,7 +403,7 @@ var (
 			},
 			SuppliedGas: AllowFeeRecipientsGasCost + FeeRecipientsAllowedEventGasCost - 1,
 			ReadOnly:    false,
-			ExpectedErr: vmerrs.ErrOutOfGas.Error(),
+			ExpectedErr: vm.ErrOutOfGas.Error(),
 		},
 		"insufficient gas read current reward address from allowed role": {
 			Caller:     allowlist.TestEnabledAddr,
@@ -416,7 +416,7 @@ var (
 			},
 			SuppliedGas: CurrentRewardAddressGasCost - 1,
 			ReadOnly:    false,
-			ExpectedErr: vmerrs.ErrOutOfGas.Error(),
+			ExpectedErr: vm.ErrOutOfGas.Error(),
 		},
 		"insufficient gas are fee recipients allowed from allowed role": {
 			Caller:     allowlist.TestEnabledAddr,
@@ -429,17 +429,17 @@ var (
 			},
 			SuppliedGas: AreFeeRecipientsAllowedGasCost - 1,
 			ReadOnly:    false,
-			ExpectedErr: vmerrs.ErrOutOfGas.Error(),
+			ExpectedErr: vm.ErrOutOfGas.Error(),
 		},
 	}
 )
 
 func TestRewardManagerRun(t *testing.T) {
-	allowlist.RunPrecompileWithAllowListTests(t, Module, state.NewTestStateDB, tests)
+	allowlist.RunPrecompileWithAllowListTests(t, Module, extstate.NewTestStateDB, tests)
 }
 
 func BenchmarkRewardManager(b *testing.B) {
-	allowlist.BenchPrecompileWithAllowList(b, Module, state.NewTestStateDB, tests)
+	allowlist.BenchPrecompileWithAllowList(b, Module, extstate.NewTestStateDB, tests)
 }
 
 func assertRewardAddressChanged(

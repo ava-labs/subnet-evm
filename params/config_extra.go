@@ -6,59 +6,32 @@ package params
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"math/big"
 
-	"github.com/ava-labs/avalanchego/snow"
-	"github.com/ava-labs/subnet-evm/commontype"
+	"github.com/ava-labs/subnet-evm/params/extras"
 	"github.com/ava-labs/subnet-evm/utils"
-	"github.com/ethereum/go-ethereum/common"
 )
 
 const (
 	maxJSONLen = 64 * 1024 * 1024 // 64MB
+
+	// TODO: Value to pass to geth's Rules by default where the appropriate
+	// context is not available in the avalanche code. (similar to context.TODO())
+	IsMergeTODO = true
 )
 
 var (
-	errNonGenesisForkByHeight = errors.New("subnet-evm only supports forking by height at the genesis block")
-
-	DefaultChainID = big.NewInt(43214)
-
-	DefaultFeeConfig = commontype.FeeConfig{
-		GasLimit:        big.NewInt(8_000_000),
-		TargetBlockRate: 2, // in seconds
-
-		MinBaseFee:               big.NewInt(25_000_000_000),
-		TargetGas:                big.NewInt(15_000_000),
-		BaseFeeChangeDenominator: big.NewInt(36),
-
-		MinBlockGasCost:  big.NewInt(0),
-		MaxBlockGasCost:  big.NewInt(1_000_000),
-		BlockGasCostStep: big.NewInt(200_000),
-	}
+	DefaultChainID   = big.NewInt(43214)
+	DefaultFeeConfig = extras.DefaultFeeConfig
 )
 
-// UpgradeConfig includes the following configs that may be specified in upgradeBytes:
-// - Timestamps that enable avalanche network upgrades,
-// - Enabling or disabling precompiles as network upgrades.
-type UpgradeConfig struct {
-	// Config for timestamps that enable network upgrades.
-	NetworkUpgradeOverrides *NetworkUpgrades `json:"networkUpgradeOverrides,omitempty"`
-
-	// Config for modifying state as a network upgrade.
-	StateUpgrades []StateUpgrade `json:"stateUpgrades,omitempty"`
-
-	// Config for enabling and disabling precompiles as network upgrades.
-	PrecompileUpgrades []PrecompileUpgrade `json:"precompileUpgrades,omitempty"`
-}
-
-// AvalancheContext provides Avalanche specific context directly into the EVM.
-type AvalancheContext struct {
-	SnowCtx *snow.Context
-}
-
-// SetEthUpgrades sets the mapped upgrades  Avalanche > EVM upgrades) for the chain config.
-func (c *ChainConfig) SetEthUpgrades(avalancheUpgrades NetworkUpgrades) {
+// SetEthUpgrades enables Etheruem network upgrades using the same time as
+// the Avalanche network upgrade that enables them.
+//
+// TODO: Prior to Cancun, Avalanche upgrades are referenced inline in the
+// code in place of their Ethereum counterparts. The original Ethereum names
+// should be restored for maintainability.
+func SetEthUpgrades(c *ChainConfig, avalancheUpgrades extras.NetworkUpgrades) {
 	if c.BerlinBlock == nil {
 		c.BerlinBlock = big.NewInt(0)
 	}
@@ -73,57 +46,30 @@ func (c *ChainConfig) SetEthUpgrades(avalancheUpgrades NetworkUpgrades) {
 	}
 }
 
-// UnmarshalJSON parses the JSON-encoded data and stores the result in the
-// object pointed to by c.
-// This is a custom unmarshaler to handle the Precompiles field.
-// Precompiles was presented as an inline object in the JSON.
-// This custom unmarshaler ensures backwards compatibility with the old format.
-func (c *ChainConfig) UnmarshalJSON(data []byte) error {
-	// Alias ChainConfig to avoid recursion
-	type _ChainConfig ChainConfig
-	tmp := _ChainConfig{}
-	if err := json.Unmarshal(data, &tmp); err != nil {
-		return err
+func GetExtra(c *ChainConfig) *extras.ChainConfig {
+	ex := payloads.ChainConfig.Get(c)
+	if ex == nil {
+		ex = &extras.ChainConfig{}
+		payloads.ChainConfig.Set(c, ex)
 	}
-
-	// At this point we have populated all fields except PrecompileUpgrade
-	*c = ChainConfig(tmp)
-
-	// Unmarshal inlined PrecompileUpgrade
-	return json.Unmarshal(data, &c.GenesisPrecompiles)
+	return ex
 }
 
-// MarshalJSON returns the JSON encoding of c.
-// This is a custom marshaler to handle the Precompiles field.
-func (c ChainConfig) MarshalJSON() ([]byte, error) {
-	// Alias ChainConfig to avoid recursion
-	type _ChainConfig ChainConfig
-	tmp, err := json.Marshal(_ChainConfig(c))
-	if err != nil {
-		return nil, err
-	}
+func Copy(c *ChainConfig) ChainConfig {
+	cpy := *c
+	extraCpy := *GetExtra(c)
+	return *WithExtra(&cpy, &extraCpy)
+}
 
-	// To include PrecompileUpgrades, we unmarshal the json representing c
-	// then directly add the corresponding keys to the json.
-	raw := make(map[string]json.RawMessage)
-	if err := json.Unmarshal(tmp, &raw); err != nil {
-		return nil, err
-	}
-
-	for key, value := range c.GenesisPrecompiles {
-		conf, err := json.Marshal(value)
-		if err != nil {
-			return nil, err
-		}
-		raw[key] = conf
-	}
-
-	return json.Marshal(raw)
+// WithExtra sets the extra payload on `c` and returns the modified argument.
+func WithExtra(c *ChainConfig, extra *extras.ChainConfig) *ChainConfig {
+	payloads.ChainConfig.Set(c, extra)
+	return c
 }
 
 type ChainConfigWithUpgradesJSON struct {
 	ChainConfig
-	UpgradeConfig UpgradeConfig `json:"upgrades,omitempty"`
+	UpgradeConfig extras.UpgradeConfig `json:"upgrades,omitempty"`
 }
 
 // MarshalJSON implements json.Marshaler. This is a workaround for the fact that
@@ -133,7 +79,7 @@ type ChainConfigWithUpgradesJSON struct {
 // ChainConfig struct.
 func (cu ChainConfigWithUpgradesJSON) MarshalJSON() ([]byte, error) {
 	// embed the ChainConfig struct into the response
-	chainConfigJSON, err := json.Marshal(cu.ChainConfig)
+	chainConfigJSON, err := json.Marshal(&cu.ChainConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -142,7 +88,7 @@ func (cu ChainConfigWithUpgradesJSON) MarshalJSON() ([]byte, error) {
 	}
 
 	type upgrades struct {
-		UpgradeConfig UpgradeConfig `json:"upgrades"`
+		UpgradeConfig extras.UpgradeConfig `json:"upgrades"`
 	}
 
 	upgradeJSON, err := json.Marshal(upgrades{cu.UpgradeConfig})
@@ -168,7 +114,7 @@ func (cu *ChainConfigWithUpgradesJSON) UnmarshalJSON(input []byte) error {
 	}
 
 	type upgrades struct {
-		UpgradeConfig UpgradeConfig `json:"upgrades"`
+		UpgradeConfig extras.UpgradeConfig `json:"upgrades"`
 	}
 
 	var u upgrades
@@ -180,59 +126,17 @@ func (cu *ChainConfigWithUpgradesJSON) UnmarshalJSON(input []byte) error {
 	return nil
 }
 
-// Verify verifies chain config and returns error
-func (c *ChainConfig) Verify() error {
-	if err := c.FeeConfig.Verify(); err != nil {
-		return err
-	}
-
-	// Verify the precompile upgrades are internally consistent given the existing chainConfig.
-	if err := c.verifyPrecompileUpgrades(); err != nil {
-		return fmt.Errorf("invalid precompile upgrades: %w", err)
-	}
-
-	// Verify the state upgrades are internally consistent given the existing chainConfig.
-	if err := c.verifyStateUpgrades(); err != nil {
-		return fmt.Errorf("invalid state upgrades: %w", err)
-	}
-
-	// Verify the network upgrades are internally consistent given the existing chainConfig.
-	if err := c.verifyNetworkUpgrades(c.SnowCtx.NetworkUpgrades); err != nil {
-		return fmt.Errorf("invalid network upgrades: %w", err)
-	}
-
-	return nil
-}
-
-// IsPrecompileEnabled returns whether precompile with [address] is enabled at [timestamp].
-func (c *ChainConfig) IsPrecompileEnabled(address common.Address, timestamp uint64) bool {
-	config := c.getActivePrecompileConfig(address, timestamp)
-	return config != nil && !config.IsDisabled()
-}
-
-// GetFeeConfig returns the original FeeConfig contained in the genesis ChainConfig.
-// Implements precompile.ChainConfig interface.
-func (c *ChainConfig) GetFeeConfig() commontype.FeeConfig {
-	return c.FeeConfig
-}
-
-// AllowedFeeRecipients returns the original AllowedFeeRecipients parameter contained in the genesis ChainConfig.
-// Implements precompile.ChainConfig interface.
-func (c *ChainConfig) AllowedFeeRecipients() bool {
-	return c.AllowFeeRecipients
-}
-
 // ToWithUpgradesJSON converts the ChainConfig to ChainConfigWithUpgradesJSON with upgrades explicitly displayed.
 // ChainConfig does not include upgrades in its JSON output.
 // This is a workaround for showing upgrades in the JSON output.
-func (c *ChainConfig) ToWithUpgradesJSON() *ChainConfigWithUpgradesJSON {
+func ToWithUpgradesJSON(c *ChainConfig) *ChainConfigWithUpgradesJSON {
 	return &ChainConfigWithUpgradesJSON{
 		ChainConfig:   *c,
-		UpgradeConfig: c.UpgradeConfig,
+		UpgradeConfig: GetExtra(c).UpgradeConfig,
 	}
 }
 
-func (c *ChainConfig) SetNetworkUpgradeDefaults() {
+func SetNetworkUpgradeDefaults(c *ChainConfig) {
 	if c.HomesteadBlock == nil {
 		c.HomesteadBlock = big.NewInt(0)
 	}
@@ -261,41 +165,5 @@ func (c *ChainConfig) SetNetworkUpgradeDefaults() {
 		c.MuirGlacierBlock = big.NewInt(0)
 	}
 
-	c.NetworkUpgrades.setDefaults(c.SnowCtx.NetworkUpgrades)
-}
-
-func (r *Rules) PredicatersExist() bool {
-	return len(r.Predicaters) > 0
-}
-
-func (r *Rules) PredicaterExists(addr common.Address) bool {
-	_, PredicaterExists := r.Predicaters[addr]
-	return PredicaterExists
-}
-
-// IsPrecompileEnabled returns true if the precompile at [addr] is enabled for this rule set.
-func (r *Rules) IsPrecompileEnabled(addr common.Address) bool {
-	_, ok := r.ActivePrecompiles[addr]
-	return ok
-}
-
-func ptrToString(val *uint64) string {
-	if val == nil {
-		return "nil"
-	}
-	return fmt.Sprintf("%d", *val)
-}
-
-// IsForkTransition returns true if [fork] activates during the transition from
-// [parent] to [current].
-// Taking [parent] as a pointer allows for us to pass nil when checking forks
-// that activate during genesis.
-// Note: this works for both block number and timestamp activated forks.
-func IsForkTransition(fork *uint64, parent *uint64, current uint64) bool {
-	var parentForked bool
-	if parent != nil {
-		parentForked = isTimestampForked(fork, *parent)
-	}
-	currentForked := isTimestampForked(fork, current)
-	return !parentForked && currentForked
+	GetExtra(c).NetworkUpgrades.SetDefaults(GetExtra(c).SnowCtx.NetworkUpgrades)
 }

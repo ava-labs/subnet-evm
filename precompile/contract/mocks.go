@@ -14,8 +14,9 @@ import (
 	reflect "reflect"
 
 	snow "github.com/ava-labs/avalanchego/snow"
+	common "github.com/ava-labs/libevm/common"
+	types "github.com/ava-labs/libevm/core/types"
 	precompileconfig "github.com/ava-labs/subnet-evm/precompile/precompileconfig"
-	common "github.com/ethereum/go-ethereum/common"
 	uint256 "github.com/holiman/uint256"
 	gomock "go.uber.org/mock/gomock"
 )
@@ -203,15 +204,15 @@ func (mr *MockStateDBMockRecorder) AddBalance(arg0, arg1 any) *gomock.Call {
 }
 
 // AddLog mocks base method.
-func (m *MockStateDB) AddLog(addr common.Address, topics []common.Hash, data []byte, blockNumber uint64) {
+func (m *MockStateDB) AddLog(arg0 *types.Log) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "AddLog", addr, topics, data, blockNumber)
+	m.ctrl.Call(m, "AddLog", arg0)
 }
 
 // AddLog indicates an expected call of AddLog.
-func (mr *MockStateDBMockRecorder) AddLog(addr, topics, data, blockNumber any) *gomock.Call {
+func (mr *MockStateDBMockRecorder) AddLog(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddLog", reflect.TypeOf((*MockStateDB)(nil).AddLog), addr, topics, data, blockNumber)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddLog", reflect.TypeOf((*MockStateDB)(nil).AddLog), arg0)
 }
 
 // CreateAccount mocks base method.

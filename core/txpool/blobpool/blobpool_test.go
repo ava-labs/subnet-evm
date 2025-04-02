@@ -39,23 +39,23 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/core/rawdb"
+	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/crypto"
+	"github.com/ava-labs/libevm/crypto/kzg4844"
+	"github.com/ava-labs/libevm/ethdb/memorydb"
+	"github.com/ava-labs/libevm/log"
+	"github.com/ava-labs/libevm/rlp"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/consensus/misc/eip4844"
 	"github.com/ava-labs/subnet-evm/core"
-	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/core/txpool"
-	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/plugin/evm/header"
 	"github.com/ava-labs/subnet-evm/plugin/evm/upgrade/legacy"
 	"github.com/ava-labs/subnet-evm/plugin/evm/upgrade/subnetevm"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/crypto/kzg4844"
-	"github.com/ethereum/go-ethereum/ethdb/memorydb"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/holiman/billy"
 	"github.com/holiman/uint256"
 )
@@ -74,8 +74,8 @@ var testChainConfig *params.ChainConfig
 
 func init() {
 	testChainConfig = new(params.ChainConfig)
-	*testChainConfig = *params.TestChainConfig
-	testChainConfig.FeeConfig.MinBaseFee = new(big.Int).SetUint64(1)
+	*testChainConfig = params.Copy(params.TestChainConfig)
+	params.GetExtra(testChainConfig).FeeConfig.MinBaseFee = new(big.Int).SetUint64(1)
 
 	testChainConfig.CancunTime = new(uint64)
 	*testChainConfig.CancunTime = uint64(time.Now().Unix())
@@ -118,8 +118,9 @@ func (bc *testBlockChain) CurrentBlock() *types.Header {
 			BaseFee:  mid,
 			Extra:    make([]byte, subnetevm.WindowSize),
 		}
+		config := params.GetExtra(bc.config)
 		baseFee, err := header.BaseFee(
-			bc.config, bc.config.FeeConfig, parent, blockTime,
+			config, config.FeeConfig, parent, blockTime,
 		)
 		if err != nil {
 			panic(err)
@@ -174,7 +175,7 @@ func (bc *testBlockChain) StateAt(common.Hash) (*state.StateDB, error) {
 }
 
 func (bc *testBlockChain) GetFeeConfigAt(header *types.Header) (commontype.FeeConfig, *big.Int, error) {
-	return bc.config.FeeConfig, nil, nil
+	return params.GetExtra(bc.config).FeeConfig, nil, nil
 }
 
 // makeAddressReserver is a utility method to sanity check that accounts are

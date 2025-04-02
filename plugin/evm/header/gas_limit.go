@@ -8,9 +8,9 @@ import (
 	"fmt"
 
 	"github.com/ava-labs/avalanchego/utils/math"
+	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/subnet-evm/commontype"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/params/extras"
 )
 
 var (
@@ -23,7 +23,7 @@ type CalculateGasLimitFunc func(parentGasUsed, parentGasLimit, gasFloor, gasCeil
 // GasLimit takes the previous header and the timestamp of its child block and
 // calculates the gas limit for the child block.
 func GasLimit(
-	config *params.ChainConfig,
+	config *extras.ChainConfig,
 	feeConfig commontype.FeeConfig,
 	parent *types.Header,
 	timestamp uint64,
@@ -43,7 +43,7 @@ func GasLimit(
 // VerifyGasUsed verifies that the gas used is less than or equal to the gas
 // limit.
 func VerifyGasUsed(
-	config *params.ChainConfig,
+	config *extras.ChainConfig,
 	feeConfig commontype.FeeConfig,
 	parent *types.Header,
 	header *types.Header,
@@ -65,7 +65,7 @@ func VerifyGasUsed(
 
 // VerifyGasLimit verifies that the gas limit for the header is valid.
 func VerifyGasLimit(
-	config *params.ChainConfig,
+	config *extras.ChainConfig,
 	feeConfig commontype.FeeConfig,
 	parent *types.Header,
 	header *types.Header,
@@ -81,18 +81,18 @@ func VerifyGasLimit(
 			)
 		}
 	default:
-		if header.GasLimit < params.MinGasLimit || header.GasLimit > params.MaxGasLimit {
+		if header.GasLimit < extras.MinGasLimit || header.GasLimit > extras.MaxGasLimit {
 			return fmt.Errorf("%w: %d not in range [%d, %d]",
 				errInvalidGasLimit,
 				header.GasLimit,
-				params.MinGasLimit,
-				params.MaxGasLimit,
+				extras.MinGasLimit,
+				extras.MaxGasLimit,
 			)
 		}
 
 		// Verify that the gas limit remains within allowed bounds
 		diff := math.AbsDiff(parent.GasLimit, header.GasLimit)
-		limit := parent.GasLimit / params.GasLimitBoundDivisor
+		limit := parent.GasLimit / extras.GasLimitBoundDivisor
 		if diff >= limit {
 			return fmt.Errorf("%w: have %d, want %d += %d",
 				errInvalidGasLimit,
@@ -108,7 +108,7 @@ func VerifyGasLimit(
 // GasCapacity takes the previous header and the timestamp of its child block
 // and calculates the available gas that can be consumed in the child block.
 func GasCapacity(
-	config *params.ChainConfig,
+	config *extras.ChainConfig,
 	feeConfig commontype.FeeConfig,
 	parent *types.Header,
 	timestamp uint64,

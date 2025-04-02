@@ -9,9 +9,10 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/core/vm"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
-	"github.com/ava-labs/subnet-evm/vmerrs"
-	"github.com/ethereum/go-ethereum/common"
 )
 
 // AllowList is an abstraction that allows other precompiles to manage
@@ -38,7 +39,7 @@ var (
 
 // GetAllowListStatus returns the allow list role of [address] for the precompile
 // at [precompileAddr]
-func GetAllowListStatus(state contract.StateDB, precompileAddr common.Address, address common.Address) Role {
+func GetAllowListStatus(state contract.StateReader, precompileAddr common.Address, address common.Address) Role {
 	// Generate the state key for [address]
 	addressKey := common.BytesToHash(address.Bytes())
 	return Role(state.GetState(precompileAddr, addressKey))
@@ -97,7 +98,7 @@ func createAllowListRoleSetter(precompileAddr common.Address, role Role) contrac
 		}
 
 		if readOnly {
-			return nil, remainingGas, vmerrs.ErrWriteProtection
+			return nil, remainingGas, vm.ErrWriteProtection
 		}
 
 		stateDB := evm.GetStateDB()
@@ -117,12 +118,12 @@ func createAllowListRoleSetter(precompileAddr common.Address, role Role) contrac
 			if err != nil {
 				return nil, remainingGas, err
 			}
-			stateDB.AddLog(
-				precompileAddr,
-				topics,
-				data,
-				evm.GetBlockContext().Number().Uint64(),
-			)
+			stateDB.AddLog(&types.Log{
+				Address:     precompileAddr,
+				Topics:      topics,
+				Data:        data,
+				BlockNumber: evm.GetBlockContext().Number().Uint64(),
+			})
 		}
 
 		SetAllowListRole(stateDB, precompileAddr, modifyAddress, role)

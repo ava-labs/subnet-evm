@@ -15,19 +15,19 @@ import (
 
 	"github.com/ava-labs/avalanchego/ids"
 
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/core/rawdb"
+	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/crypto"
+	"github.com/ava-labs/libevm/triedb"
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
 	"github.com/ava-labs/subnet-evm/core"
-	"github.com/ava-labs/subnet-evm/core/rawdb"
-	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
 	clientstats "github.com/ava-labs/subnet-evm/sync/client/stats"
 	"github.com/ava-labs/subnet-evm/sync/handlers"
 	handlerstats "github.com/ava-labs/subnet-evm/sync/handlers/stats"
 	"github.com/ava-labs/subnet-evm/sync/syncutils"
-	"github.com/ava-labs/subnet-evm/triedb"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
 )
 
 func TestGetCode(t *testing.T) {
@@ -266,7 +266,7 @@ func TestGetBlocks(t *testing.T) {
 
 				return responseBytes
 			},
-			expectedErr: "failed to unmarshal response: rlp: expected input list for types.extblock",
+			expectedErr: "failed to unmarshal response: rlp: expected List",
 		},
 		"incorrect starting point": {
 			request: message.BlockRequest{
@@ -381,7 +381,7 @@ func TestGetBlocks(t *testing.T) {
 				if err == nil {
 					t.Fatalf("Expected error: %s, but found no error", test.expectedErr)
 				}
-				assert.True(t, strings.Contains(err.Error(), test.expectedErr), "expected error to contain [%s], but found [%s]", test.expectedErr, err)
+				assert.ErrorContains(t, err, test.expectedErr)
 				return
 			}
 			if err != nil {

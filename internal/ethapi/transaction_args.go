@@ -34,16 +34,16 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/common/hexutil"
+	"github.com/ava-labs/libevm/common/math"
+	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/crypto/kzg4844"
+	"github.com/ava-labs/libevm/log"
 	"github.com/ava-labs/subnet-evm/consensus/misc/eip4844"
 	"github.com/ava-labs/subnet-evm/core"
-	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/rpc"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/common/math"
-	"github.com/ethereum/go-ethereum/crypto/kzg4844"
-	"github.com/ethereum/go-ethereum/log"
 	"github.com/holiman/uint256"
 )
 
@@ -229,7 +229,7 @@ func (args *TransactionArgs) setFeeDefaults(ctx context.Context, b feeBackend) e
 	}
 
 	// Sanity check the non-EIP-1559 fee parameters.
-	isLondon := b.ChainConfig().IsSubnetEVM(head.Time)
+	isLondon := b.ChainConfig().IsLondon(head.Number)
 	if args.GasPrice != nil && !eip1559ParamsSet {
 		// Zero gas-price is not allowed after London fork
 		if args.GasPrice.ToInt().Sign() == 0 && isLondon {

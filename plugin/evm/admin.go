@@ -9,8 +9,8 @@ import (
 
 	"github.com/ava-labs/avalanchego/api"
 	"github.com/ava-labs/avalanchego/utils/profiler"
+	"github.com/ava-labs/libevm/log"
 	"github.com/ava-labs/subnet-evm/plugin/evm/client"
-	"github.com/ethereum/go-ethereum/log"
 )
 
 // Admin is the API service for admin API calls

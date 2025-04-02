@@ -10,18 +10,20 @@ import (
 	"testing"
 
 	"github.com/ava-labs/avalanchego/upgrade"
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/core/rawdb"
+	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/core/vm"
+	"github.com/ava-labs/libevm/crypto"
+	"github.com/ava-labs/libevm/eth/tracers/logger"
+	"github.com/ava-labs/libevm/ethdb"
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
-	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/core/state/pruner"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/core/vm"
-	"github.com/ava-labs/subnet-evm/eth/tracers/logger"
 	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/params/extras"
+	"github.com/ava-labs/subnet-evm/plugin/evm/customrawdb"
 	"github.com/ava-labs/subnet-evm/plugin/evm/upgrade/legacy"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/holiman/uint256"
 )
 
@@ -238,7 +240,7 @@ func TestCorruptSnapshots(t *testing.T) {
 	create := func(db ethdb.Database, gspec *Genesis, lastAcceptedHash common.Hash) (*BlockChain, error) {
 		// Delete the snapshot block hash and state root to ensure that if we die in between writing a snapshot
 		// diff layer to disk at any point, we can still recover on restart.
-		rawdb.DeleteSnapshotBlockHash(db)
+		customrawdb.DeleteSnapshotBlockHash(db)
 		rawdb.DeleteSnapshotRoot(db)
 
 		return createBlockChain(db, pruningConfig, gspec, lastAcceptedHash)
@@ -313,8 +315,11 @@ func testRepopulateMissingTriesParallel(t *testing.T, parallelism int) {
 	// Ensure that key1 has some funds in the genesis block.
 	genesisBalance := big.NewInt(1000000)
 	gspec := &Genesis{
-		Config: &params.ChainConfig{HomesteadBlock: new(big.Int), FeeConfig: params.DefaultFeeConfig},
-		Alloc:  types.GenesisAlloc{addr1: {Balance: genesisBalance}},
+		Config: params.WithExtra(
+			&params.ChainConfig{HomesteadBlock: new(big.Int)},
+			&extras.ChainConfig{FeeConfig: params.DefaultFeeConfig},
+		),
+		Alloc: types.GenesisAlloc{addr1: {Balance: genesisBalance}},
 	}
 
 	blockchain, err := createBlockChain(chainDB, pruningConfig, gspec, common.Hash{})
@@ -426,8 +431,11 @@ func TestUngracefulAsyncShutdown(t *testing.T) {
 	// Ensure that key1 has some funds in the genesis block.
 	genesisBalance := big.NewInt(1000000)
 	gspec := &Genesis{
-		Config: &params.ChainConfig{HomesteadBlock: new(big.Int), FeeConfig: params.DefaultFeeConfig},
-		Alloc:  types.GenesisAlloc{addr1: {Balance: genesisBalance}},
+		Config: params.WithExtra(
+			&params.ChainConfig{HomesteadBlock: new(big.Int)},
+			&extras.ChainConfig{FeeConfig: params.DefaultFeeConfig},
+		),
+		Alloc: types.GenesisAlloc{addr1: {Balance: genesisBalance}},
 	}
 
 	blockchain, err := create(chainDB, gspec, common.Hash{})

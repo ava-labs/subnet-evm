@@ -10,8 +10,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	ethcommon "github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/log"
+	ethcommon "github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/log"
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/ava-labs/avalanchego/ids"
@@ -20,9 +20,9 @@ import (
 	"github.com/ava-labs/avalanchego/snow/engine/common"
 	"github.com/ava-labs/avalanchego/utils/logging"
 
+	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/txpool"
-	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/eth"
 )
 

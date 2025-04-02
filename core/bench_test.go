@@ -31,15 +31,16 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/common/math"
+	"github.com/ava-labs/libevm/core/rawdb"
+	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/core/vm"
+	"github.com/ava-labs/libevm/crypto"
+	"github.com/ava-labs/libevm/ethdb"
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
-	"github.com/ava-labs/subnet-evm/core/rawdb"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/core/vm"
 	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/math"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/ethdb"
+	"github.com/ava-labs/subnet-evm/plugin/evm/customrawdb"
 )
 
 func BenchmarkInsertChain_empty_memdb(b *testing.B) {
@@ -250,7 +251,7 @@ func makeChainForBench(db ethdb.Database, genesis *Genesis, full bool, count uin
 		rawdb.WriteCanonicalHash(db, hash, n)
 
 		if n == 0 {
-			rawdb.WriteChainConfig(db, hash, genesis.Config)
+			customrawdb.WriteChainConfig(db, hash, genesis.Config)
 		}
 		rawdb.WriteHeadHeaderHash(db, hash)
 

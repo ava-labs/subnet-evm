@@ -7,11 +7,12 @@ import (
 	"errors"
 	"math/big"
 
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/subnet-evm/commontype"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/params/extras"
 	"github.com/ava-labs/subnet-evm/plugin/evm/blockgascost"
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/ava-labs/subnet-evm/plugin/evm/customtypes"
 )
 
 var (
@@ -24,7 +25,7 @@ var (
 // header and the timestamp of the new block.
 // Prior to Subnet-EVM, the returned block gas cost will be nil.
 func BlockGasCost(
-	config *params.ChainConfig,
+	config *extras.ChainConfig,
 	feeConfig commontype.FeeConfig,
 	parent *types.Header,
 	timestamp uint64,
@@ -43,7 +44,7 @@ func BlockGasCost(
 	}
 	return new(big.Int).SetUint64(BlockGasCostWithStep(
 		feeConfig,
-		parent.BlockGasCost,
+		customtypes.GetHeaderExtra(parent).BlockGasCost,
 		step,
 		timeElapsed,
 	))
@@ -84,15 +85,16 @@ func BlockGasCostWithStep(
 //
 // This function will return nil for all return values prior to SubnetEVM.
 func EstimateRequiredTip(
-	config *params.ChainConfig,
+	config *extras.ChainConfig,
 	header *types.Header,
 ) (*big.Int, error) {
+	extra := customtypes.GetHeaderExtra(header)
 	switch {
 	case !config.IsSubnetEVM(header.Time):
 		return nil, nil
 	case header.BaseFee == nil:
 		return nil, errBaseFeeNil
-	case header.BlockGasCost == nil:
+	case extra.BlockGasCost == nil:
 		return nil, errBlockGasCostNil
 	}
 
@@ -106,7 +108,7 @@ func EstimateRequiredTip(
 	// We add totalGasUsed - 1 to ensure that the total required tips
 	// calculation rounds up.
 	totalRequiredTips := new(big.Int)
-	totalRequiredTips.Mul(header.BlockGasCost, header.BaseFee)
+	totalRequiredTips.Mul(extra.BlockGasCost, header.BaseFee)
 	totalRequiredTips.Add(totalRequiredTips, totalGasUsed)
 	totalRequiredTips.Sub(totalRequiredTips, common.Big1)
 

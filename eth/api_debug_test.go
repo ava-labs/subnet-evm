@@ -33,17 +33,14 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/core/rawdb"
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/core/rawdb"
+	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/crypto"
+	"github.com/ava-labs/libevm/triedb"
 	"github.com/ava-labs/subnet-evm/core/state"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/triedb"
-	"github.com/holiman/uint256"
-
 	"github.com/davecgh/go-spew/spew"
-
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
-
+	"github.com/holiman/uint256"
 	"golang.org/x/exp/slices"
 )
 

@@ -11,7 +11,7 @@ import (
 	"github.com/ava-labs/avalanchego/codec/linearcodec"
 	"github.com/ava-labs/avalanchego/utils/units"
 	"github.com/ava-labs/avalanchego/utils/wrappers"
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/ava-labs/libevm/common"
 )
 
 const (
@@ -42,6 +42,14 @@ type TxResults map[common.Address][]byte
 // Results is not thread-safe.
 type Results struct {
 	Results map[common.Hash]TxResults `serialize:"true"`
+}
+
+func (r Results) GetPredicateResults(txHash common.Hash, address common.Address) []byte {
+	results, ok := r.Results[txHash]
+	if !ok {
+		return nil
+	}
+	return results[address]
 }
 
 // NewResults returns an empty predicate results.

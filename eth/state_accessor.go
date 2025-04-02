@@ -32,16 +32,16 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/core/rawdb"
+	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/core/vm"
+	"github.com/ava-labs/libevm/log"
+	"github.com/ava-labs/libevm/trie"
+	"github.com/ava-labs/libevm/triedb"
 	"github.com/ava-labs/subnet-evm/core"
-	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/state"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/core/vm"
 	"github.com/ava-labs/subnet-evm/eth/tracers"
-	"github.com/ava-labs/subnet-evm/trie"
-	"github.com/ava-labs/subnet-evm/triedb"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/log"
 )
 
 // noopReleaser is returned in case there is no operation expected
@@ -284,7 +284,8 @@ func (eth *Ethereum) StateAtNextBlock(ctx context.Context, parent *types.Block, 
 	}
 
 	// Apply upgrades here for the [nextBlock]
-	err = core.ApplyUpgrades(eth.blockchain.Config(), &parent.Header().Time, nextBlock, statedb)
+	blockContext := core.NewBlockContext(nextBlock.Number(), nextBlock.Time())
+	err = core.ApplyUpgrades(eth.blockchain.Config(), &parent.Header().Time, blockContext, statedb)
 	if err != nil {
 		release()
 		return nil, nil, err
