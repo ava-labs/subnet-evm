@@ -257,6 +257,48 @@ Once the tag is created, you need to test it on the Fuji testnet both locally an
         }' localhost:9650/ext/bc/98qnjenm7MBd8G2cPZoRvZrgJC33JGSAAKghsQ6eojbLCeRNp/rpc
         ```
 
+#### Canary deployment
+
+1. Create a branch from the `main` branch of [the externals plugin builder repository](https://github.com/ava-labs/external-plugins-builder).
+
+    ```bash
+    git checkout main
+    git pull
+    git checkout -b "echo-dispatch-$VERSION_RC"
+    ```
+
+1. Modify [`configs/dispatch.yml`] and [`configs/echo.yml`] similarly by:
+    - changing the `app_version` to `$VERSION_RC`
+    - if necessary, change the `avalanchego_version`
+    - if necessary, change the `golang_version`
+1. Commit your changes and push the branch
+
+    ```bash
+    git add .
+    git commit -m "Bump echo and dispatch to $VERSION_RC"
+    git push -u origin "echo-dispatch-$VERSION_RC"
+    ```
+
+1. Open a pull request targeting `main`, for example using [`gh`](https://cli.github.com/):
+
+    ```bash
+    gh pr create --repo github.com/ava-labs/external-plugins-builder --base main --title "Bump echo and dispatch to $VERSION_RC"
+    ```
+
+1. Once the PR checks pass, you can squash and merge it. The [Subnet EVM build Github action](https://github.com/ava-labs/external-plugins-builder/actions/workflows/subnet-evm-image-build.yaml) then creates [one or more pull requests in devops-argocd](https://github.com/ava-labs/devops-argocd/pulls), for example `Auto image update for testnet/echo` and `Auto image update for testnet/dispatch`.
+1. Once an automatically created pull request gets merged, it will be deployed, you can then monitor:
+    - For Dispatch:
+        - [Deployment progress](https://app.datadoghq.com/container-images?query=short_image:dispatch)
+        - [Logs](https://app.datadoghq.com/logs?query=subnet%3Adispatch%20%40logger%3A%2A&live=true)
+        - [Metrics](https://app.datadoghq.com/dashboard/jrv-mm2-vuc/dispatch-testnet-subnets?live=true)
+    - For Echo:
+        - [Deployment progress](https://app.datadoghq.com/container-images?query=short_image:echo)
+        - [Logs](https://app.datadoghq.com/logs?query=subnet:echo%20@logger:*&live=true)
+        - [Metrics](https://app.datadoghq.com/dashboard/jrv-mm2-vuc/echo-testnet-subnets?live=true)
+
+    Note some metrics might be not showing up until a test transaction is ran.
+1. Launch a test transaction, this documents the Dispatch way, but the same goes for Echo. **WIP**
+
 ### Release
 
 If a successful release candidate was created, you can now create a release.
