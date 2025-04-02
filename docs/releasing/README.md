@@ -273,5 +273,9 @@ Following the previous example in the [Release candidate section](#release-candi
     1. Set the description (breaking changes, features, fixes, documentation)
     1. Only tick the box "Set as the latest release"
     1. Click on the "Create release" button
-1. Monitor the [release Github workflow](https://github.com/ava-labs/subnet-evm/actions/workflows/release.yml) to ensure the GoReleaser step succeeds and check the binaries are then published to [the releases page](https://github.com/ava-labs/subnet-evm/releases)
+1. Monitor the [release Github workflow](https://github.com/ava-labs/subnet-evm/actions/workflows/release.yml) to ensure the GoReleaser step succeeds and check the binaries are then published to [the releases page](https://github.com/ava-labs/subnet-evm/releases). In case this fails, you can trigger the workflow manually:
+    1. Go to [github.com/ava-labs/subnet-evm/actions/workflows/release.yml](https://github.com/ava-labs/subnet-evm/actions/workflows/release.yml)
+    1. Click on the "Run workflow" button
+    1. Enter the branch name, usually with goreleaser related fixes
+    1. Enter the tag name `$VERSION` (i.e. `v0.7.3`)
 1. Monitor the [Publish Docker image workflow](https://github.com/ava-labs/subnet-evm/actions/workflows/publish_docker.yml) succeeds.
