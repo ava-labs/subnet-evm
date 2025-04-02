@@ -70,6 +70,10 @@ else
 fi
 
 VM_ID=${VM_ID:-"${DEFAULT_VM_ID}"}
+
+# Create a tag with the avalanchego and subnet-evm version
+DOCKERHUB_TAG="${AVALANCHE_VERSION}-${DOCKERHUB_TAG}"
+
 if [[ "${VM_ID}" != "${DEFAULT_VM_ID}" ]]; then
   DOCKERHUB_TAG="${VM_ID}-${DOCKERHUB_TAG}"
 fi
