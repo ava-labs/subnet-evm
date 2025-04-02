@@ -89,6 +89,8 @@ export VERSION=v0.7.3
     gh pr create --repo github.com/ava-labs/subnet-evm --base master --title "chore: release $VERSION_RC"
     ```
 
+Q: what's the use to setup an AWS create platform account through okta, using the platform sandbox account.
+
 1. Once the PR checks pass, squash and merge it
 1. Update your master branch, create a tag and push it:
 
@@ -99,8 +101,146 @@ export VERSION=v0.7.3
     git push -u origin "$VERSION_RC"
     ```
 
-1. Deploy the release candidate tagged to a local node (bootstrap canaries echo/dispatch from scratch in Fuji)
-1. Update echo/dispatch with RC under <https://github.com/ava-labs/external-plugins-builder>
+Once the tag is created, you need to test it on the Fuji testnet both locally and then as canaries, using the Dispatch and Echo subnets.
+
+#### Local deployment
+
+1. Find the Dispatch and Echo L1s blockchain ID and subnet ID:
+    - [Dispath L1 details](https://subnets-test.avax.network/dispatch/details). Its subnet id is `7WtoAMPhrmh5KosDUsFL9yTcvw7YSxiKHPpdfs4JsgW47oZT5`.
+    - [Echo L1 details](https://subnets-test.avax.network/echo/details). Its subnet id is `i9gFpZQHPLcGfZaQLiwFAStddQD7iTKBpFfurPFJsXm1CkTZK`.
+1. Get the VM IDs of the Echo and Dispatch L1s with:
+    - Dispatch:
+
+        ```bash
+        curl -X POST --silent -H 'content-type:application/json' --data '{
+            "jsonrpc": "2.0",
+            "method": "platform.getBlockchains",
+            "params": {},
+            "id": 1
+        }'  https://api.avax-test.network/ext/bc/P | \
+        jq -r '.result.blockchains[] | select(.subnetID=="7WtoAMPhrmh5KosDUsFL9yTcvw7YSxiKHPpdfs4JsgW47oZT5") |  "\(.name)\nBlockchain id: \(.id)\nVM id: \(.vmID)\n"'
+        ```
+
+        Which as the time of this writing returns:
+
+        ```text
+        dispatch
+        Blockchain id: 2D8RG4UpSXbPbvPCAWppNJyqTG2i2CAXSkTgmTBBvs7GKNZjsY
+        VM id: mDtV8ES8wRL1j2m6Kvc1qRFAvnpq4kufhueAY1bwbzVhk336o
+        ```
+
+    - Echo:
+
+        ```bash
+        curl -X POST --silent -H 'content-type:application/json' --data '{
+            "jsonrpc": "2.0",
+            "method": "platform.getBlockchains",
+            "params": {},
+            "id": 1
+        }'  https://api.avax-test.network/ext/bc/P | \
+        jq -r '.result.blockchains[] | select(.subnetID=="i9gFpZQHPLcGfZaQLiwFAStddQD7iTKBpFfurPFJsXm1CkTZK") |  "\(.name)\nBlockchain id: \(.id)\nVM id: \(.vmID)\n"'
+        ```
+
+        Which as the time of this writing returns:
+
+        ```text
+        echo
+        Blockchain id: 98qnjenm7MBd8G2cPZoRvZrgJC33JGSAAKghsQ6eojbLCeRNp
+        VM id: meq3bv7qCMZZ69L8xZRLwyKnWp6chRwyscq8VPtHWignRQVVF
+        ```
+
+1. Clone [AvalancheGo](https://github.com/ava-labs/avalanchego):
+
+    ```bash
+    git clone git@github.com:ava-labs/avalanchego.git
+    ```
+
+1. Build AvalancheGo using those VM ids:
+
+    ```bash
+    cd avalanchego
+    ./scripts/build.sh ~/.avalanchego/plugins/mDtV8ES8wRL1j2m6Kvc1qRFAvnpq4kufhueAY1bwbzVhk336o
+    ./scripts/build.sh ~/.avalanchego/plugins/meq3bv7qCMZZ69L8xZRLwyKnWp6chRwyscq8VPtHWignRQVVF
+    ```
+
+1. Get upgrades for each L1 and write them out to `~/.avalanchego/configs/chains/<blockchain-id>/upgrade.json`:
+
+    ```bash
+    mkdir -p ~/.avalanchego/configs/chains/2D8RG4UpSXbPbvPCAWppNJyqTG2i2CAXSkTgmTBBvs7GKNZjsY
+    curl -X POST --silent --header 'Content-Type: application/json' --data '{
+        "jsonrpc": "2.0",
+        "method": "eth_getChainConfig",
+        "params": [],
+        "id": 1
+    }' https://subnets.avax.network/dispatch/testnet/rpc | \
+    jq -r '.result.upgrades' > ~/.avalanchego/configs/chains/2D8RG4UpSXbPbvPCAWppNJyqTG2i2CAXSkTgmTBBvs7GKNZjsY/upgrade.json
+    ```
+
+    Note it's possible there is no upgrades so the upgrade.json might just be `{}`.
+
+    ```bash
+    mkdir -p ~/.avalanchego/configs/chains/98qnjenm7MBd8G2cPZoRvZrgJC33JGSAAKghsQ6eojbLCeRNp
+    curl -X POST --silent --header 'Content-Type: application/json' --data '{
+        "jsonrpc": "2.0",
+        "method": "eth_getChainConfig",
+        "params": [],
+        "id": 1
+    }' https://subnets.avax.network/echo/testnet/rpc | \
+    jq -r '.result.upgrades' > ~/.avalanchego/configs/chains/98qnjenm7MBd8G2cPZoRvZrgJC33JGSAAKghsQ6eojbLCeRNp/upgrade.json
+    ```
+
+1. (Optional) You can tweak the `config.json` for each L1 if you want to test a particular feature for example.
+    - Dispatch: `~/.avalanchego/configs/chains/2D8RG4UpSXbPbvPCAWppNJyqTG2i2CAXSkTgmTBBvs7GKNZjsY/config.json`
+    - Echo: `~/.avalanchego/configs/chains/98qnjenm7MBd8G2cPZoRvZrgJC33JGSAAKghsQ6eojbLCeRNp/config.json`
+1. (Optional) If you want to reboostrap completely the chain, you can remove `~/.avalanchego/chainData/<blockchain-id>/db/pebbledb`, for example:
+    - Dispatch: `rm -r ~/.avalanchego/chainData/2D8RG4UpSXbPbvPCAWppNJyqTG2i2CAXSkTgmTBBvs7GKNZjsY/db/pebbledb`
+    - Echo: `rm -r ~/.avalanchego/chainData/98qnjenm7MBd8G2cPZoRvZrgJC33JGSAAKghsQ6eojbLCeRNp/db/pebbledb`
+
+    AvalancheGo keeps its database in `~/.avalanchego/db/fuji/v1.4.5/*.ldb` which you should not delete.
+1. Build AvalancheGo:
+
+    ```bash
+    ./scripts/build.sh
+    ```
+
+1. Run AvalancheGo tracking the Dispatch and Echo VM IDs:
+
+    ```bash
+    ./build/avalanchego --network-id=fuji --partial-sync-primary-network --public-ip=127.0.0.1 \
+    --track-subnets=7WtoAMPhrmh5KosDUsFL9yTcvw7YSxiKHPpdfs4JsgW47oZT5,i9gFpZQHPLcGfZaQLiwFAStddQD7iTKBpFfurPFJsXm1CkTZK
+    ```
+
+1. Follow the logs and wait until you see line stating the health `check started passing`, for example:
+
+    ```text
+    [04-02|12:03:09.830] INFO health/worker.go:261 check started passing {"name": "health", "name": "network", "tags": ["application"]}
+    [04-02|12:03:09.831] INFO health/worker.go:261 check started passing {"name": "health", "name": "validation", "tags": ["application"]}
+    [04-02|12:03:09.831] INFO health/worker.go:261 check started passing {"name": "health", "name": "P", "tags": ["11111111111111111111111111111111LpoYY"]}
+    ```
+
+1. In another terminal, check you can obtain the current block number for both chains:
+
+    - Dispatch:
+
+        ```bash
+        curl -X POST --silent --header 'Content-Type: application/json' --data '{
+            "jsonrpc": "2.0",
+            "method": "eth_blockNumber",
+            "params": [],
+            "id": 1
+        }' localhost:9650/ext/bc/2D8RG4UpSXbPbvPCAWppNJyqTG2i2CAXSkTgmTBBvs7GKNZjsY/rpc
+        ```
+
+    - Echo:
+
+        ```bash
+        curl -X POST --silent --header 'Content-Type: application/json' --data '{
+            "jsonrpc": "2.0",
+            "method": "eth_blockNumber",
+            "params": [],
+            "id": 1
+        }' localhost:9650/ext/bc/98qnjenm7MBd8G2cPZoRvZrgJC33JGSAAKghsQ6eojbLCeRNp/rpc
+        ```
 
 ### Release
 
@@ -113,8 +253,9 @@ Following the previous example in the [Release candidate section](#release-candi
     1. In the "Choose a tag" box, enter `$VERSION` (`v0.7.3`)
     1. In the "Target", pick the previously restored last release candidate branch `releases/${VERSION_RC}`, for example `releases/v0.7.3-rc.0`.
     Do not select `master` as the target branch to prevent adding new master branch commits to the release.
+    1. Pick the previous release, for example as `v0.7.2` in our case, since the default would be the last release candidate.
     1. Set the "Release title" to `$VERSION` (`v0.7.3`)
-    1. Set the description
+    1. Set the description (breaking changes, features, fixes, documentation)
     1. Only tick the box "Set as the latest release"
     1. Click on the "Create release" button
 1. Monitor the [release Github workflow](https://github.com/ava-labs/subnet-evm/actions/workflows/release.yml) to ensure the GoReleaser step succeeds and check the binaries are then published to [the releases page](https://github.com/ava-labs/subnet-evm/releases)
