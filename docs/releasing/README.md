@@ -301,7 +301,17 @@ Once the tag is created, you need to test it on the Fuji testnet both locally an
     1. If you have no wallet setup, create a new one using the [Core wallet](https://core.app/)
     1. Go to the settings and enable **Testnet Mode**
     1. You need DIS (Dispatch) and ECH (Echo) testnet tokens. If you don't have one or the other, send your C-chain AVAX address to one of the team members who can send you some DIS/ECH testnet tokens. The portfolio section of the core wallet should then show the DIS and ECH tokens available.
-    1. For both Dispatch and Echo, in the "Command center", select **Send**, enter your own C-Chain AVAX address in the **Send To** field, set the **Amount** to 0 and click on **Send**.
+    1. For both Dispatch and Echo, in the "Command center", select **Send**, enter your own C-Chain AVAX address in the **Send To** field, set the **Amount** to 0 and click on **Send**. Finally, select a maximum network fee, usually *Slow* works, and click on **Approve**.
+1. You should then see the transaction impact the logs and metrics, for example
+
+    ```log
+    Apr 03 10:35:00.000 i-0158b0eef8b774d39 subnets Commit new mining work
+    Apr 03 10:34:59.599 i-0158b0eef8b774d39 subnets Resetting chain preference
+    Apr 03 10:34:56.085 i-0aca0a4088f607b7e subnets Served eth_getBlockByNumber
+    Apr 03 10:34:55.619 i-0ccd28afbac6d9bfc subnets built block
+    Apr 03 10:34:55.611 i-0ccd28afbac6d9bfc subnets Commit new mining work
+    Apr 03 10:34:55.510 gke-subnets-testnet subnets Submitted transaction
+    ```
 
 ### Release
 
