@@ -62,7 +62,7 @@ func (s *StateDB) GetLogData() (topics [][]common.Hash, data [][]byte) {
 // GetPredicateStorageSlots(AddrA, 0) -> Predicate1
 // GetPredicateStorageSlots(AddrB, 0) -> Predicate2
 // GetPredicateStorageSlots(AddrA, 1) -> Predicate3
-func (s *StateDB) GetPredicateStorageSlots(address common.Address, index int) ([]byte, bool) {
+func (s *StateDB) GetPredicateStorageSlots(address common.Address, index int) (predicate []byte, exists bool) {
 	predicates, exists := s.predicateStorageSlots[address]
 	if !exists || index >= len(predicates) {
 		return nil, false
