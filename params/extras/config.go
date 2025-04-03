@@ -318,6 +318,10 @@ func checkForks(forks []fork, blockFork bool) error {
 
 // Verify verifies chain config.
 func (c *ChainConfig) Verify() error {
+	if err := c.FeeConfig.Verify(); err != nil {
+		return fmt.Errorf("invalid fee config: %w", err)
+	}
+
 	// Verify the precompile upgrades are internally consistent given the existing chainConfig.
 	if err := c.verifyPrecompileUpgrades(); err != nil {
 		return fmt.Errorf("invalid precompile upgrades: %w", err)
