@@ -2,8 +2,10 @@ module github.com/ava-labs/subnet-evm
 
 go 1.23.6
 
+toolchain go1.24.1
+
 require (
-	github.com/VictoriaMetrics/fastcache v1.12.1
+	github.com/VictoriaMetrics/fastcache v1.12.2
 	github.com/antithesishq/antithesis-sdk-go v0.3.8
 	github.com/ava-labs/avalanchego v1.13.1-0.20250321174807-6c72dfc4254a
 	github.com/cespare/cp v0.1.0
