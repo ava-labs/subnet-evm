@@ -184,6 +184,7 @@ func SetupGenesisBlock(
 		customrawdb.WriteChainConfig(db, stored, newcfg)
 		return newcfg, stored, nil
 	}
+	params.SetEthUpgrades(storedcfg, params.GetExtra(storedcfg).NetworkUpgrades)
 	// Check config compatibility and write the config. Compatibility errors
 	// are returned to the caller unless we're already at block zero.
 	// we use last accepted block for cfg compatibility check. Note this allows
