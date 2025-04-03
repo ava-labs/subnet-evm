@@ -297,7 +297,11 @@ Once the tag is created, you need to test it on the Fuji testnet both locally an
         - [Metrics](https://app.datadoghq.com/dashboard/jrv-mm2-vuc/echo-testnet-subnets?live=true)
 
     Note some metrics might be not showing up until a test transaction is ran.
-1. Launch a test transaction, this documents the Dispatch way, but the same goes for Echo. **WIP**
+1. Launch a test transaction:
+    1. If you have no wallet setup, create a new one using the [Core wallet](https://core.app/)
+    1. Go to the settings and enable **Testnet Mode**
+    1. You need DIS (Dispatch) and ECH (Echo) testnet tokens. If you don't have one or the other, send your C-chain AVAX address to one of the team members who can send you some DIS/ECH testnet tokens. The portfolio section of the core wallet should then show the DIS and ECH tokens available.
+    1. For both Dispatch and Echo, in the "Command center", select **Send**, enter your own C-Chain AVAX address in the **Send To** field, set the **Amount** to 0 and click on **Send**.
 
 ### Release
 
