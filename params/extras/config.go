@@ -183,6 +183,8 @@ func (c *ChainConfig) Description() string {
 	}
 	banner += fmt.Sprintf("Fee Config: %s\n", string(feeBytes))
 
+	banner += fmt.Sprintf("Allow Fee Recipients: %v\n", c.AllowFeeRecipients)
+
 	return banner
 }
 
