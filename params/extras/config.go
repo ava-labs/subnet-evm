@@ -176,6 +176,13 @@ func (c *ChainConfig) Description() string {
 	}
 	banner += fmt.Sprintf("Upgrade Config: %s", string(upgradeConfigBytes))
 	banner += "\n"
+
+	feeBytes, err := json.Marshal(c.FeeConfig)
+	if err != nil {
+		feeBytes = []byte("cannot marshal FeeConfig")
+	}
+	banner += fmt.Sprintf("Fee Config: %s\n", string(feeBytes))
+
 	return banner
 }
 
