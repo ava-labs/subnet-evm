@@ -335,3 +335,4 @@ Following the previous example in the [Release candidate section](#release-candi
     1. Enter the branch name, usually with goreleaser related fixes
     1. Enter the tag name `$VERSION` (i.e. `v0.7.3`)
 1. Monitor the [Publish Docker image workflow](https://github.com/ava-labs/subnet-evm/actions/workflows/publish_docker.yml) succeeds.
+1. Finally, [create a release for precompile-evm](https://github.com/ava-labs/precompile-evm/blob/main/docs/releasing/README.md)
