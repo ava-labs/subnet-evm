@@ -1,6 +1,6 @@
 # Integrating Avalanche Warp Messaging into the EVM
 
-Avalanche Warp Messaging offers a basic primitive to enable Cross-Subnet communication on the Avalanche Network.
+Avalanche Warp Messaging offers a basic primitive to enable Cross-L1 communication on the Avalanche Network.
 
 It is intended to allow communication between arbitrary Custom Virtual Machines (including, but not limited to Subnet-EVM and Coreth).
 
@@ -8,7 +8,7 @@ It is intended to allow communication between arbitrary Custom Virtual Machines 
 
 Avalanche Warp Messaging uses BLS Multi-Signatures with Public-Key Aggregation where every Avalanche validator registers a public key alongside its NodeID on the Avalanche P-Chain.
 
-Every node tracking a Subnet has read access to the Avalanche P-Chain. This provides weighted sets of BLS Public Keys that correspond to the validator sets of each Subnet on the Avalanche Network. Avalanche Warp Messaging provides a basic primitive for signing and verifying messages between Subnets: the receiving network can verify whether an aggregation of signatures from a set of source Subnet validators represents a threshold of stake large enough for the receiving network to process the message.
+Every node tracking an Avalanche L1 has read access to the Avalanche P-Chain. This provides weighted sets of BLS Public Keys that correspond to the validator sets of each L1 on the Avalanche Network. Avalanche Warp Messaging provides a basic primitive for signing and verifying messages between L1s: the receiving network can verify whether an aggregation of signatures from a set of source L1 validators represents a threshold of stake large enough for the receiving network to process the message.
 
 For more details on Avalanche Warp Messaging, see the AvalancheGo [Warp README](https://docs.avax.network/build/cross-chain/awm/deep-dive).
 
@@ -77,29 +77,35 @@ Since the predicate is encoded into the [Transaction Access List](https://eips.e
 
 Therefore, we use the [Predicate Utils](https://github.com/ava-labs/coreth/blob/master/predicate/Predicate.md) package to encode the actual byte slice of size N into the access list.
 
-### Performance Optimization: C-Chain to Subnet
+### Performance Optimization: Primary Network to Avalanche L1
 
-To support C-Chain to Subnet communication, or more generally Primary Network to Subnet communication, we special case the C-Chain for two reasons:
+The Primary Network has a large validator set compared to most Subnets and L1s, which makes Warp signature collection and verification from the entire Primary Network validator set costly. All Subnets and L1s track at least one blockchain of the Primary Network, so we can instead optimize this by using the validator set of the receiving L1 instead of the Primary Network for certain Warp messages.
 
-1. Every Subnet validator validates the C-Chain
-2. The Primary Network has the largest possible number of validators
+#### Subnets
 
-Since the Primary Network has the largest possible number of validators for any Subnet on Avalanche, it would also be the most expensive Subnet to receive and verify Avalanche Warp Messages from as it reaching a threshold of stake on the primary network would require many signatures. Luckily, we can do something much smarter.
+Recall that Avalanche Subnet validators must also validate the Primary Network, so it tracks all of the blockchains in the Primary Network (X, C, and P-Chains).
 
-When a Subnet receives a message from a blockchain on the Primary Network, we use the validator set of the receiving Subnet instead of the entire network when validating the message. This means that the C-Chain sending a message can be the exact same as Subnet to Subnet communication.
+When an Avalanche Subnet receives a message from a blockchain on the Primary Network, we use the validator set of the receiving Subnet instead of the entire network when validating the message. 
 
-However, when Subnet B receives a message from the C-Chain, it changes the semantics to the following:
+Sending messages from the X, C, or P-Chain remains unchanged.
+However, when the Subnet receives the message, it changes the semantics to the following:
 
-1. Read the SourceChainID of the signed message (C-Chain)
-2. Look up the SubnetID that validates C-Chain: Primary Network
-3. Look up the validator set of Subnet B (instead of the Primary Network) and the registered BLS Public Keys of Subnet B at the P-Chain height specified by the ProposerVM header
-4. Continue Warp Message verification using the validator set of Subnet B instead of the Primary Network
+1. Read the `SourceChainID` of the signed message
+2. Look up the `SubnetID` that validates `SourceChainID`. In this case it will be the Primary Network's `SubnetID`
+3. Look up the validator set of the Subnet (instead of the Primary Network) and the registered BLS Public Keys of the Subnet validators at the P-Chain height specified by the ProposerVM header
+4. Continue Warp Message verification using the validator set of the Subnet instead of the Primary Network
 
-This means that C-Chain to Subnet communication only requires a threshold of stake on the receiving subnet to sign the message instead of a threshold of stake for the entire Primary Network.
+This means that Primary Network to Subnet communication only requires a threshold of stake on the receiving Subnet to sign the message instead of a threshold of stake for the entire Primary Network.
 
-This assumes that the security of Subnet B already depends on the validators of Subnet B to behave virtuously. Therefore, requiring a threshold of stake from the receiving Subnet's validator set instead of the whole Primary Network does not meaningfully change security of the receiving Subnet.
+Since the security of the Subnet is provided by trust in its validator set, requiring a threshold of stake from the receiving Subnet's validator set instead of the whole Primary Network does not meaningfully change the security of the receiving L1.
 
-Note: this special case is ONLY applied during Warp Message verification. The message sent by the Primary Network will still contain the Avalanche C-Chain's blockchainID as the sourceChainID and signatures will be served by querying the C-Chain directly.
+Note: this special case is ONLY applied during Warp Message verification. The message sent by the Primary Network will still contain the blockchainID of the Primary Network chain that sent the message as the sourceChainID and signatures will be served by querying the source chain directly.
+
+#### L1s
+
+Avalanche L1s are only required to sync the P-Chain, but are not required to validate the Primary Network. Therefore, **for L1s, this optimization only applies to Warp messages sent by the P-Chain.** The rest of the description of this optimization in the above section applies to L1s.
+
+Note that **in order to properly verify messages from the C-Chain and X-Chain, the Warp precompile must be configured with `requirePrimaryNetworkSigners` set to `true`**. Otherwise, we will attempt to verify the message signature against the receiving L1's validator set, which is not required to track the C-Chain or X-Chain, and therefore will not in general be able to produce a valid Warp message.
 
 ## Design Considerations
 
@@ -107,7 +113,7 @@ Note: this special case is ONLY applied during Warp Message verification. The me
 
 Avalanche Warp Messaging depends on the Avalanche P-Chain state at the P-Chain height specified by the ProposerVM block header.
 
-Verifying a message requires looking up the validator set of the source subnet on the P-Chain. To support this, Avalanche Warp Messaging uses the ProposerVM header, which includes the P-Chain height it was issued at as the canonical point to lookup the source subnet's validator set.
+Verifying a message requires looking up the validator set of the source L1 on the P-Chain. To support this, Avalanche Warp Messaging uses the ProposerVM header, which includes the P-Chain height it was issued at as the canonical point to lookup the source L1's validator set.
 
 This means verifying the Warp Message and therefore the state transition on a block depends on state that is external to the blockchain itself: the P-Chain.
 
