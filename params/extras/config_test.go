@@ -6,10 +6,15 @@ package extras
 import (
 	"math/big"
 	"testing"
+	"time"
 
+	"github.com/ava-labs/avalanchego/snow"
+	"github.com/ava-labs/avalanchego/upgrade"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/subnet-evm/commontype"
+	"github.com/ava-labs/subnet-evm/precompile/contracts/txallowlist"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func pointer[T any](v T) *T { return &v }
@@ -87,6 +92,125 @@ Allow Fee Recipients: true
 		t.Run(name, func(t *testing.T) {
 			got := test.config.Description()
 			assert.Equal(t, test.want, got, "config description mismatch")
+		})
+	}
+}
+
+func TestChainConfigVerify(t *testing.T) {
+	t.Parallel()
+
+	tests := map[string]struct {
+		config   ChainConfig
+		errRegex string
+	}{
+		"invalid_feeconfig": {
+			config: ChainConfig{
+				FeeConfig: commontype.FeeConfig{
+					GasLimit: nil,
+				},
+			},
+			errRegex: "^invalid fee config: ",
+		},
+		"invalid_precompile_upgrades": {
+			// Also see precompile_config_test.go TestVerifyWithChainConfig* tests
+			config: ChainConfig{
+				FeeConfig: commontype.FeeConfig{
+					GasLimit:                 big.NewInt(1),
+					TargetBlockRate:          2,
+					MinBaseFee:               big.NewInt(3),
+					TargetGas:                big.NewInt(4),
+					BaseFeeChangeDenominator: big.NewInt(5),
+					MinBlockGasCost:          big.NewInt(6),
+					MaxBlockGasCost:          big.NewInt(7),
+					BlockGasCostStep:         big.NewInt(8),
+				},
+				UpgradeConfig: UpgradeConfig{
+					PrecompileUpgrades: []PrecompileUpgrade{
+						// same precompile cannot be configured twice for the same timestamp
+						{Config: txallowlist.NewDisableConfig(pointer(uint64(9)))},
+						{Config: txallowlist.NewDisableConfig(pointer(uint64(9)))},
+					},
+				},
+			},
+			errRegex: "^invalid precompile upgrades: ",
+		},
+		"invalid_state_upgrades": {
+			config: ChainConfig{
+				FeeConfig: commontype.FeeConfig{
+					GasLimit:                 big.NewInt(1),
+					TargetBlockRate:          2,
+					MinBaseFee:               big.NewInt(3),
+					TargetGas:                big.NewInt(4),
+					BaseFeeChangeDenominator: big.NewInt(5),
+					MinBlockGasCost:          big.NewInt(6),
+					MaxBlockGasCost:          big.NewInt(7),
+					BlockGasCostStep:         big.NewInt(8),
+				},
+				UpgradeConfig: UpgradeConfig{
+					StateUpgrades: []StateUpgrade{
+						{BlockTimestamp: nil},
+					},
+				},
+			},
+			errRegex: "^invalid state upgrades: ",
+		},
+		"invalid_network_upgrades": {
+			config: ChainConfig{
+				FeeConfig: commontype.FeeConfig{
+					GasLimit:                 big.NewInt(1),
+					TargetBlockRate:          2,
+					MinBaseFee:               big.NewInt(3),
+					TargetGas:                big.NewInt(4),
+					BaseFeeChangeDenominator: big.NewInt(5),
+					MinBlockGasCost:          big.NewInt(6),
+					MaxBlockGasCost:          big.NewInt(7),
+					BlockGasCostStep:         big.NewInt(8),
+				},
+				NetworkUpgrades: NetworkUpgrades{
+					SubnetEVMTimestamp: nil,
+				},
+				AvalancheContext: AvalancheContext{SnowCtx: &snow.Context{}},
+			},
+			errRegex: "^invalid network upgrades: ",
+		},
+		"valid": {
+			config: ChainConfig{
+				FeeConfig: commontype.FeeConfig{
+					GasLimit:                 big.NewInt(1),
+					TargetBlockRate:          2,
+					MinBaseFee:               big.NewInt(3),
+					TargetGas:                big.NewInt(4),
+					BaseFeeChangeDenominator: big.NewInt(5),
+					MinBlockGasCost:          big.NewInt(6),
+					MaxBlockGasCost:          big.NewInt(7),
+					BlockGasCostStep:         big.NewInt(8),
+				},
+				NetworkUpgrades: NetworkUpgrades{
+					SubnetEVMTimestamp: pointer(uint64(1)),
+					DurangoTimestamp:   pointer(uint64(2)),
+					EtnaTimestamp:      pointer(uint64(3)),
+					FortunaTimestamp:   pointer(uint64(4)),
+				},
+				AvalancheContext: AvalancheContext{SnowCtx: &snow.Context{
+					NetworkUpgrades: upgrade.Config{
+						DurangoTime: time.Unix(2, 0),
+						EtnaTime:    time.Unix(3, 0),
+						FortunaTime: time.Unix(4, 0),
+					},
+				}},
+			},
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			err := test.config.Verify()
+			if test.errRegex == "" {
+				assert.NoError(t, err)
+			} else {
+				require.Error(t, err)
+				assert.Regexp(t, test.errRegex, err.Error())
+			}
 		})
 	}
 }
