@@ -226,14 +226,10 @@ Once the tag is created, you need to test it on the Fuji testnet both locally an
     --track-subnets=7WtoAMPhrmh5KosDUsFL9yTcvw7YSxiKHPpdfs4JsgW47oZT5,i9gFpZQHPLcGfZaQLiwFAStddQD7iTKBpFfurPFJsXm1CkTZK
     ```
 
-1. Follow the logs and wait until you see line stating the health `check started passing`, for example:
-
-    ```text
-    [04-02|12:03:09.830] INFO health/worker.go:261 check started passing {"name": "health", "name": "network", "tags": ["application"]}
-    [04-02|12:03:09.831] INFO health/worker.go:261 check started passing {"name": "health", "name": "validation", "tags": ["application"]}
-    [04-02|12:03:09.831] INFO health/worker.go:261 check started passing {"name": "health", "name": "P", "tags": ["11111111111111111111111111111111LpoYY"]}
-    ```
-
+1. Follow the logs and wait until you see the following lines:
+    - line stating the health `check started passing`
+    - line containing `consensus started`
+    - line containing `bootstrapped healthy nodes`
 1. In another terminal, check you can obtain the current block number for both chains:
 
     - Dispatch:
