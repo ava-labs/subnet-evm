@@ -35,39 +35,25 @@ export VERSION=v0.7.3
     ```
 
     And fix any errors that may arise from the upgrade. If it requires significant changes, you may want to create a separate PR for the upgrade and wait for it to be merged before continuing with this procedure.
-1. Modify [compatiblity.json](../../compatibility.json) by adding `$VERSION` to the `"rpcChainVMProtocolVersion"` JSON object. In our example, we add it as
+1. Add an entry in the object in [compatibility.json](../../compatibility.json), adding the target release `$VERSION` as key and the AvalancheGo RPC chain VM protocol version as value, to the `"rpcChainVMProtocolVersion"` JSON object. For example, we would add:
 
     ```json
-    {
-        "rpcChainVMProtocolVersion": {
-            "v0.7.3": 39,
-            "v0.7.2": 39,
-            "v0.7.1": 39,
-            "v0.7.0": 38
-        }
-    }
+    "v0.7.3": 39,
     ```
 
-    💁 If you are unsure about the RPC chain VM protocol version:
-
-    1. Check [go.mod](../../go.mod) and spot the version used for `github.com/ava-labs/avalanchego`. For example `v1.13.0`.
-    1. Refer to the [Avalanchego repository `version/compatibility.json` file](https://github.com/ava-labs/avalanchego/blob/master/version/compatibility.json) to find the RPC chain VM protocol version matching the subnet-evm AvalancheGo version. In our case, we use an AvalancheGo version `v1.13.0`, so the RPC chain VM protocol version is `39`:
-
-        ```json
-        {
-            "39": [
-                "v1.12.2",
-                "v1.13.0"
-            ],
-        }
-        ```
-
-    Finally, check the RPC chain VM protocol version compatibility is setup properly by running:
+    💁 If you are unsure about the RPC chain VM protocol version, set the version to `0`, for example `"v0.7.3": 0`, and then run:
 
     ```bash
     go test -run ^TestCompatibility$ github.com/ava-labs/subnet-evm/plugin/evm
     ```
 
+    This will fail with an error similar to:
+
+    ```text
+    compatibility.json has subnet-evm version v0.7.3 stated as compatible with RPC chain VM protocol version 0 but AvalancheGo protocol version is 39
+    ```
+
+    This message can help you figure out what the correct RPC chain VM protocol version (here `39`) has to be in compatibility.json for your current release. Alternatively, you can refer to the [Avalanchego repository `version/compatibility.json` file](https://github.com/ava-labs/avalanchego/blob/main/version/compatibility.json) to find the RPC chain VM protocol version matching the AvalancheGo version we use here.
 1. Specify the AvalancheGo compatibility in the [README.md relevant section](../../README.md#avalanchego-compatibility). For example we would add:
 
     ```text
@@ -89,14 +75,28 @@ export VERSION=v0.7.3
     gh pr create --repo github.com/ava-labs/subnet-evm --base master --title "chore: release $VERSION_RC"
     ```
 
-1. Once the PR checks pass, squash and merge it
-1. Update your master branch, create a tag and push it:
+1. Wait for the PR checks to pass with
 
     ```bash
-    git checkout master
+    gh pr checks --watch
+    ```
+
+1. Squash and merge your release branch into `master`, for example:
+
+    ```bash
+    gh pr merge "releases/$VERSION" --squash --delete-branch --subject "chore: release $VERSION" --body "\n- Update AvalancheGo from v1.12.3 to v1.13.0"
+    ```
+
+1. Create and push a tag from the `master` branch:
+
+    ```bash
     git fetch origin master:master
-    git tag "$VERSION_RC"
-    git push -u origin "$VERSION_RC"
+    git checkout master
+    # Double check the tip of the master branch is the expected commit
+    # of the squashed release branch
+    git log -1
+    git tag -s "$VERSION"
+    git push origin "$VERSION"
     ```
 
 Once the tag is created, you need to test it on the Fuji testnet both locally and then as canaries, using the Dispatch and Echo subnets.
@@ -319,20 +319,66 @@ If a successful release candidate was created, you can now create a release.
 
 Following the previous example in the [Release candidate section](#release-candidate), we will create a release `v0.7.3` indicated by the `$VERSION` variable.
 
-1. Head to the last release candidate pull request, and **restore** the deleted branch at the bottom of the Github page.
-1. Create a new release through the [Github web interface](https://github.com/ava-labs/subnet-evm/releases/new)
-    1. In the "Choose a tag" box, enter `$VERSION` (`v0.7.3`)
-    1. In the "Target", pick the previously restored last release candidate branch `releases/${VERSION_RC}`, for example `releases/v0.7.3-rc.0`.
-    Do not select `master` as the target branch to prevent adding new master branch commits to the release.
-    1. Pick the previous release, for example as `v0.7.2` in our case, since the default would be the last release candidate.
-    1. Set the "Release title" to `$VERSION` (`v0.7.3`)
-    1. Set the description (breaking changes, features, fixes, documentation)
-    1. Only tick the box "Set as the latest release"
-    1. Click on the "Create release" button
+1. Create and push a tag from the `master` branch:
+
+    ```bash
+    git checkout master
+    git pull origin
+    # Double check the tip of the master branch is the expected commit
+    # of the squashed release branch
+    git log -1
+    git tag -s "$VERSION"
+    git push origin "$VERSION"
+    ```
+
+1. Create a new release on Github, either using:
+    - the [Github web interface](https://github.com/ava-labs/subnet-evm/releases/new)
+        1. In the "Choose a tag" box, select the tag previously created `$VERSION` (`v0.7.3`)
+        1. Pick the previous tag, for example as `v0.7.2`.
+        1. Set the "Release title" to `$VERSION` (`v0.7.3`)
+        1. Set the description using this format:
+
+            ```markdown
+            # AvalancheGo Compatibility
+
+            The plugin version is unchanged at 39 and is compatible with AvalancheGo version v1.13.0.
+
+            # Breaking changes
+
+            # Features
+
+            # Fixes
+
+            # Documentation
+
+            ```
+
+        1. Only tick the box "Set as the latest release"
+        1. Click on the "Create release" button
+    - the Github CLI `gh`:
+
+        ```bash
+        PREVIOUS_VERSION=v0.7.2
+        NOTES="# AvalancheGo Compatibility
+
+        The plugin version is unchanged at 39 and is compatible with AvalancheGo version v1.13.0.
+
+        # Breaking changes
+
+        # Features
+
+        # Fixes
+
+        # Documentation
+
+        "
+        gh release create "$VERSION" --notes-start-tag "$PREVIOUS_VERSION" --notes-from-tag "$VERSION" --title "$VERSION" --notes "$NOTES" --verify-tag
+        ```
+
 1. Monitor the [release Github workflow](https://github.com/ava-labs/subnet-evm/actions/workflows/release.yml) to ensure the GoReleaser step succeeds and check the binaries are then published to [the releases page](https://github.com/ava-labs/subnet-evm/releases). In case this fails, you can trigger the workflow manually:
     1. Go to [github.com/ava-labs/subnet-evm/actions/workflows/release.yml](https://github.com/ava-labs/subnet-evm/actions/workflows/release.yml)
     1. Click on the "Run workflow" button
     1. Enter the branch name, usually with goreleaser related fixes
     1. Enter the tag name `$VERSION` (i.e. `v0.7.3`)
-1. Monitor the [Publish Docker image workflow](https://github.com/ava-labs/subnet-evm/actions/workflows/publish_docker.yml) succeeds.
+1. Monitor the [Publish Docker image workflow](https://github.com/ava-labs/subnet-evm/actions/workflows/publish_docker.yml) succeeds. Note this workflow is triggered when pushing the tag, unlike Goreleaser which triggers when publishing the release.
 1. Finally, [create a release for precompile-evm](https://github.com/ava-labs/precompile-evm/blob/main/docs/releasing/README.md)
