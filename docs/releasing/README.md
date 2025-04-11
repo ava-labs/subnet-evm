@@ -175,8 +175,7 @@ Once the tag is created, you need to test it on the Fuji testnet both locally an
 
     ```bash
     cd avalanchego
-    ./scripts/build.sh ~/.avalanchego/plugins/mDtV8ES8wRL1j2m6Kvc1qRFAvnpq4kufhueAY1bwbzVhk336o
-    ./scripts/build.sh ~/.avalanchego/plugins/meq3bv7qCMZZ69L8xZRLwyKnWp6chRwyscq8VPtHWignRQVVF
+    ./scripts/build.sh
     ```
 
 1. Get upgrades for each L1 and write them out to `~/.avalanchego/configs/chains/<blockchain-id>/upgrade.json`:
