@@ -219,7 +219,7 @@ Once the tag is created, you need to test it on the Fuji testnet both locally an
     ./scripts/build.sh
     ```
 
-1. Run AvalancheGo tracking the Dispatch and Echo VM IDs:
+1. Run AvalancheGo tracking the Dispatch and Echo Subnet IDs:
 
     ```bash
     ./build/avalanchego --network-id=fuji --partial-sync-primary-network --public-ip=127.0.0.1 \
