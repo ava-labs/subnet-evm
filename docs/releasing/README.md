@@ -26,6 +26,7 @@ export VERSION=v0.7.3
     git checkout -b "releases/$VERSION_RC"
     ```
 
+1. Update the [RELEASES.md](../../RELEASES.md) file with the new release version `$VERSION`.
 1. Modify the [plugin/evm/version.go](../../plugin/evm/version.go) `Version` global string variable and set it to the desired `$VERSION`.
 1. Ensure the AvalancheGo version used in [go.mod](../../go.mod) is [its last release](https://github.com/ava-labs/avalanchego/releases). If not, upgrade it with, for example:
 
