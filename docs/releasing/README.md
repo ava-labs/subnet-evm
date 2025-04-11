@@ -191,7 +191,7 @@ Once the tag is created, you need to test it on the Fuji testnet both locally an
     jq -r '.result.upgrades' > ~/.avalanchego/configs/chains/2D8RG4UpSXbPbvPCAWppNJyqTG2i2CAXSkTgmTBBvs7GKNZjsY/upgrade.json
     ```
 
-    Note it's possible there is no upgrades so the upgrade.json might just be `{}`.
+    Note it is possible there is no upgrades so the upgrade.json might just be `{}`.
 
     ```bash
     mkdir -p ~/.avalanchego/configs/chains/98qnjenm7MBd8G2cPZoRvZrgJC33JGSAAKghsQ6eojbLCeRNp
@@ -317,7 +317,7 @@ Once the tag is created, you need to test it on the Fuji testnet both locally an
 
 If a successful release candidate was created, you can now create a release.
 
-Following the previous example in the [Release candidate section](#release-candidate), we will create a release `v0.7.3` indicated by the `$VERSION` variable.
+Following the previous example in the [Release candidate section](#release-candidate) we will create a release `v0.7.3` indicated by the `$VERSION` variable.
 
 1. Create and push a tag from the `master` branch:
 
