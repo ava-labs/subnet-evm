@@ -28,6 +28,9 @@ package core
 
 import (
 	"testing"
+
+	ethparams "github.com/ava-labs/libevm/params"
+	"github.com/stretchr/testify/assert"
 )
 
 // TODO: Add TestHeaderVerification
@@ -62,4 +65,9 @@ func TestCalcGasLimit(t *testing.T) {
 			t.Errorf("test %d: have %d want %d", i, have, want)
 		}
 	}
+}
+
+func TestUpstreamParamsValues(t *testing.T) {
+	assert.Equal(t, uint64(1024), ethparams.GasLimitBoundDivisor, "gas limit bound divisor")
+	assert.Equal(t, uint64(5000), ethparams.MinGasLimit, "min gas limit")
 }
