@@ -93,6 +93,17 @@ $`,
 func TestChainConfigVerify(t *testing.T) {
 	t.Parallel()
 
+	validFeeConfig := commontype.FeeConfig{
+		GasLimit:                 big.NewInt(1),
+		TargetBlockRate:          1,
+		MinBaseFee:               big.NewInt(1),
+		TargetGas:                big.NewInt(1),
+		BaseFeeChangeDenominator: big.NewInt(1),
+		MinBlockGasCost:          big.NewInt(1),
+		MaxBlockGasCost:          big.NewInt(1),
+		BlockGasCostStep:         big.NewInt(1),
+	}
+
 	tests := map[string]struct {
 		config   ChainConfig
 		errRegex string
@@ -108,21 +119,12 @@ func TestChainConfigVerify(t *testing.T) {
 		"invalid_precompile_upgrades": {
 			// Also see precompile_config_test.go TestVerifyWithChainConfig* tests
 			config: ChainConfig{
-				FeeConfig: commontype.FeeConfig{
-					GasLimit:                 big.NewInt(1),
-					TargetBlockRate:          2,
-					MinBaseFee:               big.NewInt(3),
-					TargetGas:                big.NewInt(4),
-					BaseFeeChangeDenominator: big.NewInt(5),
-					MinBlockGasCost:          big.NewInt(6),
-					MaxBlockGasCost:          big.NewInt(7),
-					BlockGasCostStep:         big.NewInt(8),
-				},
+				FeeConfig: validFeeConfig,
 				UpgradeConfig: UpgradeConfig{
 					PrecompileUpgrades: []PrecompileUpgrade{
 						// same precompile cannot be configured twice for the same timestamp
-						{Config: txallowlist.NewDisableConfig(pointer(uint64(9)))},
-						{Config: txallowlist.NewDisableConfig(pointer(uint64(9)))},
+						{Config: txallowlist.NewDisableConfig(pointer(uint64(1)))},
+						{Config: txallowlist.NewDisableConfig(pointer(uint64(1)))},
 					},
 				},
 			},
@@ -130,16 +132,7 @@ func TestChainConfigVerify(t *testing.T) {
 		},
 		"invalid_state_upgrades": {
 			config: ChainConfig{
-				FeeConfig: commontype.FeeConfig{
-					GasLimit:                 big.NewInt(1),
-					TargetBlockRate:          2,
-					MinBaseFee:               big.NewInt(3),
-					TargetGas:                big.NewInt(4),
-					BaseFeeChangeDenominator: big.NewInt(5),
-					MinBlockGasCost:          big.NewInt(6),
-					MaxBlockGasCost:          big.NewInt(7),
-					BlockGasCostStep:         big.NewInt(8),
-				},
+				FeeConfig: validFeeConfig,
 				UpgradeConfig: UpgradeConfig{
 					StateUpgrades: []StateUpgrade{
 						{BlockTimestamp: nil},
@@ -150,16 +143,7 @@ func TestChainConfigVerify(t *testing.T) {
 		},
 		"invalid_network_upgrades": {
 			config: ChainConfig{
-				FeeConfig: commontype.FeeConfig{
-					GasLimit:                 big.NewInt(1),
-					TargetBlockRate:          2,
-					MinBaseFee:               big.NewInt(3),
-					TargetGas:                big.NewInt(4),
-					BaseFeeChangeDenominator: big.NewInt(5),
-					MinBlockGasCost:          big.NewInt(6),
-					MaxBlockGasCost:          big.NewInt(7),
-					BlockGasCostStep:         big.NewInt(8),
-				},
+				FeeConfig: validFeeConfig,
 				NetworkUpgrades: NetworkUpgrades{
 					SubnetEVMTimestamp: nil,
 				},
@@ -169,16 +153,7 @@ func TestChainConfigVerify(t *testing.T) {
 		},
 		"valid": {
 			config: ChainConfig{
-				FeeConfig: commontype.FeeConfig{
-					GasLimit:                 big.NewInt(1),
-					TargetBlockRate:          2,
-					MinBaseFee:               big.NewInt(3),
-					TargetGas:                big.NewInt(4),
-					BaseFeeChangeDenominator: big.NewInt(5),
-					MinBlockGasCost:          big.NewInt(6),
-					MaxBlockGasCost:          big.NewInt(7),
-					BlockGasCostStep:         big.NewInt(8),
-				},
+				FeeConfig: validFeeConfig,
 				NetworkUpgrades: NetworkUpgrades{
 					SubnetEVMTimestamp: pointer(uint64(1)),
 					DurangoTimestamp:   pointer(uint64(2)),
