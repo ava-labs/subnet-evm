@@ -21,6 +21,7 @@ import (
 	"github.com/ava-labs/avalanchego/network/p2p"
 	"github.com/ava-labs/avalanchego/network/p2p/acp118"
 	"github.com/ava-labs/avalanchego/network/p2p/gossip"
+	"github.com/ava-labs/avalanchego/upgrade"
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/ava-labs/libevm/core/rawdb"
@@ -39,7 +40,7 @@ import (
 	"github.com/ava-labs/subnet-evm/miner"
 	"github.com/ava-labs/subnet-evm/node"
 	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/params/extras"
+	extraparams "github.com/ava-labs/subnet-evm/params/extras"
 	"github.com/ava-labs/subnet-evm/peer"
 	"github.com/ava-labs/subnet-evm/plugin/evm/config"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
@@ -355,11 +356,13 @@ func (vm *VM) Initialize(
 
 	// Set the Avalanche Context on the ChainConfig
 	configExtra := params.GetExtra(g.Config)
-	configExtra.AvalancheContext = extras.AvalancheContext{
+	configExtra.AvalancheContext = extraparams.AvalancheContext{
 		SnowCtx: chainCtx,
 	}
 
-	params.SetNetworkUpgradeDefaults(g.Config)
+	if chainCtx.NetworkUpgrades != (upgrade.Config{}) {
+		extraparams.SetSubnetEVMDefaults(&configExtra.NetworkUpgrades, chainCtx.NetworkUpgrades)
+	}
 
 	// Load airdrop file if provided
 	if vm.config.AirdropFile != "" {
@@ -372,15 +375,15 @@ func (vm *VM) Initialize(
 	vm.syntacticBlockValidator = NewBlockValidator()
 
 	if configExtra.FeeConfig == commontype.EmptyFeeConfig {
-		log.Info("No fee config given in genesis, setting default fee config", "DefaultFeeConfig", params.DefaultFeeConfig)
-		configExtra.FeeConfig = params.DefaultFeeConfig
+		log.Info("No fee config given in genesis, setting default fee config", "DefaultFeeConfig", extraparams.DefaultFeeConfig)
+		configExtra.FeeConfig = extraparams.DefaultFeeConfig
 	}
 
 	// Apply upgradeBytes (if any) by unmarshalling them into [chainConfig.UpgradeConfig].
 	// Initializing the chain will verify upgradeBytes are compatible with existing values.
 	// This should be called before g.Verify().
 	if len(upgradeBytes) > 0 {
-		var upgradeConfig extras.UpgradeConfig
+		var upgradeConfig extraparams.UpgradeConfig
 		if err := json.Unmarshal(upgradeBytes, &upgradeConfig); err != nil {
 			return fmt.Errorf("failed to parse upgrade bytes: %w", err)
 		}
@@ -398,7 +401,7 @@ func (vm *VM) Initialize(
 		configExtra.Override(overrides)
 	}
 
-	params.SetEthUpgrades(g.Config, configExtra.NetworkUpgrades)
+	params.SetEthUpgrades(g.Config)
 
 	if err := configExtra.Verify(); err != nil {
 		return fmt.Errorf("failed to verify genesis: %w", err)
@@ -1155,17 +1158,17 @@ func (vm *VM) GetCurrentNonce(address common.Address) (uint64, error) {
 	return state.GetNonce(address), nil
 }
 
-func (vm *VM) chainConfigExtra() *extras.ChainConfig {
+func (vm *VM) chainConfigExtra() *extraparams.ChainConfig {
 	return params.GetExtra(vm.chainConfig)
 }
 
-func (vm *VM) rules(number *big.Int, time uint64) extras.Rules {
+func (vm *VM) rules(number *big.Int, time uint64) extraparams.Rules {
 	ethrules := vm.chainConfig.Rules(number, params.IsMergeTODO, time)
 	return *params.GetRulesExtra(ethrules)
 }
 
 // currentRules returns the chain rules for the current block.
-func (vm *VM) currentRules() extras.Rules {
+func (vm *VM) currentRules() extraparams.Rules {
 	header := vm.eth.APIBackend.CurrentHeader()
 	return vm.rules(header.Number, header.Time)
 }

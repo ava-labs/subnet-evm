@@ -167,20 +167,13 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 
 func TestNetworkUpgradesOverriden(t *testing.T) {
 	var genesis core.Genesis
-	if err := json.Unmarshal([]byte(genesisJSONPreSubnetEVM), &genesis); err != nil {
+	if err := json.Unmarshal([]byte(genesisJSONDurango), &genesis); err != nil {
 		t.Fatalf("could not unmarshal genesis bytes: %s", err)
 	}
 	genesisBytes, err := json.Marshal(&genesis)
 	if err != nil {
 		t.Fatalf("could not unmarshal genesis bytes: %s", err)
 	}
-
-	upgradeBytesJSON := `{
-			"networkUpgradeOverrides": {
-				"subnetEVMTimestamp": 2,
-				"durangoTimestamp": 1607144402
-			}
-		}`
 
 	vm := &VM{}
 	ctx, dbManager, genesisBytes, issuer, _ := setupGenesis(t, string(genesisBytes))
@@ -192,7 +185,7 @@ func TestNetworkUpgradesOverriden(t *testing.T) {
 		ctx,
 		dbManager,
 		genesisBytes,
-		[]byte(upgradeBytesJSON),
+		nil,
 		nil,
 		issuer,
 		[]*commonEng.Fx{},
@@ -200,20 +193,37 @@ func TestNetworkUpgradesOverriden(t *testing.T) {
 	)
 	require.NoError(t, err, "error initializing GenesisVM")
 
-	require.NoError(t, vm.SetState(context.Background(), snow.Bootstrapping))
-	require.NoError(t, vm.SetState(context.Background(), snow.NormalOp))
+	// verify network upgrade
+	require.True(t, vm.chainConfigExtra().IsDurango(0))
 
+	if err := vm.Shutdown(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+
+	// restart the vm
+
+	// Reset metrics to allow re-initialization
+	vm.ctx.Metrics = metrics.NewPrefixGatherer()
+
+	upgradeBytesJSON := `{
+		"networkUpgradeOverrides": {
+			"durangoTimestamp": 1607144402
+		}
+	}`
+
+	if err := vm.Initialize(
+		context.Background(), vm.ctx, dbManager, []byte(genesisJSONDurango), []byte(upgradeBytesJSON), []byte{}, issuer, []*commonEng.Fx{}, appSender,
+	); err != nil {
+		t.Fatal(err)
+	}
 	defer func() {
 		if err := vm.Shutdown(context.Background()); err != nil {
 			t.Fatal(err)
 		}
 	}()
 
-	// verify upgrade overrides
-	require.False(t, vm.chainConfigExtra().IsSubnetEVM(0))
-	require.True(t, vm.chainConfigExtra().IsSubnetEVM(2))
+	// verify network upgrade override
 	require.False(t, vm.chainConfigExtra().IsDurango(0))
-	require.False(t, vm.chainConfigExtra().IsDurango(uint64(upgrade.InitiallyActiveTime.Unix())))
 	require.True(t, vm.chainConfigExtra().IsDurango(1607144402))
 }
 

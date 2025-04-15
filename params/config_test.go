@@ -141,6 +141,30 @@ func TestCheckCompatible(t *testing.T) {
 				RewindToTime: 0,
 			},
 		},
+		{
+			stored:        TestChainConfig,
+			new:           TestApricotPhase4Config,
+			headBlock:     0,
+			headTimestamp: 0,
+			wantErr: &ethparams.ConfigCompatError{
+				What:         "ApricotPhase5 fork block timestamp",
+				StoredTime:   utils.NewUint64(0),
+				NewTime:      nil,
+				RewindToTime: 0,
+			},
+		},
+		{
+			stored:        TestChainConfig,
+			new:           TestApricotPhase4Config,
+			headBlock:     10,
+			headTimestamp: 100,
+			wantErr: &ethparams.ConfigCompatError{
+				What:         "ApricotPhase5 fork block timestamp",
+				StoredTime:   utils.NewUint64(0),
+				NewTime:      nil,
+				RewindToTime: 0,
+			},
+		},
 	}
 
 	for _, test := range tests {
@@ -281,7 +305,7 @@ func TestChainConfigMarshalWithUpgrades(t *testing.T) {
 				MuirGlacierBlock:    big.NewInt(0),
 			},
 			&extras.ChainConfig{
-				FeeConfig:          DefaultFeeConfig,
+				FeeConfig:          extras.DefaultFeeConfig,
 				AllowFeeRecipients: false,
 				NetworkUpgrades: extras.NetworkUpgrades{
 					SubnetEVMTimestamp: utils.NewUint64(0),

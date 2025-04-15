@@ -10,91 +10,11 @@ import (
 
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/avalanchego/upgrade"
-	"github.com/ava-labs/avalanchego/utils/constants"
 	"github.com/ava-labs/libevm/common"
 	ethparams "github.com/ava-labs/libevm/params"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/utils"
 )
-
-var (
-	DefaultFeeConfig = commontype.FeeConfig{
-		GasLimit:        big.NewInt(8_000_000),
-		TargetBlockRate: 2, // in seconds
-
-		MinBaseFee:               big.NewInt(25_000_000_000),
-		TargetGas:                big.NewInt(15_000_000),
-		BaseFeeChangeDenominator: big.NewInt(36),
-
-		MinBlockGasCost:  big.NewInt(0),
-		MaxBlockGasCost:  big.NewInt(1_000_000),
-		BlockGasCostStep: big.NewInt(200_000),
-	}
-
-	SubnetEVMDefaultChainConfig = &ChainConfig{
-		FeeConfig:          DefaultFeeConfig,
-		NetworkUpgrades:    getDefaultNetworkUpgrades(upgrade.GetConfig(constants.MainnetID)),
-		GenesisPrecompiles: Precompiles{},
-	}
-
-	TestChainConfig = &ChainConfig{
-		AvalancheContext:   AvalancheContext{SnowCtx: utils.TestSnowContext()},
-		FeeConfig:          DefaultFeeConfig,
-		NetworkUpgrades:    getDefaultNetworkUpgrades(upgrade.GetConfig(constants.UnitTestID)), // This can be changed to correct network (local, test) via VM.
-		GenesisPrecompiles: Precompiles{},
-	}
-
-	TestPreSubnetEVMChainConfig = copyAndSet(TestChainConfig, func(c *ChainConfig) {
-		c.NetworkUpgrades = NetworkUpgrades{
-			SubnetEVMTimestamp: utils.TimeToNewUint64(upgrade.UnscheduledActivationTime),
-			DurangoTimestamp:   utils.TimeToNewUint64(upgrade.UnscheduledActivationTime),
-			EtnaTimestamp:      utils.TimeToNewUint64(upgrade.UnscheduledActivationTime),
-			FortunaTimestamp:   utils.TimeToNewUint64(upgrade.UnscheduledActivationTime),
-		}
-	})
-
-	TestSubnetEVMChainConfig = copyAndSet(TestChainConfig, func(c *ChainConfig) {
-		c.NetworkUpgrades = NetworkUpgrades{
-			SubnetEVMTimestamp: utils.NewUint64(0),
-			DurangoTimestamp:   utils.TimeToNewUint64(upgrade.UnscheduledActivationTime),
-			EtnaTimestamp:      utils.TimeToNewUint64(upgrade.UnscheduledActivationTime),
-			FortunaTimestamp:   utils.TimeToNewUint64(upgrade.UnscheduledActivationTime),
-		}
-	})
-
-	TestDurangoChainConfig = copyAndSet(TestChainConfig, func(c *ChainConfig) {
-		c.NetworkUpgrades = NetworkUpgrades{
-			SubnetEVMTimestamp: utils.NewUint64(0),
-			DurangoTimestamp:   utils.TimeToNewUint64(upgrade.InitiallyActiveTime),
-			EtnaTimestamp:      utils.TimeToNewUint64(upgrade.UnscheduledActivationTime),
-			FortunaTimestamp:   utils.TimeToNewUint64(upgrade.UnscheduledActivationTime),
-		}
-	})
-
-	TestEtnaChainConfig = copyAndSet(TestChainConfig, func(c *ChainConfig) {
-		c.NetworkUpgrades = NetworkUpgrades{
-			SubnetEVMTimestamp: utils.NewUint64(0),
-			DurangoTimestamp:   utils.TimeToNewUint64(upgrade.InitiallyActiveTime),
-			EtnaTimestamp:      utils.TimeToNewUint64(upgrade.InitiallyActiveTime),
-			FortunaTimestamp:   utils.TimeToNewUint64(upgrade.UnscheduledActivationTime),
-		}
-	})
-
-	TestFortunaChainConfig = copyAndSet(TestChainConfig, func(c *ChainConfig) {
-		c.NetworkUpgrades = NetworkUpgrades{
-			SubnetEVMTimestamp: utils.NewUint64(0),
-			DurangoTimestamp:   utils.TimeToNewUint64(upgrade.InitiallyActiveTime),
-			EtnaTimestamp:      utils.TimeToNewUint64(upgrade.InitiallyActiveTime),
-			FortunaTimestamp:   utils.TimeToNewUint64(upgrade.InitiallyActiveTime),
-		}
-	})
-)
-
-func copyAndSet(c *ChainConfig, set func(*ChainConfig)) *ChainConfig {
-	newConfig := *c
-	set(&newConfig)
-	return &newConfig
-}
 
 // UpgradeConfig includes the following configs that may be specified in upgradeBytes:
 // - Timestamps that enable avalanche network upgrades,
@@ -328,8 +248,10 @@ func (c *ChainConfig) Verify() error {
 	}
 
 	// Verify the network upgrades are internally consistent given the existing chainConfig.
-	if err := c.verifyNetworkUpgrades(c.SnowCtx.NetworkUpgrades); err != nil {
-		return fmt.Errorf("invalid network upgrades: %w", err)
+	if c.SnowCtx.NetworkUpgrades != (upgrade.Config{}) {
+		if err := c.verifyNetworkUpgrades(c.SnowCtx.NetworkUpgrades); err != nil {
+			return fmt.Errorf("invalid network upgrades: %w", err)
+		}
 	}
 
 	return nil

@@ -21,7 +21,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/core/state/pruner"
 	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/params/extras"
+	extraparams "github.com/ava-labs/subnet-evm/params/extras"
 	"github.com/ava-labs/subnet-evm/plugin/evm/customrawdb"
 	"github.com/ava-labs/subnet-evm/plugin/evm/upgrade/legacy"
 	"github.com/holiman/uint256"
@@ -317,7 +317,7 @@ func testRepopulateMissingTriesParallel(t *testing.T, parallelism int) {
 	gspec := &Genesis{
 		Config: params.WithExtra(
 			&params.ChainConfig{HomesteadBlock: new(big.Int)},
-			&extras.ChainConfig{FeeConfig: params.DefaultFeeConfig},
+			&extraparams.ChainConfig{FeeConfig: extraparams.DefaultFeeConfig},
 		),
 		Alloc: types.GenesisAlloc{addr1: {Balance: genesisBalance}},
 	}
@@ -433,7 +433,7 @@ func TestUngracefulAsyncShutdown(t *testing.T) {
 	gspec := &Genesis{
 		Config: params.WithExtra(
 			&params.ChainConfig{HomesteadBlock: new(big.Int)},
-			&extras.ChainConfig{FeeConfig: params.DefaultFeeConfig},
+			&extraparams.ChainConfig{FeeConfig: extraparams.DefaultFeeConfig},
 		),
 		Alloc: types.GenesisAlloc{addr1: {Balance: genesisBalance}},
 	}
@@ -555,7 +555,7 @@ func TestCanonicalHashMarker(t *testing.T) {
 }
 
 func testCanonicalHashMarker(t *testing.T, scheme string) {
-	var cases = []struct {
+	cases := []struct {
 		forkA int
 		forkB int
 	}{
@@ -713,7 +713,7 @@ func TestTxLookupSkipIndexingBlockChain(t *testing.T) {
 func TestCreateThenDeletePreByzantium(t *testing.T) {
 	// We want to use pre-byzantium rules where we have intermediate state roots
 	// between transactions.
-	config := *params.TestPreSubnetEVMChainConfig
+	config := *params.TestCChainLaunchConfig
 	config.ByzantiumBlock = nil
 	config.ConstantinopleBlock = nil
 	config.PetersburgBlock = nil
@@ -724,6 +724,7 @@ func TestCreateThenDeletePreByzantium(t *testing.T) {
 
 	testCreateThenDelete(t, &config)
 }
+
 func TestCreateThenDeletePostByzantium(t *testing.T) {
 	testCreateThenDelete(t, params.TestChainConfig)
 }
@@ -748,7 +749,8 @@ func testCreateThenDelete(t *testing.T, config *params.ChainConfig) {
 		byte(vm.PUSH1), 0x1,
 		byte(vm.SSTORE),
 		// Get the runtime-code on the stack
-		byte(vm.PUSH32)}
+		byte(vm.PUSH32),
+	}
 	initCode = append(initCode, code...)
 	initCode = append(initCode, []byte{
 		byte(vm.PUSH1), 0x0, // offset
@@ -790,8 +792,8 @@ func testCreateThenDelete(t *testing.T, config *params.ChainConfig) {
 	})
 	// Import the canonical chain
 	chain, err := NewBlockChain(rawdb.NewMemoryDatabase(), DefaultCacheConfig, gspec, engine, vm.Config{
-		//Debug:  true,
-		//Tracer: logger.NewJSONLogger(nil, os.Stdout),
+		// Debug:  true,
+		// Tracer: logger.NewJSONLogger(nil, os.Stdout),
 	}, common.Hash{}, false)
 	if err != nil {
 		t.Fatalf("failed to create tester chain: %v", err)
@@ -950,7 +952,8 @@ func TestTransientStorageReset(t *testing.T) {
 		byte(vm.TSTORE),
 
 		// Get the runtime-code on the stack
-		byte(vm.PUSH32)}
+		byte(vm.PUSH32),
+	}
 	initCode = append(initCode, code...)
 	initCode = append(initCode, []byte{
 		byte(vm.PUSH1), 0x0, // offset

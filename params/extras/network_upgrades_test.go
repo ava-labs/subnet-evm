@@ -162,11 +162,11 @@ func TestCheckNetworkUpgradesCompatible(t *testing.T) {
 		{
 			name: "Incompatible_fastforward_nil_NetworkUpgrades",
 			upgrades1: func() *NetworkUpgrades {
-				upgrades := getDefaultNetworkUpgrades(upgrade.Fuji)
+				upgrades := SubnetEVMDefaultNetworkUpgrades(upgrade.Fuji)
 				return &upgrades
 			}(),
 			upgrades2: func() *NetworkUpgrades {
-				upgrades := getDefaultNetworkUpgrades(upgrade.Fuji)
+				upgrades := SubnetEVMDefaultNetworkUpgrades(upgrade.Fuji)
 				upgrades.EtnaTimestamp = nil
 				return &upgrades
 			}(),
@@ -176,11 +176,11 @@ func TestCheckNetworkUpgradesCompatible(t *testing.T) {
 		{
 			name: "Compatible_Fortuna_fastforward_nil_NetworkUpgrades",
 			upgrades1: func() *NetworkUpgrades {
-				upgrades := getDefaultNetworkUpgrades(upgrade.Fuji)
+				upgrades := SubnetEVMDefaultNetworkUpgrades(upgrade.Fuji)
 				return &upgrades
 			}(),
 			upgrades2: func() *NetworkUpgrades {
-				upgrades := getDefaultNetworkUpgrades(upgrade.Fuji)
+				upgrades := SubnetEVMDefaultNetworkUpgrades(upgrade.Fuji)
 				upgrades.FortunaTimestamp = nil
 				return &upgrades
 			}(),
@@ -207,6 +207,51 @@ func TestVerifyNetworkUpgrades(t *testing.T) {
 		avagoUpgrades upgrade.Config
 		valid         bool
 	}{
+		{
+			name: "Valid_fuji_Coreth_NetworkUpgrades",
+			upgrades: func() *NetworkUpgrades {
+				upgrades := CorethDefaultNetworkUpgrades(upgrade.Fuji)
+				return &upgrades
+			}(),
+		},
+		{
+			name: "Valid_mainnet_Coreth_NetworkUpgrades",
+			upgrades: func() *NetworkUpgrades {
+				upgrades := CorethDefaultNetworkUpgrades(upgrade.Mainnet)
+				return &upgrades
+			}(),
+		},
+		{
+			name: "Valid_default_Coreth_NetworkUpgrades",
+			upgrades: func() *NetworkUpgrades {
+				upgrades := CorethDefaultNetworkUpgrades(upgrade.Default)
+				return &upgrades
+			}(),
+		},
+		{
+			name: "Valid_fuji_default_SubnetEVM_NetworkUpgrades",
+			upgrades: func() *NetworkUpgrades {
+				n := NetworkUpgrades{}
+				SetSubnetEVMDefaults(&n, upgrade.Fuji)
+				return &n
+			}(),
+		},
+		{
+			name: "Valid_mainnet_default_SubnetEVM_NetworkUpgrades",
+			upgrades: func() *NetworkUpgrades {
+				n := NetworkUpgrades{}
+				SetSubnetEVMDefaults(&n, upgrade.Mainnet)
+				return &n
+			}(),
+		},
+		{
+			name: "Valid_default_SubnetEVM_NetworkUpgrades",
+			upgrades: func() *NetworkUpgrades {
+				n := NetworkUpgrades{}
+				SetSubnetEVMDefaults(&n, upgrade.Default)
+				return &n
+			}(),
+		},
 		{
 			name: "ValidNetworkUpgrades_for_latest_network",
 			upgrades: &NetworkUpgrades{
@@ -314,19 +359,66 @@ func TestForkOrder(t *testing.T) {
 	}{
 		{
 			name: "ValidNetworkUpgrades",
-			upgrades: &NetworkUpgrades{
-				SubnetEVMTimestamp: utils.NewUint64(0),
-				DurangoTimestamp:   utils.NewUint64(2),
-			},
+			upgrades: func() *NetworkUpgrades {
+				upgrades := SubnetEVMDefaultNetworkUpgrades(upgrade.Fuji)
+				return &upgrades
+			}(),
 			expectedErr: false,
 		},
 		{
 			name: "Invalid order",
-			upgrades: &NetworkUpgrades{
-				SubnetEVMTimestamp: utils.NewUint64(1),
-				DurangoTimestamp:   utils.NewUint64(0),
-			},
+			upgrades: func() *NetworkUpgrades {
+				upgrades := SubnetEVMDefaultNetworkUpgrades(upgrade.Fuji)
+				upgrades.SubnetEVMTimestamp = utils.NewUint64(1)
+				upgrades.DurangoTimestamp = utils.NewUint64(0)
+				return &upgrades
+			}(),
 			expectedErr: true,
+		},
+		{
+			name: "Valid_fuji_Coreth_NetworkUpgrades",
+			upgrades: func() *NetworkUpgrades {
+				upgrades := CorethDefaultNetworkUpgrades(upgrade.Fuji)
+				return &upgrades
+			}(),
+		},
+		{
+			name: "Valid_mainnet_Coreth_NetworkUpgrades",
+			upgrades: func() *NetworkUpgrades {
+				upgrades := CorethDefaultNetworkUpgrades(upgrade.Mainnet)
+				return &upgrades
+			}(),
+		},
+		{
+			name: "Valid_default_Coreth_NetworkUpgrades",
+			upgrades: func() *NetworkUpgrades {
+				upgrades := CorethDefaultNetworkUpgrades(upgrade.Default)
+				return &upgrades
+			}(),
+		},
+		{
+			name: "Valid_fuji_default_SubnetEVM_NetworkUpgrades",
+			upgrades: func() *NetworkUpgrades {
+				n := NetworkUpgrades{}
+				SetSubnetEVMDefaults(&n, upgrade.Fuji)
+				return &n
+			}(),
+		},
+		{
+			name: "Valid_mainnet_default_SubnetEVM_NetworkUpgrades",
+			upgrades: func() *NetworkUpgrades {
+				n := NetworkUpgrades{}
+				SetSubnetEVMDefaults(&n, upgrade.Mainnet)
+				return &n
+			}(),
+		},
+		{
+			name: "Valid_default_SubnetEVM_NetworkUpgrades",
+			upgrades: func() *NetworkUpgrades {
+				n := NetworkUpgrades{}
+				SetSubnetEVMDefaults(&n, upgrade.Default)
+				return &n
+			}(),
 		},
 	}
 	for _, test := range testcases {

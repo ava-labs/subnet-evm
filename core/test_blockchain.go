@@ -19,6 +19,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/params/extras"
+	extraparams "github.com/ava-labs/subnet-evm/params/extras"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/deployerallowlist"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/feemanager"
@@ -1422,7 +1423,7 @@ func TestInsertChainValidBlockFee(t *testing.T, create func(db ethdb.Database, g
 		transfer := uint256.MustFromBig(transfer)
 		genesisBalance := uint256.MustFromBig(genesisBalance)
 		expectedBalance1 := new(uint256.Int).Sub(genesisBalance, transfer)
-		baseFee := params.DefaultFeeConfig.MinBaseFee
+		baseFee := extraparams.DefaultFeeConfig.MinBaseFee
 		feeSpend := new(big.Int).Mul(new(big.Int).Add(baseFee, tip), new(big.Int).SetUint64(params.TxGas))
 		expectedBalance1.Sub(expectedBalance1, uint256.MustFromBig(feeSpend))
 		if balance1.Cmp(expectedBalance1) != 0 {

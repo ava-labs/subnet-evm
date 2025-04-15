@@ -43,6 +43,7 @@ import (
 	"github.com/ava-labs/subnet-evm/consensus/misc/eip4844"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/params/extras"
+	extraparams "github.com/ava-labs/subnet-evm/params/extras"
 	"github.com/ava-labs/subnet-evm/plugin/evm/customtypes"
 	customheader "github.com/ava-labs/subnet-evm/plugin/evm/header"
 	"github.com/ava-labs/subnet-evm/plugin/evm/upgrade/legacy"
@@ -67,11 +68,11 @@ func TestStateProcessorErrors(t *testing.T) {
 		signer  = types.LatestSigner(config)
 		key1, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 	)
-	var makeTx = func(key *ecdsa.PrivateKey, nonce uint64, to common.Address, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte) *types.Transaction {
+	makeTx := func(key *ecdsa.PrivateKey, nonce uint64, to common.Address, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte) *types.Transaction {
 		tx, _ := types.SignTx(types.NewTransaction(nonce, to, amount, gasLimit, gasPrice, data), signer, key)
 		return tx
 	}
-	var mkDynamicTx = func(nonce uint64, to common.Address, gasLimit uint64, gasTipCap, gasFeeCap *big.Int) *types.Transaction {
+	mkDynamicTx := func(nonce uint64, to common.Address, gasLimit uint64, gasTipCap, gasFeeCap *big.Int) *types.Transaction {
 		tx, _ := types.SignTx(types.NewTx(&types.DynamicFeeTx{
 			Nonce:     nonce,
 			GasTipCap: gasTipCap,
@@ -82,7 +83,7 @@ func TestStateProcessorErrors(t *testing.T) {
 		}), signer, key1)
 		return tx
 	}
-	var mkDynamicCreationTx = func(nonce uint64, gasLimit uint64, gasTipCap, gasFeeCap *big.Int, data []byte) *types.Transaction {
+	mkDynamicCreationTx := func(nonce uint64, gasLimit uint64, gasTipCap, gasFeeCap *big.Int, data []byte) *types.Transaction {
 		tx, _ := types.SignTx(types.NewTx(&types.DynamicFeeTx{
 			Nonce:     nonce,
 			GasTipCap: gasTipCap,
@@ -93,7 +94,7 @@ func TestStateProcessorErrors(t *testing.T) {
 		}), signer, key1)
 		return tx
 	}
-	var mkBlobTx = func(nonce uint64, to common.Address, gasLimit uint64, gasTipCap, gasFeeCap, blobGasFeeCap *big.Int, hashes []common.Hash) *types.Transaction {
+	mkBlobTx := func(nonce uint64, to common.Address, gasLimit uint64, gasTipCap, gasFeeCap, blobGasFeeCap *big.Int, hashes []common.Hash) *types.Transaction {
 		tx, err := types.SignTx(types.NewTx(&types.BlobTx{
 			Nonce:      nonce,
 			GasTipCap:  uint256.MustFromBig(gasTipCap),
@@ -273,7 +274,7 @@ func TestStateProcessorErrors(t *testing.T) {
 						IstanbulBlock:       big.NewInt(0),
 						MuirGlacierBlock:    big.NewInt(0),
 					},
-					&extras.ChainConfig{FeeConfig: params.DefaultFeeConfig},
+					&extras.ChainConfig{FeeConfig: extraparams.DefaultFeeConfig},
 				),
 				Alloc: types.GenesisAlloc{
 					common.HexToAddress("0x71562b71999873DB5b286dF957af199Ec94617F7"): types.Account{
@@ -403,7 +404,7 @@ func GenerateBadBlock(parent *types.Block, engine consensus.Engine, txs types.Tr
 	header.Extra, _ = customheader.ExtraPrefix(configExtra, parent.Header(), header)
 	header.Root = common.BytesToHash(hasher.Sum(nil))
 	if config.IsCancun(header.Number, header.Time) {
-		var pExcess, pUsed = uint64(0), uint64(0)
+		pExcess, pUsed := uint64(0), uint64(0)
 		if parent.ExcessBlobGas() != nil {
 			pExcess = *parent.ExcessBlobGas()
 			pUsed = *parent.BlobGasUsed()

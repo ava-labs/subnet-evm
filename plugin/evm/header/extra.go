@@ -103,7 +103,7 @@ func VerifyExtra(rules extras.AvalancheRules, extra []byte) error {
 
 // PredicateBytesFromExtra returns the predicate result bytes from the header's
 // extra data. If the extra data is not long enough, an empty slice is returned.
-func PredicateBytesFromExtra(extra []byte) []byte {
+func PredicateBytesFromExtra(rules extras.AvalancheRules, extra []byte) []byte {
 	offset := subnetevm.WindowSize
 	// Prior to Durango, the VM enforces the extra data is smaller than or equal
 	// to `offset`.
@@ -117,7 +117,7 @@ func PredicateBytesFromExtra(extra []byte) []byte {
 // SetPredicateBytesInExtra sets the predicate result bytes in the header's extra
 // data. If the extra data is not long enough (i.e., an incomplete header.Extra
 // as built in the miner), it is padded with zeros.
-func SetPredicateBytesInExtra(extra []byte, predicateBytes []byte) []byte {
+func SetPredicateBytesInExtra(rules extras.AvalancheRules, extra []byte, predicateBytes []byte) []byte {
 	offset := subnetevm.WindowSize
 	if len(extra) < offset {
 		// pad extra with zeros

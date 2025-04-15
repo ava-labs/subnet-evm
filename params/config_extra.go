@@ -8,6 +8,7 @@ import (
 	"errors"
 	"math/big"
 
+	"github.com/ava-labs/avalanchego/upgrade"
 	"github.com/ava-labs/subnet-evm/params/extras"
 	"github.com/ava-labs/subnet-evm/utils"
 )
@@ -20,29 +21,56 @@ const (
 	IsMergeTODO = true
 )
 
-var (
-	DefaultChainID   = big.NewInt(43214)
-	DefaultFeeConfig = extras.DefaultFeeConfig
-)
-
 // SetEthUpgrades enables Etheruem network upgrades using the same time as
 // the Avalanche network upgrade that enables them.
-//
-// TODO: Prior to Cancun, Avalanche upgrades are referenced inline in the
-// code in place of their Ethereum counterparts. The original Ethereum names
-// should be restored for maintainability.
-func SetEthUpgrades(c *ChainConfig, avalancheUpgrades extras.NetworkUpgrades) {
-	if c.BerlinBlock == nil {
-		c.BerlinBlock = big.NewInt(0)
+func SetEthUpgrades(c *ChainConfig) {
+	// Set Ethereum block upgrades to initially activated as they were already activated on launch.
+	c.HomesteadBlock = big.NewInt(0)
+	c.DAOForkBlock = big.NewInt(0)
+	c.DAOForkSupport = true
+	c.EIP150Block = big.NewInt(0)
+	c.EIP155Block = big.NewInt(0)
+	c.EIP158Block = big.NewInt(0)
+	c.ByzantiumBlock = big.NewInt(0)
+	c.ConstantinopleBlock = big.NewInt(0)
+	c.PetersburgBlock = big.NewInt(0)
+	c.IstanbulBlock = big.NewInt(0)
+	c.MuirGlacierBlock = big.NewInt(0)
+
+	extra := GetExtra(c)
+	if extra.SubnetEVMTimestamp == nil { // C-chain
+		if c.ChainID != nil && AvalancheFujiCChainID.Cmp(c.ChainID) == 0 {
+			c.BerlinBlock = big.NewInt(184985) // https://testnet.snowtrace.io/block/184985?chainid=43113, AP2 activation block
+			c.LondonBlock = big.NewInt(805078) // https://testnet.snowtrace.io/block/805078?chainid=43113, AP3 activation block
+		} else if c.ChainID != nil && AvalancheMainnetCChainID.Cmp(c.ChainID) == 0 {
+			c.BerlinBlock = big.NewInt(1640340) // https://snowtrace.io/block/1640340?chainid=43114, AP2 activation block
+			c.LondonBlock = big.NewInt(3308552) // https://snowtrace.io/block/3308552?chainid=43114, AP3 activation block
+		} else {
+			// In testing or local networks, we only support enabling Berlin and London prior
+			// to the initially active time. This is likely to correspond to an intended block
+			// number of 0 as well.
+			initiallyActive := uint64(upgrade.InitiallyActiveTime.Unix())
+			extra := GetExtra(c)
+			if extra.ApricotPhase2BlockTimestamp != nil && *extra.ApricotPhase2BlockTimestamp <= initiallyActive && c.BerlinBlock == nil {
+				c.BerlinBlock = big.NewInt(0)
+			}
+			if extra.ApricotPhase3BlockTimestamp != nil && *extra.ApricotPhase3BlockTimestamp <= initiallyActive && c.LondonBlock == nil {
+				c.LondonBlock = big.NewInt(0)
+			}
+		}
+	} else { // Subnet-EVM
+		if c.BerlinBlock == nil {
+			c.BerlinBlock = big.NewInt(0)
+		}
+		if c.LondonBlock == nil {
+			c.LondonBlock = big.NewInt(0)
+		}
 	}
-	if c.LondonBlock == nil {
-		c.LondonBlock = big.NewInt(0)
+	if extra.DurangoTimestamp != nil {
+		c.ShanghaiTime = utils.NewUint64(*extra.DurangoTimestamp)
 	}
-	if avalancheUpgrades.DurangoTimestamp != nil {
-		c.ShanghaiTime = utils.NewUint64(*avalancheUpgrades.DurangoTimestamp)
-	}
-	if avalancheUpgrades.EtnaTimestamp != nil {
-		c.CancunTime = utils.NewUint64(*avalancheUpgrades.EtnaTimestamp)
+	if extra.EtnaTimestamp != nil {
+		c.CancunTime = utils.NewUint64(*extra.EtnaTimestamp)
 	}
 }
 
@@ -53,6 +81,12 @@ func GetExtra(c *ChainConfig) *extras.ChainConfig {
 		payloads.ChainConfig.Set(c, ex)
 	}
 	return ex
+}
+
+func CopyAndSet(c *ChainConfig, set func(*ChainConfig)) *ChainConfig {
+	newConfig := *c
+	set(&newConfig)
+	return &newConfig
 }
 
 func Copy(c *ChainConfig) ChainConfig {
@@ -134,36 +168,4 @@ func ToWithUpgradesJSON(c *ChainConfig) *ChainConfigWithUpgradesJSON {
 		ChainConfig:   *c,
 		UpgradeConfig: GetExtra(c).UpgradeConfig,
 	}
-}
-
-func SetNetworkUpgradeDefaults(c *ChainConfig) {
-	if c.HomesteadBlock == nil {
-		c.HomesteadBlock = big.NewInt(0)
-	}
-	if c.EIP150Block == nil {
-		c.EIP150Block = big.NewInt(0)
-	}
-	if c.EIP155Block == nil {
-		c.EIP155Block = big.NewInt(0)
-	}
-	if c.EIP158Block == nil {
-		c.EIP158Block = big.NewInt(0)
-	}
-	if c.ByzantiumBlock == nil {
-		c.ByzantiumBlock = big.NewInt(0)
-	}
-	if c.ConstantinopleBlock == nil {
-		c.ConstantinopleBlock = big.NewInt(0)
-	}
-	if c.PetersburgBlock == nil {
-		c.PetersburgBlock = big.NewInt(0)
-	}
-	if c.IstanbulBlock == nil {
-		c.IstanbulBlock = big.NewInt(0)
-	}
-	if c.MuirGlacierBlock == nil {
-		c.MuirGlacierBlock = big.NewInt(0)
-	}
-
-	GetExtra(c).NetworkUpgrades.SetDefaults(GetExtra(c).SnowCtx.NetworkUpgrades)
 }
