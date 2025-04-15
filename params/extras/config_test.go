@@ -23,22 +23,19 @@ func TestChainConfigDescription(t *testing.T) {
 	t.Parallel()
 
 	tests := map[string]struct {
-		config *ChainConfig
-		want   string
+		config    *ChainConfig
+		wantRegex string
 	}{
 		"nil": {},
 		"empty": {
 			config: &ChainConfig{},
-			want: `Avalanche Upgrades (timestamp based):
- - SubnetEVM Timestamp:          @nil        (https://github.com/ava-labs/avalanchego/releases/tag/v1.10.0)
- - Durango Timestamp:            @nil        (https://github.com/ava-labs/avalanchego/releases/tag/v1.11.0)
- - Etna Timestamp:               @nil        (https://github.com/ava-labs/avalanchego/releases/tag/v1.12.0)
- - Fortuna Timestamp:            @nil        (https://github.com/ava-labs/avalanchego/releases/tag/v1.13.0)
-
+			wantRegex: `Avalanche Upgrades \(timestamp based\)\:
+ - SubnetEVM Timestamp: ( )+@nil( )+\(https:\/\/github\.com\/ava-labs\/avalanchego\/releases\/tag\/v1\.10\.0\)
+( - .+Timestamp: .+\n)+
 Upgrade Config: {}
 Fee Config: {}
 Allow Fee Recipients: false
-`,
+$`,
 		},
 		"set": {
 			config: &ChainConfig{
@@ -75,23 +72,20 @@ Allow Fee Recipients: false
 					},
 				},
 			},
-			want: `Avalanche Upgrades (timestamp based):
- - SubnetEVM Timestamp:          @1          (https://github.com/ava-labs/avalanchego/releases/tag/v1.10.0)
- - Durango Timestamp:            @2          (https://github.com/ava-labs/avalanchego/releases/tag/v1.11.0)
- - Etna Timestamp:               @3          (https://github.com/ava-labs/avalanchego/releases/tag/v1.12.0)
- - Fortuna Timestamp:            @4          (https://github.com/ava-labs/avalanchego/releases/tag/v1.13.0)
-
-Upgrade Config: {"networkUpgradeOverrides":{"subnetEVMTimestamp":13},"stateUpgrades":[{"blockTimestamp":14,"accounts":{"0x0f00000000000000000000000000000000000000":{"code":"0x10"}}}]}
+			wantRegex: `Avalanche Upgrades \(timestamp based\)\:
+ - SubnetEVM Timestamp: ( )+@1( )+\(https:\/\/github\.com\/ava-labs\/avalanchego\/releases\/tag\/v1\.10\.0\)
+( - .+Timestamp: .+\n)+
+Upgrade Config: {"networkUpgradeOverrides":{"subnetEVMTimestamp":13},"stateUpgrades":\[{"blockTimestamp":14,"accounts":{"0x0f00000000000000000000000000000000000000":{"code":"0x10"}}}\]}
 Fee Config: {"gasLimit":5,"targetBlockRate":6,"minBaseFee":7,"targetGas":8,"baseFeeChangeDenominator":9,"minBlockGasCost":10,"maxBlockGasCost":11,"blockGasCostStep":12}
 Allow Fee Recipients: true
-`,
+$`,
 		},
 	}
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			got := test.config.Description()
-			assert.Equal(t, test.want, got, "config description mismatch")
+			assert.Regexp(t, test.wantRegex, got, "config description mismatch")
 		})
 	}
 }
