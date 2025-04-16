@@ -260,11 +260,14 @@ func (c *ChainConfig) Verify() error {
 		return fmt.Errorf("invalid state upgrades: %w", err)
 	}
 
+	// This is a sanity check to ensure that the network upgrades are set.
+	if c.SnowCtx.NetworkUpgrades == (upgrade.Config{}) {
+		return fmt.Errorf("snowCtx.NetworkUpgrades should not be empty")
+	}
+
 	// Verify the network upgrades are internally consistent given the existing chainConfig.
-	if c.SnowCtx.NetworkUpgrades != (upgrade.Config{}) {
-		if err := c.verifyNetworkUpgrades(c.SnowCtx.NetworkUpgrades); err != nil {
-			return fmt.Errorf("invalid network upgrades: %w", err)
-		}
+	if err := c.verifyNetworkUpgrades(c.SnowCtx.NetworkUpgrades); err != nil {
+		return fmt.Errorf("invalid network upgrades: %w", err)
 	}
 
 	return nil
