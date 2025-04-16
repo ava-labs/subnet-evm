@@ -23,6 +23,7 @@ const (
 
 // SetEthUpgrades enables Etheruem network upgrades using the same time as
 // the Avalanche network upgrade that enables them.
+// This must be called after the ChainConfig is created with NetworkUpgrade values and before it is used.
 func SetEthUpgrades(c *ChainConfig) {
 	// Set Ethereum block upgrades to initially activated as they were already activated on launch.
 	c.HomesteadBlock = big.NewInt(0)
@@ -66,6 +67,7 @@ func SetEthUpgrades(c *ChainConfig) {
 			c.LondonBlock = big.NewInt(0)
 		}
 	}
+
 	if extra.DurangoTimestamp != nil {
 		c.ShanghaiTime = utils.NewUint64(*extra.DurangoTimestamp)
 	}

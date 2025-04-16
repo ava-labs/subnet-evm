@@ -8,14 +8,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ava-labs/avalanchego/upgrade"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/rawdb"
 	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/libevm/triedb"
-	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/params/extras"
-	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/stretchr/testify/require"
 )
 
@@ -23,13 +22,8 @@ func TestGenesisEthUpgrades(t *testing.T) {
 	db := rawdb.NewMemoryDatabase()
 	preEthUpgrades := params.WithExtra(
 		&params.ChainConfig{
-			ChainID:        big.NewInt(43114), // Specifically refers to mainnet for this UT
-			HomesteadBlock: big.NewInt(0),
-			// For this test to be a proper regression test, DAOForkBlock and
-			// DAOForkSupport should be set to match the values in
-			// [params.SetEthUpgrades]. Otherwise, in case of a regression, the test
-			// would pass as there would be a mismatch at genesis, which is
-			// incorrectly considered a success.
+			ChainID:             big.NewInt(43114), // Specifically refers to mainnet for this UT
+			HomesteadBlock:      big.NewInt(0),
 			DAOForkBlock:        big.NewInt(0),
 			DAOForkSupport:      true,
 			EIP150Block:         big.NewInt(0),
@@ -42,12 +36,7 @@ func TestGenesisEthUpgrades(t *testing.T) {
 			MuirGlacierBlock:    big.NewInt(0),
 		},
 		&extras.ChainConfig{
-			FeeConfig: commontype.FeeConfig{
-				MinBaseFee: big.NewInt(1),
-			},
-			NetworkUpgrades: extras.NetworkUpgrades{
-				SubnetEVMTimestamp: utils.NewUint64(0),
-			},
+			NetworkUpgrades: extras.CorethDefaultNetworkUpgrades(upgrade.Default),
 		},
 	)
 	tdb := triedb.NewDatabase(db, triedb.HashDefaults)
@@ -70,8 +59,7 @@ func TestGenesisEthUpgrades(t *testing.T) {
 	rawdb.WriteBlock(db, block)
 	// We should still be able to re-initialize
 	config = *preEthUpgrades
-	avalancheUpgrades := extras.NetworkUpgrades{}
-	params.SetEthUpgrades(&config, avalancheUpgrades) // New versions will set additional fields eg, LondonBlock
+	params.SetEthUpgrades(&config) // New versions will set additional fields eg, LondonBlock
 	_, _, err = SetupGenesisBlock(db, tdb, &Genesis{Config: &config}, block.Hash(), false)
 	require.NoError(t, err)
 }
