@@ -11,6 +11,7 @@ import (
 	"github.com/ava-labs/avalanchego/api/metrics"
 	avalanchenode "github.com/ava-labs/avalanchego/config/node"
 	"github.com/ava-labs/avalanchego/database"
+	"github.com/ava-labs/avalanchego/database/corruptabledb"
 	"github.com/ava-labs/avalanchego/database/leveldb"
 	"github.com/ava-labs/avalanchego/database/memdb"
 	"github.com/ava-labs/avalanchego/database/meterdb"
@@ -77,6 +78,7 @@ func NewStandaloneDatabase(dbConfig avalanchenode.DatabaseConfig, gatherer metri
 		return nil, fmt.Errorf("failed to create meterdb: %w", err)
 	}
 
+	db = corruptabledb.New(db)
 	return db, nil
 }
 
