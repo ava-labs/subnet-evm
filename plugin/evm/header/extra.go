@@ -8,8 +8,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/subnet-evm/params/extras"
 	"github.com/ava-labs/subnet-evm/plugin/evm/upgrade/subnetevm"
 )
 
@@ -21,7 +21,7 @@ var (
 // ExtraPrefix takes the previous header and the timestamp of its child
 // block and calculates the expected extra prefix for the child block.
 func ExtraPrefix(
-	config *params.ChainConfig,
+	config *extras.ChainConfig,
 	parent *types.Header,
 	header *types.Header,
 ) ([]byte, error) {
@@ -41,7 +41,7 @@ func ExtraPrefix(
 // VerifyExtraPrefix verifies that the header's Extra field is correctly
 // formatted.
 func VerifyExtraPrefix(
-	config *params.ChainConfig,
+	config *extras.ChainConfig,
 	parent *types.Header,
 	header *types.Header,
 ) error {
@@ -67,7 +67,7 @@ func VerifyExtraPrefix(
 // rules.
 //
 // TODO: Should this be merged with VerifyExtraPrefix?
-func VerifyExtra(rules params.AvalancheRules, extra []byte) error {
+func VerifyExtra(rules extras.AvalancheRules, extra []byte) error {
 	extraLen := len(extra)
 	switch {
 	case rules.IsDurango:
@@ -89,11 +89,11 @@ func VerifyExtra(rules params.AvalancheRules, extra []byte) error {
 			)
 		}
 	default:
-		if uint64(extraLen) > params.MaximumExtraDataSize {
+		if uint64(extraLen) > extras.MaximumExtraDataSize {
 			return fmt.Errorf(
 				"%w: expected <= %d but got %d",
 				errInvalidExtraLength,
-				params.MaximumExtraDataSize,
+				extras.MaximumExtraDataSize,
 				extraLen,
 			)
 		}
@@ -103,7 +103,7 @@ func VerifyExtra(rules params.AvalancheRules, extra []byte) error {
 
 // PredicateBytesFromExtra returns the predicate result bytes from the header's
 // extra data. If the extra data is not long enough, an empty slice is returned.
-func PredicateBytesFromExtra(rules params.AvalancheRules, extra []byte) []byte {
+func PredicateBytesFromExtra(extra []byte) []byte {
 	offset := subnetevm.WindowSize
 	// Prior to Durango, the VM enforces the extra data is smaller than or equal
 	// to `offset`.
@@ -112,4 +112,20 @@ func PredicateBytesFromExtra(rules params.AvalancheRules, extra []byte) []byte {
 		return nil
 	}
 	return extra[offset:]
+}
+
+// SetPredicateBytesInExtra sets the predicate result bytes in the header's extra
+// data. If the extra data is not long enough (i.e., an incomplete header.Extra
+// as built in the miner), it is padded with zeros.
+func SetPredicateBytesInExtra(extra []byte, predicateBytes []byte) []byte {
+	offset := subnetevm.WindowSize
+	if len(extra) < offset {
+		// pad extra with zeros
+		extra = append(extra, make([]byte, offset-len(extra))...)
+	} else {
+		// truncate extra to the offset
+		extra = extra[:offset]
+	}
+	extra = append(extra, predicateBytes...)
+	return extra
 }

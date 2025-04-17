@@ -32,13 +32,13 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/subnet-evm/core"
-	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/stretchr/testify/require"
 
+	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/rpc"
-	"github.com/ethereum/go-ethereum/common"
 )
 
 func TestFeeHistory(t *testing.T) {

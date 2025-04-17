@@ -32,10 +32,11 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/subnet-evm/core/bloombits"
-	"github.com/ava-labs/subnet-evm/core/types"
+	"github.com/ava-labs/subnet-evm/plugin/evm/customtypes"
 	"github.com/ava-labs/subnet-evm/rpc"
-	"github.com/ethereum/go-ethereum/common"
 )
 
 // Filter can be used to retrieve and filter logs.
@@ -341,7 +342,7 @@ func (f *Filter) checkMatches(ctx context.Context, header *types.Header) ([]*typ
 		return nil, err
 	}
 
-	unfiltered := types.FlattenLogs(logsList)
+	unfiltered := customtypes.FlattenLogs(logsList)
 	logs := filterLogs(unfiltered, nil, nil, f.addresses, f.topics)
 	if len(logs) == 0 {
 		return nil, nil

@@ -37,19 +37,19 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/core/rawdb"
+	"github.com/ava-labs/libevm/core/vm"
+	"github.com/ava-labs/libevm/eth/tracers/logger"
+	"github.com/ava-labs/libevm/triedb"
 	"github.com/ava-labs/subnet-evm/cmd/evm/internal/compiler"
 	"github.com/ava-labs/subnet-evm/cmd/utils"
 	"github.com/ava-labs/subnet-evm/core"
-	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/state"
-	"github.com/ava-labs/subnet-evm/core/vm"
 	"github.com/ava-labs/subnet-evm/core/vm/runtime"
-	"github.com/ava-labs/subnet-evm/eth/tracers/logger"
 	"github.com/ava-labs/subnet-evm/internal/flags"
 	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/triedb"
 	"github.com/ava-labs/subnet-evm/triedb/hashdb"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/urfave/cli/v2"
 )
 
@@ -159,8 +159,8 @@ func runCmd(ctx *cli.Context) error {
 
 	db := rawdb.NewMemoryDatabase()
 	triedb := triedb.NewDatabase(db, &triedb.Config{
-		Preimages: preimages,
-		HashDB:    hashdb.Defaults,
+		Preimages:  preimages,
+		DBOverride: hashdb.Defaults.BackendConstructor,
 	})
 	defer triedb.Close()
 	genesis := genesisConfig.MustCommit(db, triedb)

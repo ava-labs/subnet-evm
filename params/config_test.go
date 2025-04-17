@@ -34,11 +34,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ava-labs/libevm/common"
+	ethparams "github.com/ava-labs/libevm/params"
+	"github.com/ava-labs/subnet-evm/params/extras"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/nativeminter"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/rewardmanager"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/txallowlist"
 	"github.com/ava-labs/subnet-evm/utils"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 )
 
@@ -47,7 +49,7 @@ func TestCheckCompatible(t *testing.T) {
 		stored, new   *ChainConfig
 		headBlock     uint64
 		headTimestamp uint64
-		wantErr       *ConfigCompatError
+		wantErr       *ethparams.ConfigCompatError
 	}
 	tests := []test{
 		{stored: TestChainConfig, new: TestChainConfig, headBlock: 0, headTimestamp: 0, wantErr: nil},
@@ -65,7 +67,7 @@ func TestCheckCompatible(t *testing.T) {
 			new:           &ChainConfig{HomesteadBlock: nil},
 			headBlock:     3,
 			headTimestamp: 30,
-			wantErr: &ConfigCompatError{
+			wantErr: &ethparams.ConfigCompatError{
 				What:          "Homestead fork block",
 				StoredBlock:   big.NewInt(0),
 				NewBlock:      nil,
@@ -77,7 +79,7 @@ func TestCheckCompatible(t *testing.T) {
 			new:           &ChainConfig{HomesteadBlock: big.NewInt(1)},
 			headBlock:     3,
 			headTimestamp: 30,
-			wantErr: &ConfigCompatError{
+			wantErr: &ethparams.ConfigCompatError{
 				What:          "Homestead fork block",
 				StoredBlock:   big.NewInt(0),
 				NewBlock:      big.NewInt(1),
@@ -89,7 +91,7 @@ func TestCheckCompatible(t *testing.T) {
 			new:           &ChainConfig{HomesteadBlock: big.NewInt(25), EIP150Block: big.NewInt(20)},
 			headBlock:     25,
 			headTimestamp: 250,
-			wantErr: &ConfigCompatError{
+			wantErr: &ethparams.ConfigCompatError{
 				What:          "EIP150 fork block",
 				StoredBlock:   big.NewInt(10),
 				NewBlock:      big.NewInt(20),
@@ -108,7 +110,7 @@ func TestCheckCompatible(t *testing.T) {
 			new:           &ChainConfig{ConstantinopleBlock: big.NewInt(30), PetersburgBlock: big.NewInt(31)},
 			headBlock:     40,
 			headTimestamp: 400,
-			wantErr: &ConfigCompatError{
+			wantErr: &ethparams.ConfigCompatError{
 				What:          "Petersburg fork block",
 				StoredBlock:   nil,
 				NewBlock:      big.NewInt(31),
@@ -120,10 +122,10 @@ func TestCheckCompatible(t *testing.T) {
 			new:           TestPreSubnetEVMChainConfig,
 			headBlock:     0,
 			headTimestamp: 0,
-			wantErr: &ConfigCompatError{
+			wantErr: &ethparams.ConfigCompatError{
 				What:         "SubnetEVM fork block timestamp",
 				StoredTime:   utils.NewUint64(0),
-				NewTime:      TestPreSubnetEVMChainConfig.NetworkUpgrades.SubnetEVMTimestamp,
+				NewTime:      GetExtra(TestPreSubnetEVMChainConfig).NetworkUpgrades.SubnetEVMTimestamp,
 				RewindToTime: 0,
 			},
 		},
@@ -132,10 +134,10 @@ func TestCheckCompatible(t *testing.T) {
 			new:           TestPreSubnetEVMChainConfig,
 			headBlock:     10,
 			headTimestamp: 100,
-			wantErr: &ConfigCompatError{
+			wantErr: &ethparams.ConfigCompatError{
 				What:         "SubnetEVM fork block timestamp",
 				StoredTime:   utils.NewUint64(0),
-				NewTime:      TestPreSubnetEVMChainConfig.NetworkUpgrades.SubnetEVMTimestamp,
+				NewTime:      GetExtra(TestPreSubnetEVMChainConfig).NetworkUpgrades.SubnetEVMTimestamp,
 				RewindToTime: 0,
 			},
 		},
@@ -150,22 +152,25 @@ func TestCheckCompatible(t *testing.T) {
 }
 
 func TestConfigRules(t *testing.T) {
-	c := &ChainConfig{
-		NetworkUpgrades: NetworkUpgrades{
-			SubnetEVMTimestamp: utils.NewUint64(500),
+	c := WithExtra(
+		&ChainConfig{},
+		&extras.ChainConfig{
+			NetworkUpgrades: extras.NetworkUpgrades{
+				SubnetEVMTimestamp: utils.NewUint64(500),
+			},
 		},
-	}
+	)
 
 	var stamp uint64
-	if r := c.Rules(big.NewInt(0), stamp); r.IsSubnetEVM {
+	if r := c.Rules(big.NewInt(0), IsMergeTODO, stamp); GetRulesExtra(r).IsSubnetEVM {
 		t.Errorf("expected %v to not be subnet-evm", stamp)
 	}
 	stamp = 500
-	if r := c.Rules(big.NewInt(0), stamp); !r.IsSubnetEVM {
+	if r := c.Rules(big.NewInt(0), IsMergeTODO, stamp); !GetRulesExtra(r).IsSubnetEVM {
 		t.Errorf("expected %v to be subnet-evm", stamp)
 	}
 	stamp = math.MaxInt64
-	if r := c.Rules(big.NewInt(0), stamp); !r.IsSubnetEVM {
+	if r := c.Rules(big.NewInt(0), IsMergeTODO, stamp); !GetRulesExtra(r).IsSubnetEVM {
 		t.Errorf("expected %v to be subnet-evm", stamp)
 	}
 }
@@ -216,19 +221,19 @@ func TestConfigUnmarshalJSON(t *testing.T) {
 	require.NoError(err)
 
 	require.Equal(c.ChainID, big.NewInt(43214))
-	require.Equal(c.AllowFeeRecipients, true)
+	require.Equal(GetExtra(&c).AllowFeeRecipients, true)
 
-	rewardManagerConfig, ok := c.GenesisPrecompiles[rewardmanager.ConfigKey]
+	rewardManagerConfig, ok := GetExtra(&c).GenesisPrecompiles[rewardmanager.ConfigKey]
 	require.True(ok)
 	require.Equal(rewardManagerConfig.Key(), rewardmanager.ConfigKey)
 	require.True(rewardManagerConfig.Equal(testRewardManagerConfig))
 
-	nativeMinterConfig := c.GenesisPrecompiles[nativeminter.ConfigKey]
+	nativeMinterConfig := GetExtra(&c).GenesisPrecompiles[nativeminter.ConfigKey]
 	require.Equal(nativeMinterConfig.Key(), nativeminter.ConfigKey)
 	require.True(nativeMinterConfig.Equal(testContractNativeMinterConfig))
 
 	// Marshal and unmarshal again and check that the result is the same
-	marshaled, err := json.Marshal(c)
+	marshaled, err := json.Marshal(&c)
 	require.NoError(err)
 	c2 := ChainConfig{}
 	err = json.Unmarshal(marshaled, &c2)
@@ -237,49 +242,56 @@ func TestConfigUnmarshalJSON(t *testing.T) {
 }
 
 func TestActivePrecompiles(t *testing.T) {
-	config := ChainConfig{
-		UpgradeConfig: UpgradeConfig{
-			PrecompileUpgrades: []PrecompileUpgrade{
-				{
-					nativeminter.NewConfig(utils.NewUint64(0), nil, nil, nil, nil), // enable at genesis
-				},
-				{
-					nativeminter.NewDisableConfig(utils.NewUint64(1)), // disable at timestamp 1
+	config := *WithExtra(
+		&ChainConfig{},
+		&extras.ChainConfig{
+			UpgradeConfig: extras.UpgradeConfig{
+				PrecompileUpgrades: []extras.PrecompileUpgrade{
+					{
+						Config: nativeminter.NewConfig(utils.NewUint64(0), nil, nil, nil, nil), // enable at genesis
+					},
+					{
+						Config: nativeminter.NewDisableConfig(utils.NewUint64(1)), // disable at timestamp 1
+					},
 				},
 			},
 		},
-	}
+	)
 
-	rules0 := config.Rules(common.Big0, 0)
-	require.True(t, rules0.IsPrecompileEnabled(nativeminter.Module.Address))
+	rules0 := config.Rules(common.Big0, IsMergeTODO, 0)
+	require.True(t, GetRulesExtra(rules0).IsPrecompileEnabled(nativeminter.Module.Address))
 
-	rules1 := config.Rules(common.Big0, 1)
-	require.False(t, rules1.IsPrecompileEnabled(nativeminter.Module.Address))
+	rules1 := config.Rules(common.Big0, IsMergeTODO, 1)
+	require.False(t, GetRulesExtra(rules1).IsPrecompileEnabled(nativeminter.Module.Address))
 }
 
 func TestChainConfigMarshalWithUpgrades(t *testing.T) {
 	config := ChainConfigWithUpgradesJSON{
-		ChainConfig: ChainConfig{
-			ChainID:             big.NewInt(1),
-			FeeConfig:           DefaultFeeConfig,
-			AllowFeeRecipients:  false,
-			HomesteadBlock:      big.NewInt(0),
-			EIP150Block:         big.NewInt(0),
-			EIP155Block:         big.NewInt(0),
-			EIP158Block:         big.NewInt(0),
-			ByzantiumBlock:      big.NewInt(0),
-			ConstantinopleBlock: big.NewInt(0),
-			PetersburgBlock:     big.NewInt(0),
-			IstanbulBlock:       big.NewInt(0),
-			MuirGlacierBlock:    big.NewInt(0),
-			NetworkUpgrades: NetworkUpgrades{
-				SubnetEVMTimestamp: utils.NewUint64(0),
-				DurangoTimestamp:   utils.NewUint64(0),
+		ChainConfig: *WithExtra(
+			&ChainConfig{
+				ChainID:             big.NewInt(1),
+				HomesteadBlock:      big.NewInt(0),
+				EIP150Block:         big.NewInt(0),
+				EIP155Block:         big.NewInt(0),
+				EIP158Block:         big.NewInt(0),
+				ByzantiumBlock:      big.NewInt(0),
+				ConstantinopleBlock: big.NewInt(0),
+				PetersburgBlock:     big.NewInt(0),
+				IstanbulBlock:       big.NewInt(0),
+				MuirGlacierBlock:    big.NewInt(0),
 			},
-			GenesisPrecompiles: Precompiles{},
-		},
-		UpgradeConfig: UpgradeConfig{
-			PrecompileUpgrades: []PrecompileUpgrade{
+			&extras.ChainConfig{
+				FeeConfig:          DefaultFeeConfig,
+				AllowFeeRecipients: false,
+				NetworkUpgrades: extras.NetworkUpgrades{
+					SubnetEVMTimestamp: utils.NewUint64(0),
+					DurangoTimestamp:   utils.NewUint64(0),
+				},
+				GenesisPrecompiles: extras.Precompiles{},
+			},
+		),
+		UpgradeConfig: extras.UpgradeConfig{
+			PrecompileUpgrades: []extras.PrecompileUpgrade{
 				{
 					Config: txallowlist.NewConfig(utils.NewUint64(100), nil, nil, nil),
 				},

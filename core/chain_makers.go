@@ -30,19 +30,19 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/core/rawdb"
+	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/core/vm"
+	"github.com/ava-labs/libevm/ethdb"
+	"github.com/ava-labs/libevm/triedb"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/consensus"
 	"github.com/ava-labs/subnet-evm/consensus/misc/eip4844"
 	"github.com/ava-labs/subnet-evm/constants"
-	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/state"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/core/vm"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/plugin/evm/header"
-	"github.com/ava-labs/subnet-evm/triedb"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/holiman/uint256"
 )
 
@@ -284,7 +284,8 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 		b := &BlockGen{i: i, cm: cm, parent: parent, statedb: statedb, engine: engine}
 		b.header = cm.makeHeader(parent, gap, statedb, b.engine)
 
-		err := ApplyUpgrades(config, &parent.Header().Time, b, statedb)
+		blockContext := NewBlockContext(b.header.Number, b.header.Time)
+		err := ApplyUpgrades(config, &parent.Header().Time, blockContext, statedb)
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to configure precompiles %w", err)
 		}
@@ -378,11 +379,12 @@ func (cm *chainMaker) makeHeader(parent *types.Block, gap uint64, state *state.S
 	if err != nil {
 		panic(err)
 	}
-	gasLimit, err := header.GasLimit(cm.config, feeConfig, parent.Header(), time)
+	config := params.GetExtra(cm.config)
+	gasLimit, err := header.GasLimit(config, feeConfig, parent.Header(), time)
 	if err != nil {
 		panic(err)
 	}
-	baseFee, err := header.BaseFee(cm.config, feeConfig, parent.Header(), time)
+	baseFee, err := header.BaseFee(config, feeConfig, parent.Header(), time)
 	if err != nil {
 		panic(err)
 	}
@@ -496,9 +498,9 @@ func (cm *chainMaker) GetBlock(hash common.Hash, number uint64) *types.Block {
 }
 
 func (cm *chainMaker) GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig, *big.Int, error) {
-	return cm.config.FeeConfig, nil, nil
+	return params.GetExtra(cm.config).FeeConfig, nil, nil
 }
 
 func (cm *chainMaker) GetCoinbaseAt(parent *types.Header) (common.Address, bool, error) {
-	return constants.BlackholeAddr, cm.config.AllowFeeRecipients, nil
+	return constants.BlackholeAddr, params.GetExtra(cm.config).AllowFeeRecipients, nil
 }

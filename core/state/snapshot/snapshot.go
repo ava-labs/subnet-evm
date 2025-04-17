@@ -34,13 +34,15 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ava-labs/subnet-evm/core/rawdb"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/metrics"
-	"github.com/ava-labs/subnet-evm/triedb"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/ethdb"
-	"github.com/ethereum/go-ethereum/log"
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/core/rawdb"
+	ethsnapshot "github.com/ava-labs/libevm/core/state/snapshot"
+	"github.com/ava-labs/libevm/ethdb"
+	"github.com/ava-labs/libevm/libevm/stateconf"
+	"github.com/ava-labs/libevm/log"
+	"github.com/ava-labs/libevm/metrics"
+	"github.com/ava-labs/libevm/triedb"
+	"github.com/ava-labs/subnet-evm/plugin/evm/customrawdb"
 )
 
 const (
@@ -54,49 +56,55 @@ const (
 	skipGenThreshold = 500 * time.Millisecond
 )
 
+// ====== If resolving merge conflicts ======
+//
+// All calls to metrics.NewRegistered*() for metrics also defined in libevm/core/state/snapshot
+// have been replaced with metrics.GetOrRegister*() to get metrics already registered in
+// libevm/core/state/snapshot or register them here otherwise. These replacements ensure the
+// same metrics are shared between the two packages.
 var (
-	snapshotCleanAccountHitMeter   = metrics.NewRegisteredMeter("state/snapshot/clean/account/hit", nil)
-	snapshotCleanAccountMissMeter  = metrics.NewRegisteredMeter("state/snapshot/clean/account/miss", nil)
-	snapshotCleanAccountInexMeter  = metrics.NewRegisteredMeter("state/snapshot/clean/account/inex", nil)
-	snapshotCleanAccountReadMeter  = metrics.NewRegisteredMeter("state/snapshot/clean/account/read", nil)
-	snapshotCleanAccountWriteMeter = metrics.NewRegisteredMeter("state/snapshot/clean/account/write", nil)
+	snapshotCleanAccountHitMeter   = metrics.GetOrRegisterMeter("state/snapshot/clean/account/hit", nil)
+	snapshotCleanAccountMissMeter  = metrics.GetOrRegisterMeter("state/snapshot/clean/account/miss", nil)
+	snapshotCleanAccountInexMeter  = metrics.GetOrRegisterMeter("state/snapshot/clean/account/inex", nil)
+	snapshotCleanAccountReadMeter  = metrics.GetOrRegisterMeter("state/snapshot/clean/account/read", nil)
+	snapshotCleanAccountWriteMeter = metrics.GetOrRegisterMeter("state/snapshot/clean/account/write", nil)
 
-	snapshotCleanStorageHitMeter   = metrics.NewRegisteredMeter("state/snapshot/clean/storage/hit", nil)
-	snapshotCleanStorageMissMeter  = metrics.NewRegisteredMeter("state/snapshot/clean/storage/miss", nil)
-	snapshotCleanStorageInexMeter  = metrics.NewRegisteredMeter("state/snapshot/clean/storage/inex", nil)
-	snapshotCleanStorageReadMeter  = metrics.NewRegisteredMeter("state/snapshot/clean/storage/read", nil)
-	snapshotCleanStorageWriteMeter = metrics.NewRegisteredMeter("state/snapshot/clean/storage/write", nil)
+	snapshotCleanStorageHitMeter   = metrics.GetOrRegisterMeter("state/snapshot/clean/storage/hit", nil)
+	snapshotCleanStorageMissMeter  = metrics.GetOrRegisterMeter("state/snapshot/clean/storage/miss", nil)
+	snapshotCleanStorageInexMeter  = metrics.GetOrRegisterMeter("state/snapshot/clean/storage/inex", nil)
+	snapshotCleanStorageReadMeter  = metrics.GetOrRegisterMeter("state/snapshot/clean/storage/read", nil)
+	snapshotCleanStorageWriteMeter = metrics.GetOrRegisterMeter("state/snapshot/clean/storage/write", nil)
 
-	snapshotDirtyAccountHitMeter   = metrics.NewRegisteredMeter("state/snapshot/dirty/account/hit", nil)
-	snapshotDirtyAccountMissMeter  = metrics.NewRegisteredMeter("state/snapshot/dirty/account/miss", nil)
-	snapshotDirtyAccountInexMeter  = metrics.NewRegisteredMeter("state/snapshot/dirty/account/inex", nil)
-	snapshotDirtyAccountReadMeter  = metrics.NewRegisteredMeter("state/snapshot/dirty/account/read", nil)
-	snapshotDirtyAccountWriteMeter = metrics.NewRegisteredMeter("state/snapshot/dirty/account/write", nil)
+	snapshotDirtyAccountHitMeter   = metrics.GetOrRegisterMeter("state/snapshot/dirty/account/hit", nil)
+	snapshotDirtyAccountMissMeter  = metrics.GetOrRegisterMeter("state/snapshot/dirty/account/miss", nil)
+	snapshotDirtyAccountInexMeter  = metrics.GetOrRegisterMeter("state/snapshot/dirty/account/inex", nil)
+	snapshotDirtyAccountReadMeter  = metrics.GetOrRegisterMeter("state/snapshot/dirty/account/read", nil)
+	snapshotDirtyAccountWriteMeter = metrics.GetOrRegisterMeter("state/snapshot/dirty/account/write", nil)
 
-	snapshotDirtyStorageHitMeter   = metrics.NewRegisteredMeter("state/snapshot/dirty/storage/hit", nil)
-	snapshotDirtyStorageMissMeter  = metrics.NewRegisteredMeter("state/snapshot/dirty/storage/miss", nil)
-	snapshotDirtyStorageInexMeter  = metrics.NewRegisteredMeter("state/snapshot/dirty/storage/inex", nil)
-	snapshotDirtyStorageReadMeter  = metrics.NewRegisteredMeter("state/snapshot/dirty/storage/read", nil)
-	snapshotDirtyStorageWriteMeter = metrics.NewRegisteredMeter("state/snapshot/dirty/storage/write", nil)
+	snapshotDirtyStorageHitMeter   = metrics.GetOrRegisterMeter("state/snapshot/dirty/storage/hit", nil)
+	snapshotDirtyStorageMissMeter  = metrics.GetOrRegisterMeter("state/snapshot/dirty/storage/miss", nil)
+	snapshotDirtyStorageInexMeter  = metrics.GetOrRegisterMeter("state/snapshot/dirty/storage/inex", nil)
+	snapshotDirtyStorageReadMeter  = metrics.GetOrRegisterMeter("state/snapshot/dirty/storage/read", nil)
+	snapshotDirtyStorageWriteMeter = metrics.GetOrRegisterMeter("state/snapshot/dirty/storage/write", nil)
 
-	snapshotDirtyAccountHitDepthHist = metrics.NewRegisteredHistogram("state/snapshot/dirty/account/hit/depth", nil, metrics.NewExpDecaySample(1028, 0.015))
-	snapshotDirtyStorageHitDepthHist = metrics.NewRegisteredHistogram("state/snapshot/dirty/storage/hit/depth", nil, metrics.NewExpDecaySample(1028, 0.015))
+	snapshotDirtyAccountHitDepthHist = metrics.GetOrRegisterHistogram("state/snapshot/dirty/account/hit/depth", nil, metrics.NewExpDecaySample(1028, 0.015))
+	snapshotDirtyStorageHitDepthHist = metrics.GetOrRegisterHistogram("state/snapshot/dirty/storage/hit/depth", nil, metrics.NewExpDecaySample(1028, 0.015))
 
-	snapshotFlushAccountItemMeter = metrics.NewRegisteredMeter("state/snapshot/flush/account/item", nil)
-	snapshotFlushAccountSizeMeter = metrics.NewRegisteredMeter("state/snapshot/flush/account/size", nil)
-	snapshotFlushStorageItemMeter = metrics.NewRegisteredMeter("state/snapshot/flush/storage/item", nil)
-	snapshotFlushStorageSizeMeter = metrics.NewRegisteredMeter("state/snapshot/flush/storage/size", nil)
+	snapshotFlushAccountItemMeter = metrics.GetOrRegisterMeter("state/snapshot/flush/account/item", nil)
+	snapshotFlushAccountSizeMeter = metrics.GetOrRegisterMeter("state/snapshot/flush/account/size", nil)
+	snapshotFlushStorageItemMeter = metrics.GetOrRegisterMeter("state/snapshot/flush/storage/item", nil)
+	snapshotFlushStorageSizeMeter = metrics.GetOrRegisterMeter("state/snapshot/flush/storage/size", nil)
 
-	snapshotBloomIndexTimer = metrics.NewRegisteredResettingTimer("state/snapshot/bloom/index", nil)
-	snapshotBloomErrorGauge = metrics.NewRegisteredGaugeFloat64("state/snapshot/bloom/error", nil)
+	snapshotBloomIndexTimer = metrics.GetOrRegisterResettingTimer("state/snapshot/bloom/index", nil)
+	snapshotBloomErrorGauge = metrics.GetOrRegisterGaugeFloat64("state/snapshot/bloom/error", nil)
 
-	snapshotBloomAccountTrueHitMeter  = metrics.NewRegisteredMeter("state/snapshot/bloom/account/truehit", nil)
-	snapshotBloomAccountFalseHitMeter = metrics.NewRegisteredMeter("state/snapshot/bloom/account/falsehit", nil)
-	snapshotBloomAccountMissMeter     = metrics.NewRegisteredMeter("state/snapshot/bloom/account/miss", nil)
+	snapshotBloomAccountTrueHitMeter  = metrics.GetOrRegisterMeter("state/snapshot/bloom/account/truehit", nil)
+	snapshotBloomAccountFalseHitMeter = metrics.GetOrRegisterMeter("state/snapshot/bloom/account/falsehit", nil)
+	snapshotBloomAccountMissMeter     = metrics.GetOrRegisterMeter("state/snapshot/bloom/account/miss", nil)
 
-	snapshotBloomStorageTrueHitMeter  = metrics.NewRegisteredMeter("state/snapshot/bloom/storage/truehit", nil)
-	snapshotBloomStorageFalseHitMeter = metrics.NewRegisteredMeter("state/snapshot/bloom/storage/falsehit", nil)
-	snapshotBloomStorageMissMeter     = metrics.NewRegisteredMeter("state/snapshot/bloom/storage/miss", nil)
+	snapshotBloomStorageTrueHitMeter  = metrics.GetOrRegisterMeter("state/snapshot/bloom/storage/truehit", nil)
+	snapshotBloomStorageFalseHitMeter = metrics.GetOrRegisterMeter("state/snapshot/bloom/storage/falsehit", nil)
+	snapshotBloomStorageMissMeter     = metrics.GetOrRegisterMeter("state/snapshot/bloom/storage/miss", nil)
 
 	// ErrSnapshotStale is returned from data accessors if the underlying snapshot
 	// layer had been invalidated due to the chain progressing forward far enough
@@ -118,28 +126,7 @@ var (
 )
 
 // Snapshot represents the functionality supported by a snapshot storage layer.
-type Snapshot interface {
-	// Root returns the root hash for which this snapshot was made.
-	Root() common.Hash
-
-	// Account directly retrieves the account associated with a particular hash in
-	// the snapshot slim data format.
-	Account(hash common.Hash) (*types.SlimAccount, error)
-
-	// AccountRLP directly retrieves the account RLP associated with a particular
-	// hash in the snapshot slim data format.
-	AccountRLP(hash common.Hash) ([]byte, error)
-
-	// Storage directly retrieves the storage data associated with a particular hash,
-	// within a particular account.
-	Storage(accountHash, storageHash common.Hash) ([]byte, error)
-
-	// AccountIterator creates an account iterator over the account trie given by the provided root hash.
-	AccountIterator(seek common.Hash) AccountIterator
-
-	// StorageIterator creates a storage iterator over the storage trie given by the provided root hash.
-	StorageIterator(account common.Hash, seek common.Hash) (StorageIterator, bool)
-}
+type Snapshot = ethsnapshot.Snapshot
 
 // snapshot is the internal version of the snapshot data layer that supports some
 // additional methods compared to the public API.
@@ -164,6 +151,12 @@ type snapshot interface {
 	// Stale return whether this layer has become stale (was flattened across) or
 	// if it's still live.
 	Stale() bool
+
+	// AccountIterator creates an account iterator over an arbitrary layer.
+	AccountIterator(seek common.Hash) AccountIterator
+
+	// StorageIterator creates a storage iterator over an arbitrary layer.
+	StorageIterator(account common.Hash, seek common.Hash) (StorageIterator, bool)
 }
 
 // Config includes the configurations for snapshots.
@@ -321,9 +314,44 @@ func (t *Tree) Snapshots(blockHash common.Hash, limits int, nodisk bool) []Snaps
 	return ret
 }
 
+type blockHashes struct {
+	blockHash       common.Hash
+	parentBlockHash common.Hash
+}
+
+func WithBlockHashes(blockHash, parentBlockHash common.Hash) stateconf.SnapshotUpdateOption {
+	return stateconf.WithUpdatePayload(blockHashes{blockHash, parentBlockHash})
+}
+
 // Update adds a new snapshot into the tree, if that can be linked to an existing
 // old parent. It is disallowed to insert a disk layer (the origin of all).
-func (t *Tree) Update(blockHash, blockRoot, parentBlockHash common.Hash, destructs map[common.Hash]struct{}, accounts map[common.Hash][]byte, storage map[common.Hash]map[common.Hash][]byte) error {
+func (t *Tree) Update(
+	blockRoot common.Hash,
+	parentRoot common.Hash,
+	destructs map[common.Hash]struct{},
+	accounts map[common.Hash][]byte,
+	storage map[common.Hash]map[common.Hash][]byte,
+	opts ...stateconf.SnapshotUpdateOption,
+) error {
+	if len(opts) == 0 {
+		return fmt.Errorf("missing block hashes")
+	}
+
+	payload := stateconf.ExtractUpdatePayload(opts[0])
+	p, ok := payload.(blockHashes)
+	if !ok {
+		return fmt.Errorf("invalid block hashes payload type: %T", payload)
+	}
+
+	return t.UpdateWithBlockHashes(p.blockHash, blockRoot, p.parentBlockHash, destructs, accounts, storage)
+}
+
+func (t *Tree) UpdateWithBlockHashes(
+	blockHash, blockRoot, parentBlockHash common.Hash,
+	destructs map[common.Hash]struct{},
+	accounts map[common.Hash][]byte,
+	storage map[common.Hash]map[common.Hash][]byte,
+) error {
 	t.lock.Lock()
 	defer t.lock.Unlock()
 
@@ -379,6 +407,10 @@ func (t *Tree) verifyIntegrity(base *diskLayer, waitBuild bool) error {
 	log.Info("Verified snapshot integrity", "root", base.root, "elapsed", time.Since(start))
 	t.verified = true
 	return nil
+}
+
+func (t *Tree) Cap(root common.Hash, layers int) error {
+	return nil // No-op as this code uses Flatten on block accept instead
 }
 
 // Flatten flattens the snapshot for [blockHash] into its parent. if its
@@ -605,7 +637,7 @@ func diffToDisk(bottom *diffLayer) (*diskLayer, bool, error) {
 	base.abortGeneration()
 
 	// Put the deletion in the batch writer, flush all updates in the final step.
-	rawdb.DeleteSnapshotBlockHash(batch)
+	customrawdb.DeleteSnapshotBlockHash(batch)
 	rawdb.DeleteSnapshotRoot(batch)
 
 	// Mark the original base as stale as we're going to create a new wrapper
@@ -697,7 +729,7 @@ func diffToDisk(bottom *diffLayer) (*diskLayer, bool, error) {
 		}
 	}
 	// Update the snapshot block marker and write any remainder data
-	rawdb.WriteSnapshotBlockHash(batch, bottom.blockHash)
+	customrawdb.WriteSnapshotBlockHash(batch, bottom.blockHash)
 	rawdb.WriteSnapshotRoot(batch, bottom.root)
 
 	// Write out the generator progress marker and report
@@ -823,7 +855,11 @@ func (t *Tree) AccountIterator(root common.Hash, seek common.Hash, force bool) (
 // account. The iterator will be move to the specific start position. When [force]
 // is true, a new account iterator is created without acquiring the [snapTree]
 // lock and without confirming that the snapshot on the disk layer is fully generated.
-func (t *Tree) StorageIterator(root common.Hash, account common.Hash, seek common.Hash, force bool) (StorageIterator, error) {
+func (t *Tree) StorageIterator(root common.Hash, account common.Hash, seek common.Hash) (StorageIterator, error) {
+	return t.StorageIteratorWithForce(root, account, seek, false)
+}
+
+func (t *Tree) StorageIteratorWithForce(root common.Hash, account common.Hash, seek common.Hash, force bool) (StorageIterator, error) {
 	if !force {
 		ok, err := t.generating()
 		if err != nil {
@@ -854,7 +890,7 @@ func (t *Tree) verify(root common.Hash, force bool) error {
 	defer acctIt.Release()
 
 	got, err := generateTrieRoot(nil, "", acctIt, common.Hash{}, stackTrieGenerate, func(db ethdb.KeyValueWriter, accountHash, codeHash common.Hash, stat *generateStats) (common.Hash, error) {
-		storageIt, err := t.StorageIterator(root, accountHash, common.Hash{}, force)
+		storageIt, err := t.StorageIteratorWithForce(root, accountHash, common.Hash{}, force)
 		if err != nil {
 			return common.Hash{}, err
 		}

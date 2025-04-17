@@ -27,11 +27,14 @@ import (
 	"github.com/ava-labs/avalanchego/vms/components/chain"
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/core/rawdb"
+	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/crypto"
 	"github.com/ava-labs/subnet-evm/core"
-	"github.com/ava-labs/subnet-evm/core/rawdb"
-	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/eth/tracers"
 	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/params/extras"
 	customheader "github.com/ava-labs/subnet-evm/plugin/evm/header"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
@@ -39,8 +42,6 @@ import (
 	"github.com/ava-labs/subnet-evm/predicate"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ava-labs/subnet-evm/warp"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/stretchr/testify/require"
 )
 
@@ -69,7 +70,7 @@ func TestSendWarpMessage(t *testing.T) {
 	require := require.New(t)
 	genesis := &core.Genesis{}
 	require.NoError(genesis.UnmarshalJSON([]byte(genesisJSONDurango)))
-	genesis.Config.GenesisPrecompiles = params.Precompiles{
+	params.GetExtra(genesis.Config).GenesisPrecompiles = extras.Precompiles{
 		warpcontract.ConfigKey: warpcontract.NewDefaultConfig(utils.TimeToNewUint64(upgrade.InitiallyActiveTime)),
 	}
 	genesisJSON, err := genesis.MarshalJSON()
@@ -266,7 +267,7 @@ func testWarpVMTransaction(t *testing.T, unsignedMessage *avalancheWarp.Unsigned
 	require := require.New(t)
 	genesis := &core.Genesis{}
 	require.NoError(genesis.UnmarshalJSON([]byte(genesisJSONDurango)))
-	genesis.Config.GenesisPrecompiles = params.Precompiles{
+	params.GetExtra(genesis.Config).GenesisPrecompiles = extras.Precompiles{
 		warpcontract.ConfigKey: warpcontract.NewDefaultConfig(utils.TimeToNewUint64(upgrade.InitiallyActiveTime)),
 	}
 	genesisJSON, err := genesis.MarshalJSON()
@@ -424,7 +425,7 @@ func TestReceiveWarpMessage(t *testing.T) {
 	require := require.New(t)
 	genesis := &core.Genesis{}
 	require.NoError(genesis.UnmarshalJSON([]byte(genesisJSONDurango)))
-	genesis.Config.GenesisPrecompiles = params.Precompiles{
+	params.GetExtra(genesis.Config).GenesisPrecompiles = extras.Precompiles{
 		// Note that warp is enabled without RequirePrimaryNetworkSigners
 		// by default in the genesis configuration.
 		warpcontract.ConfigKey: warpcontract.NewDefaultConfig(utils.TimeToNewUint64(upgrade.InitiallyActiveTime)),
@@ -444,8 +445,8 @@ func TestReceiveWarpMessage(t *testing.T) {
 		true, // RequirePrimaryNetworkSigners
 	)
 
-	upgradeConfig := params.UpgradeConfig{
-		PrecompileUpgrades: []params.PrecompileUpgrade{
+	upgradeConfig := extras.UpgradeConfig{
+		PrecompileUpgrades: []extras.PrecompileUpgrade{
 			{Config: disableConfig},
 			{Config: reEnableConfig},
 		},
@@ -674,8 +675,7 @@ func testReceiveWarpMessage(
 
 	// Require the block was built with a successful predicate result
 	ethBlock := block2.(*chain.BlockWrapper).Block.(*Block).ethBlock
-	rules := vm.chainConfig.GetAvalancheRules(ethBlock.Time())
-	headerPredicateResultsBytes := customheader.PredicateBytesFromExtra(rules, ethBlock.Extra())
+	headerPredicateResultsBytes := customheader.PredicateBytesFromExtra(ethBlock.Extra())
 	results, err := predicate.ParseResults(headerPredicateResultsBytes)
 	require.NoError(err)
 

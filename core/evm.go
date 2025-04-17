@@ -27,16 +27,57 @@
 package core
 
 import (
+	"bytes"
 	"math/big"
 
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/core/vm"
+	"github.com/ava-labs/libevm/log"
 	"github.com/ava-labs/subnet-evm/consensus"
 	"github.com/ava-labs/subnet-evm/consensus/misc/eip4844"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/core/vm"
+	"github.com/ava-labs/subnet-evm/core/extstate"
+	"github.com/ava-labs/subnet-evm/params"
+	customheader "github.com/ava-labs/subnet-evm/plugin/evm/header"
 	"github.com/ava-labs/subnet-evm/predicate"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 )
+
+func init() {
+	vm.RegisterHooks(hooks{})
+}
+
+type hooks struct{}
+
+// OverrideNewEVMArgs is a hook that is called in [vm.NewEVM].
+// It allows for the modification of the EVM arguments before the EVM is created.
+// Specifically, we set Random to be the same as Difficulty since Shanghai.
+// This allows using the same jump table as upstream.
+// Then we set Difficulty to 0 as it is post Merge in upstream.
+// Additionally we wrap the StateDB with the appropriate StateDB wrapper,
+// which is used in subnet-evm to process historical pre-AP1 blocks with the
+// [StateDbAP1.GetCommittedState] method as it was historically.
+func (hooks) OverrideNewEVMArgs(args *vm.NewEVMArgs) *vm.NewEVMArgs {
+	rules := args.ChainConfig.Rules(args.BlockContext.BlockNumber, params.IsMergeTODO, args.BlockContext.Time)
+	args.StateDB = wrapStateDB(rules, args.StateDB)
+
+	if rules.IsShanghai {
+		args.BlockContext.Random = new(common.Hash)
+		args.BlockContext.Random.SetBytes(args.BlockContext.Difficulty.Bytes())
+		args.BlockContext.Difficulty = new(big.Int)
+	}
+
+	return args
+}
+
+func (hooks) OverrideEVMResetArgs(rules params.Rules, args *vm.EVMResetArgs) *vm.EVMResetArgs {
+	args.StateDB = wrapStateDB(rules, args.StateDB)
+	return args
+}
+
+func wrapStateDB(rules params.Rules, db vm.StateDB) vm.StateDB {
+	return extstate.New(db.(extstate.VmStateDB))
+}
 
 // ChainContext supports retrieving headers and consensus parameters from the
 // current blockchain to be used during transaction processing.
@@ -50,6 +91,40 @@ type ChainContext interface {
 
 // NewEVMBlockContext creates a new context for use in the EVM.
 func NewEVMBlockContext(header *types.Header, chain ChainContext, author *common.Address) vm.BlockContext {
+	predicateBytes := customheader.PredicateBytesFromExtra(header.Extra)
+	if len(predicateBytes) == 0 {
+		return newEVMBlockContext(header, chain, author, nil)
+	}
+	// Prior to Durango, the VM enforces the extra data is smaller than or
+	// equal to this size. After Durango, the VM pre-verifies the extra
+	// data past the dynamic fee rollup window is valid.
+	_, err := predicate.ParseResults(predicateBytes)
+	if err != nil {
+		log.Error("failed to parse predicate results creating new block context", "err", err, "extra", header.Extra)
+		// As mentioned above, we pre-verify the extra data to ensure this never happens.
+		// If we hit an error, construct a new block context rather than use a potentially half initialized value
+		// as defense in depth.
+		return newEVMBlockContext(header, chain, author, nil)
+	}
+	return newEVMBlockContext(header, chain, author, header.Extra)
+}
+
+// NewEVMBlockContextWithPredicateResults creates a new context for use in the EVM with an override for the predicate results that is not present
+// in header.Extra.
+// This function is used to create a BlockContext when the header Extra data is not fully formed yet and it's more efficient to pass in predicateResults
+// directly rather than re-encode the latest results when executing each individual transaction.
+func NewEVMBlockContextWithPredicateResults(header *types.Header, chain ChainContext, author *common.Address, predicateBytes []byte) vm.BlockContext {
+	blockCtx := NewEVMBlockContext(header, chain, author)
+	// Note this only sets the block context, which is the hand-off point for
+	// the EVM. The actual header is not modified.
+	blockCtx.Header.Extra = customheader.SetPredicateBytesInExtra(
+		bytes.Clone(header.Extra),
+		predicateBytes,
+	)
+	return blockCtx
+}
+
+func newEVMBlockContext(header *types.Header, chain ChainContext, author *common.Address, extra []byte) vm.BlockContext {
 	var (
 		beneficiary common.Address
 		baseFee     *big.Int
@@ -72,7 +147,6 @@ func NewEVMBlockContext(header *types.Header, chain ChainContext, author *common
 		CanTransfer: CanTransfer,
 		Transfer:    Transfer,
 		GetHash:     GetHashFn(header, chain),
-		Extra:       header.Extra,
 		Coinbase:    beneficiary,
 		BlockNumber: new(big.Int).Set(header.Number),
 		Time:        header.Time,
@@ -80,17 +154,12 @@ func NewEVMBlockContext(header *types.Header, chain ChainContext, author *common
 		BaseFee:     baseFee,
 		BlobBaseFee: blobBaseFee,
 		GasLimit:    header.GasLimit,
+		Header: &types.Header{
+			Number: new(big.Int).Set(header.Number),
+			Time:   header.Time,
+			Extra:  extra,
+		},
 	}
-}
-
-// NewEVMBlockContextWithPredicateResults creates a new context for use in the EVM with an override for the predicate results that is not present
-// in header.Extra.
-// This function is used to create a BlockContext when the header Extra data is not fully formed yet and it's more efficient to pass in predicateResults
-// directly rather than re-encode the latest results when executing each individual transaction.
-func NewEVMBlockContextWithPredicateResults(header *types.Header, chain ChainContext, author *common.Address, predicateResults *predicate.Results) vm.BlockContext {
-	blockContext := NewEVMBlockContext(header, chain, author)
-	blockContext.PredicateResults = predicateResults
-	return blockContext
 }
 
 // NewEVMTxContext creates a new transaction context for a single transaction.

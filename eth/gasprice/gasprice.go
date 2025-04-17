@@ -32,18 +32,18 @@ import (
 	"sync"
 
 	"github.com/ava-labs/avalanchego/utils/timer/mockable"
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/common/lru"
+	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/event"
+	"github.com/ava-labs/libevm/log"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/core"
-	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
 	customheader "github.com/ava-labs/subnet-evm/plugin/evm/header"
 	"github.com/ava-labs/subnet-evm/plugin/evm/upgrade/legacy"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/feemanager"
 	"github.com/ava-labs/subnet-evm/rpc"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/lru"
-	"github.com/ethereum/go-ethereum/event"
-	"github.com/ethereum/go-ethereum/log"
 	"golang.org/x/exp/slices"
 )
 
@@ -238,7 +238,8 @@ func (oracle *Oracle) estimateNextBaseFee(ctx context.Context) (*big.Int, error)
 	// If the block does have a baseFee, calculate the next base fee
 	// based on the current time and add it to the tip to estimate the
 	// total gas price estimate.
-	return customheader.EstimateNextBaseFee(oracle.backend.ChainConfig(), feeConfig, header, oracle.clock.Unix())
+	chainConfig := params.GetExtra(oracle.backend.ChainConfig())
+	return customheader.EstimateNextBaseFee(chainConfig, feeConfig, header, oracle.clock.Unix())
 }
 
 // SuggestPrice returns an estimated price for legacy transactions.
@@ -280,8 +281,9 @@ func (oracle *Oracle) suggestTip(ctx context.Context) (*big.Int, error) {
 		return nil, err
 	}
 
+	chainConfig := params.GetExtra(oracle.backend.ChainConfig())
 	var feeLastChangedAt *big.Int
-	if oracle.backend.ChainConfig().IsPrecompileEnabled(feemanager.ContractAddress, head.Time) {
+	if chainConfig.IsPrecompileEnabled(feemanager.ContractAddress, head.Time) {
 		_, feeLastChangedAt, err = oracle.backend.GetFeeConfigAt(head)
 		if err != nil {
 			return nil, err

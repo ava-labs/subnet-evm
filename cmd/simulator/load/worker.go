@@ -8,11 +8,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ava-labs/subnet-evm/core/types"
+	ethereum "github.com/ava-labs/libevm"
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/log"
 	"github.com/ava-labs/subnet-evm/ethclient"
-	"github.com/ava-labs/subnet-evm/interfaces"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/log"
 )
 
 type ethereumTxWorker struct {
@@ -21,7 +21,7 @@ type ethereumTxWorker struct {
 	acceptedNonce uint64
 	address       common.Address
 
-	sub      interfaces.Subscription
+	sub      ethereum.Subscription
 	newHeads chan *types.Header
 }
 

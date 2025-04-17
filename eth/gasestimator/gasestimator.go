@@ -33,14 +33,13 @@ import (
 	"math"
 	"math/big"
 
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/core/vm"
+	"github.com/ava-labs/libevm/log"
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/state"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/core/vm"
 	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/vmerrs"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/log"
 )
 
 // Options are the contextual parameters to execute the requested call.
@@ -128,7 +127,7 @@ func Estimate(ctx context.Context, call *core.Message, opts *Options, gasCap uin
 		return 0, nil, err
 	}
 	if failed {
-		if result != nil && !errors.Is(result.Err, vmerrs.ErrOutOfGas) {
+		if result != nil && !errors.Is(result.Err, vm.ErrOutOfGas) {
 			return 0, result.Revert(), result.Err
 		}
 		return 0, nil, fmt.Errorf("gas required exceeds allowance (%d)", hi)

@@ -39,67 +39,83 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/common/lru"
+	"github.com/ava-labs/libevm/core/rawdb"
+	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/core/vm"
+	"github.com/ava-labs/libevm/ethdb"
+	"github.com/ava-labs/libevm/event"
+	"github.com/ava-labs/libevm/log"
+	"github.com/ava-labs/libevm/metrics"
+	"github.com/ava-labs/libevm/trie"
+	"github.com/ava-labs/libevm/triedb"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/consensus"
 	"github.com/ava-labs/subnet-evm/consensus/misc/eip4844"
-	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/core/state/snapshot"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/core/vm"
 	"github.com/ava-labs/subnet-evm/internal/version"
-	"github.com/ava-labs/subnet-evm/metrics"
 	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/trie"
-	"github.com/ava-labs/subnet-evm/triedb"
+	"github.com/ava-labs/subnet-evm/plugin/evm/customrawdb"
+	"github.com/ava-labs/subnet-evm/plugin/evm/customtypes"
 	"github.com/ava-labs/subnet-evm/triedb/hashdb"
 	"github.com/ava-labs/subnet-evm/triedb/pathdb"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/lru"
-	"github.com/ethereum/go-ethereum/ethdb"
-	"github.com/ethereum/go-ethereum/event"
-	"github.com/ethereum/go-ethereum/log"
+
+	// Force libevm metrics of the same name to be registered first.
+	_ "github.com/ava-labs/libevm/core"
 )
 
+// ====== If resolving merge conflicts ======
+//
+// All calls to metrics.NewRegistered*() for metrics also defined in libevm/core have been
+// replaced either with:
+//   - metrics.GetOrRegister*() to get a metric already registered in libevm/core, or register it
+//     here otherwise
+//   - [getOrOverrideAsRegisteredCounter] to get a metric already registered in libevm/core
+//     only if it is a [metrics.Counter]. If it is not, the metric is unregistered and registered
+//     as a [metrics.Counter] here.
+//
+// These replacements ensure the same metrics are shared between the two packages.
 var (
-	accountReadTimer         = metrics.NewRegisteredCounter("chain/account/reads", nil)
-	accountHashTimer         = metrics.NewRegisteredCounter("chain/account/hashes", nil)
-	accountUpdateTimer       = metrics.NewRegisteredCounter("chain/account/updates", nil)
-	accountCommitTimer       = metrics.NewRegisteredCounter("chain/account/commits", nil)
-	storageReadTimer         = metrics.NewRegisteredCounter("chain/storage/reads", nil)
-	storageHashTimer         = metrics.NewRegisteredCounter("chain/storage/hashes", nil)
-	storageUpdateTimer       = metrics.NewRegisteredCounter("chain/storage/updates", nil)
-	storageCommitTimer       = metrics.NewRegisteredCounter("chain/storage/commits", nil)
-	snapshotAccountReadTimer = metrics.NewRegisteredCounter("chain/snapshot/account/reads", nil)
-	snapshotStorageReadTimer = metrics.NewRegisteredCounter("chain/snapshot/storage/reads", nil)
-	snapshotCommitTimer      = metrics.NewRegisteredCounter("chain/snapshot/commits", nil)
+	accountReadTimer         = getOrOverrideAsRegisteredCounter("chain/account/reads", nil)
+	accountHashTimer         = getOrOverrideAsRegisteredCounter("chain/account/hashes", nil)
+	accountUpdateTimer       = getOrOverrideAsRegisteredCounter("chain/account/updates", nil)
+	accountCommitTimer       = getOrOverrideAsRegisteredCounter("chain/account/commits", nil)
+	storageReadTimer         = getOrOverrideAsRegisteredCounter("chain/storage/reads", nil)
+	storageHashTimer         = getOrOverrideAsRegisteredCounter("chain/storage/hashes", nil)
+	storageUpdateTimer       = getOrOverrideAsRegisteredCounter("chain/storage/updates", nil)
+	storageCommitTimer       = getOrOverrideAsRegisteredCounter("chain/storage/commits", nil)
+	snapshotAccountReadTimer = getOrOverrideAsRegisteredCounter("chain/snapshot/account/reads", nil)
+	snapshotStorageReadTimer = getOrOverrideAsRegisteredCounter("chain/snapshot/storage/reads", nil)
+	snapshotCommitTimer      = getOrOverrideAsRegisteredCounter("chain/snapshot/commits", nil)
 
-	triedbCommitTimer = metrics.NewRegisteredCounter("chain/triedb/commits", nil)
+	triedbCommitTimer = getOrOverrideAsRegisteredCounter("chain/triedb/commits", nil)
 
-	blockInsertTimer            = metrics.NewRegisteredCounter("chain/block/inserts", nil)
-	blockInsertCount            = metrics.NewRegisteredCounter("chain/block/inserts/count", nil)
-	blockContentValidationTimer = metrics.NewRegisteredCounter("chain/block/validations/content", nil)
-	blockStateInitTimer         = metrics.NewRegisteredCounter("chain/block/inits/state", nil)
-	blockExecutionTimer         = metrics.NewRegisteredCounter("chain/block/executions", nil)
-	blockTrieOpsTimer           = metrics.NewRegisteredCounter("chain/block/trie", nil)
-	blockValidationTimer        = metrics.NewRegisteredCounter("chain/block/validations/state", nil)
-	blockWriteTimer             = metrics.NewRegisteredCounter("chain/block/writes", nil)
+	blockInsertTimer            = metrics.GetOrRegisterCounter("chain/block/inserts", nil)
+	blockInsertCount            = metrics.GetOrRegisterCounter("chain/block/inserts/count", nil)
+	blockContentValidationTimer = metrics.GetOrRegisterCounter("chain/block/validations/content", nil)
+	blockStateInitTimer         = metrics.GetOrRegisterCounter("chain/block/inits/state", nil)
+	blockExecutionTimer         = metrics.GetOrRegisterCounter("chain/block/executions", nil)
+	blockTrieOpsTimer           = metrics.GetOrRegisterCounter("chain/block/trie", nil)
+	blockValidationTimer        = metrics.GetOrRegisterCounter("chain/block/validations/state", nil)
+	blockWriteTimer             = metrics.GetOrRegisterCounter("chain/block/writes", nil)
 
-	acceptorQueueGauge            = metrics.NewRegisteredGauge("chain/acceptor/queue/size", nil)
-	acceptorWorkTimer             = metrics.NewRegisteredCounter("chain/acceptor/work", nil)
-	acceptorWorkCount             = metrics.NewRegisteredCounter("chain/acceptor/work/count", nil)
+	acceptorQueueGauge            = metrics.GetOrRegisterGauge("chain/acceptor/queue/size", nil)
+	acceptorWorkTimer             = metrics.GetOrRegisterCounter("chain/acceptor/work", nil)
+	acceptorWorkCount             = metrics.GetOrRegisterCounter("chain/acceptor/work/count", nil)
+	processedBlockGasUsedCounter  = metrics.GetOrRegisterCounter("chain/block/gas/used/processed", nil)
 	lastAcceptedBlockBaseFeeGauge = metrics.NewRegisteredGauge("chain/block/fee/basefee", nil)
 	blockTotalFeesGauge           = metrics.NewRegisteredGauge("chain/block/fee/total", nil)
-	processedBlockGasUsedCounter  = metrics.NewRegisteredCounter("chain/block/gas/used/processed", nil)
-	acceptedBlockGasUsedCounter   = metrics.NewRegisteredCounter("chain/block/gas/used/accepted", nil)
-	badBlockCounter               = metrics.NewRegisteredCounter("chain/block/bad/count", nil)
+	acceptedBlockGasUsedCounter   = metrics.GetOrRegisterCounter("chain/block/gas/used/accepted", nil)
+	badBlockCounter               = metrics.GetOrRegisterCounter("chain/block/bad/count", nil)
 
-	txUnindexTimer      = metrics.NewRegisteredCounter("chain/txs/unindex", nil)
-	acceptedTxsCounter  = metrics.NewRegisteredCounter("chain/txs/accepted", nil)
-	processedTxsCounter = metrics.NewRegisteredCounter("chain/txs/processed", nil)
+	txUnindexTimer      = metrics.GetOrRegisterCounter("chain/txs/unindex", nil)
+	acceptedTxsCounter  = metrics.GetOrRegisterCounter("chain/txs/accepted", nil)
+	processedTxsCounter = metrics.GetOrRegisterCounter("chain/txs/processed", nil)
 
-	acceptedLogsCounter  = metrics.NewRegisteredCounter("chain/logs/accepted", nil)
-	processedLogsCounter = metrics.NewRegisteredCounter("chain/logs/processed", nil)
+	acceptedLogsCounter  = metrics.GetOrRegisterCounter("chain/logs/accepted", nil)
+	processedLogsCounter = metrics.GetOrRegisterCounter("chain/logs/processed", nil)
 
 	ErrRefuseToCorruptArchiver = errors.New("node has operated with pruning disabled, shutting down to prevent missing tries")
 
@@ -197,18 +213,18 @@ type CacheConfig struct {
 func (c *CacheConfig) triedbConfig() *triedb.Config {
 	config := &triedb.Config{Preimages: c.Preimages}
 	if c.StateScheme == rawdb.HashScheme || c.StateScheme == "" {
-		config.HashDB = &hashdb.Config{
+		config.DBOverride = hashdb.Config{
 			CleanCacheSize:                  c.TrieCleanLimit * 1024 * 1024,
 			StatsPrefix:                     trieCleanCacheStatsNamespace,
 			ReferenceRootAtomicallyOnUpdate: true,
-		}
+		}.BackendConstructor
 	}
 	if c.StateScheme == rawdb.PathScheme {
-		config.PathDB = &pathdb.Config{
+		config.DBOverride = pathdb.Config{
 			StateHistory:   c.StateHistory,
 			CleanCacheSize: c.TrieCleanLimit * 1024 * 1024,
 			DirtyCacheSize: c.TrieDirtyLimit * 1024 * 1024,
-		}
+		}.BackendConstructor
 	}
 	return config
 }
@@ -459,7 +475,7 @@ func NewBlockChain(
 
 	// if txlookup limit is 0 (uindexing disabled), we don't need to repair the tx index tail.
 	if bc.cacheConfig.TransactionHistory != 0 {
-		latestStateSynced := rawdb.GetLatestSyncPerformed(bc.db)
+		latestStateSynced := customrawdb.GetLatestSyncPerformed(bc.db)
 		bc.repairTxIndexTail(latestStateSynced)
 	}
 
@@ -492,7 +508,7 @@ func (bc *BlockChain) batchBlockAcceptedIndices(batch ethdb.Batch, b *types.Bloc
 	if !bc.cacheConfig.SkipTxIndexing {
 		rawdb.WriteTxLookupEntriesByBlock(batch, b)
 	}
-	if err := rawdb.WriteAcceptorTip(batch, b.Hash()); err != nil {
+	if err := customrawdb.WriteAcceptorTip(batch, b.Hash()); err != nil {
 		return fmt.Errorf("%w: failed to write acceptor tip key", err)
 	}
 	return nil
@@ -595,7 +611,7 @@ func (bc *BlockChain) startAcceptor() {
 		bc.acceptorTipLock.Unlock()
 
 		// Update accepted feeds
-		flattenedLogs := types.FlattenLogs(logs)
+		flattenedLogs := customtypes.FlattenLogs(logs)
 		bc.chainAcceptedFeed.Send(ChainEvent{Block: next, Hash: next.Hash(), Logs: flattenedLogs})
 		if len(flattenedLogs) > 0 {
 			bc.logsAcceptedFeed.Send(flattenedLogs)
@@ -1187,8 +1203,8 @@ func (bc *BlockChain) newTip(block *types.Block) bool {
 // canonical chain.
 // writeBlockAndSetHead expects to be the last verification step during InsertBlock
 // since it creates a reference that will only be cleaned up by Accept/Reject.
-func (bc *BlockChain) writeBlockAndSetHead(block *types.Block, receipts []*types.Receipt, logs []*types.Log, state *state.StateDB) error {
-	if err := bc.writeBlockWithState(block, receipts, state); err != nil {
+func (bc *BlockChain) writeBlockAndSetHead(block *types.Block, parentRoot common.Hash, receipts []*types.Receipt, logs []*types.Log, state *state.StateDB) error {
+	if err := bc.writeBlockWithState(block, parentRoot, receipts, state); err != nil {
 		return err
 	}
 
@@ -1205,7 +1221,7 @@ func (bc *BlockChain) writeBlockAndSetHead(block *types.Block, receipts []*types
 
 // writeBlockWithState writes the block and all associated state to the database,
 // but it expects the chain mutex to be held.
-func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.Receipt, state *state.StateDB) error {
+func (bc *BlockChain) writeBlockWithState(block *types.Block, parentRoot common.Hash, receipts []*types.Receipt, state *state.StateDB) error {
 	// Irrelevant of the canonical status, write the block itself to the database.
 	//
 	// Note all the components of block(hash->number map, header, body, receipts)
@@ -1219,14 +1235,7 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 	}
 
 	// Commit all cached state changes into underlying memory database.
-	// If snapshots are enabled, call CommitWithSnaps to explicitly create a snapshot
-	// diff layer for the block.
-	var err error
-	if bc.snaps == nil {
-		_, err = state.Commit(block.NumberU64(), bc.chainConfig.IsEIP158(block.Number()))
-	} else {
-		_, err = state.CommitWithSnap(block.NumberU64(), bc.chainConfig.IsEIP158(block.Number()), bc.snaps, block.Hash(), block.ParentHash())
-	}
+	_, err := bc.commitWithSnap(block, parentRoot, state)
 	if err != nil {
 		return err
 	}
@@ -1419,7 +1428,7 @@ func (bc *BlockChain) insertBlock(block *types.Block, writes bool) error {
 	// will be cleaned up in Accept/Reject so we need to ensure an error cannot occur
 	// later in verification, since that would cause the referenced root to never be dereferenced.
 	wstart := time.Now()
-	if err := bc.writeBlockAndSetHead(block, receipts, logs, statedb); err != nil {
+	if err := bc.writeBlockAndSetHead(block, parent.Root, receipts, logs, statedb); err != nil {
 		return err
 	}
 	// Update the metrics touched during block commit
@@ -1434,7 +1443,7 @@ func (bc *BlockChain) insertBlock(block *types.Block, writes bool) error {
 		"parentHash", block.ParentHash(),
 		"uncles", len(block.Uncles()), "txs", len(block.Transactions()), "gas", block.GasUsed(),
 		"elapsed", common.PrettyDuration(time.Since(start)),
-		"root", block.Root(), "baseFeePerGas", block.BaseFee(), "blockGasCost", block.BlockGasCost(),
+		"root", block.Root(), "baseFeePerGas", block.BaseFee(), "blockGasCost", customtypes.BlockGasCost(block),
 	)
 
 	processedBlockGasUsedCounter.Inc(int64(block.GasUsed()))
@@ -1477,7 +1486,7 @@ func (bc *BlockChain) collectUnflattenedLogs(b *types.Block, removed bool) [][]*
 // the processing of a block. These logs are later announced as deleted or reborn.
 func (bc *BlockChain) collectLogs(b *types.Block, removed bool) []*types.Log {
 	unflattenedLogs := bc.collectUnflattenedLogs(b, removed)
-	return types.FlattenLogs(unflattenedLogs)
+	return customtypes.FlattenLogs(unflattenedLogs)
 }
 
 // reorg takes two blocks, an old chain and a new chain and will reconstruct the
@@ -1719,7 +1728,7 @@ func (bc *BlockChain) reprocessBlock(parent *types.Block, current *types.Block) 
 		if snap == nil {
 			return common.Hash{}, fmt.Errorf("failed to get snapshot for parent root: %s", parentRoot)
 		}
-		statedb, err = state.NewWithSnapshot(parentRoot, bc.stateCache, snap)
+		statedb, err = state.New(parentRoot, bc.stateCache, bc.snaps)
 	}
 	if err != nil {
 		return common.Hash{}, fmt.Errorf("could not fetch state for (%s: %d): %v", parent.Hash().Hex(), parent.NumberU64(), err)
@@ -1742,12 +1751,28 @@ func (bc *BlockChain) reprocessBlock(parent *types.Block, current *types.Block) 
 	log.Debug("Processed block", "block", current.Hash(), "number", current.NumberU64())
 
 	// Commit all cached state changes into underlying memory database.
-	// If snapshots are enabled, call CommitWithSnaps to explicitly create a snapshot
-	// diff layer for the block.
-	if bc.snaps == nil {
-		return statedb.Commit(current.NumberU64(), bc.chainConfig.IsEIP158(current.Number()))
+	return bc.commitWithSnap(current, parentRoot, statedb)
+}
+
+func (bc *BlockChain) commitWithSnap(
+	current *types.Block, parentRoot common.Hash, statedb *state.StateDB,
+) (common.Hash, error) {
+	// blockHashes must be passed through [state.StateDB]'s Commit since snapshots
+	// are based on the block hash.
+	blockHashes := snapshot.WithBlockHashes(current.Hash(), current.ParentHash())
+	root, err := statedb.Commit(current.NumberU64(), bc.chainConfig.IsEIP158(current.Number()), blockHashes)
+	if err != nil {
+		return common.Hash{}, err
 	}
-	return statedb.CommitWithSnap(current.NumberU64(), bc.chainConfig.IsEIP158(current.Number()), bc.snaps, current.Hash(), current.ParentHash())
+	// Upstream does not perform a snapshot update if the root is the same as the
+	// parent root, however here the snapshots are based on the block hash, so
+	// this update is necessary. Note blockHashes are passed here as well.
+	if bc.snaps != nil && root == parentRoot {
+		if err := bc.snaps.Update(root, parentRoot, nil, nil, nil, blockHashes); err != nil {
+			return common.Hash{}, err
+		}
+	}
+	return root, nil
 }
 
 // initSnapshot instantiates a Snapshot instance and adds it to [bc]
@@ -1784,7 +1809,7 @@ func (bc *BlockChain) initSnapshot(b *types.Header) {
 // state that reprocessing will start from.
 func (bc *BlockChain) reprocessState(current *types.Block, reexec uint64) error {
 	origin := current.NumberU64()
-	acceptorTip, err := rawdb.ReadAcceptorTip(bc.db)
+	acceptorTip, err := customrawdb.ReadAcceptorTip(bc.db)
 	if err != nil {
 		return fmt.Errorf("%w: unable to get Acceptor tip", err)
 	}
@@ -1915,9 +1940,9 @@ func (bc *BlockChain) reprocessState(current *types.Block, reexec uint64) error 
 
 func (bc *BlockChain) protectTrieIndex() error {
 	if !bc.cacheConfig.Pruning {
-		return rawdb.WritePruningDisabled(bc.db)
+		return customrawdb.WritePruningDisabled(bc.db)
 	}
-	pruningDisabled, err := rawdb.HasPruningDisabled(bc.db)
+	pruningDisabled, err := customrawdb.HasPruningDisabled(bc.db)
 	if err != nil {
 		return fmt.Errorf("failed to check if the chain has been run with pruning disabled: %w", err)
 	}
@@ -2002,7 +2027,7 @@ func (bc *BlockChain) populateMissingTries() error {
 	// Write marker to DB to indicate populate missing tries finished successfully.
 	// Note: writing the marker here means that we do allow consecutive runs of re-populating
 	// missing tries if it does not finish during the prior run.
-	if err := rawdb.WritePopulateMissingTries(bc.db); err != nil {
+	if err := customrawdb.WritePopulateMissingTries(bc.db); err != nil {
 		return fmt.Errorf("failed to write offline pruning success marker: %w", err)
 	}
 
@@ -2100,9 +2125,9 @@ func (bc *BlockChain) ResetToStateSyncedBlock(block *types.Block) error {
 	}
 	rawdb.WriteHeadBlockHash(batch, block.Hash())
 	rawdb.WriteHeadHeaderHash(batch, block.Hash())
-	rawdb.WriteSnapshotBlockHash(batch, block.Hash())
+	customrawdb.WriteSnapshotBlockHash(batch, block.Hash())
 	rawdb.WriteSnapshotRoot(batch, block.Root())
-	if err := rawdb.WriteSyncPerformed(batch, block.NumberU64()); err != nil {
+	if err := customrawdb.WriteSyncPerformed(batch, block.NumberU64()); err != nil {
 		return err
 	}
 
