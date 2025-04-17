@@ -14,7 +14,7 @@ DEFAULT_VM_ID="srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy"
 # Avalabs docker hub
 # avaplatform/avalanchego - defaults to local as to avoid unintentional pushes
 # You should probably set it - export IMAGE_NAME='avaplatform/subnet-evm'
-IMAGE_NAME=${IMAGE_NAME:-"avalanchego_subnet-evm"}
+IMAGE_NAME=${IMAGE_NAME:-"subnet-evm_avalanchego"}
 
 # Shared between ./scripts/build_docker_image.sh and ./scripts/tests.build_docker_image.sh
 AVALANCHEGO_IMAGE_NAME="${AVALANCHEGO_IMAGE_NAME:-avaplatform/avalanchego}"
@@ -56,9 +56,9 @@ if [[ -z ${AVALANCHE_VERSION:-} ]]; then
 fi
 
 # Shared between ./scripts/build_docker_image.sh and ./scripts/tests.build_docker_image.sh
-DOCKERHUB_TAG="${AVALANCHE_VERSION}_${SUBNET_EVM_COMMIT::8}"
+DOCKERHUB_TAG="${SUBNET_EVM_COMMIT::8}_${AVALANCHE_VERSION}"
 # WARNING: this will use the most recent commit even if there are un-committed changes present
-BUILD_IMAGE_ID=${BUILD_IMAGE_ID:-"${AVALANCHE_VERSION}_${CURRENT_BRANCH}"}
+BUILD_IMAGE_ID=${BUILD_IMAGE_ID:-"${CURRENT_BRANCH}_${AVALANCHE_VERSION}"}
 
 echo "Using branch: ${CURRENT_BRANCH}"
 
