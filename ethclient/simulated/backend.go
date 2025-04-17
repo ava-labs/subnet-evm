@@ -22,11 +22,13 @@ import (
 	"time"
 
 	"github.com/ava-labs/avalanchego/utils/timer/mockable"
+	ethereum "github.com/ava-labs/libevm"
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/core/rawdb"
+	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
 	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/core"
-	"github.com/ava-labs/subnet-evm/core/rawdb"
-	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/eth"
 	"github.com/ava-labs/subnet-evm/eth/ethconfig"
 	"github.com/ava-labs/subnet-evm/ethclient"
@@ -34,7 +36,6 @@ import (
 	"github.com/ava-labs/subnet-evm/node"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/rpc"
-	"github.com/ethereum/go-ethereum/common"
 )
 
 var _ eth.PushGossiper = (*fakePushGossiper)(nil)
@@ -45,20 +46,20 @@ func (*fakePushGossiper) Add(*types.Transaction) {}
 
 // Client exposes the methods provided by the Ethereum RPC client.
 type Client interface {
-	interfaces.BlockNumberReader
-	interfaces.ChainReader
-	interfaces.ChainStateReader
-	interfaces.ContractCaller
-	interfaces.GasEstimator
-	interfaces.GasPricer
-	interfaces.GasPricer1559
-	interfaces.FeeHistoryReader
-	interfaces.LogFilterer
+	ethereum.BlockNumberReader
+	ethereum.ChainReader
+	ethereum.ChainStateReader
+	ethereum.ContractCaller
+	ethereum.GasEstimator
+	ethereum.GasPricer
+	ethereum.GasPricer1559
+	ethereum.FeeHistoryReader
+	ethereum.LogFilterer
 	interfaces.AcceptedStateReader
 	interfaces.AcceptedContractCaller
-	interfaces.TransactionReader
-	interfaces.TransactionSender
-	interfaces.ChainIDReader
+	ethereum.TransactionReader
+	ethereum.TransactionSender
+	ethereum.ChainIDReader
 }
 
 // simClient wraps ethclient. This exists to prevent extracting ethclient.Client
@@ -81,7 +82,7 @@ type Backend struct {
 //
 // A simulated backend always uses chainID 1337.
 func NewBackend(alloc types.GenesisAlloc, options ...func(nodeConf *node.Config, ethConf *ethconfig.Config)) *Backend {
-	chainConfig := *params.TestChainConfig
+	chainConfig := params.Copy(params.TestChainConfig)
 	chainConfig.ChainID = big.NewInt(1337)
 
 	// Create the default configurations for the outer node shell and the Ethereum
@@ -91,7 +92,7 @@ func NewBackend(alloc types.GenesisAlloc, options ...func(nodeConf *node.Config,
 	ethConf := ethconfig.DefaultConfig
 	ethConf.Genesis = &core.Genesis{
 		Config:   &chainConfig,
-		GasLimit: chainConfig.FeeConfig.GasLimit.Uint64(),
+		GasLimit: params.GetExtra(&chainConfig).FeeConfig.GasLimit.Uint64(),
 		Alloc:    alloc,
 	}
 	ethConf.AllowUnfinalizedQueries = true

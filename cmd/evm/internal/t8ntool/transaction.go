@@ -34,13 +34,13 @@ import (
 	"os"
 	"strings"
 
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/common/hexutil"
+	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/rlp"
 	"github.com/ava-labs/subnet-evm/core"
-	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/tests"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/urfave/cli/v2"
 )
 
@@ -143,7 +143,7 @@ func Transaction(ctx *cli.Context) error {
 			r.Address = sender
 		}
 		// Check intrinsic gas
-		rules := chainConfig.Rules(new(big.Int), 0)
+		rules := chainConfig.Rules(new(big.Int), params.IsMergeTODO, 0)
 		if gas, err := core.IntrinsicGas(tx.Data(), tx.AccessList(), tx.To() == nil, rules); err != nil {
 			r.Error = err
 			results = append(results, r)
@@ -176,7 +176,7 @@ func Transaction(ctx *cli.Context) error {
 			r.Error = errors.New("gas * maxFeePerGas exceeds 256 bits")
 		}
 		// Check whether the init code size has been exceeded.
-		if chainConfig.IsDurango(0) && tx.To() == nil && len(tx.Data()) > params.MaxInitCodeSize {
+		if params.GetExtra(chainConfig).IsDurango(0) && tx.To() == nil && len(tx.Data()) > params.MaxInitCodeSize {
 			r.Error = errors.New("max initcode size exceeded")
 		}
 		results = append(results, r)

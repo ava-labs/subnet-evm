@@ -33,20 +33,21 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/ava-labs/subnet-evm/core/rawdb"
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/common/hexutil"
+	"github.com/ava-labs/libevm/common/math"
+	"github.com/ava-labs/libevm/core/rawdb"
+	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/crypto"
+	"github.com/ava-labs/libevm/ethdb"
+	"github.com/ava-labs/libevm/log"
+	"github.com/ava-labs/libevm/trie"
+	"github.com/ava-labs/libevm/triedb"
 	"github.com/ava-labs/subnet-evm/core/state"
-	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/plugin/evm/customrawdb"
 	"github.com/ava-labs/subnet-evm/plugin/evm/upgrade/legacy"
-	"github.com/ava-labs/subnet-evm/trie"
-	"github.com/ava-labs/subnet-evm/triedb"
 	"github.com/ava-labs/subnet-evm/triedb/pathdb"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/common/math"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/ethdb"
-	"github.com/ethereum/go-ethereum/log"
 	"github.com/holiman/uint256"
 )
 
@@ -54,7 +55,7 @@ import (
 
 var errGenesisNoConfig = errors.New("genesis has no chain configuration")
 
-// Deprecated: use types.GenesisAccount instead.
+// Deprecated: use types.Account instead.
 type GenesisAccount = types.Account
 
 // Deprecated: use types.GenesisAlloc instead.
@@ -175,15 +176,21 @@ func SetupGenesisBlock(
 	if err := newcfg.CheckConfigForkOrder(); err != nil {
 		return newcfg, common.Hash{}, err
 	}
-	storedcfg := rawdb.ReadChainConfig(db, stored)
+	storedcfg := customrawdb.ReadChainConfig(db, stored)
 	// If there is no previously stored chain config, write the chain config to disk.
 	if storedcfg == nil {
 		// Note: this can happen since we did not previously write the genesis block and chain config in the same batch.
 		log.Warn("Found genesis block without chain config")
-		rawdb.WriteChainConfig(db, stored, newcfg)
+		customrawdb.WriteChainConfig(db, stored, newcfg)
 		return newcfg, stored, nil
 	}
-	storedcfg.SetEthUpgrades(storedcfg.NetworkUpgrades)
+
+	// Notes on the following line:
+	// - this is needed in coreth to handle the case where existing nodes do not
+	//   have the Berlin or London forks initialized by block number on disk.
+	//   See https://github.com/ava-labs/coreth/pull/667/files
+	// - this is not needed in subnet-evm but it does not impact it either
+	params.SetEthUpgrades(storedcfg, params.GetExtra(storedcfg).NetworkUpgrades)
 	// Check config compatibility and write the config. Compatibility errors
 	// are returned to the caller unless we're already at block zero.
 	// we use last accepted block for cfg compatibility check. Note this allows
@@ -203,15 +210,15 @@ func SetupGenesisBlock(
 	} else {
 		compatErr := storedcfg.CheckCompatible(newcfg, height, timestamp)
 		if compatErr != nil && ((height != 0 && compatErr.RewindToBlock != 0) || (timestamp != 0 && compatErr.RewindToTime != 0)) {
-			storedData, _ := storedcfg.ToWithUpgradesJSON().MarshalJSON()
-			newData, _ := newcfg.ToWithUpgradesJSON().MarshalJSON()
+			storedData, _ := params.ToWithUpgradesJSON(storedcfg).MarshalJSON()
+			newData, _ := params.ToWithUpgradesJSON(newcfg).MarshalJSON()
 			log.Error("found mismatch between config on database vs. new config", "storedConfig", string(storedData), "newConfig", string(newData), "err", compatErr)
 			return newcfg, stored, compatErr
 		}
 	}
 	// Required to write the chain config to disk to ensure both the chain config and upgrade bytes are persisted to disk.
 	// Note: this intentionally removes an extra check from upstream.
-	rawdb.WriteChainConfig(db, stored, newcfg)
+	customrawdb.WriteChainConfig(db, stored, newcfg)
 	return newcfg, stored, nil
 }
 
@@ -232,8 +239,8 @@ func (g *Genesis) trieConfig() *triedb.Config {
 		return nil
 	}
 	return &triedb.Config{
-		PathDB:   pathdb.Defaults,
-		IsVerkle: true,
+		DBOverride: pathdb.Defaults.BackendConstructor,
+		IsVerkle:   true,
 	}
 }
 
@@ -279,7 +286,8 @@ func (g *Genesis) toBlock(db ethdb.Database, triedb *triedb.Database) *types.Blo
 	}
 
 	// Configure any stateful precompiles that should be enabled in the genesis.
-	err = ApplyPrecompileActivations(g.Config, nil, types.NewBlockWithHeader(head), statedb)
+	blockContext := NewBlockContext(head.Number, head.Time)
+	err = ApplyPrecompileActivations(g.Config, nil, blockContext, statedb)
 	if err != nil {
 		panic(fmt.Sprintf("unable to configure precompiles in genesis block: %v", err))
 	}
@@ -305,11 +313,11 @@ func (g *Genesis) toBlock(db ethdb.Database, triedb *triedb.Database) *types.Blo
 	}
 	if conf := g.Config; conf != nil {
 		num := new(big.Int).SetUint64(g.Number)
-		if conf.IsSubnetEVM(g.Timestamp) {
+		if params.GetExtra(conf).IsSubnetEVM(g.Timestamp) {
 			if g.BaseFee != nil {
 				head.BaseFee = g.BaseFee
 			} else {
-				head.BaseFee = new(big.Int).Set(g.Config.FeeConfig.MinBaseFee)
+				head.BaseFee = new(big.Int).Set(params.GetExtra(g.Config).FeeConfig.MinBaseFee)
 			}
 		}
 		if conf.IsCancun(num, g.Timestamp) {
@@ -359,7 +367,7 @@ func (g *Genesis) Commit(db ethdb.Database, triedb *triedb.Database) (*types.Blo
 	rawdb.WriteCanonicalHash(batch, block.Hash(), block.NumberU64())
 	rawdb.WriteHeadBlockHash(batch, block.Hash())
 	rawdb.WriteHeadHeaderHash(batch, block.Hash())
-	rawdb.WriteChainConfig(batch, block.Hash(), config)
+	customrawdb.WriteChainConfig(batch, block.Hash(), config)
 	if err := batch.Write(); err != nil {
 		return nil, fmt.Errorf("failed to write genesis block: %w", err)
 	}
@@ -378,7 +386,7 @@ func (g *Genesis) MustCommit(db ethdb.Database, triedb *triedb.Database) *types.
 
 func (g *Genesis) Verify() error {
 	// Make sure genesis gas limit is consistent
-	gasLimitConfig := g.Config.FeeConfig.GasLimit.Uint64()
+	gasLimitConfig := params.GetExtra(g.Config).FeeConfig.GasLimit.Uint64()
 	if gasLimitConfig != g.GasLimit {
 		return fmt.Errorf(
 			"gas limit in fee config (%d) does not match gas limit in header (%d)",
@@ -387,7 +395,7 @@ func (g *Genesis) Verify() error {
 		)
 	}
 	// Verify config
-	if err := g.Config.Verify(); err != nil {
+	if err := params.GetExtra(g.Config).Verify(); err != nil {
 		return err
 	}
 	return nil

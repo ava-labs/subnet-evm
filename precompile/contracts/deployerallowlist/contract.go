@@ -4,9 +4,9 @@
 package deployerallowlist
 
 import (
+	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
-	"github.com/ethereum/go-ethereum/common"
 )
 
 // Singleton StatefulPrecompiledContract for W/R access to the contract deployer allow list.
@@ -14,7 +14,7 @@ var ContractDeployerAllowListPrecompile contract.StatefulPrecompiledContract = a
 
 // GetContractDeployerAllowListStatus returns the role of [address] for the contract deployer
 // allow list.
-func GetContractDeployerAllowListStatus(stateDB contract.StateDB, address common.Address) allowlist.Role {
+func GetContractDeployerAllowListStatus(stateDB contract.StateReader, address common.Address) allowlist.Role {
 	return allowlist.GetAllowListStatus(stateDB, ContractAddress, address)
 }
 

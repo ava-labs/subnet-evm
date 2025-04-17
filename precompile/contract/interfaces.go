@@ -8,8 +8,9 @@ import (
 	"math/big"
 
 	"github.com/ava-labs/avalanchego/snow"
+	"github.com/ava-labs/libevm/common"
+	ethtypes "github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 )
 
@@ -19,9 +20,13 @@ type StatefulPrecompiledContract interface {
 	Run(accessibleState AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error)
 }
 
+type StateReader interface {
+	GetState(common.Address, common.Hash) common.Hash
+}
+
 // StateDB is the interface for accessing EVM state
 type StateDB interface {
-	GetState(common.Address, common.Hash) common.Hash
+	StateReader
 	SetState(common.Address, common.Hash, common.Hash)
 
 	SetNonce(common.Address, uint64)
@@ -33,7 +38,7 @@ type StateDB interface {
 	CreateAccount(common.Address)
 	Exist(common.Address) bool
 
-	AddLog(addr common.Address, topics []common.Hash, data []byte, blockNumber uint64)
+	AddLog(*ethtypes.Log)
 	GetLogData() (topics [][]common.Hash, data [][]byte)
 	GetPredicateStorageSlots(address common.Address, index int) ([]byte, bool)
 	SetPredicateStorageSlots(address common.Address, predicates [][]byte)
@@ -60,8 +65,8 @@ type ConfigurationBlockContext interface {
 
 type BlockContext interface {
 	ConfigurationBlockContext
-	// GetPredicateResults returns an arbitrary byte array result of verifying the predicates
-	// of the given transaction, precompile address pair.
+	// GetPredicateResults returns the result of verifying the predicates of the
+	// given transaction, precompile address pair as a byte array.
 	GetPredicateResults(txHash common.Hash, precompileAddress common.Address) []byte
 }
 

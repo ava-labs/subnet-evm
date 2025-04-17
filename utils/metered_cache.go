@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/VictoriaMetrics/fastcache"
-	"github.com/ava-labs/subnet-evm/metrics"
+	"github.com/ava-labs/libevm/metrics"
 )
 
 // MeteredCache wraps *fastcache.Cache and periodically pulls stats from it.
@@ -56,7 +56,7 @@ func NewMeteredCache(size int, namespace string, updateFrequency uint64) *Metere
 	return mc
 }
 
-// updateStats updates metrics from fastcache
+// updateStatsIfNeeded updates metrics from fastcache
 func (mc *MeteredCache) updateStatsIfNeeded() {
 	if mc.namespace == "" {
 		return

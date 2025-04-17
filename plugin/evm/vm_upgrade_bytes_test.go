@@ -12,22 +12,22 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ava-labs/avalanchego/api/metrics"
 	"github.com/ava-labs/avalanchego/snow"
 	commonEng "github.com/ava-labs/avalanchego/snow/engine/common"
 	"github.com/ava-labs/avalanchego/snow/engine/enginetest"
 	"github.com/ava-labs/avalanchego/upgrade"
 	"github.com/ava-labs/avalanchego/vms/components/chain"
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/common/hexutil"
+	"github.com/ava-labs/libevm/common/math"
+	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/crypto"
 	"github.com/ava-labs/subnet-evm/core"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/metrics"
-	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/params/extras"
+	"github.com/ava-labs/subnet-evm/plugin/evm/vmerrors"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/txallowlist"
 	"github.com/ava-labs/subnet-evm/utils"
-	"github.com/ava-labs/subnet-evm/vmerrs"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/common/math"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -38,8 +38,8 @@ var DefaultEtnaTime = uint64(upgrade.GetConfig(testNetworkID).EtnaTime.Unix())
 func TestVMUpgradeBytesPrecompile(t *testing.T) {
 	// Make a TxAllowListConfig upgrade at genesis and convert it to JSON to apply as upgradeBytes.
 	enableAllowListTimestamp := upgrade.InitiallyActiveTime // enable at initial time
-	upgradeConfig := &params.UpgradeConfig{
-		PrecompileUpgrades: []params.PrecompileUpgrade{
+	upgradeConfig := &extras.UpgradeConfig{
+		PrecompileUpgrades: []extras.PrecompileUpgrade{
 			{
 				Config: txallowlist.NewConfig(utils.TimeToNewUint64(enableAllowListTimestamp), testEthAddrs[0:1], nil, nil),
 			},
@@ -71,7 +71,7 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 		t.Fatal(err)
 	}
 	errs = vm.txPool.AddRemotesSync([]*types.Transaction{signedTx1})
-	if err := errs[0]; !errors.Is(err, vmerrs.ErrSenderAddressNotAllowListed) {
+	if err := errs[0]; !errors.Is(err, vmerrors.ErrSenderAddressNotAllowListed) {
 		t.Fatalf("expected ErrSenderAddressNotAllowListed, got: %s", err)
 	}
 
@@ -84,7 +84,7 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 	disableAllowListTimestamp := vm.clock.Time().Add(10 * time.Hour) // arbitrary choice
 	upgradeConfig.PrecompileUpgrades = append(
 		upgradeConfig.PrecompileUpgrades,
-		params.PrecompileUpgrade{
+		extras.PrecompileUpgrade{
 			Config: txallowlist.NewDisableConfig(utils.TimeToNewUint64(disableAllowListTimestamp)),
 		},
 	)
@@ -94,12 +94,10 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 	}
 
 	// restart the vm
-	// Hack: registering metrics uses global variables, so we need to disable metrics here so that we
-	// can initialize the VM twice.
-	metrics.Enabled = false
-	defer func() {
-		metrics.Enabled = true
-	}()
+
+	// Reset metrics to allow re-initialization
+	vm.ctx.Metrics = metrics.NewPrefixGatherer()
+
 	if err := vm.Initialize(
 		context.Background(), vm.ctx, dbManager, []byte(genesisJSONSubnetEVM), upgradeBytesJSON, []byte{}, issuer, []*commonEng.Fx{}, appSender,
 	); err != nil {
@@ -130,7 +128,7 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 
 	// Submit a rejected transaction, should throw an error
 	errs = vm.txPool.AddRemotesSync([]*types.Transaction{signedTx1})
-	if err := errs[0]; !errors.Is(err, vmerrs.ErrSenderAddressNotAllowListed) {
+	if err := errs[0]; !errors.Is(err, vmerrors.ErrSenderAddressNotAllowListed) {
 		t.Fatalf("expected ErrSenderAddressNotAllowListed, got: %s", err)
 	}
 
@@ -145,7 +143,7 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 	assert.Equal(t, signedTx0.Hash(), txs[0].Hash())
 
 	// verify the issued block is after the network upgrade
-	assert.GreaterOrEqual(t, int64(block.Timestamp()), disableAllowListTimestamp.Unix())
+	assert.GreaterOrEqual(t, int64(block.Time()), disableAllowListTimestamp.Unix())
 
 	<-newTxPoolHeadChan // wait for new head in tx pool
 
@@ -212,11 +210,11 @@ func TestNetworkUpgradesOverriden(t *testing.T) {
 	}()
 
 	// verify upgrade overrides
-	require.False(t, vm.chainConfig.IsSubnetEVM(0))
-	require.True(t, vm.chainConfig.IsSubnetEVM(2))
-	require.False(t, vm.chainConfig.IsDurango(0))
-	require.False(t, vm.chainConfig.IsDurango(uint64(upgrade.InitiallyActiveTime.Unix())))
-	require.True(t, vm.chainConfig.IsDurango(1607144402))
+	require.False(t, vm.chainConfigExtra().IsSubnetEVM(0))
+	require.True(t, vm.chainConfigExtra().IsSubnetEVM(2))
+	require.False(t, vm.chainConfigExtra().IsDurango(0))
+	require.False(t, vm.chainConfigExtra().IsDurango(uint64(upgrade.InitiallyActiveTime.Unix())))
+	require.True(t, vm.chainConfigExtra().IsDurango(1607144402))
 }
 
 func mustMarshal(t *testing.T, v interface{}) string {
@@ -244,7 +242,7 @@ func TestVMStateUpgrade(t *testing.T) {
 	upgradedCodeStr := "0xdeadbeef" // this code will be applied during the upgrade
 	upgradedCode, err := hexutil.Decode(upgradedCodeStr)
 	// This modification will be applied to an existing account
-	genesisAccountUpgrade := &params.StateUpgradeAccount{
+	genesisAccountUpgrade := &extras.StateUpgradeAccount{
 		BalanceChange: (*math.HexOrDecimal256)(big.NewInt(100)),
 		Storage:       map[common.Hash]common.Hash{storageKey: {}},
 		Code:          upgradedCode,
@@ -253,7 +251,7 @@ func TestVMStateUpgrade(t *testing.T) {
 	// This modification will be applied to a new account
 	newAccount := common.Address{42}
 	require.NoError(t, err)
-	newAccountUpgrade := &params.StateUpgradeAccount{
+	newAccountUpgrade := &extras.StateUpgradeAccount{
 		BalanceChange: (*math.HexOrDecimal256)(big.NewInt(100)),
 		Storage:       map[common.Hash]common.Hash{storageKey: common.HexToHash("0x6666")},
 		Code:          upgradedCode,
@@ -349,8 +347,8 @@ func TestVMEupgradeActivatesCancun(t *testing.T) {
 			name:        "Later Etna activates Cancun",
 			genesisJSON: genesisJSONDurango,
 			upgradeJSON: func() string {
-				upgrade := &params.UpgradeConfig{
-					NetworkUpgradeOverrides: &params.NetworkUpgrades{
+				upgrade := &extras.UpgradeConfig{
+					NetworkUpgradeOverrides: &extras.NetworkUpgrades{
 						EtnaTimestamp: utils.NewUint64(DefaultEtnaTime + 2),
 					},
 				}
@@ -367,8 +365,8 @@ func TestVMEupgradeActivatesCancun(t *testing.T) {
 			name:        "Changed Etna changes Cancun",
 			genesisJSON: genesisJSONEtna,
 			upgradeJSON: func() string {
-				upgrade := &params.UpgradeConfig{
-					NetworkUpgradeOverrides: &params.NetworkUpgrades{
+				upgrade := &extras.UpgradeConfig{
+					NetworkUpgradeOverrides: &extras.NetworkUpgrades{
 						EtnaTimestamp: utils.NewUint64(DefaultEtnaTime + 2),
 					},
 				}

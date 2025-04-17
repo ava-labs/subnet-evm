@@ -37,21 +37,21 @@ import (
 	"sync/atomic"
 	"testing"
 
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/common/hexutil"
+	"github.com/ava-labs/libevm/core/rawdb"
+	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/core/vm"
+	"github.com/ava-labs/libevm/crypto"
+	"github.com/ava-labs/libevm/eth/tracers/logger"
+	"github.com/ava-labs/libevm/ethdb"
 	"github.com/ava-labs/subnet-evm/consensus"
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
 	"github.com/ava-labs/subnet-evm/core"
-	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/state"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/core/vm"
-	"github.com/ava-labs/subnet-evm/eth/tracers/logger"
 	"github.com/ava-labs/subnet-evm/internal/ethapi"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/rpc"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/ethdb"
 	"golang.org/x/exp/slices"
 )
 
@@ -181,7 +181,8 @@ func (b *testBackend) StateAtNextBlock(ctx context.Context, parent, nextBlock *t
 		return nil, nil, err
 	}
 	// Apply upgrades to the parent state
-	err = core.ApplyUpgrades(b.chainConfig, &parent.Header().Time, nextBlock, statedb)
+	blockContext := core.NewBlockContext(nextBlock.Number(), nextBlock.Time())
+	err = core.ApplyUpgrades(b.chainConfig, &parent.Header().Time, blockContext, statedb)
 	if err != nil {
 		release()
 		return nil, nil, err
