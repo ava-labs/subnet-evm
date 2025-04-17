@@ -61,6 +61,8 @@ func NewStandaloneDatabase(dbConfig avalanchenode.DatabaseConfig, gatherer metri
 		)
 	}
 
+	db = corruptabledb.New(db)
+
 	if dbConfig.ReadOnly && dbConfig.Name != memdb.Name {
 		db = versiondb.New(db)
 	}
@@ -78,7 +80,6 @@ func NewStandaloneDatabase(dbConfig avalanchenode.DatabaseConfig, gatherer metri
 		return nil, fmt.Errorf("failed to create meterdb: %w", err)
 	}
 
-	db = corruptabledb.New(db)
 	return db, nil
 }
 
