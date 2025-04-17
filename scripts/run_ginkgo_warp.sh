@@ -14,8 +14,6 @@ SUBNET_EVM_PATH=$(
 
 source "$SUBNET_EVM_PATH"/scripts/constants.sh
 
-source "$SUBNET_EVM_PATH"/scripts/versions.sh
-
 EXTRA_ARGS=()
 AVALANCHEGO_BUILD_PATH="${AVALANCHEGO_BUILD_PATH:-}"
 if [[ -n "${AVALANCHEGO_BUILD_PATH}" ]]; then

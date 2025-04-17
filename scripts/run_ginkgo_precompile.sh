@@ -13,8 +13,6 @@ SUBNET_EVM_PATH=$(
 
 source "$SUBNET_EVM_PATH"/scripts/constants.sh
 
-source "$SUBNET_EVM_PATH"/scripts/versions.sh
-
 TEST_SOURCE_ROOT=$(pwd)
 
 # By default, it runs all e2e test cases!

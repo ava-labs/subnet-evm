@@ -12,9 +12,6 @@ SUBNET_EVM_PATH=$(
 # Load the constants
 source "$SUBNET_EVM_PATH"/scripts/constants.sh
 
-# Load the versions
-source "$SUBNET_EVM_PATH"/scripts/versions.sh
-
 build_and_test() {
   local imagename="${1}"
   local vm_id="${2}"

@@ -17,7 +17,7 @@ if [[ -n "${VERSION}" ]]; then
 fi
 
 # Discover AVALANCHE_VERSION
-. scripts/versions.sh
+. scripts/constants.sh
 
 # The full SHA is required for versioning custom actions.
 CURL_ARGS=(curl -s)

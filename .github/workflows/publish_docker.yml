@@ -4,15 +4,20 @@ on:
   workflow_dispatch:
     inputs:
       vm_id:
-        description: 'The ID of the VM (binary dst in Docker image)'
-        default: ''
+        description: "The ID of the VM (binary dst in Docker image)"
+        default: ""
         required: false
         type: string
       avalanche_version:
-        description: 'The SHA or tag of avalanchego to use for the base image (must be compatible with the version in go.mod)'
-        default: ''
+        description: "The SHA or tag of avalanchego to use for the base image (must be compatible with the version in go.mod)"
+        default: ""
         required: false
         type: string
+      tag_latest:
+        description: "Whether or not to tag the image with the latest"
+        default: false
+        required: false
+        type: boolean
 
   push:
     tags:
@@ -36,4 +41,5 @@ jobs:
           PUBLISH: 1
           PLATFORMS: "linux/amd64,linux/arm64"
           AVALANCHE_VERSION: ${{ inputs.avalanche_version }}
+          TAG_LATEST: ${{ github.event_name != 'workflow_dispatch' || inputs.tag_latest }}
         run: scripts/build_docker_image.sh
