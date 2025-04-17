@@ -7,6 +7,11 @@ if ! [[ "$0" =~ scripts/update_avalanchego_version.sh ]]; then
   exit 255
 fi
 
+SUBNET_EVM_PATH=$(
+  cd "$(dirname "${BASH_SOURCE[0]}")"
+  cd .. && pwd
+)
+
 # If version is not provided, the existing version in go.mod is assumed
 VERSION="${1:-}"
 
