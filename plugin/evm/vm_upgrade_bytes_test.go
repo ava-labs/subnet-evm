@@ -257,6 +257,15 @@ func TestVMStateUpgrade(t *testing.T) {
 		Code:          upgradedCode,
 	}
 
+	// Create a new account just for testing nonce setting
+	nonceTestAccount := common.Address{99}
+	explicitNonce := uint64(10)
+	nonceTestAccountUpgrade := &params.StateUpgradeAccount{
+		BalanceChange: (*math.HexOrDecimal256)(big.NewInt(50)),
+		Nonce:         &explicitNonce,
+		// No code for this account - should still set the nonce directly
+	}
+
 	upgradeTimestamp := upgrade.InitiallyActiveTime.Add(10 * time.Hour)
 	upgradeBytesJSON := fmt.Sprintf(
 		`{
@@ -264,6 +273,7 @@ func TestVMStateUpgrade(t *testing.T) {
 				{
 					"blockTimestamp": %d,
 					"accounts": {
+						"%s": %s,
 						"%s": %s,
 						"%s": %s
 					}
@@ -275,6 +285,8 @@ func TestVMStateUpgrade(t *testing.T) {
 		mustMarshal(t, genesisAccountUpgrade),
 		newAccount.Hex(),
 		mustMarshal(t, newAccountUpgrade),
+		nonceTestAccount.Hex(),
+		mustMarshal(t, nonceTestAccountUpgrade),
 	)
 	require.Contains(t, upgradeBytesJSON, upgradedCodeStr)
 
@@ -327,6 +339,12 @@ func TestVMStateUpgrade(t *testing.T) {
 	require.Equal(t, state.GetCodeHash(newAccount), crypto.Keccak256Hash(upgradedCode))
 	require.Equal(t, state.GetNonce(newAccount), uint64(1)) // Nonce should be set to 1 when code is set if nonce was 0
 	require.Equal(t, state.GetState(newAccount, storageKey), newAccountUpgrade.Storage[storageKey])
+
+	// Test the nonce-specific account
+	expectedNonceTestAccountBalance := uint256.MustFromBig((*big.Int)(nonceTestAccountUpgrade.BalanceChange))
+	require.Equal(t, state.GetNonce(nonceTestAccount), explicitNonce)
+	require.Equal(t, state.GetBalance(nonceTestAccount), expectedNonceTestAccountBalance)
+	require.Empty(t, state.GetCode(nonceTestAccount)) // No code should be set
 }
 
 func TestVMEupgradeActivatesCancun(t *testing.T) {
