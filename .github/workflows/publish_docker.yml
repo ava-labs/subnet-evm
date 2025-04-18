@@ -14,7 +14,7 @@ on:
         required: false
         type: string
       tag_latest:
-        description: "Whether or not to tag the image with the latest"
+        description: "Whether or not to tag the image created as latest"
         default: false
         required: false
         type: boolean
