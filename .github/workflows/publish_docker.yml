@@ -36,7 +36,6 @@ jobs:
         env:
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
           DOCKER_PASS: ${{ secrets.DOCKER_PASS }}
-          IMAGE_NAME: "avaplatform/avalanchego-subnet-evm"
           VM_ID: ${{ inputs.vm_id }}
           PUBLISH: 1
           PLATFORMS: "linux/amd64,linux/arm64"

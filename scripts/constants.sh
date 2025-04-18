@@ -13,7 +13,7 @@ DEFAULT_VM_ID="srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy"
 
 # Avalabs docker hub
 # avaplatform/avalanchego - defaults to local as to avoid unintentional pushes
-# You should probably set it - export IMAGE_NAME='avaplatform/subnet-evm'
+# You should probably set it - export IMAGE_NAME='avaplatform/subnet-evm_avalanchego'
 IMAGE_NAME=${IMAGE_NAME:-"subnet-evm_avalanchego"}
 
 # Shared between ./scripts/build_docker_image.sh and ./scripts/tests.build_docker_image.sh
