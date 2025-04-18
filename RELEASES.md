@@ -2,7 +2,7 @@
 
 ## Pending Release
 
-- Updated dockerhub image name to `avaplatform/avalanchego_subnet-evm` and tags to accommodate the new versioning scheme: {avalanchego version}_{subnet-evm version}
+- Updated dockerhub image name to `avaplatform/subnet-evm_avalanchego` and tags to accommodate the new versioning scheme: {subnet-evm version}_{avalanchego version}
 
 ## [v0.7.3](https://github.com/ava-labs/subnet-evm/releases/tag/v0.7.3)
 

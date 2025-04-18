@@ -22,7 +22,7 @@ if [[ -n "${VERSION}" ]]; then
 fi
 
 # Discover AVALANCHE_VERSION
-. scripts/constants.sh
+. "$SUBNET_EVM_PATH"/scripts/constants.sh
 
 # The full SHA is required for versioning custom actions.
 CURL_ARGS=(curl -s)
