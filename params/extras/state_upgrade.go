@@ -43,9 +43,14 @@ func (c *ChainConfig) verifyStateUpgrades() error {
 		if upgradeTimestamp == nil {
 			return fmt.Errorf("StateUpgrade[%d]: config block timestamp cannot be nil ", i)
 		}
-		// Verify the upgrade's timestamp is equal 0 (to avoid confusion with genesis).
+		// Verify the upgrade's timestamp is not equal 0 (to avoid confusion with genesis).
 		if *upgradeTimestamp == 0 {
 			return fmt.Errorf("StateUpgrade[%d]: config block timestamp (%v) must be greater than 0", i, *upgradeTimestamp)
+		}
+
+		// Verify SubnetEVM is activated at the specified timestamp.
+		if !c.IsSubnetEVM(*upgradeTimestamp) {
+			return fmt.Errorf("StateUpgrade[%d]: config block timestamp (%v) is not activated on SubnetEVM", i, *upgradeTimestamp)
 		}
 
 		// Verify specified timestamps are strictly monotonically increasing.

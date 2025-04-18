@@ -284,7 +284,7 @@ func TestPredicateBytesFromExtra(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			got := PredicateBytesFromExtra(test.extra)
+			got := PredicateBytesFromExtra(extras.AvalancheRules{}, test.extra)
 			require.Equal(t, test.expected, got)
 		})
 	}
@@ -323,7 +323,7 @@ func TestSetPredicateBytesInExtra(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			got := SetPredicateBytesInExtra(test.extra, test.predicate)
+			got := SetPredicateBytesInExtra(extras.AvalancheRules{}, test.extra, test.predicate)
 			require.Equal(t, test.want, got)
 		})
 	}
@@ -360,9 +360,9 @@ func TestPredicateBytesExtra(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			gotExtra := SetPredicateBytesInExtra(test.extra, test.predicate)
+			gotExtra := SetPredicateBytesInExtra(extras.AvalancheRules{}, test.extra, test.predicate)
 			require.Equal(t, test.wantExtraWithPredicate, gotExtra)
-			gotPredicateBytes := PredicateBytesFromExtra(gotExtra)
+			gotPredicateBytes := PredicateBytesFromExtra(extras.AvalancheRules{}, gotExtra)
 			require.Equal(t, test.wantPredicateBytes, gotPredicateBytes)
 		})
 	}

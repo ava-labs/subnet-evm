@@ -13,37 +13,49 @@ import (
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/txallowlist"
+	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-func pointer[T any](v T) *T { return &v }
 
 func TestChainConfigDescription(t *testing.T) {
 	t.Parallel()
 
 	tests := map[string]struct {
-		config    *ChainConfig
-		wantRegex string
+		config *ChainConfig
+		want   string
 	}{
 		"nil": {},
 		"empty": {
 			config: &ChainConfig{},
-			wantRegex: `Avalanche Upgrades \(timestamp based\)\:
- - SubnetEVM Timestamp: ( )+@nil( )+\(https:\/\/github\.com\/ava-labs\/avalanchego\/releases\/tag\/v1\.10\.0\)
-( - .+Timestamp: .+\n)+
+			want: `Avalanche Upgrades (timestamp based):
+ - Apricot Phase 1 Timestamp:        @nil        (https://github.com/ava-labs/avalanchego/releases/tag/v1.3.0)
+ - Apricot Phase 2 Timestamp:        @nil        (https://github.com/ava-labs/avalanchego/releases/tag/v1.4.0)
+ - Apricot Phase 3 Timestamp:        @nil        (https://github.com/ava-labs/avalanchego/releases/tag/v1.5.0)
+ - Apricot Phase 4 Timestamp:        @nil        (https://github.com/ava-labs/avalanchego/releases/tag/v1.6.0)
+ - Apricot Phase 5 Timestamp:        @nil        (https://github.com/ava-labs/avalanchego/releases/tag/v1.7.0)
+ - Apricot Phase P6 Timestamp:        @nil        (https://github.com/ava-labs/avalanchego/releases/tag/v1.8.0)
+ - Apricot Phase 6 Timestamp:        @nil        (https://github.com/ava-labs/avalanchego/releases/tag/v1.8.0)
+ - Apricot Phase Post-6 Timestamp:   @nil        (https://github.com/ava-labs/avalanchego/releases/tag/v1.8.0
+ - Banff Timestamp:                  @nil        (https://github.com/ava-labs/avalanchego/releases/tag/v1.9.0)
+ - Cortina Timestamp:                @nil        (https://github.com/ava-labs/avalanchego/releases/tag/v1.10.0)
+ - SubnetEVM Timestamp:          @nil        (https://github.com/ava-labs/avalanchego/releases/tag/v1.10.0)
+ - Durango Timestamp:            @nil        (https://github.com/ava-labs/avalanchego/releases/tag/v1.11.0)
+ - Etna Timestamp:               @nil        (https://github.com/ava-labs/avalanchego/releases/tag/v1.12.0)
+ - Fortuna Timestamp:            @nil        (https://github.com/ava-labs/avalanchego/releases/tag/v1.13.0)
+
 Upgrade Config: {}
 Fee Config: {}
 Allow Fee Recipients: false
-$`,
+`,
 		},
 		"set": {
 			config: &ChainConfig{
 				NetworkUpgrades: NetworkUpgrades{
-					SubnetEVMTimestamp: pointer(uint64(1)),
-					DurangoTimestamp:   pointer(uint64(2)),
-					EtnaTimestamp:      pointer(uint64(3)),
-					FortunaTimestamp:   pointer(uint64(4)),
+					SubnetEVMTimestamp: utils.NewUint64(uint64(1)),
+					DurangoTimestamp:   utils.NewUint64(uint64(2)),
+					EtnaTimestamp:      utils.NewUint64(uint64(3)),
+					FortunaTimestamp:   utils.NewUint64(uint64(4)),
 				},
 				FeeConfig: commontype.FeeConfig{
 					GasLimit:                 big.NewInt(5),
@@ -58,13 +70,13 @@ $`,
 				AllowFeeRecipients: true,
 				UpgradeConfig: UpgradeConfig{
 					NetworkUpgradeOverrides: &NetworkUpgrades{
-						SubnetEVMTimestamp: pointer(uint64(13)),
+						SubnetEVMTimestamp: utils.NewUint64(uint64(13)),
 					},
 					StateUpgrades: []StateUpgrade{
 						{
-							BlockTimestamp: pointer(uint64(14)),
+							BlockTimestamp: utils.NewUint64(uint64(14)),
 							StateUpgradeAccounts: map[common.Address]StateUpgradeAccount{
-								common.Address{15}: {
+								{15}: {
 									Code: []byte{16},
 								},
 							},
@@ -72,20 +84,33 @@ $`,
 					},
 				},
 			},
-			wantRegex: `Avalanche Upgrades \(timestamp based\)\:
- - SubnetEVM Timestamp: ( )+@1( )+\(https:\/\/github\.com\/ava-labs\/avalanchego\/releases\/tag\/v1\.10\.0\)
-( - .+Timestamp: .+\n)+
-Upgrade Config: {"networkUpgradeOverrides":{"subnetEVMTimestamp":13},"stateUpgrades":\[{"blockTimestamp":14,"accounts":{"0x0f00000000000000000000000000000000000000":{"code":"0x10"}}}\]}
+			want: `Avalanche Upgrades (timestamp based):
+ - Apricot Phase 1 Timestamp:        @nil        (https://github.com/ava-labs/avalanchego/releases/tag/v1.3.0)
+ - Apricot Phase 2 Timestamp:        @nil        (https://github.com/ava-labs/avalanchego/releases/tag/v1.4.0)
+ - Apricot Phase 3 Timestamp:        @nil        (https://github.com/ava-labs/avalanchego/releases/tag/v1.5.0)
+ - Apricot Phase 4 Timestamp:        @nil        (https://github.com/ava-labs/avalanchego/releases/tag/v1.6.0)
+ - Apricot Phase 5 Timestamp:        @nil        (https://github.com/ava-labs/avalanchego/releases/tag/v1.7.0)
+ - Apricot Phase P6 Timestamp:        @nil        (https://github.com/ava-labs/avalanchego/releases/tag/v1.8.0)
+ - Apricot Phase 6 Timestamp:        @nil        (https://github.com/ava-labs/avalanchego/releases/tag/v1.8.0)
+ - Apricot Phase Post-6 Timestamp:   @nil        (https://github.com/ava-labs/avalanchego/releases/tag/v1.8.0
+ - Banff Timestamp:                  @nil        (https://github.com/ava-labs/avalanchego/releases/tag/v1.9.0)
+ - Cortina Timestamp:                @nil        (https://github.com/ava-labs/avalanchego/releases/tag/v1.10.0)
+ - SubnetEVM Timestamp:          @1          (https://github.com/ava-labs/avalanchego/releases/tag/v1.10.0)
+ - Durango Timestamp:            @2          (https://github.com/ava-labs/avalanchego/releases/tag/v1.11.0)
+ - Etna Timestamp:               @3          (https://github.com/ava-labs/avalanchego/releases/tag/v1.12.0)
+ - Fortuna Timestamp:            @4          (https://github.com/ava-labs/avalanchego/releases/tag/v1.13.0)
+
+Upgrade Config: {"networkUpgradeOverrides":{"subnetEVMTimestamp":13},"stateUpgrades":[{"blockTimestamp":14,"accounts":{"0x0f00000000000000000000000000000000000000":{"code":"0x10"}}}]}
 Fee Config: {"gasLimit":5,"targetBlockRate":6,"minBaseFee":7,"targetGas":8,"baseFeeChangeDenominator":9,"minBlockGasCost":10,"maxBlockGasCost":11,"blockGasCostStep":12}
 Allow Fee Recipients: true
-$`,
+`,
 		},
 	}
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			got := test.config.Description()
-			assert.Regexp(t, test.wantRegex, got, "config description mismatch")
+			assert.Equal(t, test.want, got)
 		})
 	}
 }
@@ -123,8 +148,8 @@ func TestChainConfigVerify(t *testing.T) {
 				UpgradeConfig: UpgradeConfig{
 					PrecompileUpgrades: []PrecompileUpgrade{
 						// same precompile cannot be configured twice for the same timestamp
-						{Config: txallowlist.NewDisableConfig(pointer(uint64(1)))},
-						{Config: txallowlist.NewDisableConfig(pointer(uint64(1)))},
+						{Config: txallowlist.NewDisableConfig(utils.NewUint64(uint64(1)))},
+						{Config: txallowlist.NewDisableConfig(utils.NewUint64(uint64(1)))},
 					},
 				},
 			},
@@ -145,9 +170,15 @@ func TestChainConfigVerify(t *testing.T) {
 			config: ChainConfig{
 				FeeConfig: validFeeConfig,
 				NetworkUpgrades: NetworkUpgrades{
-					SubnetEVMTimestamp: nil,
+					SubnetEVMTimestamp: utils.NewUint64(1),
 				},
-				AvalancheContext: AvalancheContext{SnowCtx: &snow.Context{}},
+				AvalancheContext: AvalancheContext{SnowCtx: &snow.Context{
+					NetworkUpgrades: upgrade.Config{
+						DurangoTime: time.Unix(2, 0),
+						EtnaTime:    time.Unix(3, 0),
+						FortunaTime: time.Unix(4, 0),
+					},
+				}},
 			},
 			errRegex: "^invalid network upgrades: ",
 		},
@@ -155,10 +186,10 @@ func TestChainConfigVerify(t *testing.T) {
 			config: ChainConfig{
 				FeeConfig: validFeeConfig,
 				NetworkUpgrades: NetworkUpgrades{
-					SubnetEVMTimestamp: pointer(uint64(1)),
-					DurangoTimestamp:   pointer(uint64(2)),
-					EtnaTimestamp:      pointer(uint64(3)),
-					FortunaTimestamp:   pointer(uint64(4)),
+					SubnetEVMTimestamp: utils.NewUint64(uint64(0)),
+					DurangoTimestamp:   utils.NewUint64(uint64(2)),
+					EtnaTimestamp:      utils.NewUint64(uint64(3)),
+					FortunaTimestamp:   utils.NewUint64(uint64(4)),
 				},
 				AvalancheContext: AvalancheContext{SnowCtx: &snow.Context{
 					NetworkUpgrades: upgrade.Config{

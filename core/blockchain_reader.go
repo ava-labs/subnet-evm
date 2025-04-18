@@ -41,6 +41,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/core/state/snapshot"
 	"github.com/ava-labs/subnet-evm/params"
+	extraparams "github.com/ava-labs/subnet-evm/params/extras"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/feemanager"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/rewardmanager"
 )
@@ -368,7 +369,7 @@ func (bc *BlockChain) SubscribeAcceptedTransactionEvent(ch chan<- NewTxsEvent) e
 func (bc *BlockChain) GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig, *big.Int, error) {
 	config := params.GetExtra(bc.Config())
 	if !config.IsSubnetEVM(parent.Time) {
-		return params.DefaultFeeConfig, nil, nil
+		return extraparams.DefaultFeeConfig, nil, nil
 	}
 	if !config.IsPrecompileEnabled(feemanager.ContractAddress, parent.Time) {
 		return config.FeeConfig, common.Big0, nil
