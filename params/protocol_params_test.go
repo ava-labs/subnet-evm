@@ -24,7 +24,6 @@ func TestUpstreamParamsValues(t *testing.T) {
 		"MinGasLimit":                        {param: ethparams.MinGasLimit, want: uint64(5000)},
 		"MaxGasLimit":                        {param: ethparams.MaxGasLimit, want: uint64(0x7fffffffffffffff)},
 		"GenesisGasLimit":                    {param: ethparams.GenesisGasLimit, want: uint64(4712388)},
-		"MaximumExtraDataSize":               {param: ethparams.MaximumExtraDataSize, want: uint64(32)},
 		"ExpByteGas":                         {param: ethparams.ExpByteGas, want: uint64(10)},
 		"SloadGas":                           {param: ethparams.SloadGas, want: uint64(50)},
 		"CallValueTransferGas":               {param: ethparams.CallValueTransferGas, want: uint64(9000)},
