@@ -13,8 +13,8 @@ on:
         default: ""
         required: false
         type: string
-      tag_latest:
-        description: "Whether or not to tag the image created as latest"
+      allow_tag_latest:
+        description: "Whether or not allowing to tag the image created as latest (only works for master branch)"
         default: false
         required: false
         type: boolean
@@ -40,5 +40,5 @@ jobs:
           PUBLISH: 1
           PLATFORMS: "linux/amd64,linux/arm64"
           AVALANCHE_VERSION: ${{ inputs.avalanche_version }}
-          TAG_LATEST: ${{ github.event_name != 'workflow_dispatch' || inputs.tag_latest }}
+          ALLOW_TAG_LATEST: ${{ github.event_name != 'workflow_dispatch' || inputs.allow_tag_latest }}
         run: scripts/build_docker_image.sh
