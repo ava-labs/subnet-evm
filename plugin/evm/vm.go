@@ -1025,12 +1025,6 @@ func (vm *VM) SetPreference(ctx context.Context, blkID ids.ID) error {
 	return vm.blockChain.SetPreference(block.(*Block).ethBlock)
 }
 
-// VerifyHeightIndex always returns a nil error since the index is maintained by
-// vm.blockChain.
-func (vm *VM) VerifyHeightIndex(context.Context) error {
-	return nil
-}
-
 // GetBlockIDAtHeight returns the canonical block at [height].
 // Note: the engine assumes that if a block is not found at [height], then
 // [database.ErrNotFound] will be returned. This indicates that the VM has state
@@ -1120,22 +1114,6 @@ func (vm *VM) CreateHandlers(context.Context) (map[string]http.Handler, error) {
 
 	vm.rpcHandlers = append(vm.rpcHandlers, handler)
 	return apis, nil
-}
-
-// CreateStaticHandlers makes new http handlers that can handle API calls
-func (vm *VM) CreateStaticHandlers(context.Context) (map[string]http.Handler, error) {
-	handler := rpc.NewServer(0)
-	if vm.config.HttpBodyLimit > 0 {
-		handler.SetHTTPBodyLimit(int(vm.config.HttpBodyLimit))
-	}
-	if err := handler.RegisterName("static", &StaticService{}); err != nil {
-		return nil, err
-	}
-
-	vm.rpcHandlers = append(vm.rpcHandlers, handler)
-	return map[string]http.Handler{
-		"/rpc": handler,
-	}, nil
 }
 
 /*
