@@ -39,7 +39,6 @@ if [[ -z ${AVALANCHE_VERSION:-} ]]; then
   # Get module details from go.mod
   MODULE_DETAILS="$(go list -m "github.com/ava-labs/avalanchego" 2>/dev/null)"
 
-  # Extract the version part
   AVALANCHE_VERSION="$(echo "${MODULE_DETAILS}" | awk '{print $2}')"
 
   # Check if the version matches the pattern where the last part is the module hash
