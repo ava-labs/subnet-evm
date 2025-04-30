@@ -68,6 +68,10 @@ github.com/ava-labs/avalanchego v1.13.1-rc.0.0.20250428181845-5188a8645904 h1:KR
 github.com/ava-labs/avalanchego v1.13.1-rc.0.0.20250428181845-5188a8645904/go.mod h1:6cFD9bIDPn9aDPzTvAjBndeqURKA1C9c4aEeIcvS0Ms=
 github.com/ava-labs/avalanchego v1.13.1-rc.0.0.20250430134550-7eafc442134e h1:MJmEoW/fXyvQozlvePhHvjxPaaJC2EcTf7Y2Pb5EEfM=
 github.com/ava-labs/avalanchego v1.13.1-rc.0.0.20250430134550-7eafc442134e/go.mod h1:6cFD9bIDPn9aDPzTvAjBndeqURKA1C9c4aEeIcvS0Ms=
+github.com/ava-labs/avalanchego v1.13.1-rc.0.0.20250430173311-e4ba10fb24fd h1:DqNQnSPIWUb2tp148/fl0X1hHlqZlxV02p0f5VkpoIU=
+github.com/ava-labs/avalanchego v1.13.1-rc.0.0.20250430173311-e4ba10fb24fd/go.mod h1:6cFD9bIDPn9aDPzTvAjBndeqURKA1C9c4aEeIcvS0Ms=
+github.com/ava-labs/avalanchego v1.13.1-rc.0.0.20250430173439-a5d772eaa599 h1:nkmFGIdxUoD7B6mEpsLnCAjA8PRlbub2Acv9F/boxIs=
+github.com/ava-labs/avalanchego v1.13.1-rc.0.0.20250430173439-a5d772eaa599/go.mod h1:bRfeWK8CT/il+b5A9RKldDBQqYLoffPZk3ddO4H0zAs=
 github.com/ava-labs/coreth v0.15.1-rc.0 h1:ahuIyp1hb4xiZ3DTA9uKIpVBMpMyXO3VHvwcxQUboSo=
 github.com/ava-labs/coreth v0.15.1-rc.0/go.mod h1:BDKMO8sL2wuvWbtMRzJAsJrleQULHA+CHRbkh5hRG5o=
 github.com/ava-labs/libevm v1.13.14-0.2.0.release h1:uKGCc5/ceeBbfAPRVtBUxbQt50WzB2pEDb8Uy93ePgQ=
