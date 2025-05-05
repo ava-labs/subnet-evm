@@ -160,7 +160,8 @@ func TestUnmarshalStateUpgradeJSON(t *testing.T) {
 					"blockTimestamp": 1677608400,
 					"accounts": {
 						"0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC": {
-							"balanceChange": "100"
+							"balanceChange": "100",
+							"nonce": 42
 						}
 					}
 				}
@@ -175,6 +176,7 @@ func TestUnmarshalStateUpgradeJSON(t *testing.T) {
 				StateUpgradeAccounts: map[common.Address]StateUpgradeAccount{
 					common.HexToAddress("0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"): {
 						BalanceChange: (*math.HexOrDecimal256)(big.NewInt(100)),
+						Nonce:         utils.NewUint64(42),
 					},
 				},
 			},
