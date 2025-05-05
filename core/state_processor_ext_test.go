@@ -27,46 +27,28 @@ func TestBadTxAllowListBlock(t *testing.T) {
 		db       = rawdb.NewMemoryDatabase()
 		testAddr = common.HexToAddress("0x71562b71999873DB5b286dF957af199Ec94617F7")
 
-		config = params.WithExtra(
-			&params.ChainConfig{
-				ChainID:             big.NewInt(1),
-				HomesteadBlock:      big.NewInt(0),
-				EIP150Block:         big.NewInt(0),
-				EIP155Block:         big.NewInt(0),
-				EIP158Block:         big.NewInt(0),
-				ByzantiumBlock:      big.NewInt(0),
-				ConstantinopleBlock: big.NewInt(0),
-				PetersburgBlock:     big.NewInt(0),
-				IstanbulBlock:       big.NewInt(0),
-				MuirGlacierBlock:    big.NewInt(0),
-				BerlinBlock:         big.NewInt(0),
-				LondonBlock:         big.NewInt(0),
-			},
-			&extras.ChainConfig{
-				FeeConfig: params.DefaultFeeConfig,
-				NetworkUpgrades: extras.NetworkUpgrades{
-					SubnetEVMTimestamp: utils.NewUint64(0),
-				},
-				GenesisPrecompiles: extras.Precompiles{
-					txallowlist.ConfigKey: txallowlist.NewConfig(utils.NewUint64(0), nil, nil, nil),
-				},
-			},
-		)
-		signer     = types.LatestSigner(config)
-		testKey, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
-
-		gspec = &Genesis{
-			Config: config,
-			Alloc: GenesisAlloc{
-				testAddr: GenesisAccount{
-					Balance: big.NewInt(1000000000000000000), // 1 ether
-					Nonce:   0,
-				},
-			},
-			GasLimit: params.GetExtra(config).FeeConfig.GasLimit.Uint64(),
-		}
-		blockchain, _ = NewBlockChain(db, DefaultCacheConfig, gspec, dummy.NewCoinbaseFaker(), vm.Config{}, common.Hash{}, false)
+		config      = params.Copy(params.TestChainConfig)
+		configExtra = params.GetExtra(&config)
+		signer      = types.LatestSigner(&config)
+		testKey, _  = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 	)
+
+	configExtra.GenesisPrecompiles = extras.Precompiles{
+		txallowlist.ConfigKey: txallowlist.NewConfig(utils.NewUint64(0), nil, nil, nil),
+	}
+
+	gspec := &Genesis{
+		Config: &config,
+		Alloc: GenesisAlloc{
+			testAddr: GenesisAccount{
+				Balance: big.NewInt(1000000000000000000), // 1 ether
+				Nonce:   0,
+			},
+		},
+		GasLimit: params.GetExtra(&config).FeeConfig.GasLimit.Uint64(),
+	}
+	blockchain, _ := NewBlockChain(db, DefaultCacheConfig, gspec, dummy.NewCoinbaseFaker(), vm.Config{}, common.Hash{}, false)
+
 	defer blockchain.Stop()
 
 	mkDynamicTx := func(nonce uint64, to common.Address, gasLimit uint64, gasTipCap, gasFeeCap *big.Int) *types.Transaction {

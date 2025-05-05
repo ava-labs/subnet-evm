@@ -73,23 +73,23 @@ func TestSetupGenesis(t *testing.T) {
 }
 
 func testSetupGenesis(t *testing.T, scheme string) {
-	preSubnetConfig := params.Copy(params.TestPreSubnetEVMChainConfig)
-	params.GetExtra(&preSubnetConfig).SubnetEVMTimestamp = utils.NewUint64(100)
+	config := params.Copy(params.TestSubnetEVMChainConfig)
+	params.GetExtra(&config).SubnetEVMTimestamp = utils.NewUint64(100)
 	var (
 		customghash = common.HexToHash("0x4a12fe7bf8d40d152d7e9de22337b115186a4662aa3a97217b36146202bbfc66")
 		customg     = Genesis{
-			Config: &preSubnetConfig,
+			Config: &config,
 			Alloc: types.GenesisAlloc{
 				{1}: {Balance: big.NewInt(1), Storage: map[common.Hash]common.Hash{{1}: {1}}},
 			},
-			GasLimit: params.GetExtra(&preSubnetConfig).FeeConfig.GasLimit.Uint64(),
+			GasLimit: params.GetExtra(&config).FeeConfig.GasLimit.Uint64(),
 		}
 		oldcustomg = customg
 	)
 
-	rollbackpreSubnetConfig := params.Copy(&preSubnetConfig)
-	params.GetExtra(&rollbackpreSubnetConfig).SubnetEVMTimestamp = utils.NewUint64(90)
-	oldcustomg.Config = &rollbackpreSubnetConfig
+	rollbackConfig := params.Copy(&config)
+	params.GetExtra(&rollbackConfig).SubnetEVMTimestamp = utils.NewUint64(90)
+	oldcustomg.Config = &rollbackConfig
 
 	tests := []struct {
 		name       string

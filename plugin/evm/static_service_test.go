@@ -12,6 +12,7 @@ import (
 	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/params"
+	extraparams "github.com/ava-labs/subnet-evm/params/extras"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -31,7 +32,7 @@ func TestBuildGenesis(t *testing.T) {
 		testEthAddrs[1]: {Balance: genesisBalance},
 	}
 	genesis.Alloc = testAlloc
-	params.GetExtra(genesis.Config).FeeConfig = params.DefaultFeeConfig
+	params.GetExtra(genesis.Config).FeeConfig = extraparams.DefaultFeeConfig
 	testGasLimit := big.NewInt(999999)
 	params.GetExtra(genesis.Config).FeeConfig.GasLimit = testGasLimit
 	genesis.GasLimit = testGasLimit.Uint64()
@@ -69,7 +70,7 @@ func TestDecodeGenesis(t *testing.T) {
 		testEthAddrs[1]: {Balance: genesisBalance},
 	}
 	genesis.Alloc = testAlloc
-	params.GetExtra(genesis.Config).FeeConfig = params.DefaultFeeConfig
+	params.GetExtra(genesis.Config).FeeConfig = extraparams.DefaultFeeConfig
 	testGasLimit := big.NewInt(999999)
 	params.GetExtra(genesis.Config).FeeConfig.GasLimit = testGasLimit
 	genesis.GasLimit = testGasLimit.Uint64()

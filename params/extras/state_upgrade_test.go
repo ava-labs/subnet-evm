@@ -21,9 +21,10 @@ func TestVerifyStateUpgrades(t *testing.T) {
 		},
 	}
 	tests := []struct {
-		name          string
-		upgrades      []StateUpgrade
-		expectedError string
+		name                       string
+		upgrades                   []StateUpgrade
+		subnetEVMTimestampOverride *uint64
+		expectedError              string
 	}{
 		{
 			name: "valid upgrade",
@@ -31,6 +32,15 @@ func TestVerifyStateUpgrades(t *testing.T) {
 				{BlockTimestamp: utils.NewUint64(1), StateUpgradeAccounts: modifiedAccounts},
 				{BlockTimestamp: utils.NewUint64(2), StateUpgradeAccounts: modifiedAccounts},
 			},
+		},
+		{
+			name: "subnetEVM not activated",
+			upgrades: []StateUpgrade{
+				{BlockTimestamp: utils.NewUint64(1), StateUpgradeAccounts: modifiedAccounts},
+				{BlockTimestamp: utils.NewUint64(2), StateUpgradeAccounts: modifiedAccounts},
+			},
+			subnetEVMTimestampOverride: utils.NewUint64(2),
+			expectedError:              "config block timestamp (1) is not activated on SubnetEVM",
 		},
 		{
 			name: "upgrade block timestamp is not strictly increasing",
@@ -62,6 +72,9 @@ func TestVerifyStateUpgrades(t *testing.T) {
 			copy := *TestChainConfig
 			config := &copy
 			config.StateUpgrades = tt.upgrades
+			if tt.subnetEVMTimestampOverride != nil {
+				config.SubnetEVMTimestamp = tt.subnetEVMTimestampOverride
+			}
 
 			err := config.Verify()
 			if tt.expectedError == "" {

@@ -38,6 +38,7 @@ import (
 	"github.com/ava-labs/subnet-evm/consensus/misc/eip4844"
 	"github.com/ava-labs/subnet-evm/core/extstate"
 	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/params/extras"
 	customheader "github.com/ava-labs/subnet-evm/plugin/evm/header"
 	"github.com/ava-labs/subnet-evm/predicate"
 	"github.com/holiman/uint256"
@@ -91,7 +92,8 @@ type ChainContext interface {
 
 // NewEVMBlockContext creates a new context for use in the EVM.
 func NewEVMBlockContext(header *types.Header, chain ChainContext, author *common.Address) vm.BlockContext {
-	predicateBytes := customheader.PredicateBytesFromExtra(header.Extra)
+	// TODO: fix this
+	predicateBytes := customheader.PredicateBytesFromExtra(extras.AvalancheRules{}, header.Extra)
 	if len(predicateBytes) == 0 {
 		return newEVMBlockContext(header, chain, author, nil)
 	}
@@ -118,6 +120,8 @@ func NewEVMBlockContextWithPredicateResults(header *types.Header, chain ChainCon
 	// Note this only sets the block context, which is the hand-off point for
 	// the EVM. The actual header is not modified.
 	blockCtx.Header.Extra = customheader.SetPredicateBytesInExtra(
+		// TODO: fix this
+		extras.AvalancheRules{},
 		bytes.Clone(header.Extra),
 		predicateBytes,
 	)

@@ -5,7 +5,9 @@ package params
 
 import (
 	"fmt"
+	"maps"
 	"math/big"
+	"slices"
 
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/libevm/common"
@@ -48,15 +50,71 @@ func (r RulesExtra) CanExecuteTransaction(_ common.Address, _ *common.Address, _
 	return nil
 }
 
+var PrecompiledContractsApricotPhase2 = map[common.Address]contract.StatefulPrecompiledContract{
+	// nativeasset.GenesisContractAddr:    &nativeasset.DeprecatedContract{},
+	// nativeasset.NativeAssetBalanceAddr: &nativeasset.NativeAssetBalance{GasCost: AssetBalanceApricot},
+	// nativeasset.NativeAssetCallAddr:    &nativeasset.NativeAssetCall{GasCost: AssetCallApricot, CallNewAccountGas: CallNewAccountGas},
+}
+
+var PrecompiledContractsApricotPhasePre6 = map[common.Address]contract.StatefulPrecompiledContract{
+	// nativeasset.GenesisContractAddr:    &nativeasset.DeprecatedContract{},
+	// nativeasset.NativeAssetBalanceAddr: &nativeasset.DeprecatedContract{},
+	// nativeasset.NativeAssetCallAddr:    &nativeasset.DeprecatedContract{},
+}
+
+var PrecompiledContractsApricotPhase6 = map[common.Address]contract.StatefulPrecompiledContract{
+	// nativeasset.GenesisContractAddr:    &nativeasset.DeprecatedContract{},
+	// nativeasset.NativeAssetBalanceAddr: &nativeasset.NativeAssetBalance{GasCost: AssetBalanceApricot},
+	// nativeasset.NativeAssetCallAddr:    &nativeasset.NativeAssetCall{GasCost: AssetCallApricot, CallNewAccountGas: CallNewAccountGas},
+}
+
+var PrecompiledContractsBanff = map[common.Address]contract.StatefulPrecompiledContract{
+	// nativeasset.GenesisContractAddr:    &nativeasset.DeprecatedContract{},
+	// nativeasset.NativeAssetBalanceAddr: &nativeasset.DeprecatedContract{},
+	// nativeasset.NativeAssetCallAddr:    &nativeasset.DeprecatedContract{},
+}
+
 func (r RulesExtra) ActivePrecompiles(existing []common.Address) []common.Address {
-	return existing
+	var precompiles map[common.Address]contract.StatefulPrecompiledContract
+	switch {
+	case r.IsBanff:
+		precompiles = PrecompiledContractsBanff
+	case r.IsApricotPhase6:
+		precompiles = PrecompiledContractsApricotPhase6
+	case r.IsApricotPhasePre6:
+		precompiles = PrecompiledContractsApricotPhasePre6
+	case r.IsApricotPhase2:
+		precompiles = PrecompiledContractsApricotPhase2
+	}
+
+	var addresses []common.Address
+	addresses = slices.AppendSeq(addresses, maps.Keys(precompiles))
+	addresses = append(addresses, existing...)
+	return addresses
 }
 
 // precompileOverrideBuiltin specifies precompiles that were activated prior to the
 // dynamic precompile activation registry.
 // These were only active historically and are not active in the current network.
 func (r RulesExtra) precompileOverrideBuiltin(addr common.Address) (libevm.PrecompiledContract, bool) {
-	return nil, false
+	var precompiles map[common.Address]contract.StatefulPrecompiledContract
+	switch {
+	case r.IsBanff:
+		precompiles = PrecompiledContractsBanff
+	case r.IsApricotPhase6:
+		precompiles = PrecompiledContractsApricotPhase6
+	case r.IsApricotPhasePre6:
+		precompiles = PrecompiledContractsApricotPhasePre6
+	case r.IsApricotPhase2:
+		precompiles = PrecompiledContractsApricotPhase2
+	}
+
+	precompile, ok := precompiles[addr]
+	if !ok {
+		return nil, false
+	}
+
+	return makePrecompile(precompile), true
 }
 
 func makePrecompile(contract contract.StatefulPrecompiledContract) libevm.PrecompiledContract {
@@ -66,7 +124,8 @@ func makePrecompile(contract contract.StatefulPrecompiledContract) libevm.Precom
 			panic(err) // Should never happen
 		}
 		var predicateResults *predicate.Results
-		if predicateResultsBytes := customheader.PredicateBytesFromExtra(header.Extra); len(predicateResultsBytes) > 0 {
+		rules := GetRulesExtra(env.Rules()).AvalancheRules
+		if predicateResultsBytes := customheader.PredicateBytesFromExtra(rules, header.Extra); len(predicateResultsBytes) > 0 {
 			predicateResults, err = predicate.ParseResults(predicateResultsBytes)
 			if err != nil {
 				panic(err) // Should never happen, as results are already validated in block validation

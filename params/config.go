@@ -36,6 +36,16 @@ import (
 	"github.com/ava-labs/subnet-evm/utils"
 )
 
+// Avalanche C-Chain ChainIDs
+var (
+	// AvalancheMainnetCChainID ...
+	AvalancheMainnetCChainID = big.NewInt(43114)
+	// AvalancheFujiCChainID ...
+	AvalancheFujiCChainID = big.NewInt(43113)
+	// AvalancheLocalCChainID ...
+	AvalancheLocalCChainID = big.NewInt(43112)
+)
+
 // Guarantees extras initialisation before a call to [params.ChainConfig.Rules].
 var _ = libevmInit()
 
@@ -44,9 +54,11 @@ var (
 	// without any network upgrades.
 	SubnetEVMDefaultChainConfig = WithExtra(
 		&ChainConfig{
-			ChainID: DefaultChainID,
-
-			HomesteadBlock:      big.NewInt(0),
+			ChainID:        extras.DefaultSubnetEVMChainID,
+			HomesteadBlock: big.NewInt(0),
+			// TODO: decide if we want to omit DAO upgrades
+			DAOForkBlock:        big.NewInt(0),
+			DAOForkSupport:      true,
 			EIP150Block:         big.NewInt(0),
 			EIP155Block:         big.NewInt(0),
 			EIP158Block:         big.NewInt(0),
@@ -65,6 +77,8 @@ var (
 		&ChainConfig{
 			ChainID:             big.NewInt(1),
 			HomesteadBlock:      big.NewInt(0),
+			DAOForkBlock:        big.NewInt(0),
+			DAOForkSupport:      true,
 			EIP150Block:         big.NewInt(0),
 			EIP155Block:         big.NewInt(0),
 			EIP158Block:         big.NewInt(0),
@@ -81,10 +95,227 @@ var (
 		extras.TestChainConfig,
 	)
 
+	TestCChainLaunchConfig = WithExtra(
+		&ChainConfig{
+			ChainID:             big.NewInt(1),
+			HomesteadBlock:      big.NewInt(0),
+			DAOForkBlock:        big.NewInt(0),
+			DAOForkSupport:      true,
+			EIP150Block:         big.NewInt(0),
+			EIP155Block:         big.NewInt(0),
+			EIP158Block:         big.NewInt(0),
+			ByzantiumBlock:      big.NewInt(0),
+			ConstantinopleBlock: big.NewInt(0),
+			PetersburgBlock:     big.NewInt(0),
+			IstanbulBlock:       big.NewInt(0),
+			MuirGlacierBlock:    big.NewInt(0),
+		},
+		extras.TestCChainLaunchConfig,
+	)
+
+	TestApricotPhase1Config = WithExtra(
+		&ChainConfig{
+			ChainID:             big.NewInt(1),
+			HomesteadBlock:      big.NewInt(0),
+			DAOForkBlock:        big.NewInt(0),
+			DAOForkSupport:      true,
+			EIP150Block:         big.NewInt(0),
+			EIP155Block:         big.NewInt(0),
+			EIP158Block:         big.NewInt(0),
+			ByzantiumBlock:      big.NewInt(0),
+			ConstantinopleBlock: big.NewInt(0),
+			PetersburgBlock:     big.NewInt(0),
+			IstanbulBlock:       big.NewInt(0),
+			MuirGlacierBlock:    big.NewInt(0),
+		},
+		extras.TestApricotPhase1Config,
+	)
+
+	TestApricotPhase2Config = WithExtra(
+		&ChainConfig{
+			ChainID:             big.NewInt(1),
+			HomesteadBlock:      big.NewInt(0),
+			DAOForkBlock:        big.NewInt(0),
+			DAOForkSupport:      true,
+			EIP150Block:         big.NewInt(0),
+			EIP155Block:         big.NewInt(0),
+			EIP158Block:         big.NewInt(0),
+			ByzantiumBlock:      big.NewInt(0),
+			ConstantinopleBlock: big.NewInt(0),
+			PetersburgBlock:     big.NewInt(0),
+			IstanbulBlock:       big.NewInt(0),
+			MuirGlacierBlock:    big.NewInt(0),
+			BerlinBlock:         big.NewInt(0),
+		},
+		extras.TestApricotPhase2Config,
+	)
+
+	TestApricotPhase3Config = WithExtra(
+		&ChainConfig{
+			ChainID:             big.NewInt(1),
+			HomesteadBlock:      big.NewInt(0),
+			DAOForkBlock:        big.NewInt(0),
+			DAOForkSupport:      true,
+			EIP150Block:         big.NewInt(0),
+			EIP155Block:         big.NewInt(0),
+			EIP158Block:         big.NewInt(0),
+			ByzantiumBlock:      big.NewInt(0),
+			ConstantinopleBlock: big.NewInt(0),
+			PetersburgBlock:     big.NewInt(0),
+			IstanbulBlock:       big.NewInt(0),
+			MuirGlacierBlock:    big.NewInt(0),
+			BerlinBlock:         big.NewInt(0),
+			LondonBlock:         big.NewInt(0),
+		},
+		extras.TestApricotPhase3Config,
+	)
+
+	TestApricotPhase4Config = WithExtra(
+		&ChainConfig{
+			ChainID:             big.NewInt(1),
+			HomesteadBlock:      big.NewInt(0),
+			DAOForkBlock:        big.NewInt(0),
+			DAOForkSupport:      true,
+			EIP150Block:         big.NewInt(0),
+			EIP155Block:         big.NewInt(0),
+			EIP158Block:         big.NewInt(0),
+			ByzantiumBlock:      big.NewInt(0),
+			ConstantinopleBlock: big.NewInt(0),
+			PetersburgBlock:     big.NewInt(0),
+			IstanbulBlock:       big.NewInt(0),
+			MuirGlacierBlock:    big.NewInt(0),
+			BerlinBlock:         big.NewInt(0),
+			LondonBlock:         big.NewInt(0),
+		},
+		extras.TestApricotPhase4Config,
+	)
+
+	TestApricotPhase5Config = WithExtra(
+		&ChainConfig{
+			ChainID:             big.NewInt(1),
+			HomesteadBlock:      big.NewInt(0),
+			DAOForkBlock:        big.NewInt(0),
+			DAOForkSupport:      true,
+			EIP150Block:         big.NewInt(0),
+			EIP155Block:         big.NewInt(0),
+			EIP158Block:         big.NewInt(0),
+			ByzantiumBlock:      big.NewInt(0),
+			ConstantinopleBlock: big.NewInt(0),
+			PetersburgBlock:     big.NewInt(0),
+			IstanbulBlock:       big.NewInt(0),
+			MuirGlacierBlock:    big.NewInt(0),
+			BerlinBlock:         big.NewInt(0),
+			LondonBlock:         big.NewInt(0),
+		},
+		extras.TestApricotPhase5Config,
+	)
+
+	TestApricotPhasePre6Config = WithExtra(
+		&ChainConfig{
+			ChainID:             big.NewInt(1),
+			HomesteadBlock:      big.NewInt(0),
+			DAOForkBlock:        big.NewInt(0),
+			DAOForkSupport:      true,
+			EIP150Block:         big.NewInt(0),
+			EIP155Block:         big.NewInt(0),
+			EIP158Block:         big.NewInt(0),
+			ByzantiumBlock:      big.NewInt(0),
+			ConstantinopleBlock: big.NewInt(0),
+			PetersburgBlock:     big.NewInt(0),
+			IstanbulBlock:       big.NewInt(0),
+			MuirGlacierBlock:    big.NewInt(0),
+			BerlinBlock:         big.NewInt(0),
+			LondonBlock:         big.NewInt(0),
+		},
+		extras.TestApricotPhasePre6Config,
+	)
+
+	TestApricotPhase6Config = WithExtra(
+		&ChainConfig{
+			ChainID:             big.NewInt(1),
+			HomesteadBlock:      big.NewInt(0),
+			DAOForkBlock:        big.NewInt(0),
+			DAOForkSupport:      true,
+			EIP150Block:         big.NewInt(0),
+			EIP155Block:         big.NewInt(0),
+			EIP158Block:         big.NewInt(0),
+			ByzantiumBlock:      big.NewInt(0),
+			ConstantinopleBlock: big.NewInt(0),
+			PetersburgBlock:     big.NewInt(0),
+			IstanbulBlock:       big.NewInt(0),
+			MuirGlacierBlock:    big.NewInt(0),
+			BerlinBlock:         big.NewInt(0),
+			LondonBlock:         big.NewInt(0),
+		},
+		extras.TestApricotPhase6Config,
+	)
+
+	TestApricotPhasePost6Config = WithExtra(
+		&ChainConfig{
+			ChainID:             big.NewInt(1),
+			HomesteadBlock:      big.NewInt(0),
+			DAOForkBlock:        big.NewInt(0),
+			DAOForkSupport:      true,
+			EIP150Block:         big.NewInt(0),
+			EIP155Block:         big.NewInt(0),
+			EIP158Block:         big.NewInt(0),
+			ByzantiumBlock:      big.NewInt(0),
+			ConstantinopleBlock: big.NewInt(0),
+			PetersburgBlock:     big.NewInt(0),
+			IstanbulBlock:       big.NewInt(0),
+			MuirGlacierBlock:    big.NewInt(0),
+			BerlinBlock:         big.NewInt(0),
+			LondonBlock:         big.NewInt(0),
+		},
+		extras.TestApricotPhasePost6Config,
+	)
+
+	TestBanffChainConfig = WithExtra(
+		&ChainConfig{
+			ChainID:             big.NewInt(1),
+			HomesteadBlock:      big.NewInt(0),
+			DAOForkBlock:        big.NewInt(0),
+			DAOForkSupport:      true,
+			EIP150Block:         big.NewInt(0),
+			EIP155Block:         big.NewInt(0),
+			EIP158Block:         big.NewInt(0),
+			ByzantiumBlock:      big.NewInt(0),
+			ConstantinopleBlock: big.NewInt(0),
+			PetersburgBlock:     big.NewInt(0),
+			IstanbulBlock:       big.NewInt(0),
+			MuirGlacierBlock:    big.NewInt(0),
+			BerlinBlock:         big.NewInt(0),
+			LondonBlock:         big.NewInt(0),
+		},
+		extras.TestBanffChainConfig,
+	)
+
+	TestCortinaChainConfig = WithExtra(
+		&ChainConfig{
+			ChainID:             big.NewInt(1),
+			HomesteadBlock:      big.NewInt(0),
+			DAOForkBlock:        big.NewInt(0),
+			DAOForkSupport:      true,
+			EIP150Block:         big.NewInt(0),
+			EIP155Block:         big.NewInt(0),
+			EIP158Block:         big.NewInt(0),
+			ByzantiumBlock:      big.NewInt(0),
+			ConstantinopleBlock: big.NewInt(0),
+			PetersburgBlock:     big.NewInt(0),
+			IstanbulBlock:       big.NewInt(0),
+			MuirGlacierBlock:    big.NewInt(0),
+			BerlinBlock:         big.NewInt(0),
+			LondonBlock:         big.NewInt(0),
+		},
+		extras.TestCortinaChainConfig,
+	)
+
 	TestPreSubnetEVMChainConfig = WithExtra(
 		&ChainConfig{
 			ChainID:             big.NewInt(1),
 			HomesteadBlock:      big.NewInt(0),
+			DAOForkBlock:        big.NewInt(0),
+			DAOForkSupport:      true,
 			EIP150Block:         big.NewInt(0),
 			EIP155Block:         big.NewInt(0),
 			EIP158Block:         big.NewInt(0),
@@ -103,6 +334,8 @@ var (
 		&ChainConfig{
 			ChainID:             big.NewInt(1),
 			HomesteadBlock:      big.NewInt(0),
+			DAOForkBlock:        big.NewInt(0),
+			DAOForkSupport:      true,
 			EIP150Block:         big.NewInt(0),
 			EIP155Block:         big.NewInt(0),
 			EIP158Block:         big.NewInt(0),
@@ -121,6 +354,8 @@ var (
 		&ChainConfig{
 			ChainID:             big.NewInt(1),
 			HomesteadBlock:      big.NewInt(0),
+			DAOForkBlock:        big.NewInt(0),
+			DAOForkSupport:      true,
 			EIP150Block:         big.NewInt(0),
 			EIP155Block:         big.NewInt(0),
 			EIP158Block:         big.NewInt(0),
@@ -131,7 +366,7 @@ var (
 			MuirGlacierBlock:    big.NewInt(0),
 			BerlinBlock:         big.NewInt(0),
 			LondonBlock:         big.NewInt(0),
-			ShanghaiTime:        utils.TimeToNewUint64(upgrade.InitiallyActiveTime),
+			ShanghaiTime:        utils.NewUint64(0),
 		},
 		extras.TestDurangoChainConfig,
 	)
@@ -140,6 +375,8 @@ var (
 		&ChainConfig{
 			ChainID:             big.NewInt(1),
 			HomesteadBlock:      big.NewInt(0),
+			DAOForkBlock:        big.NewInt(0),
+			DAOForkSupport:      true,
 			EIP150Block:         big.NewInt(0),
 			EIP155Block:         big.NewInt(0),
 			EIP158Block:         big.NewInt(0),
@@ -150,8 +387,8 @@ var (
 			MuirGlacierBlock:    big.NewInt(0),
 			BerlinBlock:         big.NewInt(0),
 			LondonBlock:         big.NewInt(0),
-			ShanghaiTime:        utils.TimeToNewUint64(upgrade.InitiallyActiveTime),
-			CancunTime:          utils.TimeToNewUint64(upgrade.InitiallyActiveTime),
+			ShanghaiTime:        utils.NewUint64(0),
+			CancunTime:          utils.NewUint64(0),
 		},
 		extras.TestEtnaChainConfig,
 	)
@@ -160,6 +397,8 @@ var (
 		&ChainConfig{
 			ChainID:             big.NewInt(1),
 			HomesteadBlock:      big.NewInt(0),
+			DAOForkBlock:        big.NewInt(0),
+			DAOForkSupport:      true,
 			EIP150Block:         big.NewInt(0),
 			EIP155Block:         big.NewInt(0),
 			EIP158Block:         big.NewInt(0),
@@ -170,12 +409,11 @@ var (
 			MuirGlacierBlock:    big.NewInt(0),
 			BerlinBlock:         big.NewInt(0),
 			LondonBlock:         big.NewInt(0),
-			ShanghaiTime:        utils.TimeToNewUint64(upgrade.InitiallyActiveTime),
-			CancunTime:          utils.TimeToNewUint64(upgrade.InitiallyActiveTime),
+			ShanghaiTime:        utils.NewUint64(0),
+			CancunTime:          utils.NewUint64(0),
 		},
 		extras.TestFortunaChainConfig,
 	)
-	TestRules = TestChainConfig.Rules(new(big.Int), IsMergeTODO, 0)
 )
 
 // ChainConfig is the core config which determines the blockchain settings.

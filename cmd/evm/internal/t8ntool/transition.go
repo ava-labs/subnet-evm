@@ -43,6 +43,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/eth/tracers"
 	"github.com/ava-labs/subnet-evm/params"
+	extraparams "github.com/ava-labs/subnet-evm/params/extras"
 	customheader "github.com/ava-labs/subnet-evm/plugin/evm/header"
 	"github.com/ava-labs/subnet-evm/plugin/evm/upgrade/subnetevm"
 	"github.com/ava-labs/subnet-evm/tests"
@@ -91,7 +92,7 @@ type input struct {
 }
 
 func Transition(ctx *cli.Context) error {
-	var getTracer = func(txIndex int, txHash common.Hash) (vm.EVMLogger, error) { return nil, nil }
+	getTracer := func(txIndex int, txHash common.Hash) (vm.EVMLogger, error) { return nil, nil }
 
 	baseDir, err := createBasedir(ctx)
 	if err != nil {
@@ -224,7 +225,7 @@ func applyLondonChecks(env *stEnv, chainConfig *params.ChainConfig) error {
 		GasLimit: env.ParentGasLimit,
 		Extra:    make([]byte, subnetevm.WindowSize), // TODO: consider passing extra through env
 	}
-	feeConfig := params.DefaultFeeConfig
+	feeConfig := extraparams.DefaultFeeConfig
 	if env.MinBaseFee != nil {
 		// Override the default min base fee if it's set in the env
 		feeConfig.MinBaseFee = env.MinBaseFee
@@ -283,7 +284,7 @@ func saveFile(baseDir, filename string, data interface{}) error {
 		return NewError(ErrorJson, fmt.Errorf("failed marshalling output: %v", err))
 	}
 	location := path.Join(baseDir, filename)
-	if err = os.WriteFile(location, b, 0644); err != nil {
+	if err = os.WriteFile(location, b, 0o644); err != nil {
 		return NewError(ErrorIO, fmt.Errorf("failed writing output: %v", err))
 	}
 	log.Info("Wrote file", "file", location)
