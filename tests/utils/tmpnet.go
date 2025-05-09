@@ -16,8 +16,8 @@ import (
 
 var DefaultChainConfig = tmpnet.FlagsMap{
 	"log-level":         "debug",
-	"warp-api-enabled":  true,
-	"local-txs-enabled": true,
+	"warp-api-enabled":  "true",
+	"local-txs-enabled": "true",
 }
 
 func NewTmpnetNodes(count int) []*tmpnet.Node {
@@ -34,7 +34,7 @@ func NewTmpnetNetwork(owner string, nodes []*tmpnet.Node, flags tmpnet.FlagsMap,
 	defaultFlags := tmpnet.FlagsMap{}
 	defaultFlags.SetDefaults(flags)
 	defaultFlags.SetDefaults(tmpnet.FlagsMap{
-		config.ProposerVMUseCurrentHeightKey: true,
+		config.ProposerVMUseCurrentHeightKey: "true",
 	})
 	return &tmpnet.Network{
 		Owner:        owner,
