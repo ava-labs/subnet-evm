@@ -1,7 +1,7 @@
 // (c) 2019-2020, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-package database
+package evm
 
 import (
 	"errors"
@@ -19,7 +19,7 @@ var (
 // ethDbWrapper implements ethdb.Database
 type ethDbWrapper struct{ database.Database }
 
-func WrapDatabase(db database.Database) ethdb.KeyValueStore { return ethDbWrapper{db} }
+func wrapDatabase(db database.Database) ethdb.KeyValueStore { return ethDbWrapper{db} }
 
 // Stat implements ethdb.Database
 func (db ethDbWrapper) Stat(string) (string, error) { return "", database.ErrNotFound }
