@@ -30,6 +30,20 @@ const (
 	meterDBGatherer = "meterdb"
 )
 
+type DatabaseConfig struct {
+	// If true, all writes are to memory and are discarded at shutdown.
+	ReadOnly bool `json:"readOnly"`
+
+	// Path to database
+	Path string `json:"path"`
+
+	// Name of the database type to use
+	Name string `json:"name"`
+
+	// Path to config file
+	Config []byte `json:"-"`
+}
+
 // initializeDBs initializes the databases used by the VM.
 // If [useStandaloneDB] is true, the chain will use a standalone database for its state.
 // Otherwise, the chain will use the provided [avaDB] for its state.
@@ -119,7 +133,7 @@ func (vm *VM) useStandaloneDatabase(acceptedDB database.Database) (bool, error) 
 
 // getDatabaseConfig returns the database configuration for the chain
 // to be used by separate, standalone database.
-func getDatabaseConfig(config config.Config, chainDataDir string) (factory.DatabaseConfig, error) {
+func getDatabaseConfig(config config.Config, chainDataDir string) (DatabaseConfig, error) {
 	var (
 		configBytes []byte
 		err         error
@@ -128,13 +142,13 @@ func getDatabaseConfig(config config.Config, chainDataDir string) (factory.Datab
 		dbConfigContent := config.DatabaseConfigContent
 		configBytes, err = base64.StdEncoding.DecodeString(dbConfigContent)
 		if err != nil {
-			return factory.DatabaseConfig{}, fmt.Errorf("unable to decode base64 content: %w", err)
+			return DatabaseConfig{}, fmt.Errorf("unable to decode base64 content: %w", err)
 		}
 	} else if len(config.DatabaseConfigFile) != 0 {
 		configPath := config.DatabaseConfigFile
 		configBytes, err = os.ReadFile(configPath)
 		if err != nil {
-			return factory.DatabaseConfig{}, err
+			return DatabaseConfig{}, err
 		}
 	}
 
@@ -143,7 +157,7 @@ func getDatabaseConfig(config config.Config, chainDataDir string) (factory.Datab
 		dbPath = config.DatabasePath
 	}
 
-	return factory.DatabaseConfig{
+	return DatabaseConfig{
 		Name:     config.DatabaseType,
 		ReadOnly: config.DatabaseReadOnly,
 		Path:     dbPath,
@@ -181,29 +195,39 @@ func inspectDB(db database.Database, label string) error {
 	return nil
 }
 
-func newStandaloneDatabase(dbConfig factory.DatabaseConfig, gatherer metrics.MultiGatherer, logger logging.Logger) (database.Database, error) {
-	dbConfig.Path = filepath.Join(dbConfig.Path, dbConfig.Name)
+func newStandaloneDatabase(dbConfig DatabaseConfig, gatherer metrics.MultiGatherer, logger logging.Logger) (database.Database, error) {
+	dbPath := filepath.Join(dbConfig.Path, dbConfig.Name)
 
+	dbConfigBytes := dbConfig.Config
 	// If the database is pebble, we need to set the config
 	// to use no sync. Sync mode in pebble has an issue with OSs like MacOS.
 	if dbConfig.Name == pebbledb.Name {
 		cfg := pebbledb.DefaultConfig
-		// Use no sync for pebble db
+		// Default to "no sync" for pebble db
 		cfg.Sync = false
-		if len(dbConfig.Config) > 0 {
-			if err := json.Unmarshal(dbConfig.Config, &cfg); err != nil {
+		if len(dbConfigBytes) > 0 {
+			if err := json.Unmarshal(dbConfigBytes, &cfg); err != nil {
 				return nil, err
 			}
 		}
+		var err error
 		// Marshal the config back to bytes to ensure that new defaults are applied
-		newCfgBytes, err := json.Marshal(cfg)
+		dbConfigBytes, err = json.Marshal(cfg)
 		if err != nil {
 			return nil, err
 		}
-		dbConfig.Config = newCfgBytes
 	}
 
-	db, err := factory.NewDatabase(dbConfig, gatherer, logger, dbMetricsPrefix, meterDBGatherer)
+	db, err := factory.New(
+		dbConfig.Name,
+		dbPath,
+		dbConfig.ReadOnly,
+		dbConfigBytes,
+		gatherer,
+		logger,
+		dbMetricsPrefix,
+		meterDBGatherer,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't create database: %w", err)
 	}
