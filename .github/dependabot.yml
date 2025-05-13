@@ -13,3 +13,8 @@ updates:
     directory: "/"
     schedule:
       interval: weekly
+    ignore:
+      - dependency-name: "ava-labs/avalanchego" # manually updated
+      - dependency-name: "golangci/golangci-lint-action"
+        versions:
+          - ">=7.0.0" # versions from 7.0.0 only support golangci-lint v2.x.x
