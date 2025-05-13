@@ -133,7 +133,7 @@ func (vm *VM) useStandaloneDatabase(acceptedDB avalanchedatabase.Database) (bool
 }
 
 // getDatabaseConfig returns the database configuration for the chain
-// to be used by separate, standalone avalanchedatabase.
+// to be used by separate, standalone database.
 func getDatabaseConfig(config config.Config, chainDataDir string) (DatabaseConfig, error) {
 	var (
 		configBytes []byte
