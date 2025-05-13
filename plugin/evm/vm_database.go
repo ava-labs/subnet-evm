@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/ava-labs/avalanchego/api/metrics"
-	"github.com/ava-labs/avalanchego/database"
+	avalanchegodatabase "github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/database/factory"
 	"github.com/ava-labs/avalanchego/database/pebbledb"
 	"github.com/ava-labs/avalanchego/database/prefixdb"
@@ -23,6 +23,7 @@ import (
 	"github.com/ava-labs/libevm/core/rawdb"
 	"github.com/ava-labs/libevm/log"
 	"github.com/ava-labs/subnet-evm/plugin/evm/config"
+	"github.com/ava-labs/subnet-evm/plugin/evm/database"
 )
 
 const (
@@ -47,7 +48,7 @@ type DatabaseConfig struct {
 // initializeDBs initializes the databases used by the VM.
 // If [useStandaloneDB] is true, the chain will use a standalone database for its state.
 // Otherwise, the chain will use the provided [avaDB] for its state.
-func (vm *VM) initializeDBs(avaDB database.Database) error {
+func (vm *VM) initializeDBs(avaDB avalanchegodatabase.Database) error {
 	db := avaDB
 	// skip standalone database initialization if we are running in unit tests
 	if vm.ctx.NetworkID != constants.UnitTestID {
@@ -74,7 +75,7 @@ func (vm *VM) initializeDBs(avaDB database.Database) error {
 	}
 	// Use NewNested rather than New so that the structure of the database
 	// remains the same regardless of the provided baseDB type.
-	vm.chaindb = rawdb.NewDatabase(wrapDatabase(prefixdb.NewNested(ethDBPrefix, db)))
+	vm.chaindb = rawdb.NewDatabase(database.WrapDatabase(prefixdb.NewNested(ethDBPrefix, db)))
 	vm.versiondb = versiondb.New(db)
 	vm.acceptedBlockDB = prefixdb.New(acceptedPrefix, vm.versiondb)
 	vm.metadataDB = prefixdb.New(metadataPrefix, vm.versiondb)
@@ -115,7 +116,7 @@ func (vm *VM) inspectDatabases() error {
 
 // useStandaloneDatabase returns true if the chain can and should use a standalone database
 // other than given by [db] in Initialize()
-func (vm *VM) useStandaloneDatabase(acceptedDB database.Database) (bool, error) {
+func (vm *VM) useStandaloneDatabase(acceptedDB avalanchegodatabase.Database) (bool, error) {
 	// no config provided, use default
 	standaloneDBFlag := vm.config.UseStandaloneDatabase
 	if standaloneDBFlag != nil {
@@ -124,7 +125,7 @@ func (vm *VM) useStandaloneDatabase(acceptedDB database.Database) (bool, error) 
 
 	// check if the chain can use a standalone database
 	_, err := acceptedDB.Get(lastAcceptedKey)
-	if err == database.ErrNotFound {
+	if err == avalanchegodatabase.ErrNotFound {
 		// If there is nothing in the database, we can use the standalone database
 		return true, nil
 	}
@@ -132,7 +133,7 @@ func (vm *VM) useStandaloneDatabase(acceptedDB database.Database) (bool, error) 
 }
 
 // getDatabaseConfig returns the database configuration for the chain
-// to be used by separate, standalone database.
+// to be used by separate, standalone avalanchegodatabase.
 func getDatabaseConfig(config config.Config, chainDataDir string) (DatabaseConfig, error) {
 	var (
 		configBytes []byte
@@ -165,7 +166,7 @@ func getDatabaseConfig(config config.Config, chainDataDir string) (DatabaseConfi
 	}, nil
 }
 
-func inspectDB(db database.Database, label string) error {
+func inspectDB(db avalanchegodatabase.Database, label string) error {
 	it := db.NewIterator()
 	defer it.Release()
 
@@ -195,7 +196,7 @@ func inspectDB(db database.Database, label string) error {
 	return nil
 }
 
-func newStandaloneDatabase(dbConfig DatabaseConfig, gatherer metrics.MultiGatherer, logger logging.Logger) (database.Database, error) {
+func newStandaloneDatabase(dbConfig DatabaseConfig, gatherer metrics.MultiGatherer, logger logging.Logger) (avalanchegodatabase.Database, error) {
 	dbPath := filepath.Join(dbConfig.Path, dbConfig.Name)
 
 	dbConfigBytes := dbConfig.Config

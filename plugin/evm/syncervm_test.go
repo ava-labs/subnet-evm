@@ -38,6 +38,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/plugin/evm/customrawdb"
+	"github.com/ava-labs/subnet-evm/plugin/evm/database"
 	"github.com/ava-labs/subnet-evm/predicate"
 	statesyncclient "github.com/ava-labs/subnet-evm/sync/client"
 	"github.com/ava-labs/subnet-evm/sync/statesync"
@@ -429,7 +430,7 @@ func testSyncerVM(t *testing.T, vmSetup *syncVMSetup, test syncTest) {
 	if test.expectedErr != nil {
 		require.ErrorIs(err, test.expectedErr)
 		// Note we re-open the database here to avoid a closed error when the test is for a shutdown VM.
-		chaindb := wrapDatabase(prefixdb.NewNested(ethDBPrefix, syncerVM.versiondb))
+		chaindb := database.WrapDatabase(prefixdb.NewNested(ethDBPrefix, syncerVM.versiondb))
 		assertSyncPerformedHeights(t, chaindb, map[uint64]struct{}{})
 		return
 	}
