@@ -7,9 +7,10 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/subnet-evm/commontype"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/params/extras"
+	"github.com/ava-labs/subnet-evm/plugin/evm/customtypes"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -57,7 +58,7 @@ func BlockGasCostTest(t *testing.T, feeConfig commontype.FeeConfig) {
 
 	tests := []struct {
 		name       string
-		upgrades   params.NetworkUpgrades
+		upgrades   extras.NetworkUpgrades
 		parentTime uint64
 		parentCost *big.Int
 		timestamp  uint64
@@ -66,14 +67,14 @@ func BlockGasCostTest(t *testing.T, feeConfig commontype.FeeConfig) {
 		{
 			name:       "before_subnet_evm",
 			parentTime: 10,
-			upgrades:   params.TestPreSubnetEVMChainConfig.NetworkUpgrades,
+			upgrades:   extras.TestPreSubnetEVMChainConfig.NetworkUpgrades,
 			parentCost: maxBlockGasCostBig,
 			timestamp:  10 + targetBlockRate + 1,
 			expected:   nil,
 		},
 		{
 			name:       "normal",
-			upgrades:   params.TestChainConfig.NetworkUpgrades,
+			upgrades:   extras.TestChainConfig.NetworkUpgrades,
 			parentTime: 10,
 			parentCost: maxBlockGasCostBig,
 			timestamp:  10 + targetBlockRate + 1,
@@ -81,7 +82,7 @@ func BlockGasCostTest(t *testing.T, feeConfig commontype.FeeConfig) {
 		},
 		{
 			name:       "negative_time_elapsed",
-			upgrades:   params.TestChainConfig.NetworkUpgrades,
+			upgrades:   extras.TestChainConfig.NetworkUpgrades,
 			parentTime: 10,
 			parentCost: feeConfig.MinBlockGasCost,
 			timestamp:  9,
@@ -91,13 +92,17 @@ func BlockGasCostTest(t *testing.T, feeConfig commontype.FeeConfig) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			config := &params.ChainConfig{
+			config := &extras.ChainConfig{
 				NetworkUpgrades: test.upgrades,
 			}
-			parent := &types.Header{
-				Time:         test.parentTime,
-				BlockGasCost: test.parentCost,
-			}
+			parent := customtypes.WithHeaderExtra(
+				&types.Header{
+					Time: test.parentTime,
+				},
+				&customtypes.HeaderExtra{
+					BlockGasCost: test.parentCost,
+				},
+			)
 
 			assert.Equal(t, test.expected, BlockGasCost(
 				config,
@@ -226,9 +231,12 @@ func TestEstimateRequiredTip(t *testing.T) {
 		{
 			name:               "nil_base_fee",
 			subnetEVMTimestamp: utils.NewUint64(0),
-			header: &types.Header{
-				BlockGasCost: big.NewInt(1),
-			},
+			header: customtypes.WithHeaderExtra(
+				&types.Header{},
+				&customtypes.HeaderExtra{
+					BlockGasCost: big.NewInt(1),
+				},
+			),
 			wantErr: errBaseFeeNil,
 		},
 		{
@@ -242,21 +250,29 @@ func TestEstimateRequiredTip(t *testing.T) {
 		{
 			name:               "no_gas_used",
 			subnetEVMTimestamp: utils.NewUint64(0),
-			header: &types.Header{
-				GasUsed:      0,
-				BaseFee:      big.NewInt(1),
-				BlockGasCost: big.NewInt(1),
-			},
+			header: customtypes.WithHeaderExtra(
+				&types.Header{
+					GasUsed: 0,
+					BaseFee: big.NewInt(1),
+				},
+				&customtypes.HeaderExtra{
+					BlockGasCost: big.NewInt(1),
+				},
+			),
 			wantErr: errNoGasUsed,
 		},
 		{
 			name:               "success",
 			subnetEVMTimestamp: utils.NewUint64(0),
-			header: &types.Header{
-				GasUsed:      912,
-				BaseFee:      big.NewInt(456),
-				BlockGasCost: big.NewInt(101112),
-			},
+			header: customtypes.WithHeaderExtra(
+				&types.Header{
+					GasUsed: 912,
+					BaseFee: big.NewInt(456),
+				},
+				&customtypes.HeaderExtra{
+					BlockGasCost: big.NewInt(101112),
+				},
+			),
 			// totalRequiredTips = BlockGasCost * BaseFee
 			// estimatedTip = totalRequiredTips / GasUsed
 			want: big.NewInt((101112 * 456) / (912)),
@@ -264,11 +280,15 @@ func TestEstimateRequiredTip(t *testing.T) {
 		{
 			name:               "success_rounds_up",
 			subnetEVMTimestamp: utils.NewUint64(0),
-			header: &types.Header{
-				GasUsed:      124,
-				BaseFee:      big.NewInt(456),
-				BlockGasCost: big.NewInt(101112),
-			},
+			header: customtypes.WithHeaderExtra(
+				&types.Header{
+					GasUsed: 124,
+					BaseFee: big.NewInt(456),
+				},
+				&customtypes.HeaderExtra{
+					BlockGasCost: big.NewInt(101112),
+				},
+			),
 			// totalGasUsed = GasUsed + ExtDataGasUsed
 			// totalRequiredTips = BlockGasCost * BaseFee
 			// estimatedTip = totalRequiredTips / totalGasUsed
@@ -279,8 +299,8 @@ func TestEstimateRequiredTip(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			require := require.New(t)
 
-			config := &params.ChainConfig{
-				NetworkUpgrades: params.NetworkUpgrades{
+			config := &extras.ChainConfig{
+				NetworkUpgrades: extras.NetworkUpgrades{
 					SubnetEVMTimestamp: test.subnetEVMTimestamp,
 				},
 			}

@@ -13,18 +13,24 @@ import (
 	"testing"
 
 	"github.com/ava-labs/avalanchego/database"
-	"github.com/ava-labs/subnet-evm/core/rawdb"
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/core/rawdb"
+	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/ethdb"
+	"github.com/ava-labs/libevm/metrics"
+	"github.com/ava-labs/libevm/triedb"
 	"github.com/ava-labs/subnet-evm/core/state/snapshot"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/metrics"
-	"github.com/ava-labs/subnet-evm/triedb"
 	"github.com/ava-labs/subnet-evm/triedb/hashdb"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/stretchr/testify/require"
 )
 
-const namespace = "chain"
+const (
+	namespace = "chain"
+
+	// triePrefetchMetricsPrefix is the prefix for trie prefetcher metrics
+	// and MUST match upstream for the benchmark to work.
+	triePrefetchMetricsPrefix = "trie/prefetch/"
+)
 
 // BenchmarkPrefetcherDatabase benchmarks the performance of the trie
 // prefetcher. By default, a state with 100k storage keys is created and stored
@@ -97,9 +103,9 @@ func BenchmarkPrefetcherDatabase(b *testing.B) {
 	}
 
 	tdbConfig := &triedb.Config{
-		HashDB: &hashdb.Config{
+		DBOverride: hashdb.Config{
 			CleanCacheSize: 3 * 1024 * 1024 * 1024,
-		},
+		}.BackendConstructor,
 	}
 	db := NewDatabaseWithConfig(levelDB, tdbConfig)
 	snaps := snapshot.NewTestTree(levelDB, fakeHash(block), root)
@@ -158,11 +164,7 @@ func addKVs(
 	address1, address2 common.Address, root common.Hash, block uint64,
 	count int, prefetchers int,
 ) (*StateDB, common.Hash, error) {
-	snap := snaps.Snapshot(root)
-	if snap == nil {
-		return nil, common.Hash{}, fmt.Errorf("snapshot not found")
-	}
-	statedb, err := NewWithSnapshot(root, db, snap)
+	statedb, err := New(root, db, snaps)
 	if err != nil {
 		return nil, common.Hash{}, fmt.Errorf("creating state with snapshot: %w", err)
 	}
@@ -181,7 +183,8 @@ func addKVs(
 			statedb.SetState(address, common.BytesToHash(key), common.BytesToHash(value))
 		}
 	}
-	root, err = statedb.CommitWithSnap(block+1, true, snaps, fakeHash(block+1), fakeHash(block))
+	blockHashes := snapshot.WithBlockHashes(fakeHash(block+1), fakeHash(block))
+	root, err = statedb.Commit(block+1, true, blockHashes)
 	if err != nil {
 		return nil, common.Hash{}, fmt.Errorf("committing with snap: %w", err)
 	}

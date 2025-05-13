@@ -1,7 +1,9 @@
 # Subnet EVM
 
+[![Releases](https://img.shields.io/github/v/tag/ava-labs/subnet-evm.svg?sort=semver)](https://github.com/ava-labs/subnet-evm/releases)
 [![CI](https://github.com/ava-labs/subnet-evm/actions/workflows/ci.yml/badge.svg)](https://github.com/ava-labs/subnet-evm/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/ava-labs/subnet-evm/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/ava-labs/subnet-evm/actions/workflows/codeql-analysis.yml)
+[![License](https://img.shields.io/github/license/ava-labs/subnet-evm)](https://github.com/ava-labs/subnet-evm/blob/master/LICENSE)
 
 [Avalanche](https://docs.avax.network/avalanche-l1s) is a network composed of multiple blockchains.
 Each blockchain is an instance of a Virtual Machine (VM), much like an object in an object-oriented language is an instance of a class.
@@ -21,6 +23,7 @@ The Subnet EVM runs in a separate process from the main AvalancheGo process and 
 [v0.7.0] AvalancheGo@v1.12.0-v1.12.1 (Protocol Version: 38)
 [v0.7.1] AvalancheGo@v1.12.2 (Protocol Version: 39)
 [v0.7.2] AvalancheGo@v1.12.2/1.13.0-fuji (Protocol Version: 39)
+[v0.7.3] AvalancheGo@v1.12.2/1.13.0 (Protocol Version: 39)
 ```
 
 ## API
@@ -84,5 +87,5 @@ To run a local network, it is recommended to use the [avalanche-cli](https://git
 
 There are two options when using the Avalanche-CLI:
 
-1. Use an official Subnet-EVM release: https://docs.avax.network/subnets/build-first-subnet
-2. Build and deploy a locally built (and optionally modified) version of Subnet-EVM: https://docs.avax.network/subnets/create-custom-subnet
+1. Use an official Subnet-EVM release: <https://docs.avax.network/subnets/build-first-subnet>
+2. Build and deploy a locally built (and optionally modified) version of Subnet-EVM: <https://docs.avax.network/subnets/create-custom-subnet>

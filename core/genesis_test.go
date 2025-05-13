@@ -33,22 +33,24 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/core/rawdb"
+	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/core/vm"
+	"github.com/ava-labs/libevm/ethdb"
+	ethparams "github.com/ava-labs/libevm/params"
+	"github.com/ava-labs/libevm/trie"
+	"github.com/ava-labs/libevm/triedb"
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
-	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/state"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/core/vm"
 	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/params/extras"
 	"github.com/ava-labs/subnet-evm/plugin/evm/upgrade/legacy"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/deployerallowlist"
-	"github.com/ava-labs/subnet-evm/trie"
-	"github.com/ava-labs/subnet-evm/triedb"
 	"github.com/ava-labs/subnet-evm/triedb/pathdb"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/davecgh/go-spew/spew"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -71,8 +73,8 @@ func TestSetupGenesis(t *testing.T) {
 }
 
 func testSetupGenesis(t *testing.T, scheme string) {
-	preSubnetConfig := *params.TestPreSubnetEVMChainConfig
-	preSubnetConfig.SubnetEVMTimestamp = utils.NewUint64(100)
+	preSubnetConfig := params.Copy(params.TestPreSubnetEVMChainConfig)
+	params.GetExtra(&preSubnetConfig).SubnetEVMTimestamp = utils.NewUint64(100)
 	var (
 		customghash = common.HexToHash("0x4a12fe7bf8d40d152d7e9de22337b115186a4662aa3a97217b36146202bbfc66")
 		customg     = Genesis{
@@ -80,13 +82,13 @@ func testSetupGenesis(t *testing.T, scheme string) {
 			Alloc: types.GenesisAlloc{
 				{1}: {Balance: big.NewInt(1), Storage: map[common.Hash]common.Hash{{1}: {1}}},
 			},
-			GasLimit: preSubnetConfig.FeeConfig.GasLimit.Uint64(),
+			GasLimit: params.GetExtra(&preSubnetConfig).FeeConfig.GasLimit.Uint64(),
 		}
 		oldcustomg = customg
 	)
 
-	rollbackpreSubnetConfig := preSubnetConfig
-	rollbackpreSubnetConfig.SubnetEVMTimestamp = utils.NewUint64(90)
+	rollbackpreSubnetConfig := params.Copy(&preSubnetConfig)
+	params.GetExtra(&rollbackpreSubnetConfig).SubnetEVMTimestamp = utils.NewUint64(90)
 	oldcustomg.Config = &rollbackpreSubnetConfig
 
 	tests := []struct {
@@ -163,7 +165,7 @@ func testSetupGenesis(t *testing.T, scheme string) {
 			},
 			wantHash:   customghash,
 			wantConfig: customg.Config,
-			wantErr: &params.ConfigCompatError{
+			wantErr: &ethparams.ConfigCompatError{
 				What:         "SubnetEVM fork block timestamp",
 				StoredTime:   u64(90),
 				NewTime:      u64(100),
@@ -209,8 +211,8 @@ func TestStatefulPrecompilesConfigure(t *testing.T) {
 	for name, test := range map[string]test{
 		"allow list enabled in genesis": {
 			getConfig: func() *params.ChainConfig {
-				config := *params.TestChainConfig
-				config.GenesisPrecompiles = params.Precompiles{
+				config := params.Copy(params.TestChainConfig)
+				params.GetExtra(&config).GenesisPrecompiles = extras.Precompiles{
 					deployerallowlist.ConfigKey: deployerallowlist.NewConfig(utils.NewUint64(0), []common.Address{addr}, nil, nil),
 				}
 				return &config
@@ -229,7 +231,7 @@ func TestStatefulPrecompilesConfigure(t *testing.T) {
 				Alloc: types.GenesisAlloc{
 					{1}: {Balance: big.NewInt(1), Storage: map[common.Hash]common.Hash{{1}: {1}}},
 				},
-				GasLimit: config.FeeConfig.GasLimit.Uint64(),
+				GasLimit: params.GetExtra(config).FeeConfig.GasLimit.Uint64(),
 			}
 
 			db := rawdb.NewMemoryDatabase()
@@ -262,7 +264,7 @@ func TestPrecompileActivationAfterHeaderBlock(t *testing.T) {
 		Alloc: types.GenesisAlloc{
 			{1}: {Balance: big.NewInt(1), Storage: map[common.Hash]common.Hash{{1}: {1}}},
 		},
-		GasLimit: params.TestChainConfig.FeeConfig.GasLimit.Uint64(),
+		GasLimit: params.GetExtra(params.TestChainConfig).FeeConfig.GasLimit.Uint64(),
 	}
 	bc, _ := NewBlockChain(db, DefaultCacheConfig, &customg, dummy.NewFullFaker(), vm.Config{}, common.Hash{}, false)
 	defer bc.Stop()
@@ -284,9 +286,9 @@ func TestPrecompileActivationAfterHeaderBlock(t *testing.T) {
 	// header must be bigger than last accepted
 	require.Greater(block.Time, bc.lastAccepted.Time())
 
-	activatedGenesisConfig := *customg.Config
+	activatedGenesisConfig := params.Copy(customg.Config)
 	contractDeployerConfig := deployerallowlist.NewConfig(utils.NewUint64(51), nil, nil, nil)
-	activatedGenesisConfig.UpgradeConfig.PrecompileUpgrades = []params.PrecompileUpgrade{
+	params.GetExtra(&activatedGenesisConfig).UpgradeConfig.PrecompileUpgrades = []extras.PrecompileUpgrade{
 		{
 			Config: contractDeployerConfig,
 		},
@@ -308,13 +310,13 @@ func TestPrecompileActivationAfterHeaderBlock(t *testing.T) {
 
 func TestGenesisWriteUpgradesRegression(t *testing.T) {
 	require := require.New(t)
-	config := *params.TestChainConfig
+	config := params.Copy(params.TestChainConfig)
 	genesis := &Genesis{
 		Config: &config,
 		Alloc: types.GenesisAlloc{
 			{1}: {Balance: big.NewInt(1), Storage: map[common.Hash]common.Hash{{1}: {1}}},
 		},
-		GasLimit: config.FeeConfig.GasLimit.Uint64(),
+		GasLimit: params.GetExtra(&config).FeeConfig.GasLimit.Uint64(),
 	}
 
 	db := rawdb.NewMemoryDatabase()
@@ -324,7 +326,7 @@ func TestGenesisWriteUpgradesRegression(t *testing.T) {
 	_, _, err := SetupGenesisBlock(db, trieDB, genesis, genesisBlock.Hash(), false)
 	require.NoError(err)
 
-	genesis.Config.UpgradeConfig.PrecompileUpgrades = []params.PrecompileUpgrade{
+	params.GetExtra(genesis.Config).UpgradeConfig.PrecompileUpgrades = []extras.PrecompileUpgrade{
 		{
 			Config: deployerallowlist.NewConfig(utils.NewUint64(51), nil, nil, nil),
 		},
@@ -352,7 +354,7 @@ func newDbConfig(scheme string) *triedb.Config {
 	if scheme == rawdb.HashScheme {
 		return triedb.HashDefaults
 	}
-	return &triedb.Config{PathDB: pathdb.Defaults}
+	return &triedb.Config{DBOverride: pathdb.Defaults.BackendConstructor}
 }
 
 func TestVerkleGenesisCommit(t *testing.T) {
@@ -392,7 +394,7 @@ func TestVerkleGenesisCommit(t *testing.T) {
 	}
 
 	db := rawdb.NewMemoryDatabase()
-	triedb := triedb.NewDatabase(db, &triedb.Config{IsVerkle: true, PathDB: pathdb.Defaults})
+	triedb := triedb.NewDatabase(db, &triedb.Config{IsVerkle: true, DBOverride: pathdb.Defaults.BackendConstructor})
 	block := genesis.MustCommit(db, triedb)
 	if !bytes.Equal(block.Root().Bytes(), expected) {
 		t.Fatalf("invalid genesis state root, expected %x, got %x", expected, got)
