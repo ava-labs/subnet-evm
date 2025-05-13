@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/ava-labs/avalanchego/api/metrics"
-	avalanchegodatabase "github.com/ava-labs/avalanchego/database"
+	avalanchedatabase "github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/database/factory"
 	"github.com/ava-labs/avalanchego/database/pebbledb"
 	"github.com/ava-labs/avalanchego/database/prefixdb"
@@ -48,7 +48,7 @@ type DatabaseConfig struct {
 // initializeDBs initializes the databases used by the VM.
 // If [useStandaloneDB] is true, the chain will use a standalone database for its state.
 // Otherwise, the chain will use the provided [avaDB] for its state.
-func (vm *VM) initializeDBs(avaDB avalanchegodatabase.Database) error {
+func (vm *VM) initializeDBs(avaDB avalanchedatabase.Database) error {
 	db := avaDB
 	// skip standalone database initialization if we are running in unit tests
 	if vm.ctx.NetworkID != constants.UnitTestID {
@@ -116,7 +116,7 @@ func (vm *VM) inspectDatabases() error {
 
 // useStandaloneDatabase returns true if the chain can and should use a standalone database
 // other than given by [db] in Initialize()
-func (vm *VM) useStandaloneDatabase(acceptedDB avalanchegodatabase.Database) (bool, error) {
+func (vm *VM) useStandaloneDatabase(acceptedDB avalanchedatabase.Database) (bool, error) {
 	// no config provided, use default
 	standaloneDBFlag := vm.config.UseStandaloneDatabase
 	if standaloneDBFlag != nil {
@@ -125,7 +125,7 @@ func (vm *VM) useStandaloneDatabase(acceptedDB avalanchegodatabase.Database) (bo
 
 	// check if the chain can use a standalone database
 	_, err := acceptedDB.Get(lastAcceptedKey)
-	if err == avalanchegodatabase.ErrNotFound {
+	if err == avalanchedatabase.ErrNotFound {
 		// If there is nothing in the database, we can use the standalone database
 		return true, nil
 	}
@@ -133,7 +133,7 @@ func (vm *VM) useStandaloneDatabase(acceptedDB avalanchegodatabase.Database) (bo
 }
 
 // getDatabaseConfig returns the database configuration for the chain
-// to be used by separate, standalone avalanchegodatabase.
+// to be used by separate, standalone avalanchedatabase.
 func getDatabaseConfig(config config.Config, chainDataDir string) (DatabaseConfig, error) {
 	var (
 		configBytes []byte
@@ -166,7 +166,7 @@ func getDatabaseConfig(config config.Config, chainDataDir string) (DatabaseConfi
 	}, nil
 }
 
-func inspectDB(db avalanchegodatabase.Database, label string) error {
+func inspectDB(db avalanchedatabase.Database, label string) error {
 	it := db.NewIterator()
 	defer it.Release()
 
@@ -196,7 +196,7 @@ func inspectDB(db avalanchegodatabase.Database, label string) error {
 	return nil
 }
 
-func newStandaloneDatabase(dbConfig DatabaseConfig, gatherer metrics.MultiGatherer, logger logging.Logger) (avalanchegodatabase.Database, error) {
+func newStandaloneDatabase(dbConfig DatabaseConfig, gatherer metrics.MultiGatherer, logger logging.Logger) (avalanchedatabase.Database, error) {
 	dbPath := filepath.Join(dbConfig.Path, dbConfig.Name)
 
 	dbConfigBytes := dbConfig.Config
