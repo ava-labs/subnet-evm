@@ -41,7 +41,8 @@ type DatabaseConfig struct {
 	// Name of the database type to use
 	Name string `json:"name"`
 
-	// Path to config file
+	// Config bytes (JSON) for the database
+	// See relevant (pebbledb, leveldb) config options
 	Config []byte `json:"-"`
 }
 
