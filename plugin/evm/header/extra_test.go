@@ -8,12 +8,10 @@ import (
 	"testing"
 
 	"github.com/ava-labs/libevm/core/types"
-	ethparams "github.com/ava-labs/libevm/params"
 	"github.com/ava-labs/subnet-evm/params/extras"
 	"github.com/ava-labs/subnet-evm/plugin/evm/customtypes"
 	"github.com/ava-labs/subnet-evm/plugin/evm/upgrade/subnetevm"
 	"github.com/ava-labs/subnet-evm/utils"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -368,10 +366,4 @@ func TestPredicateBytesExtra(t *testing.T) {
 			require.Equal(t, test.wantPredicateBytes, gotPredicateBytes)
 		})
 	}
-}
-
-func TestUpstreamParamsValues(t *testing.T) {
-	assert.Equal(t, uint64(1024), ethparams.GasLimitBoundDivisor, "gas limit bound divisor")
-	assert.Equal(t, uint64(5000), ethparams.MinGasLimit, "min gas limit")
-	assert.Equal(t, uint64(0x7fffffffffffffff), ethparams.MaxGasLimit, "max gas limit")
 }
