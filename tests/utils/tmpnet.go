@@ -14,9 +14,7 @@ import (
 	"github.com/ava-labs/subnet-evm/plugin/evm"
 )
 
-type ChainConfigMap map[string]any
-
-var DefaultChainConfig = ChainConfigMap{
+var DefaultChainConfig = map[string]any{
 	"log-level":         "debug",
 	"warp-api-enabled":  true,
 	"local-txs-enabled": true,
@@ -48,7 +46,7 @@ func NewTmpnetNetwork(owner string, nodes []*tmpnet.Node, flags tmpnet.FlagsMap,
 
 // Create the configuration that will enable creation and access to a
 // subnet created on a temporary network.
-func NewTmpnetSubnet(name string, genesisPath string, chainConfig ChainConfigMap, nodes ...*tmpnet.Node) *tmpnet.Subnet {
+func NewTmpnetSubnet(name string, genesisPath string, chainConfig map[string]any, nodes ...*tmpnet.Node) *tmpnet.Subnet {
 	if len(nodes) == 0 {
 		panic("a subnet must be validated by at least one node")
 	}
