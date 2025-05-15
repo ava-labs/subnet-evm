@@ -52,7 +52,8 @@ func (s *StateDB) GetLogData() (topics [][]common.Hash, data [][]byte) {
 	return topics, data
 }
 
-// GetPredicateStorageSlots returns the storage slots associated with the address, index pair.
+// GetPredicateStorageSlots returns the storage slots associated with the address+index pair as
+// a byte slice as well as a boolean indicating if the address+index pair exists.
 // A list of access tuples can be included within transaction types post EIP-2930. The address
 // is declared directly on the access tuple and the index is the i'th occurrence of an access
 // tuple with the specified address.
@@ -62,7 +63,7 @@ func (s *StateDB) GetLogData() (topics [][]common.Hash, data [][]byte) {
 // GetPredicateStorageSlots(AddrA, 0) -> Predicate1
 // GetPredicateStorageSlots(AddrB, 0) -> Predicate2
 // GetPredicateStorageSlots(AddrA, 1) -> Predicate3
-func (s *StateDB) GetPredicateStorageSlots(address common.Address, index int) (predicate []byte, exists bool) {
+func (s *StateDB) GetPredicateStorageSlots(address common.Address, index int) ([]byte, bool) {
 	predicates, exists := s.predicateStorageSlots[address]
 	if !exists || index >= len(predicates) {
 		return nil, false
