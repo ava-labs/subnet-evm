@@ -5,7 +5,7 @@ responsible disclosures. Valid reports will be eligible for a reward (terms and 
 
 ## Reporting a Vulnerability
 
-**Please do not file a public ticket** mentioning the vulnerability. To disclose a vulnerability submit it through our [Bug Bounty Program](https://hackenproof.com/avalanche).
+**Please do not file a public ticket** mentioning the vulnerability. To disclose a vulnerability submit it through our [Bug Bounty Program](https://hackenproof.com/run-bug-bounty).
 
 Vulnerabilities must be disclosed to us privately with reasonable time to respond, and avoid compromise of other users and accounts, or loss of funds that are not your own. We do not reward spam or
 social engineering vulnerabilities.
