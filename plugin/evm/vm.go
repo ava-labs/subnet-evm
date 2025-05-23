@@ -37,10 +37,10 @@ import (
 	"github.com/ava-labs/subnet-evm/eth/ethconfig"
 	subnetevmprometheus "github.com/ava-labs/subnet-evm/metrics/prometheus"
 	"github.com/ava-labs/subnet-evm/miner"
+	"github.com/ava-labs/subnet-evm/network"
 	"github.com/ava-labs/subnet-evm/node"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/params/extras"
-	"github.com/ava-labs/subnet-evm/peer"
 	"github.com/ava-labs/subnet-evm/plugin/evm/config"
 	subnetevmlog "github.com/ava-labs/subnet-evm/plugin/evm/log"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
@@ -116,16 +116,12 @@ const (
 	chainStateMetricsPrefix = "chain_state"
 
 	// gossip constants
-	pushGossipDiscardedElements          = 16_384
-	txGossipBloomMinTargetElements       = 8 * 1024
-	txGossipBloomTargetFalsePositiveRate = 0.01
-	txGossipBloomResetFalsePositiveRate  = 0.05
-	txGossipBloomChurnMultiplier         = 3
-	txGossipTargetMessageSize            = 20 * units.KiB
-	maxValidatorSetStaleness             = time.Minute
-	txGossipThrottlingPeriod             = 10 * time.Second
-	txGossipThrottlingLimit              = 2
-	txGossipPollSize                     = 1
+	pushGossipDiscardedElements = 16_384
+	txGossipTargetMessageSize   = 20 * units.KiB
+	txGossipThrottlingPeriod    = 10 * time.Second
+	txGossipThrottlingLimit     = 2
+	txGossipPollSize            = 1
+	maxValidatorSetStaleness    = time.Minute
 )
 
 // Define the API endpoints for the VM
@@ -241,11 +237,8 @@ type VM struct {
 	// Continuous Profiler
 	profiler profiler.ContinuousProfiler
 
-	peer.Network
-	client       peer.NetworkClient
+	network.Network
 	networkCodec codec.Manager
-
-	p2pValidators *p2p.Validators
 
 	// Metrics
 	sdkMetrics *prometheus.Registry
@@ -265,6 +258,7 @@ type VM struct {
 
 	// Initialize only sets these if nil so they can be overridden in tests
 	p2pSender          commonEng.AppSender
+	p2pValidators      *p2p.Validators
 	ethTxGossipHandler p2p.Handler
 	ethTxPushGossiper  avalancheUtils.Atomic[*gossip.PushGossiper[*GossipEthTx]]
 	ethTxPullGossiper  gossip.Gossiper
@@ -450,8 +444,10 @@ func (vm *VM) Initialize(
 	}
 	vm.p2pValidators = p2p.NewValidators(p2pNetwork.Peers, vm.ctx.Log, vm.ctx.SubnetID, vm.ctx.ValidatorState, maxValidatorSetStaleness)
 	vm.networkCodec = message.Codec
-	vm.Network = peer.NewNetwork(p2pNetwork, appSender, vm.networkCodec, chainCtx.NodeID, vm.config.MaxOutboundActiveRequests)
-	vm.client = peer.NewNetworkClient(vm.Network)
+	vm.Network, err = network.NewNetwork(vm.ctx, appSender, vm.networkCodec, vm.config.MaxOutboundActiveRequests, vm.sdkMetrics)
+	if err != nil {
+		return fmt.Errorf("failed to create network: %w", err)
+	}
 
 	vm.validatorsManager, err = validators.NewManager(vm.ctx, vm.validatorsDB, &vm.clock)
 	if err != nil {
@@ -652,7 +648,7 @@ func (vm *VM) initializeStateSyncClient(lastAcceptedHeight uint64) error {
 		stateSyncDone: vm.stateSyncDone,
 		client: statesyncclient.NewClient(
 			&statesyncclient.ClientConfig{
-				NetworkClient:    vm.client,
+				NetworkClient:    vm.Network,
 				Codec:            vm.networkCodec,
 				Stats:            stats.NewClientSyncerStats(),
 				StateSyncNodeIDs: stateSyncIDs,
@@ -767,7 +763,7 @@ func (vm *VM) onNormalOperationsStarted() error {
 	// Initialize goroutines related to block building
 	// once we enter normal operation as there is no need to handle mempool gossip before this point.
 	ethTxGossipMarshaller := GossipEthTxMarshaller{}
-	ethTxGossipClient := vm.Network.NewClient(p2p.TxGossipHandlerID, p2p.WithValidatorSampling(vm.p2pValidators))
+	ethTxGossipClient := vm.Network.NewClient(p2p.TxGossipHandlerID, p2p.WithValidatorSampling(vm.P2PValidators()))
 	ethTxGossipMetrics, err := gossip.NewMetrics(vm.sdkMetrics, ethTxGossipNamespace)
 	if err != nil {
 		return fmt.Errorf("failed to initialize eth tx gossip metrics: %w", err)
@@ -797,7 +793,7 @@ func (vm *VM) onNormalOperationsStarted() error {
 		ethTxPushGossiper, err = gossip.NewPushGossiper[*GossipEthTx](
 			ethTxGossipMarshaller,
 			ethTxPool,
-			vm.p2pValidators,
+			vm.P2PValidators(),
 			ethTxGossipClient,
 			ethTxGossipMetrics,
 			pushGossipParams,
@@ -827,7 +823,7 @@ func (vm *VM) onNormalOperationsStarted() error {
 			txGossipTargetMessageSize,
 			txGossipThrottlingPeriod,
 			txGossipThrottlingLimit,
-			vm.p2pValidators,
+			vm.P2PValidators(),
 		)
 	}
 
@@ -848,7 +844,7 @@ func (vm *VM) onNormalOperationsStarted() error {
 		vm.ethTxPullGossiper = gossip.ValidatorGossiper{
 			Gossiper:   ethTxPullGossiper,
 			NodeID:     vm.ctx.NodeID,
-			Validators: vm.p2pValidators,
+			Validators: vm.P2PValidators(),
 		}
 	}
 
@@ -1129,7 +1125,7 @@ func (vm *VM) CreateHandlers(context.Context) (map[string]http.Handler, error) {
 	}
 
 	if vm.config.WarpAPIEnabled {
-		warpAPI := warp.NewAPI(vm.ctx, vm.networkCodec, vm.warpBackend, vm.client, vm.requirePrimaryNetworkSigners)
+		warpAPI := warp.NewAPI(vm.ctx, vm.networkCodec, vm.warpBackend, vm.Network, vm.requirePrimaryNetworkSigners)
 		if err := handler.RegisterName("warp", warpAPI); err != nil {
 			return nil, err
 		}
