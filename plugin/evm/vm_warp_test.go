@@ -746,7 +746,7 @@ func testReceiveWarpMessage(
 	require.JSONEq(string(txTraceResultBytes), string(blockTxTraceResultBytes))
 }
 
-func TestMessageSignatureRequestsToVM(t *testing.T) {
+func TestSignatureRequestsToVM(t *testing.T) {
 	_, vm, _, appSender := GenesisVM(t, true, genesisJSONSubnetEVM, "", "")
 
 	defer func() {
