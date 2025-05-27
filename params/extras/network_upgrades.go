@@ -61,7 +61,7 @@ func (n *NetworkUpgrades) forkOrder() []fork {
 		{name: "subnetEVMTimestamp", timestamp: n.SubnetEVMTimestamp},
 		{name: "durangoTimestamp", timestamp: n.DurangoTimestamp},
 		{name: "etnaTimestamp", timestamp: n.EtnaTimestamp},
-		{name: "fortunaTimestamp", timestamp: n.FortunaTimestamp, optional: true},
+		{name: "fortunaTimestamp", timestamp: n.FortunaTimestamp},
 		{name: "graniteTimestamp", timestamp: n.GraniteTimestamp},
 	}
 }
