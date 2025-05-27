@@ -99,7 +99,8 @@ var (
 	genesisJSONDurango      = genesisJSON(params.TestDurangoChainConfig)
 	genesisJSONEtna         = genesisJSON(params.TestEtnaChainConfig)
 	genesisJSONFortuna      = genesisJSON(params.TestFortunaChainConfig)
-	genesisJSONLatest       = genesisJSONFortuna
+	genesisJSONGranite      = genesisJSON(params.TestGraniteChainConfig)
+	genesisJSONLatest       = genesisJSONGranite
 )
 
 func init() {

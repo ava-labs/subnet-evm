@@ -88,6 +88,10 @@ var (
 			FortunaTimestamp:   utils.TimeToNewUint64(upgrade.InitiallyActiveTime),
 		}
 	})
+
+	TestGraniteChainConfig = copyAndSet(TestFortunaChainConfig, func(c *ChainConfig) {
+		c.NetworkUpgrades.GraniteTimestamp = utils.NewUint64(0)
+	})
 )
 
 func copyAndSet(c *ChainConfig, set func(*ChainConfig)) *ChainConfig {
