@@ -43,7 +43,8 @@ import (
 )
 
 const (
-	defaultBodyLimit = 5 * 1024 * 1024
+	// previously 5 * 1024 * 1024 (5MB)
+	defaultBodyLimit = 15 * 1024 * 1024 // (15MB)
 	contentType      = "application/json"
 )
 
