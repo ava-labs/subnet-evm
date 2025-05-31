@@ -15,7 +15,6 @@ import (
 	syncHandlers "github.com/ava-labs/subnet-evm/sync/handlers"
 	syncStats "github.com/ava-labs/subnet-evm/sync/handlers/stats"
 	"github.com/ava-labs/subnet-evm/warp"
-	warpHandlers "github.com/ava-labs/subnet-evm/warp/handlers"
 )
 
 var _ message.RequestHandler = &networkHandler{}
@@ -24,7 +23,6 @@ type networkHandler struct {
 	stateTrieLeafsRequestHandler *syncHandlers.LeafsRequestHandler
 	blockRequestHandler          *syncHandlers.BlockRequestHandler
 	codeRequestHandler           *syncHandlers.CodeRequestHandler
-	signatureRequestHandler      *warpHandlers.SignatureRequestHandler
 }
 
 // newNetworkHandler constructs the handler for serving network requests.
@@ -40,7 +38,6 @@ func newNetworkHandler(
 		stateTrieLeafsRequestHandler: syncHandlers.NewLeafsRequestHandler(evmTrieDB, provider, networkCodec, syncStats),
 		blockRequestHandler:          syncHandlers.NewBlockRequestHandler(provider, networkCodec, syncStats),
 		codeRequestHandler:           syncHandlers.NewCodeRequestHandler(diskDB, networkCodec, syncStats),
-		signatureRequestHandler:      warpHandlers.NewSignatureRequestHandler(warpBackend, networkCodec),
 	}
 }
 
@@ -54,12 +51,4 @@ func (n networkHandler) HandleBlockRequest(ctx context.Context, nodeID ids.NodeI
 
 func (n networkHandler) HandleCodeRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, codeRequest message.CodeRequest) ([]byte, error) {
 	return n.codeRequestHandler.OnCodeRequest(ctx, nodeID, requestID, codeRequest)
-}
-
-func (n networkHandler) HandleMessageSignatureRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, messageSignatureRequest message.MessageSignatureRequest) ([]byte, error) {
-	return n.signatureRequestHandler.OnMessageSignatureRequest(ctx, nodeID, requestID, messageSignatureRequest)
-}
-
-func (n networkHandler) HandleBlockSignatureRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, blockSignatureRequest message.BlockSignatureRequest) ([]byte, error) {
-	return n.signatureRequestHandler.OnBlockSignatureRequest(ctx, nodeID, requestID, blockSignatureRequest)
 }
