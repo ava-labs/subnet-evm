@@ -5,6 +5,7 @@
 package blocklist
 
 import (
+	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 )
 
@@ -16,24 +17,27 @@ type Config struct {
 	precompileconfig.Upgrade
 	// CUSTOM CODE STARTS HERE
 	// Add your own custom fields for Config here
+	AdminAddress common.Address `json:"adminAddress"` // initial admin address
 }
 
 // NewConfig returns a config for a network upgrade at [blockTimestamp] that enables
 // BlockList.
-func NewConfig(blockTimestamp *uint64) *Config {
+func NewConfig(blockTimestamp *uint64, adminAddress common.Address) *Config {
 	return &Config{
-		Upgrade: precompileconfig.Upgrade{BlockTimestamp: blockTimestamp},
+		Upgrade:      precompileconfig.Upgrade{BlockTimestamp: blockTimestamp},
+		AdminAddress: adminAddress,
 	}
 }
 
 // NewDisableConfig returns config for a network upgrade at [blockTimestamp]
 // that disables BlockList.
-func NewDisableConfig(blockTimestamp *uint64) *Config {
+func NewDisableConfig(blockTimestamp *uint64, adminAddress common.Address) *Config {
 	return &Config{
 		Upgrade: precompileconfig.Upgrade{
 			BlockTimestamp: blockTimestamp,
 			Disable:        true,
 		},
+		AdminAddress: adminAddress,
 	}
 }
 
@@ -59,6 +63,6 @@ func (c *Config) Equal(s precompileconfig.Config) bool {
 	// CUSTOM CODE STARTS HERE
 	// modify this boolean accordingly with your custom Config, to check if [other] and the current [c] are equal
 	// if Config contains only Upgrade you can skip modifying it.
-	equals := c.Upgrade.Equal(&other.Upgrade)
+	equals := c.Upgrade.Equal(&other.Upgrade) && c.AdminAddress == other.AdminAddress
 	return equals
 }

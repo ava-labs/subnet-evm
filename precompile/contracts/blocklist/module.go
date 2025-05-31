@@ -23,7 +23,7 @@ const ConfigKey = "blockListConfig"
 // ContractAddress is the defined address of the precompile contract.
 // This should be unique across all precompile contracts.
 // See precompile/registry/registry.go for registered precompile contracts and more information.
-var ContractAddress = common.HexToAddress("{ASUITABLEHEXADDRESS}") // SET A SUITABLE HEX ADDRESS HERE
+var ContractAddress = common.HexToAddress("0x0300000000000000000000000000000000000001") // SET A SUITABLE HEX ADDRESS HERE
 
 // Module is the precompile module. It is used to register the precompile contract.
 var Module = modules.Module{
@@ -55,9 +55,11 @@ func (*configurator) MakeConfig() precompileconfig.Config {
 // by using the [cfg] config and [state] stateDB.
 func (*configurator) Configure(chainConfig precompileconfig.ChainConfig, cfg precompileconfig.Config, state contract.StateDB, blockContext contract.ConfigurationBlockContext) error {
 	// CUSTOM CODE STARTS HERE
-	if _, ok := cfg.(*Config); !ok {
+	config, ok := cfg.(*Config)
+	if !ok {
 		return fmt.Errorf("expected config type %T, got %T: %v", &Config{}, cfg, cfg)
 	}
 
+	_ = SetAdmin(state, config.AdminAddress, blockContext.Number().Uint64())
 	return nil
 }

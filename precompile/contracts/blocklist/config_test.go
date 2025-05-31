@@ -5,6 +5,7 @@
 package blocklist
 
 import (
+	"github.com/ava-labs/libevm/common"
 	"testing"
 
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
@@ -13,11 +14,16 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
+var (
+	TestAdminAddr  = common.HexToAddress("0x0000000000000000000000000000000000000011")
+	TestAdminAddr2 = common.HexToAddress("0x0000000000000000000000000000000000000012")
+)
+
 // TestVerify tests the verification of Config.
 func TestVerify(t *testing.T) {
 	tests := map[string]testutils.ConfigVerifyTest{
 		"valid config": {
-			Config: NewConfig(utils.NewUint64(3)),
+			Config: NewConfig(utils.NewUint64(3), TestAdminAddr),
 			ChainConfig: func() precompileconfig.ChainConfig {
 				config := precompileconfig.NewMockChainConfig(gomock.NewController(t))
 				config.EXPECT().IsDurango(gomock.Any()).Return(true).AnyTimes()
@@ -40,23 +46,28 @@ func TestVerify(t *testing.T) {
 func TestEqual(t *testing.T) {
 	tests := map[string]testutils.ConfigEqualTest{
 		"non-nil config and nil other": {
-			Config:   NewConfig(utils.NewUint64(3)),
+			Config:   NewConfig(utils.NewUint64(3), TestAdminAddr),
 			Other:    nil,
 			Expected: false,
 		},
 		"different type": {
-			Config:   NewConfig(utils.NewUint64(3)),
+			Config:   NewConfig(utils.NewUint64(3), TestAdminAddr),
 			Other:    precompileconfig.NewMockConfig(gomock.NewController(t)),
 			Expected: false,
 		},
 		"different timestamp": {
-			Config:   NewConfig(utils.NewUint64(3)),
-			Other:    NewConfig(utils.NewUint64(4)),
+			Config:   NewConfig(utils.NewUint64(3), TestAdminAddr),
+			Other:    NewConfig(utils.NewUint64(4), TestAdminAddr),
+			Expected: false,
+		},
+		"different admin address": {
+			Config:   NewConfig(utils.NewUint64(3), TestAdminAddr),
+			Other:    NewConfig(utils.NewUint64(3), TestAdminAddr2),
 			Expected: false,
 		},
 		"same config": {
-			Config:   NewConfig(utils.NewUint64(3)),
-			Other:    NewConfig(utils.NewUint64(3)),
+			Config:   NewConfig(utils.NewUint64(3), TestAdminAddr),
+			Other:    NewConfig(utils.NewUint64(3), TestAdminAddr),
 			Expected: true,
 		},
 		// CUSTOM CODE STARTS HERE

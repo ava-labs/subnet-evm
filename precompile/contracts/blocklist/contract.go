@@ -7,6 +7,7 @@ package blocklist
 import (
 	"errors"
 	"fmt"
+	"github.com/ava-labs/libevm/core/types"
 	"math/big"
 
 	"github.com/ava-labs/subnet-evm/accounts/abi"
@@ -23,11 +24,11 @@ const (
 	// You should set a gas cost for each function in your contract.
 	// Generally, you should not set gas costs very low as this may cause your network to be vulnerable to DoS attacks.
 	// There are some predefined gas costs in contract/utils.go that you can use.
-	AdminGasCost          uint64 = 1 /* SET A GAS COST HERE */
-	BlockAddressGasCost   uint64 = 1 /* SET A GAS COST HERE */
-	ChangeAdminGasCost    uint64 = 1 /* SET A GAS COST HERE */
-	ReadBlockListGasCost  uint64 = 1 /* SET A GAS COST HERE */
-	UnblockAddressGasCost uint64 = 1 /* SET A GAS COST HERE */
+	AdminGasCost          uint64 = contract.ReadGasCostPerSlot                                /* SET A GAS COST HERE */
+	BlockAddressGasCost   uint64 = contract.ReadGasCostPerSlot + contract.WriteGasCostPerSlot /* SET A GAS COST HERE */
+	ChangeAdminGasCost    uint64 = contract.ReadGasCostPerSlot + contract.WriteGasCostPerSlot /* SET A GAS COST HERE */
+	ReadBlockListGasCost  uint64 = contract.ReadGasCostPerSlot                                /* SET A GAS COST HERE */
+	UnblockAddressGasCost uint64 = contract.ReadGasCostPerSlot + contract.WriteGasCostPerSlot /* SET A GAS COST HERE */
 )
 
 // CUSTOM CODE STARTS HERE
@@ -50,6 +51,14 @@ var (
 	BlockListABI = contract.ParseABI(BlockListRawABI)
 
 	BlockListPrecompile = createBlockListPrecompile()
+
+	ErrUnauthorized = errors.New("unauthorized")
+
+	// creating namespacing using 5 bytes
+	BlockListStorageNameSpace = []byte("BLOCK")
+
+	// the storage key "adminStorageKey" is for storing the admin address
+	adminStorageKeyHash = common.BytesToHash([]byte("adminStorageKey"))
 )
 
 type BlockAddressInput struct {
@@ -60,6 +69,60 @@ type BlockAddressInput struct {
 type UnblockAddressInput struct {
 	Addr   common.Address
 	Reason string
+}
+
+func SetAdmin(stateDB contract.StateDB, address common.Address, blockNumber uint64) error {
+	addressPadded := common.LeftPadBytes(address.Bytes(), common.HashLength)
+	addressHash := common.BytesToHash(addressPadded) // it is just converting to [32]bytes
+
+	topics, data, err := PackAdminChangedEvent(address)
+	if err != nil {
+		return err
+	}
+
+	// Emit the event
+	stateDB.AddLog(&types.Log{
+		Address:     ContractAddress,
+		Topics:      topics,
+		Data:        data,
+		BlockNumber: blockNumber,
+	})
+
+	stateDB.SetState(ContractAddress, adminStorageKeyHash, addressHash)
+
+	return nil
+}
+
+func ReadAdmin(stateDB contract.StateDB) common.Address {
+	value := stateDB.GetState(ContractAddress, adminStorageKeyHash)
+	address := common.BytesToAddress(value.Bytes())
+	return address
+}
+
+func GetBlockListUserKey(address common.Address) common.Hash {
+	key := make([]byte, common.HashLength)
+	copy(key[:5], BlockListStorageNameSpace)
+	copy(key[5:], address.Bytes())
+
+	return common.BytesToHash(key)
+}
+
+func ChangeBlockStatus(stateDB contract.StateDB, address common.Address, isBlocked bool) {
+	key := GetBlockListUserKey(address)
+	value := common.BytesToHash([]byte{func() byte {
+		if isBlocked {
+			return 1
+		}
+		return 0
+	}()})
+
+	stateDB.SetState(ContractAddress, key, value)
+}
+
+func IsAddressBlocked(stateDB contract.StateReader, addr common.Address) *big.Int {
+	key := GetBlockListUserKey(addr)
+	value := stateDB.GetState(ContractAddress, key)
+	return value.Big()
 }
 
 // PackAdmin packs the include selector (first 4 func signature bytes).
@@ -92,7 +155,6 @@ func admin(accessibleState contract.AccessibleState, caller common.Address, addr
 	// no input provided for this function
 
 	// CUSTOM CODE STARTS HERE
-
 	var output common.Address // CUSTOM CODE FOR AN OUTPUT
 	packedOutput, err := PackAdminOutput(output)
 	if err != nil {
@@ -133,7 +195,42 @@ func blockAddress(accessibleState contract.AccessibleState, caller common.Addres
 	}
 
 	// CUSTOM CODE STARTS HERE
-	_ = inputStruct // CUSTOM CODE OPERATES ON INPUT
+	if inputStruct.Addr == caller {
+		return nil, remainingGas, fmt.Errorf("%w: cannot ban yourself", ErrUnauthorized)
+	}
+
+	// CUSTOM CODE STARTS HERE
+	stateDB := accessibleState.GetStateDB()
+
+	// check if the caller is the admin
+	adminAddress := ReadAdmin(stateDB)
+	if adminAddress != caller {
+		return nil, remainingGas, fmt.Errorf("%w: %s", ErrUnauthorized, caller)
+	}
+
+	eventData := AddressBlockedEventData{
+		Reason: inputStruct.Reason,
+	}
+
+	topics, data, err := PackAddressBlockedEvent(inputStruct.Addr, eventData)
+	if err != nil {
+		return nil, remainingGas, err
+	}
+	// Charge the gas for emitting the event.
+	eventGasCost := GetAddressBlockedEventGasCost(eventData)
+	if remainingGas, err = contract.DeductGas(remainingGas, eventGasCost); err != nil {
+		return nil, 0, err
+	}
+
+	// Emit the event
+	stateDB.AddLog(&types.Log{
+		Address:     ContractAddress,
+		Topics:      topics,
+		Data:        data,
+		BlockNumber: accessibleState.GetBlockContext().Number().Uint64(),
+	})
+
+	ChangeBlockStatus(stateDB, inputStruct.Addr, true)
 	// this function does not return an output, leave this one as is
 	packedOutput := []byte{}
 
@@ -175,7 +272,28 @@ func changeAdmin(accessibleState contract.AccessibleState, caller common.Address
 	}
 
 	// CUSTOM CODE STARTS HERE
-	_ = inputStruct // CUSTOM CODE OPERATES ON INPUT
+	stateDB := accessibleState.GetStateDB()
+
+	// check if the caller is the admin
+	adminAddress := ReadAdmin(stateDB)
+	if adminAddress != caller {
+		return nil, remainingGas, fmt.Errorf("%w: %s", ErrUnauthorized, caller)
+	}
+
+	newAdminAddress := inputStruct // CUSTOM CODE OPERATES ON INPUT
+
+	blockNumber := accessibleState.GetBlockContext().Number().Uint64()
+
+	if err := SetAdmin(stateDB, newAdminAddress, blockNumber); err != nil {
+		return nil, remainingGas, err
+	}
+
+	// Charge the gas for emitting the event.
+	eventGasCost := GetAdminChangedEventGasCost()
+	if remainingGas, err = contract.DeductGas(remainingGas, eventGasCost); err != nil {
+		return nil, 0, err
+	}
+
 	// this function does not return an output, leave this one as is
 	packedOutput := []byte{}
 
@@ -231,10 +349,11 @@ func readBlockList(accessibleState contract.AccessibleState, caller common.Addre
 	}
 
 	// CUSTOM CODE STARTS HERE
-	_ = inputStruct // CUSTOM CODE OPERATES ON INPUT
+	stateDB := accessibleState.GetStateDB()
+	userAddress := inputStruct
+	blocked := IsAddressBlocked(stateDB, userAddress)
 
-	var output *big.Int // CUSTOM CODE FOR AN OUTPUT
-	packedOutput, err := PackReadBlockListOutput(output)
+	packedOutput, err := PackReadBlockListOutput(blocked)
 	if err != nil {
 		return nil, remainingGas, err
 	}
@@ -273,7 +392,38 @@ func unblockAddress(accessibleState contract.AccessibleState, caller common.Addr
 	}
 
 	// CUSTOM CODE STARTS HERE
-	_ = inputStruct // CUSTOM CODE OPERATES ON INPUT
+	stateDB := accessibleState.GetStateDB()
+
+	// check if the caller is the admin
+	adminAddress := ReadAdmin(stateDB)
+	if adminAddress != caller {
+		return nil, remainingGas, fmt.Errorf("%w: %s", ErrUnauthorized, caller)
+	}
+
+	eventData := AddressUnblockedEventData{
+		Reason: inputStruct.Reason,
+	}
+
+	topics, data, err := PackAddressUnblockedEvent(inputStruct.Addr, eventData)
+	if err != nil {
+		return nil, remainingGas, err
+	}
+	// Charge the gas for emitting the event.
+	eventGasCost := GetAddressUnblockedEventGasCost(eventData)
+	if remainingGas, err = contract.DeductGas(remainingGas, eventGasCost); err != nil {
+		return nil, 0, err
+	}
+
+	// Emit the event
+	stateDB.AddLog(&types.Log{
+		Address:     ContractAddress,
+		Topics:      topics,
+		Data:        data,
+		BlockNumber: accessibleState.GetBlockContext().Number().Uint64(),
+	})
+
+	ChangeBlockStatus(stateDB, inputStruct.Addr, false)
+
 	// this function does not return an output, leave this one as is
 	packedOutput := []byte{}
 
