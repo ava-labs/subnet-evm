@@ -20,6 +20,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/ava-labs/coreth/warp/aggregator"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/crypto"
 	"github.com/ava-labs/libevm/log"
@@ -48,7 +49,6 @@ import (
 	"github.com/ava-labs/subnet-evm/tests"
 	"github.com/ava-labs/subnet-evm/tests/utils"
 	warpBackend "github.com/ava-labs/subnet-evm/warp"
-	"github.com/ava-labs/subnet-evm/warp/aggregator"
 )
 
 const (
@@ -422,7 +422,7 @@ func (w *warpTest) aggregateSignaturesViaAPI() {
 	}
 
 	log.Info("Aggregating signatures from validator set", "numValidators", len(warpValidators), "totalWeight", totalWeight)
-	apiSignatureGetter := warpBackend.NewAPIFetcher(warpAPIs)
+	apiSignatureGetter := NewAPIFetcher(warpAPIs)
 	signatureResult, err := aggregator.New(apiSignatureGetter, warpValidators, totalWeight).AggregateSignatures(ctx, w.addressedCallUnsignedMessage, 100)
 	require.NoError(err)
 	require.Equal(signatureResult.SignatureWeight, signatureResult.TotalWeight)
