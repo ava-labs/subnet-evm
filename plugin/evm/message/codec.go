@@ -25,10 +25,9 @@ func init() {
 	c.SkipRegistrations(1)
 
 	errs := wrappers.Errs{}
+	// Gossip types and sync summary type removed from codec
+	c.SkipRegistrations(3)
 	errs.Add(
-		// Types for state sync frontier consensus
-		c.RegisterType(SyncSummary{}),
-
 		// state sync types
 		c.RegisterType(BlockRequest{}),
 		c.RegisterType(BlockResponse{}),

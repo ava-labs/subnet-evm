@@ -5,7 +5,6 @@ package statesync
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"sync"
 
@@ -23,10 +22,8 @@ const (
 	segmentThreshold       = 500_000 // if we estimate trie to have greater than this number of leafs, split it
 	numStorageTrieSegments = 4
 	numMainTrieSegments    = 8
-	defaultNumWorkers      = 8
+	defaultNumThreads      = 8
 )
-
-var errWaitBeforeStart = errors.New("cannot call Wait before Start")
 
 type StateSyncerConfig struct {
 	Root                     common.Hash
@@ -64,9 +61,6 @@ type stateSync struct {
 	triesInProgressSem chan struct{}
 	done               chan error
 	stats              *trieSyncStats
-
-	// context cancellation management
-	cancelFunc context.CancelFunc
 }
 
 func NewStateSyncer(config *StateSyncerConfig) (*stateSync, error) {
@@ -80,13 +74,13 @@ func NewStateSyncer(config *StateSyncerConfig) (*stateSync, error) {
 		triesInProgress: make(map[common.Hash]*trieToSync),
 
 		// [triesInProgressSem] is used to keep the number of tries syncing
-		// less than or equal to [defaultNumWorkers].
-		triesInProgressSem: make(chan struct{}, defaultNumWorkers),
+		// less than or equal to [defaultNumThreads].
+		triesInProgressSem: make(chan struct{}, defaultNumThreads),
 
 		// Each [trieToSync] will have a maximum of [numSegments] segments.
-		// We set the capacity of [segments] such that [defaultNumWorkers]
+		// We set the capacity of [segments] such that [defaultNumThreads]
 		// storage tries can sync concurrently.
-		segments:         make(chan syncclient.LeafSyncTask, defaultNumWorkers*numStorageTrieSegments),
+		segments:         make(chan syncclient.LeafSyncTask, defaultNumThreads*numStorageTrieSegments),
 		mainTrieDone:     make(chan struct{}),
 		storageTriesDone: make(chan struct{}),
 		done:             make(chan error, 1),
@@ -224,14 +218,10 @@ func (t *stateSync) storageTrieProducer(ctx context.Context) error {
 }
 
 func (t *stateSync) Start(ctx context.Context) error {
-	// Create a cancellable context for the sync operations
-	syncCtx, cancel := context.WithCancel(ctx)
-	t.cancelFunc = cancel
-
 	// Start the code syncer and leaf syncer.
-	eg, egCtx := errgroup.WithContext(syncCtx)
+	eg, egCtx := errgroup.WithContext(ctx)
 	t.codeSyncer.start(egCtx) // start the code syncer first since the leaf syncer may add code tasks
-	t.syncer.Start(egCtx, defaultNumWorkers, t.onSyncFailure)
+	t.syncer.Start(egCtx, defaultNumThreads, t.onSyncFailure)
 	eg.Go(func() error {
 		if err := <-t.syncer.Done(); err != nil {
 			return err
@@ -254,21 +244,7 @@ func (t *stateSync) Start(ctx context.Context) error {
 	return nil
 }
 
-func (t *stateSync) Wait(ctx context.Context) error {
-	// This should only be called after Start, so we can assume cancelFunc is set.
-	if t.cancelFunc == nil {
-		return errWaitBeforeStart
-	}
-
-	select {
-	case err := <-t.done:
-		return err
-	case <-ctx.Done():
-		t.cancelFunc() // cancel the sync operations if the context is done
-		<-t.done       // wait for the sync operations to finish
-		return ctx.Err()
-	}
-}
+func (t *stateSync) Done() <-chan error { return t.done }
 
 // addTrieInProgress tracks the root as being currently synced.
 func (t *stateSync) addTrieInProgress(root common.Hash, trie *trieToSync) {

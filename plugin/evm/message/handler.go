@@ -15,11 +15,12 @@ var _ RequestHandler = NoopRequestHandler{}
 // Must have methods in format of handleType(context.Context, ids.NodeID, uint32, request Type) error
 // so that the Request object of relevant Type can invoke its respective handle method
 // on this struct.
-// Also see GossipHandler for implementation style.
 type RequestHandler interface {
-	HandleStateTrieLeafsRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, leafsRequest LeafsRequest) ([]byte, error)
+	HandleLeafsRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, leafsRequest LeafsRequest) ([]byte, error)
 	HandleBlockRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, request BlockRequest) ([]byte, error)
 	HandleCodeRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, codeRequest CodeRequest) ([]byte, error)
+	HandleMessageSignatureRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, signatureRequest MessageSignatureRequest) ([]byte, error)
+	HandleBlockSignatureRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, signatureRequest BlockSignatureRequest) ([]byte, error)
 }
 
 // ResponseHandler handles response for a sent request
@@ -33,14 +34,22 @@ type ResponseHandler interface {
 
 type NoopRequestHandler struct{}
 
-func (NoopRequestHandler) HandleStateTrieLeafsRequest(context.Context, ids.NodeID, uint32, LeafsRequest) ([]byte, error) {
+func (NoopRequestHandler) HandleLeafsRequest(_ context.Context, _ ids.NodeID, _ uint32, _ LeafsRequest) ([]byte, error) {
 	return nil, nil
 }
 
-func (NoopRequestHandler) HandleBlockRequest(context.Context, ids.NodeID, uint32, BlockRequest) ([]byte, error) {
+func (NoopRequestHandler) HandleBlockRequest(_ context.Context, _ ids.NodeID, _ uint32, _ BlockRequest) ([]byte, error) {
 	return nil, nil
 }
 
-func (NoopRequestHandler) HandleCodeRequest(context.Context, ids.NodeID, uint32, CodeRequest) ([]byte, error) {
+func (NoopRequestHandler) HandleCodeRequest(_ context.Context, _ ids.NodeID, _ uint32, _ CodeRequest) ([]byte, error) {
+	return nil, nil
+}
+
+func (NoopRequestHandler) HandleMessageSignatureRequest(_ context.Context, _ ids.NodeID, _ uint32, _ MessageSignatureRequest) ([]byte, error) {
+	return nil, nil
+}
+
+func (NoopRequestHandler) HandleBlockSignatureRequest(_ context.Context, _ ids.NodeID, _ uint32, _ BlockSignatureRequest) ([]byte, error) {
 	return nil, nil
 }

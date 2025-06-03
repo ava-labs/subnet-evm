@@ -13,40 +13,38 @@ import (
 	"github.com/ava-labs/subnet-evm/network"
 )
 
-var _ network.SyncedNetworkClient = (*mockNetwork)(nil)
+var _ network.SyncedNetworkClient = (*testNetwork)(nil)
 
-// TODO replace with gomock library
-type mockNetwork struct {
+type testNetwork struct {
 	// captured request data
 	numCalls uint
-
-	// response mocking for RequestAny and Request calls
+	// response testing for RequestAny and Request calls
 	response       [][]byte
-	callback       func() // callback is called prior to processing each mock call
+	callback       func() // callback is called prior to processing each test call
 	requestErr     []error
 	nodesRequested []ids.NodeID
 }
 
-func (t *mockNetwork) SendSyncedAppRequestAny(context.Context, *version.Application, []byte) ([]byte, ids.NodeID, error) {
+func (t *testNetwork) SendSyncedAppRequestAny(_ context.Context, _ *version.Application, _ []byte) ([]byte, ids.NodeID, error) {
 	if len(t.response) == 0 {
-		return nil, ids.EmptyNodeID, errors.New("no mocked response to return in mockNetwork")
+		return nil, ids.EmptyNodeID, errors.New("no tested response to return in testNetwork")
 	}
 
-	response, err := t.processMock()
+	response, err := t.processTest()
 	return response, ids.EmptyNodeID, err
 }
 
-func (t *mockNetwork) SendSyncedAppRequest(_ context.Context, nodeID ids.NodeID, _ []byte) ([]byte, error) {
+func (t *testNetwork) SendSyncedAppRequest(_ context.Context, nodeID ids.NodeID, _ []byte) ([]byte, error) {
 	if len(t.response) == 0 {
-		return nil, errors.New("no mocked response to return in mockNetwork")
+		return nil, errors.New("no tested response to return in testNetwork")
 	}
 
 	t.nodesRequested = append(t.nodesRequested, nodeID)
 
-	return t.processMock()
+	return t.processTest()
 }
 
-func (t *mockNetwork) processMock() ([]byte, error) {
+func (t *testNetwork) processTest() ([]byte, error) {
 	t.numCalls++
 
 	if t.callback != nil {
@@ -69,11 +67,11 @@ func (t *mockNetwork) processMock() ([]byte, error) {
 	return response, err
 }
 
-func (*mockNetwork) Gossip([]byte) error {
+func (*testNetwork) Gossip(_ []byte) error {
 	panic("not implemented") // we don't care about this function for this test
 }
 
-func (t *mockNetwork) mockResponse(times uint8, callback func(), response []byte) {
+func (t *testNetwork) testResponse(times uint8, callback func(), response []byte) {
 	t.response = make([][]byte, times)
 	for i := uint8(0); i < times; i++ {
 		t.response[i] = response
@@ -82,10 +80,10 @@ func (t *mockNetwork) mockResponse(times uint8, callback func(), response []byte
 	t.numCalls = 0
 }
 
-func (t *mockNetwork) mockResponses(callback func(), responses ...[]byte) {
+func (t *testNetwork) testResponses(callback func(), responses ...[]byte) {
 	t.response = responses
 	t.callback = callback
 	t.numCalls = 0
 }
 
-func (*mockNetwork) TrackBandwidth(ids.NodeID, float64) {}
+func (*testNetwork) TrackBandwidth(_ ids.NodeID, _ float64) {}

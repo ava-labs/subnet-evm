@@ -9,40 +9,60 @@ import (
 	"github.com/ava-labs/avalanchego/codec"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/libevm/ethdb"
-	"github.com/ava-labs/libevm/metrics"
+	"github.com/ava-labs/libevm/log"
 	"github.com/ava-labs/libevm/triedb"
 
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
+	"github.com/ava-labs/subnet-evm/sync/handlers/stats"
+	"github.com/ava-labs/subnet-evm/warp"
 
 	syncHandlers "github.com/ava-labs/subnet-evm/sync/handlers"
-	syncStats "github.com/ava-labs/subnet-evm/sync/handlers/stats"
+	warpHandlers "github.com/ava-labs/subnet-evm/warp/handlers"
 )
 
 var _ message.RequestHandler = (*networkHandler)(nil)
 
+type LeafHandlers map[message.NodeType]syncHandlers.LeafRequestHandler
+
 type networkHandler struct {
-	leafRequestHandler  *syncHandlers.LeafsRequestHandler
-	blockRequestHandler *syncHandlers.BlockRequestHandler
-	codeRequestHandler  *syncHandlers.CodeRequestHandler
+	leafRequestHandlers     LeafHandlers
+	blockRequestHandler     *syncHandlers.BlockRequestHandler
+	codeRequestHandler      *syncHandlers.CodeRequestHandler
+	signatureRequestHandler *warpHandlers.SignatureRequestHandler
+}
+
+type LeafRequestTypeConfig struct {
+	NodeType     message.NodeType
+	NodeKeyLen   int
+	TrieDB       *triedb.Database
+	UseSnapshots bool
+	MetricName   string
 }
 
 // newNetworkHandler constructs the handler for serving network requests.
 func newNetworkHandler(
 	provider syncHandlers.SyncDataProvider,
 	diskDB ethdb.KeyValueReader,
-	evmTrieDB *triedb.Database,
+	warpBackend warp.Backend,
 	networkCodec codec.Manager,
-) message.RequestHandler {
-	syncStats := syncStats.NewHandlerStats(metrics.Enabled)
+	leafRequestHandlers LeafHandlers,
+	syncStats stats.HandlerStats,
+) *networkHandler {
 	return &networkHandler{
-		leafRequestHandler:  syncHandlers.NewLeafsRequestHandler(evmTrieDB, nil, networkCodec, syncStats),
-		blockRequestHandler: syncHandlers.NewBlockRequestHandler(provider, networkCodec, syncStats),
-		codeRequestHandler:  syncHandlers.NewCodeRequestHandler(diskDB, networkCodec, syncStats),
+		leafRequestHandlers:     leafRequestHandlers,
+		blockRequestHandler:     syncHandlers.NewBlockRequestHandler(provider, networkCodec, syncStats),
+		codeRequestHandler:      syncHandlers.NewCodeRequestHandler(diskDB, networkCodec, syncStats),
+		signatureRequestHandler: warpHandlers.NewSignatureRequestHandler(warpBackend, networkCodec),
 	}
 }
 
-func (n networkHandler) HandleStateTrieLeafsRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, leafsRequest message.LeafsRequest) ([]byte, error) {
-	return n.leafRequestHandler.OnLeafsRequest(ctx, nodeID, requestID, leafsRequest)
+func (n networkHandler) HandleLeafsRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, leafsRequest message.LeafsRequest) ([]byte, error) {
+	handler, ok := n.leafRequestHandlers[leafsRequest.NodeType]
+	if !ok {
+		log.Debug("node type is not recognised, dropping request", "nodeID", nodeID, "requestID", requestID, "nodeType", leafsRequest.NodeType)
+		return nil, nil
+	}
+	return handler.OnLeafsRequest(ctx, nodeID, requestID, leafsRequest)
 }
 
 func (n networkHandler) HandleBlockRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, blockRequest message.BlockRequest) ([]byte, error) {
@@ -51,4 +71,12 @@ func (n networkHandler) HandleBlockRequest(ctx context.Context, nodeID ids.NodeI
 
 func (n networkHandler) HandleCodeRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, codeRequest message.CodeRequest) ([]byte, error) {
 	return n.codeRequestHandler.OnCodeRequest(ctx, nodeID, requestID, codeRequest)
+}
+
+func (n networkHandler) HandleMessageSignatureRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, messageSignatureRequest message.MessageSignatureRequest) ([]byte, error) {
+	return n.signatureRequestHandler.OnMessageSignatureRequest(ctx, nodeID, requestID, messageSignatureRequest)
+}
+
+func (n networkHandler) HandleBlockSignatureRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, blockSignatureRequest message.BlockSignatureRequest) ([]byte, error) {
+	return n.signatureRequestHandler.OnBlockSignatureRequest(ctx, nodeID, requestID, blockSignatureRequest)
 }
