@@ -1131,7 +1131,7 @@ func TotalFees(block *types.Block, receipts []*types.Receipt) (*big.Int, error) 
 	return feesWei, nil
 }
 
-// TotalFees computes total consumed fees in ether. Block transactions and receipts have to have the same order.
+// TotalFeesFloat computes total consumed fees in ether. Block transactions and receipts have to have the same order.
 func TotalFeesFloat(block *types.Block, receipts []*types.Receipt) (*big.Float, error) {
 	total, err := TotalFees(block, receipts)
 	if err != nil {
