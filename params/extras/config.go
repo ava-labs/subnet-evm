@@ -89,8 +89,14 @@ var (
 		}
 	})
 
-	TestGraniteChainConfig = copyAndSet(TestFortunaChainConfig, func(c *ChainConfig) {
-		c.NetworkUpgrades.GraniteTimestamp = utils.NewUint64(0)
+	TestGraniteChainConfig = copyAndSet(TestChainConfig, func(c *ChainConfig) {
+		c.NetworkUpgrades = NetworkUpgrades{
+			SubnetEVMTimestamp: utils.NewUint64(0),
+			DurangoTimestamp:   utils.TimeToNewUint64(upgrade.InitiallyActiveTime),
+			EtnaTimestamp:      utils.TimeToNewUint64(upgrade.InitiallyActiveTime),
+			FortunaTimestamp:   utils.TimeToNewUint64(upgrade.InitiallyActiveTime),
+			GraniteTimestamp:   utils.TimeToNewUint64(upgrade.InitiallyActiveTime),
+		}
 	})
 )
 
