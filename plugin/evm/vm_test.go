@@ -98,9 +98,9 @@ var (
 	genesisJSONSubnetEVM    = genesisJSON(params.TestSubnetEVMChainConfig)
 	genesisJSONDurango      = genesisJSON(params.TestDurangoChainConfig)
 	genesisJSONEtna         = genesisJSON(params.TestEtnaChainConfig)
-	genesisJSONFortuna      = genesisJSON(params.TestFortunaChainConfig)
-	genesisJSONGranite      = genesisJSON(params.TestGraniteChainConfig)
-	genesisJSONLatest       = genesisJSONGranite
+	// genesisJSONFortuna      = genesisJSON(params.TestFortunaChainConfig)
+	genesisJSONGranite = genesisJSON(params.TestGraniteChainConfig)
+	genesisJSONLatest  = genesisJSONGranite
 )
 
 func init() {
