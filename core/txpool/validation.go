@@ -41,6 +41,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/plugin/evm/vmerrors"
+	"github.com/ava-labs/subnet-evm/precompile/contracts/blocklist"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/txallowlist"
 )
 
@@ -280,6 +281,13 @@ func ValidateTransactionWithState(tx *types.Transaction, signer types.Signer, op
 		txAllowListRole := txallowlist.GetTxAllowListStatus(opts.State, from)
 		if !txAllowListRole.IsEnabled() {
 			return fmt.Errorf("%w: %s", vmerrors.ErrSenderAddressNotAllowListed, from)
+		}
+	}
+
+	if params.GetRulesExtra(opts.Rules).IsPrecompileEnabled(blocklist.ContractAddress) {
+		isBlocked := blocklist.IsAddressBlocked(opts.State, from)
+		if isBlocked.Uint64() > 0 {
+			return fmt.Errorf("%w: %s", vmerrors.ErrSenderAddressBlocked, from)
 		}
 	}
 
