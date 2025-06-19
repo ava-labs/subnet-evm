@@ -224,11 +224,11 @@ type VM struct {
 
 	validatorsDB database.Database
 
-	toEngine chan<- commonEng.Message
-
 	syntacticBlockValidator BlockValidator
 
 	builder *blockBuilder
+
+	finishedSyncing chan struct{}
 
 	clock mockable.Clock
 
@@ -248,6 +248,8 @@ type VM struct {
 	sdkMetrics *prometheus.Registry
 
 	bootstrapped avalancheUtils.Atomic[bool]
+
+	stateSyncDone chan commonEng.Message
 
 	logger SubnetEVMLogger
 	// State sync server and client
@@ -279,7 +281,6 @@ func (vm *VM) Initialize(
 	genesisBytes []byte,
 	upgradeBytes []byte,
 	configBytes []byte,
-	toEngine chan<- commonEng.Message,
 	fxs []*commonEng.Fx,
 	appSender commonEng.AppSender,
 ) error {
@@ -326,7 +327,6 @@ func (vm *VM) Initialize(
 	// Enable debug-level metrics that might impact runtime performance
 	metrics.EnabledExpensive = vm.config.MetricsExpensiveEnabled
 
-	vm.toEngine = toEngine
 	vm.shutdownChan = make(chan struct{}, 1)
 
 	if err := vm.initializeMetrics(); err != nil {
@@ -523,6 +523,8 @@ func (vm *VM) Initialize(
 		}
 	}
 
+	vm.stateSyncDone = make(chan commonEng.Message, 1)
+
 	vm.warpBackend, err = warp.NewBackend(
 		vm.ctx.NetworkID,
 		vm.ctx.ChainID,
@@ -553,6 +555,9 @@ func (vm *VM) Initialize(
 		Chain:            vm.blockChain,
 		SyncableInterval: vm.config.StateSyncCommitInterval,
 	})
+
+	vm.finishedSyncing = make(chan struct{})
+
 	return vm.initializeStateSyncClient(lastAcceptedHeight)
 }
 
@@ -647,7 +652,7 @@ func (vm *VM) initializeStateSyncClient(lastAcceptedHeight uint64) error {
 		metadataDB:           vm.metadataDB,
 		acceptedBlockDB:      vm.acceptedBlockDB,
 		db:                   vm.versiondb,
-		toEngine:             vm.toEngine,
+		StateSyncDone:        vm.stateSyncDone,
 	})
 
 	// If StateSync is disabled, clear any ongoing summary so that we will not attempt to resume
@@ -793,8 +798,12 @@ func (vm *VM) onNormalOperationsStarted() error {
 	}
 
 	// NOTE: gossip network must be initialized first otherwise ETH tx gossip will not work.
-	vm.builder = vm.NewBlockBuilder(vm.toEngine)
+	vm.builder = vm.NewBlockBuilder()
 	vm.builder.awaitSubmittedTxs()
+
+	defer func() {
+		close(vm.finishedSyncing)
+	}()
 
 	var p2pValidators p2p.ValidatorSet = &validatorSet{}
 	if vm.config.PullGossipFrequency.Duration > 0 {
@@ -870,6 +879,50 @@ func (vm *VM) setAppRequestHandlers() {
 
 	networkHandler := newNetworkHandler(vm.blockChain, vm.chaindb, evmTrieDB, vm.warpBackend, vm.networkCodec)
 	vm.Network.SetRequestHandler(networkHandler)
+}
+
+func (vm *VM) SubscribeToEvents(ctx context.Context) commonEng.Message {
+	// Block building is not initialized yet, so we haven't finished syncing or bootstrapping.
+	if vm.builder == nil {
+		select {
+		case <-ctx.Done():
+			return 0
+		case ss := <-vm.stateSyncDone:
+			return ss
+		case <-vm.shutdownChan:
+			return 0
+		case <-vm.finishedSyncing:
+			break
+		}
+	}
+
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	pending := make(chan commonEng.Message, 1)
+
+	var wg sync.WaitGroup
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		pending <- vm.builder.waitForTxEnqueue(ctx)
+	}()
+
+	defer wg.Wait()
+
+	select {
+	case ss := <-vm.stateSyncDone:
+		return ss
+	case pendingTx := <-pending:
+		return pendingTx
+	case <-ctx.Done():
+		vm.builder.pendingSignal.Broadcast()
+		return commonEng.Message(0)
+	case <-vm.shutdownChan:
+		vm.builder.pendingSignal.Broadcast()
+		return commonEng.Message(0)
+	}
 }
 
 // Shutdown implements the snowman.ChainVM interface
