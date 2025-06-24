@@ -151,6 +151,7 @@ func (ec *client) Client() *rpc.Client {
 // Blockchain Access
 
 // ChainConfig retrieves the current chain config.
+// TODO: this requires a dependency on params, we should remove this dependency.
 func (ec *client) ChainConfig(ctx context.Context) (*params.ChainConfigWithUpgradesJSON, error) {
 	var result *params.ChainConfigWithUpgradesJSON
 	err := ec.c.CallContext(ctx, &result, "eth_getChainConfig")
