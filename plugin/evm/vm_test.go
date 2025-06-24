@@ -68,8 +68,7 @@ var (
 	testKeys        []*ecdsa.PrivateKey
 	testEthAddrs    []common.Address // testEthAddrs[i] corresponds to testKeys[i]
 
-	firstTxAmount  = new(big.Int).Mul(big.NewInt(testMinGasPrice), big.NewInt(21000*100))
-	genesisBalance = new(big.Int).Mul(big.NewInt(testMinGasPrice), big.NewInt(21000*1000))
+	firstTxAmount = new(big.Int).Mul(big.NewInt(testMinGasPrice), big.NewInt(21000*100))
 
 	genesisJSON = func(cfg *params.ChainConfig) string {
 		g := new(core.Genesis)
@@ -3189,7 +3188,7 @@ func TestFeeManagerRegressionMempoolMinFeeAfterRestart(t *testing.T) {
 	require.ErrorIs(t, errs[0], txpool.ErrUnderpriced) // should fail because mempool expects higher fee
 
 	// restart vm and try again
-	restartedVM, err := restartVM(vm, sharedDB, []byte(genesisJSON), issuer, appSender, true)
+	restartedVM, err := restartVM(vm, sharedDB, genesisJSON, issuer, appSender, true)
 	require.NoError(t, err)
 
 	// it still should fail
@@ -3259,7 +3258,7 @@ func TestFeeManagerRegressionMempoolMinFeeAfterRestart(t *testing.T) {
 	require.Equal(t, newHead.Head.Hash(), common.Hash(blk.ID()))
 
 	// Regression: Mempool should see the new config after restart
-	restartedVM, err = restartVM(restartedVM, sharedDB, []byte(genesisJSON), issuer, appSender, true)
+	restartedVM, err = restartVM(restartedVM, sharedDB, genesisJSON, issuer, appSender, true)
 	require.NoError(t, err)
 	newTxPoolHeadChan = make(chan core.NewTxPoolReorgEvent, 1)
 	restartedVM.txPool.SubscribeNewReorgEvent(newTxPoolHeadChan)
