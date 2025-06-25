@@ -77,7 +77,8 @@ else
 
     set +e
     # try to checkout the branch
-    git checkout origin/"${AVALANCHE_VERSION}" >/dev/null 2>&1
+    #git checkout origin/"${AVALANCHE_VERSION}" >/dev/null 2>&1
+    git checkout origin/subscribeToEvents
     CHECKOUT_STATUS=$?
     set -e
 

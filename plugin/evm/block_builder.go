@@ -4,6 +4,7 @@
 package evm
 
 import (
+	"context"
 	"sync"
 	"time"
 
@@ -33,16 +34,10 @@ type blockBuilder struct {
 	shutdownChan <-chan struct{}
 	shutdownWg   *sync.WaitGroup
 
-	// A message is sent on this channel when a new block
-	// is ready to be build. This notifies the consensus engine.
-	notifyBuildBlockChan chan<- commonEng.Message
+	pendingSignal sync.Cond
 
 	// [buildBlockLock] must be held when accessing [buildSent]
 	buildBlockLock sync.Mutex
-
-	// buildSent is true iff we have sent a PendingTxs message to the consensus message and
-	// are still waiting for buildBlock to be called.
-	buildSent bool
 
 	// buildBlockTimer is a timer used to delay retrying block building a minimum amount of time
 	// with the same contents of the mempool.
@@ -51,15 +46,15 @@ type blockBuilder struct {
 	buildBlockTimer *timer.Timer
 }
 
-func (vm *VM) NewBlockBuilder(notifyBuildBlockChan chan<- commonEng.Message) *blockBuilder {
+func (vm *VM) NewBlockBuilder() *blockBuilder {
 	b := &blockBuilder{
-		ctx:                  vm.ctx,
-		chainConfig:          vm.chainConfig,
-		txPool:               vm.txPool,
-		shutdownChan:         vm.shutdownChan,
-		shutdownWg:           &vm.shutdownWg,
-		notifyBuildBlockChan: notifyBuildBlockChan,
+		ctx:          vm.ctx,
+		chainConfig:  vm.chainConfig,
+		txPool:       vm.txPool,
+		shutdownChan: vm.shutdownChan,
+		shutdownWg:   &vm.shutdownWg,
 	}
+	b.pendingSignal = sync.Cond{L: &b.buildBlockLock}
 	b.handleBlockBuilding()
 	return b
 }
@@ -89,9 +84,6 @@ func (b *blockBuilder) handleGenerateBlock() {
 	b.buildBlockLock.Lock()
 	defer b.buildBlockLock.Unlock()
 
-	// Reset buildSent now that the engine has called BuildBlock.
-	b.buildSent = false
-
 	// Set a timer to check if calling build block a second time is needed.
 	b.buildBlockTimer.SetTimeoutIn(minBlockBuildingRetryDelay)
 }
@@ -108,18 +100,8 @@ func (b *blockBuilder) needToBuild() bool {
 // markBuilding adds a PendingTxs message to the toEngine channel.
 // markBuilding assumes the [buildBlockLock] is held.
 func (b *blockBuilder) markBuilding() {
-	// If the engine has not called BuildBlock, no need to send another message.
-	if b.buildSent {
-		return
-	}
+	b.pendingSignal.Broadcast()
 	b.buildBlockTimer.Cancel() // Cancel any future attempt from the timer to send a PendingTxs message
-
-	select {
-	case b.notifyBuildBlockChan <- commonEng.PendingTxs:
-		b.buildSent = true
-	default:
-		log.Error("Failed to push PendingTxs notification to the consensus engine.")
-	}
 }
 
 // signalTxsReady sends a PendingTxs notification to the consensus engine.
@@ -157,9 +139,31 @@ func (b *blockBuilder) awaitSubmittedTxs() {
 				log.Trace("New tx detected, trying to generate a block")
 				b.signalTxsReady()
 			case <-b.shutdownChan:
+				b.pendingSignal.Broadcast()
 				b.buildBlockTimer.Stop()
 				return
 			}
 		}
 	})
+}
+
+func (b *blockBuilder) waitForTxEnqueue(ctx context.Context) commonEng.Message {
+	b.buildBlockLock.Lock()
+	defer b.buildBlockLock.Unlock()
+
+	for {
+		select {
+		case <-b.shutdownChan:
+			return 0
+		case <-ctx.Done():
+			return 0
+		default:
+		}
+
+		if b.needToBuild() {
+			return commonEng.PendingTxs
+		}
+
+		b.pendingSignal.Wait()
+	}
 }
