@@ -155,6 +155,7 @@ var (
 	errNilBaseFeeSubnetEVM           = errors.New("nil base fee is invalid after subnetEVM")
 	errNilBlockGasCostSubnetEVM      = errors.New("nil blockGasCost is invalid after subnetEVM")
 	errInvalidHeaderPredicateResults = errors.New("invalid header predicate results")
+	errInitializingLogger            = errors.New("failed to initialize logger")
 )
 
 // legacyApiNames maps pre geth v1.10.20 api names to their updated counterparts.
@@ -309,7 +310,7 @@ func (vm *VM) Initialize(
 
 	subnetEVMLogger, err := InitLogger(vm.chainAlias, vm.config.LogLevel, vm.config.LogJSONFormat, vm.ctx.Log)
 	if err != nil {
-		return fmt.Errorf("failed to initialize logger due to: %w ", err)
+		return fmt.Errorf("%w: %w ", errInitializingLogger, err)
 	}
 	vm.logger = subnetEVMLogger
 
@@ -484,7 +485,10 @@ func (vm *VM) Initialize(
 	if err != nil {
 		return err
 	}
-	log.Info(fmt.Sprintf("lastAccepted = %s", lastAcceptedHash))
+	log.Info("read last accepted",
+		"hash", lastAcceptedHash,
+		"height", lastAcceptedHeight,
+	)
 
 	// initialize peer network
 	if vm.p2pSender == nil {
@@ -796,11 +800,6 @@ func (vm *VM) onNormalOperationsStarted() error {
 	vm.builder = vm.NewBlockBuilder(vm.toEngine)
 	vm.builder.awaitSubmittedTxs()
 
-	var p2pValidators p2p.ValidatorSet = &validatorSet{}
-	if vm.config.PullGossipFrequency.Duration > 0 {
-		p2pValidators = vm.p2pValidators
-	}
-
 	if vm.ethTxGossipHandler == nil {
 		vm.ethTxGossipHandler = newTxGossipHandler[*GossipEthTx](
 			vm.ctx.Log,
@@ -810,7 +809,7 @@ func (vm *VM) onNormalOperationsStarted() error {
 			txGossipTargetMessageSize,
 			txGossipThrottlingPeriod,
 			txGossipThrottlingLimit,
-			p2pValidators,
+			vm.p2pValidators,
 		)
 	}
 
@@ -835,20 +834,16 @@ func (vm *VM) onNormalOperationsStarted() error {
 		}
 	}
 
-	if vm.config.PushGossipFrequency.Duration > 0 {
-		vm.shutdownWg.Add(1)
-		go func() {
-			gossip.Every(ctx, vm.ctx.Log, ethTxPushGossiper, vm.config.PushGossipFrequency.Duration)
-			vm.shutdownWg.Done()
-		}()
-	}
-	if vm.config.PullGossipFrequency.Duration > 0 {
-		vm.shutdownWg.Add(1)
-		go func() {
-			gossip.Every(ctx, vm.ctx.Log, vm.ethTxPullGossiper, vm.config.PullGossipFrequency.Duration)
-			vm.shutdownWg.Done()
-		}()
-	}
+	vm.shutdownWg.Add(1)
+	go func() {
+		gossip.Every(ctx, vm.ctx.Log, ethTxPushGossiper, vm.config.PushGossipFrequency.Duration)
+		vm.shutdownWg.Done()
+	}()
+	vm.shutdownWg.Add(1)
+	go func() {
+		gossip.Every(ctx, vm.ctx.Log, vm.ethTxPullGossiper, vm.config.PullGossipFrequency.Duration)
+		vm.shutdownWg.Done()
+	}()
 
 	return nil
 }
@@ -951,7 +946,9 @@ func (vm *VM) buildBlockWithContext(ctx context.Context, proposerVMBlockCtx *blo
 		return nil, fmt.Errorf("block failed verification due to: %w", err)
 	}
 
-	log.Debug(fmt.Sprintf("Built block %s", blk.ID()))
+	log.Debug("built block",
+		"id", blk.ID(),
+	)
 	// Marks the current transactions from the mempool as being successfully issued
 	// into a block.
 	return blk, nil
@@ -1028,12 +1025,6 @@ func (vm *VM) SetPreference(ctx context.Context, blkID ids.ID) error {
 	}
 
 	return vm.blockChain.SetPreference(block.(*Block).ethBlock)
-}
-
-// VerifyHeightIndex always returns a nil error since the index is maintained by
-// vm.blockChain.
-func (vm *VM) VerifyHeightIndex(context.Context) error {
-	return nil
 }
 
 // GetBlockIDAtHeight returns the canonical block at [height].
@@ -1114,7 +1105,9 @@ func (vm *VM) CreateHandlers(context.Context) (map[string]http.Handler, error) {
 		enabledAPIs = append(enabledAPIs, "warp")
 	}
 
-	log.Info(fmt.Sprintf("Enabled APIs: %s", strings.Join(enabledAPIs, ", ")))
+	log.Info("enabling apis",
+		"apis", enabledAPIs,
+	)
 	apis[ethRPCEndpoint] = handler
 	apis[ethWSEndpoint] = handler.WebsocketHandlerWithDuration(
 		[]string{"*"},
@@ -1129,22 +1122,6 @@ func (vm *VM) CreateHandlers(context.Context) (map[string]http.Handler, error) {
 
 func (*VM) CreateHTTP2Handler(context.Context) (http.Handler, error) {
 	return nil, nil
-}
-
-// CreateStaticHandlers makes new http handlers that can handle API calls
-func (vm *VM) CreateStaticHandlers(context.Context) (map[string]http.Handler, error) {
-	handler := rpc.NewServer(0)
-	if vm.config.HttpBodyLimit > 0 {
-		handler.SetHTTPBodyLimit(int(vm.config.HttpBodyLimit))
-	}
-	if err := handler.RegisterName("static", &StaticService{}); err != nil {
-		return nil, err
-	}
-
-	vm.rpcHandlers = append(vm.rpcHandlers, handler)
-	return map[string]http.Handler{
-		"/rpc": handler,
-	}, nil
 }
 
 /*
