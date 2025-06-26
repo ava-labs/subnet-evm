@@ -1,0 +1,89 @@
+# https://taskfile.dev
+# To run on a system without task installed, `./scripts/run_task.sh` will execute it with `go run`.
+# If in the nix dev shell, `task` is available.
+
+version: '3'
+
+tasks:
+  default: ./scripts/run_task.sh --list
+
+  actionlint:
+    desc: Run the actionlint.sh
+    cmd: ./scripts/actionlint.sh # tests.yml
+
+  build:
+    desc: Run the build.sh
+    cmd: ./scripts/build.sh # tests.yml
+
+  build-antithesis-images-avalanchego:
+    desc: Build the antithesis images for the avalanchego test setup
+    cmd: bash -x ./scripts/build_antithesis_images.sh # publish_antithesis_images.yml
+
+  build-bench-precompiles:
+    desc: Build the benchmark precompiles
+    cmd: ./scripts/build_bench_precompiles.sh # bench.yml
+
+  build-docker-image:
+    desc: Build the docker image
+    cmd: ./scripts/build_docker_image.sh # publish_docker.yml
+
+  build-test:
+    desc: Run the build_test.sh
+    cmd: ./scripts/build_test.sh # tests.yml
+
+  coverage:
+    desc: Run the coverage.sh
+    cmd: ./scripts/coverage.sh # tests.yml
+
+  install-avalanchego-release:
+    desc: Install AvalancheGo release for testing
+    env:
+      BASEDIR: /tmp/e2e-test
+      AVALANCHEGO_BUILD_PATH: /tmp/e2e-test/avalanchego
+    cmd: ./scripts/install_avalanchego_release.sh # tests.yml
+
+  lint_allowed_eth_imports:
+    desc: Run the lint_allowed_eth_imports.sh
+    cmd: ./scripts/lint_allowed_eth_imports.sh # tests.yml
+
+  shellcheck:
+    desc: Run the shellcheck.sh
+    cmd: ./scripts/shellcheck.sh # tests.yml
+
+  test-build-antithesis-images:
+    desc: Test antithesis images build
+    cmd: bash -x scripts/tests.build_antithesis_images.sh
+
+  test-build-image:
+    desc: Test docker image build
+    cmd: bash -x scripts/tests.build_docker_image.sh # tests.yml
+
+  test-e2e-load:
+    desc: Run E2E load tests
+    env:
+      AVALANCHEGO_BUILD_PATH: /tmp/e2e-test/avalanchego
+    cmd: ./scripts/run_ginkgo_load.sh # tests.yml
+
+  test-e2e-precompile:
+    desc: Run E2E precompile tests
+    env:
+      AVALANCHEGO_BUILD_PATH: /tmp/e2e-test/avalanchego
+      DATA_DIR: /tmp/e2e-test/precompile-data
+    cmd: ./scripts/run_ginkgo_precompile.sh # tests.yml
+
+  test-e2e-precompile-ci: # consolidated test-e2e-precompile
+    desc: Run E2E precompile tests with CI setup
+    cmds:
+      - task: install-avalanchego-release
+      - task: build
+      - task: test-e2e-precompile
+
+  test-e2e-warp:
+    desc: Run E2E warp tests
+    env:
+      AVALANCHEGO_BUILD_PATH: /tmp/e2e-test/avalanchego
+    cmd: ./scripts/run_ginkgo_warp.sh # tests.yml
+
+  update_avalanchego_version:
+    desc: Run the update_avalanchego_version.sh
+    cmd: ./scripts/update_avalanchego_version.sh # tests.yml
