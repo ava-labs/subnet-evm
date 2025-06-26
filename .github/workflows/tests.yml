@@ -77,26 +77,12 @@ jobs:
           git diff --exit-code
       - run: ./scripts/run_task.sh build
         shell: bash
-        if: matrix.os != 'windows-latest'
-      - run: bash ./scripts/run_task.sh build
-        shell: bash
-        if: matrix.os == 'windows-latest'
       - run: ./scripts/run_task.sh build-test
         env:
           TIMEOUT: ${{ env.TIMEOUT }}
         shell: bash
-        if: matrix.os != 'windows-latest'
-      - run: bash ./scripts/run_task.sh build-test
-        env:
-          TIMEOUT: ${{ env.TIMEOUT }}
-        shell: bash
-        if: matrix.os == 'windows-latest'
       - run: ./scripts/run_task.sh coverage
         shell: bash
-        if: matrix.os != 'windows-latest'
-      - run: bash ./scripts/run_task.sh coverage
-        shell: bash
-        if: matrix.os == 'windows-latest'
 
   e2e_precompile:
     name: e2e precompile tests

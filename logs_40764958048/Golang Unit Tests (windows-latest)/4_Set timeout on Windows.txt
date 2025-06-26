@@ -1,0 +1,4 @@
+﻿2025-06-26T20:51:01.1372698Z ##[group]Run echo "TIMEOUT=1200s" >> "$GITHUB_ENV"
+2025-06-26T20:51:01.1373157Z [36;1mecho "TIMEOUT=1200s" >> "$GITHUB_ENV"[0m
+2025-06-26T20:51:01.1390297Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+2025-06-26T20:51:01.1390678Z ##[endgroup]

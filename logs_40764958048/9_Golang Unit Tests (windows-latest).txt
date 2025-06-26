@@ -1,0 +1,287 @@
+﻿2025-06-26T20:48:52.4311010Z Current runner version: '2.325.0'
+2025-06-26T20:48:52.4345254Z ##[group]Runner Image Provisioner
+2025-06-26T20:48:52.4346722Z Hosted Compute Agent
+2025-06-26T20:48:52.4347549Z Version: 20250620.352
+2025-06-26T20:48:52.4349171Z Commit: f262f3aba23b10ea191b2a62bdee1ca4c3d344da
+2025-06-26T20:48:52.4350307Z Build Date: 2025-06-20T19:27:17Z
+2025-06-26T20:48:52.4351117Z ##[endgroup]
+2025-06-26T20:48:52.4351871Z ##[group]Operating System
+2025-06-26T20:48:52.4352705Z Microsoft Windows Server 2022
+2025-06-26T20:48:52.4353539Z 10.0.20348
+2025-06-26T20:48:52.4354198Z Datacenter
+2025-06-26T20:48:52.4355542Z ##[endgroup]
+2025-06-26T20:48:52.4356294Z ##[group]Runner Image
+2025-06-26T20:48:52.4357111Z Image: windows-2022
+2025-06-26T20:48:52.4357871Z Version: 20250602.1.0
+2025-06-26T20:48:52.4359679Z Included Software: https://github.com/actions/runner-images/blob/win22/20250602.1/images/windows/Windows2022-Readme.md
+2025-06-26T20:48:52.4362976Z Image Release: https://github.com/actions/runner-images/releases/tag/win22%2F20250602.1
+2025-06-26T20:48:52.4364541Z ##[endgroup]
+2025-06-26T20:48:52.4368844Z ##[group]GITHUB_TOKEN Permissions
+2025-06-26T20:48:52.4371470Z Actions: write
+2025-06-26T20:48:52.4372231Z Attestations: write
+2025-06-26T20:48:52.4373060Z Checks: write
+2025-06-26T20:48:52.4373762Z Contents: write
+2025-06-26T20:48:52.4374416Z Deployments: write
+2025-06-26T20:48:52.4375169Z Discussions: write
+2025-06-26T20:48:52.4375831Z Issues: write
+2025-06-26T20:48:52.4376491Z Metadata: read
+2025-06-26T20:48:52.4377284Z Models: read
+2025-06-26T20:48:52.4378054Z Packages: write
+2025-06-26T20:48:52.4378856Z Pages: write
+2025-06-26T20:48:52.4379635Z PullRequests: write
+2025-06-26T20:48:52.4380382Z RepositoryProjects: write
+2025-06-26T20:48:52.4381171Z SecurityEvents: write
+2025-06-26T20:48:52.4382141Z Statuses: write
+2025-06-26T20:48:52.4382800Z ##[endgroup]
+2025-06-26T20:48:52.4385334Z Secret source: Actions
+2025-06-26T20:48:52.4386350Z Prepare workflow directory
+2025-06-26T20:48:52.4749148Z Prepare all required actions
+2025-06-26T20:48:52.4801959Z Getting action download info
+2025-06-26T20:48:52.7235699Z ##[group]Download immutable action package 'actions/checkout@v4'
+2025-06-26T20:48:52.7236666Z Version: 4.2.2
+2025-06-26T20:48:52.7237540Z Digest: sha256:ccb2698953eaebd21c7bf6268a94f9c26518a7e38e27e0b83c1fe1ad049819b1
+2025-06-26T20:48:52.7238635Z Source commit SHA: 11bd71901bbe5b1630ceea73d27597364c9af683
+2025-06-26T20:48:52.7239269Z ##[endgroup]
+2025-06-26T20:48:52.8403562Z ##[group]Download immutable action package 'actions/setup-go@v5'
+2025-06-26T20:48:52.8404331Z Version: 5.5.0
+2025-06-26T20:48:52.8404953Z Digest: sha256:f5eeb2233d0c6714b5236de9b44ad0b935014e15eeab3c28d73dc44c1c641ebb
+2025-06-26T20:48:52.8405813Z Source commit SHA: d35c59abb061a4a6fb18e82ac0862c26744d6ab5
+2025-06-26T20:48:52.8406429Z ##[endgroup]
+2025-06-26T20:48:53.1875176Z Complete job name: Golang Unit Tests (windows-latest)
+2025-06-26T20:48:53.3484406Z ##[group]Run actions/checkout@v4
+2025-06-26T20:48:53.3485410Z with:
+2025-06-26T20:48:53.3485858Z   repository: ava-labs/subnet-evm
+2025-06-26T20:48:53.3486626Z   token: ***
+2025-06-26T20:48:53.3487050Z   ssh-strict: true
+2025-06-26T20:48:53.3487482Z   ssh-user: git
+2025-06-26T20:48:53.3487934Z   persist-credentials: true
+2025-06-26T20:48:53.3488432Z   clean: true
+2025-06-26T20:48:53.3488883Z   sparse-checkout-cone-mode: true
+2025-06-26T20:48:53.3489420Z   fetch-depth: 1
+2025-06-26T20:48:53.3489856Z   fetch-tags: false
+2025-06-26T20:48:53.3490302Z   show-progress: true
+2025-06-26T20:48:53.3490771Z   lfs: false
+2025-06-26T20:48:53.3491175Z   submodules: false
+2025-06-26T20:48:53.3491628Z   set-safe-directory: true
+2025-06-26T20:48:53.3492340Z ##[endgroup]
+2025-06-26T20:48:53.5327856Z Syncing repository: ava-labs/subnet-evm
+2025-06-26T20:48:53.5330587Z ##[group]Getting Git version info
+2025-06-26T20:48:53.5331573Z Working directory is 'D:\a\subnet-evm\subnet-evm'
+2025-06-26T20:48:53.6323556Z [command]"C:\Program Files\Git\bin\git.exe" version
+2025-06-26T20:48:53.9435499Z git version 2.49.0.windows.1
+2025-06-26T20:48:53.9488474Z ##[endgroup]
+2025-06-26T20:48:53.9509964Z Temporarily overriding HOME='D:\a\_temp\bf74bc24-3baf-48c6-b008-9b1e28ac2f6b' before making global git config changes
+2025-06-26T20:48:53.9512356Z Adding repository directory to the temporary git global config as a safe directory
+2025-06-26T20:48:53.9523280Z [command]"C:\Program Files\Git\bin\git.exe" config --global --add safe.directory D:\a\subnet-evm\subnet-evm
+2025-06-26T20:48:54.0011088Z Deleting the contents of 'D:\a\subnet-evm\subnet-evm'
+2025-06-26T20:48:54.0016485Z ##[group]Initializing the repository
+2025-06-26T20:48:54.0026600Z [command]"C:\Program Files\Git\bin\git.exe" init D:\a\subnet-evm\subnet-evm
+2025-06-26T20:48:54.0658381Z Initialized empty Git repository in D:/a/subnet-evm/subnet-evm/.git/
+2025-06-26T20:48:54.0703755Z [command]"C:\Program Files\Git\bin\git.exe" remote add origin https://github.com/ava-labs/subnet-evm
+2025-06-26T20:48:54.1143705Z ##[endgroup]
+2025-06-26T20:48:54.1145040Z ##[group]Disabling automatic garbage collection
+2025-06-26T20:48:54.1153265Z [command]"C:\Program Files\Git\bin\git.exe" config --local gc.auto 0
+2025-06-26T20:48:54.1395134Z ##[endgroup]
+2025-06-26T20:48:54.1397626Z ##[group]Setting up auth
+2025-06-26T20:48:54.1399108Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+2025-06-26T20:48:54.1628321Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+2025-06-26T20:48:55.3195697Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-06-26T20:48:55.3416002Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+2025-06-26T20:48:55.7451726Z [command]"C:\Program Files\Git\bin\git.exe" config --local http.https://github.com/.extraheader "AUTHORIZATION: basic ***"
+2025-06-26T20:48:55.7679841Z ##[endgroup]
+2025-06-26T20:48:55.7680693Z ##[group]Fetching the repository
+2025-06-26T20:48:55.7692970Z [command]"C:\Program Files\Git\bin\git.exe" -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +cd3bbdc44d3877b05dbd6daefdabcf67298f6b01:refs/remotes/pull/1610/merge
+2025-06-26T20:48:56.9451216Z From https://github.com/ava-labs/subnet-evm
+2025-06-26T20:48:56.9452504Z  * [new ref]         cd3bbdc44d3877b05dbd6daefdabcf67298f6b01 -> pull/1610/merge
+2025-06-26T20:48:56.9646984Z ##[endgroup]
+2025-06-26T20:48:56.9647797Z ##[group]Determining the checkout info
+2025-06-26T20:48:56.9648736Z ##[endgroup]
+2025-06-26T20:48:56.9662913Z [command]"C:\Program Files\Git\bin\git.exe" sparse-checkout disable
+2025-06-26T20:48:56.9992902Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset-all extensions.worktreeConfig
+2025-06-26T20:48:57.0212277Z ##[group]Checking out the ref
+2025-06-26T20:48:57.0220814Z [command]"C:\Program Files\Git\bin\git.exe" checkout --progress --force refs/remotes/pull/1610/merge
+2025-06-26T20:48:57.2553829Z Note: switching to 'refs/remotes/pull/1610/merge'.
+2025-06-26T20:48:57.2554373Z 
+2025-06-26T20:48:57.2554719Z You are in 'detached HEAD' state. You can look around, make experimental
+2025-06-26T20:48:57.2555560Z changes and commit them, and you can discard any commits you make in this
+2025-06-26T20:48:57.2556778Z state without impacting any branches by switching back to a branch.
+2025-06-26T20:48:57.2557940Z 
+2025-06-26T20:48:57.2558204Z If you want to create a new branch to retain commits you create, you may
+2025-06-26T20:48:57.2558657Z do so (now or later) by using -c with the switch command. Example:
+2025-06-26T20:48:57.2558999Z 
+2025-06-26T20:48:57.2559212Z   git switch -c <new-branch-name>
+2025-06-26T20:48:57.2560298Z 
+2025-06-26T20:48:57.2560434Z Or undo this operation with:
+2025-06-26T20:48:57.2560627Z 
+2025-06-26T20:48:57.2560724Z   git switch -
+2025-06-26T20:48:57.2560891Z 
+2025-06-26T20:48:57.2561112Z Turn off this advice by setting config variable advice.detachedHead to false
+2025-06-26T20:48:57.2561403Z 
+2025-06-26T20:48:57.2561739Z HEAD is now at cd3bbdc Merge dabb987727b2b08bc2f5a2234f6d135bff982c7d into 7abb4c64d7a8a26513a93cd55d800f61e867ffe3
+2025-06-26T20:48:57.2606320Z ##[endgroup]
+2025-06-26T20:48:57.2905210Z [command]"C:\Program Files\Git\bin\git.exe" log -1 --format=%H
+2025-06-26T20:48:57.3095022Z cd3bbdc44d3877b05dbd6daefdabcf67298f6b01
+2025-06-26T20:48:57.3451931Z ##[group]Run actions/setup-go@v5
+2025-06-26T20:48:57.3452302Z with:
+2025-06-26T20:48:57.3452540Z   go-version-file: go.mod
+2025-06-26T20:48:57.3452778Z   check-latest: false
+2025-06-26T20:48:57.3453179Z   token: ***
+2025-06-26T20:48:57.3453415Z   cache: true
+2025-06-26T20:48:57.3453621Z ##[endgroup]
+2025-06-26T20:48:57.5600415Z Setup go version spec 1.23.9
+2025-06-26T20:48:57.5689908Z Found in cache @ C:\hostedtoolcache\windows\go\1.23.9\x64
+2025-06-26T20:48:57.5697446Z Added go to the path
+2025-06-26T20:48:57.5701835Z Successfully set up Go version 1.23.9
+2025-06-26T20:48:58.7211988Z [command]C:\hostedtoolcache\windows\go\1.23.9\x64\bin\go.exe env GOCACHE
+2025-06-26T20:48:58.7253455Z [command]C:\hostedtoolcache\windows\go\1.23.9\x64\bin\go.exe env GOMODCACHE
+2025-06-26T20:48:58.7616815Z C:\Users\runneradmin\AppData\Local\go-build
+2025-06-26T20:48:58.7699095Z C:\Users\runneradmin\go\pkg\mod
+2025-06-26T20:48:59.0041698Z Cache hit for: setup-go-Windows-x64-go-1.23.9-953d7b4284177a0436e976483e81e3e708d56ca46884e8f1fe25863bfb0edfbb
+2025-06-26T20:49:00.0604287Z Received 171966464 of 605493648 (28.4%), 163.5 MBs/sec
+2025-06-26T20:49:01.0728814Z Received 348127232 of 605493648 (57.5%), 164.8 MBs/sec
+2025-06-26T20:49:02.0745859Z Received 528482304 of 605493648 (87.3%), 167.1 MBs/sec
+2025-06-26T20:49:02.6674715Z Received 605493648 of 605493648 (100.0%), 160.0 MBs/sec
+2025-06-26T20:49:02.6679392Z Cache Size: ~577 MB (605493648 B)
+2025-06-26T20:49:02.6856363Z [command]"C:\Program Files\Git\usr\bin\tar.exe" -xf D:/a/_temp/3e76274f-3500-4874-a1f4-9fb4563d8e7c/cache.tzst -P -C D:/a/subnet-evm/subnet-evm --force-local --use-compress-program "zstd -d"
+2025-06-26T20:51:00.4533557Z Cache restored successfully
+2025-06-26T20:51:00.4832935Z Cache restored from key: setup-go-Windows-x64-go-1.23.9-953d7b4284177a0436e976483e81e3e708d56ca46884e8f1fe25863bfb0edfbb
+2025-06-26T20:51:00.4852253Z go version go1.23.9 windows/amd64
+2025-06-26T20:51:00.4852451Z 
+2025-06-26T20:51:00.4852722Z ##[group]go env
+2025-06-26T20:51:01.1125433Z set GO111MODULE=
+2025-06-26T20:51:01.1125803Z set GOARCH=amd64
+2025-06-26T20:51:01.1126139Z set GOBIN=
+2025-06-26T20:51:01.1126509Z set GOCACHE=C:\Users\runneradmin\AppData\Local\go-build
+2025-06-26T20:51:01.1127029Z set GOENV=C:\Users\runneradmin\AppData\Roaming\go\env
+2025-06-26T20:51:01.1127473Z set GOEXE=.exe
+2025-06-26T20:51:01.1127740Z set GOEXPERIMENT=
+2025-06-26T20:51:01.1128034Z set GOFLAGS=
+2025-06-26T20:51:01.1128295Z set GOHOSTARCH=amd64
+2025-06-26T20:51:01.1128574Z set GOHOSTOS=windows
+2025-06-26T20:51:01.1128835Z set GOINSECURE=
+2025-06-26T20:51:01.1129189Z set GOMODCACHE=C:\Users\runneradmin\go\pkg\mod
+2025-06-26T20:51:01.1129633Z set GONOPROXY=
+2025-06-26T20:51:01.1129903Z set GONOSUMDB=
+2025-06-26T20:51:01.1130160Z set GOOS=windows
+2025-06-26T20:51:01.1130471Z set GOPATH=C:\Users\runneradmin\go
+2025-06-26T20:51:01.1130858Z set GOPRIVATE=
+2025-06-26T20:51:01.1131243Z set GOPROXY=https://proxy.golang.org,direct
+2025-06-26T20:51:01.1131784Z set GOROOT=C:\hostedtoolcache\windows\go\1.23.9\x64
+2025-06-26T20:51:01.1132270Z set GOSUMDB=sum.golang.org
+2025-06-26T20:51:01.1132591Z set GOTMPDIR=
+2025-06-26T20:51:01.1132877Z set GOTOOLCHAIN=auto
+2025-06-26T20:51:01.1133450Z set GOTOOLDIR=C:\hostedtoolcache\windows\go\1.23.9\x64\pkg\tool\windows_amd64
+2025-06-26T20:51:01.1134381Z set GOVCS=
+2025-06-26T20:51:01.1134649Z set GOVERSION=go1.23.9
+2025-06-26T20:51:01.1134977Z set GODEBUG=
+2025-06-26T20:51:01.1135237Z set GOTELEMETRY=local
+2025-06-26T20:51:01.1135741Z set GOTELEMETRYDIR=C:\Users\runneradmin\AppData\Roaming\go\telemetry
+2025-06-26T20:51:01.1136290Z set GCCGO=gccgo
+2025-06-26T20:51:01.1136561Z set GOAMD64=v1
+2025-06-26T20:51:01.1136803Z set AR=ar
+2025-06-26T20:51:01.1137033Z set CC=gcc
+2025-06-26T20:51:01.1137271Z set CXX=g++
+2025-06-26T20:51:01.1137509Z set CGO_ENABLED=1
+2025-06-26T20:51:01.1137852Z set GOMOD=D:\a\subnet-evm\subnet-evm\go.mod
+2025-06-26T20:51:01.1138255Z set GOWORK=
+2025-06-26T20:51:01.1141354Z set CGO_CFLAGS=-O2 -g
+2025-06-26T20:51:01.1141767Z set CGO_CPPFLAGS=
+2025-06-26T20:51:01.1142092Z set CGO_CXXFLAGS=-O2 -g
+2025-06-26T20:51:01.1142421Z set CGO_FFLAGS=-O2 -g
+2025-06-26T20:51:01.1142745Z set CGO_LDFLAGS=-O2 -g
+2025-06-26T20:51:01.1143093Z set PKG_CONFIG=pkg-config
+2025-06-26T20:51:01.1144381Z set GOGCCFLAGS=-m64 -mthreads -Wl,--no-gc-sections -fmessage-length=0 -ffile-prefix-map=C:\Users\RUNNER~1\AppData\Local\Temp\go-build2835531830=/tmp/go-build -gno-record-gcc-switches
+2025-06-26T20:51:01.1145527Z 
+2025-06-26T20:51:01.1145968Z ##[endgroup]
+2025-06-26T20:51:01.1372720Z ##[group]Run echo "TIMEOUT=1200s" >> "$GITHUB_ENV"
+2025-06-26T20:51:01.1373161Z [36;1mecho "TIMEOUT=1200s" >> "$GITHUB_ENV"[0m
+2025-06-26T20:51:01.1390311Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+2025-06-26T20:51:01.1390682Z ##[endgroup]
+2025-06-26T20:51:01.2833844Z ##[group]Run go mod download
+2025-06-26T20:51:01.2834199Z [36;1mgo mod download[0m
+2025-06-26T20:51:01.2849303Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+2025-06-26T20:51:01.2849668Z env:
+2025-06-26T20:51:01.2849821Z   TIMEOUT: 1200s
+2025-06-26T20:51:01.2849982Z ##[endgroup]
+2025-06-26T20:51:01.5754516Z ##[group]Run grep -lr -E '^// Code generated by github\.com\/fjl\/gencodec\. DO NOT EDIT\.$' . | xargs -r rm
+2025-06-26T20:51:01.5755441Z [36;1mgrep -lr -E '^// Code generated by github\.com\/fjl\/gencodec\. DO NOT EDIT\.$' . | xargs -r rm[0m
+2025-06-26T20:51:01.5756013Z [36;1mgo generate -run "github.com/fjl/gencodec" ./...[0m
+2025-06-26T20:51:01.5756393Z [36;1mgit add --intent-to-add --all[0m
+2025-06-26T20:51:01.5756687Z [36;1mgit diff --exit-code[0m
+2025-06-26T20:51:01.5826770Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2025-06-26T20:51:01.5827068Z env:
+2025-06-26T20:51:01.5827231Z   TIMEOUT: 1200s
+2025-06-26T20:51:01.5827413Z ##[endgroup]
+2025-06-26T20:52:21.1973421Z warning: in the working copy of 'cmd/evm/internal/t8ntool/gen_header.go', LF will be replaced by CRLF the next time Git touches it
+2025-06-26T20:52:21.1975683Z warning: in the working copy of 'cmd/evm/internal/t8ntool/gen_stenv.go', LF will be replaced by CRLF the next time Git touches it
+2025-06-26T20:52:21.1977177Z warning: in the working copy of 'core/gen_genesis.go', LF will be replaced by CRLF the next time Git touches it
+2025-06-26T20:52:21.1978607Z warning: in the working copy of 'eth/ethconfig/gen_config.go', LF will be replaced by CRLF the next time Git touches it
+2025-06-26T20:52:21.1981182Z warning: in the working copy of 'plugin/evm/customtypes/gen_header_serializable_json.go', LF will be replaced by CRLF the next time Git touches it
+2025-06-26T20:52:21.1982171Z warning: in the working copy of 'tests/gen_stenv.go', LF will be replaced by CRLF the next time Git touches it
+2025-06-26T20:52:21.1983776Z warning: in the working copy of 'tests/gen_sttransaction.go', LF will be replaced by CRLF the next time Git touches it
+2025-06-26T20:52:21.7166738Z ##[group]Run grep -lr -E '^// Code generated by MockGen\. DO NOT EDIT\.$' . | xargs -r rm
+2025-06-26T20:52:21.7167323Z [36;1mgrep -lr -E '^// Code generated by MockGen\. DO NOT EDIT\.$' . | xargs -r rm[0m
+2025-06-26T20:52:21.7167746Z [36;1mgo generate -run "go.uber.org/mock/mockgen" ./...[0m
+2025-06-26T20:52:21.7168052Z [36;1mgit add --intent-to-add --all[0m
+2025-06-26T20:52:21.7168484Z [36;1mgit diff --exit-code[0m
+2025-06-26T20:52:21.7179478Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+2025-06-26T20:52:21.7179828Z env:
+2025-06-26T20:52:21.7179980Z   TIMEOUT: 1200s
+2025-06-26T20:52:21.7180151Z ##[endgroup]
+2025-06-26T20:52:53.7856317Z warning: in the working copy of 'cmd/evm/internal/t8ntool/gen_header.go', LF will be replaced by CRLF the next time Git touches it
+2025-06-26T20:52:53.7857869Z warning: in the working copy of 'cmd/evm/internal/t8ntool/gen_stenv.go', LF will be replaced by CRLF the next time Git touches it
+2025-06-26T20:52:53.7859256Z warning: in the working copy of 'core/gen_genesis.go', LF will be replaced by CRLF the next time Git touches it
+2025-06-26T20:52:53.7860569Z warning: in the working copy of 'eth/ethconfig/gen_config.go', LF will be replaced by CRLF the next time Git touches it
+2025-06-26T20:52:53.7864302Z warning: in the working copy of 'internal/ethapi/mocks_test.go', LF will be replaced by CRLF the next time Git touches it
+2025-06-26T20:52:53.7867231Z warning: in the working copy of 'plugin/evm/customtypes/gen_header_serializable_json.go', LF will be replaced by CRLF the next time Git touches it
+2025-06-26T20:52:53.7869229Z warning: in the working copy of 'plugin/evm/validators/state/interfaces/mock_listener.go', LF will be replaced by CRLF the next time Git touches it
+2025-06-26T20:52:53.7871913Z warning: in the working copy of 'precompile/contract/mocks.go', LF will be replaced by CRLF the next time Git touches it
+2025-06-26T20:52:53.7874612Z warning: in the working copy of 'precompile/precompileconfig/mocks.go', LF will be replaced by CRLF the next time Git touches it
+2025-06-26T20:52:53.7875941Z warning: in the working copy of 'tests/gen_stenv.go', LF will be replaced by CRLF the next time Git touches it
+2025-06-26T20:52:53.7877214Z warning: in the working copy of 'tests/gen_sttransaction.go', LF will be replaced by CRLF the next time Git touches it
+2025-06-26T20:52:53.7878604Z warning: in the working copy of 'warp/aggregator/mock_signature_getter.go', LF will be replaced by CRLF the next time Git touches it
+2025-06-26T20:52:53.8081073Z ##[group]Run ./scripts/run_task.sh build
+2025-06-26T20:52:53.8081456Z [36;1m./scripts/run_task.sh build[0m
+2025-06-26T20:52:53.8092412Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+2025-06-26T20:52:53.8092786Z env:
+2025-06-26T20:52:53.8092944Z   TIMEOUT: 1200s
+2025-06-26T20:52:53.8093109Z ##[endgroup]
+2025-06-26T20:52:54.0006967Z go: downloading github.com/go-task/task/v3 v3.39.2
+2025-06-26T20:52:55.6392510Z go: downloading mvdan.cc/sh/v3 v3.9.0
+2025-06-26T20:52:55.6735977Z go: downloading github.com/Masterminds/semver/v3 v3.3.0
+2025-06-26T20:52:55.6751445Z go: downloading github.com/alecthomas/chroma/v2 v2.14.0
+2025-06-26T20:52:55.9963257Z go: downloading github.com/fatih/color v1.17.0
+2025-06-26T20:52:56.1534465Z go: downloading github.com/Ladicle/tabwriter v1.0.0
+2025-06-26T20:52:56.2588032Z go: downloading github.com/joho/godotenv v1.5.1
+2025-06-26T20:52:56.4010403Z go: downloading github.com/radovskyb/watcher v1.0.7
+2025-06-26T20:52:56.5669183Z go: downloading github.com/sajari/fuzzy v1.0.0
+2025-06-26T20:52:56.7700644Z go: downloading golang.org/x/sync v0.8.0
+2025-06-26T20:52:56.9710271Z go: downloading github.com/dominikbraun/graph v0.23.0
+2025-06-26T20:52:57.2403790Z go: downloading github.com/mattn/go-isatty v0.0.20
+2025-06-26T20:52:57.3269789Z go: downloading golang.org/x/sys v0.25.0
+2025-06-26T20:52:58.2153747Z go: downloading golang.org/x/term v0.24.0
+2025-06-26T20:52:58.2155724Z go: downloading github.com/muesli/cancelreader v0.2.2
+2025-06-26T20:52:58.2531774Z go: downloading github.com/mattn/go-zglob v0.0.6
+2025-06-26T20:52:58.3393950Z go: downloading github.com/zeebo/xxh3 v1.0.2
+2025-06-26T20:52:58.4015172Z go: downloading github.com/mitchellh/hashstructure/v2 v2.0.2
+2025-06-26T20:52:58.4180529Z go: downloading github.com/go-task/slim-sprig/v3 v3.0.0
+2025-06-26T20:52:58.5342559Z go: downloading github.com/go-task/template v0.1.0
+2025-06-26T20:52:58.6802067Z go: downloading github.com/dlclark/regexp2 v1.11.0
+2025-06-26T20:52:58.7754721Z go: downloading github.com/klauspost/cpuid/v2 v2.0.9
+2025-06-26T20:53:08.6052155Z task: [build] ./scripts/build.sh
+2025-06-26T20:53:08.6080552Z task: Failed to run task "build": fork/exec D:\a\subnet-evm\subnet-evm\scripts\build.sh: %1 is not a valid Win32 application.
+2025-06-26T20:53:08.6101856Z exit status 201
+2025-06-26T20:53:08.6698741Z ##[error]Process completed with exit code 1.
+2025-06-26T20:53:08.6922665Z Post job cleanup.
+2025-06-26T20:53:08.9452782Z [command]"C:\Program Files\Git\bin\git.exe" version
+2025-06-26T20:53:08.9681893Z git version 2.49.0.windows.1
+2025-06-26T20:53:08.9760820Z Temporarily overriding HOME='D:\a\_temp\e4315c0d-b603-4e09-bdb9-2e90865065cb' before making global git config changes
+2025-06-26T20:53:08.9762097Z Adding repository directory to the temporary git global config as a safe directory
+2025-06-26T20:53:08.9772541Z [command]"C:\Program Files\Git\bin\git.exe" config --global --add safe.directory D:\a\subnet-evm\subnet-evm
+2025-06-26T20:53:09.0065272Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+2025-06-26T20:53:09.0316721Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+2025-06-26T20:53:10.0373494Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-06-26T20:53:10.0566226Z http.https://github.com/.extraheader
+2025-06-26T20:53:10.0600945Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset-all http.https://github.com/.extraheader
+2025-06-26T20:53:10.0836472Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+2025-06-26T20:53:10.5514294Z Cleaning up orphan processes
