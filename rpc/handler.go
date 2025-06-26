@@ -437,10 +437,7 @@ func (h *handler) consumeLimit(procStart time.Time) {
 	}
 
 	stopTime := time.Now()
-	processingTime := stopTime.Sub(procStart)
-	if processingTime > h.deadlineContext {
-		processingTime = h.deadlineContext
-	}
+	processingTime := min(stopTime.Sub(procStart), h.deadlineContext)
 
 	h.limiter.ReserveN(stopTime, int(processingTime))
 }
