@@ -4,6 +4,9 @@
 
 version: '3'
 
+# Configure shell for all tasks
+shell: bash
+
 tasks:
   default: ./scripts/run_task.sh --list
 
