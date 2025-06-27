@@ -846,7 +846,11 @@ func httpTestClient(srv *Server, transport string, fl *flakeyListener) (*Client,
 // func ipcTestClient(srv *Server, fl *flakeyListener) (*Client, net.Listener) {
 // 	// Listen on a random endpoint.
 // 	endpoint := fmt.Sprintf("go-ethereum-test-ipc-%d-%d", os.Getpid(), rand.Int63())
-// 	endpoint = os.TempDir() + "/" + endpoint
+// 	if runtime.GOOS == "windows" {
+// 		endpoint = `\\.\pipe\` + endpoint
+// 	} else {
+// 		endpoint = os.TempDir() + "/" + endpoint
+// 	}
 // 	l, err := ipcListen(endpoint)
 // 	if err != nil {
 // 		panic(err)
