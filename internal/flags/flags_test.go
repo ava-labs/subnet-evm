@@ -28,7 +28,6 @@ package flags
 
 import (
 	"os/user"
-	"runtime"
 	"testing"
 )
 

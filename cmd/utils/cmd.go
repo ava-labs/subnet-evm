@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"runtime"
 )
 
 // Fatalf formats a message to standard error and exits the program.
