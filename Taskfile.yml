@@ -63,12 +63,10 @@ tasks:
     cmds:
       - task: install-avalanchego-release
       - task: build
+      - cmd: go run ./tests/antithesis --avalanchego-path=/tmp/e2e-test/avalanchego/avalanchego --duration=60s
       - task: test-build-antithesis-images
 
   test-e2e-load:
-    env:
-      AVALANCHEGO_BUILD_PATH: /tmp/e2e-test/avalanchego
-      DATA_DIR: /tmp/e2e-test/load-data
     desc: Run E2E load tests
     cmd: ./scripts/run_ginkgo_load.sh # tests.yml
 
@@ -87,8 +85,6 @@ tasks:
       - task: test-e2e-precompile
 
   test-e2e-warp:
-    env:
-      AVALANCHEGO_BUILD_PATH: /tmp/e2e-test/avalanchego
     desc: Run E2E warp tests
     cmd: ./scripts/run_ginkgo_warp.sh # tests.yml
 

@@ -192,9 +192,6 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: "go.mod"
-      - name: Check that the antithesis workload is sane
-        shell: bash
-        run: go run ./tests/antithesis --avalanchego-path=/tmp/e2e-test/avalanchego/avalanchego --duration=60s
       - name: Check antithesis image build
         shell: bash
         run: ./scripts/run_task.sh test-build-antithesis-images-ci
