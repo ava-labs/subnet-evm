@@ -87,6 +87,8 @@ tasks:
       - task: test-e2e-precompile
 
   test-e2e-warp:
+    env:
+      AVALANCHEGO_BUILD_PATH: /tmp/e2e-test/avalanchego
     desc: Run E2E warp tests
     cmd: ./scripts/run_ginkgo_warp.sh # tests.yml
 
