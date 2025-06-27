@@ -11,7 +11,7 @@ for file in .github/workflows/*.{yml,yaml}; do
   [[ -f "$file" ]] || continue
 
   # Search for scripts/* except for scripts/run_task.sh
-  MATCHES=$(grep -H -n -p "scripts/(?!run_task\.sh)" "$file" || true)
+  MATCHES=$(grep -H -n -P "scripts/(?!run_task\.sh)" "$file" || true)
   if [[ -n "${MATCHES}" ]]; then
     echo "${MATCHES}"
     SCRIPT_USAGE=1
