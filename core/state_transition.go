@@ -39,6 +39,7 @@ import (
 	ethparams "github.com/ava-labs/libevm/params"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/plugin/evm/vmerrors"
+	"github.com/ava-labs/subnet-evm/precompile/contracts/blocklist"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/txallowlist"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/holiman/uint256"
@@ -360,6 +361,13 @@ func (st *StateTransition) preCheck() error {
 			txAllowListRole := txallowlist.GetTxAllowListStatus(st.state, msg.From)
 			if !txAllowListRole.IsEnabled() {
 				return fmt.Errorf("%w: %s", vmerrors.ErrSenderAddressNotAllowListed, msg.From)
+			}
+		}
+
+		if params.GetExtra(st.evm.ChainConfig()).IsPrecompileEnabled(blocklist.ContractAddress, st.evm.Context.Time) {
+			isBlocked := blocklist.IsAddressBlocked(st.state, msg.From)
+			if isBlocked.Uint64() > 0 {
+				return fmt.Errorf("%w: %s", vmerrors.ErrSenderAddressBlocked, msg.From)
 			}
 		}
 	}
