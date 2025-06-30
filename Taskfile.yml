@@ -38,8 +38,8 @@ tasks:
   install-avalanchego-release:
     desc: Install AvalancheGo release for testing
     env:
-      BASEDIR: /tmp/e2e-test
-      AVALANCHEGO_BUILD_PATH: /tmp/e2e-test/avalanchego
+      BASEDIR: '{{.BASEDIR | default "/tmp/e2e-test"}}'
+      AVALANCHEGO_BUILD_PATH: '{{.AVALANCHEGO_BUILD_PATH | default "/tmp/e2e-test/avalanchego"}}'
     cmd: ./scripts/install_avalanchego_release.sh # tests.yml
 
   lint_allowed_eth_imports:
@@ -73,8 +73,8 @@ tasks:
   test-e2e-precompile:
     desc: Run E2E precompile tests
     env:
-      AVALANCHEGO_BUILD_PATH: /tmp/e2e-test/avalanchego
-      DATA_DIR: /tmp/e2e-test/precompile-data
+      AVALANCHEGO_BUILD_PATH: '{{.AVALANCHEGO_BUILD_PATH | default "/tmp/e2e-test/avalanchego"}}'
+      DATA_DIR: '{{.DATA_DIR | default "/tmp/e2e-test/precompile-data"}}'
     cmd: bash ./scripts/run_ginkgo_precompile.sh # tests.yml
 
   test-e2e-precompile-ci: # consolidated test-e2e-precompile
