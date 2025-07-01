@@ -9,4 +9,4 @@ git update-index --really-refresh >> /dev/null
 git status --short
 
 # Exits if any uncommitted changes are found.
-git diff-index --quiet HEAD 
+git diff-index --quiet HEAD

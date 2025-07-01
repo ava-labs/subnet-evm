@@ -8,27 +8,27 @@ tasks:
   default: ./scripts/run_task.sh --list
 
   actionlint:
-    desc: Run the actionlint.sh
+    desc: Validate GitHub Actions workflows and ensure scripts use run_task.sh for reproducibility
     cmd: ./scripts/actionlint.sh # tests.yml
 
   build:
-    desc: Run the build.sh
+    desc: Compile Subnet EVM binary with git commit and static linking flags
     cmd: ./scripts/build.sh # tests.yml
 
   build-antithesis-images:
-    desc: Build the antithesis images for the avalanchego test setup
+    desc: Build Docker images for antithesis testing including avalanchego node and subnet-evm builder images
     cmd: bash -x ./scripts/build_antithesis_images.sh # publish_antithesis_images.yml
 
   build-bench-precompiles:
-    desc: Build the benchmark precompiles
+    desc: Run benchmark tests for precompile contracts with timeout and coverage
     cmd: ./scripts/build_bench_precompiles.sh # bench.yml
 
   build-docker-image:
-    desc: Build the docker image
+    desc: Build multi-platform Docker image with avalanchego integration and optional publishing
     cmd: ./scripts/build_docker_image.sh # publish_docker.yml
 
   build-test:
-    desc: Run the build_test.sh
+    desc: Run all Go tests with retry logic for flaky tests, race detection, and coverage reporting
     cmd: ./scripts/build_test.sh # tests.yml
 
   check-clean-branch:
@@ -54,7 +54,7 @@ tasks:
       - task: check-clean-branch
 
   coverage:
-    desc: Run the coverage.sh
+    desc: Display test coverage statistics from coverage.out file
     cmd: ./scripts/coverage.sh # tests.yml
 
   generate-codec:
@@ -70,14 +70,14 @@ tasks:
       - cmd: go generate -run "go.uber.org/mock/mockgen" ./...
 
   install-avalanchego-release:
-    desc: Install AvalancheGo release for testing
+    desc: Download and install AvalancheGo release binary for testing, with fallback to building from source
     env:
       BASEDIR: '{{.BASEDIR | default "/tmp/e2e-test"}}'
       AVALANCHEGO_BUILD_PATH: '{{.AVALANCHEGO_BUILD_PATH | default "/tmp/e2e-test/avalanchego"}}'
     cmd: ./scripts/install_avalanchego_release.sh # tests.yml
 
   lint:
-    desc: Runs static analysis tests of golang code
+    desc: Run golangci-lint and check for allowed Ethereum imports in Go code
     cmd: ./scripts/lint.sh
 
   lint-all:
@@ -98,8 +98,16 @@ tasks:
       - task: check-generate-codec
       - task: check-generate-mocks
 
+  setup-contracts:
+    desc: Set up contracts by installing NPM dependencies, cleaning Hardhat cache, and compiling contracts
+    dir: ./contracts
+    cmds:
+      - cmd: npm ci
+      - cmd: npx hardhat clean
+      - cmd: npx hardhat compile
+
   shellcheck:
-    desc: Run the shellcheck.sh
+    desc: Run shellcheck static analysis on all shell scripts with version management
     cmd: ./scripts/shellcheck.sh # tests.yml
 
   test-build-antithesis-images:
@@ -122,7 +130,7 @@ tasks:
     cmd: bash -x scripts/tests.build_docker_image.sh # tests.yml
 
   test-e2e-load:
-    desc: Run E2E load tests
+    desc: Run end-to-end load tests using Ginkgo test framework
     cmd: ./scripts/run_ginkgo_load.sh # tests.yml
 
   test-e2e-load-ci: # consolidated test-e2e-load
@@ -136,7 +144,7 @@ tasks:
       - task: test-e2e-load
 
   test-e2e-precompile:
-    desc: Run E2E precompile tests
+    desc: Run end-to-end precompile tests using Ginkgo with parallel execution
     cmd: bash ./scripts/run_ginkgo_precompile.sh # tests.yml
 
   test-e2e-precompile-ci: # consolidated test-e2e-precompile
@@ -150,7 +158,7 @@ tasks:
       - task: test-e2e-precompile
 
   test-e2e-warp:
-    desc: Run E2E warp tests
+    desc: Run end-to-end warp tests using Ginkgo test framework
     cmd: ./scripts/run_ginkgo_warp.sh # tests.yml
 
   test-e2e-warp-ci: # consolidated test-e2e-warp
@@ -164,5 +172,5 @@ tasks:
       - task: test-e2e-warp
 
   update_avalanchego_version:
-    desc: Run the update_avalanchego_version.sh
+    desc: Update AvalancheGo version in go.mod and sync GitHub Actions workflow custom action version
     cmd: ./scripts/update_avalanchego_version.sh # tests.yml
