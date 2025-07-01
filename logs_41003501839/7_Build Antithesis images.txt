@@ -1,0 +1,441 @@
+﻿2025-07-01T14:43:49.8934750Z Current runner version: '2.325.0'
+2025-07-01T14:43:49.8968145Z ##[group]Runner Image Provisioner
+2025-07-01T14:43:49.8969369Z Hosted Compute Agent
+2025-07-01T14:43:49.8970242Z Version: 20250620.352
+2025-07-01T14:43:49.8971193Z Commit: f262f3aba23b10ea191b2a62bdee1ca4c3d344da
+2025-07-01T14:43:49.8972773Z Build Date: 2025-06-20T19:27:17Z
+2025-07-01T14:43:49.8973765Z ##[endgroup]
+2025-07-01T14:43:49.8974705Z ##[group]Operating System
+2025-07-01T14:43:49.8975782Z Ubuntu
+2025-07-01T14:43:49.8976629Z 24.04.2
+2025-07-01T14:43:49.8977387Z LTS
+2025-07-01T14:43:49.8978302Z ##[endgroup]
+2025-07-01T14:43:49.8979064Z ##[group]Runner Image
+2025-07-01T14:43:49.8980087Z Image: ubuntu-24.04
+2025-07-01T14:43:49.8981053Z Version: 20250622.1.0
+2025-07-01T14:43:49.8982974Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20250622.1/images/ubuntu/Ubuntu2404-Readme.md
+2025-07-01T14:43:49.8985869Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20250622.1
+2025-07-01T14:43:49.8987515Z ##[endgroup]
+2025-07-01T14:43:49.8991855Z ##[group]GITHUB_TOKEN Permissions
+2025-07-01T14:43:49.8994773Z Actions: write
+2025-07-01T14:43:49.8995730Z Attestations: write
+2025-07-01T14:43:49.8996565Z Checks: write
+2025-07-01T14:43:49.8997346Z Contents: write
+2025-07-01T14:43:49.8998317Z Deployments: write
+2025-07-01T14:43:49.8999257Z Discussions: write
+2025-07-01T14:43:49.9000088Z Issues: write
+2025-07-01T14:43:49.9001122Z Metadata: read
+2025-07-01T14:43:49.9001956Z Models: read
+2025-07-01T14:43:49.9003189Z Packages: write
+2025-07-01T14:43:49.9004118Z Pages: write
+2025-07-01T14:43:49.9005082Z PullRequests: write
+2025-07-01T14:43:49.9006244Z RepositoryProjects: write
+2025-07-01T14:43:49.9007214Z SecurityEvents: write
+2025-07-01T14:43:49.9008301Z Statuses: write
+2025-07-01T14:43:49.9009281Z ##[endgroup]
+2025-07-01T14:43:49.9012744Z Secret source: Actions
+2025-07-01T14:43:49.9013799Z Prepare workflow directory
+2025-07-01T14:43:49.9495491Z Prepare all required actions
+2025-07-01T14:43:49.9551563Z Getting action download info
+2025-07-01T14:43:50.2596019Z ##[group]Download immutable action package 'actions/checkout@v4'
+2025-07-01T14:43:50.2597124Z Version: 4.2.2
+2025-07-01T14:43:50.2598146Z Digest: sha256:ccb2698953eaebd21c7bf6268a94f9c26518a7e38e27e0b83c1fe1ad049819b1
+2025-07-01T14:43:50.2599321Z Source commit SHA: 11bd71901bbe5b1630ceea73d27597364c9af683
+2025-07-01T14:43:50.2600086Z ##[endgroup]
+2025-07-01T14:43:50.3369372Z ##[group]Download immutable action package 'actions/setup-go@v5'
+2025-07-01T14:43:50.3370090Z Version: 5.5.0
+2025-07-01T14:43:50.3370912Z Digest: sha256:f5eeb2233d0c6714b5236de9b44ad0b935014e15eeab3c28d73dc44c1c641ebb
+2025-07-01T14:43:50.3371859Z Source commit SHA: d35c59abb061a4a6fb18e82ac0862c26744d6ab5
+2025-07-01T14:43:50.3372841Z ##[endgroup]
+2025-07-01T14:43:52.2009746Z Complete job name: Build Antithesis images
+2025-07-01T14:43:52.2693225Z ##[group]Run actions/checkout@v4
+2025-07-01T14:43:52.2694193Z with:
+2025-07-01T14:43:52.2694655Z   repository: ava-labs/subnet-evm
+2025-07-01T14:43:52.2695378Z   token: ***
+2025-07-01T14:43:52.2695800Z   ssh-strict: true
+2025-07-01T14:43:52.2696228Z   ssh-user: git
+2025-07-01T14:43:52.2696679Z   persist-credentials: true
+2025-07-01T14:43:52.2697166Z   clean: true
+2025-07-01T14:43:52.2697610Z   sparse-checkout-cone-mode: true
+2025-07-01T14:43:52.2698137Z   fetch-depth: 1
+2025-07-01T14:43:52.2698556Z   fetch-tags: false
+2025-07-01T14:43:52.2699000Z   show-progress: true
+2025-07-01T14:43:52.2699440Z   lfs: false
+2025-07-01T14:43:52.2699868Z   submodules: false
+2025-07-01T14:43:52.2700432Z   set-safe-directory: true
+2025-07-01T14:43:52.2701173Z ##[endgroup]
+2025-07-01T14:43:52.3756055Z Syncing repository: ava-labs/subnet-evm
+2025-07-01T14:43:52.3758538Z ##[group]Getting Git version info
+2025-07-01T14:43:52.3759821Z Working directory is '/home/runner/work/subnet-evm/subnet-evm'
+2025-07-01T14:43:52.3761634Z [command]/usr/bin/git version
+2025-07-01T14:43:52.3783167Z git version 2.49.0
+2025-07-01T14:43:52.3809257Z ##[endgroup]
+2025-07-01T14:43:52.3824581Z Temporarily overriding HOME='/home/runner/work/_temp/40a2c3cd-7e99-455a-a119-065eee8634ba' before making global git config changes
+2025-07-01T14:43:52.3827732Z Adding repository directory to the temporary git global config as a safe directory
+2025-07-01T14:43:52.3830590Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/subnet-evm/subnet-evm
+2025-07-01T14:43:52.3864389Z Deleting the contents of '/home/runner/work/subnet-evm/subnet-evm'
+2025-07-01T14:43:52.3868130Z ##[group]Initializing the repository
+2025-07-01T14:43:52.3872979Z [command]/usr/bin/git init /home/runner/work/subnet-evm/subnet-evm
+2025-07-01T14:43:52.3926226Z hint: Using 'master' as the name for the initial branch. This default branch name
+2025-07-01T14:43:52.3928358Z hint: is subject to change. To configure the initial branch name to use in all
+2025-07-01T14:43:52.3930078Z hint: of your new repositories, which will suppress this warning, call:
+2025-07-01T14:43:52.3931328Z hint:
+2025-07-01T14:43:52.3931905Z hint: 	git config --global init.defaultBranch <name>
+2025-07-01T14:43:52.3932813Z hint:
+2025-07-01T14:43:52.3933408Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2025-07-01T14:43:52.3934346Z hint: 'development'. The just-created branch can be renamed via this command:
+2025-07-01T14:43:52.3935079Z hint:
+2025-07-01T14:43:52.3935681Z hint: 	git branch -m <name>
+2025-07-01T14:43:52.3936786Z Initialized empty Git repository in /home/runner/work/subnet-evm/subnet-evm/.git/
+2025-07-01T14:43:52.3941132Z [command]/usr/bin/git remote add origin https://github.com/ava-labs/subnet-evm
+2025-07-01T14:43:52.3971630Z ##[endgroup]
+2025-07-01T14:43:52.3972755Z ##[group]Disabling automatic garbage collection
+2025-07-01T14:43:52.3975498Z [command]/usr/bin/git config --local gc.auto 0
+2025-07-01T14:43:52.4003425Z ##[endgroup]
+2025-07-01T14:43:52.4004193Z ##[group]Setting up auth
+2025-07-01T14:43:52.4009574Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-07-01T14:43:52.4042787Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-07-01T14:43:52.4291918Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-07-01T14:43:52.4321741Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-07-01T14:43:52.4537675Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2025-07-01T14:43:52.4571986Z ##[endgroup]
+2025-07-01T14:43:52.4573084Z ##[group]Fetching the repository
+2025-07-01T14:43:52.4581430Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +c46a4f11ecd55a5ab361920393adf5859e0dc097:refs/remotes/pull/1610/merge
+2025-07-01T14:43:53.2773284Z From https://github.com/ava-labs/subnet-evm
+2025-07-01T14:43:53.2775516Z  * [new ref]         c46a4f11ecd55a5ab361920393adf5859e0dc097 -> pull/1610/merge
+2025-07-01T14:43:53.2816730Z ##[endgroup]
+2025-07-01T14:43:53.2818610Z ##[group]Determining the checkout info
+2025-07-01T14:43:53.2820816Z ##[endgroup]
+2025-07-01T14:43:53.2823753Z [command]/usr/bin/git sparse-checkout disable
+2025-07-01T14:43:53.2863249Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2025-07-01T14:43:53.2891912Z ##[group]Checking out the ref
+2025-07-01T14:43:53.2895952Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/1610/merge
+2025-07-01T14:43:53.3674643Z Note: switching to 'refs/remotes/pull/1610/merge'.
+2025-07-01T14:43:53.3677608Z 
+2025-07-01T14:43:53.3678858Z You are in 'detached HEAD' state. You can look around, make experimental
+2025-07-01T14:43:53.3681861Z changes and commit them, and you can discard any commits you make in this
+2025-07-01T14:43:53.3686260Z state without impacting any branches by switching back to a branch.
+2025-07-01T14:43:53.3688450Z 
+2025-07-01T14:43:53.3689625Z If you want to create a new branch to retain commits you create, you may
+2025-07-01T14:43:53.3692083Z do so (now or later) by using -c with the switch command. Example:
+2025-07-01T14:43:53.3693399Z 
+2025-07-01T14:43:53.3693870Z   git switch -c <new-branch-name>
+2025-07-01T14:43:53.3694627Z 
+2025-07-01T14:43:53.3695093Z Or undo this operation with:
+2025-07-01T14:43:53.3695861Z 
+2025-07-01T14:43:53.3696364Z   git switch -
+2025-07-01T14:43:53.3696944Z 
+2025-07-01T14:43:53.3697974Z Turn off this advice by setting config variable advice.detachedHead to false
+2025-07-01T14:43:53.3699414Z 
+2025-07-01T14:43:53.3701133Z HEAD is now at c46a4f1 Merge a1ed580b94027b41ba19c24c1ea7f04bfdb27307 into 7abb4c64d7a8a26513a93cd55d800f61e867ffe3
+2025-07-01T14:43:53.3706002Z ##[endgroup]
+2025-07-01T14:43:53.3724288Z [command]/usr/bin/git log -1 --format=%H
+2025-07-01T14:43:53.3746245Z c46a4f11ecd55a5ab361920393adf5859e0dc097
+2025-07-01T14:43:53.4041633Z ##[group]Run actions/setup-go@v5
+2025-07-01T14:43:53.4042869Z with:
+2025-07-01T14:43:53.4043670Z   go-version-file: go.mod
+2025-07-01T14:43:53.4044653Z   check-latest: false
+2025-07-01T14:43:53.4045818Z   token: ***
+2025-07-01T14:43:53.4046618Z   cache: true
+2025-07-01T14:43:53.4047428Z ##[endgroup]
+2025-07-01T14:43:53.5617891Z Setup go version spec 1.23.9
+2025-07-01T14:43:53.5628847Z Attempting to download 1.23.9...
+2025-07-01T14:43:53.8212968Z matching 1.23.9...
+2025-07-01T14:43:53.8252115Z Acquiring 1.23.9 from https://github.com/actions/go-versions/releases/download/1.23.9-14875265214/go-1.23.9-linux-x64.tar.gz
+2025-07-01T14:43:54.3573464Z Extracting Go...
+2025-07-01T14:43:54.3681767Z [command]/usr/bin/tar xz --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/69533543-d3ab-4142-9043-7e882d1cfae7 -f /home/runner/work/_temp/792a33de-d1b5-4864-be67-57f6430f2800
+2025-07-01T14:43:56.0108256Z Successfully extracted go to /home/runner/work/_temp/69533543-d3ab-4142-9043-7e882d1cfae7
+2025-07-01T14:43:56.0108841Z Adding to the cache ...
+2025-07-01T14:44:00.2840980Z Successfully cached go to /opt/hostedtoolcache/go/1.23.9/x64
+2025-07-01T14:44:00.2841661Z Added go to the path
+2025-07-01T14:44:00.2843717Z Successfully set up Go version 1.23.9
+2025-07-01T14:44:00.3034879Z [command]/opt/hostedtoolcache/go/1.23.9/x64/bin/go env GOMODCACHE
+2025-07-01T14:44:00.3065384Z [command]/opt/hostedtoolcache/go/1.23.9/x64/bin/go env GOCACHE
+2025-07-01T14:44:00.3100116Z /home/runner/go/pkg/mod
+2025-07-01T14:44:00.3115320Z /home/runner/.cache/go-build
+2025-07-01T14:44:00.3653915Z Cache hit for: setup-go-Linux-x64-ubuntu24-go-1.23.9-8a5f6b0ec156c644c456755461212fdb4b5f31e3982b840cb9a5e30f16f98494
+2025-07-01T14:44:00.4337039Z Received 9896 of 9896 (100.0%), 0.7 MBs/sec
+2025-07-01T14:44:00.4337632Z Cache Size: ~0 MB (9896 B)
+2025-07-01T14:44:00.4362635Z [command]/usr/bin/tar -xf /home/runner/work/_temp/0c2a322d-b16d-43a5-aa6e-9713b8c83acb/cache.tzst -P -C /home/runner/work/subnet-evm/subnet-evm --use-compress-program unzstd
+2025-07-01T14:44:00.4561235Z Cache restored successfully
+2025-07-01T14:44:00.4566859Z Cache restored from key: setup-go-Linux-x64-ubuntu24-go-1.23.9-8a5f6b0ec156c644c456755461212fdb4b5f31e3982b840cb9a5e30f16f98494
+2025-07-01T14:44:00.4593878Z go version go1.23.9 linux/amd64
+2025-07-01T14:44:00.4594169Z 
+2025-07-01T14:44:00.4594570Z ##[group]go env
+2025-07-01T14:44:00.5006172Z GO111MODULE=''
+2025-07-01T14:44:00.5006597Z GOARCH='amd64'
+2025-07-01T14:44:00.5006931Z GOBIN=''
+2025-07-01T14:44:00.5007204Z GOCACHE='/home/runner/.cache/go-build'
+2025-07-01T14:44:00.5007563Z GOENV='/home/runner/.config/go/env'
+2025-07-01T14:44:00.5007865Z GOEXE=''
+2025-07-01T14:44:00.5008104Z GOEXPERIMENT=''
+2025-07-01T14:44:00.5008394Z GOFLAGS=''
+2025-07-01T14:44:00.5008634Z GOHOSTARCH='amd64'
+2025-07-01T14:44:00.5008920Z GOHOSTOS='linux'
+2025-07-01T14:44:00.5009152Z GOINSECURE=''
+2025-07-01T14:44:00.5009441Z GOMODCACHE='/home/runner/go/pkg/mod'
+2025-07-01T14:44:00.5009781Z GONOPROXY=''
+2025-07-01T14:44:00.5010254Z GONOSUMDB=''
+2025-07-01T14:44:00.5010478Z GOOS='linux'
+2025-07-01T14:44:00.5010725Z GOPATH='/home/runner/go'
+2025-07-01T14:44:00.5011000Z GOPRIVATE=''
+2025-07-01T14:44:00.5011303Z GOPROXY='https://proxy.golang.org,direct'
+2025-07-01T14:44:00.5011719Z GOROOT='/opt/hostedtoolcache/go/1.23.9/x64'
+2025-07-01T14:44:00.5012073Z GOSUMDB='sum.golang.org'
+2025-07-01T14:44:00.5012514Z GOTMPDIR=''
+2025-07-01T14:44:00.5012775Z GOTOOLCHAIN='auto'
+2025-07-01T14:44:00.5013179Z GOTOOLDIR='/opt/hostedtoolcache/go/1.23.9/x64/pkg/tool/linux_amd64'
+2025-07-01T14:44:00.5013607Z GOVCS=''
+2025-07-01T14:44:00.5013834Z GOVERSION='go1.23.9'
+2025-07-01T14:44:00.5014079Z GODEBUG=''
+2025-07-01T14:44:00.5014298Z GOTELEMETRY='local'
+2025-07-01T14:44:00.5014618Z GOTELEMETRYDIR='/home/runner/.config/go/telemetry'
+2025-07-01T14:44:00.5014979Z GCCGO='gccgo'
+2025-07-01T14:44:00.5015203Z GOAMD64='v1'
+2025-07-01T14:44:00.5015420Z AR='ar'
+2025-07-01T14:44:00.5015618Z CC='gcc'
+2025-07-01T14:44:00.5015803Z CXX='g++'
+2025-07-01T14:44:00.5016188Z CGO_ENABLED='1'
+2025-07-01T14:44:00.5016487Z GOMOD='/home/runner/work/subnet-evm/subnet-evm/go.mod'
+2025-07-01T14:44:00.5016826Z GOWORK=''
+2025-07-01T14:44:00.5017034Z CGO_CFLAGS='-O2 -g'
+2025-07-01T14:44:00.5017259Z CGO_CPPFLAGS=''
+2025-07-01T14:44:00.5017485Z CGO_CXXFLAGS='-O2 -g'
+2025-07-01T14:44:00.5017718Z CGO_FFLAGS='-O2 -g'
+2025-07-01T14:44:00.5017942Z CGO_LDFLAGS='-O2 -g'
+2025-07-01T14:44:00.5018183Z PKG_CONFIG='pkg-config'
+2025-07-01T14:44:00.5018936Z GOGCCFLAGS='-fPIC -m64 -pthread -Wl,--no-gc-sections -fmessage-length=0 -ffile-prefix-map=/tmp/go-build3601399531=/tmp/go-build -gno-record-gcc-switches'
+2025-07-01T14:44:00.5019586Z 
+2025-07-01T14:44:00.5019867Z ##[endgroup]
+2025-07-01T14:44:00.5180246Z ##[group]Run ./scripts/run_task.sh test-build-antithesis-images-ci
+2025-07-01T14:44:00.5180834Z [36;1m./scripts/run_task.sh test-build-antithesis-images-ci[0m
+2025-07-01T14:44:00.5273266Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2025-07-01T14:44:00.5273647Z ##[endgroup]
+2025-07-01T14:44:00.6493863Z go: downloading github.com/go-task/task/v3 v3.39.2
+2025-07-01T14:44:01.4185918Z go: downloading github.com/spf13/pflag v1.0.5
+2025-07-01T14:44:01.4190623Z go: downloading mvdan.cc/sh/v3 v3.9.0
+2025-07-01T14:44:01.4225563Z go: downloading github.com/Masterminds/semver/v3 v3.3.0
+2025-07-01T14:44:01.4282779Z go: downloading github.com/alecthomas/chroma/v2 v2.14.0
+2025-07-01T14:44:01.5847039Z go: downloading github.com/fatih/color v1.17.0
+2025-07-01T14:44:01.5848015Z go: downloading gopkg.in/yaml.v3 v3.0.1
+2025-07-01T14:44:01.6164563Z go: downloading github.com/Ladicle/tabwriter v1.0.0
+2025-07-01T14:44:01.6196568Z go: downloading github.com/joho/godotenv v1.5.1
+2025-07-01T14:44:01.6494114Z go: downloading github.com/dominikbraun/graph v0.23.0
+2025-07-01T14:44:01.6499726Z go: downloading golang.org/x/sync v0.8.0
+2025-07-01T14:44:01.6617513Z go: downloading github.com/radovskyb/watcher v1.0.7
+2025-07-01T14:44:01.6768488Z go: downloading github.com/sajari/fuzzy v1.0.0
+2025-07-01T14:44:01.7138126Z go: downloading github.com/dlclark/regexp2 v1.11.0
+2025-07-01T14:44:01.7200864Z go: downloading github.com/mattn/go-colorable v0.1.13
+2025-07-01T14:44:01.7233886Z go: downloading github.com/mattn/go-isatty v0.0.20
+2025-07-01T14:44:01.7585036Z go: downloading golang.org/x/term v0.24.0
+2025-07-01T14:44:01.7633404Z go: downloading github.com/davecgh/go-spew v1.1.1
+2025-07-01T14:44:01.7866836Z go: downloading github.com/go-task/slim-sprig/v3 v3.0.0
+2025-07-01T14:44:01.8109623Z go: downloading github.com/go-task/template v0.1.0
+2025-07-01T14:44:01.8370422Z go: downloading github.com/muesli/cancelreader v0.2.2
+2025-07-01T14:44:01.8427863Z go: downloading golang.org/x/sys v0.25.0
+2025-07-01T14:44:01.9402751Z go: downloading github.com/mattn/go-zglob v0.0.6
+2025-07-01T14:44:01.9888555Z go: downloading github.com/zeebo/xxh3 v1.0.2
+2025-07-01T14:44:02.0018364Z go: downloading github.com/mitchellh/hashstructure/v2 v2.0.2
+2025-07-01T14:44:02.0489901Z go: downloading github.com/klauspost/cpuid/v2 v2.0.9
+2025-07-01T14:44:16.2697190Z task: [install-avalanchego-release] ./scripts/install_avalanchego_release.sh
+2025-07-01T14:44:16.2912666Z Using branch: c46a4f1
+2025-07-01T14:44:16.4199571Z https://github.com/ava-labs/avalanchego/releases/download/v1.13.2/avalanchego-linux-amd64-v1.13.2.tar.gz found
+2025-07-01T14:44:16.4200319Z downloading to /tmp/avalanchego-release/avalanchego-linux-amd64-v1.13.2.tar.gz
+2025-07-01T14:44:16.4247377Z   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+2025-07-01T14:44:16.4249928Z                                  Dload  Upload   Total   Spent    Left  Speed
+2025-07-01T14:44:16.4250246Z 
+2025-07-01T14:44:16.4576650Z   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+2025-07-01T14:44:16.4577255Z   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+2025-07-01T14:44:16.6054626Z 
+2025-07-01T14:44:16.6055120Z 100 36.2M  100 36.2M    0     0   200M      0 --:--:-- --:--:-- --:--:--  200M
+2025-07-01T14:44:16.6124209Z avalanchego-v1.13.2/avalanchego
+2025-07-01T14:44:17.1991765Z Installed AvalancheGo release v1.13.2
+2025-07-01T14:44:17.1992740Z AvalancheGo Path: /tmp/avalanchego-release/avalanchego/avalanchego
+2025-07-01T14:44:17.1993169Z Plugin Dir: /home/runner/.avalanchego/plugins
+2025-07-01T14:44:17.2028993Z task: [build] ./scripts/build.sh
+2025-07-01T14:44:17.2241542Z Using branch: c46a4f1
+2025-07-01T14:44:17.2243282Z Building Subnet EVM @ GitCommit: c46a4f11ecd55a5ab361920393adf5859e0dc097 at /home/runner/.avalanchego/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
+2025-07-01T14:44:17.2286044Z go: downloading github.com/ava-labs/avalanchego v1.13.2
+2025-07-01T14:44:17.8100085Z go: downloading github.com/spf13/viper v1.12.0
+2025-07-01T14:44:17.8132643Z go: downloading github.com/ava-labs/libevm v1.13.14-0.3.0.rc.1
+2025-07-01T14:44:18.8943807Z go: downloading github.com/gorilla/rpc v1.2.0
+2025-07-01T14:44:18.8949050Z go: downloading github.com/holiman/uint256 v1.2.4
+2025-07-01T14:44:18.8949680Z go: downloading github.com/prometheus/client_golang v1.16.0
+2025-07-01T14:44:18.8953799Z go: downloading golang.org/x/exp v0.0.0-20241215155358-4a5509556b9e
+2025-07-01T14:44:18.9182607Z go: downloading go.uber.org/zap v1.26.0
+2025-07-01T14:44:18.9767129Z go: downloading golang.org/x/term v0.30.0
+2025-07-01T14:44:18.9769154Z go: downloading gopkg.in/natefinch/lumberjack.v2 v2.0.0
+2025-07-01T14:44:18.9923537Z go: downloading github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
+2025-07-01T14:44:18.9926841Z go: downloading github.com/prometheus/client_model v0.3.0
+2025-07-01T14:44:19.0059288Z go: downloading google.golang.org/grpc v1.66.0
+2025-07-01T14:44:19.0084867Z go: downloading google.golang.org/protobuf v1.35.2
+2025-07-01T14:44:19.2941421Z go: downloading go.opentelemetry.io/otel v1.22.0
+2025-07-01T14:44:19.3475229Z go: downloading go.opentelemetry.io/otel/trace v1.22.0
+2025-07-01T14:44:19.3478226Z go: downloading github.com/prometheus/common v0.42.0
+2025-07-01T14:44:19.3481456Z go: downloading github.com/cockroachdb/pebble v0.0.0-20230928194634-aa077af62593
+2025-07-01T14:44:19.3899918Z go: downloading github.com/StephenButtolph/canoto v0.15.0
+2025-07-01T14:44:19.4210520Z go: downloading golang.org/x/sync v0.12.0
+2025-07-01T14:44:19.4215149Z go: downloading github.com/google/renameio/v2 v2.0.0
+2025-07-01T14:44:19.4242508Z go: downloading github.com/fsnotify/fsnotify v1.6.0
+2025-07-01T14:44:19.4368582Z go: downloading github.com/mitchellh/mapstructure v1.5.0
+2025-07-01T14:44:19.4369488Z go: downloading github.com/spf13/afero v1.8.2
+2025-07-01T14:44:19.4431036Z go: downloading github.com/spf13/cast v1.5.0
+2025-07-01T14:44:19.4492193Z go: downloading github.com/spf13/jwalterweatherman v1.1.0
+2025-07-01T14:44:19.4561651Z go: downloading golang.org/x/crypto v0.36.0
+2025-07-01T14:44:19.4638567Z go: downloading github.com/shirou/gopsutil v3.21.11+incompatible
+2025-07-01T14:44:19.4640127Z go: downloading golang.org/x/sys v0.31.0
+2025-07-01T14:44:19.5328055Z go: downloading github.com/dop251/goja v0.0.0-20230806174421-c933cf95e127
+2025-07-01T14:44:19.6176370Z go: downloading github.com/gballet/go-verkle v0.1.1-0.20231031103413-a67434b50f46
+2025-07-01T14:44:19.6980638Z go: downloading github.com/gofrs/flock v0.8.1
+2025-07-01T14:44:19.7041422Z go: downloading github.com/golang/snappy v0.0.5-0.20220116011046-fa5810519dcb
+2025-07-01T14:44:19.7078413Z go: downloading github.com/olekukonko/tablewriter v0.0.5
+2025-07-01T14:44:19.7207685Z go: downloading github.com/holiman/bloomfilter/v2 v2.0.3
+2025-07-01T14:44:19.7320528Z go: downloading go.uber.org/mock v0.5.0
+2025-07-01T14:44:19.7398924Z go: downloading github.com/stretchr/testify v1.10.0
+2025-07-01T14:44:19.7728127Z go: downloading github.com/deckarep/golang-set/v2 v2.1.0
+2025-07-01T14:44:19.7728807Z go: downloading github.com/gorilla/websocket v1.5.0
+2025-07-01T14:44:19.7887441Z go: downloading golang.org/x/time v0.3.0
+2025-07-01T14:44:19.7947620Z go: downloading github.com/beorn7/perks v1.0.1
+2025-07-01T14:44:19.7960593Z go: downloading github.com/cespare/xxhash/v2 v2.3.0
+2025-07-01T14:44:19.7970178Z go: downloading github.com/prometheus/procfs v0.10.1
+2025-07-01T14:44:19.8024822Z go: downloading go.uber.org/multierr v1.11.0
+2025-07-01T14:44:19.8066081Z go: downloading github.com/supranational/blst v0.3.14
+2025-07-01T14:44:19.8106821Z go: downloading google.golang.org/genproto/googleapis/rpc v0.0.0-20240827150818-7e3bb234dfed
+2025-07-01T14:44:19.8191667Z go: downloading github.com/golang/protobuf v1.5.4
+2025-07-01T14:44:19.8578266Z go: downloading golang.org/x/net v0.38.0
+2025-07-01T14:44:19.8599822Z go: downloading go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.22.0
+2025-07-01T14:44:19.8678755Z go: downloading go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.22.0
+2025-07-01T14:44:19.8739186Z go: downloading go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.22.0
+2025-07-01T14:44:19.8878964Z go: downloading go.opentelemetry.io/otel/sdk v1.22.0
+2025-07-01T14:44:19.9271911Z go: downloading github.com/syndtr/goleveldb v1.0.1-0.20220614013038-64ee5596c38a
+2025-07-01T14:44:19.9617731Z go: downloading github.com/matttproud/golang_protobuf_extensions v1.0.4
+2025-07-01T14:44:19.9625534Z go: downloading github.com/mr-tron/base58 v1.2.0
+2025-07-01T14:44:19.9736476Z go: downloading gonum.org/v1/gonum v0.11.0
+2025-07-01T14:44:19.9772766Z go: downloading github.com/DataDog/zstd v1.5.2
+2025-07-01T14:44:20.0692823Z go: downloading github.com/subosito/gotenv v1.3.0
+2025-07-01T14:44:20.0695492Z go: downloading github.com/hashicorp/hcl v1.0.0
+2025-07-01T14:44:20.0837552Z go: downloading gopkg.in/ini.v1 v1.67.0
+2025-07-01T14:44:20.1091172Z go: downloading github.com/magiconair/properties v1.8.6
+2025-07-01T14:44:20.1115735Z go: downloading github.com/pelletier/go-toml/v2 v2.0.5
+2025-07-01T14:44:20.1119745Z go: downloading golang.org/x/text v0.23.0
+2025-07-01T14:44:20.1490543Z go: downloading github.com/pelletier/go-toml v1.9.5
+2025-07-01T14:44:20.1754194Z go: downloading github.com/tklauser/go-sysconf v0.3.12
+2025-07-01T14:44:20.1995049Z go: downloading github.com/crate-crypto/go-kzg-4844 v0.7.0
+2025-07-01T14:44:20.4271663Z go: downloading github.com/VictoriaMetrics/fastcache v1.12.1
+2025-07-01T14:44:20.4402175Z go: downloading github.com/crate-crypto/go-ipa v0.0.0-20231025140028-3c0104f4b233
+2025-07-01T14:44:20.4587819Z go: downloading github.com/dlclark/regexp2 v1.7.0
+2025-07-01T14:44:20.6478604Z go: downloading github.com/google/pprof v0.0.0-20230207041349-798e818bf904
+2025-07-01T14:44:20.8118661Z go: downloading github.com/holiman/billy v0.0.0-20240216141850-2abb0c79d3c4
+2025-07-01T14:44:20.8120734Z go: downloading github.com/hashicorp/golang-lru v0.5.5-0.20210104140557-80c98217689d
+2025-07-01T14:44:20.8300256Z go: downloading github.com/mattn/go-runewidth v0.0.13
+2025-07-01T14:44:20.8344389Z go: downloading github.com/google/uuid v1.6.0
+2025-07-01T14:44:20.8399430Z go: downloading github.com/tyler-smith/go-bip39 v1.1.0
+2025-07-01T14:44:20.8417489Z go: downloading github.com/hashicorp/go-bexpr v0.1.10
+2025-07-01T14:44:20.8486880Z go: downloading github.com/mattn/go-isatty v0.0.17
+2025-07-01T14:44:20.8590157Z go: downloading github.com/urfave/cli/v2 v2.25.7
+2025-07-01T14:44:20.8616783Z go: downloading github.com/pmezard/go-difflib v1.0.0
+2025-07-01T14:44:20.8665925Z go: downloading github.com/cockroachdb/errors v1.9.1
+2025-07-01T14:44:20.9244281Z go: downloading github.com/cockroachdb/redact v1.1.3
+2025-07-01T14:44:20.9245238Z go: downloading github.com/cockroachdb/tokenbucket v0.0.0-20230807174530-cc333fc44b06
+2025-07-01T14:44:20.9372114Z go: downloading go.opentelemetry.io/proto/otlp v1.0.0
+2025-07-01T14:44:20.9600668Z go: downloading github.com/tklauser/numcpus v0.6.1
+2025-07-01T14:44:20.9606545Z go: downloading github.com/go-sourcemap/sourcemap v2.1.3+incompatible
+2025-07-01T14:44:20.9733135Z go: downloading github.com/gballet/go-libpcsclite v0.0.0-20191108122812-4678299bea08
+2025-07-01T14:44:20.9753119Z go: downloading github.com/status-im/keycard-go v0.2.0
+2025-07-01T14:44:20.9879130Z go: downloading github.com/rivo/uniseg v0.2.0
+2025-07-01T14:44:20.9991420Z go: downloading github.com/mitchellh/pointerstructure v1.2.0
+2025-07-01T14:44:21.0066876Z go: downloading github.com/cockroachdb/logtags v0.0.0-20230118201751-21c54148d20b
+2025-07-01T14:44:21.0083504Z go: downloading github.com/getsentry/sentry-go v0.18.0
+2025-07-01T14:44:21.0131005Z go: downloading github.com/pkg/errors v0.9.1
+2025-07-01T14:44:21.0245069Z go: downloading github.com/go-logr/logr v1.4.1
+2025-07-01T14:44:21.0307645Z go: downloading go.opentelemetry.io/otel/metric v1.22.0
+2025-07-01T14:44:21.0500529Z go: downloading github.com/cenkalti/backoff/v4 v4.2.1
+2025-07-01T14:44:21.0526166Z go: downloading github.com/grpc-ecosystem/grpc-gateway/v2 v2.16.0
+2025-07-01T14:44:21.0687081Z go: downloading github.com/go-logr/stdr v1.2.2
+2025-07-01T14:44:21.0827313Z go: downloading github.com/consensys/gnark-crypto v0.12.1
+2025-07-01T14:44:21.1861651Z go: downloading github.com/gogo/protobuf v1.3.2
+2025-07-01T14:44:21.4477470Z go: downloading github.com/kr/pretty v0.3.1
+2025-07-01T14:44:21.4486053Z go: downloading github.com/cpuguy83/go-md2man/v2 v2.0.4
+2025-07-01T14:44:21.4590720Z go: downloading github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673
+2025-07-01T14:44:21.4623317Z go: downloading github.com/huin/goupnp v1.3.0
+2025-07-01T14:44:21.4860470Z go: downloading github.com/jackpal/go-nat-pmp v1.0.2
+2025-07-01T14:44:21.5369973Z go: downloading google.golang.org/genproto/googleapis/api v0.0.0-20240604185151-ef581f913117
+2025-07-01T14:44:21.5671058Z go: downloading github.com/kr/text v0.2.0
+2025-07-01T14:44:21.5802869Z go: downloading github.com/rogpeppe/go-internal v1.12.0
+2025-07-01T14:44:21.6216031Z go: downloading github.com/russross/blackfriday/v2 v2.1.0
+2025-07-01T14:44:21.6734028Z go: downloading github.com/bits-and-blooms/bitset v1.10.0
+2025-07-01T14:44:21.6743098Z go: downloading github.com/mmcloughlin/addchain v0.4.0
+2025-07-01T14:44:21.6743725Z go: downloading github.com/consensys/bavard v0.1.13
+2025-07-01T14:44:21.7155152Z go: downloading rsc.io/tmplfunc v0.0.3
+2025-07-01T14:45:20.4219028Z task: [test-build-antithesis-images-ci] go run ./tests/antithesis --avalanchego-path=/tmp/e2e-test/avalanchego/avalanchego --duration=60s
+2025-07-01T14:45:20.4282075Z go: downloading github.com/antithesishq/antithesis-sdk-go v0.3.8
+2025-07-01T14:45:20.4392273Z go: downloading github.com/compose-spec/compose-go v1.20.2
+2025-07-01T14:45:20.4438583Z go: downloading k8s.io/api v0.29.0
+2025-07-01T14:45:20.5501542Z go: downloading k8s.io/apimachinery v0.29.0
+2025-07-01T14:45:20.6767157Z go: downloading k8s.io/client-go v0.29.0
+2025-07-01T14:45:21.1153330Z go: downloading k8s.io/utils v0.0.0-20230726121419-3b25d923346b
+2025-07-01T14:45:21.1193969Z go: downloading github.com/go-cmd/cmd v1.4.1
+2025-07-01T14:45:21.1194565Z go: downloading github.com/onsi/ginkgo/v2 v2.13.1
+2025-07-01T14:45:21.1277171Z go: downloading github.com/ava-labs/coreth v0.15.2-rc.0.0.20250620163936-0058a7ec6d9d
+2025-07-01T14:45:21.1548514Z go: downloading github.com/decred/dcrd/dcrec/secp256k1/v4 v4.1.0
+2025-07-01T14:45:21.1922951Z go: downloading github.com/btcsuite/btcd/btcutil v1.1.3
+2025-07-01T14:45:21.2240199Z go: downloading github.com/json-iterator/go v1.1.12
+2025-07-01T14:45:21.2556479Z go: downloading github.com/distribution/reference v0.5.0
+2025-07-01T14:45:21.2701912Z go: downloading github.com/docker/go-connections v0.4.0
+2025-07-01T14:45:21.2864917Z go: downloading github.com/docker/go-units v0.5.0
+2025-07-01T14:45:21.2972907Z go: downloading github.com/mattn/go-shellwords v1.0.12
+2025-07-01T14:45:21.3082718Z go: downloading github.com/opencontainers/go-digest v1.0.0
+2025-07-01T14:45:21.3212632Z go: downloading github.com/google/gofuzz v1.2.0
+2025-07-01T14:45:21.3329648Z go: downloading k8s.io/klog/v2 v2.110.1
+2025-07-01T14:45:21.3641652Z go: downloading sigs.k8s.io/yaml v1.3.0
+2025-07-01T14:45:21.3771468Z go: downloading gopkg.in/inf.v0 v0.9.1
+2025-07-01T14:45:21.3916002Z go: downloading github.com/imdario/mergo v0.3.16
+2025-07-01T14:45:21.4195619Z go: downloading github.com/gorilla/mux v1.8.0
+2025-07-01T14:45:21.4280222Z go: downloading github.com/rs/cors v1.7.0
+2025-07-01T14:45:21.4358506Z go: downloading github.com/pires/go-proxyproto v0.6.2
+2025-07-01T14:45:21.4483293Z go: downloading github.com/google/btree v1.1.2
+2025-07-01T14:45:21.4641689Z go: downloading github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd
+2025-07-01T14:45:21.4761115Z go: downloading github.com/modern-go/reflect2 v1.0.2
+2025-07-01T14:45:21.4925578Z go: downloading sigs.k8s.io/structured-merge-diff/v4 v4.4.1
+2025-07-01T14:45:21.5324375Z go: downloading sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd
+2025-07-01T14:45:21.5548078Z go: downloading gopkg.in/yaml.v2 v2.4.0
+2025-07-01T14:45:21.5708816Z go: downloading github.com/moby/spdystream v0.2.0
+2025-07-01T14:45:21.5856923Z go: downloading github.com/google/gnostic-models v0.6.8
+2025-07-01T14:45:21.6153659Z go: downloading golang.org/x/oauth2 v0.21.0
+2025-07-01T14:45:21.6566185Z go: downloading github.com/sirupsen/logrus v1.9.0
+2025-07-01T14:45:21.6750605Z go: downloading github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f
+2025-07-01T14:45:21.6846769Z go: downloading k8s.io/kube-openapi v0.0.0-20231010175941-2dd684a91f00
+2025-07-01T14:45:21.8600823Z go: downloading github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822
+2025-07-01T14:45:21.8601593Z go: downloading github.com/go-openapi/swag v0.22.3
+2025-07-01T14:45:21.8605783Z go: downloading github.com/go-openapi/jsonreference v0.20.2
+2025-07-01T14:45:21.8616801Z go: downloading github.com/emicklei/go-restful/v3 v3.11.0
+2025-07-01T14:45:21.8739825Z go: downloading github.com/go-openapi/jsonpointer v0.19.6
+2025-07-01T14:45:21.8787636Z go: downloading github.com/mailru/easyjson v0.7.7
+2025-07-01T14:45:21.9001997Z go: downloading github.com/josharian/intern v1.0.0
+2025-07-01T14:46:23.1436854Z [07-01|14:46:23.143] ERROR tests/simple_test_context.go:33 
+2025-07-01T14:46:23.1437689Z 	Error Trace:	/home/runner/go/pkg/mod/github.com/ava-labs/avalanchego@v1.13.2/tests/fixture/e2e/env.go:182
+2025-07-01T14:46:23.1439315Z 	            				/home/runner/go/pkg/mod/github.com/ava-labs/avalanchego@v1.13.2/tests/antithesis/config.go:100
+2025-07-01T14:46:23.1440439Z 	            				/home/runner/go/pkg/mod/github.com/ava-labs/avalanchego@v1.13.2/tests/antithesis/config.go:80
+2025-07-01T14:46:23.1441300Z 	            				/home/runner/work/subnet-evm/subnet-evm/tests/antithesis/main.go:46
+2025-07-01T14:46:23.1442022Z 	            				/opt/hostedtoolcache/go/1.23.9/x64/src/runtime/proc.go:272
+2025-07-01T14:46:23.1442925Z 	            				/opt/hostedtoolcache/go/1.23.9/x64/src/runtime/asm_amd64.s:1700
+2025-07-01T14:46:23.1443295Z 	Error:      	Received unexpected error:
+2025-07-01T14:46:23.1444598Z 	            	failed to configure process runtime: --avalanchego-path (/tmp/e2e-test/avalanchego/avalanchego) not found: stat /tmp/e2e-test/avalanchego/avalanchego: no such file or directory
+2025-07-01T14:46:23.1445234Z 
+2025-07-01T14:46:23.1458667Z exit status 1
+2025-07-01T14:46:23.3132702Z task: Failed to run task "test-build-antithesis-images-ci": exit status 1
+2025-07-01T14:46:23.3143858Z exit status 201
+2025-07-01T14:46:23.3669244Z ##[error]Process completed with exit code 1.
+2025-07-01T14:46:23.3764979Z Post job cleanup.
+2025-07-01T14:46:23.4735774Z [command]/usr/bin/git version
+2025-07-01T14:46:23.4771423Z git version 2.49.0
+2025-07-01T14:46:23.4820703Z Temporarily overriding HOME='/home/runner/work/_temp/9c4a2c13-d195-4ab2-8ceb-3ae0d4349591' before making global git config changes
+2025-07-01T14:46:23.4822040Z Adding repository directory to the temporary git global config as a safe directory
+2025-07-01T14:46:23.4826826Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/subnet-evm/subnet-evm
+2025-07-01T14:46:23.4861503Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-07-01T14:46:23.4893867Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-07-01T14:46:23.5116944Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-07-01T14:46:23.5137157Z http.https://github.com/.extraheader
+2025-07-01T14:46:23.5149202Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2025-07-01T14:46:23.5179272Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-07-01T14:46:23.5509760Z Cleaning up orphan processes

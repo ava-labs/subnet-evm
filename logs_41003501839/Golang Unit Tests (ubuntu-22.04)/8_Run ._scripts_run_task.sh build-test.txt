@@ -1,0 +1,120 @@
+﻿2025-07-01T14:46:00.2988174Z ##[group]Run ./scripts/run_task.sh build-test
+2025-07-01T14:46:00.2988548Z [36;1m./scripts/run_task.sh build-test[0m
+2025-07-01T14:46:00.3044423Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2025-07-01T14:46:00.3044751Z env:
+2025-07-01T14:46:00.3044914Z   TIMEOUT: 
+2025-07-01T14:46:00.3045099Z ##[endgroup]
+2025-07-01T14:46:00.8597408Z task: [build-test] ./scripts/build_test.sh
+2025-07-01T14:46:00.8820579Z Using branch: c46a4f1
+2025-07-01T14:46:25.2419561Z ok  	github.com/ava-labs/subnet-evm/accounts/abi	1.264s	coverage: 89.4% of statements
+2025-07-01T14:47:42.6772568Z ok  	github.com/ava-labs/subnet-evm/accounts/abi/bind	33.349s	coverage: 62.7% of statements
+2025-07-01T14:47:43.3933460Z 	github.com/ava-labs/subnet-evm/accounts/abi/bind/backends		coverage: 0.0% of statements
+2025-07-01T14:47:48.1912897Z 	github.com/ava-labs/subnet-evm/cmd/evm/internal/compiler		coverage: 0.0% of statements
+2025-07-01T14:47:48.1940017Z 	github.com/ava-labs/subnet-evm/cmd/evm/internal/t8ntool		coverage: 0.0% of statements
+2025-07-01T14:47:48.4753753Z 	github.com/ava-labs/subnet-evm/cmd/precompilegen		coverage: 0.0% of statements
+2025-07-01T14:47:50.5925382Z 	github.com/ava-labs/subnet-evm/cmd/simulator/key		coverage: 0.0% of statements
+2025-07-01T14:47:50.5941484Z 	github.com/ava-labs/subnet-evm/cmd/simulator/config		coverage: 0.0% of statements
+2025-07-01T14:47:51.6831458Z 	github.com/ava-labs/subnet-evm/cmd/simulator/load		coverage: 0.0% of statements
+2025-07-01T14:47:51.7332875Z 	github.com/ava-labs/subnet-evm/cmd/simulator/main		coverage: 0.0% of statements
+2025-07-01T14:47:51.7365012Z 	github.com/ava-labs/subnet-evm/cmd/simulator/metrics		coverage: 0.0% of statements
+2025-07-01T14:47:51.7398634Z 	github.com/ava-labs/subnet-evm/cmd/utils		coverage: 0.0% of statements
+2025-07-01T14:47:51.7399589Z 	github.com/ava-labs/subnet-evm/cmd/simulator/txs		coverage: 0.0% of statements
+2025-07-01T14:47:52.4449550Z ?   	github.com/ava-labs/subnet-evm/consensus	[no test files]
+2025-07-01T14:47:52.6289672Z ok  	github.com/ava-labs/subnet-evm/accounts/abi/bind/precompilebind	9.233s	coverage: 87.6% of statements
+2025-07-01T14:47:52.6291972Z ok  	github.com/ava-labs/subnet-evm/cmd/abigen	1.070s	coverage: 24.5% of statements
+2025-07-01T14:47:53.6299771Z ?   	github.com/ava-labs/subnet-evm/constants	[no test files]
+2025-07-01T14:47:57.2730901Z 	github.com/ava-labs/subnet-evm/core/extstate		coverage: 0.0% of statements
+2025-07-01T14:48:00.2429948Z 	github.com/ava-labs/subnet-evm/core/state/pruner		coverage: 0.0% of statements
+2025-07-01T14:48:03.5220366Z 	github.com/ava-labs/subnet-evm/core/txpool		coverage: 0.0% of statements
+2025-07-01T14:48:09.7995627Z ok  	github.com/ava-labs/subnet-evm/cmd/evm	21.608s	coverage: 3.9% of statements
+2025-07-01T14:48:09.7996634Z ok  	github.com/ava-labs/subnet-evm/commontype	1.024s	coverage: 64.3% of statements
+2025-07-01T14:48:09.7997717Z ok  	github.com/ava-labs/subnet-evm/consensus/dummy	1.058s	coverage: 10.8% of statements
+2025-07-01T14:48:09.7998766Z ok  	github.com/ava-labs/subnet-evm/consensus/misc/eip4844	1.036s	coverage: 42.9% of statements
+2025-07-01T14:48:16.2965322Z 	github.com/ava-labs/subnet-evm/eth/ethconfig		coverage: 0.0% of statements
+2025-07-01T14:48:19.0451509Z 	github.com/ava-labs/subnet-evm/eth/gasestimator		coverage: 0.0% of statements
+2025-07-01T14:48:43.4352815Z 	github.com/ava-labs/subnet-evm/ethclient/subnetevmclient		coverage: 0.0% of statements
+2025-07-01T14:49:05.1268962Z ?   	github.com/ava-labs/subnet-evm/interfaces	[no test files]
+2025-07-01T14:49:05.1288514Z 	github.com/ava-labs/subnet-evm/internal/cmdtest		coverage: 0.0% of statements
+2025-07-01T14:49:05.1293046Z 	github.com/ava-labs/subnet-evm/internal/blocktest		coverage: 0.0% of statements
+2025-07-01T14:49:05.1298072Z 	github.com/ava-labs/subnet-evm/examples/sign-uptime-message		coverage: 0.0% of statements
+2025-07-01T14:49:05.1382802Z 	github.com/ava-labs/subnet-evm/internal/debug		coverage: 0.0% of statements
+2025-07-01T14:49:10.4111134Z 	github.com/ava-labs/subnet-evm/internal/reexec		coverage: 0.0% of statements
+2025-07-01T14:49:10.4273019Z 	github.com/ava-labs/subnet-evm/internal/shutdowncheck		coverage: 0.0% of statements
+2025-07-01T14:49:10.5240658Z 	github.com/ava-labs/subnet-evm/internal/testutils		coverage: 0.0% of statements
+2025-07-01T14:49:10.5344665Z 	github.com/ava-labs/subnet-evm/internal/version		coverage: 0.0% of statements
+2025-07-01T14:49:10.5452773Z 	github.com/ava-labs/subnet-evm/log		coverage: 0.0% of statements
+2025-07-01T14:49:14.4219944Z 	github.com/ava-labs/subnet-evm/node		coverage: 0.0% of statements
+2025-07-01T14:49:20.1645183Z ?   	github.com/ava-labs/subnet-evm/peer/peertest	[no test files]
+2025-07-01T14:49:20.1712701Z 	github.com/ava-labs/subnet-evm/peer/stats		coverage: 0.0% of statements
+2025-07-01T14:49:28.7692598Z 	github.com/ava-labs/subnet-evm/plugin		coverage: 0.0% of statements
+2025-07-01T14:49:43.8193104Z 	github.com/ava-labs/subnet-evm/plugin/evm/client		coverage: 0.0% of statements
+2025-07-01T14:49:45.6003943Z 	github.com/ava-labs/subnet-evm/plugin/evm/customlogs		coverage: 0.0% of statements
+2025-07-01T14:49:50.3979753Z 	github.com/ava-labs/subnet-evm/plugin/evm/database		coverage: 0.0% of statements
+2025-07-01T14:49:55.9354417Z ?   	github.com/ava-labs/subnet-evm/plugin/evm/upgrade/legacy	[no test files]
+2025-07-01T14:49:58.5604553Z ?   	github.com/ava-labs/subnet-evm/plugin/evm/validators/interfaces	[no test files]
+2025-07-01T14:50:01.8200499Z ?   	github.com/ava-labs/subnet-evm/plugin/evm/validators/uptime/interfaces	[no test files]
+2025-07-01T14:50:01.8211795Z ?   	github.com/ava-labs/subnet-evm/plugin/evm/vmerrors	[no test files]
+2025-07-01T14:50:01.8253688Z 	github.com/ava-labs/subnet-evm/plugin/runner		coverage: 0.0% of statements
+2025-07-01T14:50:25.2791214Z ?   	github.com/ava-labs/subnet-evm/precompile/registry	[no test files]
+2025-07-01T14:50:25.2867503Z 	github.com/ava-labs/subnet-evm/precompile/testutils		coverage: 0.0% of statements
+2025-07-01T14:50:35.5423090Z 	github.com/ava-labs/subnet-evm/signer/core/apitypes		coverage: 0.0% of statements
+2025-07-01T14:50:35.5511586Z 	github.com/ava-labs/subnet-evm/stateupgrade		coverage: 0.0% of statements
+2025-07-01T14:50:59.8313758Z 	github.com/ava-labs/subnet-evm/sync/client/stats		coverage: 0.0% of statements
+2025-07-01T14:51:21.8984390Z 	github.com/ava-labs/subnet-evm/sync/handlers/stats		coverage: 0.0% of statements
+2025-07-01T14:51:36.3664122Z 	github.com/ava-labs/subnet-evm/sync/syncutils		coverage: 0.0% of statements
+2025-07-01T14:51:36.3740138Z 	github.com/ava-labs/subnet-evm/triedb/hashdb		coverage: 0.0% of statements
+2025-07-01T14:52:17.4160539Z 	github.com/ava-labs/subnet-evm/warp/messages		coverage: 0.0% of statements
+2025-07-01T14:52:19.6660806Z 	github.com/ava-labs/subnet-evm/warp/warptest		coverage: 0.0% of statements
+2025-07-01T14:52:52.3803975Z ok  	github.com/ava-labs/subnet-evm/core	295.101s	coverage: 72.0% of statements
+2025-07-01T14:52:52.3805879Z ok  	github.com/ava-labs/subnet-evm/core/bloombits	6.247s	coverage: 95.6% of statements
+2025-07-01T14:52:52.3808017Z ok  	github.com/ava-labs/subnet-evm/core/state	1.077s	coverage: 33.3% of statements
+2025-07-01T14:52:52.3809099Z ok  	github.com/ava-labs/subnet-evm/core/state/snapshot	13.148s	coverage: 69.8% of statements
+2025-07-01T14:52:52.3810033Z ok  	github.com/ava-labs/subnet-evm/core/txpool/blobpool	3.379s	coverage: 55.7% of statements
+2025-07-01T14:52:52.3811020Z ok  	github.com/ava-labs/subnet-evm/core/txpool/legacypool	32.339s	coverage: 81.0% of statements
+2025-07-01T14:52:52.3811983Z ok  	github.com/ava-labs/subnet-evm/core/vm/runtime	1.641s	coverage: 93.6% of statements
+2025-07-01T14:52:52.3812825Z ok  	github.com/ava-labs/subnet-evm/eth	1.182s	coverage: 4.0% of statements
+2025-07-01T14:52:52.3813525Z ok  	github.com/ava-labs/subnet-evm/eth/filters	4.809s	coverage: 62.1% of statements
+2025-07-01T14:52:52.3814128Z ok  	github.com/ava-labs/subnet-evm/eth/gasprice	22.452s	coverage: 81.9% of statements
+2025-07-01T14:52:52.3814667Z ok  	github.com/ava-labs/subnet-evm/eth/tracers	8.268s	coverage: 42.9% of statements
+2025-07-01T14:52:52.3815179Z ok  	github.com/ava-labs/subnet-evm/ethclient	1.152s	coverage: 0.0% of statements
+2025-07-01T14:52:52.3816003Z ok  	github.com/ava-labs/subnet-evm/ethclient/simulated	1.392s	coverage: 84.0% of statements
+2025-07-01T14:52:52.3816585Z ok  	github.com/ava-labs/subnet-evm/internal/ethapi	2.001s	coverage: 36.2% of statements
+2025-07-01T14:52:52.3817159Z ok  	github.com/ava-labs/subnet-evm/internal/flags	1.140s	coverage: 5.1% of statements
+2025-07-01T14:52:52.3818055Z ok  	github.com/ava-labs/subnet-evm/metrics/prometheus	1.089s	coverage: 100.0% of statements
+2025-07-01T14:52:52.3818952Z ok  	github.com/ava-labs/subnet-evm/miner	2.476s	coverage: 15.6% of statements
+2025-07-01T14:52:52.3819759Z ok  	github.com/ava-labs/subnet-evm/params	1.137s	coverage: 33.6% of statements
+2025-07-01T14:52:52.3820608Z ok  	github.com/ava-labs/subnet-evm/params/extras	1.126s	coverage: 67.0% of statements
+2025-07-01T14:52:52.3821439Z ok  	github.com/ava-labs/subnet-evm/peer	2.719s	coverage: 83.9% of statements
+2025-07-01T14:52:52.3822272Z ok  	github.com/ava-labs/subnet-evm/plugin/evm	141.496s	coverage: 66.0% of statements
+2025-07-01T14:52:52.3823187Z ok  	github.com/ava-labs/subnet-evm/plugin/evm/blockgascost	1.062s	coverage: 93.3% of statements
+2025-07-01T14:52:52.3824107Z ok  	github.com/ava-labs/subnet-evm/plugin/evm/config	1.050s	coverage: 11.5% of statements
+2025-07-01T14:52:52.3825068Z ok  	github.com/ava-labs/subnet-evm/plugin/evm/customrawdb	1.162s	coverage: 32.3% of statements
+2025-07-01T14:52:52.3826101Z ok  	github.com/ava-labs/subnet-evm/plugin/evm/customtypes	5.518s	coverage: 86.4% of statements
+2025-07-01T14:52:52.3827090Z ok  	github.com/ava-labs/subnet-evm/plugin/evm/header	1.079s	coverage: 90.8% of statements
+2025-07-01T14:52:52.3828175Z ok  	github.com/ava-labs/subnet-evm/plugin/evm/message	1.087s	coverage: 12.5% of statements
+2025-07-01T14:52:52.3829221Z ok  	github.com/ava-labs/subnet-evm/plugin/evm/upgrade/subnetevm	1.035s	coverage: 100.0% of statements
+2025-07-01T14:52:52.3830064Z ok  	github.com/ava-labs/subnet-evm/plugin/evm/validators	1.050s	coverage: 18.3% of statements
+2025-07-01T14:52:52.3830705Z ok  	github.com/ava-labs/subnet-evm/plugin/evm/validators/state	1.035s	coverage: 72.6% of statements
+2025-07-01T14:52:52.3831493Z ok  	github.com/ava-labs/subnet-evm/plugin/evm/validators/state/interfaces	1.042s	coverage: 0.0% of statements [no tests to run]
+2025-07-01T14:52:52.3832483Z ok  	github.com/ava-labs/subnet-evm/plugin/evm/validators/uptime	1.044s	coverage: 62.9% of statements
+2025-07-01T14:52:52.3833135Z ok  	github.com/ava-labs/subnet-evm/precompile/allowlist	1.191s	coverage: 88.2% of statements
+2025-07-01T14:52:52.3833738Z ok  	github.com/ava-labs/subnet-evm/precompile/contract	1.099s	coverage: 0.0% of statements
+2025-07-01T14:52:52.3834417Z ok  	github.com/ava-labs/subnet-evm/precompile/contracts/deployerallowlist	1.161s	coverage: 64.7% of statements
+2025-07-01T14:52:52.3835177Z ok  	github.com/ava-labs/subnet-evm/precompile/contracts/feemanager	1.295s	coverage: 87.3% of statements
+2025-07-01T14:52:52.3835898Z ok  	github.com/ava-labs/subnet-evm/precompile/contracts/nativeminter	1.242s	coverage: 87.4% of statements
+2025-07-01T14:52:52.3836634Z ok  	github.com/ava-labs/subnet-evm/precompile/contracts/rewardmanager	1.259s	coverage: 83.2% of statements
+2025-07-01T14:52:52.3837351Z ok  	github.com/ava-labs/subnet-evm/precompile/contracts/txallowlist	1.202s	coverage: 64.7% of statements
+2025-07-01T14:52:52.3838285Z ok  	github.com/ava-labs/subnet-evm/precompile/contracts/warp	15.935s	coverage: 76.3% of statements
+2025-07-01T14:52:52.3838934Z ok  	github.com/ava-labs/subnet-evm/precompile/modules	1.102s	coverage: 46.9% of statements
+2025-07-01T14:52:52.3839648Z ok  	github.com/ava-labs/subnet-evm/precompile/precompileconfig	1.050s	coverage: 0.0% of statements [no tests to run]
+2025-07-01T14:52:52.3840306Z ok  	github.com/ava-labs/subnet-evm/predicate	1.142s	coverage: 58.5% of statements
+2025-07-01T14:52:52.3840814Z ok  	github.com/ava-labs/subnet-evm/rpc	64.757s	coverage: 83.4% of statements
+2025-07-01T14:52:52.3841324Z ok  	github.com/ava-labs/subnet-evm/sync/client	20.773s	coverage: 53.8% of statements
+2025-07-01T14:52:52.3842015Z ok  	github.com/ava-labs/subnet-evm/sync/handlers	17.340s	coverage: 83.6% of statements
+2025-07-01T14:53:09.6050404Z ok  	github.com/ava-labs/subnet-evm/sync/statesync	103.785s	coverage: 79.1% of statements
+2025-07-01T14:53:09.6051164Z ok  	github.com/ava-labs/subnet-evm/triedb/pathdb	51.636s	coverage: 75.2% of statements
+2025-07-01T14:53:09.6051758Z ok  	github.com/ava-labs/subnet-evm/utils	1.088s	coverage: 18.6% of statements
+2025-07-01T14:53:09.6052287Z ok  	github.com/ava-labs/subnet-evm/warp	1.092s	coverage: 44.1% of statements
+2025-07-01T14:53:09.6052878Z ok  	github.com/ava-labs/subnet-evm/warp/aggregator	1.112s	coverage: 57.0% of statements
+2025-07-01T14:53:09.6053488Z ok  	github.com/ava-labs/subnet-evm/warp/handlers	1.058s	coverage: 84.0% of statements
+2025-07-01T14:53:09.6054223Z ok  	github.com/ava-labs/subnet-evm/warp/validators	1.030s	coverage: 100.0% of statements

@@ -1,0 +1,8 @@
+﻿2025-07-01T14:47:56.4705885Z ##[group]Run ./scripts/run_task.sh update_avalanchego_version
+2025-07-01T14:47:56.4706537Z [36;1m./scripts/run_task.sh update_avalanchego_version[0m
+2025-07-01T14:47:56.4706862Z [36;1mgit diff --exit-code[0m
+2025-07-01T14:47:56.4763617Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2025-07-01T14:47:56.4763978Z ##[endgroup]
+2025-07-01T14:47:56.9748466Z task: [update_avalanchego_version] ./scripts/update_avalanchego_version.sh
+2025-07-01T14:47:57.0010654Z Using branch: c46a4f1
+2025-07-01T14:47:57.1985230Z Ensuring AvalancheGo version 092cf182dd92b66a8ab882b657d3ae52b174c913 for ava-labs/avalanchego/.github/actions/run-monitored-tmpnet-cmd custom action in .github/workflows/tests.yml 

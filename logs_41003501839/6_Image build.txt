@@ -1,0 +1,1512 @@
+﻿2025-07-01T14:43:50.1056313Z Current runner version: '2.325.0'
+2025-07-01T14:43:50.1080560Z ##[group]Runner Image Provisioner
+2025-07-01T14:43:50.1081975Z Hosted Compute Agent
+2025-07-01T14:43:50.1082693Z Version: 20250620.352
+2025-07-01T14:43:50.1083310Z Commit: f262f3aba23b10ea191b2a62bdee1ca4c3d344da
+2025-07-01T14:43:50.1083950Z Build Date: 2025-06-20T19:27:17Z
+2025-07-01T14:43:50.1084648Z ##[endgroup]
+2025-07-01T14:43:50.1085174Z ##[group]Operating System
+2025-07-01T14:43:50.1085750Z Ubuntu
+2025-07-01T14:43:50.1086293Z 24.04.2
+2025-07-01T14:43:50.1086757Z LTS
+2025-07-01T14:43:50.1087166Z ##[endgroup]
+2025-07-01T14:43:50.1087736Z ##[group]Runner Image
+2025-07-01T14:43:50.1088303Z Image: ubuntu-24.04
+2025-07-01T14:43:50.1088769Z Version: 20250622.1.0
+2025-07-01T14:43:50.1089842Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20250622.1/images/ubuntu/Ubuntu2404-Readme.md
+2025-07-01T14:43:50.1091636Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20250622.1
+2025-07-01T14:43:50.1092698Z ##[endgroup]
+2025-07-01T14:43:50.1095114Z ##[group]GITHUB_TOKEN Permissions
+2025-07-01T14:43:50.1097383Z Actions: write
+2025-07-01T14:43:50.1097959Z Attestations: write
+2025-07-01T14:43:50.1098458Z Checks: write
+2025-07-01T14:43:50.1099038Z Contents: write
+2025-07-01T14:43:50.1099567Z Deployments: write
+2025-07-01T14:43:50.1100034Z Discussions: write
+2025-07-01T14:43:50.1100797Z Issues: write
+2025-07-01T14:43:50.1101300Z Metadata: read
+2025-07-01T14:43:50.1101799Z Models: read
+2025-07-01T14:43:50.1102231Z Packages: write
+2025-07-01T14:43:50.1102851Z Pages: write
+2025-07-01T14:43:50.1103309Z PullRequests: write
+2025-07-01T14:43:50.1104214Z RepositoryProjects: write
+2025-07-01T14:43:50.1104890Z SecurityEvents: write
+2025-07-01T14:43:50.1105476Z Statuses: write
+2025-07-01T14:43:50.1105952Z ##[endgroup]
+2025-07-01T14:43:50.1108008Z Secret source: Actions
+2025-07-01T14:43:50.1108717Z Prepare workflow directory
+2025-07-01T14:43:50.1444420Z Prepare all required actions
+2025-07-01T14:43:50.1482704Z Getting action download info
+2025-07-01T14:43:50.4586651Z ##[group]Download immutable action package 'actions/checkout@v4'
+2025-07-01T14:43:50.4587600Z Version: 4.2.2
+2025-07-01T14:43:50.4588764Z Digest: sha256:ccb2698953eaebd21c7bf6268a94f9c26518a7e38e27e0b83c1fe1ad049819b1
+2025-07-01T14:43:50.4589910Z Source commit SHA: 11bd71901bbe5b1630ceea73d27597364c9af683
+2025-07-01T14:43:50.4590897Z ##[endgroup]
+2025-07-01T14:43:50.6361397Z Complete job name: Image build
+2025-07-01T14:43:50.7018395Z ##[group]Run actions/checkout@v4
+2025-07-01T14:43:50.7019213Z with:
+2025-07-01T14:43:50.7019605Z   repository: ava-labs/subnet-evm
+2025-07-01T14:43:50.7020382Z   token: ***
+2025-07-01T14:43:50.7020766Z   ssh-strict: true
+2025-07-01T14:43:50.7021150Z   ssh-user: git
+2025-07-01T14:43:50.7021535Z   persist-credentials: true
+2025-07-01T14:43:50.7021965Z   clean: true
+2025-07-01T14:43:50.7022346Z   sparse-checkout-cone-mode: true
+2025-07-01T14:43:50.7022804Z   fetch-depth: 1
+2025-07-01T14:43:50.7023174Z   fetch-tags: false
+2025-07-01T14:43:50.7023575Z   show-progress: true
+2025-07-01T14:43:50.7023964Z   lfs: false
+2025-07-01T14:43:50.7024318Z   submodules: false
+2025-07-01T14:43:50.7024706Z   set-safe-directory: true
+2025-07-01T14:43:50.7025355Z ##[endgroup]
+2025-07-01T14:43:50.8076208Z Syncing repository: ava-labs/subnet-evm
+2025-07-01T14:43:50.8077827Z ##[group]Getting Git version info
+2025-07-01T14:43:50.8078514Z Working directory is '/home/runner/work/subnet-evm/subnet-evm'
+2025-07-01T14:43:50.8079490Z [command]/usr/bin/git version
+2025-07-01T14:43:50.8170501Z git version 2.49.0
+2025-07-01T14:43:50.8196333Z ##[endgroup]
+2025-07-01T14:43:50.8210988Z Temporarily overriding HOME='/home/runner/work/_temp/f9149620-a10d-45dc-96e7-b47523afeb72' before making global git config changes
+2025-07-01T14:43:50.8213319Z Adding repository directory to the temporary git global config as a safe directory
+2025-07-01T14:43:50.8216158Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/subnet-evm/subnet-evm
+2025-07-01T14:43:50.8257826Z Deleting the contents of '/home/runner/work/subnet-evm/subnet-evm'
+2025-07-01T14:43:50.8261746Z ##[group]Initializing the repository
+2025-07-01T14:43:50.8266305Z [command]/usr/bin/git init /home/runner/work/subnet-evm/subnet-evm
+2025-07-01T14:43:50.8360636Z hint: Using 'master' as the name for the initial branch. This default branch name
+2025-07-01T14:43:50.8361655Z hint: is subject to change. To configure the initial branch name to use in all
+2025-07-01T14:43:50.8362873Z hint: of your new repositories, which will suppress this warning, call:
+2025-07-01T14:43:50.8363650Z hint:
+2025-07-01T14:43:50.8364109Z hint: 	git config --global init.defaultBranch <name>
+2025-07-01T14:43:50.8364658Z hint:
+2025-07-01T14:43:50.8365174Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2025-07-01T14:43:50.8366230Z hint: 'development'. The just-created branch can be renamed via this command:
+2025-07-01T14:43:50.8367427Z hint:
+2025-07-01T14:43:50.8368071Z hint: 	git branch -m <name>
+2025-07-01T14:43:50.8369812Z Initialized empty Git repository in /home/runner/work/subnet-evm/subnet-evm/.git/
+2025-07-01T14:43:50.8381306Z [command]/usr/bin/git remote add origin https://github.com/ava-labs/subnet-evm
+2025-07-01T14:43:50.8418385Z ##[endgroup]
+2025-07-01T14:43:50.8419459Z ##[group]Disabling automatic garbage collection
+2025-07-01T14:43:50.8422147Z [command]/usr/bin/git config --local gc.auto 0
+2025-07-01T14:43:50.8449495Z ##[endgroup]
+2025-07-01T14:43:50.8450730Z ##[group]Setting up auth
+2025-07-01T14:43:50.8456126Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-07-01T14:43:50.8485252Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-07-01T14:43:50.8861655Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-07-01T14:43:50.8889368Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-07-01T14:43:50.9107917Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2025-07-01T14:43:50.9143712Z ##[endgroup]
+2025-07-01T14:43:50.9144906Z ##[group]Fetching the repository
+2025-07-01T14:43:50.9153988Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +c46a4f11ecd55a5ab361920393adf5859e0dc097:refs/remotes/pull/1610/merge
+2025-07-01T14:43:51.8695926Z From https://github.com/ava-labs/subnet-evm
+2025-07-01T14:43:51.8697354Z  * [new ref]         c46a4f11ecd55a5ab361920393adf5859e0dc097 -> pull/1610/merge
+2025-07-01T14:43:51.8733140Z ##[endgroup]
+2025-07-01T14:43:51.8734493Z ##[group]Determining the checkout info
+2025-07-01T14:43:51.8735870Z ##[endgroup]
+2025-07-01T14:43:51.8739608Z [command]/usr/bin/git sparse-checkout disable
+2025-07-01T14:43:51.8782377Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2025-07-01T14:43:51.8809015Z ##[group]Checking out the ref
+2025-07-01T14:43:51.8812318Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/1610/merge
+2025-07-01T14:43:51.9598208Z Note: switching to 'refs/remotes/pull/1610/merge'.
+2025-07-01T14:43:51.9599245Z 
+2025-07-01T14:43:51.9600058Z You are in 'detached HEAD' state. You can look around, make experimental
+2025-07-01T14:43:51.9602011Z changes and commit them, and you can discard any commits you make in this
+2025-07-01T14:43:51.9604614Z state without impacting any branches by switching back to a branch.
+2025-07-01T14:43:51.9606216Z 
+2025-07-01T14:43:51.9607238Z If you want to create a new branch to retain commits you create, you may
+2025-07-01T14:43:51.9609488Z do so (now or later) by using -c with the switch command. Example:
+2025-07-01T14:43:51.9611005Z 
+2025-07-01T14:43:51.9611583Z   git switch -c <new-branch-name>
+2025-07-01T14:43:51.9612892Z 
+2025-07-01T14:43:51.9613471Z Or undo this operation with:
+2025-07-01T14:43:51.9614411Z 
+2025-07-01T14:43:51.9614936Z   git switch -
+2025-07-01T14:43:51.9615628Z 
+2025-07-01T14:43:51.9616727Z Turn off this advice by setting config variable advice.detachedHead to false
+2025-07-01T14:43:51.9618378Z 
+2025-07-01T14:43:51.9620470Z HEAD is now at c46a4f1 Merge a1ed580b94027b41ba19c24c1ea7f04bfdb27307 into 7abb4c64d7a8a26513a93cd55d800f61e867ffe3
+2025-07-01T14:43:51.9624945Z ##[endgroup]
+2025-07-01T14:43:51.9650056Z [command]/usr/bin/git log -1 --format=%H
+2025-07-01T14:43:51.9672737Z c46a4f11ecd55a5ab361920393adf5859e0dc097
+2025-07-01T14:43:51.9905730Z ##[group]Run sudo apt update
+2025-07-01T14:43:51.9906912Z [36;1msudo apt update[0m
+2025-07-01T14:43:51.9908181Z [36;1msudo apt -y install qemu-system qemu-user-static[0m
+2025-07-01T14:43:52.0013871Z shell: /usr/bin/bash -e {0}
+2025-07-01T14:43:52.0014972Z ##[endgroup]
+2025-07-01T14:43:52.0232697Z 
+2025-07-01T14:43:52.0233880Z WARNING: apt does not have a stable CLI interface. Use with caution in scripts.
+2025-07-01T14:43:52.0235464Z 
+2025-07-01T14:43:52.0929819Z Get:1 file:/etc/apt/apt-mirrors.txt Mirrorlist [144 B]
+2025-07-01T14:43:52.1389106Z Hit:2 http://azure.archive.ubuntu.com/ubuntu noble InRelease
+2025-07-01T14:43:52.1398764Z Get:6 https://packages.microsoft.com/repos/azure-cli noble InRelease [3564 B]
+2025-07-01T14:43:52.1409042Z Get:3 http://azure.archive.ubuntu.com/ubuntu noble-updates InRelease [126 kB]
+2025-07-01T14:43:52.1455944Z Get:4 http://azure.archive.ubuntu.com/ubuntu noble-backports InRelease [126 kB]
+2025-07-01T14:43:52.1488442Z Get:5 http://azure.archive.ubuntu.com/ubuntu noble-security InRelease [126 kB]
+2025-07-01T14:43:52.3522759Z Get:7 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 Packages [1207 kB]
+2025-07-01T14:43:52.3667728Z Get:8 http://azure.archive.ubuntu.com/ubuntu noble-updates/main Translation-en [250 kB]
+2025-07-01T14:43:52.3699160Z Get:9 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 Components [161 kB]
+2025-07-01T14:43:52.3752073Z Get:10 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 Packages [1098 kB]
+2025-07-01T14:43:52.3789902Z Get:11 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe Translation-en [279 kB]
+2025-07-01T14:43:52.3821964Z Get:12 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 Components [377 kB]
+2025-07-01T14:43:52.3874578Z Get:13 http://azure.archive.ubuntu.com/ubuntu noble-updates/restricted amd64 Packages [1367 kB]
+2025-07-01T14:43:52.3976132Z Get:14 http://azure.archive.ubuntu.com/ubuntu noble-updates/restricted Translation-en [294 kB]
+2025-07-01T14:43:52.4007376Z Get:15 http://azure.archive.ubuntu.com/ubuntu noble-updates/restricted amd64 Components [212 B]
+2025-07-01T14:43:52.4024298Z Get:16 http://azure.archive.ubuntu.com/ubuntu noble-updates/multiverse amd64 Packages [22.1 kB]
+2025-07-01T14:43:52.4472382Z Get:17 http://azure.archive.ubuntu.com/ubuntu noble-updates/multiverse Translation-en [4972 B]
+2025-07-01T14:43:52.4481181Z Get:18 http://azure.archive.ubuntu.com/ubuntu noble-updates/multiverse amd64 Components [940 B]
+2025-07-01T14:43:52.4496733Z Get:19 http://azure.archive.ubuntu.com/ubuntu noble-backports/main amd64 Components [7068 B]
+2025-07-01T14:43:52.4508621Z Get:20 http://azure.archive.ubuntu.com/ubuntu noble-backports/universe amd64 Components [16.4 kB]
+2025-07-01T14:43:52.4516993Z Get:21 http://azure.archive.ubuntu.com/ubuntu noble-backports/restricted amd64 Components [212 B]
+2025-07-01T14:43:52.4530700Z Get:22 http://azure.archive.ubuntu.com/ubuntu noble-backports/multiverse amd64 Components [212 B]
+2025-07-01T14:43:52.4779578Z Get:23 http://azure.archive.ubuntu.com/ubuntu noble-security/main amd64 Packages [920 kB]
+2025-07-01T14:43:52.4798673Z Get:33 https://packages.microsoft.com/ubuntu/24.04/prod noble InRelease [3600 B]
+2025-07-01T14:43:52.4848688Z Get:24 http://azure.archive.ubuntu.com/ubuntu noble-security/main Translation-en [169 kB]
+2025-07-01T14:43:52.4873455Z Get:25 http://azure.archive.ubuntu.com/ubuntu noble-security/main amd64 Components [21.5 kB]
+2025-07-01T14:43:52.4893525Z Get:26 http://azure.archive.ubuntu.com/ubuntu noble-security/universe amd64 Packages [863 kB]
+2025-07-01T14:43:52.4946054Z Get:34 https://packages.microsoft.com/repos/azure-cli noble/main amd64 Packages [1437 B]
+2025-07-01T14:43:52.4960565Z Get:27 http://azure.archive.ubuntu.com/ubuntu noble-security/universe Translation-en [189 kB]
+2025-07-01T14:43:52.5043050Z Get:28 http://azure.archive.ubuntu.com/ubuntu noble-security/universe amd64 Components [52.2 kB]
+2025-07-01T14:43:52.5056109Z Get:29 http://azure.archive.ubuntu.com/ubuntu noble-security/restricted amd64 Packages [1235 kB]
+2025-07-01T14:43:52.5143870Z Get:30 http://azure.archive.ubuntu.com/ubuntu noble-security/restricted Translation-en [263 kB]
+2025-07-01T14:43:52.5428446Z Get:35 https://packages.microsoft.com/ubuntu/24.04/prod noble/main amd64 Packages [37.4 kB]
+2025-07-01T14:43:52.5487683Z Get:36 https://packages.microsoft.com/ubuntu/24.04/prod noble/main arm64 Packages [24.7 kB]
+2025-07-01T14:43:52.5516405Z Get:37 https://packages.microsoft.com/ubuntu/24.04/prod noble/main armhf Packages [8989 B]
+2025-07-01T14:43:52.5588155Z Get:31 http://azure.archive.ubuntu.com/ubuntu noble-security/restricted amd64 Components [212 B]
+2025-07-01T14:43:52.5599412Z Get:32 http://azure.archive.ubuntu.com/ubuntu noble-security/multiverse amd64 Components [208 B]
+2025-07-01T14:43:59.1006906Z Fetched 9254 kB in 1s (7591 kB/s)
+2025-07-01T14:43:59.7628446Z Reading package lists...
+2025-07-01T14:43:59.9122419Z Building dependency tree...
+2025-07-01T14:43:59.9128496Z Reading state information...
+2025-07-01T14:43:59.9264815Z 45 packages can be upgraded. Run 'apt list --upgradable' to see them.
+2025-07-01T14:43:59.9379727Z 
+2025-07-01T14:43:59.9380364Z WARNING: apt does not have a stable CLI interface. Use with caution in scripts.
+2025-07-01T14:43:59.9380957Z 
+2025-07-01T14:43:59.9509189Z Reading package lists...
+2025-07-01T14:44:00.1102578Z Building dependency tree...
+2025-07-01T14:44:00.1110997Z Reading state information...
+2025-07-01T14:44:00.2576536Z The following additional packages will be installed:
+2025-07-01T14:44:00.2577653Z   cpu-checker glib-networking glib-networking-common glib-networking-services
+2025-07-01T14:44:00.2578527Z   gsettings-desktop-schemas gstreamer1.0-plugins-base
+2025-07-01T14:44:00.2580563Z   gstreamer1.0-plugins-good gstreamer1.0-x ipxe-qemu
+2025-07-01T14:44:00.2581483Z   ipxe-qemu-256k-compat-efi-roms libaa1 libasyncns0 libavc1394-0
+2025-07-01T14:44:00.2582336Z   libboost-iostreams1.83.0 libboost-thread1.83.0 libbrlapi0.8 libcaca0
+2025-07-01T14:44:00.2583260Z   libcacard0 libcdparanoia0 libdaxctl1 libdecor-0-0 libdecor-0-plugin-1-gtk
+2025-07-01T14:44:00.2584108Z   libdv4t64 libfdt1 libflac12t64 libgstreamer-plugins-base1.0-0
+2025-07-01T14:44:00.2584956Z   libgstreamer-plugins-good1.0-0 libiec61883-0 libiscsi7 libjack-jackd2-0
+2025-07-01T14:44:00.2585800Z   libmp3lame0 libmpg123-0t64 libndctl6 libnfs14 libopus0 liborc-0.4-0t64
+2025-07-01T14:44:00.2586648Z   libpcsclite1 libpipewire-0.3-0t64 libpipewire-0.3-common libpmem1
+2025-07-01T14:44:00.2587539Z   libpmemobj1 libproxy1v5 libpulse0 librados2 libraw1394-11 librbd1
+2025-07-01T14:44:00.2588407Z   librdmacm1t64 libsamplerate0 libsdl2-2.0-0 libshout3 libsndfile1
+2025-07-01T14:44:00.2589156Z   libsoup-3.0-0 libsoup-3.0-common libspa-0.2-modules libspeex1
+2025-07-01T14:44:00.2589966Z   libspice-server1 libtag1v5 libtag1v5-vanilla libtheora0 libtwolame0
+2025-07-01T14:44:00.2590934Z   liburing2 libusbredirparser1t64 libv4l-0t64 libv4lconvert0t64
+2025-07-01T14:44:00.2591766Z   libvirglrenderer1 libvisual-0.4-0 libvorbisenc2 libvpx9 libvte-2.91-0
+2025-07-01T14:44:00.2592602Z   libvte-2.91-common libwavpack1 libwebrtc-audio-processing1 libxv1 msr-tools
+2025-07-01T14:44:00.2593525Z   ovmf qemu-block-extra qemu-efi-aarch64 qemu-efi-arm qemu-system-arm
+2025-07-01T14:44:00.2597689Z   qemu-system-common qemu-system-data qemu-system-gui qemu-system-mips
+2025-07-01T14:44:00.2598540Z   qemu-system-misc qemu-system-modules-opengl qemu-system-modules-spice
+2025-07-01T14:44:00.2599940Z   qemu-system-ppc qemu-system-s390x qemu-system-sparc qemu-system-x86
+2025-07-01T14:44:00.2600652Z   qemu-utils seabios session-migration
+2025-07-01T14:44:00.2600944Z Suggested packages:
+2025-07-01T14:44:00.2601327Z   gvfs libdv-bin oss-compat libvisual-0.4-plugins jackd2 opus-tools pcscd
+2025-07-01T14:44:00.2601790Z   pipewire pulseaudio libraw1394-doc speex gstreamer1.0-libav
+2025-07-01T14:44:00.2602164Z   gstreamer1.0-plugins-ugly samba vde2
+2025-07-01T14:44:00.3211715Z The following NEW packages will be installed:
+2025-07-01T14:44:00.3213546Z   cpu-checker glib-networking glib-networking-common glib-networking-services
+2025-07-01T14:44:00.3214806Z   gsettings-desktop-schemas gstreamer1.0-plugins-base
+2025-07-01T14:44:00.3215790Z   gstreamer1.0-plugins-good gstreamer1.0-x ipxe-qemu
+2025-07-01T14:44:00.3216845Z   ipxe-qemu-256k-compat-efi-roms libaa1 libasyncns0 libavc1394-0
+2025-07-01T14:44:00.3218072Z   libboost-iostreams1.83.0 libboost-thread1.83.0 libbrlapi0.8 libcaca0
+2025-07-01T14:44:00.3219455Z   libcacard0 libcdparanoia0 libdaxctl1 libdecor-0-0 libdecor-0-plugin-1-gtk
+2025-07-01T14:44:00.3220960Z   libdv4t64 libfdt1 libflac12t64 libgstreamer-plugins-base1.0-0
+2025-07-01T14:44:00.3222226Z   libgstreamer-plugins-good1.0-0 libiec61883-0 libiscsi7 libjack-jackd2-0
+2025-07-01T14:44:00.3223572Z   libmp3lame0 libmpg123-0t64 libndctl6 libnfs14 libopus0 liborc-0.4-0t64
+2025-07-01T14:44:00.3224486Z   libpcsclite1 libpipewire-0.3-0t64 libpipewire-0.3-common libpmem1
+2025-07-01T14:44:00.3225044Z   libpmemobj1 libproxy1v5 libpulse0 librados2 libraw1394-11 librbd1
+2025-07-01T14:44:00.3225631Z   librdmacm1t64 libsamplerate0 libsdl2-2.0-0 libshout3 libsndfile1
+2025-07-01T14:44:00.3226149Z   libsoup-3.0-0 libsoup-3.0-common libspa-0.2-modules libspeex1
+2025-07-01T14:44:00.3226686Z   libspice-server1 libtag1v5 libtag1v5-vanilla libtheora0 libtwolame0
+2025-07-01T14:44:00.3227222Z   liburing2 libusbredirparser1t64 libv4l-0t64 libv4lconvert0t64
+2025-07-01T14:44:00.3227791Z   libvirglrenderer1 libvisual-0.4-0 libvorbisenc2 libvpx9 libvte-2.91-0
+2025-07-01T14:44:00.3228424Z   libvte-2.91-common libwavpack1 libwebrtc-audio-processing1 libxv1 msr-tools
+2025-07-01T14:44:00.3229002Z   ovmf qemu-block-extra qemu-efi-aarch64 qemu-efi-arm qemu-system
+2025-07-01T14:44:00.3229532Z   qemu-system-arm qemu-system-common qemu-system-data qemu-system-gui
+2025-07-01T14:44:00.3230064Z   qemu-system-mips qemu-system-misc qemu-system-modules-opengl
+2025-07-01T14:44:00.3230815Z   qemu-system-modules-spice qemu-system-ppc qemu-system-s390x
+2025-07-01T14:44:00.3231389Z   qemu-system-sparc qemu-system-x86 qemu-user-static qemu-utils seabios
+2025-07-01T14:44:00.3231827Z   session-migration
+2025-07-01T14:44:00.3384655Z 0 upgraded, 95 newly installed, 0 to remove and 45 not upgraded.
+2025-07-01T14:44:00.3663232Z Need to get 169 MB of archives.
+2025-07-01T14:44:00.3663932Z After this operation, 1217 MB of additional disk space will be used.
+2025-07-01T14:44:00.3664643Z Get:1 file:/etc/apt/apt-mirrors.txt Mirrorlist [144 B]
+2025-07-01T14:44:00.4184413Z Get:2 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 msr-tools amd64 1.3-5build1 [9610 B]
+2025-07-01T14:44:00.4525944Z Get:3 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 cpu-checker amd64 0.7-1.3build2 [6148 B]
+2025-07-01T14:44:00.4861488Z Get:4 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libproxy1v5 amd64 0.5.4-4build1 [26.5 kB]
+2025-07-01T14:44:00.5207883Z Get:5 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 glib-networking-common all 2.80.0-1build1 [6702 B]
+2025-07-01T14:44:00.5544314Z Get:6 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 glib-networking-services amd64 2.80.0-1build1 [12.8 kB]
+2025-07-01T14:44:00.5945244Z Get:7 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 session-migration amd64 0.3.9build1 [9034 B]
+2025-07-01T14:44:00.6285616Z Get:8 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 gsettings-desktop-schemas all 46.1-0ubuntu1 [35.6 kB]
+2025-07-01T14:44:00.6628592Z Get:9 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 glib-networking amd64 2.80.0-1build1 [64.1 kB]
+2025-07-01T14:44:00.6985053Z Get:10 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libcdparanoia0 amd64 3.10.2+debian-14build3 [48.5 kB]
+2025-07-01T14:44:00.7323459Z Get:11 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 liborc-0.4-0t64 amd64 1:0.4.38-1ubuntu0.1 [207 kB]
+2025-07-01T14:44:00.7684917Z Get:12 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libgstreamer-plugins-base1.0-0 amd64 1.24.2-1ubuntu0.2 [862 kB]
+2025-07-01T14:44:00.8413056Z Get:13 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libopus0 amd64 1.4-1build1 [208 kB]
+2025-07-01T14:44:00.8773982Z Get:14 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libtheora0 amd64 1.1.1+dfsg.1-16.1build3 [211 kB]
+2025-07-01T14:44:00.9166966Z Get:15 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libvisual-0.4-0 amd64 0.4.2-2build1 [115 kB]
+2025-07-01T14:44:00.9514312Z Get:16 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libvorbisenc2 amd64 1.3.7-1build3 [80.8 kB]
+2025-07-01T14:44:00.9864334Z Get:17 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 gstreamer1.0-plugins-base amd64 1.24.2-1ubuntu0.2 [721 kB]
+2025-07-01T14:44:01.0534741Z Get:18 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libaa1 amd64 1.4p5-51.1 [49.9 kB]
+2025-07-01T14:44:01.0874412Z Get:19 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libraw1394-11 amd64 2.1.2-2build3 [26.2 kB]
+2025-07-01T14:44:01.1649067Z Get:20 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libavc1394-0 amd64 0.5.4-5build3 [15.4 kB]
+2025-07-01T14:44:01.1989536Z Get:21 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libcaca0 amd64 0.99.beta20-4build2 [208 kB]
+2025-07-01T14:44:01.2341430Z Get:22 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libdv4t64 amd64 1.0.0-17.1build1 [63.2 kB]
+2025-07-01T14:44:01.2684085Z Get:23 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libflac12t64 amd64 1.4.3+ds-2.1ubuntu2 [197 kB]
+2025-07-01T14:44:01.3072589Z Get:24 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libgstreamer-plugins-good1.0-0 amd64 1.24.2-1ubuntu1.1 [32.9 kB]
+2025-07-01T14:44:01.3418003Z Get:25 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libiec61883-0 amd64 1.2.0-6build1 [24.5 kB]
+2025-07-01T14:44:01.3759697Z Get:26 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libmp3lame0 amd64 3.100-6build1 [142 kB]
+2025-07-01T14:44:01.4113240Z Get:27 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libmpg123-0t64 amd64 1.32.5-1ubuntu1.1 [169 kB]
+2025-07-01T14:44:01.4498037Z Get:28 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libasyncns0 amd64 0.8-6build4 [11.3 kB]
+2025-07-01T14:44:01.4834039Z Get:29 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libsndfile1 amd64 1.2.2-1ubuntu5.24.04.1 [209 kB]
+2025-07-01T14:44:01.5222471Z Get:30 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libpulse0 amd64 1:16.1+dfsg1-2ubuntu10.1 [292 kB]
+2025-07-01T14:44:01.5634283Z Get:31 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libspeex1 amd64 1.2.1-2ubuntu2.24.04.1 [59.6 kB]
+2025-07-01T14:44:01.5975478Z Get:32 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libshout3 amd64 2.4.6-1build2 [50.3 kB]
+2025-07-01T14:44:01.6316239Z Get:33 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libtag1v5-vanilla amd64 1.13.1-1build1 [326 kB]
+2025-07-01T14:44:01.6689496Z Get:34 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libtag1v5 amd64 1.13.1-1build1 [11.7 kB]
+2025-07-01T14:44:01.7026963Z Get:35 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libtwolame0 amd64 0.4.0-2build3 [52.3 kB]
+2025-07-01T14:44:01.7376180Z Get:36 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libv4lconvert0t64 amd64 1.26.1-4build3 [87.6 kB]
+2025-07-01T14:44:01.7721878Z Get:37 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libv4l-0t64 amd64 1.26.1-4build3 [46.9 kB]
+2025-07-01T14:44:01.8072563Z Get:38 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libvpx9 amd64 1.14.0-1ubuntu2.2 [1143 kB]
+2025-07-01T14:44:01.9483089Z Get:39 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libwavpack1 amd64 5.6.0-1build1 [84.6 kB]
+2025-07-01T14:44:01.9820790Z Get:40 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libsoup-3.0-common all 3.4.4-5ubuntu0.4 [11.1 kB]
+2025-07-01T14:44:02.0158811Z Get:41 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libsoup-3.0-0 amd64 3.4.4-5ubuntu0.4 [290 kB]
+2025-07-01T14:44:02.0518563Z Get:42 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 gstreamer1.0-plugins-good amd64 1.24.2-1ubuntu1.1 [2238 kB]
+2025-07-01T14:44:02.1427544Z Get:43 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libxv1 amd64 2:1.0.11-1.1build1 [10.7 kB]
+2025-07-01T14:44:02.1770978Z Get:44 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 gstreamer1.0-x amd64 1.24.2-1ubuntu0.2 [85.0 kB]
+2025-07-01T14:44:02.2131168Z Get:45 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 ipxe-qemu all 1.21.1+git-20220113.fbbdc3926-0ubuntu2 [1565 kB]
+2025-07-01T14:44:02.2874232Z Get:46 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 ipxe-qemu-256k-compat-efi-roms all 1.0.0+git-20150424.a25a16d-0ubuntu5 [548 kB]
+2025-07-01T14:44:02.3261329Z Get:47 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libboost-iostreams1.83.0 amd64 1.83.0-2.1ubuntu3.1 [259 kB]
+2025-07-01T14:44:02.3645157Z Get:48 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libboost-thread1.83.0 amd64 1.83.0-2.1ubuntu3.1 [276 kB]
+2025-07-01T14:44:02.4009331Z Get:49 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libbrlapi0.8 amd64 6.6-4ubuntu5 [31.4 kB]
+2025-07-01T14:44:02.4349521Z Get:50 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libpcsclite1 amd64 2.0.3-1build1 [21.4 kB]
+2025-07-01T14:44:02.4694097Z Get:51 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libcacard0 amd64 1:2.8.0-3build4 [36.5 kB]
+2025-07-01T14:44:02.5038340Z Get:52 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libdaxctl1 amd64 77-2ubuntu2 [21.4 kB]
+2025-07-01T14:44:02.5380625Z Get:53 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libdecor-0-0 amd64 0.2.2-1build2 [16.5 kB]
+2025-07-01T14:44:02.5725872Z Get:54 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libdecor-0-plugin-1-gtk amd64 0.2.2-1build2 [22.2 kB]
+2025-07-01T14:44:02.6094277Z Get:55 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 librdmacm1t64 amd64 50.0-2ubuntu0.2 [70.7 kB]
+2025-07-01T14:44:02.6454856Z Get:56 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libiscsi7 amd64 1.19.0-3build4 [68.7 kB]
+2025-07-01T14:44:02.7231172Z Get:57 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libsamplerate0 amd64 0.2.2-4build1 [1344 kB]
+2025-07-01T14:44:02.8234076Z Get:58 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libjack-jackd2-0 amd64 1.9.21~dfsg-3ubuntu3 [289 kB]
+2025-07-01T14:44:02.8663357Z Get:59 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libndctl6 amd64 77-2ubuntu2 [62.8 kB]
+2025-07-01T14:44:02.9013404Z Get:60 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libnfs14 amd64 5.0.2-1build1 [109 kB]
+2025-07-01T14:44:02.9374435Z Get:61 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libwebrtc-audio-processing1 amd64 0.3.1-0ubuntu6 [290 kB]
+2025-07-01T14:44:02.9772009Z Get:62 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libspa-0.2-modules amd64 1.0.5-1ubuntu3 [626 kB]
+2025-07-01T14:44:03.0495610Z Get:63 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libpipewire-0.3-0t64 amd64 1.0.5-1ubuntu3 [252 kB]
+2025-07-01T14:44:03.0878533Z Get:64 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libpipewire-0.3-common all 1.0.5-1ubuntu3 [18.8 kB]
+2025-07-01T14:44:03.1216548Z Get:65 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libpmem1 amd64 1.13.1-1.1ubuntu2 [84.8 kB]
+2025-07-01T14:44:03.1584158Z Get:66 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libpmemobj1 amd64 1.13.1-1.1ubuntu2 [116 kB]
+2025-07-01T14:44:03.1944276Z Get:67 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 librados2 amd64 19.2.0-0ubuntu0.24.04.2 [3972 kB]
+2025-07-01T14:44:03.3523581Z Get:68 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 librbd1 amd64 19.2.0-0ubuntu0.24.04.2 [3351 kB]
+2025-07-01T14:44:03.4896420Z Get:69 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libsdl2-2.0-0 amd64 2.30.0+dfsg-1ubuntu3.1 [686 kB]
+2025-07-01T14:44:03.5605679Z Get:70 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libspice-server1 amd64 0.15.1-1build2 [349 kB]
+2025-07-01T14:44:03.6072635Z Get:71 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 liburing2 amd64 2.5-1build1 [21.1 kB]
+2025-07-01T14:44:03.6472769Z Get:72 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libusbredirparser1t64 amd64 0.13.0-2.1build1 [16.5 kB]
+2025-07-01T14:44:03.6813243Z Get:73 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libvirglrenderer1 amd64 1.0.0-1ubuntu2 [226 kB]
+2025-07-01T14:44:03.7186823Z Get:74 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libvte-2.91-common amd64 0.76.0-1ubuntu0.1 [13.5 kB]
+2025-07-01T14:44:03.8025005Z Get:75 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libvte-2.91-0 amd64 0.76.0-1ubuntu0.1 [230 kB]
+2025-07-01T14:44:03.8399934Z Get:76 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libfdt1 amd64 1.7.0-2build1 [20.1 kB]
+2025-07-01T14:44:03.8744581Z Get:77 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 qemu-system-common amd64 1:8.2.2+ds-0ubuntu1.7 [1253 kB]
+2025-07-01T14:44:03.9750114Z Get:78 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 qemu-system-data all 1:8.2.2+ds-0ubuntu1.7 [1793 kB]
+2025-07-01T14:44:04.0847091Z Get:79 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 seabios all 1.16.3-2 [175 kB]
+2025-07-01T14:44:04.1219913Z Get:80 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 qemu-system-x86 amd64 1:8.2.2+ds-0ubuntu1.7 [11.2 MB]
+2025-07-01T14:44:04.4301016Z Get:81 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 qemu-system-sparc amd64 1:8.2.2+ds-0ubuntu1.7 [6287 kB]
+2025-07-01T14:44:04.6364909Z Get:82 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 qemu-system-s390x amd64 1:8.2.2+ds-0ubuntu1.7 [3434 kB]
+2025-07-01T14:44:04.7738544Z Get:83 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 qemu-system-ppc amd64 1:8.2.2+ds-0ubuntu1.7 [9111 kB]
+2025-07-01T14:44:05.0113768Z Get:84 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 qemu-system-misc amd64 1:8.2.2+ds-0ubuntu1.7 [57.8 MB]
+2025-07-01T14:44:05.7839529Z Get:85 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 qemu-system-mips amd64 1:8.2.2+ds-0ubuntu1.7 [16.3 MB]
+2025-07-01T14:44:06.0893980Z Get:86 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 qemu-system-arm amd64 1:8.2.2+ds-0ubuntu1.7 [10.9 MB]
+2025-07-01T14:44:06.3475149Z Get:87 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 qemu-utils amd64 1:8.2.2+ds-0ubuntu1.7 [2220 kB]
+2025-07-01T14:44:06.4617065Z Get:88 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 qemu-block-extra amd64 1:8.2.2+ds-0ubuntu1.7 [111 kB]
+2025-07-01T14:44:06.4961922Z Get:89 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 qemu-system amd64 1:8.2.2+ds-0ubuntu1.7 [56.3 kB]
+2025-07-01T14:44:06.5311198Z Get:90 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 qemu-system-modules-opengl amd64 1:8.2.2+ds-0ubuntu1.7 [184 kB]
+2025-07-01T14:44:06.5684987Z Get:91 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 qemu-system-gui amd64 1:8.2.2+ds-0ubuntu1.7 [314 kB]
+2025-07-01T14:44:06.6088560Z Get:92 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 qemu-system-modules-spice amd64 1:8.2.2+ds-0ubuntu1.7 [70.2 kB]
+2025-07-01T14:44:06.6449467Z Get:93 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 qemu-user-static amd64 1:8.2.2+ds-0ubuntu1.7 [14.7 MB]
+2025-07-01T14:44:07.0997915Z Get:94 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 ovmf all 2024.02-2ubuntu0.4 [4571 kB]
+2025-07-01T14:44:07.2926874Z Get:95 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 qemu-efi-aarch64 all 2024.02-2ubuntu0.4 [4095 kB]
+2025-07-01T14:44:07.4324772Z Get:96 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 qemu-efi-arm all 2024.02-2ubuntu0.4 [774 kB]
+2025-07-01T14:44:07.8147201Z Fetched 169 MB in 7s (23.7 MB/s)
+2025-07-01T14:44:07.8380883Z Selecting previously unselected package msr-tools.
+2025-07-01T14:44:07.8627185Z (Reading database ... 
+2025-07-01T14:44:07.8627998Z (Reading database ... 5%
+2025-07-01T14:44:07.8628390Z (Reading database ... 10%
+2025-07-01T14:44:07.8628729Z (Reading database ... 15%
+2025-07-01T14:44:07.8629095Z (Reading database ... 20%
+2025-07-01T14:44:07.8629450Z (Reading database ... 25%
+2025-07-01T14:44:07.8629675Z (Reading database ... 30%
+2025-07-01T14:44:07.8629906Z (Reading database ... 35%
+2025-07-01T14:44:07.8630125Z (Reading database ... 40%
+2025-07-01T14:44:07.8630557Z (Reading database ... 45%
+2025-07-01T14:44:07.8630782Z (Reading database ... 50%
+2025-07-01T14:44:07.8749516Z (Reading database ... 55%
+2025-07-01T14:44:07.9369886Z (Reading database ... 60%
+2025-07-01T14:44:07.9613746Z (Reading database ... 65%
+2025-07-01T14:44:07.9896427Z (Reading database ... 70%
+2025-07-01T14:44:08.0193320Z (Reading database ... 75%
+2025-07-01T14:44:08.0643445Z (Reading database ... 80%
+2025-07-01T14:44:08.1165590Z (Reading database ... 85%
+2025-07-01T14:44:08.1636744Z (Reading database ... 90%
+2025-07-01T14:44:08.2383258Z (Reading database ... 95%
+2025-07-01T14:44:08.2383649Z (Reading database ... 100%
+2025-07-01T14:44:08.2384093Z (Reading database ... 219349 files and directories currently installed.)
+2025-07-01T14:44:08.2429367Z Preparing to unpack .../00-msr-tools_1.3-5build1_amd64.deb ...
+2025-07-01T14:44:08.2457349Z Unpacking msr-tools (1.3-5build1) ...
+2025-07-01T14:44:08.2719574Z Selecting previously unselected package cpu-checker.
+2025-07-01T14:44:08.2865137Z Preparing to unpack .../01-cpu-checker_0.7-1.3build2_amd64.deb ...
+2025-07-01T14:44:08.2883842Z Unpacking cpu-checker (0.7-1.3build2) ...
+2025-07-01T14:44:08.3163153Z Selecting previously unselected package libproxy1v5:amd64.
+2025-07-01T14:44:08.3297498Z Preparing to unpack .../02-libproxy1v5_0.5.4-4build1_amd64.deb ...
+2025-07-01T14:44:08.3331016Z Unpacking libproxy1v5:amd64 (0.5.4-4build1) ...
+2025-07-01T14:44:08.3583534Z Selecting previously unselected package glib-networking-common.
+2025-07-01T14:44:08.3716208Z Preparing to unpack .../03-glib-networking-common_2.80.0-1build1_all.deb ...
+2025-07-01T14:44:08.3732414Z Unpacking glib-networking-common (2.80.0-1build1) ...
+2025-07-01T14:44:08.3947827Z Selecting previously unselected package glib-networking-services.
+2025-07-01T14:44:08.4081884Z Preparing to unpack .../04-glib-networking-services_2.80.0-1build1_amd64.deb ...
+2025-07-01T14:44:08.4095123Z Unpacking glib-networking-services (2.80.0-1build1) ...
+2025-07-01T14:44:08.4332134Z Selecting previously unselected package session-migration.
+2025-07-01T14:44:08.4468150Z Preparing to unpack .../05-session-migration_0.3.9build1_amd64.deb ...
+2025-07-01T14:44:08.4483867Z Unpacking session-migration (0.3.9build1) ...
+2025-07-01T14:44:08.4795957Z Selecting previously unselected package gsettings-desktop-schemas.
+2025-07-01T14:44:08.4931971Z Preparing to unpack .../06-gsettings-desktop-schemas_46.1-0ubuntu1_all.deb ...
+2025-07-01T14:44:08.4943780Z Unpacking gsettings-desktop-schemas (46.1-0ubuntu1) ...
+2025-07-01T14:44:08.5249598Z Selecting previously unselected package glib-networking:amd64.
+2025-07-01T14:44:08.5385113Z Preparing to unpack .../07-glib-networking_2.80.0-1build1_amd64.deb ...
+2025-07-01T14:44:08.5400829Z Unpacking glib-networking:amd64 (2.80.0-1build1) ...
+2025-07-01T14:44:08.5649479Z Selecting previously unselected package libcdparanoia0:amd64.
+2025-07-01T14:44:08.5784976Z Preparing to unpack .../08-libcdparanoia0_3.10.2+debian-14build3_amd64.deb ...
+2025-07-01T14:44:08.5797599Z Unpacking libcdparanoia0:amd64 (3.10.2+debian-14build3) ...
+2025-07-01T14:44:08.6060549Z Selecting previously unselected package liborc-0.4-0t64:amd64.
+2025-07-01T14:44:08.6194496Z Preparing to unpack .../09-liborc-0.4-0t64_1%3a0.4.38-1ubuntu0.1_amd64.deb ...
+2025-07-01T14:44:08.6206895Z Unpacking liborc-0.4-0t64:amd64 (1:0.4.38-1ubuntu0.1) ...
+2025-07-01T14:44:08.6474761Z Selecting previously unselected package libgstreamer-plugins-base1.0-0:amd64.
+2025-07-01T14:44:08.6608582Z Preparing to unpack .../10-libgstreamer-plugins-base1.0-0_1.24.2-1ubuntu0.2_amd64.deb ...
+2025-07-01T14:44:08.6623668Z Unpacking libgstreamer-plugins-base1.0-0:amd64 (1.24.2-1ubuntu0.2) ...
+2025-07-01T14:44:08.7016173Z Selecting previously unselected package libopus0:amd64.
+2025-07-01T14:44:08.7165904Z Preparing to unpack .../11-libopus0_1.4-1build1_amd64.deb ...
+2025-07-01T14:44:08.7179164Z Unpacking libopus0:amd64 (1.4-1build1) ...
+2025-07-01T14:44:08.7451963Z Selecting previously unselected package libtheora0:amd64.
+2025-07-01T14:44:08.7587023Z Preparing to unpack .../12-libtheora0_1.1.1+dfsg.1-16.1build3_amd64.deb ...
+2025-07-01T14:44:08.7603011Z Unpacking libtheora0:amd64 (1.1.1+dfsg.1-16.1build3) ...
+2025-07-01T14:44:08.7885098Z Selecting previously unselected package libvisual-0.4-0:amd64.
+2025-07-01T14:44:08.8020787Z Preparing to unpack .../13-libvisual-0.4-0_0.4.2-2build1_amd64.deb ...
+2025-07-01T14:44:08.8033162Z Unpacking libvisual-0.4-0:amd64 (0.4.2-2build1) ...
+2025-07-01T14:44:08.8308618Z Selecting previously unselected package libvorbisenc2:amd64.
+2025-07-01T14:44:08.8480834Z Preparing to unpack .../14-libvorbisenc2_1.3.7-1build3_amd64.deb ...
+2025-07-01T14:44:08.8492422Z Unpacking libvorbisenc2:amd64 (1.3.7-1build3) ...
+2025-07-01T14:44:08.8773343Z Selecting previously unselected package gstreamer1.0-plugins-base:amd64.
+2025-07-01T14:44:08.8913163Z Preparing to unpack .../15-gstreamer1.0-plugins-base_1.24.2-1ubuntu0.2_amd64.deb ...
+2025-07-01T14:44:08.8924099Z Unpacking gstreamer1.0-plugins-base:amd64 (1.24.2-1ubuntu0.2) ...
+2025-07-01T14:44:08.9331361Z Selecting previously unselected package libaa1:amd64.
+2025-07-01T14:44:08.9468279Z Preparing to unpack .../16-libaa1_1.4p5-51.1_amd64.deb ...
+2025-07-01T14:44:08.9482221Z Unpacking libaa1:amd64 (1.4p5-51.1) ...
+2025-07-01T14:44:08.9752679Z Selecting previously unselected package libraw1394-11:amd64.
+2025-07-01T14:44:08.9887985Z Preparing to unpack .../17-libraw1394-11_2.1.2-2build3_amd64.deb ...
+2025-07-01T14:44:08.9899391Z Unpacking libraw1394-11:amd64 (2.1.2-2build3) ...
+2025-07-01T14:44:09.0168071Z Selecting previously unselected package libavc1394-0:amd64.
+2025-07-01T14:44:09.0304151Z Preparing to unpack .../18-libavc1394-0_0.5.4-5build3_amd64.deb ...
+2025-07-01T14:44:09.0317826Z Unpacking libavc1394-0:amd64 (0.5.4-5build3) ...
+2025-07-01T14:44:09.0547708Z Selecting previously unselected package libcaca0:amd64.
+2025-07-01T14:44:09.0682757Z Preparing to unpack .../19-libcaca0_0.99.beta20-4build2_amd64.deb ...
+2025-07-01T14:44:09.0696964Z Unpacking libcaca0:amd64 (0.99.beta20-4build2) ...
+2025-07-01T14:44:09.0998253Z Selecting previously unselected package libdv4t64:amd64.
+2025-07-01T14:44:09.1134267Z Preparing to unpack .../20-libdv4t64_1.0.0-17.1build1_amd64.deb ...
+2025-07-01T14:44:09.1152378Z Unpacking libdv4t64:amd64 (1.0.0-17.1build1) ...
+2025-07-01T14:44:09.1412429Z Selecting previously unselected package libflac12t64:amd64.
+2025-07-01T14:44:09.1547507Z Preparing to unpack .../21-libflac12t64_1.4.3+ds-2.1ubuntu2_amd64.deb ...
+2025-07-01T14:44:09.1560567Z Unpacking libflac12t64:amd64 (1.4.3+ds-2.1ubuntu2) ...
+2025-07-01T14:44:09.1831640Z Selecting previously unselected package libgstreamer-plugins-good1.0-0:amd64.
+2025-07-01T14:44:09.1966741Z Preparing to unpack .../22-libgstreamer-plugins-good1.0-0_1.24.2-1ubuntu1.1_amd64.deb ...
+2025-07-01T14:44:09.1978519Z Unpacking libgstreamer-plugins-good1.0-0:amd64 (1.24.2-1ubuntu1.1) ...
+2025-07-01T14:44:09.2224147Z Selecting previously unselected package libiec61883-0:amd64.
+2025-07-01T14:44:09.2360796Z Preparing to unpack .../23-libiec61883-0_1.2.0-6build1_amd64.deb ...
+2025-07-01T14:44:09.2383323Z Unpacking libiec61883-0:amd64 (1.2.0-6build1) ...
+2025-07-01T14:44:09.2667484Z Selecting previously unselected package libmp3lame0:amd64.
+2025-07-01T14:44:09.2804349Z Preparing to unpack .../24-libmp3lame0_3.100-6build1_amd64.deb ...
+2025-07-01T14:44:09.2816731Z Unpacking libmp3lame0:amd64 (3.100-6build1) ...
+2025-07-01T14:44:09.3092984Z Selecting previously unselected package libmpg123-0t64:amd64.
+2025-07-01T14:44:09.3227963Z Preparing to unpack .../25-libmpg123-0t64_1.32.5-1ubuntu1.1_amd64.deb ...
+2025-07-01T14:44:09.3241348Z Unpacking libmpg123-0t64:amd64 (1.32.5-1ubuntu1.1) ...
+2025-07-01T14:44:09.3517409Z Selecting previously unselected package libasyncns0:amd64.
+2025-07-01T14:44:09.3654032Z Preparing to unpack .../26-libasyncns0_0.8-6build4_amd64.deb ...
+2025-07-01T14:44:09.3668443Z Unpacking libasyncns0:amd64 (0.8-6build4) ...
+2025-07-01T14:44:09.3909194Z Selecting previously unselected package libsndfile1:amd64.
+2025-07-01T14:44:09.4046265Z Preparing to unpack .../27-libsndfile1_1.2.2-1ubuntu5.24.04.1_amd64.deb ...
+2025-07-01T14:44:09.4059022Z Unpacking libsndfile1:amd64 (1.2.2-1ubuntu5.24.04.1) ...
+2025-07-01T14:44:09.4376281Z Selecting previously unselected package libpulse0:amd64.
+2025-07-01T14:44:09.4512142Z Preparing to unpack .../28-libpulse0_1%3a16.1+dfsg1-2ubuntu10.1_amd64.deb ...
+2025-07-01T14:44:09.4627072Z Unpacking libpulse0:amd64 (1:16.1+dfsg1-2ubuntu10.1) ...
+2025-07-01T14:44:09.4951208Z Selecting previously unselected package libspeex1:amd64.
+2025-07-01T14:44:09.5085841Z Preparing to unpack .../29-libspeex1_1.2.1-2ubuntu2.24.04.1_amd64.deb ...
+2025-07-01T14:44:09.5097927Z Unpacking libspeex1:amd64 (1.2.1-2ubuntu2.24.04.1) ...
+2025-07-01T14:44:09.5377225Z Selecting previously unselected package libshout3:amd64.
+2025-07-01T14:44:09.5512398Z Preparing to unpack .../30-libshout3_2.4.6-1build2_amd64.deb ...
+2025-07-01T14:44:09.5526109Z Unpacking libshout3:amd64 (2.4.6-1build2) ...
+2025-07-01T14:44:09.5786207Z Selecting previously unselected package libtag1v5-vanilla:amd64.
+2025-07-01T14:44:09.5920780Z Preparing to unpack .../31-libtag1v5-vanilla_1.13.1-1build1_amd64.deb ...
+2025-07-01T14:44:09.5935404Z Unpacking libtag1v5-vanilla:amd64 (1.13.1-1build1) ...
+2025-07-01T14:44:09.6225885Z Selecting previously unselected package libtag1v5:amd64.
+2025-07-01T14:44:09.6361288Z Preparing to unpack .../32-libtag1v5_1.13.1-1build1_amd64.deb ...
+2025-07-01T14:44:09.6384497Z Unpacking libtag1v5:amd64 (1.13.1-1build1) ...
+2025-07-01T14:44:09.6635331Z Selecting previously unselected package libtwolame0:amd64.
+2025-07-01T14:44:09.6769472Z Preparing to unpack .../33-libtwolame0_0.4.0-2build3_amd64.deb ...
+2025-07-01T14:44:09.6782153Z Unpacking libtwolame0:amd64 (0.4.0-2build3) ...
+2025-07-01T14:44:09.7022033Z Selecting previously unselected package libv4lconvert0t64:amd64.
+2025-07-01T14:44:09.7156062Z Preparing to unpack .../34-libv4lconvert0t64_1.26.1-4build3_amd64.deb ...
+2025-07-01T14:44:09.7169498Z Unpacking libv4lconvert0t64:amd64 (1.26.1-4build3) ...
+2025-07-01T14:44:09.7435496Z Selecting previously unselected package libv4l-0t64:amd64.
+2025-07-01T14:44:09.7571029Z Preparing to unpack .../35-libv4l-0t64_1.26.1-4build3_amd64.deb ...
+2025-07-01T14:44:09.7585911Z Unpacking libv4l-0t64:amd64 (1.26.1-4build3) ...
+2025-07-01T14:44:09.7855252Z Selecting previously unselected package libvpx9:amd64.
+2025-07-01T14:44:09.7990002Z Preparing to unpack .../36-libvpx9_1.14.0-1ubuntu2.2_amd64.deb ...
+2025-07-01T14:44:09.8002189Z Unpacking libvpx9:amd64 (1.14.0-1ubuntu2.2) ...
+2025-07-01T14:44:09.8415150Z Selecting previously unselected package libwavpack1:amd64.
+2025-07-01T14:44:09.8547922Z Preparing to unpack .../37-libwavpack1_5.6.0-1build1_amd64.deb ...
+2025-07-01T14:44:09.8565067Z Unpacking libwavpack1:amd64 (5.6.0-1build1) ...
+2025-07-01T14:44:09.8797545Z Selecting previously unselected package libsoup-3.0-common.
+2025-07-01T14:44:09.8930376Z Preparing to unpack .../38-libsoup-3.0-common_3.4.4-5ubuntu0.4_all.deb ...
+2025-07-01T14:44:09.8943630Z Unpacking libsoup-3.0-common (3.4.4-5ubuntu0.4) ...
+2025-07-01T14:44:09.9193942Z Selecting previously unselected package libsoup-3.0-0:amd64.
+2025-07-01T14:44:09.9328839Z Preparing to unpack .../39-libsoup-3.0-0_3.4.4-5ubuntu0.4_amd64.deb ...
+2025-07-01T14:44:09.9340892Z Unpacking libsoup-3.0-0:amd64 (3.4.4-5ubuntu0.4) ...
+2025-07-01T14:44:09.9592303Z Selecting previously unselected package gstreamer1.0-plugins-good:amd64.
+2025-07-01T14:44:09.9726185Z Preparing to unpack .../40-gstreamer1.0-plugins-good_1.24.2-1ubuntu1.1_amd64.deb ...
+2025-07-01T14:44:09.9737146Z Unpacking gstreamer1.0-plugins-good:amd64 (1.24.2-1ubuntu1.1) ...
+2025-07-01T14:44:10.0425994Z Selecting previously unselected package libxv1:amd64.
+2025-07-01T14:44:10.0561203Z Preparing to unpack .../41-libxv1_2%3a1.0.11-1.1build1_amd64.deb ...
+2025-07-01T14:44:10.0575804Z Unpacking libxv1:amd64 (2:1.0.11-1.1build1) ...
+2025-07-01T14:44:10.0787344Z Selecting previously unselected package gstreamer1.0-x:amd64.
+2025-07-01T14:44:10.0924232Z Preparing to unpack .../42-gstreamer1.0-x_1.24.2-1ubuntu0.2_amd64.deb ...
+2025-07-01T14:44:10.0935660Z Unpacking gstreamer1.0-x:amd64 (1.24.2-1ubuntu0.2) ...
+2025-07-01T14:44:10.1177847Z Selecting previously unselected package ipxe-qemu.
+2025-07-01T14:44:10.1363517Z Preparing to unpack .../43-ipxe-qemu_1.21.1+git-20220113.fbbdc3926-0ubuntu2_all.deb ...
+2025-07-01T14:44:10.1374711Z Unpacking ipxe-qemu (1.21.1+git-20220113.fbbdc3926-0ubuntu2) ...
+2025-07-01T14:44:10.1768912Z Selecting previously unselected package ipxe-qemu-256k-compat-efi-roms.
+2025-07-01T14:44:10.1903854Z Preparing to unpack .../44-ipxe-qemu-256k-compat-efi-roms_1.0.0+git-20150424.a25a16d-0ubuntu5_all.deb ...
+2025-07-01T14:44:10.1916729Z Unpacking ipxe-qemu-256k-compat-efi-roms (1.0.0+git-20150424.a25a16d-0ubuntu5) ...
+2025-07-01T14:44:10.2213437Z Selecting previously unselected package libboost-iostreams1.83.0:amd64.
+2025-07-01T14:44:10.2349224Z Preparing to unpack .../45-libboost-iostreams1.83.0_1.83.0-2.1ubuntu3.1_amd64.deb ...
+2025-07-01T14:44:10.2362196Z Unpacking libboost-iostreams1.83.0:amd64 (1.83.0-2.1ubuntu3.1) ...
+2025-07-01T14:44:10.2721844Z Selecting previously unselected package libboost-thread1.83.0:amd64.
+2025-07-01T14:44:10.2856889Z Preparing to unpack .../46-libboost-thread1.83.0_1.83.0-2.1ubuntu3.1_amd64.deb ...
+2025-07-01T14:44:10.2869428Z Unpacking libboost-thread1.83.0:amd64 (1.83.0-2.1ubuntu3.1) ...
+2025-07-01T14:44:10.3203628Z Selecting previously unselected package libbrlapi0.8:amd64.
+2025-07-01T14:44:10.3338415Z Preparing to unpack .../47-libbrlapi0.8_6.6-4ubuntu5_amd64.deb ...
+2025-07-01T14:44:10.3352846Z Unpacking libbrlapi0.8:amd64 (6.6-4ubuntu5) ...
+2025-07-01T14:44:10.3618880Z Selecting previously unselected package libpcsclite1:amd64.
+2025-07-01T14:44:10.3755132Z Preparing to unpack .../48-libpcsclite1_2.0.3-1build1_amd64.deb ...
+2025-07-01T14:44:10.3769271Z Unpacking libpcsclite1:amd64 (2.0.3-1build1) ...
+2025-07-01T14:44:10.4011249Z Selecting previously unselected package libcacard0:amd64.
+2025-07-01T14:44:10.4145929Z Preparing to unpack .../49-libcacard0_1%3a2.8.0-3build4_amd64.deb ...
+2025-07-01T14:44:10.4157901Z Unpacking libcacard0:amd64 (1:2.8.0-3build4) ...
+2025-07-01T14:44:10.4395559Z Selecting previously unselected package libdaxctl1:amd64.
+2025-07-01T14:44:10.4530954Z Preparing to unpack .../50-libdaxctl1_77-2ubuntu2_amd64.deb ...
+2025-07-01T14:44:10.4543020Z Unpacking libdaxctl1:amd64 (77-2ubuntu2) ...
+2025-07-01T14:44:10.4837591Z Selecting previously unselected package libdecor-0-0:amd64.
+2025-07-01T14:44:10.4972380Z Preparing to unpack .../51-libdecor-0-0_0.2.2-1build2_amd64.deb ...
+2025-07-01T14:44:10.4984064Z Unpacking libdecor-0-0:amd64 (0.2.2-1build2) ...
+2025-07-01T14:44:10.5222474Z Selecting previously unselected package libdecor-0-plugin-1-gtk:amd64.
+2025-07-01T14:44:10.5358793Z Preparing to unpack .../52-libdecor-0-plugin-1-gtk_0.2.2-1build2_amd64.deb ...
+2025-07-01T14:44:10.5369992Z Unpacking libdecor-0-plugin-1-gtk:amd64 (0.2.2-1build2) ...
+2025-07-01T14:44:10.5741488Z Selecting previously unselected package librdmacm1t64:amd64.
+2025-07-01T14:44:10.5877780Z Preparing to unpack .../53-librdmacm1t64_50.0-2ubuntu0.2_amd64.deb ...
+2025-07-01T14:44:10.5907059Z Unpacking librdmacm1t64:amd64 (50.0-2ubuntu0.2) ...
+2025-07-01T14:44:10.6167092Z Selecting previously unselected package libiscsi7:amd64.
+2025-07-01T14:44:10.6303108Z Preparing to unpack .../54-libiscsi7_1.19.0-3build4_amd64.deb ...
+2025-07-01T14:44:10.6319389Z Unpacking libiscsi7:amd64 (1.19.0-3build4) ...
+2025-07-01T14:44:10.6567708Z Selecting previously unselected package libsamplerate0:amd64.
+2025-07-01T14:44:10.6704461Z Preparing to unpack .../55-libsamplerate0_0.2.2-4build1_amd64.deb ...
+2025-07-01T14:44:10.6717463Z Unpacking libsamplerate0:amd64 (0.2.2-4build1) ...
+2025-07-01T14:44:10.7034470Z Selecting previously unselected package libjack-jackd2-0:amd64.
+2025-07-01T14:44:10.7169155Z Preparing to unpack .../56-libjack-jackd2-0_1.9.21~dfsg-3ubuntu3_amd64.deb ...
+2025-07-01T14:44:10.7180425Z Unpacking libjack-jackd2-0:amd64 (1.9.21~dfsg-3ubuntu3) ...
+2025-07-01T14:44:10.7472857Z Selecting previously unselected package libndctl6:amd64.
+2025-07-01T14:44:10.7608017Z Preparing to unpack .../57-libndctl6_77-2ubuntu2_amd64.deb ...
+2025-07-01T14:44:10.7622878Z Unpacking libndctl6:amd64 (77-2ubuntu2) ...
+2025-07-01T14:44:10.7958991Z Selecting previously unselected package libnfs14:amd64.
+2025-07-01T14:44:10.8094465Z Preparing to unpack .../58-libnfs14_5.0.2-1build1_amd64.deb ...
+2025-07-01T14:44:10.8119688Z Unpacking libnfs14:amd64 (5.0.2-1build1) ...
+2025-07-01T14:44:10.8375087Z Selecting previously unselected package libwebrtc-audio-processing1:amd64.
+2025-07-01T14:44:10.8510708Z Preparing to unpack .../59-libwebrtc-audio-processing1_0.3.1-0ubuntu6_amd64.deb ...
+2025-07-01T14:44:10.8527699Z Unpacking libwebrtc-audio-processing1:amd64 (0.3.1-0ubuntu6) ...
+2025-07-01T14:44:10.8790701Z Selecting previously unselected package libspa-0.2-modules:amd64.
+2025-07-01T14:44:10.8927244Z Preparing to unpack .../60-libspa-0.2-modules_1.0.5-1ubuntu3_amd64.deb ...
+2025-07-01T14:44:10.8938678Z Unpacking libspa-0.2-modules:amd64 (1.0.5-1ubuntu3) ...
+2025-07-01T14:44:10.9286118Z Selecting previously unselected package libpipewire-0.3-0t64:amd64.
+2025-07-01T14:44:10.9423134Z Preparing to unpack .../61-libpipewire-0.3-0t64_1.0.5-1ubuntu3_amd64.deb ...
+2025-07-01T14:44:10.9436438Z Unpacking libpipewire-0.3-0t64:amd64 (1.0.5-1ubuntu3) ...
+2025-07-01T14:44:10.9704483Z Selecting previously unselected package libpipewire-0.3-common.
+2025-07-01T14:44:10.9838693Z Preparing to unpack .../62-libpipewire-0.3-common_1.0.5-1ubuntu3_all.deb ...
+2025-07-01T14:44:10.9852121Z Unpacking libpipewire-0.3-common (1.0.5-1ubuntu3) ...
+2025-07-01T14:44:11.0110685Z Selecting previously unselected package libpmem1:amd64.
+2025-07-01T14:44:11.0247211Z Preparing to unpack .../63-libpmem1_1.13.1-1.1ubuntu2_amd64.deb ...
+2025-07-01T14:44:11.0261630Z Unpacking libpmem1:amd64 (1.13.1-1.1ubuntu2) ...
+2025-07-01T14:44:11.0586069Z Selecting previously unselected package libpmemobj1:amd64.
+2025-07-01T14:44:11.0724828Z Preparing to unpack .../64-libpmemobj1_1.13.1-1.1ubuntu2_amd64.deb ...
+2025-07-01T14:44:11.0739261Z Unpacking libpmemobj1:amd64 (1.13.1-1.1ubuntu2) ...
+2025-07-01T14:44:11.1048877Z Selecting previously unselected package librados2.
+2025-07-01T14:44:11.1187155Z Preparing to unpack .../65-librados2_19.2.0-0ubuntu0.24.04.2_amd64.deb ...
+2025-07-01T14:44:11.1200810Z Unpacking librados2 (19.2.0-0ubuntu0.24.04.2) ...
+2025-07-01T14:44:11.1964038Z Selecting previously unselected package librbd1.
+2025-07-01T14:44:11.2098575Z Preparing to unpack .../66-librbd1_19.2.0-0ubuntu0.24.04.2_amd64.deb ...
+2025-07-01T14:44:11.2110812Z Unpacking librbd1 (19.2.0-0ubuntu0.24.04.2) ...
+2025-07-01T14:44:11.2869073Z Selecting previously unselected package libsdl2-2.0-0:amd64.
+2025-07-01T14:44:11.3003972Z Preparing to unpack .../67-libsdl2-2.0-0_2.30.0+dfsg-1ubuntu3.1_amd64.deb ...
+2025-07-01T14:44:11.3015607Z Unpacking libsdl2-2.0-0:amd64 (2.30.0+dfsg-1ubuntu3.1) ...
+2025-07-01T14:44:11.3329711Z Selecting previously unselected package libspice-server1:amd64.
+2025-07-01T14:44:11.3464912Z Preparing to unpack .../68-libspice-server1_0.15.1-1build2_amd64.deb ...
+2025-07-01T14:44:11.3475538Z Unpacking libspice-server1:amd64 (0.15.1-1build2) ...
+2025-07-01T14:44:11.3779908Z Selecting previously unselected package liburing2:amd64.
+2025-07-01T14:44:11.3915709Z Preparing to unpack .../69-liburing2_2.5-1build1_amd64.deb ...
+2025-07-01T14:44:11.3929466Z Unpacking liburing2:amd64 (2.5-1build1) ...
+2025-07-01T14:44:11.4176975Z Selecting previously unselected package libusbredirparser1t64:amd64.
+2025-07-01T14:44:11.4312966Z Preparing to unpack .../70-libusbredirparser1t64_0.13.0-2.1build1_amd64.deb ...
+2025-07-01T14:44:11.4325201Z Unpacking libusbredirparser1t64:amd64 (0.13.0-2.1build1) ...
+2025-07-01T14:44:11.4566496Z Selecting previously unselected package libvirglrenderer1:amd64.
+2025-07-01T14:44:11.4704550Z Preparing to unpack .../71-libvirglrenderer1_1.0.0-1ubuntu2_amd64.deb ...
+2025-07-01T14:44:11.4739469Z Unpacking libvirglrenderer1:amd64 (1.0.0-1ubuntu2) ...
+2025-07-01T14:44:11.4992422Z Selecting previously unselected package libvte-2.91-common.
+2025-07-01T14:44:11.5125716Z Preparing to unpack .../72-libvte-2.91-common_0.76.0-1ubuntu0.1_amd64.deb ...
+2025-07-01T14:44:11.5136802Z Unpacking libvte-2.91-common (0.76.0-1ubuntu0.1) ...
+2025-07-01T14:44:11.5380519Z Selecting previously unselected package libvte-2.91-0:amd64.
+2025-07-01T14:44:11.5514453Z Preparing to unpack .../73-libvte-2.91-0_0.76.0-1ubuntu0.1_amd64.deb ...
+2025-07-01T14:44:11.5525746Z Unpacking libvte-2.91-0:amd64 (0.76.0-1ubuntu0.1) ...
+2025-07-01T14:44:11.5812807Z Selecting previously unselected package libfdt1:amd64.
+2025-07-01T14:44:11.5948107Z Preparing to unpack .../74-libfdt1_1.7.0-2build1_amd64.deb ...
+2025-07-01T14:44:11.5962390Z Unpacking libfdt1:amd64 (1.7.0-2build1) ...
+2025-07-01T14:44:11.6203571Z Selecting previously unselected package qemu-system-common.
+2025-07-01T14:44:11.6338494Z Preparing to unpack .../75-qemu-system-common_1%3a8.2.2+ds-0ubuntu1.7_amd64.deb ...
+2025-07-01T14:44:11.6350589Z Unpacking qemu-system-common (1:8.2.2+ds-0ubuntu1.7) ...
+2025-07-01T14:44:11.7091676Z Selecting previously unselected package qemu-system-data.
+2025-07-01T14:44:11.7227119Z Preparing to unpack .../76-qemu-system-data_1%3a8.2.2+ds-0ubuntu1.7_all.deb ...
+2025-07-01T14:44:11.7235786Z Unpacking qemu-system-data (1:8.2.2+ds-0ubuntu1.7) ...
+2025-07-01T14:44:11.7950948Z Selecting previously unselected package seabios.
+2025-07-01T14:44:11.8087174Z Preparing to unpack .../77-seabios_1.16.3-2_all.deb ...
+2025-07-01T14:44:11.8096893Z Unpacking seabios (1.16.3-2) ...
+2025-07-01T14:44:11.8374681Z Selecting previously unselected package qemu-system-x86.
+2025-07-01T14:44:11.8509415Z Preparing to unpack .../78-qemu-system-x86_1%3a8.2.2+ds-0ubuntu1.7_amd64.deb ...
+2025-07-01T14:44:11.8576329Z Unpacking qemu-system-x86 (1:8.2.2+ds-0ubuntu1.7) ...
+2025-07-01T14:44:12.0789516Z Selecting previously unselected package qemu-system-sparc.
+2025-07-01T14:44:12.0925369Z Preparing to unpack .../79-qemu-system-sparc_1%3a8.2.2+ds-0ubuntu1.7_amd64.deb ...
+2025-07-01T14:44:12.0992171Z Unpacking qemu-system-sparc (1:8.2.2+ds-0ubuntu1.7) ...
+2025-07-01T14:44:12.2135303Z Selecting previously unselected package qemu-system-s390x.
+2025-07-01T14:44:12.2268756Z Preparing to unpack .../80-qemu-system-s390x_1%3a8.2.2+ds-0ubuntu1.7_amd64.deb ...
+2025-07-01T14:44:12.2332868Z Unpacking qemu-system-s390x (1:8.2.2+ds-0ubuntu1.7) ...
+2025-07-01T14:44:12.3057417Z Selecting previously unselected package qemu-system-ppc.
+2025-07-01T14:44:12.3192884Z Preparing to unpack .../81-qemu-system-ppc_1%3a8.2.2+ds-0ubuntu1.7_amd64.deb ...
+2025-07-01T14:44:12.3259629Z Unpacking qemu-system-ppc (1:8.2.2+ds-0ubuntu1.7) ...
+2025-07-01T14:44:12.4939458Z Selecting previously unselected package qemu-system-misc.
+2025-07-01T14:44:12.5073633Z Preparing to unpack .../82-qemu-system-misc_1%3a8.2.2+ds-0ubuntu1.7_amd64.deb ...
+2025-07-01T14:44:12.5139493Z Unpacking qemu-system-misc (1:8.2.2+ds-0ubuntu1.7) ...
+2025-07-01T14:44:13.3023678Z Selecting previously unselected package qemu-system-mips.
+2025-07-01T14:44:13.3159218Z Preparing to unpack .../83-qemu-system-mips_1%3a8.2.2+ds-0ubuntu1.7_amd64.deb ...
+2025-07-01T14:44:13.3224522Z Unpacking qemu-system-mips (1:8.2.2+ds-0ubuntu1.7) ...
+2025-07-01T14:44:13.5609872Z Selecting previously unselected package qemu-system-arm.
+2025-07-01T14:44:13.5744707Z Preparing to unpack .../84-qemu-system-arm_1%3a8.2.2+ds-0ubuntu1.7_amd64.deb ...
+2025-07-01T14:44:13.5809815Z Unpacking qemu-system-arm (1:8.2.2+ds-0ubuntu1.7) ...
+2025-07-01T14:44:13.8066459Z Selecting previously unselected package qemu-utils.
+2025-07-01T14:44:13.8202281Z Preparing to unpack .../85-qemu-utils_1%3a8.2.2+ds-0ubuntu1.7_amd64.deb ...
+2025-07-01T14:44:13.8212473Z Unpacking qemu-utils (1:8.2.2+ds-0ubuntu1.7) ...
+2025-07-01T14:44:13.8827749Z Selecting previously unselected package qemu-block-extra.
+2025-07-01T14:44:13.8962099Z Preparing to unpack .../86-qemu-block-extra_1%3a8.2.2+ds-0ubuntu1.7_amd64.deb ...
+2025-07-01T14:44:13.8972411Z Unpacking qemu-block-extra (1:8.2.2+ds-0ubuntu1.7) ...
+2025-07-01T14:44:13.9206336Z Selecting previously unselected package qemu-system.
+2025-07-01T14:44:13.9341812Z Preparing to unpack .../87-qemu-system_1%3a8.2.2+ds-0ubuntu1.7_amd64.deb ...
+2025-07-01T14:44:13.9350563Z Unpacking qemu-system (1:8.2.2+ds-0ubuntu1.7) ...
+2025-07-01T14:44:13.9615219Z Selecting previously unselected package qemu-system-modules-opengl.
+2025-07-01T14:44:13.9751196Z Preparing to unpack .../88-qemu-system-modules-opengl_1%3a8.2.2+ds-0ubuntu1.7_amd64.deb ...
+2025-07-01T14:44:13.9761699Z Unpacking qemu-system-modules-opengl (1:8.2.2+ds-0ubuntu1.7) ...
+2025-07-01T14:44:14.0029798Z Selecting previously unselected package qemu-system-gui.
+2025-07-01T14:44:14.0165869Z Preparing to unpack .../89-qemu-system-gui_1%3a8.2.2+ds-0ubuntu1.7_amd64.deb ...
+2025-07-01T14:44:14.0175166Z Unpacking qemu-system-gui (1:8.2.2+ds-0ubuntu1.7) ...
+2025-07-01T14:44:14.0446385Z Selecting previously unselected package qemu-system-modules-spice.
+2025-07-01T14:44:14.0582672Z Preparing to unpack .../90-qemu-system-modules-spice_1%3a8.2.2+ds-0ubuntu1.7_amd64.deb ...
+2025-07-01T14:44:14.0592478Z Unpacking qemu-system-modules-spice (1:8.2.2+ds-0ubuntu1.7) ...
+2025-07-01T14:44:14.0831290Z Selecting previously unselected package qemu-user-static.
+2025-07-01T14:44:14.0966373Z Preparing to unpack .../91-qemu-user-static_1%3a8.2.2+ds-0ubuntu1.7_amd64.deb ...
+2025-07-01T14:44:14.0975010Z Unpacking qemu-user-static (1:8.2.2+ds-0ubuntu1.7) ...
+2025-07-01T14:44:14.5477943Z Selecting previously unselected package ovmf.
+2025-07-01T14:44:14.5613389Z Preparing to unpack .../92-ovmf_2024.02-2ubuntu0.4_all.deb ...
+2025-07-01T14:44:14.5622340Z Unpacking ovmf (2024.02-2ubuntu0.4) ...
+2025-07-01T14:44:14.6225264Z Selecting previously unselected package qemu-efi-aarch64.
+2025-07-01T14:44:14.6359369Z Preparing to unpack .../93-qemu-efi-aarch64_2024.02-2ubuntu0.4_all.deb ...
+2025-07-01T14:44:14.6370970Z Unpacking qemu-efi-aarch64 (2024.02-2ubuntu0.4) ...
+2025-07-01T14:44:15.5404925Z Selecting previously unselected package qemu-efi-arm.
+2025-07-01T14:44:15.5540557Z Preparing to unpack .../94-qemu-efi-arm_2024.02-2ubuntu0.4_all.deb ...
+2025-07-01T14:44:15.5553160Z Unpacking qemu-efi-arm (2024.02-2ubuntu0.4) ...
+2025-07-01T14:44:15.9580189Z Setting up libpipewire-0.3-common (1.0.5-1ubuntu3) ...
+2025-07-01T14:44:15.9606746Z Setting up libcdparanoia0:amd64 (3.10.2+debian-14build3) ...
+2025-07-01T14:44:15.9628605Z Setting up session-migration (0.3.9build1) ...
+2025-07-01T14:44:16.0722477Z Created symlink /etc/systemd/user/graphical-session-pre.target.wants/session-migration.service → /usr/lib/systemd/user/session-migration.service.
+2025-07-01T14:44:16.0723144Z 
+2025-07-01T14:44:16.0756334Z Setting up libraw1394-11:amd64 (2.1.2-2build3) ...
+2025-07-01T14:44:16.0780669Z Setting up libproxy1v5:amd64 (0.5.4-4build1) ...
+2025-07-01T14:44:16.0810061Z Setting up libtag1v5-vanilla:amd64 (1.13.1-1build1) ...
+2025-07-01T14:44:16.0836222Z Setting up libspeex1:amd64 (1.2.1-2ubuntu2.24.04.1) ...
+2025-07-01T14:44:16.0861613Z Setting up libcaca0:amd64 (0.99.beta20-4build2) ...
+2025-07-01T14:44:16.0899847Z Setting up libv4lconvert0t64:amd64 (1.26.1-4build3) ...
+2025-07-01T14:44:16.0923534Z Setting up libtwolame0:amd64 (0.4.0-2build3) ...
+2025-07-01T14:44:16.0946106Z Setting up libvte-2.91-common (0.76.0-1ubuntu0.1) ...
+2025-07-01T14:44:16.0985100Z Setting up libvisual-0.4-0:amd64 (0.4.2-2build1) ...
+2025-07-01T14:44:16.1009024Z Setting up qemu-user-static (1:8.2.2+ds-0ubuntu1.7) ...
+2025-07-01T14:44:16.1059147Z Setting up msr-tools (1.3-5build1) ...
+2025-07-01T14:44:16.1082818Z Setting up libwebrtc-audio-processing1:amd64 (0.3.1-0ubuntu6) ...
+2025-07-01T14:44:16.1105276Z Setting up libboost-thread1.83.0:amd64 (1.83.0-2.1ubuntu3.1) ...
+2025-07-01T14:44:16.1128021Z Setting up libsoup-3.0-common (3.4.4-5ubuntu0.4) ...
+2025-07-01T14:44:16.1154767Z Setting up libmpg123-0t64:amd64 (1.32.5-1ubuntu1.1) ...
+2025-07-01T14:44:16.1183143Z Setting up libfdt1:amd64 (1.7.0-2build1) ...
+2025-07-01T14:44:16.1208843Z Setting up qemu-efi-aarch64 (2024.02-2ubuntu0.4) ...
+2025-07-01T14:44:16.1237918Z Setting up libvte-2.91-0:amd64 (0.76.0-1ubuntu0.1) ...
+2025-07-01T14:44:16.1263879Z Setting up libnfs14:amd64 (5.0.2-1build1) ...
+2025-07-01T14:44:16.1287434Z Setting up liborc-0.4-0t64:amd64 (1:0.4.38-1ubuntu0.1) ...
+2025-07-01T14:44:16.1312138Z Setting up ovmf (2024.02-2ubuntu0.4) ...
+2025-07-01T14:44:16.1336420Z Setting up libvirglrenderer1:amd64 (1.0.0-1ubuntu2) ...
+2025-07-01T14:44:16.1383057Z Setting up libspa-0.2-modules:amd64 (1.0.5-1ubuntu3) ...
+2025-07-01T14:44:16.1415710Z Setting up libboost-iostreams1.83.0:amd64 (1.83.0-2.1ubuntu3.1) ...
+2025-07-01T14:44:16.1445071Z Setting up libopus0:amd64 (1.4-1build1) ...
+2025-07-01T14:44:16.1473028Z Setting up libxv1:amd64 (2:1.0.11-1.1build1) ...
+2025-07-01T14:44:16.1504799Z Setting up libdv4t64:amd64 (1.0.0-17.1build1) ...
+2025-07-01T14:44:16.1537702Z Setting up libpcsclite1:amd64 (2.0.3-1build1) ...
+2025-07-01T14:44:16.1564908Z Setting up libdaxctl1:amd64 (77-2ubuntu2) ...
+2025-07-01T14:44:16.1589574Z Setting up qemu-system-data (1:8.2.2+ds-0ubuntu1.7) ...
+2025-07-01T14:44:16.1616848Z Setting up seabios (1.16.3-2) ...
+2025-07-01T14:44:16.1643470Z Setting up libv4l-0t64:amd64 (1.26.1-4build3) ...
+2025-07-01T14:44:16.1670621Z Setting up libvpx9:amd64 (1.14.0-1ubuntu2.2) ...
+2025-07-01T14:44:16.1697579Z Setting up libtag1v5:amd64 (1.13.1-1build1) ...
+2025-07-01T14:44:16.1752279Z Setting up cpu-checker (0.7-1.3build2) ...
+2025-07-01T14:44:16.1777910Z Setting up libasyncns0:amd64 (0.8-6build4) ...
+2025-07-01T14:44:16.1808001Z Setting up libwavpack1:amd64 (5.6.0-1build1) ...
+2025-07-01T14:44:16.1835789Z Setting up libusbredirparser1t64:amd64 (0.13.0-2.1build1) ...
+2025-07-01T14:44:16.1868071Z Setting up ipxe-qemu (1.21.1+git-20220113.fbbdc3926-0ubuntu2) ...
+2025-07-01T14:44:16.1902530Z Setting up libtheora0:amd64 (1.1.1+dfsg.1-16.1build3) ...
+2025-07-01T14:44:16.1941291Z Setting up libdecor-0-0:amd64 (0.2.2-1build2) ...
+2025-07-01T14:44:16.1989396Z Setting up qemu-efi-arm (2024.02-2ubuntu0.4) ...
+2025-07-01T14:44:16.2025651Z Setting up libndctl6:amd64 (77-2ubuntu2) ...
+2025-07-01T14:44:16.2141419Z Setting up librdmacm1t64:amd64 (50.0-2ubuntu0.2) ...
+2025-07-01T14:44:16.2189594Z Setting up ipxe-qemu-256k-compat-efi-roms (1.0.0+git-20150424.a25a16d-0ubuntu5) ...
+2025-07-01T14:44:16.2224341Z Setting up libflac12t64:amd64 (1.4.3+ds-2.1ubuntu2) ...
+2025-07-01T14:44:16.2266979Z Setting up libbrlapi0.8:amd64 (6.6-4ubuntu5) ...
+2025-07-01T14:44:16.2306310Z Setting up glib-networking-common (2.80.0-1build1) ...
+2025-07-01T14:44:16.2347219Z Setting up liburing2:amd64 (2.5-1build1) ...
+2025-07-01T14:44:16.2397645Z Setting up libiscsi7:amd64 (1.19.0-3build4) ...
+2025-07-01T14:44:16.2437401Z Setting up libsamplerate0:amd64 (0.2.2-4build1) ...
+2025-07-01T14:44:16.2468952Z Setting up libpmem1:amd64 (1.13.1-1.1ubuntu2) ...
+2025-07-01T14:44:16.2546030Z Setting up libpipewire-0.3-0t64:amd64 (1.0.5-1ubuntu3) ...
+2025-07-01T14:44:16.2574505Z Setting up libdecor-0-plugin-1-gtk:amd64 (0.2.2-1build2) ...
+2025-07-01T14:44:16.2602952Z Setting up libmp3lame0:amd64 (3.100-6build1) ...
+2025-07-01T14:44:16.2635188Z Setting up libvorbisenc2:amd64 (1.3.7-1build3) ...
+2025-07-01T14:44:16.2665104Z Setting up libaa1:amd64 (1.4p5-51.1) ...
+2025-07-01T14:44:16.2694713Z Setting up libiec61883-0:amd64 (1.2.0-6build1) ...
+2025-07-01T14:44:16.2733318Z Setting up libavc1394-0:amd64 (0.5.4-5build3) ...
+2025-07-01T14:44:16.2761031Z Setting up gsettings-desktop-schemas (46.1-0ubuntu1) ...
+2025-07-01T14:44:16.2798674Z Setting up glib-networking-services (2.80.0-1build1) ...
+2025-07-01T14:44:16.2831032Z Setting up librados2 (19.2.0-0ubuntu0.24.04.2) ...
+2025-07-01T14:44:16.2861693Z Setting up libgstreamer-plugins-base1.0-0:amd64 (1.24.2-1ubuntu0.2) ...
+2025-07-01T14:44:16.2893801Z Setting up libcacard0:amd64 (1:2.8.0-3build4) ...
+2025-07-01T14:44:16.2927242Z Setting up libgstreamer-plugins-good1.0-0:amd64 (1.24.2-1ubuntu1.1) ...
+2025-07-01T14:44:16.2965511Z Setting up gstreamer1.0-plugins-base:amd64 (1.24.2-1ubuntu0.2) ...
+2025-07-01T14:44:16.2996007Z Setting up libshout3:amd64 (2.4.6-1build2) ...
+2025-07-01T14:44:16.3021107Z Setting up libpmemobj1:amd64 (1.13.1-1.1ubuntu2) ...
+2025-07-01T14:44:16.3056417Z Setting up librbd1 (19.2.0-0ubuntu0.24.04.2) ...
+2025-07-01T14:44:16.3088513Z Setting up libjack-jackd2-0:amd64 (1.9.21~dfsg-3ubuntu3) ...
+2025-07-01T14:44:16.3123044Z Setting up libsndfile1:amd64 (1.2.2-1ubuntu5.24.04.1) ...
+2025-07-01T14:44:16.3152389Z Setting up qemu-utils (1:8.2.2+ds-0ubuntu1.7) ...
+2025-07-01T14:44:16.3183839Z Setting up qemu-block-extra (1:8.2.2+ds-0ubuntu1.7) ...
+2025-07-01T14:44:16.4247331Z Created symlink /etc/systemd/system/multi-user.target.wants/run-qemu.mount → /usr/lib/systemd/system/run-qemu.mount.
+2025-07-01T14:44:16.4247807Z 
+2025-07-01T14:44:17.3074800Z Setting up gstreamer1.0-x:amd64 (1.24.2-1ubuntu0.2) ...
+2025-07-01T14:44:17.3120131Z Setting up qemu-system-common (1:8.2.2+ds-0ubuntu1.7) ...
+2025-07-01T14:44:17.4287508Z Created symlink /etc/systemd/system/multi-user.target.wants/qemu-kvm.service → /usr/lib/systemd/system/qemu-kvm.service.
+2025-07-01T14:44:17.4288384Z 
+2025-07-01T14:44:17.7503353Z Setting up libpulse0:amd64 (1:16.1+dfsg1-2ubuntu10.1) ...
+2025-07-01T14:44:17.7588088Z Setting up qemu-system-mips (1:8.2.2+ds-0ubuntu1.7) ...
+2025-07-01T14:44:17.7656540Z Setting up qemu-system-sparc (1:8.2.2+ds-0ubuntu1.7) ...
+2025-07-01T14:44:17.7728786Z Setting up libspice-server1:amd64 (0.15.1-1build2) ...
+2025-07-01T14:44:17.7879162Z Setting up qemu-system-x86 (1:8.2.2+ds-0ubuntu1.7) ...
+2025-07-01T14:44:17.7955160Z Setting up qemu-system-ppc (1:8.2.2+ds-0ubuntu1.7) ...
+2025-07-01T14:44:17.8026741Z Setting up qemu-system-misc (1:8.2.2+ds-0ubuntu1.7) ...
+2025-07-01T14:44:17.8091071Z Setting up qemu-system-arm (1:8.2.2+ds-0ubuntu1.7) ...
+2025-07-01T14:44:17.8176443Z Setting up qemu-system-s390x (1:8.2.2+ds-0ubuntu1.7) ...
+2025-07-01T14:44:17.8241310Z Setting up libsdl2-2.0-0:amd64 (2.30.0+dfsg-1ubuntu3.1) ...
+2025-07-01T14:44:17.8266419Z Setting up qemu-system-modules-opengl (1:8.2.2+ds-0ubuntu1.7) ...
+2025-07-01T14:44:17.8292323Z Setting up qemu-system-gui (1:8.2.2+ds-0ubuntu1.7) ...
+2025-07-01T14:44:17.8319171Z Setting up qemu-system (1:8.2.2+ds-0ubuntu1.7) ...
+2025-07-01T14:44:17.8346835Z Setting up qemu-system-modules-spice (1:8.2.2+ds-0ubuntu1.7) ...
+2025-07-01T14:44:17.8414678Z Processing triggers for hicolor-icon-theme (0.17-2) ...
+2025-07-01T14:44:18.6189680Z Processing triggers for libc-bin (2.39-0ubuntu8.4) ...
+2025-07-01T14:44:20.0335933Z Processing triggers for systemd (255.4-1ubuntu8.8) ...
+2025-07-01T14:44:20.0846553Z Processing triggers for man-db (2.12.0-4build2) ...
+2025-07-01T14:44:27.7334916Z Processing triggers for libglib2.0-0t64:amd64 (2.80.0-6ubuntu3.4) ...
+2025-07-01T14:44:27.7940194Z Setting up glib-networking:amd64 (2.80.0-1build1) ...
+2025-07-01T14:44:27.7978069Z Setting up libsoup-3.0-0:amd64 (3.4.4-5ubuntu0.4) ...
+2025-07-01T14:44:27.8018837Z Setting up gstreamer1.0-plugins-good:amd64 (1.24.2-1ubuntu1.1) ...
+2025-07-01T14:44:27.8046154Z Processing triggers for libc-bin (2.39-0ubuntu8.4) ...
+2025-07-01T14:44:28.4694197Z 
+2025-07-01T14:44:28.4695023Z Running kernel seems to be up-to-date.
+2025-07-01T14:44:28.4695442Z 
+2025-07-01T14:44:28.4695601Z Restarting services...
+2025-07-01T14:44:28.4762557Z 
+2025-07-01T14:44:28.4762834Z Service restarts being deferred:
+2025-07-01T14:44:28.4764966Z  systemctl restart hosted-compute-agent.service
+2025-07-01T14:44:28.4765323Z 
+2025-07-01T14:44:28.4765639Z No containers need to be restarted.
+2025-07-01T14:44:28.4765949Z 
+2025-07-01T14:44:28.4766126Z No user sessions are running outdated binaries.
+2025-07-01T14:44:28.4766435Z 
+2025-07-01T14:44:28.4766996Z No VM guests are running outdated hypervisor (qemu) binaries on this host.
+2025-07-01T14:44:29.4175250Z ##[group]Run ./scripts/run_task.sh test-build-image
+2025-07-01T14:44:29.4175628Z [36;1m./scripts/run_task.sh test-build-image[0m
+2025-07-01T14:44:29.4237005Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2025-07-01T14:44:29.4237317Z ##[endgroup]
+2025-07-01T14:44:29.9880960Z go: downloading github.com/go-task/task/v3 v3.39.2
+2025-07-01T14:44:30.2629451Z go: downloading github.com/spf13/pflag v1.0.5
+2025-07-01T14:44:30.2630072Z go: downloading mvdan.cc/sh/v3 v3.9.0
+2025-07-01T14:44:30.3196664Z go: downloading github.com/Masterminds/semver/v3 v3.3.0
+2025-07-01T14:44:30.3204172Z go: downloading github.com/alecthomas/chroma/v2 v2.14.0
+2025-07-01T14:44:30.3840741Z go: downloading github.com/fatih/color v1.17.0
+2025-07-01T14:44:30.4077718Z go: downloading gopkg.in/yaml.v3 v3.0.1
+2025-07-01T14:44:30.6195468Z go: downloading github.com/Ladicle/tabwriter v1.0.0
+2025-07-01T14:44:30.6218597Z go: downloading github.com/joho/godotenv v1.5.1
+2025-07-01T14:44:30.6609789Z go: downloading github.com/dominikbraun/graph v0.23.0
+2025-07-01T14:44:30.6627812Z go: downloading golang.org/x/sync v0.8.0
+2025-07-01T14:44:30.6836767Z go: downloading github.com/radovskyb/watcher v1.0.7
+2025-07-01T14:44:30.6884404Z go: downloading github.com/sajari/fuzzy v1.0.0
+2025-07-01T14:44:32.0246805Z go: downloading github.com/mattn/go-colorable v0.1.13
+2025-07-01T14:44:32.0453581Z go: downloading github.com/mattn/go-isatty v0.0.20
+2025-07-01T14:44:32.0780131Z go: downloading github.com/muesli/cancelreader v0.2.2
+2025-07-01T14:44:32.1004953Z go: downloading golang.org/x/sys v0.25.0
+2025-07-01T14:44:32.1382130Z go: downloading golang.org/x/term v0.24.0
+2025-07-01T14:44:32.3764240Z go: downloading github.com/dlclark/regexp2 v1.11.0
+2025-07-01T14:44:32.4756283Z go: downloading github.com/davecgh/go-spew v1.1.1
+2025-07-01T14:44:32.4868334Z go: downloading github.com/go-task/slim-sprig/v3 v3.0.0
+2025-07-01T14:44:32.5056591Z go: downloading github.com/go-task/template v0.1.0
+2025-07-01T14:44:32.5109374Z go: downloading github.com/mattn/go-zglob v0.0.6
+2025-07-01T14:44:32.5333326Z go: downloading github.com/zeebo/xxh3 v1.0.2
+2025-07-01T14:44:32.5359159Z go: downloading github.com/mitchellh/hashstructure/v2 v2.0.2
+2025-07-01T14:44:32.9695359Z go: downloading github.com/klauspost/cpuid/v2 v2.0.9
+2025-07-01T14:44:49.7271849Z task: [test-build-image] bash -x scripts/tests.build_docker_image.sh
+2025-07-01T14:44:49.7291981Z + set -euo pipefail
+2025-07-01T14:44:49.7297565Z +++ dirname scripts/tests.build_docker_image.sh
+2025-07-01T14:44:49.7307211Z ++ cd scripts
+2025-07-01T14:44:49.7307513Z ++ cd ..
+2025-07-01T14:44:49.7307774Z ++ pwd
+2025-07-01T14:44:49.7310101Z + SUBNET_EVM_PATH=/home/runner/work/subnet-evm/subnet-evm
+2025-07-01T14:44:49.7311505Z + source /home/runner/work/subnet-evm/subnet-evm/scripts/constants.sh
+2025-07-01T14:44:49.7312530Z ++ set -euo pipefail
+2025-07-01T14:44:49.7313315Z +++ go env GOPATH
+2025-07-01T14:44:49.7339965Z ++ GOPATH=/home/runner/go
+2025-07-01T14:44:49.7340632Z ++ DEFAULT_PLUGIN_DIR=/home/runner/.avalanchego/plugins
+2025-07-01T14:44:49.7341139Z ++ DEFAULT_VM_NAME=subnet-evm
+2025-07-01T14:44:49.7341677Z ++ DEFAULT_VM_ID=srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
+2025-07-01T14:44:49.7342265Z ++ IMAGE_NAME=subnet-evm_avalanchego
+2025-07-01T14:44:49.7342705Z ++ AVALANCHEGO_IMAGE_NAME=avaplatform/avalanchego
+2025-07-01T14:44:49.7343156Z ++ '[' '!' -d .git ']'
+2025-07-01T14:44:49.7345883Z +++ git describe --tags --exact-match
+2025-07-01T14:44:49.7363745Z +++ git symbolic-ref -q --short HEAD
+2025-07-01T14:44:49.7381556Z +++ git rev-parse --short HEAD
+2025-07-01T14:44:49.7397665Z ++ CURRENT_BRANCH=c46a4f1
+2025-07-01T14:44:49.7400176Z +++ git --git-dir=/home/runner/work/subnet-evm/subnet-evm/.git rev-parse HEAD
+2025-07-01T14:44:49.7416148Z ++ SUBNET_EVM_COMMIT=c46a4f11ecd55a5ab361920393adf5859e0dc097
+2025-07-01T14:44:49.7416847Z ++ [[ -z '' ]]
+2025-07-01T14:44:49.7419564Z +++ go list -m github.com/ava-labs/avalanchego
+2025-07-01T14:44:49.8017763Z ++ MODULE_DETAILS='github.com/ava-labs/avalanchego v1.13.2'
+2025-07-01T14:44:49.8021950Z +++ echo 'github.com/ava-labs/avalanchego v1.13.2'
+2025-07-01T14:44:49.8022909Z +++ awk '{print $2}'
+2025-07-01T14:44:49.8045971Z ++ AVALANCHE_VERSION=v1.13.2
+2025-07-01T14:44:49.8046443Z ++ [[ v1.13.2 =~ ^v.*[0-9]{14}-[0-9a-f]{12}$ ]]
+2025-07-01T14:44:49.8047135Z ++ DOCKERHUB_TAG=c46a4f11_v1.13.2
+2025-07-01T14:44:49.8047560Z ++ BUILD_IMAGE_ID=c46a4f1_v1.13.2
+2025-07-01T14:44:49.8047972Z ++ echo 'Using branch: c46a4f1'
+2025-07-01T14:44:49.8048346Z ++ STATIC_LD_FLAGS=
+2025-07-01T14:44:49.8048663Z ++ '[' '' = 1 ']'
+2025-07-01T14:44:49.8049025Z ++ export 'CGO_CFLAGS=-O2 -D__BLST_PORTABLE__'
+2025-07-01T14:44:49.8049516Z ++ CGO_CFLAGS='-O2 -D__BLST_PORTABLE__'
+2025-07-01T14:44:49.8049930Z ++ export CGO_ENABLED=1
+2025-07-01T14:44:49.8050476Z ++ CGO_ENABLED=1
+2025-07-01T14:44:49.8050930Z + VM_ID=srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
+2025-07-01T14:44:49.8051475Z + echo 'checking build of single-arch image'
+2025-07-01T14:44:49.8052350Z + build_and_test subnet-evm_avalanchego srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy false avalanchego
+2025-07-01T14:44:49.8053249Z + local imagename=subnet-evm_avalanchego
+2025-07-01T14:44:49.8053654Z + local vm_id=srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
+2025-07-01T14:44:49.8054005Z + local multiarch_image=false
+2025-07-01T14:44:49.8054269Z + local avalanchego_local_image_name=avalanchego
+2025-07-01T14:44:49.8054657Z Using branch: c46a4f1
+2025-07-01T14:44:49.8054989Z checking build of single-arch image
+2025-07-01T14:44:49.8055359Z + [[ false == true ]]
+2025-07-01T14:44:49.8055621Z + local host_arch
+2025-07-01T14:44:49.8055804Z ++ go env GOARCH
+2025-07-01T14:44:49.8080003Z + host_arch=amd64
+2025-07-01T14:44:49.8080547Z + local arches=linux/amd64
+2025-07-01T14:44:49.8080884Z + local imgtag=testtag
+2025-07-01T14:44:49.8081215Z + PLATFORMS=linux/amd64
+2025-07-01T14:44:49.8081543Z + BUILD_IMAGE_ID=testtag
+2025-07-01T14:44:49.8082017Z + VM_ID=srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
+2025-07-01T14:44:49.8082564Z + IMAGE_NAME=subnet-evm_avalanchego
+2025-07-01T14:44:49.8082978Z + AVALANCHEGO_LOCAL_IMAGE_NAME=avalanchego
+2025-07-01T14:44:49.8083387Z + ./scripts/build_docker_image.sh
+2025-07-01T14:44:49.8290028Z Using branch: c46a4f1
+2025-07-01T14:44:50.3343285Z v1.13.2: Pulling from avaplatform/avalanchego
+2025-07-01T14:44:50.5049139Z dad67da3f26b: Pulling fs layer
+2025-07-01T14:44:50.5049650Z db6e49493072: Pulling fs layer
+2025-07-01T14:44:50.5050108Z 4f4fb700ef54: Pulling fs layer
+2025-07-01T14:44:50.5050724Z 1814880c8843: Pulling fs layer
+2025-07-01T14:44:50.5051102Z 1814880c8843: Waiting
+2025-07-01T14:44:50.6184535Z 4f4fb700ef54: Verifying Checksum
+2025-07-01T14:44:50.6185439Z 4f4fb700ef54: Download complete
+2025-07-01T14:44:50.6483969Z db6e49493072: Download complete
+2025-07-01T14:44:50.8436182Z dad67da3f26b: Verifying Checksum
+2025-07-01T14:44:50.8436633Z dad67da3f26b: Download complete
+2025-07-01T14:44:50.9684206Z 1814880c8843: Verifying Checksum
+2025-07-01T14:44:50.9685109Z 1814880c8843: Download complete
+2025-07-01T14:44:51.9146044Z dad67da3f26b: Pull complete
+2025-07-01T14:44:53.0637092Z db6e49493072: Pull complete
+2025-07-01T14:44:53.0750685Z 4f4fb700ef54: Pull complete
+2025-07-01T14:44:53.4558626Z 1814880c8843: Pull complete
+2025-07-01T14:44:53.4597346Z Digest: sha256:6b92161ac0297783753016a9cd4f35eefaaf9d8c9ae150befd3f64967b0f053b
+2025-07-01T14:44:53.4611494Z Status: Downloaded newer image for avaplatform/avalanchego:v1.13.2
+2025-07-01T14:44:53.4620844Z docker.io/avaplatform/avalanchego:v1.13.2
+2025-07-01T14:44:53.4637849Z Building Docker Image: subnet-evm_avalanchego:testtag based of AvalancheGo@v1.13.2
+2025-07-01T14:44:53.9560874Z #0 building with "default" instance using docker driver
+2025-07-01T14:44:53.9561410Z 
+2025-07-01T14:44:53.9561664Z #1 [internal] load build definition from Dockerfile
+2025-07-01T14:44:53.9562290Z #1 transferring dockerfile: 2.42kB done
+2025-07-01T14:44:53.9562807Z #1 DONE 0.0s
+2025-07-01T14:44:53.9563019Z 
+2025-07-01T14:44:53.9563952Z #2 [internal] load metadata for docker.io/avaplatform/avalanchego:v1.13.2
+2025-07-01T14:44:53.9564534Z #2 DONE 0.0s
+2025-07-01T14:44:53.9564666Z 
+2025-07-01T14:44:53.9564861Z #3 [auth] library/golang:pull token for registry-1.docker.io
+2025-07-01T14:44:53.9565264Z #3 DONE 0.0s
+2025-07-01T14:44:53.9565394Z 
+2025-07-01T14:44:53.9565632Z #4 [internal] load metadata for docker.io/library/golang:1.23.9-bookworm
+2025-07-01T14:44:54.1742056Z #4 DONE 0.4s
+2025-07-01T14:44:54.2945633Z 
+2025-07-01T14:44:54.2946189Z #5 [internal] load .dockerignore
+2025-07-01T14:44:54.2946691Z #5 transferring context: 105B done
+2025-07-01T14:44:54.2947090Z #5 DONE 0.0s
+2025-07-01T14:44:54.2947258Z 
+2025-07-01T14:44:54.2947530Z #6 [execution 1/2] FROM docker.io/avaplatform/avalanchego:v1.13.2
+2025-07-01T14:44:54.2948081Z #6 DONE 0.0s
+2025-07-01T14:44:54.2948252Z 
+2025-07-01T14:44:54.2948932Z #7 [builder 1/8] FROM docker.io/library/golang:1.23.9-bookworm@sha256:6a3aa4fd2c3e15bc8cb450e4a0ae353fb73b5f593bcbb5b25ffeee860cc2ec2a
+2025-07-01T14:44:54.2950607Z #7 resolve docker.io/library/golang:1.23.9-bookworm@sha256:6a3aa4fd2c3e15bc8cb450e4a0ae353fb73b5f593bcbb5b25ffeee860cc2ec2a done
+2025-07-01T14:44:54.2951837Z #7 sha256:6a3aa4fd2c3e15bc8cb450e4a0ae353fb73b5f593bcbb5b25ffeee860cc2ec2a 9.10kB / 9.10kB done
+2025-07-01T14:44:54.2952877Z #7 sha256:0c9738aabadd34e99cf5263ae1337ad5330126c87a1fab4ffabec2284944c991 2.32kB / 2.32kB done
+2025-07-01T14:44:54.2953852Z #7 sha256:37927ed901b1b2608b72796c6881bf645480268eca4ac9a37b9219e050bb4d84 0B / 24.02MB 0.1s
+2025-07-01T14:44:54.2954840Z #7 sha256:7a0d537c74048d90164dee15b033ba23c217803a53cd9e2efc48482d9b7b4e51 2.80kB / 2.80kB done
+2025-07-01T14:44:54.2955871Z #7 sha256:3e6b9d1a95114e19f12262a4e8a59ad1d1a10ca7b82108adcf0605a200294964 5.62MB / 48.49MB 0.1s
+2025-07-01T14:44:54.2956897Z #7 sha256:79b2f47ad4443652b9b5cc81a95ede249fd976310efdbee159f29638783778c0 0B / 64.40MB 0.1s
+2025-07-01T14:44:54.4940788Z #7 ...
+2025-07-01T14:44:54.4941052Z 
+2025-07-01T14:44:54.4941200Z #8 [internal] load build context
+2025-07-01T14:44:54.4941679Z #8 transferring context: 13.11MB 0.2s done
+2025-07-01T14:44:54.4941970Z #8 DONE 0.2s
+2025-07-01T14:44:54.4942091Z 
+2025-07-01T14:44:54.4942727Z #7 [builder 1/8] FROM docker.io/library/golang:1.23.9-bookworm@sha256:6a3aa4fd2c3e15bc8cb450e4a0ae353fb73b5f593bcbb5b25ffeee860cc2ec2a
+2025-07-01T14:44:54.4944085Z #7 sha256:37927ed901b1b2608b72796c6881bf645480268eca4ac9a37b9219e050bb4d84 9.44MB / 24.02MB 0.3s
+2025-07-01T14:44:54.4945251Z #7 sha256:3e6b9d1a95114e19f12262a4e8a59ad1d1a10ca7b82108adcf0605a200294964 28.31MB / 48.49MB 0.3s
+2025-07-01T14:44:54.4946058Z #7 sha256:79b2f47ad4443652b9b5cc81a95ede249fd976310efdbee159f29638783778c0 17.83MB / 64.40MB 0.3s
+2025-07-01T14:44:54.6864349Z #7 sha256:37927ed901b1b2608b72796c6881bf645480268eca4ac9a37b9219e050bb4d84 20.97MB / 24.02MB 0.4s
+2025-07-01T14:44:54.6865523Z #7 sha256:3e6b9d1a95114e19f12262a4e8a59ad1d1a10ca7b82108adcf0605a200294964 39.85MB / 48.49MB 0.4s
+2025-07-01T14:44:54.6866649Z #7 sha256:79b2f47ad4443652b9b5cc81a95ede249fd976310efdbee159f29638783778c0 23.07MB / 64.40MB 0.4s
+2025-07-01T14:44:54.6868001Z #7 extracting sha256:3e6b9d1a95114e19f12262a4e8a59ad1d1a10ca7b82108adcf0605a200294964
+2025-07-01T14:44:54.7924969Z #7 sha256:37927ed901b1b2608b72796c6881bf645480268eca4ac9a37b9219e050bb4d84 24.02MB / 24.02MB 0.4s done
+2025-07-01T14:44:54.7926166Z #7 sha256:3e6b9d1a95114e19f12262a4e8a59ad1d1a10ca7b82108adcf0605a200294964 48.49MB / 48.49MB 0.4s done
+2025-07-01T14:44:54.7927556Z #7 sha256:79b2f47ad4443652b9b5cc81a95ede249fd976310efdbee159f29638783778c0 31.46MB / 64.40MB 0.5s
+2025-07-01T14:44:54.7928569Z #7 sha256:86e38a7bd2e6ef4808a08ab7f5de538ee046e73d5eed810956ebe5e2dd30967f 0B / 92.34MB 0.5s
+2025-07-01T14:44:54.7929546Z #7 sha256:e10405b45d13228df144c8d42d389347041bf176392f5f9606fc4a4d7826647d 0B / 74.06MB 0.5s
+2025-07-01T14:44:54.8939847Z #7 sha256:79b2f47ad4443652b9b5cc81a95ede249fd976310efdbee159f29638783778c0 59.74MB / 64.40MB 0.7s
+2025-07-01T14:44:54.8942239Z #7 sha256:86e38a7bd2e6ef4808a08ab7f5de538ee046e73d5eed810956ebe5e2dd30967f 12.58MB / 92.34MB 0.7s
+2025-07-01T14:44:54.8943557Z #7 sha256:e10405b45d13228df144c8d42d389347041bf176392f5f9606fc4a4d7826647d 16.78MB / 74.06MB 0.7s
+2025-07-01T14:44:55.0205812Z #7 sha256:79b2f47ad4443652b9b5cc81a95ede249fd976310efdbee159f29638783778c0 64.40MB / 64.40MB 0.8s done
+2025-07-01T14:44:55.0206954Z #7 sha256:e10405b45d13228df144c8d42d389347041bf176392f5f9606fc4a4d7826647d 24.12MB / 74.06MB 0.8s
+2025-07-01T14:44:55.0207989Z #7 sha256:05996fe98294b61bc5bf02c69305b84d9db840baad71fd1b5c2fd7cf1686088c 0B / 126B 0.8s
+2025-07-01T14:44:55.1254000Z #7 sha256:86e38a7bd2e6ef4808a08ab7f5de538ee046e73d5eed810956ebe5e2dd30967f 18.87MB / 92.34MB 0.9s
+2025-07-01T14:44:55.1255361Z #7 sha256:e10405b45d13228df144c8d42d389347041bf176392f5f9606fc4a4d7826647d 31.54MB / 74.06MB 0.9s
+2025-07-01T14:44:55.1256413Z #7 sha256:05996fe98294b61bc5bf02c69305b84d9db840baad71fd1b5c2fd7cf1686088c 126B / 126B 0.9s done
+2025-07-01T14:44:55.1257417Z #7 sha256:4f4fb700ef54461cfa02571ae0db9a0dc1e0cdb5577484a6d75e68dc38e8acc1 0B / 32B 0.9s
+2025-07-01T14:44:55.2937537Z #7 sha256:86e38a7bd2e6ef4808a08ab7f5de538ee046e73d5eed810956ebe5e2dd30967f 44.10MB / 92.34MB 1.1s
+2025-07-01T14:44:55.2941848Z #7 sha256:e10405b45d13228df144c8d42d389347041bf176392f5f9606fc4a4d7826647d 61.87MB / 74.06MB 1.1s
+2025-07-01T14:44:55.2943332Z #7 sha256:4f4fb700ef54461cfa02571ae0db9a0dc1e0cdb5577484a6d75e68dc38e8acc1 32B / 32B 0.9s done
+2025-07-01T14:44:55.4262225Z #7 sha256:86e38a7bd2e6ef4808a08ab7f5de538ee046e73d5eed810956ebe5e2dd30967f 65.01MB / 92.34MB 1.2s
+2025-07-01T14:44:55.4263750Z #7 sha256:e10405b45d13228df144c8d42d389347041bf176392f5f9606fc4a4d7826647d 74.06MB / 74.06MB 1.2s done
+2025-07-01T14:44:55.5266516Z #7 sha256:86e38a7bd2e6ef4808a08ab7f5de538ee046e73d5eed810956ebe5e2dd30967f 79.69MB / 92.34MB 1.3s
+2025-07-01T14:44:55.6366917Z #7 sha256:86e38a7bd2e6ef4808a08ab7f5de538ee046e73d5eed810956ebe5e2dd30967f 92.34MB / 92.34MB 1.4s done
+2025-07-01T14:44:56.3912667Z #7 extracting sha256:3e6b9d1a95114e19f12262a4e8a59ad1d1a10ca7b82108adcf0605a200294964 1.7s done
+2025-07-01T14:44:56.5569420Z #7 extracting sha256:37927ed901b1b2608b72796c6881bf645480268eca4ac9a37b9219e050bb4d84 0.1s
+2025-07-01T14:44:57.1062568Z #7 extracting sha256:37927ed901b1b2608b72796c6881bf645480268eca4ac9a37b9219e050bb4d84 0.5s done
+2025-07-01T14:44:57.2760034Z #7 extracting sha256:79b2f47ad4443652b9b5cc81a95ede249fd976310efdbee159f29638783778c0
+2025-07-01T14:44:59.4741807Z #7 extracting sha256:79b2f47ad4443652b9b5cc81a95ede249fd976310efdbee159f29638783778c0 2.0s done
+2025-07-01T14:44:59.5557378Z #7 extracting sha256:86e38a7bd2e6ef4808a08ab7f5de538ee046e73d5eed810956ebe5e2dd30967f
+2025-07-01T14:45:01.5302676Z #7 extracting sha256:86e38a7bd2e6ef4808a08ab7f5de538ee046e73d5eed810956ebe5e2dd30967f 1.8s done
+2025-07-01T14:45:01.7814925Z #7 extracting sha256:e10405b45d13228df144c8d42d389347041bf176392f5f9606fc4a4d7826647d
+2025-07-01T14:45:05.8411467Z #7 extracting sha256:e10405b45d13228df144c8d42d389347041bf176392f5f9606fc4a4d7826647d 3.9s done
+2025-07-01T14:45:06.3682111Z #7 extracting sha256:05996fe98294b61bc5bf02c69305b84d9db840baad71fd1b5c2fd7cf1686088c
+2025-07-01T14:45:06.5979956Z #7 extracting sha256:05996fe98294b61bc5bf02c69305b84d9db840baad71fd1b5c2fd7cf1686088c done
+2025-07-01T14:45:06.5980837Z #7 extracting sha256:4f4fb700ef54461cfa02571ae0db9a0dc1e0cdb5577484a6d75e68dc38e8acc1 done
+2025-07-01T14:45:06.5981247Z #7 DONE 12.2s
+2025-07-01T14:45:06.5981358Z 
+2025-07-01T14:45:06.5981447Z #9 [builder 2/8] WORKDIR /build
+2025-07-01T14:45:06.5981909Z #9 DONE 0.0s
+2025-07-01T14:45:06.5982011Z 
+2025-07-01T14:45:06.5982132Z #10 [builder 3/8] COPY go.mod go.sum avalanchego* ./
+2025-07-01T14:45:06.5982397Z #10 DONE 0.0s
+2025-07-01T14:45:06.5982500Z 
+2025-07-01T14:45:06.5982610Z #11 [builder 4/8] RUN go mod download && go mod tidy
+2025-07-01T14:45:12.9639510Z #11 6.516 go: warning: "all" matched no packages
+2025-07-01T14:45:14.4194352Z #11 DONE 8.0s
+2025-07-01T14:45:14.5674472Z 
+2025-07-01T14:45:14.5674935Z #12 [builder 5/8] COPY . .
+2025-07-01T14:45:14.5675324Z #12 DONE 0.1s
+2025-07-01T14:45:14.6906950Z 
+2025-07-01T14:45:14.6908029Z #13 [builder 6/8] RUN [ -d ./build ] && rm -rf ./build/* || true
+2025-07-01T14:45:14.6908575Z #13 DONE 0.1s
+2025-07-01T14:45:14.8276762Z 
+2025-07-01T14:45:14.8279193Z #14 [builder 7/8] RUN if [ "linux/amd64" = "linux/arm64" ] && [ "linux/amd64" != "linux/arm64" ]; then   apt-get update && apt-get install -y gcc-aarch64-linux-gnu &&   echo "export CC=aarch64-linux-gnu-gcc" > ./build_env.sh   ; elif [ "linux/amd64" = "linux/amd64" ] && [ "linux/amd64" != "linux/amd64" ]; then   apt-get update && apt-get install -y gcc-x86-64-linux-gnu &&   echo "export CC=x86_64-linux-gnu-gcc" > ./build_env.sh   ; else   echo "export CC=gcc" > ./build_env.sh   ; fi
+2025-07-01T14:45:14.8285702Z #14 DONE 0.1s
+2025-07-01T14:45:14.9415629Z 
+2025-07-01T14:45:14.9419119Z #15 [builder 8/8] RUN . ./build_env.sh &&   echo "{CC=$CC, TARGETPLATFORM=linux/amd64, BUILDPLATFORM=linux/amd64}" &&   export GOARCH=$(echo linux/amd64 | cut -d / -f2) &&   export CURRENT_BRANCH=c46a4f1 &&   export SUBNET_EVM_COMMIT=c46a4f11ecd55a5ab361920393adf5859e0dc097 &&   ./scripts/build.sh build/subnet-evm
+2025-07-01T14:45:14.9421352Z #15 0.113 {CC=gcc, TARGETPLATFORM=linux/amd64, BUILDPLATFORM=linux/amd64}
+2025-07-01T14:45:15.1117988Z #15 0.133 Using branch: c46a4f1
+2025-07-01T14:45:15.1118501Z #15 0.133 Building Subnet EVM @ GitCommit: c46a4f11ecd55a5ab361920393adf5859e0dc097 at build/subnet-evm
+2025-07-01T14:46:22.4673917Z #15 DONE 67.6s
+2025-07-01T14:46:22.6250856Z 
+2025-07-01T14:46:22.6251752Z #16 [execution 2/2] COPY --from=builder /build/build/subnet-evm /avalanchego/build/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
+2025-07-01T14:46:22.6253222Z #16 DONE 0.1s
+2025-07-01T14:46:22.7765576Z 
+2025-07-01T14:46:22.7766201Z #17 exporting to image
+2025-07-01T14:46:22.7766572Z #17 exporting layers
+2025-07-01T14:46:23.0052226Z #17 exporting layers 0.4s done
+2025-07-01T14:46:23.0261500Z #17 writing image sha256:4fdda13066b53bcf1c8c66eabab4b2a3190bc2f0904c3629bb0acb5504834283 done
+2025-07-01T14:46:23.0263182Z #17 naming to docker.io/library/subnet-evm_avalanchego:testtag done
+2025-07-01T14:46:23.0264622Z #17 naming to docker.io/library/subnet-evm_avalanchego:c46a4f11_v1.13.2 done
+2025-07-01T14:46:23.0265280Z #17 DONE 0.4s
+2025-07-01T14:46:23.0307370Z + echo 'listing images'
+2025-07-01T14:46:23.0307739Z listing images
+2025-07-01T14:46:23.0308024Z + docker images
+2025-07-01T14:46:23.0423312Z REPOSITORY                TAG                IMAGE ID       CREATED        SIZE
+2025-07-01T14:46:23.0424120Z subnet-evm_avalanchego    c46a4f11_v1.13.2   4fdda13066b5   1 second ago   215MB
+2025-07-01T14:46:23.0424891Z subnet-evm_avalanchego    testtag            4fdda13066b5   1 second ago   215MB
+2025-07-01T14:46:23.0425683Z avaplatform/avalanchego   v1.13.2            d15023d3a8cf   6 days ago     159MB
+2025-07-01T14:46:23.0437061Z + target_images=('subnet-evm_avalanchego:testtag' 'subnet-evm_avalanchego:c46a4f11_v1.13.2')
+2025-07-01T14:46:23.0437778Z + local target_images
+2025-07-01T14:46:23.0438047Z + IFS=,
+2025-07-01T14:46:23.0438314Z + read -r -a archarray
+2025-07-01T14:46:23.0438661Z + for arch in "${archarray[@]}"
+2025-07-01T14:46:23.0439049Z + for target_image in "${target_images[@]}"
+2025-07-01T14:46:23.0440093Z + echo 'checking sanity of image subnet-evm_avalanchego:testtag for linux/amd64 by running '\''srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy version'\'''
+2025-07-01T14:46:23.0441939Z checking sanity of image subnet-evm_avalanchego:testtag for linux/amd64 by running 'srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy version'
+2025-07-01T14:46:23.0443864Z + docker run -t --rm --platform linux/amd64 subnet-evm_avalanchego:testtag /avalanchego/build/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy --version
+2025-07-01T14:46:23.2308508Z Subnet-EVM/v0.7.5@c46a4f11ecd55a5ab361920393adf5859e0dc097 [AvalancheGo=v1.13.2, rpcchainvm=41]
+2025-07-01T14:46:23.3037213Z + for target_image in "${target_images[@]}"
+2025-07-01T14:46:23.3038154Z checking sanity of image subnet-evm_avalanchego:c46a4f11_v1.13.2 for linux/amd64 by running 'srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy version'
+2025-07-01T14:46:23.3039652Z + echo 'checking sanity of image subnet-evm_avalanchego:c46a4f11_v1.13.2 for linux/amd64 by running '\''srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy version'\'''
+2025-07-01T14:46:23.3041180Z + docker run -t --rm --platform linux/amd64 subnet-evm_avalanchego:c46a4f11_v1.13.2 /avalanchego/build/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy --version
+2025-07-01T14:46:23.4455856Z Subnet-EVM/v0.7.5@c46a4f11ecd55a5ab361920393adf5859e0dc097 [AvalancheGo=v1.13.2, rpcchainvm=41]
+2025-07-01T14:46:23.5108212Z + echo 'starting local docker registry to allow verification of multi-arch image builds'
+2025-07-01T14:46:23.5131330Z starting local docker registry to allow verification of multi-arch image builds
+2025-07-01T14:46:23.5132032Z ++ docker run --rm -d -P registry:2
+2025-07-01T14:46:23.5221914Z Unable to find image 'registry:2' locally
+2025-07-01T14:46:23.9104044Z 2: Pulling from library/registry
+2025-07-01T14:46:24.0374019Z 44cf07d57ee4: Pulling fs layer
+2025-07-01T14:46:24.0374547Z bbbdd6c6894b: Pulling fs layer
+2025-07-01T14:46:24.0374879Z 8e82f80af0de: Pulling fs layer
+2025-07-01T14:46:24.0375160Z 3493bf46cdec: Pulling fs layer
+2025-07-01T14:46:24.0375552Z 6d464ea18732: Pulling fs layer
+2025-07-01T14:46:24.0375886Z 3493bf46cdec: Waiting
+2025-07-01T14:46:24.0376211Z 6d464ea18732: Waiting
+2025-07-01T14:46:24.1712383Z bbbdd6c6894b: Verifying Checksum
+2025-07-01T14:46:24.1713754Z bbbdd6c6894b: Download complete
+2025-07-01T14:46:24.1839455Z 44cf07d57ee4: Verifying Checksum
+2025-07-01T14:46:24.1840489Z 44cf07d57ee4: Download complete
+2025-07-01T14:46:24.2025692Z 8e82f80af0de: Download complete
+2025-07-01T14:46:24.2853510Z 3493bf46cdec: Verifying Checksum
+2025-07-01T14:46:24.2853868Z 3493bf46cdec: Download complete
+2025-07-01T14:46:24.2863226Z 44cf07d57ee4: Pull complete
+2025-07-01T14:46:24.2926939Z 6d464ea18732: Verifying Checksum
+2025-07-01T14:46:24.2927355Z 6d464ea18732: Download complete
+2025-07-01T14:46:24.3862062Z bbbdd6c6894b: Pull complete
+2025-07-01T14:46:24.4768891Z 8e82f80af0de: Pull complete
+2025-07-01T14:46:24.4859650Z 3493bf46cdec: Pull complete
+2025-07-01T14:46:24.4941895Z 6d464ea18732: Pull complete
+2025-07-01T14:46:24.4976362Z Digest: sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373
+2025-07-01T14:46:24.4986594Z Status: Downloaded newer image for registry:2
+2025-07-01T14:46:24.6364960Z + REGISTRY_CONTAINER_ID=64676ab7401966b8fe92b630ed804f14d3ad94125cd0b93080e9d94df8e274f4
+2025-07-01T14:46:24.6372706Z ++ docker port 64676ab7401966b8fe92b630ed804f14d3ad94125cd0b93080e9d94df8e274f4 5000/tcp
+2025-07-01T14:46:24.6385374Z ++ grep -v ::
+2025-07-01T14:46:24.6385715Z ++ awk -F: '{print $NF}'
+2025-07-01T14:46:24.6512808Z + REGISTRY_PORT=32768
+2025-07-01T14:46:24.6513307Z starting docker builder that supports multiplatform builds
+2025-07-01T14:46:24.6513971Z + echo 'starting docker builder that supports multiplatform builds'
+2025-07-01T14:46:24.6514700Z + docker buildx create --use --name ci-builder --driver-opt network=host
+2025-07-01T14:46:24.6914730Z ci-builder
+2025-07-01T14:46:24.6946157Z + trap cleanup EXIT
+2025-07-01T14:46:24.6946530Z checking build of multi-arch images
+2025-07-01T14:46:24.6947020Z + echo 'checking build of multi-arch images'
+2025-07-01T14:46:24.6948065Z + build_and_test localhost:32768/subnet-evm_avalanchego srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy true localhost:32768/avalanchego
+2025-07-01T14:46:24.6949150Z + local imagename=localhost:32768/subnet-evm_avalanchego
+2025-07-01T14:46:24.6950062Z + local vm_id=srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
+2025-07-01T14:46:24.6950834Z + local multiarch_image=true
+2025-07-01T14:46:24.6951359Z + local avalanchego_local_image_name=localhost:32768/avalanchego
+2025-07-01T14:46:24.6951879Z + [[ true == true ]]
+2025-07-01T14:46:24.6952246Z + local arches=linux/amd64,linux/arm64
+2025-07-01T14:46:24.6952525Z + local imgtag=testtag
+2025-07-01T14:46:24.6952741Z + PLATFORMS=linux/amd64,linux/arm64
+2025-07-01T14:46:24.6952980Z + BUILD_IMAGE_ID=testtag
+2025-07-01T14:46:24.6953468Z + VM_ID=srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
+2025-07-01T14:46:24.6953832Z + IMAGE_NAME=localhost:32768/subnet-evm_avalanchego
+2025-07-01T14:46:24.6954163Z + AVALANCHEGO_LOCAL_IMAGE_NAME=localhost:32768/avalanchego
+2025-07-01T14:46:24.6954470Z + ./scripts/build_docker_image.sh
+2025-07-01T14:46:24.7162255Z Using branch: c46a4f1
+2025-07-01T14:46:25.0172373Z v1.13.2: Pulling from avaplatform/avalanchego
+2025-07-01T14:46:25.0223796Z Digest: sha256:6b92161ac0297783753016a9cd4f35eefaaf9d8c9ae150befd3f64967b0f053b
+2025-07-01T14:46:25.0224948Z Status: Image is up to date for avaplatform/avalanchego:v1.13.2
+2025-07-01T14:46:25.0231849Z docker.io/avaplatform/avalanchego:v1.13.2
+2025-07-01T14:46:25.0247752Z Building Docker Image: localhost:32768/subnet-evm_avalanchego:testtag based of AvalancheGo@v1.13.2
+2025-07-01T14:46:25.0735399Z #0 building with "ci-builder" instance using docker-container driver
+2025-07-01T14:46:25.0735878Z 
+2025-07-01T14:46:25.0736028Z #1 [internal] booting buildkit
+2025-07-01T14:46:25.2242314Z #1 pulling image moby/buildkit:buildx-stable-1
+2025-07-01T14:46:27.6856601Z #1 pulling image moby/buildkit:buildx-stable-1 2.6s done
+2025-07-01T14:46:27.8367228Z #1 creating container buildx_buildkit_ci-builder0
+2025-07-01T14:46:27.9966780Z #1 creating container buildx_buildkit_ci-builder0 0.3s done
+2025-07-01T14:46:28.1372072Z #1 DONE 2.9s
+2025-07-01T14:46:28.1372452Z 
+2025-07-01T14:46:28.1374492Z #2 [internal] load build definition from Dockerfile
+2025-07-01T14:46:28.1375375Z #2 transferring dockerfile: 2.42kB done
+2025-07-01T14:46:28.1375782Z #2 DONE 0.0s
+2025-07-01T14:46:28.1375951Z 
+2025-07-01T14:46:28.1376185Z #3 [auth] library/golang:pull token for registry-1.docker.io
+2025-07-01T14:46:28.2884202Z #3 DONE 0.0s
+2025-07-01T14:46:28.2884499Z 
+2025-07-01T14:46:28.2884867Z #4 [auth] avaplatform/avalanchego:pull token for registry-1.docker.io
+2025-07-01T14:46:28.2885431Z #4 DONE 0.0s
+2025-07-01T14:46:28.2885559Z 
+2025-07-01T14:46:28.2885863Z #5 [linux/amd64 internal] load metadata for docker.io/avaplatform/avalanchego:v1.13.2
+2025-07-01T14:46:28.5235846Z #5 ...
+2025-07-01T14:46:28.5236090Z 
+2025-07-01T14:46:28.5236596Z #6 [linux/amd64 internal] load metadata for docker.io/library/golang:1.23.9-bookworm
+2025-07-01T14:46:28.5237349Z #6 DONE 0.5s
+2025-07-01T14:46:28.7577124Z 
+2025-07-01T14:46:28.7577703Z #5 [linux/amd64 internal] load metadata for docker.io/avaplatform/avalanchego:v1.13.2
+2025-07-01T14:46:28.7578628Z #5 DONE 0.5s
+2025-07-01T14:46:28.7578848Z 
+2025-07-01T14:46:28.7578984Z #7 [internal] load .dockerignore
+2025-07-01T14:46:28.7579315Z #7 transferring context: 105B done
+2025-07-01T14:46:28.7579633Z #7 DONE 0.0s
+2025-07-01T14:46:28.7579776Z 
+2025-07-01T14:46:28.7580084Z #8 [linux/arm64 internal] load metadata for docker.io/avaplatform/avalanchego:v1.13.2
+2025-07-01T14:46:29.3160597Z #8 DONE 1.3s
+2025-07-01T14:46:29.4619302Z 
+2025-07-01T14:46:29.4623980Z #9 [linux/amd64 execution 1/2] FROM docker.io/avaplatform/avalanchego:v1.13.2@sha256:6b92161ac0297783753016a9cd4f35eefaaf9d8c9ae150befd3f64967b0f053b
+2025-07-01T14:46:29.4625582Z #9 resolve docker.io/avaplatform/avalanchego:v1.13.2@sha256:6b92161ac0297783753016a9cd4f35eefaaf9d8c9ae150befd3f64967b0f053b 0.0s done
+2025-07-01T14:46:29.5684425Z #9 sha256:4f4fb700ef54461cfa02571ae0db9a0dc1e0cdb5577484a6d75e68dc38e8acc1 32B / 32B 0.1s done
+2025-07-01T14:46:29.5690005Z #9 sha256:db6e494930728358026b5375cbc110ddf117d44cb140cdd0da7e6c0dad727968 123B / 123B 0.1s done
+2025-07-01T14:46:29.7284012Z #9 ...
+2025-07-01T14:46:29.7284275Z 
+2025-07-01T14:46:29.7284453Z #10 [internal] load build context
+2025-07-01T14:46:29.7284961Z #10 transferring context: 13.11MB 0.3s done
+2025-07-01T14:46:29.7285449Z #10 DONE 0.3s
+2025-07-01T14:46:29.7285641Z 
+2025-07-01T14:46:29.7286226Z #9 [linux/amd64 execution 1/2] FROM docker.io/avaplatform/avalanchego:v1.13.2@sha256:6b92161ac0297783753016a9cd4f35eefaaf9d8c9ae150befd3f64967b0f053b
+2025-07-01T14:46:29.7287245Z #9 sha256:dad67da3f26bce15939543965e09c4059533b025f707aad72ed3d3f3a09c66f8 19.92MB / 28.23MB 0.3s
+2025-07-01T14:46:29.7288312Z #9 sha256:1814880c88433dc1ece608596ed0f09734a83fb5582a7581f0e2d166b67e6fa5 6.29MB / 37.92MB 0.2s
+2025-07-01T14:46:29.8808234Z #9 sha256:dad67da3f26bce15939543965e09c4059533b025f707aad72ed3d3f3a09c66f8 27.41MB / 28.23MB 0.5s
+2025-07-01T14:46:29.9898760Z #9 sha256:1814880c88433dc1ece608596ed0f09734a83fb5582a7581f0e2d166b67e6fa5 22.02MB / 37.92MB 0.3s
+2025-07-01T14:46:29.9901935Z #9 sha256:dad67da3f26bce15939543965e09c4059533b025f707aad72ed3d3f3a09c66f8 28.23MB / 28.23MB 0.5s done
+2025-07-01T14:46:29.9905397Z #9 sha256:1814880c88433dc1ece608596ed0f09734a83fb5582a7581f0e2d166b67e6fa5 30.41MB / 37.92MB 0.5s
+2025-07-01T14:46:29.9906441Z #9 extracting sha256:dad67da3f26bce15939543965e09c4059533b025f707aad72ed3d3f3a09c66f8
+2025-07-01T14:46:30.1437173Z #9 sha256:1814880c88433dc1ece608596ed0f09734a83fb5582a7581f0e2d166b67e6fa5 37.92MB / 37.92MB 0.6s done
+2025-07-01T14:46:31.0433835Z #9 extracting sha256:dad67da3f26bce15939543965e09c4059533b025f707aad72ed3d3f3a09c66f8 1.1s done
+2025-07-01T14:46:31.0435416Z #9 extracting sha256:db6e494930728358026b5375cbc110ddf117d44cb140cdd0da7e6c0dad727968 done
+2025-07-01T14:46:31.0436426Z #9 extracting sha256:4f4fb700ef54461cfa02571ae0db9a0dc1e0cdb5577484a6d75e68dc38e8acc1 done
+2025-07-01T14:46:31.0437855Z #9 extracting sha256:1814880c88433dc1ece608596ed0f09734a83fb5582a7581f0e2d166b67e6fa5
+2025-07-01T14:46:31.5380873Z #9 extracting sha256:1814880c88433dc1ece608596ed0f09734a83fb5582a7581f0e2d166b67e6fa5 0.6s done
+2025-07-01T14:46:31.5381899Z #9 DONE 2.2s
+2025-07-01T14:46:31.5382548Z 
+2025-07-01T14:46:31.5384004Z #11 [linux/amd64 builder 1/8] FROM docker.io/library/golang:1.23.9-bookworm@sha256:6a3aa4fd2c3e15bc8cb450e4a0ae353fb73b5f593bcbb5b25ffeee860cc2ec2a
+2025-07-01T14:46:31.5389789Z #11 resolve docker.io/library/golang:1.23.9-bookworm@sha256:6a3aa4fd2c3e15bc8cb450e4a0ae353fb73b5f593bcbb5b25ffeee860cc2ec2a 0.0s done
+2025-07-01T14:46:31.5391246Z #11 sha256:e10405b45d13228df144c8d42d389347041bf176392f5f9606fc4a4d7826647d 74.06MB / 74.06MB 1.4s done
+2025-07-01T14:46:31.5392388Z #11 sha256:86e38a7bd2e6ef4808a08ab7f5de538ee046e73d5eed810956ebe5e2dd30967f 92.34MB / 92.34MB 0.6s done
+2025-07-01T14:46:31.5393522Z #11 sha256:79b2f47ad4443652b9b5cc81a95ede249fd976310efdbee159f29638783778c0 64.40MB / 64.40MB 1.0s done
+2025-07-01T14:46:31.5394589Z #11 sha256:05996fe98294b61bc5bf02c69305b84d9db840baad71fd1b5c2fd7cf1686088c 126B / 126B 0.1s done
+2025-07-01T14:46:31.5395646Z #11 sha256:37927ed901b1b2608b72796c6881bf645480268eca4ac9a37b9219e050bb4d84 24.02MB / 24.02MB 0.3s done
+2025-07-01T14:46:31.5396732Z #11 sha256:3e6b9d1a95114e19f12262a4e8a59ad1d1a10ca7b82108adcf0605a200294964 48.49MB / 48.49MB 0.4s done
+2025-07-01T14:46:31.5397724Z #11 extracting sha256:3e6b9d1a95114e19f12262a4e8a59ad1d1a10ca7b82108adcf0605a200294964
+2025-07-01T14:46:31.8178354Z #11 ...
+2025-07-01T14:46:31.8178607Z 
+2025-07-01T14:46:31.8179438Z #12 [linux/arm64 execution 1/2] FROM docker.io/avaplatform/avalanchego:v1.13.2@sha256:6b92161ac0297783753016a9cd4f35eefaaf9d8c9ae150befd3f64967b0f053b
+2025-07-01T14:46:31.8181999Z #12 resolve docker.io/avaplatform/avalanchego:v1.13.2@sha256:6b92161ac0297783753016a9cd4f35eefaaf9d8c9ae150befd3f64967b0f053b 0.0s done
+2025-07-01T14:46:31.8183131Z #12 sha256:ea3cac4eba0494a7bee38405270f5ae90481068957a9f66112c76caba3be4bb3 35.71MB / 35.71MB 0.9s done
+2025-07-01T14:46:31.8183942Z #12 sha256:272efa7954e04efa6a7c169a4dc8d8fe6ed877ef9393ec68d05a9fd09b58f682 121B / 121B 0.5s done
+2025-07-01T14:46:31.8185043Z #12 sha256:34ef2a75627f6089e01995bfd3b3786509bbdc7cfb4dbc804b642e195340dbc9 28.08MB / 28.08MB 0.2s done
+2025-07-01T14:46:31.8185834Z #12 extracting sha256:34ef2a75627f6089e01995bfd3b3786509bbdc7cfb4dbc804b642e195340dbc9 1.2s done
+2025-07-01T14:46:31.8186592Z #12 extracting sha256:272efa7954e04efa6a7c169a4dc8d8fe6ed877ef9393ec68d05a9fd09b58f682 0.0s done
+2025-07-01T14:46:31.8187399Z #12 extracting sha256:4f4fb700ef54461cfa02571ae0db9a0dc1e0cdb5577484a6d75e68dc38e8acc1 done
+2025-07-01T14:46:31.8188174Z #12 extracting sha256:ea3cac4eba0494a7bee38405270f5ae90481068957a9f66112c76caba3be4bb3 0.4s done
+2025-07-01T14:46:31.8188904Z #12 DONE 2.5s
+2025-07-01T14:46:31.9682755Z 
+2025-07-01T14:46:31.9683932Z #11 [linux/amd64 builder 1/8] FROM docker.io/library/golang:1.23.9-bookworm@sha256:6a3aa4fd2c3e15bc8cb450e4a0ae353fb73b5f593bcbb5b25ffeee860cc2ec2a
+2025-07-01T14:46:32.3604484Z #11 extracting sha256:3e6b9d1a95114e19f12262a4e8a59ad1d1a10ca7b82108adcf0605a200294964 1.3s done
+2025-07-01T14:46:32.3605247Z #11 DONE 3.0s
+2025-07-01T14:46:32.5111609Z 
+2025-07-01T14:46:32.5112788Z #11 [linux/amd64 builder 1/8] FROM docker.io/library/golang:1.23.9-bookworm@sha256:6a3aa4fd2c3e15bc8cb450e4a0ae353fb73b5f593bcbb5b25ffeee860cc2ec2a
+2025-07-01T14:46:32.5114289Z #11 extracting sha256:37927ed901b1b2608b72796c6881bf645480268eca4ac9a37b9219e050bb4d84
+2025-07-01T14:46:32.7267583Z #11 extracting sha256:37927ed901b1b2608b72796c6881bf645480268eca4ac9a37b9219e050bb4d84 0.4s done
+2025-07-01T14:46:32.7268373Z #11 DONE 3.4s
+2025-07-01T14:46:32.8771603Z 
+2025-07-01T14:46:32.8772631Z #11 [linux/amd64 builder 1/8] FROM docker.io/library/golang:1.23.9-bookworm@sha256:6a3aa4fd2c3e15bc8cb450e4a0ae353fb73b5f593bcbb5b25ffeee860cc2ec2a
+2025-07-01T14:46:32.8773888Z #11 extracting sha256:79b2f47ad4443652b9b5cc81a95ede249fd976310efdbee159f29638783778c0
+2025-07-01T14:46:34.1192558Z #11 extracting sha256:79b2f47ad4443652b9b5cc81a95ede249fd976310efdbee159f29638783778c0 1.4s done
+2025-07-01T14:46:34.1193364Z #11 DONE 4.8s
+2025-07-01T14:46:34.2698423Z 
+2025-07-01T14:46:34.2699541Z #11 [linux/amd64 builder 1/8] FROM docker.io/library/golang:1.23.9-bookworm@sha256:6a3aa4fd2c3e15bc8cb450e4a0ae353fb73b5f593bcbb5b25ffeee860cc2ec2a
+2025-07-01T14:46:34.2700979Z #11 extracting sha256:86e38a7bd2e6ef4808a08ab7f5de538ee046e73d5eed810956ebe5e2dd30967f
+2025-07-01T14:46:35.5069610Z #11 extracting sha256:86e38a7bd2e6ef4808a08ab7f5de538ee046e73d5eed810956ebe5e2dd30967f 1.4s done
+2025-07-01T14:46:35.5070628Z #11 DONE 6.2s
+2025-07-01T14:46:35.6576016Z 
+2025-07-01T14:46:35.6577206Z #11 [linux/amd64 builder 1/8] FROM docker.io/library/golang:1.23.9-bookworm@sha256:6a3aa4fd2c3e15bc8cb450e4a0ae353fb73b5f593bcbb5b25ffeee860cc2ec2a
+2025-07-01T14:46:35.6578833Z #11 extracting sha256:e10405b45d13228df144c8d42d389347041bf176392f5f9606fc4a4d7826647d
+2025-07-01T14:46:38.2987478Z #11 extracting sha256:e10405b45d13228df144c8d42d389347041bf176392f5f9606fc4a4d7826647d 2.8s done
+2025-07-01T14:46:38.2988654Z #11 DONE 9.0s
+2025-07-01T14:46:38.4628408Z 
+2025-07-01T14:46:38.4629472Z #11 [linux/amd64 builder 1/8] FROM docker.io/library/golang:1.23.9-bookworm@sha256:6a3aa4fd2c3e15bc8cb450e4a0ae353fb73b5f593bcbb5b25ffeee860cc2ec2a
+2025-07-01T14:46:38.4630759Z #11 extracting sha256:05996fe98294b61bc5bf02c69305b84d9db840baad71fd1b5c2fd7cf1686088c done
+2025-07-01T14:46:38.4631537Z #11 extracting sha256:4f4fb700ef54461cfa02571ae0db9a0dc1e0cdb5577484a6d75e68dc38e8acc1 done
+2025-07-01T14:46:38.4632049Z #11 DONE 9.0s
+2025-07-01T14:46:38.4632179Z 
+2025-07-01T14:46:38.4632295Z #13 [linux/amd64 builder 2/8] WORKDIR /build
+2025-07-01T14:46:41.3225437Z #13 DONE 3.0s
+2025-07-01T14:46:41.4966062Z 
+2025-07-01T14:46:41.4966627Z #14 [linux/amd64 builder 3/8] COPY go.mod go.sum avalanchego* ./
+2025-07-01T14:46:41.4967055Z #14 DONE 0.0s
+2025-07-01T14:46:41.4967193Z 
+2025-07-01T14:46:41.4967376Z #15 [linux/amd64 builder 4/8] RUN go mod download && go mod tidy
+2025-07-01T14:46:48.2860862Z #15 6.940 go: warning: "all" matched no packages
+2025-07-01T14:46:49.7311322Z #15 DONE 8.4s
+2025-07-01T14:46:49.8823042Z 
+2025-07-01T14:46:49.8823944Z #16 [linux/amd64 builder 5/8] COPY . .
+2025-07-01T14:46:50.2152738Z #16 DONE 0.5s
+2025-07-01T14:46:50.4345164Z 
+2025-07-01T14:46:50.4346201Z #17 [linux/amd64 builder 6/8] RUN [ -d ./build ] && rm -rf ./build/* || true
+2025-07-01T14:46:50.4347450Z #17 DONE 0.1s
+2025-07-01T14:46:50.4347827Z 
+2025-07-01T14:46:50.4350795Z #18 [linux/amd64 builder 7/8] RUN if [ "linux/amd64" = "linux/arm64" ] && [ "linux/amd64" != "linux/arm64" ]; then   apt-get update && apt-get install -y gcc-aarch64-linux-gnu &&   echo "export CC=aarch64-linux-gnu-gcc" > ./build_env.sh   ; elif [ "linux/amd64" = "linux/amd64" ] && [ "linux/amd64" != "linux/amd64" ]; then   apt-get update && apt-get install -y gcc-x86-64-linux-gnu &&   echo "export CC=x86_64-linux-gnu-gcc" > ./build_env.sh   ; else   echo "export CC=gcc" > ./build_env.sh   ; fi
+2025-07-01T14:46:50.4736526Z #18 DONE 0.2s
+2025-07-01T14:46:50.4736778Z 
+2025-07-01T14:46:50.4739488Z #19 [linux/amd64->arm64 builder 7/8] RUN if [ "linux/arm64" = "linux/arm64" ] && [ "linux/amd64" != "linux/arm64" ]; then   apt-get update && apt-get install -y gcc-aarch64-linux-gnu &&   echo "export CC=aarch64-linux-gnu-gcc" > ./build_env.sh   ; elif [ "linux/arm64" = "linux/amd64" ] && [ "linux/amd64" != "linux/amd64" ]; then   apt-get update && apt-get install -y gcc-x86-64-linux-gnu &&   echo "export CC=x86_64-linux-gnu-gcc" > ./build_env.sh   ; else   echo "export CC=gcc" > ./build_env.sh   ; fi
+2025-07-01T14:46:50.6144262Z #19 0.241 Get:1 http://deb.debian.org/debian bookworm InRelease [151 kB]
+2025-07-01T14:46:50.6145360Z #19 0.252 Get:2 http://deb.debian.org/debian bookworm-updates InRelease [55.4 kB]
+2025-07-01T14:46:50.6146259Z #19 0.255 Get:3 http://deb.debian.org/debian-security bookworm-security InRelease [48.0 kB]
+2025-07-01T14:46:50.6147141Z #19 0.332 Get:4 http://deb.debian.org/debian bookworm/main amd64 Packages [8793 kB]
+2025-07-01T14:46:50.7186262Z #19 0.436 Get:5 http://deb.debian.org/debian bookworm-updates/main amd64 Packages [756 B]
+2025-07-01T14:46:50.8951433Z #19 0.461 Get:6 http://deb.debian.org/debian-security bookworm-security/main amd64 Packages [270 kB]
+2025-07-01T14:46:51.6597174Z #19 1.378 Fetched 9318 kB in 1s (8021 kB/s)
+2025-07-01T14:46:52.3720739Z #19 1.378 Reading package lists...
+2025-07-01T14:46:52.8483710Z #19 2.107 Reading package lists...
+2025-07-01T14:46:52.9841775Z #19 2.575 Building dependency tree...
+2025-07-01T14:46:53.0944912Z #19 2.702 Reading state information...
+2025-07-01T14:46:53.0948491Z #19 2.812 The following additional packages will be installed:
+2025-07-01T14:46:53.0951471Z #19 2.812   binutils-aarch64-linux-gnu cpp-12-aarch64-linux-gnu cpp-aarch64-linux-gnu
+2025-07-01T14:46:53.2182581Z #19 2.812   gcc-12-aarch64-linux-gnu gcc-12-aarch64-linux-gnu-base gcc-12-cross-base
+2025-07-01T14:46:53.2184091Z #19 2.813   libasan8-arm64-cross libatomic1-arm64-cross libc6-arm64-cross
+2025-07-01T14:46:53.2185201Z #19 2.813   libc6-dev-arm64-cross libgcc-12-dev-arm64-cross libgcc-s1-arm64-cross
+2025-07-01T14:46:53.2186009Z #19 2.813   libgomp1-arm64-cross libhwasan0-arm64-cross libitm1-arm64-cross
+2025-07-01T14:46:53.2186744Z #19 2.813   liblsan0-arm64-cross libstdc++6-arm64-cross libtsan2-arm64-cross
+2025-07-01T14:46:53.2187378Z #19 2.813   libubsan1-arm64-cross linux-libc-dev-arm64-cross
+2025-07-01T14:46:53.2187852Z #19 2.814 Suggested packages:
+2025-07-01T14:46:53.2188374Z #19 2.814   binutils-doc gcc-12-locales cpp-12-doc cpp-doc gcc-12-doc manpages-dev
+2025-07-01T14:46:53.2189098Z #19 2.814   autoconf automake libtool flex bison gdb-aarch64-linux-gnu gcc-doc
+2025-07-01T14:46:53.2189735Z #19 2.887 The following NEW packages will be installed:
+2025-07-01T14:46:53.2190623Z #19 2.887   binutils-aarch64-linux-gnu cpp-12-aarch64-linux-gnu cpp-aarch64-linux-gnu
+2025-07-01T14:46:53.2191485Z #19 2.887   gcc-12-aarch64-linux-gnu gcc-12-aarch64-linux-gnu-base gcc-12-cross-base
+2025-07-01T14:46:53.2192398Z #19 2.887   gcc-aarch64-linux-gnu libasan8-arm64-cross libatomic1-arm64-cross
+2025-07-01T14:46:53.2193265Z #19 2.887   libc6-arm64-cross libc6-dev-arm64-cross libgcc-12-dev-arm64-cross
+2025-07-01T14:46:53.2194302Z #19 2.887   libgcc-s1-arm64-cross libgomp1-arm64-cross libhwasan0-arm64-cross
+2025-07-01T14:46:53.2194998Z #19 2.887   libitm1-arm64-cross liblsan0-arm64-cross libstdc++6-arm64-cross
+2025-07-01T14:46:53.2195718Z #19 2.887   libtsan2-arm64-cross libubsan1-arm64-cross linux-libc-dev-arm64-cross
+2025-07-01T14:46:53.2196418Z #19 2.936 0 upgraded, 21 newly installed, 0 to remove and 4 not upgraded.
+2025-07-01T14:46:53.2196929Z #19 2.936 Need to get 43.6 MB of archives.
+2025-07-01T14:46:53.2197461Z #19 2.936 After this operation, 159 MB of additional disk space will be used.
+2025-07-01T14:46:53.2198553Z #19 2.936 Get:1 http://deb.debian.org/debian bookworm/main amd64 binutils-aarch64-linux-gnu amd64 2.40-2 [3353 kB]
+2025-07-01T14:46:53.3190809Z #19 2.971 Get:2 http://deb.debian.org/debian bookworm/main amd64 gcc-12-aarch64-linux-gnu-base amd64 12.2.0-14cross1 [37.7 kB]
+2025-07-01T14:46:53.3192114Z #19 2.973 Get:3 http://deb.debian.org/debian bookworm/main amd64 cpp-12-aarch64-linux-gnu amd64 12.2.0-14cross1 [9150 kB]
+2025-07-01T14:46:53.3193292Z #19 3.027 Get:4 http://deb.debian.org/debian bookworm/main amd64 cpp-aarch64-linux-gnu amd64 4:12.2.0-3 [3980 B]
+2025-07-01T14:46:53.3194307Z #19 3.028 Get:5 http://deb.debian.org/debian bookworm/main amd64 gcc-12-cross-base all 12.2.0-14cross1 [33.2 kB]
+2025-07-01T14:46:53.3195338Z #19 3.028 Get:6 http://deb.debian.org/debian bookworm/main amd64 libc6-arm64-cross all 2.36-8cross1 [1005 kB]
+2025-07-01T14:46:53.3196399Z #19 3.032 Get:7 http://deb.debian.org/debian bookworm/main amd64 libgcc-s1-arm64-cross all 12.2.0-14cross1 [34.8 kB]
+2025-07-01T14:46:53.3197478Z #19 3.033 Get:8 http://deb.debian.org/debian bookworm/main amd64 libgomp1-arm64-cross all 12.2.0-14cross1 [102 kB]
+2025-07-01T14:46:53.3198587Z #19 3.035 Get:9 http://deb.debian.org/debian bookworm/main amd64 libitm1-arm64-cross all 12.2.0-14cross1 [23.5 kB]
+2025-07-01T14:46:53.3199657Z #19 3.036 Get:10 http://deb.debian.org/debian bookworm/main amd64 libatomic1-arm64-cross all 12.2.0-14cross1 [9292 B]
+2025-07-01T14:46:53.3200948Z #19 3.037 Get:11 http://deb.debian.org/debian bookworm/main amd64 libasan8-arm64-cross all 12.2.0-14cross1 [2097 kB]
+2025-07-01T14:46:53.4420659Z #19 3.049 Get:12 http://deb.debian.org/debian bookworm/main amd64 liblsan0-arm64-cross all 12.2.0-14cross1 [926 kB]
+2025-07-01T14:46:53.4421941Z #19 3.056 Get:13 http://deb.debian.org/debian bookworm/main amd64 libtsan2-arm64-cross all 12.2.0-14cross1 [2179 kB]
+2025-07-01T14:46:53.4423127Z #19 3.068 Get:14 http://deb.debian.org/debian bookworm/main amd64 libstdc++6-arm64-cross all 12.2.0-14cross1 [514 kB]
+2025-07-01T14:46:53.4424351Z #19 3.070 Get:15 http://deb.debian.org/debian bookworm/main amd64 libubsan1-arm64-cross all 12.2.0-14cross1 [861 kB]
+2025-07-01T14:46:53.4425863Z #19 3.074 Get:16 http://deb.debian.org/debian bookworm/main amd64 libhwasan0-arm64-cross all 12.2.0-14cross1 [998 kB]
+2025-07-01T14:46:53.4427056Z #19 3.079 Get:17 http://deb.debian.org/debian bookworm/main amd64 libgcc-12-dev-arm64-cross all 12.2.0-14cross1 [961 kB]
+2025-07-01T14:46:53.4441370Z #19 3.086 Get:18 http://deb.debian.org/debian bookworm/main amd64 gcc-12-aarch64-linux-gnu amd64 12.2.0-14cross1 [18.0 MB]
+2025-07-01T14:46:53.4442554Z #19 3.159 Get:19 http://deb.debian.org/debian bookworm/main amd64 gcc-aarch64-linux-gnu amd64 4:12.2.0-3 [1468 B]
+2025-07-01T14:46:53.6025942Z #19 3.160 Get:20 http://deb.debian.org/debian bookworm/main amd64 linux-libc-dev-arm64-cross all 6.1.4-1cross1 [1815 kB]
+2025-07-01T14:46:53.6032040Z #19 3.170 Get:21 http://deb.debian.org/debian bookworm/main amd64 libc6-dev-arm64-cross all 2.36-8cross1 [1424 kB]
+2025-07-01T14:46:53.6442029Z #19 3.362 debconf: delaying package configuration, since apt-utils is not installed
+2025-07-01T14:46:53.7442938Z #19 3.403 Fetched 43.6 MB in 0s (153 MB/s)
+2025-07-01T14:46:53.7443721Z #19 3.436 Selecting previously unselected package binutils-aarch64-linux-gnu.
+2025-07-01T14:46:53.7444683Z #19 3.436 (Reading database ... 
+2025-07-01T14:46:53.7445303Z (Reading database ... 5%
+2025-07-01T14:46:53.7446043Z (Reading database ... 10%
+2025-07-01T14:46:53.7446401Z (Reading database ... 15%
+2025-07-01T14:46:53.7446729Z (Reading database ... 20%
+2025-07-01T14:46:53.7447059Z (Reading database ... 25%
+2025-07-01T14:46:53.7447377Z (Reading database ... 30%
+2025-07-01T14:46:53.7447709Z (Reading database ... 35%
+2025-07-01T14:46:53.7448032Z (Reading database ... 40%
+2025-07-01T14:46:53.7448361Z (Reading database ... 45%
+2025-07-01T14:46:53.7448690Z (Reading database ... 50%
+2025-07-01T14:46:53.7449021Z (Reading database ... 55%
+2025-07-01T14:46:53.7449350Z (Reading database ... 60%
+2025-07-01T14:46:53.7449983Z (Reading database ... 65%
+2025-07-01T14:46:53.7450553Z (Reading database ... 70%
+2025-07-01T14:46:53.7450886Z (Reading database ... 75%
+2025-07-01T14:46:53.7451226Z (Reading database ... 80%
+2025-07-01T14:46:53.7451561Z (Reading database ... 85%
+2025-07-01T14:46:53.7451892Z (Reading database ... 90%
+2025-07-01T14:46:53.7452228Z (Reading database ... 95%
+2025-07-01T14:46:53.7452568Z (Reading database ... 100%
+2025-07-01T14:46:53.7453068Z (Reading database ... 15609 files and directories currently installed.)
+2025-07-01T14:46:53.7453860Z #19 3.462 Preparing to unpack .../00-binutils-aarch64-linux-gnu_2.40-2_amd64.deb ...
+2025-07-01T14:46:53.9068138Z #19 3.474 Unpacking binutils-aarch64-linux-gnu (2.40-2) ...
+2025-07-01T14:46:54.1386281Z #19 3.855 Selecting previously unselected package gcc-12-aarch64-linux-gnu-base:amd64.
+2025-07-01T14:46:54.3443997Z #19 3.860 Preparing to unpack .../01-gcc-12-aarch64-linux-gnu-base_12.2.0-14cross1_amd64.deb ...
+2025-07-01T14:46:54.3444921Z #19 3.862 Unpacking gcc-12-aarch64-linux-gnu-base:amd64 (12.2.0-14cross1) ...
+2025-07-01T14:46:54.3445678Z #19 3.902 Selecting previously unselected package cpp-12-aarch64-linux-gnu.
+2025-07-01T14:46:54.3446469Z #19 3.908 Preparing to unpack .../02-cpp-12-aarch64-linux-gnu_12.2.0-14cross1_amd64.deb ...
+2025-07-01T14:46:54.3447206Z #19 3.912 Unpacking cpp-12-aarch64-linux-gnu (12.2.0-14cross1) ...
+2025-07-01T14:46:54.8564783Z #19 4.574 Selecting previously unselected package cpp-aarch64-linux-gnu.
+2025-07-01T14:46:54.9602668Z #19 4.577 Preparing to unpack .../03-cpp-aarch64-linux-gnu_4%3a12.2.0-3_amd64.deb ...
+2025-07-01T14:46:54.9604638Z #19 4.579 Unpacking cpp-aarch64-linux-gnu (4:12.2.0-3) ...
+2025-07-01T14:46:54.9605294Z #19 4.612 Selecting previously unselected package gcc-12-cross-base.
+2025-07-01T14:46:54.9606042Z #19 4.616 Preparing to unpack .../04-gcc-12-cross-base_12.2.0-14cross1_all.deb ...
+2025-07-01T14:46:54.9606730Z #19 4.621 Unpacking gcc-12-cross-base (12.2.0-14cross1) ...
+2025-07-01T14:46:54.9607371Z #19 4.666 Selecting previously unselected package libc6-arm64-cross.
+2025-07-01T14:46:54.9608076Z #19 4.674 Preparing to unpack .../05-libc6-arm64-cross_2.36-8cross1_all.deb ...
+2025-07-01T14:46:55.0879948Z #19 4.678 Unpacking libc6-arm64-cross (2.36-8cross1) ...
+2025-07-01T14:46:55.0881390Z #19 4.806 Selecting previously unselected package libgcc-s1-arm64-cross.
+2025-07-01T14:46:55.2149896Z #19 4.809 Preparing to unpack .../06-libgcc-s1-arm64-cross_12.2.0-14cross1_all.deb ...
+2025-07-01T14:46:55.2150992Z #19 4.814 Unpacking libgcc-s1-arm64-cross (12.2.0-14cross1) ...
+2025-07-01T14:46:55.2151668Z #19 4.863 Selecting previously unselected package libgomp1-arm64-cross.
+2025-07-01T14:46:55.2152458Z #19 4.871 Preparing to unpack .../07-libgomp1-arm64-cross_12.2.0-14cross1_all.deb ...
+2025-07-01T14:46:55.2153180Z #19 4.873 Unpacking libgomp1-arm64-cross (12.2.0-14cross1) ...
+2025-07-01T14:46:55.2153850Z #19 4.933 Selecting previously unselected package libitm1-arm64-cross.
+2025-07-01T14:46:55.3278702Z #19 4.941 Preparing to unpack .../08-libitm1-arm64-cross_12.2.0-14cross1_all.deb ...
+2025-07-01T14:46:55.3280130Z #19 4.945 Unpacking libitm1-arm64-cross (12.2.0-14cross1) ...
+2025-07-01T14:46:55.3282791Z #19 4.997 Selecting previously unselected package libatomic1-arm64-cross.
+2025-07-01T14:46:55.3283887Z #19 5.002 Preparing to unpack .../09-libatomic1-arm64-cross_12.2.0-14cross1_all.deb ...
+2025-07-01T14:46:55.3286289Z #19 5.005 Unpacking libatomic1-arm64-cross (12.2.0-14cross1) ...
+2025-07-01T14:46:55.3288011Z #19 5.046 Selecting previously unselected package libasan8-arm64-cross.
+2025-07-01T14:46:55.4861941Z #19 5.052 Preparing to unpack .../10-libasan8-arm64-cross_12.2.0-14cross1_all.deb ...
+2025-07-01T14:46:55.4863092Z #19 5.053 Unpacking libasan8-arm64-cross (12.2.0-14cross1) ...
+2025-07-01T14:46:55.5734540Z #19 5.291 Selecting previously unselected package liblsan0-arm64-cross.
+2025-07-01T14:46:55.7275631Z #19 5.293 Preparing to unpack .../11-liblsan0-arm64-cross_12.2.0-14cross1_all.deb ...
+2025-07-01T14:46:55.7277270Z #19 5.295 Unpacking liblsan0-arm64-cross (12.2.0-14cross1) ...
+2025-07-01T14:46:55.7285533Z #19 5.446 Selecting previously unselected package libtsan2-arm64-cross.
+2025-07-01T14:46:55.8904372Z #19 5.454 Preparing to unpack .../12-libtsan2-arm64-cross_12.2.0-14cross1_all.deb ...
+2025-07-01T14:46:55.8905806Z #19 5.457 Unpacking libtsan2-arm64-cross (12.2.0-14cross1) ...
+2025-07-01T14:46:56.0314720Z #19 5.749 Selecting previously unselected package libstdc++6-arm64-cross.
+2025-07-01T14:46:56.1553506Z #19 5.753 Preparing to unpack .../13-libstdc++6-arm64-cross_12.2.0-14cross1_all.deb ...
+2025-07-01T14:46:56.1554801Z #19 5.765 Unpacking libstdc++6-arm64-cross (12.2.0-14cross1) ...
+2025-07-01T14:46:56.1555848Z #19 5.873 Selecting previously unselected package libubsan1-arm64-cross.
+2025-07-01T14:46:56.2955530Z #19 5.877 Preparing to unpack .../14-libubsan1-arm64-cross_12.2.0-14cross1_all.deb ...
+2025-07-01T14:46:56.2958219Z #19 5.879 Unpacking libubsan1-arm64-cross (12.2.0-14cross1) ...
+2025-07-01T14:46:56.4288913Z #19 6.013 Selecting previously unselected package libhwasan0-arm64-cross.
+2025-07-01T14:46:56.4290203Z #19 6.018 Preparing to unpack .../15-libhwasan0-arm64-cross_12.2.0-14cross1_all.deb ...
+2025-07-01T14:46:56.4291545Z #19 6.022 Unpacking libhwasan0-arm64-cross (12.2.0-14cross1) ...
+2025-07-01T14:46:56.4292508Z #19 6.147 Selecting previously unselected package libgcc-12-dev-arm64-cross.
+2025-07-01T14:46:56.5847527Z #19 6.150 Preparing to unpack .../16-libgcc-12-dev-arm64-cross_12.2.0-14cross1_all.deb ...
+2025-07-01T14:46:56.5848832Z #19 6.152 Unpacking libgcc-12-dev-arm64-cross (12.2.0-14cross1) ...
+2025-07-01T14:46:56.7819153Z #19 6.337 Selecting previously unselected package gcc-12-aarch64-linux-gnu.
+2025-07-01T14:46:56.7820750Z #19 6.344 Preparing to unpack .../17-gcc-12-aarch64-linux-gnu_12.2.0-14cross1_amd64.deb ...
+2025-07-01T14:46:56.7822419Z #19 6.349 Unpacking gcc-12-aarch64-linux-gnu (12.2.0-14cross1) ...
+2025-07-01T14:46:57.6328558Z #19 7.351 Selecting previously unselected package gcc-aarch64-linux-gnu.
+2025-07-01T14:46:57.8331671Z #19 7.353 Preparing to unpack .../18-gcc-aarch64-linux-gnu_4%3a12.2.0-3_amd64.deb ...
+2025-07-01T14:46:57.8333321Z #19 7.356 Unpacking gcc-aarch64-linux-gnu (4:12.2.0-3) ...
+2025-07-01T14:46:57.8335739Z #19 7.399 Selecting previously unselected package linux-libc-dev-arm64-cross.
+2025-07-01T14:46:57.8337021Z #19 7.399 Preparing to unpack .../19-linux-libc-dev-arm64-cross_6.1.4-1cross1_all.deb ...
+2025-07-01T14:46:57.8338769Z #19 7.401 Unpacking linux-libc-dev-arm64-cross (6.1.4-1cross1) ...
+2025-07-01T14:46:57.9848492Z #19 7.703 Selecting previously unselected package libc6-dev-arm64-cross.
+2025-07-01T14:46:58.1427378Z #19 7.708 Preparing to unpack .../20-libc6-dev-arm64-cross_2.36-8cross1_all.deb ...
+2025-07-01T14:46:58.1429807Z #19 7.710 Unpacking libc6-dev-arm64-cross (2.36-8cross1) ...
+2025-07-01T14:46:58.2417615Z #19 7.960 Setting up gcc-12-cross-base (12.2.0-14cross1) ...
+2025-07-01T14:46:58.3440180Z #19 7.968 Setting up gcc-12-aarch64-linux-gnu-base:amd64 (12.2.0-14cross1) ...
+2025-07-01T14:46:58.3443375Z #19 7.974 Setting up binutils-aarch64-linux-gnu (2.40-2) ...
+2025-07-01T14:46:58.3443971Z #19 7.982 Setting up libc6-arm64-cross (2.36-8cross1) ...
+2025-07-01T14:46:58.3444552Z #19 7.987 Setting up libitm1-arm64-cross (12.2.0-14cross1) ...
+2025-07-01T14:46:58.3445170Z #19 7.993 Setting up linux-libc-dev-arm64-cross (6.1.4-1cross1) ...
+2025-07-01T14:46:58.3446198Z #19 8.001 Setting up libgcc-s1-arm64-cross (12.2.0-14cross1) ...
+2025-07-01T14:46:58.3446831Z #19 8.005 Setting up libatomic1-arm64-cross (12.2.0-14cross1) ...
+2025-07-01T14:46:58.3447418Z #19 8.014 Setting up liblsan0-arm64-cross (12.2.0-14cross1) ...
+2025-07-01T14:46:58.3447942Z #19 8.020 Setting up libgomp1-arm64-cross (12.2.0-14cross1) ...
+2025-07-01T14:46:58.3448538Z #19 8.024 Setting up cpp-12-aarch64-linux-gnu (12.2.0-14cross1) ...
+2025-07-01T14:46:58.3449158Z #19 8.030 Setting up libhwasan0-arm64-cross (12.2.0-14cross1) ...
+2025-07-01T14:46:58.3449776Z #19 8.035 Setting up libc6-dev-arm64-cross (2.36-8cross1) ...
+2025-07-01T14:46:58.3450778Z #19 8.041 Setting up libstdc++6-arm64-cross (12.2.0-14cross1) ...
+2025-07-01T14:46:58.3451348Z #19 8.048 Setting up cpp-aarch64-linux-gnu (4:12.2.0-3) ...
+2025-07-01T14:46:58.3451895Z #19 8.054 Setting up libasan8-arm64-cross (12.2.0-14cross1) ...
+2025-07-01T14:46:58.3452490Z #19 8.062 Setting up libtsan2-arm64-cross (12.2.0-14cross1) ...
+2025-07-01T14:46:58.5354331Z #19 8.069 Setting up libubsan1-arm64-cross (12.2.0-14cross1) ...
+2025-07-01T14:46:58.5364644Z #19 8.080 Setting up libgcc-12-dev-arm64-cross (12.2.0-14cross1) ...
+2025-07-01T14:46:58.5365284Z #19 8.092 Setting up gcc-12-aarch64-linux-gnu (12.2.0-14cross1) ...
+2025-07-01T14:46:58.5365865Z #19 8.096 Setting up gcc-aarch64-linux-gnu (4:12.2.0-3) ...
+2025-07-01T14:46:58.5366423Z #19 8.103 Processing triggers for libc-bin (2.36-9+deb12u10) ...
+2025-07-01T14:46:58.7914753Z #19 DONE 8.5s
+2025-07-01T14:46:58.7915401Z 
+2025-07-01T14:46:58.7917227Z #20 [linux/amd64 builder 8/8] RUN . ./build_env.sh &&   echo "{CC=$CC, TARGETPLATFORM=linux/amd64, BUILDPLATFORM=linux/amd64}" &&   export GOARCH=$(echo linux/amd64 | cut -d / -f2) &&   export CURRENT_BRANCH=c46a4f1 &&   export SUBNET_EVM_COMMIT=c46a4f11ecd55a5ab361920393adf5859e0dc097 &&   ./scripts/build.sh build/subnet-evm
+2025-07-01T14:46:58.7919525Z #20 0.048 {CC=gcc, TARGETPLATFORM=linux/amd64, BUILDPLATFORM=linux/amd64}
+2025-07-01T14:46:58.7920439Z #20 0.070 Using branch: c46a4f1
+2025-07-01T14:46:58.7921293Z #20 0.070 Building Subnet EVM @ GitCommit: c46a4f11ecd55a5ab361920393adf5859e0dc097 at build/subnet-evm
+2025-07-01T14:46:58.9044649Z #20 ...
+2025-07-01T14:46:58.9045333Z 
+2025-07-01T14:46:58.9047107Z #21 [linux/amd64->arm64 builder 8/8] RUN . ./build_env.sh &&   echo "{CC=$CC, TARGETPLATFORM=linux/arm64, BUILDPLATFORM=linux/amd64}" &&   export GOARCH=$(echo linux/arm64 | cut -d / -f2) &&   export CURRENT_BRANCH=c46a4f1 &&   export SUBNET_EVM_COMMIT=c46a4f11ecd55a5ab361920393adf5859e0dc097 &&   ./scripts/build.sh build/subnet-evm
+2025-07-01T14:46:58.9049611Z #21 0.111 {CC=aarch64-linux-gnu-gcc, TARGETPLATFORM=linux/arm64, BUILDPLATFORM=linux/amd64}
+2025-07-01T14:46:59.1017734Z #21 0.157 Using branch: c46a4f1
+2025-07-01T14:46:59.1019256Z #21 0.158 Building Subnet EVM @ GitCommit: c46a4f11ecd55a5ab361920393adf5859e0dc097 at build/subnet-evm
+2025-07-01T14:48:47.2241686Z #21 ...
+2025-07-01T14:48:47.2241936Z 
+2025-07-01T14:48:47.2243711Z #20 [linux/amd64 builder 8/8] RUN . ./build_env.sh &&   echo "{CC=$CC, TARGETPLATFORM=linux/amd64, BUILDPLATFORM=linux/amd64}" &&   export GOARCH=$(echo linux/amd64 | cut -d / -f2) &&   export CURRENT_BRANCH=c46a4f1 &&   export SUBNET_EVM_COMMIT=c46a4f11ecd55a5ab361920393adf5859e0dc097 &&   ./scripts/build.sh build/subnet-evm
+2025-07-01T14:48:47.2245758Z #20 DONE 116.7s
+2025-07-01T14:48:47.4277134Z 
+2025-07-01T14:48:47.4279375Z #22 [linux/amd64 execution 2/2] COPY --from=builder /build/build/subnet-evm /avalanchego/build/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
+2025-07-01T14:48:47.4281647Z #22 DONE 0.1s
+2025-07-01T14:48:47.4282487Z 
+2025-07-01T14:48:47.4284284Z #21 [linux/amd64->arm64 builder 8/8] RUN . ./build_env.sh &&   echo "{CC=$CC, TARGETPLATFORM=linux/arm64, BUILDPLATFORM=linux/amd64}" &&   export GOARCH=$(echo linux/arm64 | cut -d / -f2) &&   export CURRENT_BRANCH=c46a4f1 &&   export SUBNET_EVM_COMMIT=c46a4f11ecd55a5ab361920393adf5859e0dc097 &&   ./scripts/build.sh build/subnet-evm
+2025-07-01T14:48:58.9610769Z #21 DONE 120.2s
+2025-07-01T14:48:59.0786126Z 
+2025-07-01T14:48:59.0787808Z #23 [linux/arm64 execution 2/2] COPY --from=builder /build/build/subnet-evm /avalanchego/build/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
+2025-07-01T14:48:59.0788727Z #23 DONE 0.1s
+2025-07-01T14:48:59.2311399Z 
+2025-07-01T14:48:59.2311975Z #24 exporting to image
+2025-07-01T14:48:59.2312336Z #24 exporting layers
+2025-07-01T14:49:00.8993319Z #24 exporting layers 1.8s done
+2025-07-01T14:49:01.0825070Z #24 exporting manifest sha256:c0aaa709a52c159190e5c9063480d0043e8ef9a44135ae93f7120bb2acf9d459 done
+2025-07-01T14:49:01.0827994Z #24 exporting config sha256:d542fbb6f890f208ba1597db7e4fb0ed53756525e48d29f5ab6a2eae5ce03030 done
+2025-07-01T14:49:01.0832592Z #24 exporting attestation manifest sha256:ae1c17358e89d4850887a77c02a235a53b3788ceaf34aa60b5cf59c082666d7f done
+2025-07-01T14:49:01.0833781Z #24 exporting manifest sha256:ad4cad737589dbc5b2d437eab576de0ce76a6d3cee77b08d5887f075c4556295 done
+2025-07-01T14:49:01.0834841Z #24 exporting config sha256:95655dfc9fd323d30a23befd32ba38d9fb1dbf983b1ee673d52e8a7c3dfc9add done
+2025-07-01T14:49:01.0835997Z #24 exporting attestation manifest sha256:fc3cea719cec35585888fd9613d45907f2a5706e75cc52409009e42fc0ad7dce done
+2025-07-01T14:49:01.0837142Z #24 exporting manifest list sha256:be681b4657ade877570ca761115e6813f318d561214d1cd180effbefa045a47f done
+2025-07-01T14:49:01.0837874Z #24 pushing layers
+2025-07-01T14:49:01.3347729Z #24 pushing layers 0.4s done
+2025-07-01T14:49:01.3349141Z #24 pushing manifest for localhost:32768/subnet-evm_avalanchego:testtag@sha256:be681b4657ade877570ca761115e6813f318d561214d1cd180effbefa045a47f
+2025-07-01T14:49:01.4225347Z #24 pushing layers 0.0s done
+2025-07-01T14:49:01.4226594Z #24 pushing manifest for localhost:32768/subnet-evm_avalanchego:testtag@sha256:be681b4657ade877570ca761115e6813f318d561214d1cd180effbefa045a47f 0.0s done
+2025-07-01T14:49:01.4228310Z #24 pushing manifest for localhost:32768/subnet-evm_avalanchego:c46a4f11_v1.13.2@sha256:be681b4657ade877570ca761115e6813f318d561214d1cd180effbefa045a47f 0.0s done
+2025-07-01T14:49:01.4229454Z #24 DONE 2.3s
+2025-07-01T14:49:01.4286582Z + echo 'listing images'
+2025-07-01T14:49:01.4286953Z listing images
+2025-07-01T14:49:01.4287261Z + docker images
+2025-07-01T14:49:01.4404225Z REPOSITORY                TAG                IMAGE ID       CREATED         SIZE
+2025-07-01T14:49:01.4405035Z subnet-evm_avalanchego    c46a4f11_v1.13.2   4fdda13066b5   2 minutes ago   215MB
+2025-07-01T14:49:01.4405844Z subnet-evm_avalanchego    testtag            4fdda13066b5   2 minutes ago   215MB
+2025-07-01T14:49:01.4406351Z avaplatform/avalanchego   v1.13.2            d15023d3a8cf   6 days ago      159MB
+2025-07-01T14:49:01.4406787Z moby/buildkit             buildx-stable-1    72a94020693f   5 weeks ago     216MB
+2025-07-01T14:49:01.4407164Z registry                  2                  26b2eb03618e   21 months ago   25.4MB
+2025-07-01T14:49:01.4420464Z + target_images=('localhost:32768/subnet-evm_avalanchego:testtag' 'localhost:32768/subnet-evm_avalanchego:c46a4f11_v1.13.2')
+2025-07-01T14:49:01.4421383Z + local target_images
+2025-07-01T14:49:01.4421655Z + IFS=,
+2025-07-01T14:49:01.4421910Z + read -r -a archarray
+2025-07-01T14:49:01.4422224Z + for arch in "${archarray[@]}"
+2025-07-01T14:49:01.4422596Z + for target_image in "${target_images[@]}"
+2025-07-01T14:49:01.4423712Z + echo 'checking sanity of image localhost:32768/subnet-evm_avalanchego:testtag for linux/amd64 by running '\''srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy version'\'''
+2025-07-01T14:49:01.4425134Z + docker run -t --rm --platform linux/amd64 localhost:32768/subnet-evm_avalanchego:testtag /avalanchego/build/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy --version
+2025-07-01T14:49:01.4426312Z checking sanity of image localhost:32768/subnet-evm_avalanchego:testtag for linux/amd64 by running 'srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy version'
+2025-07-01T14:49:01.4540983Z Unable to find image 'localhost:32768/subnet-evm_avalanchego:testtag' locally
+2025-07-01T14:49:01.4679539Z testtag: Pulling from subnet-evm_avalanchego
+2025-07-01T14:49:01.4738745Z dad67da3f26b: Already exists
+2025-07-01T14:49:01.4751970Z db6e49493072: Already exists
+2025-07-01T14:49:01.4769717Z 4f4fb700ef54: Already exists
+2025-07-01T14:49:01.4780128Z 1814880c8843: Already exists
+2025-07-01T14:49:01.4796495Z 44daeff684bb: Pulling fs layer
+2025-07-01T14:49:01.5337863Z 44daeff684bb: Verifying Checksum
+2025-07-01T14:49:01.5338319Z 44daeff684bb: Download complete
+2025-07-01T14:49:01.7985475Z 44daeff684bb: Pull complete
+2025-07-01T14:49:01.8025118Z Digest: sha256:be681b4657ade877570ca761115e6813f318d561214d1cd180effbefa045a47f
+2025-07-01T14:49:01.8035426Z Status: Downloaded newer image for localhost:32768/subnet-evm_avalanchego:testtag
+2025-07-01T14:49:01.9517631Z Subnet-EVM/v0.7.5@c46a4f11ecd55a5ab361920393adf5859e0dc097 [AvalancheGo=v1.13.2, rpcchainvm=41]
+2025-07-01T14:49:02.0206222Z + for target_image in "${target_images[@]}"
+2025-07-01T14:49:02.0207466Z + echo 'checking sanity of image localhost:32768/subnet-evm_avalanchego:c46a4f11_v1.13.2 for linux/amd64 by running '\''srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy version'\'''
+2025-07-01T14:49:02.0208625Z checking sanity of image localhost:32768/subnet-evm_avalanchego:c46a4f11_v1.13.2 for linux/amd64 by running 'srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy version'
+2025-07-01T14:49:02.0209755Z + docker run -t --rm --platform linux/amd64 localhost:32768/subnet-evm_avalanchego:c46a4f11_v1.13.2 /avalanchego/build/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy --version
+2025-07-01T14:49:02.0324997Z Unable to find image 'localhost:32768/subnet-evm_avalanchego:c46a4f11_v1.13.2' locally
+2025-07-01T14:49:02.0457065Z c46a4f11_v1.13.2: Pulling from subnet-evm_avalanchego
+2025-07-01T14:49:02.0502429Z Digest: sha256:be681b4657ade877570ca761115e6813f318d561214d1cd180effbefa045a47f
+2025-07-01T14:49:02.0536387Z Status: Downloaded newer image for localhost:32768/subnet-evm_avalanchego:c46a4f11_v1.13.2
+2025-07-01T14:49:02.1904233Z Subnet-EVM/v0.7.5@c46a4f11ecd55a5ab361920393adf5859e0dc097 [AvalancheGo=v1.13.2, rpcchainvm=41]
+2025-07-01T14:49:02.2613341Z + for arch in "${archarray[@]}"
+2025-07-01T14:49:02.2614228Z checking sanity of image localhost:32768/subnet-evm_avalanchego:testtag for linux/arm64 by running 'srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy version'
+2025-07-01T14:49:02.2614882Z + for target_image in "${target_images[@]}"
+2025-07-01T14:49:02.2615549Z + echo 'checking sanity of image localhost:32768/subnet-evm_avalanchego:testtag for linux/arm64 by running '\''srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy version'\'''
+2025-07-01T14:49:02.2616687Z + docker run -t --rm --platform linux/arm64 localhost:32768/subnet-evm_avalanchego:testtag /avalanchego/build/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy --version
+2025-07-01T14:49:02.2776437Z Unable to find image 'localhost:32768/subnet-evm_avalanchego:testtag' locally
+2025-07-01T14:49:02.2873946Z testtag: Pulling from subnet-evm_avalanchego
+2025-07-01T14:49:02.2948557Z 34ef2a75627f: Pulling fs layer
+2025-07-01T14:49:02.2950830Z 272efa7954e0: Pulling fs layer
+2025-07-01T14:49:02.2951696Z 4f4fb700ef54: Pulling fs layer
+2025-07-01T14:49:02.2952200Z ea3cac4eba04: Pulling fs layer
+2025-07-01T14:49:02.2953900Z 6a9ac858674c: Pulling fs layer
+2025-07-01T14:49:02.2954598Z ea3cac4eba04: Waiting
+2025-07-01T14:49:02.2955232Z 6a9ac858674c: Waiting
+2025-07-01T14:49:02.3024281Z 4f4fb700ef54: Verifying Checksum
+2025-07-01T14:49:02.3025224Z 4f4fb700ef54: Download complete
+2025-07-01T14:49:02.3035615Z 272efa7954e0: Verifying Checksum
+2025-07-01T14:49:02.3036342Z 272efa7954e0: Download complete
+2025-07-01T14:49:02.3654321Z 6a9ac858674c: Verifying Checksum
+2025-07-01T14:49:02.3655195Z 6a9ac858674c: Download complete
+2025-07-01T14:49:02.3707824Z 34ef2a75627f: Verifying Checksum
+2025-07-01T14:49:02.3708348Z 34ef2a75627f: Download complete
+2025-07-01T14:49:02.3907032Z ea3cac4eba04: Verifying Checksum
+2025-07-01T14:49:02.3907530Z ea3cac4eba04: Download complete
+2025-07-01T14:49:03.5213793Z 34ef2a75627f: Pull complete
+2025-07-01T14:49:03.7000600Z 272efa7954e0: Pull complete
+2025-07-01T14:49:03.7145227Z 4f4fb700ef54: Pull complete
+2025-07-01T14:49:04.0709842Z ea3cac4eba04: Pull complete
+2025-07-01T14:49:04.3132267Z 6a9ac858674c: Pull complete
+2025-07-01T14:49:04.3174015Z Digest: sha256:be681b4657ade877570ca761115e6813f318d561214d1cd180effbefa045a47f
+2025-07-01T14:49:04.3183961Z Status: Downloaded newer image for localhost:32768/subnet-evm_avalanchego:testtag
+2025-07-01T14:49:05.0568539Z Subnet-EVM/v0.7.5@c46a4f11ecd55a5ab361920393adf5859e0dc097 [AvalancheGo=v1.13.2, rpcchainvm=41]
+2025-07-01T14:49:05.1290974Z + for target_image in "${target_images[@]}"
+2025-07-01T14:49:05.1292265Z + echo 'checking sanity of image localhost:32768/subnet-evm_avalanchego:c46a4f11_v1.13.2 for linux/arm64 by running '\''srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy version'\'''
+2025-07-01T14:49:05.1294108Z + docker run -t --rm --platform linux/arm64 localhost:32768/subnet-evm_avalanchego:c46a4f11_v1.13.2 /avalanchego/build/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy --version
+2025-07-01T14:49:05.1295270Z checking sanity of image localhost:32768/subnet-evm_avalanchego:c46a4f11_v1.13.2 for linux/arm64 by running 'srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy version'
+2025-07-01T14:49:05.1456453Z Unable to find image 'localhost:32768/subnet-evm_avalanchego:c46a4f11_v1.13.2' locally
+2025-07-01T14:49:05.1559968Z c46a4f11_v1.13.2: Pulling from subnet-evm_avalanchego
+2025-07-01T14:49:05.1607834Z Digest: sha256:be681b4657ade877570ca761115e6813f318d561214d1cd180effbefa045a47f
+2025-07-01T14:49:05.1616051Z Status: Downloaded newer image for localhost:32768/subnet-evm_avalanchego:c46a4f11_v1.13.2
+2025-07-01T14:49:05.8796740Z Subnet-EVM/v0.7.5@c46a4f11ecd55a5ab361920393adf5859e0dc097 [AvalancheGo=v1.13.2, rpcchainvm=41]
+2025-07-01T14:49:05.9496869Z + cleanup
+2025-07-01T14:49:05.9497194Z stopping local docker registry
+2025-07-01T14:49:05.9497559Z + echo 'stopping local docker registry'
+2025-07-01T14:49:05.9497960Z + docker stop 64676ab7401966b8fe92b630ed804f14d3ad94125cd0b93080e9d94df8e274f4
+2025-07-01T14:49:06.0645878Z 64676ab7401966b8fe92b630ed804f14d3ad94125cd0b93080e9d94df8e274f4
+2025-07-01T14:49:06.0667997Z + echo 'removing multiplatform builder'
+2025-07-01T14:49:06.0668459Z removing multiplatform builder
+2025-07-01T14:49:06.0668843Z + docker buildx rm ci-builder
+2025-07-01T14:49:09.5336246Z ci-builder removed
+2025-07-01T14:49:09.6107965Z Post job cleanup.
+2025-07-01T14:49:09.7055773Z [command]/usr/bin/git version
+2025-07-01T14:49:09.7092233Z git version 2.49.0
+2025-07-01T14:49:09.7142230Z Temporarily overriding HOME='/home/runner/work/_temp/73d84a1d-014c-49aa-bbb3-97c6a0306b9d' before making global git config changes
+2025-07-01T14:49:09.7143182Z Adding repository directory to the temporary git global config as a safe directory
+2025-07-01T14:49:09.7147822Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/subnet-evm/subnet-evm
+2025-07-01T14:49:09.7183635Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-07-01T14:49:09.7215186Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-07-01T14:49:09.7442927Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-07-01T14:49:09.7464000Z http.https://github.com/.extraheader
+2025-07-01T14:49:09.7475952Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2025-07-01T14:49:09.7505939Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-07-01T14:49:09.7841707Z Cleaning up orphan processes

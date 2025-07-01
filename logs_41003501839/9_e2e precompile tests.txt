@@ -1,0 +1,1006 @@
+﻿2025-07-01T14:44:02.3116239Z Current runner version: '2.325.0'
+2025-07-01T14:44:02.3139901Z ##[group]Runner Image Provisioner
+2025-07-01T14:44:02.3140774Z Hosted Compute Agent
+2025-07-01T14:44:02.3141340Z Version: 20250620.352
+2025-07-01T14:44:02.3141898Z Commit: f262f3aba23b10ea191b2a62bdee1ca4c3d344da
+2025-07-01T14:44:02.3142627Z Build Date: 2025-06-20T19:27:17Z
+2025-07-01T14:44:02.3143196Z ##[endgroup]
+2025-07-01T14:44:02.3143743Z ##[group]Operating System
+2025-07-01T14:44:02.3144327Z Ubuntu
+2025-07-01T14:44:02.3144783Z 24.04.2
+2025-07-01T14:44:02.3145242Z LTS
+2025-07-01T14:44:02.3145634Z ##[endgroup]
+2025-07-01T14:44:02.3146219Z ##[group]Runner Image
+2025-07-01T14:44:02.3146748Z Image: ubuntu-24.04
+2025-07-01T14:44:02.3147234Z Version: 20250622.1.0
+2025-07-01T14:44:02.3148253Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20250622.1/images/ubuntu/Ubuntu2404-Readme.md
+2025-07-01T14:44:02.3149961Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20250622.1
+2025-07-01T14:44:02.3150975Z ##[endgroup]
+2025-07-01T14:44:02.3153377Z ##[group]GITHUB_TOKEN Permissions
+2025-07-01T14:44:02.3155477Z Actions: write
+2025-07-01T14:44:02.3156040Z Attestations: write
+2025-07-01T14:44:02.3156526Z Checks: write
+2025-07-01T14:44:02.3157099Z Contents: write
+2025-07-01T14:44:02.3157564Z Deployments: write
+2025-07-01T14:44:02.3158062Z Discussions: write
+2025-07-01T14:44:02.3158578Z Issues: write
+2025-07-01T14:44:02.3159410Z Metadata: read
+2025-07-01T14:44:02.3159894Z Models: read
+2025-07-01T14:44:02.3160385Z Packages: write
+2025-07-01T14:44:02.3160895Z Pages: write
+2025-07-01T14:44:02.3161348Z PullRequests: write
+2025-07-01T14:44:02.3161938Z RepositoryProjects: write
+2025-07-01T14:44:02.3162479Z SecurityEvents: write
+2025-07-01T14:44:02.3163081Z Statuses: write
+2025-07-01T14:44:02.3163704Z ##[endgroup]
+2025-07-01T14:44:02.3165654Z Secret source: Actions
+2025-07-01T14:44:02.3166354Z Prepare workflow directory
+2025-07-01T14:44:02.3479070Z Prepare all required actions
+2025-07-01T14:44:02.3516154Z Getting action download info
+2025-07-01T14:44:02.8887676Z ##[group]Download immutable action package 'actions/checkout@v4'
+2025-07-01T14:44:02.8888760Z Version: 4.2.2
+2025-07-01T14:44:02.8890037Z Digest: sha256:ccb2698953eaebd21c7bf6268a94f9c26518a7e38e27e0b83c1fe1ad049819b1
+2025-07-01T14:44:02.8891142Z Source commit SHA: 11bd71901bbe5b1630ceea73d27597364c9af683
+2025-07-01T14:44:02.8891910Z ##[endgroup]
+2025-07-01T14:44:02.9791501Z ##[group]Download immutable action package 'actions/setup-go@v5'
+2025-07-01T14:44:02.9792358Z Version: 5.5.0
+2025-07-01T14:44:02.9793136Z Digest: sha256:f5eeb2233d0c6714b5236de9b44ad0b935014e15eeab3c28d73dc44c1c641ebb
+2025-07-01T14:44:02.9794068Z Source commit SHA: d35c59abb061a4a6fb18e82ac0862c26744d6ab5
+2025-07-01T14:44:02.9794789Z ##[endgroup]
+2025-07-01T14:44:04.1254693Z ##[group]Download immutable action package 'actions/setup-node@v4'
+2025-07-01T14:44:04.1255521Z Version: 4.4.0
+2025-07-01T14:44:04.1256427Z Digest: sha256:9427cefe82346e992fb5b949e3569b39d537ae41aa3086483b14eceebfc16bc1
+2025-07-01T14:44:04.1257472Z Source commit SHA: 49933ea5288caeca8642d1e84afbd3f7d6820020
+2025-07-01T14:44:04.1258212Z ##[endgroup]
+2025-07-01T14:44:04.2251673Z ##[group]Download immutable action package 'actions/upload-artifact@v4'
+2025-07-01T14:44:04.2252445Z Version: 4.6.2
+2025-07-01T14:44:04.2253102Z Digest: sha256:290722aa3281d5caf23d0acdc3dbeb3424786a1a01a9cc97e72f147225e37c38
+2025-07-01T14:44:04.2253990Z Source commit SHA: ea165f8d65b6e75b540449e92b4886f43607fa02
+2025-07-01T14:44:04.2254608Z ##[endgroup]
+2025-07-01T14:44:04.4175698Z Complete job name: e2e precompile tests
+2025-07-01T14:44:04.4886579Z ##[group]Run actions/checkout@v4
+2025-07-01T14:44:04.4887534Z with:
+2025-07-01T14:44:04.4887959Z   fetch-depth: 0
+2025-07-01T14:44:04.4888432Z   repository: ava-labs/subnet-evm
+2025-07-01T14:44:04.4889363Z   token: ***
+2025-07-01T14:44:04.4889798Z   ssh-strict: true
+2025-07-01T14:44:04.4890246Z   ssh-user: git
+2025-07-01T14:44:04.4890681Z   persist-credentials: true
+2025-07-01T14:44:04.4891164Z   clean: true
+2025-07-01T14:44:04.4891853Z   sparse-checkout-cone-mode: true
+2025-07-01T14:44:04.4892380Z   fetch-tags: false
+2025-07-01T14:44:04.4892813Z   show-progress: true
+2025-07-01T14:44:04.4893250Z   lfs: false
+2025-07-01T14:44:04.4893627Z   submodules: false
+2025-07-01T14:44:04.4894065Z   set-safe-directory: true
+2025-07-01T14:44:04.4895009Z ##[endgroup]
+2025-07-01T14:44:04.5967832Z Syncing repository: ava-labs/subnet-evm
+2025-07-01T14:44:04.5970282Z ##[group]Getting Git version info
+2025-07-01T14:44:04.5971098Z Working directory is '/home/runner/work/subnet-evm/subnet-evm'
+2025-07-01T14:44:04.5972273Z [command]/usr/bin/git version
+2025-07-01T14:44:04.6013264Z git version 2.49.0
+2025-07-01T14:44:04.6039289Z ##[endgroup]
+2025-07-01T14:44:04.6052994Z Temporarily overriding HOME='/home/runner/work/_temp/e99319f5-e0b0-4114-a702-3e81552f447e' before making global git config changes
+2025-07-01T14:44:04.6054540Z Adding repository directory to the temporary git global config as a safe directory
+2025-07-01T14:44:04.6058028Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/subnet-evm/subnet-evm
+2025-07-01T14:44:04.6093545Z Deleting the contents of '/home/runner/work/subnet-evm/subnet-evm'
+2025-07-01T14:44:04.6097098Z ##[group]Initializing the repository
+2025-07-01T14:44:04.6101036Z [command]/usr/bin/git init /home/runner/work/subnet-evm/subnet-evm
+2025-07-01T14:44:04.6170233Z hint: Using 'master' as the name for the initial branch. This default branch name
+2025-07-01T14:44:04.6171592Z hint: is subject to change. To configure the initial branch name to use in all
+2025-07-01T14:44:04.6172638Z hint: of your new repositories, which will suppress this warning, call:
+2025-07-01T14:44:04.6173427Z hint:
+2025-07-01T14:44:04.6174261Z hint: 	git config --global init.defaultBranch <name>
+2025-07-01T14:44:04.6175161Z hint:
+2025-07-01T14:44:04.6175780Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2025-07-01T14:44:04.6176789Z hint: 'development'. The just-created branch can be renamed via this command:
+2025-07-01T14:44:04.6177604Z hint:
+2025-07-01T14:44:04.6178034Z hint: 	git branch -m <name>
+2025-07-01T14:44:04.6179343Z Initialized empty Git repository in /home/runner/work/subnet-evm/subnet-evm/.git/
+2025-07-01T14:44:04.6185151Z [command]/usr/bin/git remote add origin https://github.com/ava-labs/subnet-evm
+2025-07-01T14:44:04.6218136Z ##[endgroup]
+2025-07-01T14:44:04.6219670Z ##[group]Disabling automatic garbage collection
+2025-07-01T14:44:04.6223121Z [command]/usr/bin/git config --local gc.auto 0
+2025-07-01T14:44:04.6252186Z ##[endgroup]
+2025-07-01T14:44:04.6253616Z ##[group]Setting up auth
+2025-07-01T14:44:04.6259781Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-07-01T14:44:04.6292607Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-07-01T14:44:04.6585908Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-07-01T14:44:04.6616903Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-07-01T14:44:04.6837789Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2025-07-01T14:44:04.6874222Z ##[endgroup]
+2025-07-01T14:44:04.6874994Z ##[group]Fetching the repository
+2025-07-01T14:44:04.6883593Z [command]/usr/bin/git -c protocol.version=2 fetch --prune --no-recurse-submodules origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/* +c46a4f11ecd55a5ab361920393adf5859e0dc097:refs/remotes/pull/1610/merge
+2025-07-01T14:44:17.7395213Z From https://github.com/ava-labs/subnet-evm
+2025-07-01T14:44:17.7396900Z  * [new branch]          0.7.2-avalanchego-v1.13.0-fuji-rc.2 -> origin/0.7.2-avalanchego-v1.13.0-fuji-rc.2
+2025-07-01T14:44:17.7398335Z  * [new branch]          HelloWorldOfficialTutorial -> origin/HelloWorldOfficialTutorial
+2025-07-01T14:44:17.7400070Z  * [new branch]          abi-fuzz-testing          -> origin/abi-fuzz-testing
+2025-07-01T14:44:17.7400968Z  * [new branch]          abi-standardize           -> origin/abi-standardize
+2025-07-01T14:44:17.7402114Z  * [new branch]          acceptor-queue            -> origin/acceptor-queue
+2025-07-01T14:44:17.7403278Z  * [new branch]          acp-176                   -> origin/acp-176
+2025-07-01T14:44:17.7405277Z  * [new branch]          acp-176-config            -> origin/acp-176-config
+2025-07-01T14:44:17.7407042Z  * [new branch]          add-aggregator-unit-test  -> origin/add-aggregator-unit-test
+2025-07-01T14:44:17.7409324Z  * [new branch]          add-cpu-profiling         -> origin/add-cpu-profiling
+2025-07-01T14:44:17.7411585Z  * [new branch]          add-cross-chain-request-to-s-evm -> origin/add-cross-chain-request-to-s-evm
+2025-07-01T14:44:17.7412821Z  * [new branch]          add-else                  -> origin/add-else
+2025-07-01T14:44:17.7414956Z  * [new branch]          add-manager-role          -> origin/add-manager-role
+2025-07-01T14:44:17.7417011Z  * [new branch]          add-max-cache-size        -> origin/add-max-cache-size
+2025-07-01T14:44:17.7419397Z  * [new branch]          add-more-unit-tests-for-aggregator -> origin/add-more-unit-tests-for-aggregator
+2025-07-01T14:44:17.7421699Z  * [new branch]          add-pong-request-to-s-evm -> origin/add-pong-request-to-s-evm
+2025-07-01T14:44:17.7423688Z  * [new branch]          addTestScript             -> origin/addTestScript
+2025-07-01T14:44:17.7425535Z  * [new branch]          ago-v1.7.17               -> origin/ago-v1.7.17
+2025-07-01T14:44:17.7428224Z  * [new branch]          alarso16/acp176-config    -> origin/alarso16/acp176-config
+2025-07-01T14:44:17.7430357Z  * [new branch]          align-big2                -> origin/align-big2
+2025-07-01T14:44:17.7432318Z  * [new branch]          align-block-request       -> origin/align-block-request
+2025-07-01T14:44:17.7434333Z  * [new branch]          always-sign-uptime        -> origin/always-sign-uptime
+2025-07-01T14:44:17.7436488Z  * [new branch]          always-sign-validator-uptimes -> origin/always-sign-validator-uptimes
+2025-07-01T14:44:17.7438418Z  * [new branch]          anr-functionality-test    -> origin/anr-functionality-test
+2025-07-01T14:44:17.7440575Z  * [new branch]          anusha-test-remote-sync   -> origin/anusha-test-remote-sync
+2025-07-01T14:44:17.7442663Z  * [new branch]          anusha-test-remove-verify -> origin/anusha-test-remove-verify
+2025-07-01T14:44:17.7445173Z  * [new branch]          arr4n/allowlist-refactor  -> origin/arr4n/allowlist-refactor
+2025-07-01T14:44:17.7447270Z  * [new branch]          arr4n/circular-dep-types-precompiles -> origin/arr4n/circular-dep-types-precompiles
+2025-07-01T14:44:17.7449004Z  * [new branch]          arr4n/geth-1.13.14        -> origin/arr4n/geth-1.13.14
+2025-07-01T14:44:17.7451456Z  * [new branch]          arr4n/geth-1.13.14-squashed -> origin/arr4n/geth-1.13.14-squashed
+2025-07-01T14:44:17.7452958Z  * [new branch]          arr4n/gethclone           -> origin/arr4n/gethclone
+2025-07-01T14:44:17.7455055Z  * [new branch]          arr4n/gethclone-extension -> origin/arr4n/gethclone-extension
+2025-07-01T14:44:17.7457154Z  * [new branch]          arr4n/gethclone-stateful-precompiles -> origin/arr4n/gethclone-stateful-precompiles
+2025-07-01T14:44:17.7458993Z  * [new branch]          arr4n/move-precompile-interfaces -> origin/arr4n/move-precompile-interfaces
+2025-07-01T14:44:17.7461365Z  * [new branch]          arr4n/precompile-go-tests -> origin/arr4n/precompile-go-tests
+2025-07-01T14:44:17.7462909Z  * [new branch]          arr4n/solc-downloader     -> origin/arr4n/solc-downloader
+2025-07-01T14:44:17.7464926Z  * [new branch]          ava-lru                   -> origin/ava-lru
+2025-07-01T14:44:17.7466956Z  * [new branch]          avago-databaseconfig      -> origin/avago-databaseconfig
+2025-07-01T14:44:17.7469042Z  * [new branch]          avagobump-for-relayer     -> origin/avagobump-for-relayer
+2025-07-01T14:44:17.7471674Z  * [new branch]          avalanche-boundaries      -> origin/avalanche-boundaries
+2025-07-01T14:44:17.7473327Z  * [new branch]          avalanchego-v1.9.2        -> origin/avalanchego-v1.9.2
+2025-07-01T14:44:17.7475497Z  * [new branch]          awm-precompile-interface  -> origin/awm-precompile-interface
+2025-07-01T14:44:17.7477599Z  * [new branch]          awm-precompile-interface-nits -> origin/awm-precompile-interface-nits
+2025-07-01T14:44:17.7479595Z  * [new branch]          batch-inner               -> origin/batch-inner
+2025-07-01T14:44:17.7482559Z  * [new branch]          bench-storage-trie        -> origin/bench-storage-trie
+2025-07-01T14:44:17.7483892Z  * [new branch]          bench-study               -> origin/bench-study
+2025-07-01T14:44:17.7486104Z  * [new branch]          break-cyclic              -> origin/break-cyclic
+2025-07-01T14:44:17.7488120Z  * [new branch]          bump-ago                  -> origin/bump-ago
+2025-07-01T14:44:17.7490403Z  * [new branch]          bump-anr-nits             -> origin/bump-anr-nits
+2025-07-01T14:44:17.7492483Z  * [new branch]          bump-avago-master         -> origin/bump-avago-master
+2025-07-01T14:44:17.7494711Z  * [new branch]          bump-avalanchego-c-chain-warp -> origin/bump-avalanchego-c-chain-warp
+2025-07-01T14:44:17.7496691Z  * [new branch]          changes-to-requester      -> origin/changes-to-requester
+2025-07-01T14:44:17.7498696Z  * [new branch]          check-code-scanning       -> origin/check-code-scanning
+2025-07-01T14:44:17.7501003Z  * [new branch]          ci-enabled-fuzz           -> origin/ci-enabled-fuzz
+2025-07-01T14:44:17.7503019Z  * [new branch]          cleanup-client            -> origin/cleanup-client
+2025-07-01T14:44:17.7504966Z  * [new branch]          cleanup-jobs              -> origin/cleanup-jobs
+2025-07-01T14:44:17.7507104Z  * [new branch]          cleanup-upgrades          -> origin/cleanup-upgrades
+2025-07-01T14:44:17.7509671Z  * [new branch]          config-mainnet-warp-optimization -> origin/config-mainnet-warp-optimization
+2025-07-01T14:44:17.7511719Z  * [new branch]          config-test-suites        -> origin/config-test-suites
+2025-07-01T14:44:17.7513951Z  * [new branch]          configurable-suggestpriceoptions -> origin/configurable-suggestpriceoptions
+2025-07-01T14:44:17.7516243Z  * [new branch]          containerize-vm-runtime   -> origin/containerize-vm-runtime
+2025-07-01T14:44:17.7518578Z  * [new branch]          coreth-0.12.4-sync-x      -> origin/coreth-0.12.4-sync-x
+2025-07-01T14:44:17.7521019Z  * [new branch]          coreth-diff               -> origin/coreth-diff
+2025-07-01T14:44:17.7523257Z  * [new branch]          coreth-diff-script        -> origin/coreth-diff-script
+2025-07-01T14:44:17.7525506Z  * [new branch]          coreth-merge              -> origin/coreth-merge
+2025-07-01T14:44:17.7527802Z  * [new branch]          coreth-test-0             -> origin/coreth-test-0
+2025-07-01T14:44:17.7530412Z  * [new branch]          custom-log-format         -> origin/custom-log-format
+2025-07-01T14:44:17.7533453Z  * [new branch]          darioush/simplify-ci-monitoring -> origin/darioush/simplify-ci-monitoring
+2025-07-01T14:44:17.7535805Z  * [new branch]          debian-update-to-debian12 -> origin/debian-update-to-debian12
+2025-07-01T14:44:17.7538071Z  * [new branch]          debug-cache-rate          -> origin/debug-cache-rate
+2025-07-01T14:44:17.7540618Z  * [new branch]          debug-fee-config-manager  -> origin/debug-fee-config-manager
+2025-07-01T14:44:17.7543116Z  * [new branch]          decouple-precompiles      -> origin/decouple-precompiles
+2025-07-01T14:44:17.7545304Z  * [new branch]          decouple-precompiles-0    -> origin/decouple-precompiles-0
+2025-07-01T14:44:17.7547556Z  * [new branch]          default-rejournal         -> origin/default-rejournal
+2025-07-01T14:44:17.7550013Z  * [new branch]          delete-redundant-tests    -> origin/delete-redundant-tests
+2025-07-01T14:44:17.7552266Z  * [new branch]          deleteme                  -> origin/deleteme
+2025-07-01T14:44:17.7556817Z  * [new branch]          dependabot/github_actions/docker/setup-buildx-action-3.11.1 -> origin/dependabot/github_actions/docker/setup-buildx-action-3.11.1
+2025-07-01T14:44:17.7559911Z  * [new branch]          dependabot/github_actions/github/codeql-action-3.29.1 -> origin/dependabot/github_actions/github/codeql-action-3.29.1
+2025-07-01T14:44:17.7563143Z  * [new branch]          dependabot/github_actions/golangci/golangci-lint-action-6.5.2 -> origin/dependabot/github_actions/golangci/golangci-lint-action-6.5.2
+2025-07-01T14:44:17.7566278Z  * [new branch]          dependabot/github_actions/goreleaser/goreleaser-action-6.3.0 -> origin/dependabot/github_actions/goreleaser/goreleaser-action-6.3.0
+2025-07-01T14:44:17.7570275Z  * [new branch]          dependabot/go_modules/github.com/antithesishq/antithesis-sdk-go-0.4.3 -> origin/dependabot/go_modules/github.com/antithesishq/antithesis-sdk-go-0.4.3
+2025-07-01T14:44:17.7573309Z  * [new branch]          dependabot/go_modules/github.com/docker/docker-24.0.6incompatible -> origin/dependabot/go_modules/github.com/docker/docker-24.0.6incompatible
+2025-07-01T14:44:17.7576269Z  * [new branch]          dependabot/go_modules/github.com/go-cmd/cmd-1.4.3 -> origin/dependabot/go_modules/github.com/go-cmd/cmd-1.4.3
+2025-07-01T14:44:17.7579501Z  * [new branch]          dependabot/go_modules/github.com/gorilla/rpc-1.2.1 -> origin/dependabot/go_modules/github.com/gorilla/rpc-1.2.1
+2025-07-01T14:44:17.7582593Z  * [new branch]          dependabot/go_modules/github.com/spf13/viper-1.20.1 -> origin/dependabot/go_modules/github.com/spf13/viper-1.20.1
+2025-07-01T14:44:17.7585984Z  * [new branch]          dependabot/npm_and_yarn/contracts/base-x-3.0.11 -> origin/dependabot/npm_and_yarn/contracts/base-x-3.0.11
+2025-07-01T14:44:17.7588280Z  * [new branch]          dependabot/npm_and_yarn/contracts/multi-456de2e4f1 -> origin/dependabot/npm_and_yarn/contracts/multi-456de2e4f1
+2025-07-01T14:44:17.7591094Z  * [new branch]          dependabot/npm_and_yarn/contracts/multi-997cdae7c5 -> origin/dependabot/npm_and_yarn/contracts/multi-997cdae7c5
+2025-07-01T14:44:17.7593422Z  * [new branch]          dependabot/npm_and_yarn/contracts/multi-d371db0872 -> origin/dependabot/npm_and_yarn/contracts/multi-d371db0872
+2025-07-01T14:44:17.7595745Z  * [new branch]          dependabot/npm_and_yarn/contracts/pbkdf2-3.1.3 -> origin/dependabot/npm_and_yarn/contracts/pbkdf2-3.1.3
+2025-07-01T14:44:17.7598028Z  * [new branch]          dependabot/npm_and_yarn/contracts/secp256k1-4.0.4 -> origin/dependabot/npm_and_yarn/contracts/secp256k1-4.0.4
+2025-07-01T14:44:17.7600388Z  * [new branch]          dev-setup-testing         -> origin/dev-setup-testing
+2025-07-01T14:44:17.7602705Z  * [new branch]          docker-tag                -> origin/docker-tag
+2025-07-01T14:44:17.7605628Z  * [new branch]          docs/avalanche-ops        -> origin/docs/avalanche-ops
+2025-07-01T14:44:17.7607903Z  * [new branch]          e2e                       -> origin/e2e
+2025-07-01T14:44:17.7610413Z  * [new branch]          e2e-testing-s-evm         -> origin/e2e-testing-s-evm
+2025-07-01T14:44:17.7612950Z  * [new branch]          e2e-to-tmpnet-x           -> origin/e2e-to-tmpnet-x
+2025-07-01T14:44:17.7615318Z  * [new branch]          e2e-use-local-uri         -> origin/e2e-use-local-uri
+2025-07-01T14:44:17.7617658Z  * [new branch]          e2e-verbose-logging       -> origin/e2e-verbose-logging
+2025-07-01T14:44:17.7620246Z  * [new branch]          e2e-warp-to-tmpnet-x      -> origin/e2e-warp-to-tmpnet-x
+2025-07-01T14:44:17.7622983Z  * [new branch]          eth-call-depth-metrics    -> origin/eth-call-depth-metrics
+2025-07-01T14:44:17.7625765Z  * [new branch]          feature/ci-avago-commitish -> origin/feature/ci-avago-commitish
+2025-07-01T14:44:17.7631683Z  * [new branch]          final-changes-ccr-send    -> origin/final-changes-ccr-send
+2025-07-01T14:44:17.7634294Z  * [new branch]          fix-antithesis-image-build -> origin/fix-antithesis-image-build
+2025-07-01T14:44:17.7636797Z  * [new branch]          fix-build-protobuf        -> origin/fix-build-protobuf
+2025-07-01T14:44:17.7639286Z  * [new branch]          fix-contexts              -> origin/fix-contexts
+2025-07-01T14:44:17.7642841Z  * [new branch]          fix-docker-binaries-2     -> origin/fix-docker-binaries-2
+2025-07-01T14:44:17.7645107Z  * [new branch]          fix-docker-push           -> origin/fix-docker-push
+2025-07-01T14:44:17.7647587Z  * [new branch]          fix-goreleaser            -> origin/fix-goreleaser
+2025-07-01T14:44:17.7649961Z  * [new branch]          fix-goroutine-leak        -> origin/fix-goroutine-leak
+2025-07-01T14:44:17.7652436Z  * [new branch]          fix-issuance              -> origin/fix-issuance
+2025-07-01T14:44:17.7654888Z  * [new branch]          fix-load-test             -> origin/fix-load-test
+2025-07-01T14:44:17.7657392Z  * [new branch]          fix-shutdown-hang         -> origin/fix-shutdown-hang
+2025-07-01T14:44:17.7660039Z  * [new branch]          fix-size-checks           -> origin/fix-size-checks
+2025-07-01T14:44:17.7662393Z  * [new branch]          fix-v1.13.0-fuji-rc.2     -> origin/fix-v1.13.0-fuji-rc.2
+2025-07-01T14:44:17.7664761Z  * [new branch]          fix-verdb                 -> origin/fix-verdb
+2025-07-01T14:44:17.7667144Z  * [new branch]          fix-warp-events           -> origin/fix-warp-events
+2025-07-01T14:44:17.7669696Z  * [new branch]          fuji-warp                 -> origin/fuji-warp
+2025-07-01T14:44:17.7672334Z  * [new branch]          geth-master               -> origin/geth-master
+2025-07-01T14:44:17.7674726Z  * [new branch]          geth-v.13.2-x             -> origin/geth-v.13.2-x
+2025-07-01T14:44:17.7677175Z  * [new branch]          geth-v1.12.2-x            -> origin/geth-v1.12.2-x
+2025-07-01T14:44:17.7679734Z  * [new branch]          geth-v1.13.14-sq          -> origin/geth-v1.13.14-sq
+2025-07-01T14:44:17.7750028Z  * [new branch]          geth-v1.13.14-sq-arr4n-sq -> origin/geth-v1.13.14-sq-arr4n-sq
+2025-07-01T14:44:17.7751201Z  * [new branch]          geth-v1.13.2-squashed-diff -> origin/geth-v1.13.2-squashed-diff
+2025-07-01T14:44:17.7752170Z  * [new branch]          geth-v1.14.7              -> origin/geth-v1.14.7
+2025-07-01T14:44:17.7753091Z  * [new branch]          geth-v1.14.7-sq           -> origin/geth-v1.14.7-sq
+2025-07-01T14:44:17.7754056Z  * [new branch]          geth-v1.14.7-sq-reset     -> origin/geth-v1.14.7-sq-reset
+2025-07-01T14:44:17.7755649Z  * [new branch]          gh-readonly-queue/master/pr-1557-8b0ef322b993fea02a4341fe023b31424388ac17 -> origin/gh-readonly-queue/master/pr-1557-8b0ef322b993fea02a4341fe023b31424388ac17
+2025-07-01T14:44:17.7757239Z  * [new branch]          go-ethereum-1.11.4        -> origin/go-ethereum-1.11.4
+2025-07-01T14:44:17.7758105Z  * [new branch]          handshake-codec           -> origin/handshake-codec
+2025-07-01T14:44:17.7759349Z  * [new branch]          handshake-codec-deterministic-json -> origin/handshake-codec-deterministic-json
+2025-07-01T14:44:17.7760573Z  * [new branch]          hello-world-tutorial-walkthrough -> origin/hello-world-tutorial-walkthrough
+2025-07-01T14:44:17.7761788Z  * [new branch]          helloworld-official-tutorial-v2 -> origin/helloworld-official-tutorial-v2
+2025-07-01T14:44:17.7763152Z  * [new branch]          helloworld-official-tutorial-v2-generate-test -> origin/helloworld-official-tutorial-v2-generate-test
+2025-07-01T14:44:17.7764360Z  * [new branch]          iface-dependency          -> origin/iface-dependency
+2025-07-01T14:44:17.7765216Z  * [new branch]          improve-log-v0.5.3        -> origin/improve-log-v0.5.3
+2025-07-01T14:44:17.7766255Z  * [new branch]          inspector                 -> origin/inspector
+2025-07-01T14:44:17.7767081Z  * [new branch]          journal-clean             -> origin/journal-clean
+2025-07-01T14:44:17.7767832Z  * [new branch]          libevm                    -> origin/libevm
+2025-07-01T14:44:17.7768693Z  * [new branch]          libevm-sync-codeql        -> origin/libevm-sync-codeql
+2025-07-01T14:44:17.7769823Z  * [new branch]          load-test-best-config     -> origin/load-test-best-config
+2025-07-01T14:44:17.7770886Z  * [new branch]          loadtestN                 -> origin/loadtestN
+2025-07-01T14:44:17.7771678Z  * [new branch]          macos-goreleaser          -> origin/macos-goreleaser
+2025-07-01T14:44:17.7772448Z  * [new branch]          master                    -> origin/master
+2025-07-01T14:44:17.7773238Z  * [new branch]          merge-coreth-master       -> origin/merge-coreth-master
+2025-07-01T14:44:17.7774044Z  * [new branch]          merge-geth                -> origin/merge-geth
+2025-07-01T14:44:17.7774983Z  * [new branch]          merge-master-libevm-387bbc1 -> origin/merge-master-libevm-387bbc1
+2025-07-01T14:44:17.7775960Z  * [new branch]          merkledb-experiment-y     -> origin/merkledb-experiment-y
+2025-07-01T14:44:17.7776911Z  * [new branch]          migrate-coreth-v0.8.16-rc2 -> origin/migrate-coreth-v0.8.16-rc2
+2025-07-01T14:44:17.7778006Z  * [new branch]          migrate-hardhat-to-ds-test-backup -> origin/migrate-hardhat-to-ds-test-backup
+2025-07-01T14:44:17.7779248Z  * [new branch]          move-ci-tasks             -> origin/move-ci-tasks
+2025-07-01T14:44:17.7780140Z  * [new branch]          move-gas-limit-simplify   -> origin/move-gas-limit-simplify
+2025-07-01T14:44:17.7781014Z  * [new branch]          multicoin-idea            -> origin/multicoin-idea
+2025-07-01T14:44:17.7781859Z  * [new branch]          new-block-context-err     -> origin/new-block-context-err
+2025-07-01T14:44:17.7782772Z  * [new branch]          nits-arr4n/geth-1.13.14   -> origin/nits-arr4n/geth-1.13.14
+2025-07-01T14:44:17.7783726Z  * [new branch]          no-improvements           -> origin/no-improvements
+2025-07-01T14:44:17.7784598Z  * [new branch]          off-chain-warp-messages   -> origin/off-chain-warp-messages
+2025-07-01T14:44:17.7785558Z  * [new branch]          offchain-message-logging  -> origin/offchain-message-logging
+2025-07-01T14:44:17.7786477Z  * [new branch]          only-load-test-ginkgo     -> origin/only-load-test-ginkgo
+2025-07-01T14:44:17.7787451Z  * [new branch]          overflows-revisited       -> origin/overflows-revisited
+2025-07-01T14:44:17.7788293Z  * [new branch]          parse-genesis             -> origin/parse-genesis
+2025-07-01T14:44:17.7789355Z  * [new branch]          peer-tracker-test         -> origin/peer-tracker-test
+2025-07-01T14:44:17.7790223Z  * [new branch]          pod-yaml                  -> origin/pod-yaml
+2025-07-01T14:44:17.7791091Z  * [new branch]          precompile-hello-world    -> origin/precompile-hello-world
+2025-07-01T14:44:17.7792116Z  * [new branch]          precompile-template-testing -> origin/precompile-template-testing
+2025-07-01T14:44:17.7793166Z  * [new branch]          precompile-tutorial-only  -> origin/precompile-tutorial-only
+2025-07-01T14:44:17.7794067Z  * [new branch]          pruning                   -> origin/pruning
+2025-07-01T14:44:17.7796987Z  * [new branch]          readmesubnet              -> origin/readmesubnet
+2025-07-01T14:44:17.7799621Z  * [new branch]          refactor-config           -> origin/refactor-config
+2025-07-01T14:44:17.7803162Z  * [new branch]          refactor-e2e-tests-5-node-network-bash -> origin/refactor-e2e-tests-5-node-network-bash
+2025-07-01T14:44:17.7805306Z  * [new branch]          refactored-warp-precompile -> origin/refactored-warp-precompile
+2025-07-01T14:44:17.7808145Z  * [new branch]          release-v0.6.4-fix-pebble -> origin/release-v0.6.4-fix-pebble
+2025-07-01T14:44:17.7811780Z  * [new branch]          remote-docs               -> origin/remote-docs
+2025-07-01T14:44:17.7813842Z  * [new branch]          remove-codeowner          -> origin/remove-codeowner
+2025-07-01T14:44:17.7819057Z  * [new branch]          remove-get-message        -> origin/remove-get-message
+2025-07-01T14:44:17.7821568Z  * [new branch]          remove-status             -> origin/remove-status
+2025-07-01T14:44:17.7823981Z  * [new branch]          remove-unused-mux         -> origin/remove-unused-mux
+2025-07-01T14:44:17.7826494Z  * [new branch]          remove-vm-dead-code       -> origin/remove-vm-dead-code
+2025-07-01T14:44:17.7829223Z  * [new branch]          reprocess-before-setpreference -> origin/reprocess-before-setpreference
+2025-07-01T14:44:17.7831805Z  * [new branch]          reproduceable-ci          -> origin/reproduceable-ci
+2025-07-01T14:44:17.7834174Z  * [new branch]          return-bytes              -> origin/return-bytes
+2025-07-01T14:44:17.7836670Z  * [new branch]          run-linter                -> origin/run-linter
+2025-07-01T14:44:17.7839309Z  * [new branch]          safe-balance-ops          -> origin/safe-balance-ops
+2025-07-01T14:44:17.7841688Z  * [new branch]          sanity                    -> origin/sanity
+2025-07-01T14:44:17.7844343Z  * [new branch]          send-multiple-gossip-txs  -> origin/send-multiple-gossip-txs
+2025-07-01T14:44:17.7846869Z  * [new branch]          separate-precompiles      -> origin/separate-precompiles
+2025-07-01T14:44:17.7849336Z  * [new branch]          separate-upgradeconfig    -> origin/separate-upgradeconfig
+2025-07-01T14:44:17.7851889Z  * [new branch]          serialize-upgrade-config  -> origin/serialize-upgrade-config
+2025-07-01T14:44:17.7854402Z  * [new branch]          setup-framework-for-ds-test -> origin/setup-framework-for-ds-test
+2025-07-01T14:44:17.7856893Z  * [new branch]          shared-memory-precompile  -> origin/shared-memory-precompile
+2025-07-01T14:44:17.7859622Z  * [new branch]          shared-memory-precompiles-regen0 -> origin/shared-memory-precompiles-regen0
+2025-07-01T14:44:17.7861960Z  * [new branch]          simulator-2               -> origin/simulator-2
+2025-07-01T14:44:17.7864497Z  * [new branch]          single-node-e2e-w         -> origin/single-node-e2e-w
+2025-07-01T14:44:17.7867196Z  * [new branch]          single-predicate-verify-test -> origin/single-predicate-verify-test
+2025-07-01T14:44:17.7869568Z  * [new branch]          specify-default-hashdb    -> origin/specify-default-hashdb
+2025-07-01T14:44:17.7872333Z  * [new branch]          split-extra-data          -> origin/split-extra-data
+2025-07-01T14:44:17.7874669Z  * [new branch]          start-release-cycle       -> origin/start-release-cycle
+2025-07-01T14:44:17.7877106Z  * [new branch]          statesync-e2e             -> origin/statesync-e2e
+2025-07-01T14:44:17.7879703Z  * [new branch]          subnet-evm-002            -> origin/subnet-evm-002
+2025-07-01T14:44:17.7882479Z  * [new branch]          subnet-evm-002-wagmi      -> origin/subnet-evm-002-wagmi
+2025-07-01T14:44:17.7884983Z  * [new branch]          subnet-evm-pod            -> origin/subnet-evm-pod
+2025-07-01T14:44:17.7887592Z  * [new branch]          subnet-evm-rename-coreth  -> origin/subnet-evm-rename-coreth
+2025-07-01T14:44:17.7890034Z  * [new branch]          sync-coreth-v0.12.4-rc0-xx -> origin/sync-coreth-v0.12.4-rc0-xx
+2025-07-01T14:44:17.7892687Z  * [new branch]          teleporter-demo           -> origin/teleporter-demo
+2025-07-01T14:44:17.7895184Z  * [new branch]          teleporter-demo-mod-sig-response -> origin/teleporter-demo-mod-sig-response
+2025-07-01T14:44:17.7897486Z  * [new branch]          test-ago                  -> origin/test-ago
+2025-07-01T14:44:17.7900106Z  * [new branch]          test-avago-updates        -> origin/test-avago-updates
+2025-07-01T14:44:17.7902643Z  * [new branch]          test-branch-ci            -> origin/test-branch-ci
+2025-07-01T14:44:17.7905165Z  * [new branch]          test-dockerfile           -> origin/test-dockerfile
+2025-07-01T14:44:17.7907800Z  * [new branch]          test-hello-world-precompile-example -> origin/test-hello-world-precompile-example
+2025-07-01T14:44:17.7910142Z  * [new branch]          test-libevm               -> origin/test-libevm
+2025-07-01T14:44:17.7912597Z  * [new branch]          test_workers              -> origin/test_workers
+2025-07-01T14:44:17.7915423Z  * [new branch]          testing-image-build-for-unmerged-commit-test -> origin/testing-image-build-for-unmerged-commit-test
+2025-07-01T14:44:17.7921776Z  * [new branch]          tmp-master                -> origin/tmp-master
+2025-07-01T14:44:17.7924083Z  * [new branch]          tmpnet-disjoint-validator-sets -> origin/tmpnet-disjoint-validator-sets
+2025-07-01T14:44:17.7926206Z  * [new branch]          tps-fix                   -> origin/tps-fix
+2025-07-01T14:44:17.7929171Z  * [new branch]          trie-prefetcher-alt       -> origin/trie-prefetcher-alt
+2025-07-01T14:44:17.7931651Z  * [new branch]          trie-prefetcher-alt1      -> origin/trie-prefetcher-alt1
+2025-07-01T14:44:17.7934047Z  * [new branch]          truncate-call-log         -> origin/truncate-call-log
+2025-07-01T14:44:17.7936537Z  * [new branch]          tx-count-metrics          -> origin/tx-count-metrics
+2025-07-01T14:44:17.7939173Z  * [new branch]          txpool-mutex              -> origin/txpool-mutex
+2025-07-01T14:44:17.7941777Z  * [new branch]          typed-revert-error        -> origin/typed-revert-error
+2025-07-01T14:44:17.7944236Z  * [new branch]          update-12.0-fuji          -> origin/update-12.0-fuji
+2025-07-01T14:44:17.7946894Z  * [new branch]          update-avago-teleporter   -> origin/update-avago-teleporter
+2025-07-01T14:44:17.7949452Z  * [new branch]          update-avalanchego        -> origin/update-avalanchego
+2025-07-01T14:44:17.7952027Z  * [new branch]          update-subnet-evm         -> origin/update-subnet-evm
+2025-07-01T14:44:17.7954439Z  * [new branch]          uptime-tracking-wip       -> origin/uptime-tracking-wip
+2025-07-01T14:44:17.7956992Z  * [new branch]          use-libevm-params         -> origin/use-libevm-params
+2025-07-01T14:44:17.7959584Z  * [new branch]          use-libevm-statedb        -> origin/use-libevm-statedb
+2025-07-01T14:44:17.7962252Z  * [new branch]          v0.6.1-fix-client         -> origin/v0.6.1-fix-client
+2025-07-01T14:44:17.7964615Z  * [new branch]          v1.7.17-rc.8              -> origin/v1.7.17-rc.8
+2025-07-01T14:44:17.7967153Z  * [new branch]          validator-manager         -> origin/validator-manager
+2025-07-01T14:44:17.7969971Z  * [new branch]          validator-metastate       -> origin/validator-metastate
+2025-07-01T14:44:17.7972918Z  * [new branch]          verify-no-blobs           -> origin/verify-no-blobs
+2025-07-01T14:44:17.7975327Z  * [new branch]          version-v0.6.0-fuji       -> origin/version-v0.6.0-fuji
+2025-07-01T14:44:17.7977985Z  * [new branch]          vmerrs-putback            -> origin/vmerrs-putback
+2025-07-01T14:44:17.7980610Z  * [new branch]          wagmi-upgrade-json        -> origin/wagmi-upgrade-json
+2025-07-01T14:44:17.7982791Z  * [new branch]          warp-contract-feature     -> origin/warp-contract-feature
+2025-07-01T14:44:17.7984963Z  * [new branch]          warp-contract-l           -> origin/warp-contract-l
+2025-07-01T14:44:17.7987085Z  * [new branch]          warp-contract-l-repro     -> origin/warp-contract-l-repro
+2025-07-01T14:44:17.7989331Z  * [new branch]          warp-contract-testing     -> origin/warp-contract-testing
+2025-07-01T14:44:17.7991518Z  * [new branch]          warp-e2e                  -> origin/warp-e2e
+2025-07-01T14:44:17.7993643Z  * [new branch]          warp-load-e2e             -> origin/warp-load-e2e
+2025-07-01T14:44:17.7996008Z  * [new branch]          warp-load-e2e-bls-genesis-validators -> origin/warp-load-e2e-bls-genesis-validators
+2025-07-01T14:44:17.7997665Z  * [new branch]          warp-load-test            -> origin/warp-load-test
+2025-07-01T14:44:17.8000047Z  * [new branch]          warp-load-testing         -> origin/warp-load-testing
+2025-07-01T14:44:17.8002195Z  * [new branch]          warp-network-run          -> origin/warp-network-run
+2025-07-01T14:44:17.8004554Z  * [new branch]          warp-precompile           -> origin/warp-precompile
+2025-07-01T14:44:17.8006517Z  * [new branch]          warp-precompile-on-accept -> origin/warp-precompile-on-accept
+2025-07-01T14:44:17.8009103Z  * [new branch]          warp-requirePrimaryNetworkSignersAlt -> origin/warp-requirePrimaryNetworkSignersAlt
+2025-07-01T14:44:17.8011310Z  * [new branch]          wip-script-ideas          -> origin/wip-script-ideas
+2025-07-01T14:44:17.8013482Z  * [new branch]          worker-err-test           -> origin/worker-err-test
+2025-07-01T14:44:17.8014561Z  * [new tag]             v0.0.0-apm-alpha          -> v0.0.0-apm-alpha
+2025-07-01T14:44:17.8016038Z  * [new tag]             v0.0.1                    -> v0.0.1
+2025-07-01T14:44:17.8017343Z  * [new tag]             v0.0.2                    -> v0.0.2
+2025-07-01T14:44:17.8018568Z  * [new tag]             v0.1.0                    -> v0.1.0
+2025-07-01T14:44:17.8020460Z  * [new tag]             v0.1.1                    -> v0.1.1
+2025-07-01T14:44:17.8021834Z  * [new tag]             v0.1.2                    -> v0.1.2
+2025-07-01T14:44:17.8023507Z  * [new tag]             v0.1.2-rc.0               -> v0.1.2-rc.0
+2025-07-01T14:44:17.8024761Z  * [new tag]             v0.2.0                    -> v0.2.0
+2025-07-01T14:44:17.8026317Z  * [new tag]             v0.2.1                    -> v0.2.1
+2025-07-01T14:44:17.8027587Z  * [new tag]             v0.2.1-rc.0               -> v0.2.1-rc.0
+2025-07-01T14:44:17.8029062Z  * [new tag]             v0.2.2                    -> v0.2.2
+2025-07-01T14:44:17.8031136Z  * [new tag]             v0.2.3                    -> v0.2.3
+2025-07-01T14:44:17.8032366Z  * [new tag]             v0.2.4                    -> v0.2.4
+2025-07-01T14:44:17.8033726Z  * [new tag]             v0.2.5                    -> v0.2.5
+2025-07-01T14:44:17.8034807Z  * [new tag]             v0.2.6                    -> v0.2.6
+2025-07-01T14:44:17.8036201Z  * [new tag]             v0.2.7                    -> v0.2.7
+2025-07-01T14:44:17.8037768Z  * [new tag]             v0.2.8                    -> v0.2.8
+2025-07-01T14:44:17.8039188Z  * [new tag]             v0.2.9                    -> v0.2.9
+2025-07-01T14:44:17.8040784Z  * [new tag]             v0.3.0                    -> v0.3.0
+2025-07-01T14:44:17.8042042Z  * [new tag]             v0.3.0-rc.0               -> v0.3.0-rc.0
+2025-07-01T14:44:17.8043667Z  * [new tag]             v0.4.0                    -> v0.4.0
+2025-07-01T14:44:17.8044972Z  * [new tag]             v0.4.1                    -> v0.4.1
+2025-07-01T14:44:17.8046374Z  * [new tag]             v0.4.1-rc.0               -> v0.4.1-rc.0
+2025-07-01T14:44:17.8047653Z  * [new tag]             v0.4.1-rc.1               -> v0.4.1-rc.1
+2025-07-01T14:44:17.8049948Z  * [new tag]             v0.4.1-rc.2               -> v0.4.1-rc.2
+2025-07-01T14:44:17.8051154Z  * [new tag]             v0.4.1-rc.3               -> v0.4.1-rc.3
+2025-07-01T14:44:17.8052336Z  * [new tag]             v0.4.1-rc.4               -> v0.4.1-rc.4
+2025-07-01T14:44:17.8053489Z  * [new tag]             v0.4.1-rc.5               -> v0.4.1-rc.5
+2025-07-01T14:44:17.8054867Z  * [new tag]             v0.4.10                   -> v0.4.10
+2025-07-01T14:44:17.8056221Z  * [new tag]             v0.4.11                   -> v0.4.11
+2025-07-01T14:44:17.8057725Z  * [new tag]             v0.4.11-rc.0              -> v0.4.11-rc.0
+2025-07-01T14:44:17.8059169Z  * [new tag]             v0.4.12                   -> v0.4.12
+2025-07-01T14:44:17.8060920Z  * [new tag]             v0.4.12-rc.0              -> v0.4.12-rc.0
+2025-07-01T14:44:17.8061959Z  * [new tag]             v0.4.12-rc.1              -> v0.4.12-rc.1
+2025-07-01T14:44:17.8063561Z  * [new tag]             v0.4.2                    -> v0.4.2
+2025-07-01T14:44:17.8064783Z  * [new tag]             v0.4.2-rc.0               -> v0.4.2-rc.0
+2025-07-01T14:44:17.8066097Z  * [new tag]             v0.4.2-rc.1               -> v0.4.2-rc.1
+2025-07-01T14:44:17.8067448Z  * [new tag]             v0.4.2-rc.2               -> v0.4.2-rc.2
+2025-07-01T14:44:17.8069087Z  * [new tag]             v0.4.2-rc.3               -> v0.4.2-rc.3
+2025-07-01T14:44:17.8070654Z  * [new tag]             v0.4.2-rc.4               -> v0.4.2-rc.4
+2025-07-01T14:44:17.8071870Z  * [new tag]             v0.4.2-rc.5               -> v0.4.2-rc.5
+2025-07-01T14:44:17.8073197Z  * [new tag]             v0.4.2-rc.6               -> v0.4.2-rc.6
+2025-07-01T14:44:17.8074417Z  * [new tag]             v0.4.2-rc.7               -> v0.4.2-rc.7
+2025-07-01T14:44:17.8075608Z  * [new tag]             v0.4.2-rc.8               -> v0.4.2-rc.8
+2025-07-01T14:44:17.8076953Z  * [new tag]             v0.4.2-rc.9               -> v0.4.2-rc.9
+2025-07-01T14:44:17.8078329Z  * [new tag]             v0.4.3                    -> v0.4.3
+2025-07-01T14:44:17.8080275Z  * [new tag]             v0.4.4                    -> v0.4.4
+2025-07-01T14:44:17.8081308Z  * [new tag]             v0.4.4-rc.0               -> v0.4.4-rc.0
+2025-07-01T14:44:17.8082973Z  * [new tag]             v0.4.5                    -> v0.4.5
+2025-07-01T14:44:17.8084360Z  * [new tag]             v0.4.5-rc.0               -> v0.4.5-rc.0
+2025-07-01T14:44:17.8085723Z  * [new tag]             v0.4.5-rc.1               -> v0.4.5-rc.1
+2025-07-01T14:44:17.8087218Z  * [new tag]             v0.4.6                    -> v0.4.6
+2025-07-01T14:44:17.8088518Z  * [new tag]             v0.4.6-rc.0               -> v0.4.6-rc.0
+2025-07-01T14:44:17.8089841Z  * [new tag]             v0.4.6-rc.1               -> v0.4.6-rc.1
+2025-07-01T14:44:17.8091323Z  * [new tag]             v0.4.7                    -> v0.4.7
+2025-07-01T14:44:17.8092485Z  * [new tag]             v0.4.7-rc.0               -> v0.4.7-rc.0
+2025-07-01T14:44:17.8093873Z  * [new tag]             v0.4.8                    -> v0.4.8
+2025-07-01T14:44:17.8095531Z  * [new tag]             v0.4.8-rc.0               -> v0.4.8-rc.0
+2025-07-01T14:44:17.8096776Z  * [new tag]             v0.4.9                    -> v0.4.9
+2025-07-01T14:44:17.8098210Z  * [new tag]             v0.4.9-rc.0               -> v0.4.9-rc.0
+2025-07-01T14:44:17.8099841Z  * [new tag]             v0.4.9-rc.1               -> v0.4.9-rc.1
+2025-07-01T14:44:17.8101234Z  * [new tag]             v0.4.9-rc.2               -> v0.4.9-rc.2
+2025-07-01T14:44:17.8102573Z  * [new tag]             v0.5.0                    -> v0.5.0
+2025-07-01T14:44:17.8104211Z  * [new tag]             v0.5.0-fuji               -> v0.5.0-fuji
+2025-07-01T14:44:17.8105454Z  * [new tag]             v0.5.0-fuji-1             -> v0.5.0-fuji-1
+2025-07-01T14:44:17.8106655Z  * [new tag]             v0.5.0-fuji-rc.0          -> v0.5.0-fuji-rc.0
+2025-07-01T14:44:17.8108046Z  * [new tag]             v0.5.1                    -> v0.5.1
+2025-07-01T14:44:17.8109912Z  * [new tag]             v0.5.1-warp-rc.0          -> v0.5.1-warp-rc.0
+2025-07-01T14:44:17.8111151Z  * [new tag]             v0.5.10                   -> v0.5.10
+2025-07-01T14:44:17.8112840Z  * [new tag]             v0.5.10-rc.0              -> v0.5.10-rc.0
+2025-07-01T14:44:17.8114105Z  * [new tag]             v0.5.11                   -> v0.5.11
+2025-07-01T14:44:17.8115906Z  * [new tag]             v0.5.11-rc.0              -> v0.5.11-rc.0
+2025-07-01T14:44:17.8117090Z  * [new tag]             v0.5.11-rc.1              -> v0.5.11-rc.1
+2025-07-01T14:44:17.8118749Z  * [new tag]             v0.5.2                    -> v0.5.2
+2025-07-01T14:44:17.8120304Z  * [new tag]             v0.5.2-call-depth-metrics -> v0.5.2-call-depth-metrics
+2025-07-01T14:44:17.8121681Z  * [new tag]             v0.5.2-rc.0               -> v0.5.2-rc.0
+2025-07-01T14:44:17.8123076Z  * [new tag]             v0.5.2-warp-rc.0          -> v0.5.2-warp-rc.0
+2025-07-01T14:44:17.8124713Z  * [new tag]             v0.5.3                    -> v0.5.3
+2025-07-01T14:44:17.8126328Z  * [new tag]             v0.5.3-coreth-sync-rc     -> v0.5.3-coreth-sync-rc
+2025-07-01T14:44:17.8127753Z  * [new tag]             v0.5.4                    -> v0.5.4
+2025-07-01T14:44:17.8129411Z  * [new tag]             v0.5.4-rc.0               -> v0.5.4-rc.0
+2025-07-01T14:44:17.8130797Z  * [new tag]             v0.5.4-rc.1               -> v0.5.4-rc.1
+2025-07-01T14:44:17.8132689Z  * [new tag]             v0.5.4-rc.2               -> v0.5.4-rc.2
+2025-07-01T14:44:17.8133880Z  * [new tag]             v0.5.5                    -> v0.5.5
+2025-07-01T14:44:17.8135517Z  * [new tag]             v0.5.6                    -> v0.5.6
+2025-07-01T14:44:17.8136726Z  * [new tag]             v0.5.6-fuji-warp          -> v0.5.6-fuji-warp
+2025-07-01T14:44:17.8138423Z  * [new tag]             v0.5.7                    -> v0.5.7
+2025-07-01T14:44:17.8140107Z  * [new tag]             v0.5.7-rc.0               -> v0.5.7-rc.0
+2025-07-01T14:44:17.8141515Z  * [new tag]             v0.5.8                    -> v0.5.8
+2025-07-01T14:44:17.8143328Z  * [new tag]             v0.5.8-rc.0               -> v0.5.8-rc.0
+2025-07-01T14:44:17.8144983Z  * [new tag]             v0.5.8-rc.1               -> v0.5.8-rc.1
+2025-07-01T14:44:17.8146326Z  * [new tag]             v0.5.8-rc.2               -> v0.5.8-rc.2
+2025-07-01T14:44:17.8148042Z  * [new tag]             v0.5.9                    -> v0.5.9
+2025-07-01T14:44:17.8149616Z  * [new tag]             v0.5.9-rc.0               -> v0.5.9-rc.0
+2025-07-01T14:44:17.8151495Z  * [new tag]             v0.5.9-rc.1               -> v0.5.9-rc.1
+2025-07-01T14:44:17.8152768Z  * [new tag]             v0.5.9-rc.2               -> v0.5.9-rc.2
+2025-07-01T14:44:17.8154546Z  * [new tag]             v0.6.0                    -> v0.6.0
+2025-07-01T14:44:17.8155762Z  * [new tag]             v0.6.0-fuji               -> v0.6.0-fuji
+2025-07-01T14:44:17.8157551Z  * [new tag]             v0.6.1                    -> v0.6.1
+2025-07-01T14:44:17.8159732Z  * [new tag]             v0.6.10                   -> v0.6.10
+2025-07-01T14:44:17.8161043Z  * [new tag]             v0.6.10-rc.0              -> v0.6.10-rc.0
+2025-07-01T14:44:17.8162915Z  * [new tag]             v0.6.11                   -> v0.6.11
+2025-07-01T14:44:17.8164104Z  * [new tag]             v0.6.11-rc.0              -> v0.6.11-rc.0
+2025-07-01T14:44:17.8165673Z  * [new tag]             v0.6.12                   -> v0.6.12
+2025-07-01T14:44:17.8166996Z  * [new tag]             v0.6.12-fuji-example      -> v0.6.12-fuji-example
+2025-07-01T14:44:17.8168605Z  * [new tag]             v0.6.12-rc.0              -> v0.6.12-rc.0
+2025-07-01T14:44:17.8170520Z  * [new tag]             v0.6.12-rc.1              -> v0.6.12-rc.1
+2025-07-01T14:44:17.8171898Z  * [new tag]             v0.6.2                    -> v0.6.2
+2025-07-01T14:44:17.8173663Z  * [new tag]             v0.6.3                    -> v0.6.3
+2025-07-01T14:44:17.8175251Z  * [new tag]             v0.6.3-rc.0               -> v0.6.3-rc.0
+2025-07-01T14:44:17.8176874Z  * [new tag]             v0.6.4                    -> v0.6.4
+2025-07-01T14:44:17.8178522Z  * [new tag]             v0.6.4-rc.0               -> v0.6.4-rc.0
+2025-07-01T14:44:17.8180401Z  * [new tag]             v0.6.4-rc.1               -> v0.6.4-rc.1
+2025-07-01T14:44:17.8181736Z  * [new tag]             v0.6.4-rc.2               -> v0.6.4-rc.2
+2025-07-01T14:44:17.8183484Z  * [new tag]             v0.6.5                    -> v0.6.5
+2025-07-01T14:44:17.8185101Z  * [new tag]             v0.6.5-geth-1.13.8        -> v0.6.5-geth-1.13.8
+2025-07-01T14:44:17.8186274Z  * [new tag]             v0.6.5-rc.0               -> v0.6.5-rc.0
+2025-07-01T14:44:17.8188055Z  * [new tag]             v0.6.5-rc.1               -> v0.6.5-rc.1
+2025-07-01T14:44:17.8189926Z  * [new tag]             v0.6.6                    -> v0.6.6
+2025-07-01T14:44:17.8191597Z  * [new tag]             v0.6.6-rc.0               -> v0.6.6-rc.0
+2025-07-01T14:44:17.8193013Z  * [new tag]             v0.6.7                    -> v0.6.7
+2025-07-01T14:44:17.8195120Z  * [new tag]             v0.6.7-rc.0               -> v0.6.7-rc.0
+2025-07-01T14:44:17.8196529Z  * [new tag]             v0.6.8                    -> v0.6.8
+2025-07-01T14:44:17.8198390Z  * [new tag]             v0.6.8-acp-118-handlers   -> v0.6.8-acp-118-handlers
+2025-07-01T14:44:17.8200276Z  * [new tag]             v0.6.8-geth-v1.13.14      -> v0.6.8-geth-v1.13.14
+2025-07-01T14:44:17.8201816Z  * [new tag]             v0.6.8-rc.0               -> v0.6.8-rc.0
+2025-07-01T14:44:17.8202997Z  * [new tag]             v0.6.8-rc.1               -> v0.6.8-rc.1
+2025-07-01T14:44:17.8204793Z  * [new tag]             v0.6.8-rc.2               -> v0.6.8-rc.2
+2025-07-01T14:44:17.8206031Z  * [new tag]             v0.6.8-rc.3               -> v0.6.8-rc.3
+2025-07-01T14:44:17.8207782Z  * [new tag]             v0.6.8-status-removal     -> v0.6.8-status-removal
+2025-07-01T14:44:17.8209503Z  * [new tag]             v0.6.9                    -> v0.6.9
+2025-07-01T14:44:17.8210994Z  * [new tag]             v0.6.9-rc.0               -> v0.6.9-rc.0
+2025-07-01T14:44:17.8212765Z  * [new tag]             v0.7.0                    -> v0.7.0
+2025-07-01T14:44:17.8214014Z  * [new tag]             v0.7.0-rc.0               -> v0.7.0-rc.0
+2025-07-01T14:44:17.8215773Z  * [new tag]             v0.7.1                    -> v0.7.1
+2025-07-01T14:44:17.8217441Z  * [new tag]             v0.7.1-rc.0               -> v0.7.1-rc.0
+2025-07-01T14:44:17.8219292Z  * [new tag]             v0.7.1-rc.1               -> v0.7.1-rc.1
+2025-07-01T14:44:17.8220557Z  * [new tag]             v0.7.1-rc.2               -> v0.7.1-rc.2
+2025-07-01T14:44:17.8222306Z  * [new tag]             v0.7.2                    -> v0.7.2
+2025-07-01T14:44:17.8223578Z  * [new tag]             v0.7.2-fuji               -> v0.7.2-fuji
+2025-07-01T14:44:17.8224963Z  * [new tag]             v0.7.2-rc.0               -> v0.7.2-rc.0
+2025-07-01T14:44:17.8226738Z  * [new tag]             v0.7.3                    -> v0.7.3
+2025-07-01T14:44:17.8228066Z  * [new tag]             v0.7.3-rc.0               -> v0.7.3-rc.0
+2025-07-01T14:44:17.8229981Z  * [new tag]             v0.7.4                    -> v0.7.4
+2025-07-01T14:44:17.8231287Z  * [new tag]             v0.7.4-rc.0               -> v0.7.4-rc.0
+2025-07-01T14:44:17.8232858Z  * [new tag]             v0.7.5                    -> v0.7.5
+2025-07-01T14:44:17.8234126Z  * [new tag]             v0.7.5-rc.0               -> v0.7.5-rc.0
+2025-07-01T14:44:17.8237556Z  * [new ref]             c46a4f11ecd55a5ab361920393adf5859e0dc097 -> pull/1610/merge
+2025-07-01T14:44:17.8323849Z ##[endgroup]
+2025-07-01T14:44:17.8324340Z ##[group]Determining the checkout info
+2025-07-01T14:44:17.8325216Z ##[endgroup]
+2025-07-01T14:44:17.8331306Z [command]/usr/bin/git sparse-checkout disable
+2025-07-01T14:44:17.8375615Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2025-07-01T14:44:17.8403335Z ##[group]Checking out the ref
+2025-07-01T14:44:17.8407253Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/1610/merge
+2025-07-01T14:44:17.9273777Z Note: switching to 'refs/remotes/pull/1610/merge'.
+2025-07-01T14:44:17.9274316Z 
+2025-07-01T14:44:17.9274719Z You are in 'detached HEAD' state. You can look around, make experimental
+2025-07-01T14:44:17.9275564Z changes and commit them, and you can discard any commits you make in this
+2025-07-01T14:44:17.9276479Z state without impacting any branches by switching back to a branch.
+2025-07-01T14:44:17.9276957Z 
+2025-07-01T14:44:17.9277354Z If you want to create a new branch to retain commits you create, you may
+2025-07-01T14:44:17.9278125Z do so (now or later) by using -c with the switch command. Example:
+2025-07-01T14:44:17.9278555Z 
+2025-07-01T14:44:17.9278762Z   git switch -c <new-branch-name>
+2025-07-01T14:44:17.9279303Z 
+2025-07-01T14:44:17.9279500Z Or undo this operation with:
+2025-07-01T14:44:17.9279785Z 
+2025-07-01T14:44:17.9279957Z   git switch -
+2025-07-01T14:44:17.9280199Z 
+2025-07-01T14:44:17.9280586Z Turn off this advice by setting config variable advice.detachedHead to false
+2025-07-01T14:44:17.9281101Z 
+2025-07-01T14:44:17.9281746Z HEAD is now at c46a4f11e Merge a1ed580b94027b41ba19c24c1ea7f04bfdb27307 into 7abb4c64d7a8a26513a93cd55d800f61e867ffe3
+2025-07-01T14:44:17.9294372Z ##[endgroup]
+2025-07-01T14:44:17.9333794Z [command]/usr/bin/git log -1 --format=%H
+2025-07-01T14:44:17.9356162Z c46a4f11ecd55a5ab361920393adf5859e0dc097
+2025-07-01T14:44:17.9565686Z ##[group]Run actions/setup-go@v5
+2025-07-01T14:44:17.9565994Z with:
+2025-07-01T14:44:17.9566220Z   go-version-file: go.mod
+2025-07-01T14:44:17.9566471Z   check-latest: false
+2025-07-01T14:44:17.9566838Z   token: ***
+2025-07-01T14:44:17.9567045Z   cache: true
+2025-07-01T14:44:17.9567262Z ##[endgroup]
+2025-07-01T14:44:18.1164179Z Setup go version spec 1.23.9
+2025-07-01T14:44:18.1174171Z Attempting to download 1.23.9...
+2025-07-01T14:44:18.7178764Z matching 1.23.9...
+2025-07-01T14:44:18.7218693Z Acquiring 1.23.9 from https://github.com/actions/go-versions/releases/download/1.23.9-14875265214/go-1.23.9-linux-x64.tar.gz
+2025-07-01T14:44:19.6789013Z Extracting Go...
+2025-07-01T14:44:19.6907088Z [command]/usr/bin/tar xz --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/43a44fb6-5b4f-4fe5-bbe5-cb93044e4870 -f /home/runner/work/_temp/4b9deb5b-0c32-4c52-aedb-04a4e2fc75fb
+2025-07-01T14:44:21.3533625Z Successfully extracted go to /home/runner/work/_temp/43a44fb6-5b4f-4fe5-bbe5-cb93044e4870
+2025-07-01T14:44:21.3534559Z Adding to the cache ...
+2025-07-01T14:44:25.6935456Z Successfully cached go to /opt/hostedtoolcache/go/1.23.9/x64
+2025-07-01T14:44:25.6938574Z Added go to the path
+2025-07-01T14:44:25.6941159Z Successfully set up Go version 1.23.9
+2025-07-01T14:44:25.7138108Z [command]/opt/hostedtoolcache/go/1.23.9/x64/bin/go env GOMODCACHE
+2025-07-01T14:44:25.7167683Z [command]/opt/hostedtoolcache/go/1.23.9/x64/bin/go env GOCACHE
+2025-07-01T14:44:25.7198279Z /home/runner/go/pkg/mod
+2025-07-01T14:44:25.7212339Z /home/runner/.cache/go-build
+2025-07-01T14:44:25.9678390Z Cache hit for: setup-go-Linux-x64-ubuntu24-go-1.23.9-8a5f6b0ec156c644c456755461212fdb4b5f31e3982b840cb9a5e30f16f98494
+2025-07-01T14:44:26.3074092Z Received 9896 of 9896 (100.0%), 0.1 MBs/sec
+2025-07-01T14:44:26.3074626Z Cache Size: ~0 MB (9896 B)
+2025-07-01T14:44:26.3099681Z [command]/usr/bin/tar -xf /home/runner/work/_temp/5a8fad20-c847-450b-af56-1f8569f63f1d/cache.tzst -P -C /home/runner/work/subnet-evm/subnet-evm --use-compress-program unzstd
+2025-07-01T14:44:26.3285248Z Cache restored successfully
+2025-07-01T14:44:26.3289944Z Cache restored from key: setup-go-Linux-x64-ubuntu24-go-1.23.9-8a5f6b0ec156c644c456755461212fdb4b5f31e3982b840cb9a5e30f16f98494
+2025-07-01T14:44:26.3312274Z go version go1.23.9 linux/amd64
+2025-07-01T14:44:26.3312453Z 
+2025-07-01T14:44:26.3312716Z ##[group]go env
+2025-07-01T14:44:26.3429366Z GO111MODULE=''
+2025-07-01T14:44:26.3429721Z GOARCH='amd64'
+2025-07-01T14:44:26.3430028Z GOBIN=''
+2025-07-01T14:44:26.3430362Z GOCACHE='/home/runner/.cache/go-build'
+2025-07-01T14:44:26.3430850Z GOENV='/home/runner/.config/go/env'
+2025-07-01T14:44:26.3431234Z GOEXE=''
+2025-07-01T14:44:26.3431616Z GOEXPERIMENT=''
+2025-07-01T14:44:26.3431945Z GOFLAGS=''
+2025-07-01T14:44:26.3432229Z GOHOSTARCH='amd64'
+2025-07-01T14:44:26.3432542Z GOHOSTOS='linux'
+2025-07-01T14:44:26.3432853Z GOINSECURE=''
+2025-07-01T14:44:26.3433066Z GOMODCACHE='/home/runner/go/pkg/mod'
+2025-07-01T14:44:26.3433330Z GONOPROXY=''
+2025-07-01T14:44:26.3433519Z GONOSUMDB=''
+2025-07-01T14:44:26.3433682Z GOOS='linux'
+2025-07-01T14:44:26.3433871Z GOPATH='/home/runner/go'
+2025-07-01T14:44:26.3434078Z GOPRIVATE=''
+2025-07-01T14:44:26.3434309Z GOPROXY='https://proxy.golang.org,direct'
+2025-07-01T14:44:26.3434614Z GOROOT='/opt/hostedtoolcache/go/1.23.9/x64'
+2025-07-01T14:44:26.3434884Z GOSUMDB='sum.golang.org'
+2025-07-01T14:44:26.3435080Z GOTMPDIR=''
+2025-07-01T14:44:26.3435256Z GOTOOLCHAIN='auto'
+2025-07-01T14:44:26.3435558Z GOTOOLDIR='/opt/hostedtoolcache/go/1.23.9/x64/pkg/tool/linux_amd64'
+2025-07-01T14:44:26.3435891Z GOVCS=''
+2025-07-01T14:44:26.3436063Z GOVERSION='go1.23.9'
+2025-07-01T14:44:26.3436252Z GODEBUG=''
+2025-07-01T14:44:26.3436423Z GOTELEMETRY='local'
+2025-07-01T14:44:26.3436689Z GOTELEMETRYDIR='/home/runner/.config/go/telemetry'
+2025-07-01T14:44:26.3436965Z GCCGO='gccgo'
+2025-07-01T14:44:26.3437138Z GOAMD64='v1'
+2025-07-01T14:44:26.3437300Z AR='ar'
+2025-07-01T14:44:26.3437458Z CC='gcc'
+2025-07-01T14:44:26.3437616Z CXX='g++'
+2025-07-01T14:44:26.3438005Z CGO_ENABLED='1'
+2025-07-01T14:44:26.3438278Z GOMOD='/home/runner/work/subnet-evm/subnet-evm/go.mod'
+2025-07-01T14:44:26.3438557Z GOWORK=''
+2025-07-01T14:44:26.3438726Z CGO_CFLAGS='-O2 -g'
+2025-07-01T14:44:26.3439146Z CGO_CPPFLAGS=''
+2025-07-01T14:44:26.3439333Z CGO_CXXFLAGS='-O2 -g'
+2025-07-01T14:44:26.3439526Z CGO_FFLAGS='-O2 -g'
+2025-07-01T14:44:26.3439712Z CGO_LDFLAGS='-O2 -g'
+2025-07-01T14:44:26.3439917Z PKG_CONFIG='pkg-config'
+2025-07-01T14:44:26.3440550Z GOGCCFLAGS='-fPIC -m64 -pthread -Wl,--no-gc-sections -fmessage-length=0 -ffile-prefix-map=/tmp/go-build3980125643=/tmp/go-build -gno-record-gcc-switches'
+2025-07-01T14:44:26.3441239Z 
+2025-07-01T14:44:26.3441481Z ##[endgroup]
+2025-07-01T14:44:26.3633699Z ##[group]Run actions/setup-node@v4
+2025-07-01T14:44:26.3633968Z with:
+2025-07-01T14:44:26.3634146Z   node-version: 20.13
+2025-07-01T14:44:26.3634347Z   always-auth: false
+2025-07-01T14:44:26.3634534Z   check-latest: false
+2025-07-01T14:44:26.3634846Z   token: ***
+2025-07-01T14:44:26.3635021Z ##[endgroup]
+2025-07-01T14:44:26.5408567Z Attempting to download 20.13...
+2025-07-01T14:44:27.1220332Z Acquiring 20.13.1 - x64 from https://github.com/actions/node-versions/releases/download/20.13.1-9021092103/node-20.13.1-linux-x64.tar.gz
+2025-07-01T14:44:28.0723365Z Extracting ...
+2025-07-01T14:44:28.0832685Z [command]/usr/bin/tar xz --strip 1 --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/77e88340-23ee-421a-a577-c454e7f63b28 -f /home/runner/work/_temp/893906d7-cce4-4a27-83f2-4e44ec92f1eb
+2025-07-01T14:44:29.0628240Z Adding to the cache ...
+2025-07-01T14:44:30.7054002Z ##[group]Environment details
+2025-07-01T14:44:30.9338371Z node: v20.13.1
+2025-07-01T14:44:30.9339218Z npm: 10.5.2
+2025-07-01T14:44:30.9339542Z yarn: 1.22.22
+2025-07-01T14:44:30.9340186Z ##[endgroup]
+2025-07-01T14:44:30.9510181Z ##[group]Run npm ci
+2025-07-01T14:44:30.9510465Z [36;1mnpm ci[0m
+2025-07-01T14:44:30.9602247Z shell: /usr/bin/bash -e {0}
+2025-07-01T14:44:30.9602505Z ##[endgroup]
+2025-07-01T14:44:33.1368017Z npm WARN deprecated rimraf@2.7.1: Rimraf versions prior to v4 are no longer supported
+2025-07-01T14:44:33.6651126Z npm WARN deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+2025-07-01T14:44:33.7084161Z npm WARN deprecated glob@7.2.0: Glob versions prior to v9 are no longer supported
+2025-07-01T14:44:35.0726959Z npm WARN deprecated glob@7.1.7: Glob versions prior to v9 are no longer supported
+2025-07-01T14:44:35.1953291Z npm WARN deprecated glob@5.0.15: Glob versions prior to v9 are no longer supported
+2025-07-01T14:44:35.2485281Z npm WARN deprecated glob@8.1.0: Glob versions prior to v9 are no longer supported
+2025-07-01T14:44:38.9443795Z 
+2025-07-01T14:44:38.9444526Z > @avalabs/subnet-evm-contracts@1.2.2 prepublish
+2025-07-01T14:44:38.9445086Z > npm run build
+2025-07-01T14:44:38.9445294Z 
+2025-07-01T14:44:39.0711602Z 
+2025-07-01T14:44:39.0712457Z > @avalabs/subnet-evm-contracts@1.2.2 build
+2025-07-01T14:44:39.0713206Z > rm -rf dist/ && npx hardhat compile && npx tsc -b
+2025-07-01T14:44:39.0713571Z 
+2025-07-01T14:44:40.1825194Z Downloading compiler 0.8.24
+2025-07-01T14:44:41.4040699Z Generating typings for: 27 artifacts in dir: typechain-types for target: ethers-v6
+2025-07-01T14:44:42.7420236Z Successfully generated 78 typings!
+2025-07-01T14:44:42.7457949Z Compiled 24 Solidity files successfully (evm target: shanghai).
+2025-07-01T14:44:45.3702881Z 
+2025-07-01T14:44:45.3703679Z added 587 packages, and audited 588 packages in 14s
+2025-07-01T14:44:45.3703973Z 
+2025-07-01T14:44:45.3704143Z 97 packages are looking for funding
+2025-07-01T14:44:45.3704448Z   run `npm fund` for details
+2025-07-01T14:44:45.3881098Z 
+2025-07-01T14:44:45.3881579Z 25 vulnerabilities (15 low, 3 moderate, 5 high, 2 critical)
+2025-07-01T14:44:45.3881846Z 
+2025-07-01T14:44:45.3882075Z To address issues that do not require attention, run:
+2025-07-01T14:44:45.3882395Z   npm audit fix
+2025-07-01T14:44:45.3882522Z 
+2025-07-01T14:44:45.3882707Z Some issues need review, and may require choosing
+2025-07-01T14:44:45.3883213Z a different dependency.
+2025-07-01T14:44:45.3883418Z 
+2025-07-01T14:44:45.3883605Z Run `npm audit` for details.
+2025-07-01T14:44:45.4191563Z ##[group]Run npx hardhat clean
+2025-07-01T14:44:45.4191847Z [36;1mnpx hardhat clean[0m
+2025-07-01T14:44:45.4251493Z shell: /usr/bin/bash -e {0}
+2025-07-01T14:44:45.4251724Z ##[endgroup]
+2025-07-01T14:44:46.3813723Z ##[group]Run npx hardhat compile
+2025-07-01T14:44:46.3814201Z [36;1mnpx hardhat compile[0m
+2025-07-01T14:44:46.3873121Z shell: /usr/bin/bash -e {0}
+2025-07-01T14:44:46.3873364Z ##[endgroup]
+2025-07-01T14:44:48.0682711Z Generating typings for: 27 artifacts in dir: typechain-types for target: ethers-v6
+2025-07-01T14:44:49.3329849Z Successfully generated 78 typings!
+2025-07-01T14:44:49.3341975Z Compiled 24 Solidity files successfully (evm target: shanghai).
+2025-07-01T14:44:49.3720497Z ##[group]Run ./scripts/run_task.sh test-e2e-precompile-ci
+2025-07-01T14:44:49.3720927Z [36;1m./scripts/run_task.sh test-e2e-precompile-ci[0m
+2025-07-01T14:44:49.3780951Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2025-07-01T14:44:49.3781272Z ##[endgroup]
+2025-07-01T14:44:49.7161225Z go: downloading github.com/go-task/task/v3 v3.39.2
+2025-07-01T14:44:50.5429492Z go: downloading github.com/spf13/pflag v1.0.5
+2025-07-01T14:44:50.5430380Z go: downloading mvdan.cc/sh/v3 v3.9.0
+2025-07-01T14:44:50.5469758Z go: downloading github.com/Masterminds/semver/v3 v3.3.0
+2025-07-01T14:44:50.5522138Z go: downloading github.com/alecthomas/chroma/v2 v2.14.0
+2025-07-01T14:44:50.5932458Z go: downloading github.com/fatih/color v1.17.0
+2025-07-01T14:44:50.6122002Z go: downloading gopkg.in/yaml.v3 v3.0.1
+2025-07-01T14:44:50.6432229Z go: downloading github.com/Ladicle/tabwriter v1.0.0
+2025-07-01T14:44:50.6630749Z go: downloading github.com/joho/godotenv v1.5.1
+2025-07-01T14:44:50.6845838Z go: downloading github.com/dominikbraun/graph v0.23.0
+2025-07-01T14:44:50.7133268Z go: downloading golang.org/x/sync v0.8.0
+2025-07-01T14:44:50.7217453Z go: downloading github.com/radovskyb/watcher v1.0.7
+2025-07-01T14:44:50.7230401Z go: downloading github.com/sajari/fuzzy v1.0.0
+2025-07-01T14:44:50.7634566Z go: downloading github.com/mattn/go-colorable v0.1.13
+2025-07-01T14:44:50.7642823Z go: downloading github.com/mattn/go-isatty v0.0.20
+2025-07-01T14:44:50.7727269Z go: downloading github.com/muesli/cancelreader v0.2.2
+2025-07-01T14:44:50.7820476Z go: downloading golang.org/x/sys v0.25.0
+2025-07-01T14:44:50.7829837Z go: downloading golang.org/x/term v0.24.0
+2025-07-01T14:44:50.8182471Z go: downloading github.com/davecgh/go-spew v1.1.1
+2025-07-01T14:44:50.8399366Z go: downloading github.com/go-task/slim-sprig/v3 v3.0.0
+2025-07-01T14:44:50.8665346Z go: downloading github.com/go-task/template v0.1.0
+2025-07-01T14:44:50.8876584Z go: downloading github.com/dlclark/regexp2 v1.11.0
+2025-07-01T14:44:50.8982673Z go: downloading github.com/mattn/go-zglob v0.0.6
+2025-07-01T14:44:50.9264476Z go: downloading github.com/zeebo/xxh3 v1.0.2
+2025-07-01T14:44:50.9617965Z go: downloading github.com/mitchellh/hashstructure/v2 v2.0.2
+2025-07-01T14:44:51.0182463Z go: downloading github.com/klauspost/cpuid/v2 v2.0.9
+2025-07-01T14:45:05.4441455Z task: [install-avalanchego-release] ./scripts/install_avalanchego_release.sh
+2025-07-01T14:45:05.4700985Z Using branch: c46a4f11e
+2025-07-01T14:45:05.5599049Z https://github.com/ava-labs/avalanchego/releases/download/v1.13.2/avalanchego-linux-amd64-v1.13.2.tar.gz found
+2025-07-01T14:45:05.5599931Z downloading to /tmp/avalanchego-release/avalanchego-linux-amd64-v1.13.2.tar.gz
+2025-07-01T14:45:05.5648505Z   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+2025-07-01T14:45:05.5650683Z                                  Dload  Upload   Total   Spent    Left  Speed
+2025-07-01T14:45:05.5651198Z 
+2025-07-01T14:45:05.6291218Z   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+2025-07-01T14:45:05.6292196Z   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+2025-07-01T14:45:05.9981097Z 
+2025-07-01T14:45:06.0640351Z  36 36.2M   36 13.2M    0     0  30.6M      0  0:00:01 --:--:--  0:00:01 30.6M
+2025-07-01T14:45:06.0642427Z 100 36.2M  100 36.2M    0     0  72.5M      0 --:--:-- --:--:-- --:--:--  347M
+2025-07-01T14:45:06.0716783Z avalanchego-v1.13.2/avalanchego
+2025-07-01T14:45:06.6966528Z Installed AvalancheGo release v1.13.2
+2025-07-01T14:45:06.6967289Z AvalancheGo Path: /tmp/avalanchego-release/avalanchego/avalanchego
+2025-07-01T14:45:06.6968021Z Plugin Dir: /home/runner/.avalanchego/plugins
+2025-07-01T14:45:06.6998711Z task: [build] ./scripts/build.sh
+2025-07-01T14:45:06.7266160Z Using branch: c46a4f11e
+2025-07-01T14:45:06.7268135Z Building Subnet EVM @ GitCommit: c46a4f11ecd55a5ab361920393adf5859e0dc097 at /home/runner/.avalanchego/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
+2025-07-01T14:45:06.7320123Z go: downloading github.com/ava-labs/avalanchego v1.13.2
+2025-07-01T14:45:07.1739362Z go: downloading github.com/spf13/viper v1.12.0
+2025-07-01T14:45:07.1761794Z go: downloading github.com/ava-labs/libevm v1.13.14-0.3.0.rc.1
+2025-07-01T14:45:08.0759765Z go: downloading github.com/gorilla/rpc v1.2.0
+2025-07-01T14:45:08.0763913Z go: downloading github.com/holiman/uint256 v1.2.4
+2025-07-01T14:45:08.0765204Z go: downloading github.com/prometheus/client_golang v1.16.0
+2025-07-01T14:45:08.0771478Z go: downloading golang.org/x/exp v0.0.0-20241215155358-4a5509556b9e
+2025-07-01T14:45:08.0937234Z go: downloading go.uber.org/zap v1.26.0
+2025-07-01T14:45:08.1453321Z go: downloading golang.org/x/term v0.30.0
+2025-07-01T14:45:08.1454228Z go: downloading gopkg.in/natefinch/lumberjack.v2 v2.0.0
+2025-07-01T14:45:08.1567073Z go: downloading github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
+2025-07-01T14:45:08.1568380Z go: downloading github.com/prometheus/client_model v0.3.0
+2025-07-01T14:45:08.1672197Z go: downloading google.golang.org/grpc v1.66.0
+2025-07-01T14:45:08.1812564Z go: downloading google.golang.org/protobuf v1.35.2
+2025-07-01T14:45:08.3788034Z go: downloading go.opentelemetry.io/otel v1.22.0
+2025-07-01T14:45:08.4233599Z go: downloading go.opentelemetry.io/otel/trace v1.22.0
+2025-07-01T14:45:08.4236848Z go: downloading github.com/prometheus/common v0.42.0
+2025-07-01T14:45:08.4240281Z go: downloading github.com/cockroachdb/pebble v0.0.0-20230928194634-aa077af62593
+2025-07-01T14:45:08.4601945Z go: downloading github.com/StephenButtolph/canoto v0.15.0
+2025-07-01T14:45:08.5039930Z go: downloading golang.org/x/sync v0.12.0
+2025-07-01T14:45:08.5209818Z go: downloading github.com/google/renameio/v2 v2.0.0
+2025-07-01T14:45:08.5341921Z go: downloading github.com/fsnotify/fsnotify v1.6.0
+2025-07-01T14:45:08.5350096Z go: downloading github.com/mitchellh/mapstructure v1.5.0
+2025-07-01T14:45:08.5350900Z go: downloading github.com/spf13/afero v1.8.2
+2025-07-01T14:45:08.5480816Z go: downloading github.com/spf13/cast v1.5.0
+2025-07-01T14:45:08.5516465Z go: downloading github.com/spf13/jwalterweatherman v1.1.0
+2025-07-01T14:45:08.5563184Z go: downloading golang.org/x/crypto v0.36.0
+2025-07-01T14:45:08.5579407Z go: downloading github.com/gofrs/flock v0.8.1
+2025-07-01T14:45:08.5595039Z go: downloading github.com/golang/snappy v0.0.5-0.20220116011046-fa5810519dcb
+2025-07-01T14:45:08.5683815Z go: downloading github.com/olekukonko/tablewriter v0.0.5
+2025-07-01T14:45:08.5746630Z go: downloading github.com/shirou/gopsutil v3.21.11+incompatible
+2025-07-01T14:45:08.5788497Z go: downloading golang.org/x/sys v0.31.0
+2025-07-01T14:45:08.6398429Z go: downloading github.com/dop251/goja v0.0.0-20230806174421-c933cf95e127
+2025-07-01T14:45:08.6987187Z go: downloading github.com/gballet/go-verkle v0.1.1-0.20231031103413-a67434b50f46
+2025-07-01T14:45:08.7310527Z go: downloading github.com/holiman/bloomfilter/v2 v2.0.3
+2025-07-01T14:45:08.7499704Z go: downloading go.uber.org/mock v0.5.0
+2025-07-01T14:45:08.7829675Z go: downloading github.com/stretchr/testify v1.10.0
+2025-07-01T14:45:08.8131364Z go: downloading github.com/deckarep/golang-set/v2 v2.1.0
+2025-07-01T14:45:08.8132575Z go: downloading github.com/gorilla/websocket v1.5.0
+2025-07-01T14:45:08.8361784Z go: downloading golang.org/x/time v0.3.0
+2025-07-01T14:45:08.8468228Z go: downloading github.com/beorn7/perks v1.0.1
+2025-07-01T14:45:08.8478979Z go: downloading github.com/cespare/xxhash/v2 v2.3.0
+2025-07-01T14:45:08.8539472Z go: downloading github.com/prometheus/procfs v0.10.1
+2025-07-01T14:45:08.8566157Z go: downloading go.uber.org/multierr v1.11.0
+2025-07-01T14:45:08.8603500Z go: downloading github.com/supranational/blst v0.3.14
+2025-07-01T14:45:08.8702300Z go: downloading google.golang.org/genproto/googleapis/rpc v0.0.0-20240827150818-7e3bb234dfed
+2025-07-01T14:45:08.8838742Z go: downloading github.com/golang/protobuf v1.5.4
+2025-07-01T14:45:08.9204565Z go: downloading golang.org/x/net v0.38.0
+2025-07-01T14:45:08.9212239Z go: downloading go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.22.0
+2025-07-01T14:45:08.9215424Z go: downloading go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.22.0
+2025-07-01T14:45:08.9300535Z go: downloading go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.22.0
+2025-07-01T14:45:08.9375557Z go: downloading go.opentelemetry.io/otel/sdk v1.22.0
+2025-07-01T14:45:08.9713630Z go: downloading github.com/syndtr/goleveldb v1.0.1-0.20220614013038-64ee5596c38a
+2025-07-01T14:45:09.0019558Z go: downloading github.com/matttproud/golang_protobuf_extensions v1.0.4
+2025-07-01T14:45:09.0031005Z go: downloading github.com/mr-tron/base58 v1.2.0
+2025-07-01T14:45:09.0150921Z go: downloading gonum.org/v1/gonum v0.11.0
+2025-07-01T14:45:09.0166874Z go: downloading github.com/DataDog/zstd v1.5.2
+2025-07-01T14:45:09.0818479Z go: downloading github.com/subosito/gotenv v1.3.0
+2025-07-01T14:45:09.0900331Z go: downloading github.com/hashicorp/hcl v1.0.0
+2025-07-01T14:45:09.1223990Z go: downloading gopkg.in/ini.v1 v1.67.0
+2025-07-01T14:45:09.1400472Z go: downloading github.com/magiconair/properties v1.8.6
+2025-07-01T14:45:09.1439903Z go: downloading github.com/pelletier/go-toml/v2 v2.0.5
+2025-07-01T14:45:09.1440434Z go: downloading golang.org/x/text v0.23.0
+2025-07-01T14:45:09.1803422Z go: downloading github.com/pelletier/go-toml v1.9.5
+2025-07-01T14:45:09.2054279Z go: downloading github.com/mattn/go-runewidth v0.0.13
+2025-07-01T14:45:09.2133324Z go: downloading github.com/tklauser/go-sysconf v0.3.12
+2025-07-01T14:45:09.2424150Z go: downloading github.com/crate-crypto/go-kzg-4844 v0.7.0
+2025-07-01T14:45:09.4749087Z go: downloading github.com/dlclark/regexp2 v1.7.0
+2025-07-01T14:45:09.6568698Z go: downloading github.com/google/pprof v0.0.0-20230207041349-798e818bf904
+2025-07-01T14:45:09.8226057Z go: downloading github.com/VictoriaMetrics/fastcache v1.12.1
+2025-07-01T14:45:09.8226831Z go: downloading github.com/crate-crypto/go-ipa v0.0.0-20231025140028-3c0104f4b233
+2025-07-01T14:45:09.8229103Z go: downloading github.com/holiman/billy v0.0.0-20240216141850-2abb0c79d3c4
+2025-07-01T14:45:09.8342920Z go: downloading github.com/hashicorp/golang-lru v0.5.5-0.20210104140557-80c98217689d
+2025-07-01T14:45:09.8443130Z go: downloading github.com/tyler-smith/go-bip39 v1.1.0
+2025-07-01T14:45:09.8448075Z go: downloading github.com/google/uuid v1.6.0
+2025-07-01T14:45:09.8450708Z go: downloading github.com/hashicorp/go-bexpr v0.1.10
+2025-07-01T14:45:09.8568652Z go: downloading github.com/mattn/go-isatty v0.0.17
+2025-07-01T14:45:09.8592756Z go: downloading github.com/urfave/cli/v2 v2.25.7
+2025-07-01T14:45:09.8615352Z go: downloading github.com/pmezard/go-difflib v1.0.0
+2025-07-01T14:45:09.8703967Z go: downloading github.com/cockroachdb/errors v1.9.1
+2025-07-01T14:45:09.9255940Z go: downloading github.com/cockroachdb/redact v1.1.3
+2025-07-01T14:45:09.9259318Z go: downloading github.com/cockroachdb/tokenbucket v0.0.0-20230807174530-cc333fc44b06
+2025-07-01T14:45:09.9351823Z go: downloading go.opentelemetry.io/proto/otlp v1.0.0
+2025-07-01T14:45:09.9580589Z go: downloading github.com/rivo/uniseg v0.2.0
+2025-07-01T14:45:09.9582778Z go: downloading github.com/tklauser/numcpus v0.6.1
+2025-07-01T14:45:09.9694025Z go: downloading github.com/go-sourcemap/sourcemap v2.1.3+incompatible
+2025-07-01T14:45:09.9713098Z go: downloading github.com/gballet/go-libpcsclite v0.0.0-20191108122812-4678299bea08
+2025-07-01T14:45:09.9778060Z go: downloading github.com/status-im/keycard-go v0.2.0
+2025-07-01T14:45:09.9803262Z go: downloading github.com/mitchellh/pointerstructure v1.2.0
+2025-07-01T14:45:09.9948717Z go: downloading github.com/cockroachdb/logtags v0.0.0-20230118201751-21c54148d20b
+2025-07-01T14:45:09.9953340Z go: downloading github.com/getsentry/sentry-go v0.18.0
+2025-07-01T14:45:10.0023692Z go: downloading github.com/pkg/errors v0.9.1
+2025-07-01T14:45:10.0142128Z go: downloading github.com/go-logr/logr v1.4.1
+2025-07-01T14:45:10.0160294Z go: downloading go.opentelemetry.io/otel/metric v1.22.0
+2025-07-01T14:45:10.0311469Z go: downloading github.com/cenkalti/backoff/v4 v4.2.1
+2025-07-01T14:45:10.0344939Z go: downloading github.com/grpc-ecosystem/grpc-gateway/v2 v2.16.0
+2025-07-01T14:45:10.0419383Z go: downloading github.com/go-logr/stdr v1.2.2
+2025-07-01T14:45:10.0515754Z go: downloading github.com/consensys/gnark-crypto v0.12.1
+2025-07-01T14:45:10.1597845Z go: downloading github.com/gogo/protobuf v1.3.2
+2025-07-01T14:45:10.4603339Z go: downloading github.com/kr/pretty v0.3.1
+2025-07-01T14:45:10.4613562Z go: downloading github.com/cpuguy83/go-md2man/v2 v2.0.4
+2025-07-01T14:45:10.4687424Z go: downloading github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673
+2025-07-01T14:45:10.4722386Z go: downloading github.com/huin/goupnp v1.3.0
+2025-07-01T14:45:10.4955338Z go: downloading github.com/jackpal/go-nat-pmp v1.0.2
+2025-07-01T14:45:10.5024398Z go: downloading google.golang.org/genproto/googleapis/api v0.0.0-20240604185151-ef581f913117
+2025-07-01T14:45:10.5524303Z go: downloading github.com/kr/text v0.2.0
+2025-07-01T14:45:10.5598768Z go: downloading github.com/rogpeppe/go-internal v1.12.0
+2025-07-01T14:45:10.5970382Z go: downloading github.com/russross/blackfriday/v2 v2.1.0
+2025-07-01T14:45:10.6727634Z go: downloading github.com/bits-and-blooms/bitset v1.10.0
+2025-07-01T14:45:10.6728478Z go: downloading github.com/mmcloughlin/addchain v0.4.0
+2025-07-01T14:45:10.6729617Z go: downloading github.com/consensys/bavard v0.1.13
+2025-07-01T14:45:10.7138650Z go: downloading rsc.io/tmplfunc v0.0.3
+2025-07-01T14:46:10.2404127Z task: [test-e2e-precompile] bash ./scripts/run_ginkgo_precompile.sh
+2025-07-01T14:46:10.2656038Z Using branch: c46a4f11e
+2025-07-01T14:46:10.2732588Z go: downloading github.com/onsi/ginkgo/v2 v2.13.1
+2025-07-01T14:46:10.3868215Z go: downloading github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572
+2025-07-01T14:46:10.3873565Z go: downloading golang.org/x/tools v0.29.0
+2025-07-01T14:47:01.4141952Z go: downloading github.com/go-cmd/cmd v1.4.1
+2025-07-01T14:47:01.4144066Z go: downloading k8s.io/api v0.29.0
+2025-07-01T14:47:01.4144887Z go: downloading k8s.io/apimachinery v0.29.0
+2025-07-01T14:47:01.4149791Z go: downloading github.com/ava-labs/coreth v0.15.2-rc.0.0.20250620163936-0058a7ec6d9d
+2025-07-01T14:47:01.4150470Z go: downloading k8s.io/client-go v0.29.0
+2025-07-01T14:47:01.4151005Z go: downloading k8s.io/utils v0.0.0-20230726121419-3b25d923346b
+2025-07-01T14:47:01.4151454Z go: downloading github.com/pires/go-proxyproto v0.6.2
+2025-07-01T14:47:01.4152024Z go: downloading github.com/gorilla/mux v1.8.0
+2025-07-01T14:47:01.4152653Z go: downloading github.com/rs/cors v1.7.0
+2025-07-01T14:47:01.4153397Z go: downloading github.com/decred/dcrd/dcrec/secp256k1/v4 v4.1.0
+2025-07-01T14:47:01.4154263Z go: downloading github.com/btcsuite/btcd/btcutil v1.1.3
+2025-07-01T14:47:01.4155024Z go: downloading github.com/json-iterator/go v1.1.12
+2025-07-01T14:47:01.4155713Z go: downloading github.com/google/gofuzz v1.2.0
+2025-07-01T14:47:01.4156316Z go: downloading k8s.io/klog/v2 v2.110.1
+2025-07-01T14:47:01.4156798Z go: downloading gopkg.in/inf.v0 v0.9.1
+2025-07-01T14:47:01.4157338Z go: downloading sigs.k8s.io/yaml v1.3.0
+2025-07-01T14:47:01.4158008Z go: downloading github.com/imdario/mergo v0.3.16
+2025-07-01T14:47:01.4158730Z go: downloading github.com/google/btree v1.1.2
+2025-07-01T14:47:01.4160376Z go: downloading sigs.k8s.io/structured-merge-diff/v4 v4.4.1
+2025-07-01T14:47:01.4161233Z go: downloading sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd
+2025-07-01T14:47:01.4162234Z go: downloading github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd
+2025-07-01T14:47:01.4163112Z go: downloading github.com/modern-go/reflect2 v1.0.2
+2025-07-01T14:47:01.4163838Z go: downloading github.com/google/gnostic-models v0.6.8
+2025-07-01T14:47:01.4164898Z go: downloading github.com/moby/spdystream v0.2.0
+2025-07-01T14:47:01.4165534Z go: downloading golang.org/x/oauth2 v0.21.0
+2025-07-01T14:47:01.4166116Z go: downloading gopkg.in/yaml.v2 v2.4.0
+2025-07-01T14:47:01.4166874Z go: downloading k8s.io/kube-openapi v0.0.0-20231010175941-2dd684a91f00
+2025-07-01T14:47:01.4168077Z go: downloading github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f
+2025-07-01T14:47:01.4169302Z go: downloading github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822
+2025-07-01T14:47:01.4170200Z go: downloading github.com/go-openapi/swag v0.22.3
+2025-07-01T14:47:01.4170933Z go: downloading github.com/go-openapi/jsonreference v0.20.2
+2025-07-01T14:47:01.4171697Z go: downloading github.com/emicklei/go-restful/v3 v3.11.0
+2025-07-01T14:47:01.4172454Z go: downloading github.com/go-openapi/jsonpointer v0.19.6
+2025-07-01T14:47:01.4173167Z go: downloading github.com/mailru/easyjson v0.7.7
+2025-07-01T14:47:01.4173842Z go: downloading github.com/josharian/intern v1.0.0
+2025-07-01T14:47:01.4174225Z 
+2025-07-01T14:47:01.6285950Z [streaming output] Creating data directory: /tmp/subnet-evm-start-node/2025-07-01%:14:47:01/node1
+2025-07-01T14:47:01.6434332Z Running Suite: subnet-evm precompile ginkgo test suite - /home/runner/work/subnet-evm/subnet-evm
+2025-07-01T14:47:01.6435333Z ================================================================================================
+2025-07-01T14:47:01.6436278Z Random Seed: [1m1751381171[0m
+2025-07-01T14:47:01.6436469Z 
+2025-07-01T14:47:01.6436754Z Will run [1m6[0m of [1m6[0m specs
+2025-07-01T14:47:01.6437237Z Running in parallel across [1m5[0m processes
+2025-07-01T14:52:01.5883097Z [38;5;243m------------------------------[0m
+2025-07-01T14:52:01.5884082Z [38;5;9m[SynchronizedBeforeSuite] [FAILED] [300.001 seconds][0m
+2025-07-01T14:52:01.5884841Z [38;5;9m[1m[SynchronizedBeforeSuite] [0m
+2025-07-01T14:52:01.5887417Z [38;5;243m/home/runner/work/subnet-evm/subnet-evm/tests/utils/subnet.go:67[0m
+2025-07-01T14:52:01.5887822Z 
+2025-07-01T14:52:01.5888136Z   [38;5;243mCaptured StdOut/StdErr Output >>[0m
+2025-07-01T14:52:01.5888993Z   [streaming output] Creating data directory: /tmp/subnet-evm-start-node/2025-07-01%:14:47:01/node1
+2025-07-01T14:52:01.5889689Z   [38;5;243m<< Captured StdOut/StdErr Output[0m
+2025-07-01T14:52:01.5889916Z 
+2025-07-01T14:52:01.5890046Z   [38;5;9m[FAILED] 
+2025-07-01T14:52:01.5890575Z   	Error Trace:	/home/runner/work/subnet-evm/subnet-evm/tests/utils/subnet.go:81
+2025-07-01T14:52:01.5891537Z   	            				/opt/hostedtoolcache/go/1.23.9/x64/src/reflect/value.go:584
+2025-07-01T14:52:01.5892363Z   	            				/opt/hostedtoolcache/go/1.23.9/x64/src/reflect/value.go:368
+2025-07-01T14:52:01.5893300Z   	            				/home/runner/go/pkg/mod/github.com/onsi/ginkgo/v2@v2.13.1/internal/node.go:486
+2025-07-01T14:52:01.5894293Z   	            				/home/runner/go/pkg/mod/github.com/onsi/ginkgo/v2@v2.13.1/internal/suite.go:642
+2025-07-01T14:52:01.5895266Z   	            				/home/runner/go/pkg/mod/github.com/onsi/ginkgo/v2@v2.13.1/internal/suite.go:889
+2025-07-01T14:52:01.5896085Z   	            				/opt/hostedtoolcache/go/1.23.9/x64/src/runtime/asm_amd64.s:1700
+2025-07-01T14:52:01.5896496Z   	Error:      	Received unexpected error:
+2025-07-01T14:52:01.5896903Z   	            	context deadline exceeded
+2025-07-01T14:52:01.5897159Z   	Test:       	
+2025-07-01T14:52:01.5897363Z   [0m
+2025-07-01T14:52:01.5898247Z   [38;5;9mIn [1m[SynchronizedBeforeSuite][0m[38;5;9m at: [1m/home/runner/work/subnet-evm/subnet-evm/tests/utils/subnet.go:81[0m [38;5;243m@ 07/01/25 14:52:01.587[0m
+2025-07-01T14:52:01.5899151Z [38;5;243m------------------------------[0m
+2025-07-01T14:52:01.6053278Z [38;5;9m[SynchronizedBeforeSuite] [FAILED] [299.975 seconds][0m
+2025-07-01T14:52:01.6054367Z [38;5;9m[1m[SynchronizedBeforeSuite] [0m
+2025-07-01T14:52:01.6055389Z [38;5;243m/home/runner/work/subnet-evm/subnet-evm/tests/utils/subnet.go:67[0m
+2025-07-01T14:52:01.6055902Z 
+2025-07-01T14:52:01.6056660Z   [38;5;9m[FAILED] [1m[38;5;9mSynchronizedBeforeSuite failed on Ginkgo parallel process #1[0m
+2025-07-01T14:52:01.6058271Z     The first SynchronizedBeforeSuite function running on Ginkgo parallel process
+2025-07-01T14:52:01.6059372Z     #1 failed.  This suite will now abort.
+2025-07-01T14:52:01.6059744Z 
+2025-07-01T14:52:01.6060069Z   [0m
+2025-07-01T14:52:01.6062040Z   [38;5;9mIn [1m[SynchronizedBeforeSuite][0m[38;5;9m at: [1m/home/runner/work/subnet-evm/subnet-evm/tests/utils/subnet.go:67[0m [38;5;243m@ 07/01/25 14:52:01.604[0m
+2025-07-01T14:52:01.6063735Z [38;5;243m------------------------------[0m
+2025-07-01T14:52:01.6064728Z [38;5;9m[SynchronizedBeforeSuite] [FAILED] [299.961 seconds][0m
+2025-07-01T14:52:01.6065729Z [38;5;9m[1m[SynchronizedBeforeSuite] [0m
+2025-07-01T14:52:01.6066934Z [38;5;243m/home/runner/work/subnet-evm/subnet-evm/tests/utils/subnet.go:67[0m
+2025-07-01T14:52:01.6067556Z 
+2025-07-01T14:52:01.6068385Z   [38;5;9m[FAILED] [1m[38;5;9mSynchronizedBeforeSuite failed on Ginkgo parallel process #1[0m
+2025-07-01T14:52:01.6070016Z     The first SynchronizedBeforeSuite function running on Ginkgo parallel process
+2025-07-01T14:52:01.6071034Z     #1 failed.  This suite will now abort.
+2025-07-01T14:52:01.6071413Z 
+2025-07-01T14:52:01.6071699Z   [0m
+2025-07-01T14:52:01.6073733Z   [38;5;9mIn [1m[SynchronizedBeforeSuite][0m[38;5;9m at: [1m/home/runner/work/subnet-evm/subnet-evm/tests/utils/subnet.go:67[0m [38;5;243m@ 07/01/25 14:52:01.604[0m
+2025-07-01T14:52:01.6087649Z [38;5;243m------------------------------[0m
+2025-07-01T14:52:01.6088601Z [38;5;9m[SynchronizedBeforeSuite] [FAILED] [300.016 seconds][0m
+2025-07-01T14:52:01.6089585Z [38;5;9m[1m[SynchronizedBeforeSuite] [0m
+2025-07-01T14:52:01.6090578Z [38;5;243m/home/runner/work/subnet-evm/subnet-evm/tests/utils/subnet.go:67[0m
+2025-07-01T14:52:01.6091086Z 
+2025-07-01T14:52:01.6091819Z   [38;5;9m[FAILED] [1m[38;5;9mSynchronizedBeforeSuite failed on Ginkgo parallel process #1[0m
+2025-07-01T14:52:01.6092905Z     The first SynchronizedBeforeSuite function running on Ginkgo parallel process
+2025-07-01T14:52:01.6093718Z     #1 failed.  This suite will now abort.
+2025-07-01T14:52:01.6094013Z 
+2025-07-01T14:52:01.6094177Z   [0m
+2025-07-01T14:52:01.6095699Z   [38;5;9mIn [1m[SynchronizedBeforeSuite][0m[38;5;9m at: [1m/home/runner/work/subnet-evm/subnet-evm/tests/utils/subnet.go:67[0m [38;5;243m@ 07/01/25 14:52:01.605[0m
+2025-07-01T14:52:01.6096914Z [38;5;243m------------------------------[0m
+2025-07-01T14:52:01.6097642Z [38;5;9m[SynchronizedBeforeSuite] [FAILED] [300.003 seconds][0m
+2025-07-01T14:52:01.6098374Z [38;5;9m[1m[SynchronizedBeforeSuite] [0m
+2025-07-01T14:52:01.6102121Z [38;5;243m/home/runner/work/subnet-evm/subnet-evm/tests/utils/subnet.go:67[0m
+2025-07-01T14:52:01.6102620Z 
+2025-07-01T14:52:01.6103340Z   [38;5;9m[FAILED] [1m[38;5;9mSynchronizedBeforeSuite failed on Ginkgo parallel process #1[0m
+2025-07-01T14:52:01.6104230Z     The first SynchronizedBeforeSuite function running on Ginkgo parallel process
+2025-07-01T14:52:01.6104722Z     #1 failed.  This suite will now abort.
+2025-07-01T14:52:01.6104896Z 
+2025-07-01T14:52:01.6104996Z   [0m
+2025-07-01T14:52:01.6105853Z   [38;5;9mIn [1m[SynchronizedBeforeSuite][0m[38;5;9m at: [1m/home/runner/work/subnet-evm/subnet-evm/tests/utils/subnet.go:67[0m [38;5;243m@ 07/01/25 14:52:01.605[0m
+2025-07-01T14:52:01.6106576Z [38;5;243m------------------------------[0m
+2025-07-01T14:52:01.6405285Z 
+2025-07-01T14:52:01.6406259Z [38;5;9m[1mSummarizing 5 Failures:[0m
+2025-07-01T14:52:01.6407169Z   [38;5;9m[FAIL][0m [38;5;9m[1m[SynchronizedBeforeSuite] [0m
+2025-07-01T14:52:01.6408346Z   [38;5;243m/home/runner/work/subnet-evm/subnet-evm/tests/utils/subnet.go:67[0m
+2025-07-01T14:52:01.6409746Z   [38;5;9m[FAIL][0m [38;5;9m[1m[SynchronizedBeforeSuite] [0m
+2025-07-01T14:52:01.6410992Z   [38;5;243m/home/runner/work/subnet-evm/subnet-evm/tests/utils/subnet.go:67[0m
+2025-07-01T14:52:01.6412177Z   [38;5;9m[FAIL][0m [38;5;9m[1m[SynchronizedBeforeSuite] [0m
+2025-07-01T14:52:01.6413546Z   [38;5;243m/home/runner/work/subnet-evm/subnet-evm/tests/utils/subnet.go:67[0m
+2025-07-01T14:52:01.6414487Z   [38;5;9m[FAIL][0m [38;5;9m[1m[SynchronizedBeforeSuite] [0m
+2025-07-01T14:52:01.6415470Z   [38;5;243m/home/runner/work/subnet-evm/subnet-evm/tests/utils/subnet.go:67[0m
+2025-07-01T14:52:01.6416592Z   [38;5;9m[FAIL][0m [38;5;9m[1m[SynchronizedBeforeSuite] [0m
+2025-07-01T14:52:01.6417592Z   [38;5;243m/home/runner/work/subnet-evm/subnet-evm/tests/utils/subnet.go:81[0m
+2025-07-01T14:52:01.6418089Z 
+2025-07-01T14:52:01.6418490Z [38;5;9m[1mRan 0 of 6 Specs in 300.057 seconds[0m
+2025-07-01T14:52:01.6419703Z [38;5;9m[1mFAIL![0m -- [38;5;14m[1mA BeforeSuite node failed so all tests were skipped.[0m
+2025-07-01T14:52:01.6434675Z 
+2025-07-01T14:52:01.6577463Z 
+2025-07-01T14:52:01.6579532Z Ginkgo ran 1 suite in 5m49.856210182s
+2025-07-01T14:52:01.6579865Z 
+2025-07-01T14:52:01.6580054Z Test Suite Failed
+2025-07-01T14:52:01.6589955Z exit status 1
+2025-07-01T14:52:01.6657215Z task: Failed to run task "test-e2e-precompile-ci": exit status 1
+2025-07-01T14:52:01.6668673Z exit status 201
+2025-07-01T14:52:01.7196127Z ##[error]Process completed with exit code 1.
+2025-07-01T14:52:01.7260784Z ##[group]Run actions/upload-artifact@v4
+2025-07-01T14:52:01.7261081Z with:
+2025-07-01T14:52:01.7261287Z   name: subnet-evm-e2e-logs-precompile
+2025-07-01T14:52:01.7261578Z   path: /tmp/e2e-test/precompile-data
+2025-07-01T14:52:01.7261859Z   retention-days: 5
+2025-07-01T14:52:01.7262050Z   if-no-files-found: warn
+2025-07-01T14:52:01.7262258Z   compression-level: 6
+2025-07-01T14:52:01.7262459Z   overwrite: false
+2025-07-01T14:52:01.7262649Z   include-hidden-files: false
+2025-07-01T14:52:01.7262863Z ##[endgroup]
+2025-07-01T14:52:01.9405236Z ##[warning]No files were found with the provided path: /tmp/e2e-test/precompile-data. No artifacts will be uploaded.
+2025-07-01T14:52:01.9545967Z Post job cleanup.
+2025-07-01T14:52:02.0507000Z [command]/usr/bin/git version
+2025-07-01T14:52:02.0544677Z git version 2.49.0
+2025-07-01T14:52:02.0596466Z Temporarily overriding HOME='/home/runner/work/_temp/a8bd85c3-96e6-4b30-b616-14f7148089d5' before making global git config changes
+2025-07-01T14:52:02.0598003Z Adding repository directory to the temporary git global config as a safe directory
+2025-07-01T14:52:02.0602779Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/subnet-evm/subnet-evm
+2025-07-01T14:52:02.0637465Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-07-01T14:52:02.0670090Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-07-01T14:52:02.0892660Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-07-01T14:52:02.0912286Z http.https://github.com/.extraheader
+2025-07-01T14:52:02.0925058Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2025-07-01T14:52:02.0954478Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-07-01T14:52:02.1290397Z Cleaning up orphan processes

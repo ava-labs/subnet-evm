@@ -1,0 +1,66 @@
+﻿2025-07-01T14:43:49.9500931Z Current runner version: '2.325.0'
+2025-07-01T14:43:49.9537707Z ##[group]Runner Image Provisioner
+2025-07-01T14:43:49.9539266Z Hosted Compute Agent
+2025-07-01T14:43:49.9540247Z Version: 20250620.352
+2025-07-01T14:43:49.9541219Z Commit: f262f3aba23b10ea191b2a62bdee1ca4c3d344da
+2025-07-01T14:43:49.9542638Z Build Date: 2025-06-20T19:27:17Z
+2025-07-01T14:43:49.9543666Z ##[endgroup]
+2025-07-01T14:43:49.9544697Z ##[group]Operating System
+2025-07-01T14:43:49.9545658Z Ubuntu
+2025-07-01T14:43:49.9546705Z 24.04.2
+2025-07-01T14:43:49.9547423Z LTS
+2025-07-01T14:43:49.9548366Z ##[endgroup]
+2025-07-01T14:43:49.9549243Z ##[group]Runner Image
+2025-07-01T14:43:49.9550205Z Image: ubuntu-24.04
+2025-07-01T14:43:49.9551234Z Version: 20250622.1.0
+2025-07-01T14:43:49.9553179Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20250622.1/images/ubuntu/Ubuntu2404-Readme.md
+2025-07-01T14:43:49.9556291Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20250622.1
+2025-07-01T14:43:49.9558026Z ##[endgroup]
+2025-07-01T14:43:49.9562594Z ##[group]GITHUB_TOKEN Permissions
+2025-07-01T14:43:49.9565940Z Actions: write
+2025-07-01T14:43:49.9567020Z Attestations: write
+2025-07-01T14:43:49.9567861Z Checks: write
+2025-07-01T14:43:49.9568710Z Contents: write
+2025-07-01T14:43:49.9569733Z Deployments: write
+2025-07-01T14:43:49.9570628Z Discussions: write
+2025-07-01T14:43:49.9571460Z Issues: write
+2025-07-01T14:43:49.9572418Z Metadata: read
+2025-07-01T14:43:49.9573179Z Models: read
+2025-07-01T14:43:49.9574042Z Packages: write
+2025-07-01T14:43:49.9575016Z Pages: write
+2025-07-01T14:43:49.9576039Z PullRequests: write
+2025-07-01T14:43:49.9577004Z RepositoryProjects: write
+2025-07-01T14:43:49.9578139Z SecurityEvents: write
+2025-07-01T14:43:49.9579288Z Statuses: write
+2025-07-01T14:43:49.9580166Z ##[endgroup]
+2025-07-01T14:43:49.9583748Z Secret source: Actions
+2025-07-01T14:43:49.9585145Z Prepare workflow directory
+2025-07-01T14:43:50.0075161Z Prepare all required actions
+2025-07-01T14:43:50.0131918Z Getting action download info
+2025-07-01T14:43:50.7008899Z ##[group]Download immutable action package 'actions/setup-node@v4'
+2025-07-01T14:43:50.7011660Z Version: 4.4.0
+2025-07-01T14:43:50.7013388Z Digest: sha256:9427cefe82346e992fb5b949e3569b39d537ae41aa3086483b14eceebfc16bc1
+2025-07-01T14:43:50.7016062Z Source commit SHA: 49933ea5288caeca8642d1e84afbd3f7d6820020
+2025-07-01T14:43:50.7017409Z ##[endgroup]
+2025-07-01T14:43:50.9163340Z Complete job name: Setup Node.js
+2025-07-01T14:43:50.9864690Z ##[group]Run actions/setup-node@v4
+2025-07-01T14:43:50.9865616Z with:
+2025-07-01T14:43:50.9866275Z   node-version: 20.13
+2025-07-01T14:43:50.9866740Z   always-auth: false
+2025-07-01T14:43:50.9867181Z   check-latest: false
+2025-07-01T14:43:50.9867806Z   token: ***
+2025-07-01T14:43:50.9868492Z ##[endgroup]
+2025-07-01T14:43:51.2104587Z Attempting to download 20.13...
+2025-07-01T14:43:51.6453221Z Acquiring 20.13.1 - x64 from https://github.com/actions/node-versions/releases/download/20.13.1-9021092103/node-20.13.1-linux-x64.tar.gz
+2025-07-01T14:43:52.1887949Z Extracting ...
+2025-07-01T14:43:52.1999039Z [command]/usr/bin/tar xz --strip 1 --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/b2840e1d-75e6-462b-ae31-3f3ea8a2ee04 -f /home/runner/work/_temp/3b0fda39-063b-49b7-8ac1-25152832e6c8
+2025-07-01T14:43:53.2208047Z Adding to the cache ...
+2025-07-01T14:43:54.8817893Z ##[group]Environment details
+2025-07-01T14:43:55.0978413Z node: v20.13.1
+2025-07-01T14:43:55.0979738Z npm: 10.5.2
+2025-07-01T14:43:55.0980381Z yarn: 1.22.22
+2025-07-01T14:43:55.0981423Z ##[endgroup]
+2025-07-01T14:43:55.1251769Z Post job cleanup.
+2025-07-01T14:43:55.2888475Z Evaluate and set job outputs
+2025-07-01T14:43:55.2892826Z Set output 'node-version'
+2025-07-01T14:43:55.2894777Z Cleaning up orphan processes

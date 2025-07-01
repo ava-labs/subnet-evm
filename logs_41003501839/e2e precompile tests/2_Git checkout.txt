@@ -1,0 +1,481 @@
+﻿2025-07-01T14:44:04.4886549Z ##[group]Run actions/checkout@v4
+2025-07-01T14:44:04.4887526Z with:
+2025-07-01T14:44:04.4887947Z   fetch-depth: 0
+2025-07-01T14:44:04.4888418Z   repository: ava-labs/subnet-evm
+2025-07-01T14:44:04.4889356Z   token: ***
+2025-07-01T14:44:04.4889794Z   ssh-strict: true
+2025-07-01T14:44:04.4890243Z   ssh-user: git
+2025-07-01T14:44:04.4890678Z   persist-credentials: true
+2025-07-01T14:44:04.4891161Z   clean: true
+2025-07-01T14:44:04.4891847Z   sparse-checkout-cone-mode: true
+2025-07-01T14:44:04.4892376Z   fetch-tags: false
+2025-07-01T14:44:04.4892810Z   show-progress: true
+2025-07-01T14:44:04.4893246Z   lfs: false
+2025-07-01T14:44:04.4893624Z   submodules: false
+2025-07-01T14:44:04.4894062Z   set-safe-directory: true
+2025-07-01T14:44:04.4895001Z ##[endgroup]
+2025-07-01T14:44:04.5967775Z Syncing repository: ava-labs/subnet-evm
+2025-07-01T14:44:04.5970247Z ##[group]Getting Git version info
+2025-07-01T14:44:04.5971092Z Working directory is '/home/runner/work/subnet-evm/subnet-evm'
+2025-07-01T14:44:04.5972191Z [command]/usr/bin/git version
+2025-07-01T14:44:04.6013238Z git version 2.49.0
+2025-07-01T14:44:04.6039267Z ##[endgroup]
+2025-07-01T14:44:04.6052971Z Temporarily overriding HOME='/home/runner/work/_temp/e99319f5-e0b0-4114-a702-3e81552f447e' before making global git config changes
+2025-07-01T14:44:04.6054536Z Adding repository directory to the temporary git global config as a safe directory
+2025-07-01T14:44:04.6058008Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/subnet-evm/subnet-evm
+2025-07-01T14:44:04.6093520Z Deleting the contents of '/home/runner/work/subnet-evm/subnet-evm'
+2025-07-01T14:44:04.6097083Z ##[group]Initializing the repository
+2025-07-01T14:44:04.6101019Z [command]/usr/bin/git init /home/runner/work/subnet-evm/subnet-evm
+2025-07-01T14:44:04.6170207Z hint: Using 'master' as the name for the initial branch. This default branch name
+2025-07-01T14:44:04.6171587Z hint: is subject to change. To configure the initial branch name to use in all
+2025-07-01T14:44:04.6172606Z hint: of your new repositories, which will suppress this warning, call:
+2025-07-01T14:44:04.6173421Z hint:
+2025-07-01T14:44:04.6174248Z hint: 	git config --global init.defaultBranch <name>
+2025-07-01T14:44:04.6175156Z hint:
+2025-07-01T14:44:04.6175776Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2025-07-01T14:44:04.6176786Z hint: 'development'. The just-created branch can be renamed via this command:
+2025-07-01T14:44:04.6177592Z hint:
+2025-07-01T14:44:04.6178030Z hint: 	git branch -m <name>
+2025-07-01T14:44:04.6179328Z Initialized empty Git repository in /home/runner/work/subnet-evm/subnet-evm/.git/
+2025-07-01T14:44:04.6185130Z [command]/usr/bin/git remote add origin https://github.com/ava-labs/subnet-evm
+2025-07-01T14:44:04.6218111Z ##[endgroup]
+2025-07-01T14:44:04.6219658Z ##[group]Disabling automatic garbage collection
+2025-07-01T14:44:04.6223093Z [command]/usr/bin/git config --local gc.auto 0
+2025-07-01T14:44:04.6252161Z ##[endgroup]
+2025-07-01T14:44:04.6253566Z ##[group]Setting up auth
+2025-07-01T14:44:04.6259752Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-07-01T14:44:04.6292576Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-07-01T14:44:04.6585868Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-07-01T14:44:04.6616870Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-07-01T14:44:04.6837754Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2025-07-01T14:44:04.6874195Z ##[endgroup]
+2025-07-01T14:44:04.6874989Z ##[group]Fetching the repository
+2025-07-01T14:44:04.6883301Z [command]/usr/bin/git -c protocol.version=2 fetch --prune --no-recurse-submodules origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/* +c46a4f11ecd55a5ab361920393adf5859e0dc097:refs/remotes/pull/1610/merge
+2025-07-01T14:44:17.7395119Z From https://github.com/ava-labs/subnet-evm
+2025-07-01T14:44:17.7396872Z  * [new branch]          0.7.2-avalanchego-v1.13.0-fuji-rc.2 -> origin/0.7.2-avalanchego-v1.13.0-fuji-rc.2
+2025-07-01T14:44:17.7398318Z  * [new branch]          HelloWorldOfficialTutorial -> origin/HelloWorldOfficialTutorial
+2025-07-01T14:44:17.7400019Z  * [new branch]          abi-fuzz-testing          -> origin/abi-fuzz-testing
+2025-07-01T14:44:17.7400944Z  * [new branch]          abi-standardize           -> origin/abi-standardize
+2025-07-01T14:44:17.7402085Z  * [new branch]          acceptor-queue            -> origin/acceptor-queue
+2025-07-01T14:44:17.7403253Z  * [new branch]          acp-176                   -> origin/acp-176
+2025-07-01T14:44:17.7405224Z  * [new branch]          acp-176-config            -> origin/acp-176-config
+2025-07-01T14:44:17.7407022Z  * [new branch]          add-aggregator-unit-test  -> origin/add-aggregator-unit-test
+2025-07-01T14:44:17.7409304Z  * [new branch]          add-cpu-profiling         -> origin/add-cpu-profiling
+2025-07-01T14:44:17.7411562Z  * [new branch]          add-cross-chain-request-to-s-evm -> origin/add-cross-chain-request-to-s-evm
+2025-07-01T14:44:17.7412808Z  * [new branch]          add-else                  -> origin/add-else
+2025-07-01T14:44:17.7414942Z  * [new branch]          add-manager-role          -> origin/add-manager-role
+2025-07-01T14:44:17.7416998Z  * [new branch]          add-max-cache-size        -> origin/add-max-cache-size
+2025-07-01T14:44:17.7419371Z  * [new branch]          add-more-unit-tests-for-aggregator -> origin/add-more-unit-tests-for-aggregator
+2025-07-01T14:44:17.7421684Z  * [new branch]          add-pong-request-to-s-evm -> origin/add-pong-request-to-s-evm
+2025-07-01T14:44:17.7423658Z  * [new branch]          addTestScript             -> origin/addTestScript
+2025-07-01T14:44:17.7425522Z  * [new branch]          ago-v1.7.17               -> origin/ago-v1.7.17
+2025-07-01T14:44:17.7428210Z  * [new branch]          alarso16/acp176-config    -> origin/alarso16/acp176-config
+2025-07-01T14:44:17.7430342Z  * [new branch]          align-big2                -> origin/align-big2
+2025-07-01T14:44:17.7432305Z  * [new branch]          align-block-request       -> origin/align-block-request
+2025-07-01T14:44:17.7434318Z  * [new branch]          always-sign-uptime        -> origin/always-sign-uptime
+2025-07-01T14:44:17.7436474Z  * [new branch]          always-sign-validator-uptimes -> origin/always-sign-validator-uptimes
+2025-07-01T14:44:17.7438404Z  * [new branch]          anr-functionality-test    -> origin/anr-functionality-test
+2025-07-01T14:44:17.7440559Z  * [new branch]          anusha-test-remote-sync   -> origin/anusha-test-remote-sync
+2025-07-01T14:44:17.7442593Z  * [new branch]          anusha-test-remove-verify -> origin/anusha-test-remove-verify
+2025-07-01T14:44:17.7445158Z  * [new branch]          arr4n/allowlist-refactor  -> origin/arr4n/allowlist-refactor
+2025-07-01T14:44:17.7447257Z  * [new branch]          arr4n/circular-dep-types-precompiles -> origin/arr4n/circular-dep-types-precompiles
+2025-07-01T14:44:17.7448991Z  * [new branch]          arr4n/geth-1.13.14        -> origin/arr4n/geth-1.13.14
+2025-07-01T14:44:17.7451443Z  * [new branch]          arr4n/geth-1.13.14-squashed -> origin/arr4n/geth-1.13.14-squashed
+2025-07-01T14:44:17.7452944Z  * [new branch]          arr4n/gethclone           -> origin/arr4n/gethclone
+2025-07-01T14:44:17.7455041Z  * [new branch]          arr4n/gethclone-extension -> origin/arr4n/gethclone-extension
+2025-07-01T14:44:17.7457141Z  * [new branch]          arr4n/gethclone-stateful-precompiles -> origin/arr4n/gethclone-stateful-precompiles
+2025-07-01T14:44:17.7458977Z  * [new branch]          arr4n/move-precompile-interfaces -> origin/arr4n/move-precompile-interfaces
+2025-07-01T14:44:17.7461095Z  * [new branch]          arr4n/precompile-go-tests -> origin/arr4n/precompile-go-tests
+2025-07-01T14:44:17.7462897Z  * [new branch]          arr4n/solc-downloader     -> origin/arr4n/solc-downloader
+2025-07-01T14:44:17.7464914Z  * [new branch]          ava-lru                   -> origin/ava-lru
+2025-07-01T14:44:17.7466943Z  * [new branch]          avago-databaseconfig      -> origin/avago-databaseconfig
+2025-07-01T14:44:17.7469026Z  * [new branch]          avagobump-for-relayer     -> origin/avagobump-for-relayer
+2025-07-01T14:44:17.7471655Z  * [new branch]          avalanche-boundaries      -> origin/avalanche-boundaries
+2025-07-01T14:44:17.7473307Z  * [new branch]          avalanchego-v1.9.2        -> origin/avalanchego-v1.9.2
+2025-07-01T14:44:17.7475484Z  * [new branch]          awm-precompile-interface  -> origin/awm-precompile-interface
+2025-07-01T14:44:17.7477585Z  * [new branch]          awm-precompile-interface-nits -> origin/awm-precompile-interface-nits
+2025-07-01T14:44:17.7479561Z  * [new branch]          batch-inner               -> origin/batch-inner
+2025-07-01T14:44:17.7482539Z  * [new branch]          bench-storage-trie        -> origin/bench-storage-trie
+2025-07-01T14:44:17.7483880Z  * [new branch]          bench-study               -> origin/bench-study
+2025-07-01T14:44:17.7486089Z  * [new branch]          break-cyclic              -> origin/break-cyclic
+2025-07-01T14:44:17.7488107Z  * [new branch]          bump-ago                  -> origin/bump-ago
+2025-07-01T14:44:17.7490388Z  * [new branch]          bump-anr-nits             -> origin/bump-anr-nits
+2025-07-01T14:44:17.7492469Z  * [new branch]          bump-avago-master         -> origin/bump-avago-master
+2025-07-01T14:44:17.7494698Z  * [new branch]          bump-avalanchego-c-chain-warp -> origin/bump-avalanchego-c-chain-warp
+2025-07-01T14:44:17.7496676Z  * [new branch]          changes-to-requester      -> origin/changes-to-requester
+2025-07-01T14:44:17.7498682Z  * [new branch]          check-code-scanning       -> origin/check-code-scanning
+2025-07-01T14:44:17.7500961Z  * [new branch]          ci-enabled-fuzz           -> origin/ci-enabled-fuzz
+2025-07-01T14:44:17.7502998Z  * [new branch]          cleanup-client            -> origin/cleanup-client
+2025-07-01T14:44:17.7504954Z  * [new branch]          cleanup-jobs              -> origin/cleanup-jobs
+2025-07-01T14:44:17.7507092Z  * [new branch]          cleanup-upgrades          -> origin/cleanup-upgrades
+2025-07-01T14:44:17.7509656Z  * [new branch]          config-mainnet-warp-optimization -> origin/config-mainnet-warp-optimization
+2025-07-01T14:44:17.7511702Z  * [new branch]          config-test-suites        -> origin/config-test-suites
+2025-07-01T14:44:17.7513941Z  * [new branch]          configurable-suggestpriceoptions -> origin/configurable-suggestpriceoptions
+2025-07-01T14:44:17.7516232Z  * [new branch]          containerize-vm-runtime   -> origin/containerize-vm-runtime
+2025-07-01T14:44:17.7518566Z  * [new branch]          coreth-0.12.4-sync-x      -> origin/coreth-0.12.4-sync-x
+2025-07-01T14:44:17.7520982Z  * [new branch]          coreth-diff               -> origin/coreth-diff
+2025-07-01T14:44:17.7523246Z  * [new branch]          coreth-diff-script        -> origin/coreth-diff-script
+2025-07-01T14:44:17.7525496Z  * [new branch]          coreth-merge              -> origin/coreth-merge
+2025-07-01T14:44:17.7527791Z  * [new branch]          coreth-test-0             -> origin/coreth-test-0
+2025-07-01T14:44:17.7530398Z  * [new branch]          custom-log-format         -> origin/custom-log-format
+2025-07-01T14:44:17.7533441Z  * [new branch]          darioush/simplify-ci-monitoring -> origin/darioush/simplify-ci-monitoring
+2025-07-01T14:44:17.7535788Z  * [new branch]          debian-update-to-debian12 -> origin/debian-update-to-debian12
+2025-07-01T14:44:17.7538060Z  * [new branch]          debug-cache-rate          -> origin/debug-cache-rate
+2025-07-01T14:44:17.7540606Z  * [new branch]          debug-fee-config-manager  -> origin/debug-fee-config-manager
+2025-07-01T14:44:17.7542910Z  * [new branch]          decouple-precompiles      -> origin/decouple-precompiles
+2025-07-01T14:44:17.7545292Z  * [new branch]          decouple-precompiles-0    -> origin/decouple-precompiles-0
+2025-07-01T14:44:17.7547545Z  * [new branch]          default-rejournal         -> origin/default-rejournal
+2025-07-01T14:44:17.7549994Z  * [new branch]          delete-redundant-tests    -> origin/delete-redundant-tests
+2025-07-01T14:44:17.7552254Z  * [new branch]          deleteme                  -> origin/deleteme
+2025-07-01T14:44:17.7556790Z  * [new branch]          dependabot/github_actions/docker/setup-buildx-action-3.11.1 -> origin/dependabot/github_actions/docker/setup-buildx-action-3.11.1
+2025-07-01T14:44:17.7559898Z  * [new branch]          dependabot/github_actions/github/codeql-action-3.29.1 -> origin/dependabot/github_actions/github/codeql-action-3.29.1
+2025-07-01T14:44:17.7563115Z  * [new branch]          dependabot/github_actions/golangci/golangci-lint-action-6.5.2 -> origin/dependabot/github_actions/golangci/golangci-lint-action-6.5.2
+2025-07-01T14:44:17.7566255Z  * [new branch]          dependabot/github_actions/goreleaser/goreleaser-action-6.3.0 -> origin/dependabot/github_actions/goreleaser/goreleaser-action-6.3.0
+2025-07-01T14:44:17.7570263Z  * [new branch]          dependabot/go_modules/github.com/antithesishq/antithesis-sdk-go-0.4.3 -> origin/dependabot/go_modules/github.com/antithesishq/antithesis-sdk-go-0.4.3
+2025-07-01T14:44:17.7573297Z  * [new branch]          dependabot/go_modules/github.com/docker/docker-24.0.6incompatible -> origin/dependabot/go_modules/github.com/docker/docker-24.0.6incompatible
+2025-07-01T14:44:17.7576257Z  * [new branch]          dependabot/go_modules/github.com/go-cmd/cmd-1.4.3 -> origin/dependabot/go_modules/github.com/go-cmd/cmd-1.4.3
+2025-07-01T14:44:17.7579486Z  * [new branch]          dependabot/go_modules/github.com/gorilla/rpc-1.2.1 -> origin/dependabot/go_modules/github.com/gorilla/rpc-1.2.1
+2025-07-01T14:44:17.7582567Z  * [new branch]          dependabot/go_modules/github.com/spf13/viper-1.20.1 -> origin/dependabot/go_modules/github.com/spf13/viper-1.20.1
+2025-07-01T14:44:17.7585972Z  * [new branch]          dependabot/npm_and_yarn/contracts/base-x-3.0.11 -> origin/dependabot/npm_and_yarn/contracts/base-x-3.0.11
+2025-07-01T14:44:17.7588268Z  * [new branch]          dependabot/npm_and_yarn/contracts/multi-456de2e4f1 -> origin/dependabot/npm_and_yarn/contracts/multi-456de2e4f1
+2025-07-01T14:44:17.7591081Z  * [new branch]          dependabot/npm_and_yarn/contracts/multi-997cdae7c5 -> origin/dependabot/npm_and_yarn/contracts/multi-997cdae7c5
+2025-07-01T14:44:17.7593411Z  * [new branch]          dependabot/npm_and_yarn/contracts/multi-d371db0872 -> origin/dependabot/npm_and_yarn/contracts/multi-d371db0872
+2025-07-01T14:44:17.7595733Z  * [new branch]          dependabot/npm_and_yarn/contracts/pbkdf2-3.1.3 -> origin/dependabot/npm_and_yarn/contracts/pbkdf2-3.1.3
+2025-07-01T14:44:17.7598002Z  * [new branch]          dependabot/npm_and_yarn/contracts/secp256k1-4.0.4 -> origin/dependabot/npm_and_yarn/contracts/secp256k1-4.0.4
+2025-07-01T14:44:17.7600375Z  * [new branch]          dev-setup-testing         -> origin/dev-setup-testing
+2025-07-01T14:44:17.7602694Z  * [new branch]          docker-tag                -> origin/docker-tag
+2025-07-01T14:44:17.7605617Z  * [new branch]          docs/avalanche-ops        -> origin/docs/avalanche-ops
+2025-07-01T14:44:17.7607892Z  * [new branch]          e2e                       -> origin/e2e
+2025-07-01T14:44:17.7610399Z  * [new branch]          e2e-testing-s-evm         -> origin/e2e-testing-s-evm
+2025-07-01T14:44:17.7612939Z  * [new branch]          e2e-to-tmpnet-x           -> origin/e2e-to-tmpnet-x
+2025-07-01T14:44:17.7615307Z  * [new branch]          e2e-use-local-uri         -> origin/e2e-use-local-uri
+2025-07-01T14:44:17.7617646Z  * [new branch]          e2e-verbose-logging       -> origin/e2e-verbose-logging
+2025-07-01T14:44:17.7620226Z  * [new branch]          e2e-warp-to-tmpnet-x      -> origin/e2e-warp-to-tmpnet-x
+2025-07-01T14:44:17.7622798Z  * [new branch]          eth-call-depth-metrics    -> origin/eth-call-depth-metrics
+2025-07-01T14:44:17.7625753Z  * [new branch]          feature/ci-avago-commitish -> origin/feature/ci-avago-commitish
+2025-07-01T14:44:17.7631671Z  * [new branch]          final-changes-ccr-send    -> origin/final-changes-ccr-send
+2025-07-01T14:44:17.7634282Z  * [new branch]          fix-antithesis-image-build -> origin/fix-antithesis-image-build
+2025-07-01T14:44:17.7636785Z  * [new branch]          fix-build-protobuf        -> origin/fix-build-protobuf
+2025-07-01T14:44:17.7639273Z  * [new branch]          fix-contexts              -> origin/fix-contexts
+2025-07-01T14:44:17.7642831Z  * [new branch]          fix-docker-binaries-2     -> origin/fix-docker-binaries-2
+2025-07-01T14:44:17.7645097Z  * [new branch]          fix-docker-push           -> origin/fix-docker-push
+2025-07-01T14:44:17.7647576Z  * [new branch]          fix-goreleaser            -> origin/fix-goreleaser
+2025-07-01T14:44:17.7649934Z  * [new branch]          fix-goroutine-leak        -> origin/fix-goroutine-leak
+2025-07-01T14:44:17.7652424Z  * [new branch]          fix-issuance              -> origin/fix-issuance
+2025-07-01T14:44:17.7654876Z  * [new branch]          fix-load-test             -> origin/fix-load-test
+2025-07-01T14:44:17.7657382Z  * [new branch]          fix-shutdown-hang         -> origin/fix-shutdown-hang
+2025-07-01T14:44:17.7660026Z  * [new branch]          fix-size-checks           -> origin/fix-size-checks
+2025-07-01T14:44:17.7662381Z  * [new branch]          fix-v1.13.0-fuji-rc.2     -> origin/fix-v1.13.0-fuji-rc.2
+2025-07-01T14:44:17.7664750Z  * [new branch]          fix-verdb                 -> origin/fix-verdb
+2025-07-01T14:44:17.7667133Z  * [new branch]          fix-warp-events           -> origin/fix-warp-events
+2025-07-01T14:44:17.7669686Z  * [new branch]          fuji-warp                 -> origin/fuji-warp
+2025-07-01T14:44:17.7672322Z  * [new branch]          geth-master               -> origin/geth-master
+2025-07-01T14:44:17.7674700Z  * [new branch]          geth-v.13.2-x             -> origin/geth-v.13.2-x
+2025-07-01T14:44:17.7677154Z  * [new branch]          geth-v1.12.2-x            -> origin/geth-v1.12.2-x
+2025-07-01T14:44:17.7679723Z  * [new branch]          geth-v1.13.14-sq          -> origin/geth-v1.13.14-sq
+2025-07-01T14:44:17.7749968Z  * [new branch]          geth-v1.13.14-sq-arr4n-sq -> origin/geth-v1.13.14-sq-arr4n-sq
+2025-07-01T14:44:17.7751184Z  * [new branch]          geth-v1.13.2-squashed-diff -> origin/geth-v1.13.2-squashed-diff
+2025-07-01T14:44:17.7752156Z  * [new branch]          geth-v1.14.7              -> origin/geth-v1.14.7
+2025-07-01T14:44:17.7753077Z  * [new branch]          geth-v1.14.7-sq           -> origin/geth-v1.14.7-sq
+2025-07-01T14:44:17.7754043Z  * [new branch]          geth-v1.14.7-sq-reset     -> origin/geth-v1.14.7-sq-reset
+2025-07-01T14:44:17.7755614Z  * [new branch]          gh-readonly-queue/master/pr-1557-8b0ef322b993fea02a4341fe023b31424388ac17 -> origin/gh-readonly-queue/master/pr-1557-8b0ef322b993fea02a4341fe023b31424388ac17
+2025-07-01T14:44:17.7757210Z  * [new branch]          go-ethereum-1.11.4        -> origin/go-ethereum-1.11.4
+2025-07-01T14:44:17.7758093Z  * [new branch]          handshake-codec           -> origin/handshake-codec
+2025-07-01T14:44:17.7759331Z  * [new branch]          handshake-codec-deterministic-json -> origin/handshake-codec-deterministic-json
+2025-07-01T14:44:17.7760560Z  * [new branch]          hello-world-tutorial-walkthrough -> origin/hello-world-tutorial-walkthrough
+2025-07-01T14:44:17.7761774Z  * [new branch]          helloworld-official-tutorial-v2 -> origin/helloworld-official-tutorial-v2
+2025-07-01T14:44:17.7763136Z  * [new branch]          helloworld-official-tutorial-v2-generate-test -> origin/helloworld-official-tutorial-v2-generate-test
+2025-07-01T14:44:17.7764345Z  * [new branch]          iface-dependency          -> origin/iface-dependency
+2025-07-01T14:44:17.7765201Z  * [new branch]          improve-log-v0.5.3        -> origin/improve-log-v0.5.3
+2025-07-01T14:44:17.7766006Z  * [new branch]          inspector                 -> origin/inspector
+2025-07-01T14:44:17.7767068Z  * [new branch]          journal-clean             -> origin/journal-clean
+2025-07-01T14:44:17.7767820Z  * [new branch]          libevm                    -> origin/libevm
+2025-07-01T14:44:17.7768679Z  * [new branch]          libevm-sync-codeql        -> origin/libevm-sync-codeql
+2025-07-01T14:44:17.7769807Z  * [new branch]          load-test-best-config     -> origin/load-test-best-config
+2025-07-01T14:44:17.7770873Z  * [new branch]          loadtestN                 -> origin/loadtestN
+2025-07-01T14:44:17.7771665Z  * [new branch]          macos-goreleaser          -> origin/macos-goreleaser
+2025-07-01T14:44:17.7772437Z  * [new branch]          master                    -> origin/master
+2025-07-01T14:44:17.7773226Z  * [new branch]          merge-coreth-master       -> origin/merge-coreth-master
+2025-07-01T14:44:17.7774032Z  * [new branch]          merge-geth                -> origin/merge-geth
+2025-07-01T14:44:17.7774951Z  * [new branch]          merge-master-libevm-387bbc1 -> origin/merge-master-libevm-387bbc1
+2025-07-01T14:44:17.7775945Z  * [new branch]          merkledb-experiment-y     -> origin/merkledb-experiment-y
+2025-07-01T14:44:17.7776897Z  * [new branch]          migrate-coreth-v0.8.16-rc2 -> origin/migrate-coreth-v0.8.16-rc2
+2025-07-01T14:44:17.7777993Z  * [new branch]          migrate-hardhat-to-ds-test-backup -> origin/migrate-hardhat-to-ds-test-backup
+2025-07-01T14:44:17.7779225Z  * [new branch]          move-ci-tasks             -> origin/move-ci-tasks
+2025-07-01T14:44:17.7780126Z  * [new branch]          move-gas-limit-simplify   -> origin/move-gas-limit-simplify
+2025-07-01T14:44:17.7781002Z  * [new branch]          multicoin-idea            -> origin/multicoin-idea
+2025-07-01T14:44:17.7781849Z  * [new branch]          new-block-context-err     -> origin/new-block-context-err
+2025-07-01T14:44:17.7782759Z  * [new branch]          nits-arr4n/geth-1.13.14   -> origin/nits-arr4n/geth-1.13.14
+2025-07-01T14:44:17.7783697Z  * [new branch]          no-improvements           -> origin/no-improvements
+2025-07-01T14:44:17.7784588Z  * [new branch]          off-chain-warp-messages   -> origin/off-chain-warp-messages
+2025-07-01T14:44:17.7785544Z  * [new branch]          offchain-message-logging  -> origin/offchain-message-logging
+2025-07-01T14:44:17.7786463Z  * [new branch]          only-load-test-ginkgo     -> origin/only-load-test-ginkgo
+2025-07-01T14:44:17.7787439Z  * [new branch]          overflows-revisited       -> origin/overflows-revisited
+2025-07-01T14:44:17.7788281Z  * [new branch]          parse-genesis             -> origin/parse-genesis
+2025-07-01T14:44:17.7789338Z  * [new branch]          peer-tracker-test         -> origin/peer-tracker-test
+2025-07-01T14:44:17.7790211Z  * [new branch]          pod-yaml                  -> origin/pod-yaml
+2025-07-01T14:44:17.7791078Z  * [new branch]          precompile-hello-world    -> origin/precompile-hello-world
+2025-07-01T14:44:17.7792081Z  * [new branch]          precompile-template-testing -> origin/precompile-template-testing
+2025-07-01T14:44:17.7793149Z  * [new branch]          precompile-tutorial-only  -> origin/precompile-tutorial-only
+2025-07-01T14:44:17.7794054Z  * [new branch]          pruning                   -> origin/pruning
+2025-07-01T14:44:17.7796965Z  * [new branch]          readmesubnet              -> origin/readmesubnet
+2025-07-01T14:44:17.7799601Z  * [new branch]          refactor-config           -> origin/refactor-config
+2025-07-01T14:44:17.7803140Z  * [new branch]          refactor-e2e-tests-5-node-network-bash -> origin/refactor-e2e-tests-5-node-network-bash
+2025-07-01T14:44:17.7805285Z  * [new branch]          refactored-warp-precompile -> origin/refactored-warp-precompile
+2025-07-01T14:44:17.7808124Z  * [new branch]          release-v0.6.4-fix-pebble -> origin/release-v0.6.4-fix-pebble
+2025-07-01T14:44:17.7811759Z  * [new branch]          remote-docs               -> origin/remote-docs
+2025-07-01T14:44:17.7813629Z  * [new branch]          remove-codeowner          -> origin/remove-codeowner
+2025-07-01T14:44:17.7819034Z  * [new branch]          remove-get-message        -> origin/remove-get-message
+2025-07-01T14:44:17.7821547Z  * [new branch]          remove-status             -> origin/remove-status
+2025-07-01T14:44:17.7823959Z  * [new branch]          remove-unused-mux         -> origin/remove-unused-mux
+2025-07-01T14:44:17.7826472Z  * [new branch]          remove-vm-dead-code       -> origin/remove-vm-dead-code
+2025-07-01T14:44:17.7829201Z  * [new branch]          reprocess-before-setpreference -> origin/reprocess-before-setpreference
+2025-07-01T14:44:17.7831783Z  * [new branch]          reproduceable-ci          -> origin/reproduceable-ci
+2025-07-01T14:44:17.7834150Z  * [new branch]          return-bytes              -> origin/return-bytes
+2025-07-01T14:44:17.7836650Z  * [new branch]          run-linter                -> origin/run-linter
+2025-07-01T14:44:17.7839287Z  * [new branch]          safe-balance-ops          -> origin/safe-balance-ops
+2025-07-01T14:44:17.7841646Z  * [new branch]          sanity                    -> origin/sanity
+2025-07-01T14:44:17.7844322Z  * [new branch]          send-multiple-gossip-txs  -> origin/send-multiple-gossip-txs
+2025-07-01T14:44:17.7846848Z  * [new branch]          separate-precompiles      -> origin/separate-precompiles
+2025-07-01T14:44:17.7849313Z  * [new branch]          separate-upgradeconfig    -> origin/separate-upgradeconfig
+2025-07-01T14:44:17.7851867Z  * [new branch]          serialize-upgrade-config  -> origin/serialize-upgrade-config
+2025-07-01T14:44:17.7854380Z  * [new branch]          setup-framework-for-ds-test -> origin/setup-framework-for-ds-test
+2025-07-01T14:44:17.7856872Z  * [new branch]          shared-memory-precompile  -> origin/shared-memory-precompile
+2025-07-01T14:44:17.7859600Z  * [new branch]          shared-memory-precompiles-regen0 -> origin/shared-memory-precompiles-regen0
+2025-07-01T14:44:17.7861939Z  * [new branch]          simulator-2               -> origin/simulator-2
+2025-07-01T14:44:17.7864454Z  * [new branch]          single-node-e2e-w         -> origin/single-node-e2e-w
+2025-07-01T14:44:17.7867174Z  * [new branch]          single-predicate-verify-test -> origin/single-predicate-verify-test
+2025-07-01T14:44:17.7869546Z  * [new branch]          specify-default-hashdb    -> origin/specify-default-hashdb
+2025-07-01T14:44:17.7872311Z  * [new branch]          split-extra-data          -> origin/split-extra-data
+2025-07-01T14:44:17.7874647Z  * [new branch]          start-release-cycle       -> origin/start-release-cycle
+2025-07-01T14:44:17.7877084Z  * [new branch]          statesync-e2e             -> origin/statesync-e2e
+2025-07-01T14:44:17.7879682Z  * [new branch]          subnet-evm-002            -> origin/subnet-evm-002
+2025-07-01T14:44:17.7882457Z  * [new branch]          subnet-evm-002-wagmi      -> origin/subnet-evm-002-wagmi
+2025-07-01T14:44:17.7884961Z  * [new branch]          subnet-evm-pod            -> origin/subnet-evm-pod
+2025-07-01T14:44:17.7887552Z  * [new branch]          subnet-evm-rename-coreth  -> origin/subnet-evm-rename-coreth
+2025-07-01T14:44:17.7890012Z  * [new branch]          sync-coreth-v0.12.4-rc0-xx -> origin/sync-coreth-v0.12.4-rc0-xx
+2025-07-01T14:44:17.7892666Z  * [new branch]          teleporter-demo           -> origin/teleporter-demo
+2025-07-01T14:44:17.7895162Z  * [new branch]          teleporter-demo-mod-sig-response -> origin/teleporter-demo-mod-sig-response
+2025-07-01T14:44:17.7897463Z  * [new branch]          test-ago                  -> origin/test-ago
+2025-07-01T14:44:17.7900084Z  * [new branch]          test-avago-updates        -> origin/test-avago-updates
+2025-07-01T14:44:17.7902621Z  * [new branch]          test-branch-ci            -> origin/test-branch-ci
+2025-07-01T14:44:17.7905144Z  * [new branch]          test-dockerfile           -> origin/test-dockerfile
+2025-07-01T14:44:17.7907778Z  * [new branch]          test-hello-world-precompile-example -> origin/test-hello-world-precompile-example
+2025-07-01T14:44:17.7909930Z  * [new branch]          test-libevm               -> origin/test-libevm
+2025-07-01T14:44:17.7912575Z  * [new branch]          test_workers              -> origin/test_workers
+2025-07-01T14:44:17.7915404Z  * [new branch]          testing-image-build-for-unmerged-commit-test -> origin/testing-image-build-for-unmerged-commit-test
+2025-07-01T14:44:17.7921754Z  * [new branch]          tmp-master                -> origin/tmp-master
+2025-07-01T14:44:17.7924061Z  * [new branch]          tmpnet-disjoint-validator-sets -> origin/tmpnet-disjoint-validator-sets
+2025-07-01T14:44:17.7926187Z  * [new branch]          tps-fix                   -> origin/tps-fix
+2025-07-01T14:44:17.7929148Z  * [new branch]          trie-prefetcher-alt       -> origin/trie-prefetcher-alt
+2025-07-01T14:44:17.7931630Z  * [new branch]          trie-prefetcher-alt1      -> origin/trie-prefetcher-alt1
+2025-07-01T14:44:17.7934025Z  * [new branch]          truncate-call-log         -> origin/truncate-call-log
+2025-07-01T14:44:17.7936498Z  * [new branch]          tx-count-metrics          -> origin/tx-count-metrics
+2025-07-01T14:44:17.7939152Z  * [new branch]          txpool-mutex              -> origin/txpool-mutex
+2025-07-01T14:44:17.7941757Z  * [new branch]          typed-revert-error        -> origin/typed-revert-error
+2025-07-01T14:44:17.7944215Z  * [new branch]          update-12.0-fuji          -> origin/update-12.0-fuji
+2025-07-01T14:44:17.7946873Z  * [new branch]          update-avago-teleporter   -> origin/update-avago-teleporter
+2025-07-01T14:44:17.7949431Z  * [new branch]          update-avalanchego        -> origin/update-avalanchego
+2025-07-01T14:44:17.7952007Z  * [new branch]          update-subnet-evm         -> origin/update-subnet-evm
+2025-07-01T14:44:17.7954417Z  * [new branch]          uptime-tracking-wip       -> origin/uptime-tracking-wip
+2025-07-01T14:44:17.7956962Z  * [new branch]          use-libevm-params         -> origin/use-libevm-params
+2025-07-01T14:44:17.7959562Z  * [new branch]          use-libevm-statedb        -> origin/use-libevm-statedb
+2025-07-01T14:44:17.7962212Z  * [new branch]          v0.6.1-fix-client         -> origin/v0.6.1-fix-client
+2025-07-01T14:44:17.7964595Z  * [new branch]          v1.7.17-rc.8              -> origin/v1.7.17-rc.8
+2025-07-01T14:44:17.7967131Z  * [new branch]          validator-manager         -> origin/validator-manager
+2025-07-01T14:44:17.7969949Z  * [new branch]          validator-metastate       -> origin/validator-metastate
+2025-07-01T14:44:17.7972897Z  * [new branch]          verify-no-blobs           -> origin/verify-no-blobs
+2025-07-01T14:44:17.7975305Z  * [new branch]          version-v0.6.0-fuji       -> origin/version-v0.6.0-fuji
+2025-07-01T14:44:17.7977961Z  * [new branch]          vmerrs-putback            -> origin/vmerrs-putback
+2025-07-01T14:44:17.7980587Z  * [new branch]          wagmi-upgrade-json        -> origin/wagmi-upgrade-json
+2025-07-01T14:44:17.7982771Z  * [new branch]          warp-contract-feature     -> origin/warp-contract-feature
+2025-07-01T14:44:17.7984922Z  * [new branch]          warp-contract-l           -> origin/warp-contract-l
+2025-07-01T14:44:17.7987064Z  * [new branch]          warp-contract-l-repro     -> origin/warp-contract-l-repro
+2025-07-01T14:44:17.7989311Z  * [new branch]          warp-contract-testing     -> origin/warp-contract-testing
+2025-07-01T14:44:17.7991497Z  * [new branch]          warp-e2e                  -> origin/warp-e2e
+2025-07-01T14:44:17.7993624Z  * [new branch]          warp-load-e2e             -> origin/warp-load-e2e
+2025-07-01T14:44:17.7995988Z  * [new branch]          warp-load-e2e-bls-genesis-validators -> origin/warp-load-e2e-bls-genesis-validators
+2025-07-01T14:44:17.7997647Z  * [new branch]          warp-load-test            -> origin/warp-load-test
+2025-07-01T14:44:17.8000026Z  * [new branch]          warp-load-testing         -> origin/warp-load-testing
+2025-07-01T14:44:17.8002176Z  * [new branch]          warp-network-run          -> origin/warp-network-run
+2025-07-01T14:44:17.8004282Z  * [new branch]          warp-precompile           -> origin/warp-precompile
+2025-07-01T14:44:17.8006497Z  * [new branch]          warp-precompile-on-accept -> origin/warp-precompile-on-accept
+2025-07-01T14:44:17.8009082Z  * [new branch]          warp-requirePrimaryNetworkSignersAlt -> origin/warp-requirePrimaryNetworkSignersAlt
+2025-07-01T14:44:17.8011290Z  * [new branch]          wip-script-ideas          -> origin/wip-script-ideas
+2025-07-01T14:44:17.8013463Z  * [new branch]          worker-err-test           -> origin/worker-err-test
+2025-07-01T14:44:17.8014549Z  * [new tag]             v0.0.0-apm-alpha          -> v0.0.0-apm-alpha
+2025-07-01T14:44:17.8016026Z  * [new tag]             v0.0.1                    -> v0.0.1
+2025-07-01T14:44:17.8017332Z  * [new tag]             v0.0.2                    -> v0.0.2
+2025-07-01T14:44:17.8018555Z  * [new tag]             v0.1.0                    -> v0.1.0
+2025-07-01T14:44:17.8020436Z  * [new tag]             v0.1.1                    -> v0.1.1
+2025-07-01T14:44:17.8021803Z  * [new tag]             v0.1.2                    -> v0.1.2
+2025-07-01T14:44:17.8023493Z  * [new tag]             v0.1.2-rc.0               -> v0.1.2-rc.0
+2025-07-01T14:44:17.8024749Z  * [new tag]             v0.2.0                    -> v0.2.0
+2025-07-01T14:44:17.8026304Z  * [new tag]             v0.2.1                    -> v0.2.1
+2025-07-01T14:44:17.8027575Z  * [new tag]             v0.2.1-rc.0               -> v0.2.1-rc.0
+2025-07-01T14:44:17.8029047Z  * [new tag]             v0.2.2                    -> v0.2.2
+2025-07-01T14:44:17.8031116Z  * [new tag]             v0.2.3                    -> v0.2.3
+2025-07-01T14:44:17.8032354Z  * [new tag]             v0.2.4                    -> v0.2.4
+2025-07-01T14:44:17.8033716Z  * [new tag]             v0.2.5                    -> v0.2.5
+2025-07-01T14:44:17.8034796Z  * [new tag]             v0.2.6                    -> v0.2.6
+2025-07-01T14:44:17.8036190Z  * [new tag]             v0.2.7                    -> v0.2.7
+2025-07-01T14:44:17.8037755Z  * [new tag]             v0.2.8                    -> v0.2.8
+2025-07-01T14:44:17.8039155Z  * [new tag]             v0.2.9                    -> v0.2.9
+2025-07-01T14:44:17.8040771Z  * [new tag]             v0.3.0                    -> v0.3.0
+2025-07-01T14:44:17.8042030Z  * [new tag]             v0.3.0-rc.0               -> v0.3.0-rc.0
+2025-07-01T14:44:17.8043653Z  * [new tag]             v0.4.0                    -> v0.4.0
+2025-07-01T14:44:17.8044961Z  * [new tag]             v0.4.1                    -> v0.4.1
+2025-07-01T14:44:17.8046363Z  * [new tag]             v0.4.1-rc.0               -> v0.4.1-rc.0
+2025-07-01T14:44:17.8047641Z  * [new tag]             v0.4.1-rc.1               -> v0.4.1-rc.1
+2025-07-01T14:44:17.8049929Z  * [new tag]             v0.4.1-rc.2               -> v0.4.1-rc.2
+2025-07-01T14:44:17.8051142Z  * [new tag]             v0.4.1-rc.3               -> v0.4.1-rc.3
+2025-07-01T14:44:17.8052325Z  * [new tag]             v0.4.1-rc.4               -> v0.4.1-rc.4
+2025-07-01T14:44:17.8053478Z  * [new tag]             v0.4.1-rc.5               -> v0.4.1-rc.5
+2025-07-01T14:44:17.8054837Z  * [new tag]             v0.4.10                   -> v0.4.10
+2025-07-01T14:44:17.8056211Z  * [new tag]             v0.4.11                   -> v0.4.11
+2025-07-01T14:44:17.8057714Z  * [new tag]             v0.4.11-rc.0              -> v0.4.11-rc.0
+2025-07-01T14:44:17.8059155Z  * [new tag]             v0.4.12                   -> v0.4.12
+2025-07-01T14:44:17.8060907Z  * [new tag]             v0.4.12-rc.0              -> v0.4.12-rc.0
+2025-07-01T14:44:17.8061948Z  * [new tag]             v0.4.12-rc.1              -> v0.4.12-rc.1
+2025-07-01T14:44:17.8063549Z  * [new tag]             v0.4.2                    -> v0.4.2
+2025-07-01T14:44:17.8064772Z  * [new tag]             v0.4.2-rc.0               -> v0.4.2-rc.0
+2025-07-01T14:44:17.8066086Z  * [new tag]             v0.4.2-rc.1               -> v0.4.2-rc.1
+2025-07-01T14:44:17.8067437Z  * [new tag]             v0.4.2-rc.2               -> v0.4.2-rc.2
+2025-07-01T14:44:17.8069074Z  * [new tag]             v0.4.2-rc.3               -> v0.4.2-rc.3
+2025-07-01T14:44:17.8070425Z  * [new tag]             v0.4.2-rc.4               -> v0.4.2-rc.4
+2025-07-01T14:44:17.8071859Z  * [new tag]             v0.4.2-rc.5               -> v0.4.2-rc.5
+2025-07-01T14:44:17.8073186Z  * [new tag]             v0.4.2-rc.6               -> v0.4.2-rc.6
+2025-07-01T14:44:17.8074405Z  * [new tag]             v0.4.2-rc.7               -> v0.4.2-rc.7
+2025-07-01T14:44:17.8075597Z  * [new tag]             v0.4.2-rc.8               -> v0.4.2-rc.8
+2025-07-01T14:44:17.8076941Z  * [new tag]             v0.4.2-rc.9               -> v0.4.2-rc.9
+2025-07-01T14:44:17.8078318Z  * [new tag]             v0.4.3                    -> v0.4.3
+2025-07-01T14:44:17.8080261Z  * [new tag]             v0.4.4                    -> v0.4.4
+2025-07-01T14:44:17.8081297Z  * [new tag]             v0.4.4-rc.0               -> v0.4.4-rc.0
+2025-07-01T14:44:17.8082960Z  * [new tag]             v0.4.5                    -> v0.4.5
+2025-07-01T14:44:17.8084332Z  * [new tag]             v0.4.5-rc.0               -> v0.4.5-rc.0
+2025-07-01T14:44:17.8085712Z  * [new tag]             v0.4.5-rc.1               -> v0.4.5-rc.1
+2025-07-01T14:44:17.8087206Z  * [new tag]             v0.4.6                    -> v0.4.6
+2025-07-01T14:44:17.8088507Z  * [new tag]             v0.4.6-rc.0               -> v0.4.6-rc.0
+2025-07-01T14:44:17.8089828Z  * [new tag]             v0.4.6-rc.1               -> v0.4.6-rc.1
+2025-07-01T14:44:17.8091310Z  * [new tag]             v0.4.7                    -> v0.4.7
+2025-07-01T14:44:17.8092473Z  * [new tag]             v0.4.7-rc.0               -> v0.4.7-rc.0
+2025-07-01T14:44:17.8093860Z  * [new tag]             v0.4.8                    -> v0.4.8
+2025-07-01T14:44:17.8095518Z  * [new tag]             v0.4.8-rc.0               -> v0.4.8-rc.0
+2025-07-01T14:44:17.8096763Z  * [new tag]             v0.4.9                    -> v0.4.9
+2025-07-01T14:44:17.8098198Z  * [new tag]             v0.4.9-rc.0               -> v0.4.9-rc.0
+2025-07-01T14:44:17.8099812Z  * [new tag]             v0.4.9-rc.1               -> v0.4.9-rc.1
+2025-07-01T14:44:17.8101222Z  * [new tag]             v0.4.9-rc.2               -> v0.4.9-rc.2
+2025-07-01T14:44:17.8102560Z  * [new tag]             v0.5.0                    -> v0.5.0
+2025-07-01T14:44:17.8104199Z  * [new tag]             v0.5.0-fuji               -> v0.5.0-fuji
+2025-07-01T14:44:17.8105442Z  * [new tag]             v0.5.0-fuji-1             -> v0.5.0-fuji-1
+2025-07-01T14:44:17.8106644Z  * [new tag]             v0.5.0-fuji-rc.0          -> v0.5.0-fuji-rc.0
+2025-07-01T14:44:17.8108026Z  * [new tag]             v0.5.1                    -> v0.5.1
+2025-07-01T14:44:17.8109897Z  * [new tag]             v0.5.1-warp-rc.0          -> v0.5.1-warp-rc.0
+2025-07-01T14:44:17.8111139Z  * [new tag]             v0.5.10                   -> v0.5.10
+2025-07-01T14:44:17.8112825Z  * [new tag]             v0.5.10-rc.0              -> v0.5.10-rc.0
+2025-07-01T14:44:17.8114093Z  * [new tag]             v0.5.11                   -> v0.5.11
+2025-07-01T14:44:17.8115875Z  * [new tag]             v0.5.11-rc.0              -> v0.5.11-rc.0
+2025-07-01T14:44:17.8117078Z  * [new tag]             v0.5.11-rc.1              -> v0.5.11-rc.1
+2025-07-01T14:44:17.8118736Z  * [new tag]             v0.5.2                    -> v0.5.2
+2025-07-01T14:44:17.8120290Z  * [new tag]             v0.5.2-call-depth-metrics -> v0.5.2-call-depth-metrics
+2025-07-01T14:44:17.8121668Z  * [new tag]             v0.5.2-rc.0               -> v0.5.2-rc.0
+2025-07-01T14:44:17.8123065Z  * [new tag]             v0.5.2-warp-rc.0          -> v0.5.2-warp-rc.0
+2025-07-01T14:44:17.8124700Z  * [new tag]             v0.5.3                    -> v0.5.3
+2025-07-01T14:44:17.8126315Z  * [new tag]             v0.5.3-coreth-sync-rc     -> v0.5.3-coreth-sync-rc
+2025-07-01T14:44:17.8127742Z  * [new tag]             v0.5.4                    -> v0.5.4
+2025-07-01T14:44:17.8129398Z  * [new tag]             v0.5.4-rc.0               -> v0.5.4-rc.0
+2025-07-01T14:44:17.8130785Z  * [new tag]             v0.5.4-rc.1               -> v0.5.4-rc.1
+2025-07-01T14:44:17.8132479Z  * [new tag]             v0.5.4-rc.2               -> v0.5.4-rc.2
+2025-07-01T14:44:17.8133869Z  * [new tag]             v0.5.5                    -> v0.5.5
+2025-07-01T14:44:17.8135504Z  * [new tag]             v0.5.6                    -> v0.5.6
+2025-07-01T14:44:17.8136715Z  * [new tag]             v0.5.6-fuji-warp          -> v0.5.6-fuji-warp
+2025-07-01T14:44:17.8138411Z  * [new tag]             v0.5.7                    -> v0.5.7
+2025-07-01T14:44:17.8140092Z  * [new tag]             v0.5.7-rc.0               -> v0.5.7-rc.0
+2025-07-01T14:44:17.8141502Z  * [new tag]             v0.5.8                    -> v0.5.8
+2025-07-01T14:44:17.8143314Z  * [new tag]             v0.5.8-rc.0               -> v0.5.8-rc.0
+2025-07-01T14:44:17.8144965Z  * [new tag]             v0.5.8-rc.1               -> v0.5.8-rc.1
+2025-07-01T14:44:17.8146314Z  * [new tag]             v0.5.8-rc.2               -> v0.5.8-rc.2
+2025-07-01T14:44:17.8148028Z  * [new tag]             v0.5.9                    -> v0.5.9
+2025-07-01T14:44:17.8149582Z  * [new tag]             v0.5.9-rc.0               -> v0.5.9-rc.0
+2025-07-01T14:44:17.8151482Z  * [new tag]             v0.5.9-rc.1               -> v0.5.9-rc.1
+2025-07-01T14:44:17.8152756Z  * [new tag]             v0.5.9-rc.2               -> v0.5.9-rc.2
+2025-07-01T14:44:17.8154532Z  * [new tag]             v0.6.0                    -> v0.6.0
+2025-07-01T14:44:17.8155750Z  * [new tag]             v0.6.0-fuji               -> v0.6.0-fuji
+2025-07-01T14:44:17.8157533Z  * [new tag]             v0.6.1                    -> v0.6.1
+2025-07-01T14:44:17.8159713Z  * [new tag]             v0.6.10                   -> v0.6.10
+2025-07-01T14:44:17.8161025Z  * [new tag]             v0.6.10-rc.0              -> v0.6.10-rc.0
+2025-07-01T14:44:17.8162895Z  * [new tag]             v0.6.11                   -> v0.6.11
+2025-07-01T14:44:17.8164093Z  * [new tag]             v0.6.11-rc.0              -> v0.6.11-rc.0
+2025-07-01T14:44:17.8165660Z  * [new tag]             v0.6.12                   -> v0.6.12
+2025-07-01T14:44:17.8166963Z  * [new tag]             v0.6.12-fuji-example      -> v0.6.12-fuji-example
+2025-07-01T14:44:17.8168592Z  * [new tag]             v0.6.12-rc.0              -> v0.6.12-rc.0
+2025-07-01T14:44:17.8170506Z  * [new tag]             v0.6.12-rc.1              -> v0.6.12-rc.1
+2025-07-01T14:44:17.8171885Z  * [new tag]             v0.6.2                    -> v0.6.2
+2025-07-01T14:44:17.8173649Z  * [new tag]             v0.6.3                    -> v0.6.3
+2025-07-01T14:44:17.8175238Z  * [new tag]             v0.6.3-rc.0               -> v0.6.3-rc.0
+2025-07-01T14:44:17.8176851Z  * [new tag]             v0.6.4                    -> v0.6.4
+2025-07-01T14:44:17.8178509Z  * [new tag]             v0.6.4-rc.0               -> v0.6.4-rc.0
+2025-07-01T14:44:17.8180387Z  * [new tag]             v0.6.4-rc.1               -> v0.6.4-rc.1
+2025-07-01T14:44:17.8181724Z  * [new tag]             v0.6.4-rc.2               -> v0.6.4-rc.2
+2025-07-01T14:44:17.8183471Z  * [new tag]             v0.6.5                    -> v0.6.5
+2025-07-01T14:44:17.8185073Z  * [new tag]             v0.6.5-geth-1.13.8        -> v0.6.5-geth-1.13.8
+2025-07-01T14:44:17.8186264Z  * [new tag]             v0.6.5-rc.0               -> v0.6.5-rc.0
+2025-07-01T14:44:17.8188041Z  * [new tag]             v0.6.5-rc.1               -> v0.6.5-rc.1
+2025-07-01T14:44:17.8189882Z  * [new tag]             v0.6.6                    -> v0.6.6
+2025-07-01T14:44:17.8191584Z  * [new tag]             v0.6.6-rc.0               -> v0.6.6-rc.0
+2025-07-01T14:44:17.8193000Z  * [new tag]             v0.6.7                    -> v0.6.7
+2025-07-01T14:44:17.8195106Z  * [new tag]             v0.6.7-rc.0               -> v0.6.7-rc.0
+2025-07-01T14:44:17.8196517Z  * [new tag]             v0.6.8                    -> v0.6.8
+2025-07-01T14:44:17.8198377Z  * [new tag]             v0.6.8-acp-118-handlers   -> v0.6.8-acp-118-handlers
+2025-07-01T14:44:17.8200256Z  * [new tag]             v0.6.8-geth-v1.13.14      -> v0.6.8-geth-v1.13.14
+2025-07-01T14:44:17.8201597Z  * [new tag]             v0.6.8-rc.0               -> v0.6.8-rc.0
+2025-07-01T14:44:17.8202985Z  * [new tag]             v0.6.8-rc.1               -> v0.6.8-rc.1
+2025-07-01T14:44:17.8204779Z  * [new tag]             v0.6.8-rc.2               -> v0.6.8-rc.2
+2025-07-01T14:44:17.8206018Z  * [new tag]             v0.6.8-rc.3               -> v0.6.8-rc.3
+2025-07-01T14:44:17.8207769Z  * [new tag]             v0.6.8-status-removal     -> v0.6.8-status-removal
+2025-07-01T14:44:17.8209487Z  * [new tag]             v0.6.9                    -> v0.6.9
+2025-07-01T14:44:17.8210981Z  * [new tag]             v0.6.9-rc.0               -> v0.6.9-rc.0
+2025-07-01T14:44:17.8212752Z  * [new tag]             v0.7.0                    -> v0.7.0
+2025-07-01T14:44:17.8214002Z  * [new tag]             v0.7.0-rc.0               -> v0.7.0-rc.0
+2025-07-01T14:44:17.8215753Z  * [new tag]             v0.7.1                    -> v0.7.1
+2025-07-01T14:44:17.8217428Z  * [new tag]             v0.7.1-rc.0               -> v0.7.1-rc.0
+2025-07-01T14:44:17.8219258Z  * [new tag]             v0.7.1-rc.1               -> v0.7.1-rc.1
+2025-07-01T14:44:17.8220545Z  * [new tag]             v0.7.1-rc.2               -> v0.7.1-rc.2
+2025-07-01T14:44:17.8222293Z  * [new tag]             v0.7.2                    -> v0.7.2
+2025-07-01T14:44:17.8223565Z  * [new tag]             v0.7.2-fuji               -> v0.7.2-fuji
+2025-07-01T14:44:17.8224951Z  * [new tag]             v0.7.2-rc.0               -> v0.7.2-rc.0
+2025-07-01T14:44:17.8226724Z  * [new tag]             v0.7.3                    -> v0.7.3
+2025-07-01T14:44:17.8228053Z  * [new tag]             v0.7.3-rc.0               -> v0.7.3-rc.0
+2025-07-01T14:44:17.8229966Z  * [new tag]             v0.7.4                    -> v0.7.4
+2025-07-01T14:44:17.8231275Z  * [new tag]             v0.7.4-rc.0               -> v0.7.4-rc.0
+2025-07-01T14:44:17.8232846Z  * [new tag]             v0.7.5                    -> v0.7.5
+2025-07-01T14:44:17.8234114Z  * [new tag]             v0.7.5-rc.0               -> v0.7.5-rc.0
+2025-07-01T14:44:17.8237525Z  * [new ref]             c46a4f11ecd55a5ab361920393adf5859e0dc097 -> pull/1610/merge
+2025-07-01T14:44:17.8323833Z ##[endgroup]
+2025-07-01T14:44:17.8324334Z ##[group]Determining the checkout info
+2025-07-01T14:44:17.8325208Z ##[endgroup]
+2025-07-01T14:44:17.8331291Z [command]/usr/bin/git sparse-checkout disable
+2025-07-01T14:44:17.8375593Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2025-07-01T14:44:17.8403318Z ##[group]Checking out the ref
+2025-07-01T14:44:17.8407237Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/1610/merge
+2025-07-01T14:44:17.9273717Z Note: switching to 'refs/remotes/pull/1610/merge'.
+2025-07-01T14:44:17.9274306Z 
+2025-07-01T14:44:17.9274712Z You are in 'detached HEAD' state. You can look around, make experimental
+2025-07-01T14:44:17.9275557Z changes and commit them, and you can discard any commits you make in this
+2025-07-01T14:44:17.9276472Z state without impacting any branches by switching back to a branch.
+2025-07-01T14:44:17.9276951Z 
+2025-07-01T14:44:17.9277300Z If you want to create a new branch to retain commits you create, you may
+2025-07-01T14:44:17.9278119Z do so (now or later) by using -c with the switch command. Example:
+2025-07-01T14:44:17.9278549Z 
+2025-07-01T14:44:17.9278756Z   git switch -c <new-branch-name>
+2025-07-01T14:44:17.9279295Z 
+2025-07-01T14:44:17.9279494Z Or undo this operation with:
+2025-07-01T14:44:17.9279779Z 
+2025-07-01T14:44:17.9279952Z   git switch -
+2025-07-01T14:44:17.9280194Z 
+2025-07-01T14:44:17.9280580Z Turn off this advice by setting config variable advice.detachedHead to false
+2025-07-01T14:44:17.9281096Z 
+2025-07-01T14:44:17.9281739Z HEAD is now at c46a4f11e Merge a1ed580b94027b41ba19c24c1ea7f04bfdb27307 into 7abb4c64d7a8a26513a93cd55d800f61e867ffe3
+2025-07-01T14:44:17.9294357Z ##[endgroup]
+2025-07-01T14:44:17.9333773Z [command]/usr/bin/git log -1 --format=%H
+2025-07-01T14:44:17.9356138Z c46a4f11ecd55a5ab361920393adf5859e0dc097

@@ -137,6 +137,7 @@ jobs:
         uses: ava-labs/avalanchego/.github/actions/run-monitored-tmpnet-cmd@092cf182dd92b66a8ab882b657d3ae52b174c913
         with:
           run: ./scripts/run_task.sh test-e2e-warp-ci
+          run_env: AVALANCHEGO_BUILD_PATH=/tmp/e2e-test/avalanchego
           artifact_prefix: warp
           prometheus_username: ${{ secrets.PROMETHEUS_ID || '' }}
           prometheus_password: ${{ secrets.PROMETHEUS_PASSWORD || '' }}
@@ -158,6 +159,7 @@ jobs:
         uses: ava-labs/avalanchego/.github/actions/run-monitored-tmpnet-cmd@092cf182dd92b66a8ab882b657d3ae52b174c913
         with:
           run: ./scripts/run_task.sh test-e2e-load-ci
+          run_env: AVALANCHEGO_BUILD_PATH=/tmp/e2e-test/avalanchego
           artifact_prefix: load
           prometheus_username: ${{ secrets.PROMETHEUS_ID || '' }}
           prometheus_password: ${{ secrets.PROMETHEUS_PASSWORD || '' }}
