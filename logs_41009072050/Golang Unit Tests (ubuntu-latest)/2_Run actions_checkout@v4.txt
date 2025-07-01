@@ -1,0 +1,83 @@
+﻿2025-07-01T16:09:23.1274987Z ##[group]Run actions/checkout@v4
+2025-07-01T16:09:23.1275829Z with:
+2025-07-01T16:09:23.1276228Z   repository: ava-labs/subnet-evm
+2025-07-01T16:09:23.1276902Z   token: ***
+2025-07-01T16:09:23.1277270Z   ssh-strict: true
+2025-07-01T16:09:23.1277657Z   ssh-user: git
+2025-07-01T16:09:23.1278037Z   persist-credentials: true
+2025-07-01T16:09:23.1278468Z   clean: true
+2025-07-01T16:09:23.1278846Z   sparse-checkout-cone-mode: true
+2025-07-01T16:09:23.1279724Z   fetch-depth: 1
+2025-07-01T16:09:23.1280246Z   fetch-tags: false
+2025-07-01T16:09:23.1280717Z   show-progress: true
+2025-07-01T16:09:23.1281261Z   lfs: false
+2025-07-01T16:09:23.1281625Z   submodules: false
+2025-07-01T16:09:23.1282019Z   set-safe-directory: true
+2025-07-01T16:09:23.1282662Z ##[endgroup]
+2025-07-01T16:09:23.2547549Z Syncing repository: ava-labs/subnet-evm
+2025-07-01T16:09:23.2549527Z ##[group]Getting Git version info
+2025-07-01T16:09:23.2550244Z Working directory is '/home/runner/work/subnet-evm/subnet-evm'
+2025-07-01T16:09:23.2551179Z [command]/usr/bin/git version
+2025-07-01T16:09:23.2645200Z git version 2.49.0
+2025-07-01T16:09:23.2672668Z ##[endgroup]
+2025-07-01T16:09:23.2687572Z Temporarily overriding HOME='/home/runner/work/_temp/52af7cd0-d01a-4d8e-94ef-209fd3b8acc1' before making global git config changes
+2025-07-01T16:09:23.2688937Z Adding repository directory to the temporary git global config as a safe directory
+2025-07-01T16:09:23.2693416Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/subnet-evm/subnet-evm
+2025-07-01T16:09:23.2732833Z Deleting the contents of '/home/runner/work/subnet-evm/subnet-evm'
+2025-07-01T16:09:23.2736706Z ##[group]Initializing the repository
+2025-07-01T16:09:23.2740524Z [command]/usr/bin/git init /home/runner/work/subnet-evm/subnet-evm
+2025-07-01T16:09:23.2837119Z hint: Using 'master' as the name for the initial branch. This default branch name
+2025-07-01T16:09:23.2838394Z hint: is subject to change. To configure the initial branch name to use in all
+2025-07-01T16:09:23.2839633Z hint: of your new repositories, which will suppress this warning, call:
+2025-07-01T16:09:23.2840691Z hint:
+2025-07-01T16:09:23.2841232Z hint: 	git config --global init.defaultBranch <name>
+2025-07-01T16:09:23.2841920Z hint:
+2025-07-01T16:09:23.2842551Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2025-07-01T16:09:23.2843692Z hint: 'development'. The just-created branch can be renamed via this command:
+2025-07-01T16:09:23.2845257Z hint:
+2025-07-01T16:09:23.2845946Z hint: 	git branch -m <name>
+2025-07-01T16:09:23.2848546Z Initialized empty Git repository in /home/runner/work/subnet-evm/subnet-evm/.git/
+2025-07-01T16:09:23.2859711Z [command]/usr/bin/git remote add origin https://github.com/ava-labs/subnet-evm
+2025-07-01T16:09:23.2896855Z ##[endgroup]
+2025-07-01T16:09:23.2897573Z ##[group]Disabling automatic garbage collection
+2025-07-01T16:09:23.2900860Z [command]/usr/bin/git config --local gc.auto 0
+2025-07-01T16:09:23.2929340Z ##[endgroup]
+2025-07-01T16:09:23.2930027Z ##[group]Setting up auth
+2025-07-01T16:09:23.2936400Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-07-01T16:09:23.2967390Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-07-01T16:09:23.3330916Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-07-01T16:09:23.3362193Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-07-01T16:09:23.3581274Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2025-07-01T16:09:23.3623903Z ##[endgroup]
+2025-07-01T16:09:23.3625145Z ##[group]Fetching the repository
+2025-07-01T16:09:23.3633204Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +24d42c4a5aa0c26b2727d8d8210c4ae7db4855fd:refs/remotes/pull/1610/merge
+2025-07-01T16:09:24.2369994Z From https://github.com/ava-labs/subnet-evm
+2025-07-01T16:09:24.2371178Z  * [new ref]         24d42c4a5aa0c26b2727d8d8210c4ae7db4855fd -> pull/1610/merge
+2025-07-01T16:09:24.2409092Z ##[endgroup]
+2025-07-01T16:09:24.2410559Z ##[group]Determining the checkout info
+2025-07-01T16:09:24.2412223Z ##[endgroup]
+2025-07-01T16:09:24.2417694Z [command]/usr/bin/git sparse-checkout disable
+2025-07-01T16:09:24.2459292Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2025-07-01T16:09:24.2487216Z ##[group]Checking out the ref
+2025-07-01T16:09:24.2491038Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/1610/merge
+2025-07-01T16:09:24.3312583Z Note: switching to 'refs/remotes/pull/1610/merge'.
+2025-07-01T16:09:24.3315475Z 
+2025-07-01T16:09:24.3316205Z You are in 'detached HEAD' state. You can look around, make experimental
+2025-07-01T16:09:24.3317974Z changes and commit them, and you can discard any commits you make in this
+2025-07-01T16:09:24.3319647Z state without impacting any branches by switching back to a branch.
+2025-07-01T16:09:24.3321016Z 
+2025-07-01T16:09:24.3321696Z If you want to create a new branch to retain commits you create, you may
+2025-07-01T16:09:24.3323218Z do so (now or later) by using -c with the switch command. Example:
+2025-07-01T16:09:24.3324139Z 
+2025-07-01T16:09:24.3324480Z   git switch -c <new-branch-name>
+2025-07-01T16:09:24.3325257Z 
+2025-07-01T16:09:24.3325576Z Or undo this operation with:
+2025-07-01T16:09:24.3326111Z 
+2025-07-01T16:09:24.3326385Z   git switch -
+2025-07-01T16:09:24.3326782Z 
+2025-07-01T16:09:24.3327441Z Turn off this advice by setting config variable advice.detachedHead to false
+2025-07-01T16:09:24.3328447Z 
+2025-07-01T16:09:24.3329637Z HEAD is now at 24d42c4 Merge 72fe798449dc295323c0bbd1689a53e43867529e into 7abb4c64d7a8a26513a93cd55d800f61e867ffe3
+2025-07-01T16:09:24.3333411Z ##[endgroup]
+2025-07-01T16:09:24.3365741Z [command]/usr/bin/git log -1 --format=%H
+2025-07-01T16:09:24.3389847Z 24d42c4a5aa0c26b2727d8d8210c4ae7db4855fd

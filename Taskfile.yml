@@ -145,11 +145,14 @@ tasks:
 
   test-e2e-precompile:
     desc: Run end-to-end precompile tests using Ginkgo with parallel execution
+    env:
+      AVALANCHEGO_BUILD_PATH: '{{.AVALANCHEGO_BUILD_PATH | default "/tmp/e2e-test/avalanchego"}}'
     cmd: bash ./scripts/run_ginkgo_precompile.sh # tests.yml
 
   test-e2e-precompile-ci: # consolidated test-e2e-precompile
     desc: Run E2E precompile tests with CI setup
     env:
+      BASEDIR: '{{.BASEDIR | default "/tmp/e2e-test"}}'
       AVALANCHEGO_BUILD_PATH: '{{.AVALANCHEGO_BUILD_PATH | default "/tmp/e2e-test/avalanchego"}}'
       DATA_DIR: '{{.DATA_DIR | default "/tmp/e2e-test/precompile-data"}}'
     cmds:

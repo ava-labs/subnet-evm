@@ -1,0 +1,11 @@
+﻿2025-07-01T16:17:26.4472834Z ##[group]Run actions/upload-artifact@v4
+2025-07-01T16:17:26.4473129Z with:
+2025-07-01T16:17:26.4473327Z   name: subnet-evm-e2e-logs-precompile
+2025-07-01T16:17:26.4473597Z   path: /tmp/e2e-test/precompile-data
+2025-07-01T16:17:26.4473831Z   retention-days: 5
+2025-07-01T16:17:26.4474026Z   if-no-files-found: warn
+2025-07-01T16:17:26.4474232Z   compression-level: 6
+2025-07-01T16:17:26.4474418Z   overwrite: false
+2025-07-01T16:17:26.4474609Z   include-hidden-files: false
+2025-07-01T16:17:26.4474822Z ##[endgroup]
+2025-07-01T16:17:26.6706298Z ##[warning]No files were found with the provided path: /tmp/e2e-test/precompile-data. No artifacts will be uploaded.

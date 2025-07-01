@@ -1,0 +1,234 @@
+﻿2025-07-01T16:11:09.7447120Z ##[group]Run ./scripts/run_task.sh build-test
+2025-07-01T16:11:09.7447440Z [36;1m./scripts/run_task.sh build-test[0m
+2025-07-01T16:11:09.7499310Z shell: /bin/bash --noprofile --norc -e -o pipefail {0}
+2025-07-01T16:11:09.7499760Z env:
+2025-07-01T16:11:09.7499950Z   TIMEOUT: 
+2025-07-01T16:11:09.7500180Z ##[endgroup]
+2025-07-01T16:11:11.0596750Z task: [build-test] ./scripts/build_test.sh
+2025-07-01T16:11:11.1230710Z Using branch: 24d42c4
+2025-07-01T16:11:23.4738650Z # github.com/ava-labs/subnet-evm/accounts/abi.test
+2025-07-01T16:11:23.4745280Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-3605657875/000014.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-01T16:11:24.5965910Z ok  	github.com/ava-labs/subnet-evm/accounts/abi	1.116s	coverage: 89.4% of statements
+2025-07-01T16:11:45.1157410Z # github.com/ava-labs/subnet-evm/accounts/abi/bind/precompilebind.test
+2025-07-01T16:11:45.1259650Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-737807624/000065.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-01T16:11:45.1359700Z # github.com/ava-labs/subnet-evm/cmd/abigen.test
+2025-07-01T16:11:45.1461480Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-3950446172/000065.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-01T16:11:50.7248970Z # github.com/ava-labs/subnet-evm/accounts/abi/bind.test
+2025-07-01T16:11:50.7250580Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-3938638664/000067.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-01T16:12:21.4062360Z ok  	github.com/ava-labs/subnet-evm/accounts/abi/bind	30.577s	coverage: 62.7% of statements
+2025-07-01T16:12:22.0252870Z 	github.com/ava-labs/subnet-evm/accounts/abi/bind/backends		coverage: 0.0% of statements
+2025-07-01T16:12:30.6145950Z ok  	github.com/ava-labs/subnet-evm/accounts/abi/bind/precompilebind	8.636s	coverage: 87.6% of statements
+2025-07-01T16:12:30.6165450Z ok  	github.com/ava-labs/subnet-evm/cmd/abigen	1.414s	coverage: 24.5% of statements
+2025-07-01T16:12:35.7085310Z # github.com/ava-labs/subnet-evm/cmd/evm.test
+2025-07-01T16:12:35.7086320Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-2967073948/000067.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-01T16:12:35.9863920Z 	github.com/ava-labs/subnet-evm/cmd/evm/internal/compiler		coverage: 0.0% of statements
+2025-07-01T16:12:35.9865620Z 	github.com/ava-labs/subnet-evm/cmd/evm/internal/t8ntool		coverage: 0.0% of statements
+2025-07-01T16:12:36.0726640Z 	github.com/ava-labs/subnet-evm/cmd/precompilegen		coverage: 0.0% of statements
+2025-07-01T16:12:37.4702630Z 	github.com/ava-labs/subnet-evm/cmd/simulator/config		coverage: 0.0% of statements
+2025-07-01T16:12:37.4706070Z 	github.com/ava-labs/subnet-evm/cmd/simulator/key		coverage: 0.0% of statements
+2025-07-01T16:12:37.9300440Z 	github.com/ava-labs/subnet-evm/cmd/simulator/load		coverage: 0.0% of statements
+2025-07-01T16:12:37.9799430Z 	github.com/ava-labs/subnet-evm/cmd/simulator/main		coverage: 0.0% of statements
+2025-07-01T16:12:37.9867850Z 	github.com/ava-labs/subnet-evm/cmd/simulator/metrics		coverage: 0.0% of statements
+2025-07-01T16:12:37.9932710Z 	github.com/ava-labs/subnet-evm/cmd/simulator/txs		coverage: 0.0% of statements
+2025-07-01T16:12:37.9933690Z 	github.com/ava-labs/subnet-evm/cmd/utils		coverage: 0.0% of statements
+2025-07-01T16:12:38.7988050Z # github.com/ava-labs/subnet-evm/commontype.test
+2025-07-01T16:12:38.7989100Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-4105424675/000061.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-01T16:12:38.8182030Z ?   	github.com/ava-labs/subnet-evm/consensus	[no test files]
+2025-07-01T16:12:40.0389110Z # github.com/ava-labs/subnet-evm/consensus/dummy.test
+2025-07-01T16:12:40.0393990Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-2189831365/000067.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-01T16:12:40.2281530Z # github.com/ava-labs/subnet-evm/consensus/misc/eip4844.test
+2025-07-01T16:12:40.2307200Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-1701323921/000014.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-01T16:12:41.1763830Z ?   	github.com/ava-labs/subnet-evm/constants	[no test files]
+2025-07-01T16:12:41.9265390Z # github.com/ava-labs/subnet-evm/core/bloombits.test
+2025-07-01T16:12:41.9279390Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-4167929705/000014.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-01T16:12:43.9715380Z # github.com/ava-labs/subnet-evm/core.test
+2025-07-01T16:12:43.9716300Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-2496213597/000067.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-01T16:12:53.4637770Z 	github.com/ava-labs/subnet-evm/core/extstate		coverage: 0.0% of statements
+2025-07-01T16:12:55.5850470Z # github.com/ava-labs/subnet-evm/core/state.test
+2025-07-01T16:12:55.5952660Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-4276363425/000067.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-01T16:12:56.7784790Z 	github.com/ava-labs/subnet-evm/core/state/pruner		coverage: 0.0% of statements
+2025-07-01T16:12:57.0214850Z ok  	github.com/ava-labs/subnet-evm/cmd/evm	21.028s	coverage: 3.9% of statements
+2025-07-01T16:12:57.0281910Z ok  	github.com/ava-labs/subnet-evm/commontype	1.037s	coverage: 64.3% of statements
+2025-07-01T16:12:57.0292590Z ok  	github.com/ava-labs/subnet-evm/consensus/dummy	1.130s	coverage: 10.8% of statements
+2025-07-01T16:12:57.0293500Z ok  	github.com/ava-labs/subnet-evm/consensus/misc/eip4844	1.147s	coverage: 42.9% of statements
+2025-07-01T16:12:58.9243870Z # github.com/ava-labs/subnet-evm/core/state/snapshot.test
+2025-07-01T16:12:58.9245220Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-2580783830/000067.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-01T16:12:59.0009990Z 	github.com/ava-labs/subnet-evm/core/txpool		coverage: 0.0% of statements
+2025-07-01T16:13:00.7892030Z # github.com/ava-labs/subnet-evm/core/txpool/blobpool.test
+2025-07-01T16:13:00.7993890Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-930887590/000067.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-01T16:13:05.9707740Z # github.com/ava-labs/subnet-evm/core/txpool/legacypool.test
+2025-07-01T16:13:05.9709170Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-771205524/000067.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-01T16:13:09.4246820Z # github.com/ava-labs/subnet-evm/core/vm/runtime.test
+2025-07-01T16:13:09.4248460Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-3343196249/000067.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-01T16:13:12.8104560Z # github.com/ava-labs/subnet-evm/eth.test
+2025-07-01T16:13:12.8106100Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-3191784328/000067.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-01T16:13:14.1322550Z 	github.com/ava-labs/subnet-evm/eth/ethconfig		coverage: 0.0% of statements
+2025-07-01T16:13:15.7902050Z # github.com/ava-labs/subnet-evm/eth/filters.test
+2025-07-01T16:13:15.7903200Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-1647715385/000067.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-01T16:13:20.2853850Z 	github.com/ava-labs/subnet-evm/eth/gasestimator		coverage: 0.0% of statements
+2025-07-01T16:13:22.5537680Z # github.com/ava-labs/subnet-evm/eth/gasprice.test
+2025-07-01T16:13:22.5639960Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-1009645534/000067.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-01T16:13:38.9462110Z # github.com/ava-labs/subnet-evm/eth/tracers.test
+2025-07-01T16:13:38.9464230Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-3327747447/000067.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-01T16:13:44.4887320Z # github.com/ava-labs/subnet-evm/ethclient.test
+2025-07-01T16:13:44.4889370Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-3451248019/000065.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-01T16:13:47.9793190Z # github.com/ava-labs/subnet-evm/ethclient/simulated.test
+2025-07-01T16:13:47.9796820Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-1822857745/000067.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-01T16:13:48.0224260Z 	github.com/ava-labs/subnet-evm/ethclient/subnetevmclient		coverage: 0.0% of statements
+2025-07-01T16:14:07.5724550Z ?   	github.com/ava-labs/subnet-evm/interfaces	[no test files]
+2025-07-01T16:14:07.5923040Z 	github.com/ava-labs/subnet-evm/examples/sign-uptime-message		coverage: 0.0% of statements
+2025-07-01T16:14:07.6125270Z 	github.com/ava-labs/subnet-evm/internal/blocktest		coverage: 0.0% of statements
+2025-07-01T16:14:07.6226960Z 	github.com/ava-labs/subnet-evm/internal/cmdtest		coverage: 0.0% of statements
+2025-07-01T16:14:07.6328240Z 	github.com/ava-labs/subnet-evm/internal/debug		coverage: 0.0% of statements
+2025-07-01T16:14:12.1787580Z # github.com/ava-labs/subnet-evm/internal/flags.test
+2025-07-01T16:14:12.1900030Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-346053792/000065.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-01T16:14:12.5011180Z # github.com/ava-labs/subnet-evm/internal/ethapi.test
+2025-07-01T16:14:12.5113260Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-1304903298/000067.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-01T16:14:13.7083550Z 	github.com/ava-labs/subnet-evm/internal/reexec		coverage: 0.0% of statements
+2025-07-01T16:14:13.7184950Z 	github.com/ava-labs/subnet-evm/internal/shutdowncheck		coverage: 0.0% of statements
+2025-07-01T16:14:13.8088810Z 	github.com/ava-labs/subnet-evm/internal/testutils		coverage: 0.0% of statements
+2025-07-01T16:14:13.8291280Z 	github.com/ava-labs/subnet-evm/internal/version		coverage: 0.0% of statements
+2025-07-01T16:14:13.8551470Z 	github.com/ava-labs/subnet-evm/log		coverage: 0.0% of statements
+2025-07-01T16:14:14.8403380Z # github.com/ava-labs/subnet-evm/metrics/prometheus.test
+2025-07-01T16:14:14.8505300Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-979773353/000016.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-01T16:14:17.2268110Z # github.com/ava-labs/subnet-evm/miner.test
+2025-07-01T16:14:17.2367100Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-3214227329/000067.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-01T16:14:17.2783070Z 	github.com/ava-labs/subnet-evm/node		coverage: 0.0% of statements
+2025-07-01T16:14:19.6635360Z # github.com/ava-labs/subnet-evm/params.test
+2025-07-01T16:14:19.6737560Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-2562757322/000065.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-01T16:14:21.3576620Z # github.com/ava-labs/subnet-evm/params/extras.test
+2025-07-01T16:14:21.3678710Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-125378518/000065.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-01T16:14:23.3420500Z # github.com/ava-labs/subnet-evm/peer.test
+2025-07-01T16:14:23.3421180Z ?   	github.com/ava-labs/subnet-evm/peer/peertest	[no test files]
+2025-07-01T16:14:23.3527890Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-3333500516/000065.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-01T16:14:23.3530620Z 	github.com/ava-labs/subnet-evm/peer/stats		coverage: 0.0% of statements
+2025-07-01T16:14:29.5710710Z 	github.com/ava-labs/subnet-evm/plugin		coverage: 0.0% of statements
+2025-07-01T16:14:31.7937990Z # github.com/ava-labs/subnet-evm/plugin/evm/blockgascost.test
+2025-07-01T16:14:31.8039820Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-676739012/000061.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-01T16:14:39.3688710Z # github.com/ava-labs/subnet-evm/plugin/evm.test
+2025-07-01T16:14:39.3787150Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-2797628910/000067.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-01T16:14:40.9125070Z 	github.com/ava-labs/subnet-evm/plugin/evm/client		coverage: 0.0% of statements
+2025-07-01T16:14:42.5151760Z # github.com/ava-labs/subnet-evm/plugin/evm/config.test
+2025-07-01T16:14:42.5255570Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-3508483926/000057.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-01T16:14:43.7013150Z 	github.com/ava-labs/subnet-evm/plugin/evm/customlogs		coverage: 0.0% of statements
+2025-07-01T16:14:46.2514480Z # github.com/ava-labs/subnet-evm/plugin/evm/customrawdb.test
+2025-07-01T16:14:46.2613650Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-956369983/000067.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-01T16:14:49.9220120Z # github.com/ava-labs/subnet-evm/plugin/evm/customtypes.test
+2025-07-01T16:14:49.9322290Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-3823508127/000067.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-01T16:14:54.5387060Z 	github.com/ava-labs/subnet-evm/plugin/evm/database		coverage: 0.0% of statements
+2025-07-01T16:14:56.0516060Z # github.com/ava-labs/subnet-evm/plugin/evm/header.test
+2025-07-01T16:14:56.0618350Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-2794482501/000065.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-01T16:14:58.8357550Z # github.com/ava-labs/subnet-evm/plugin/evm/message.test
+2025-07-01T16:14:58.8459620Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-504663394/000063.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-01T16:14:59.9997310Z ?   	github.com/ava-labs/subnet-evm/plugin/evm/upgrade/legacy	[no test files]
+2025-07-01T16:15:03.1514660Z # github.com/ava-labs/subnet-evm/plugin/evm/validators.test
+2025-07-01T16:15:03.1617260Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-2386244479/000059.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-01T16:15:04.2217320Z ?   	github.com/ava-labs/subnet-evm/plugin/evm/validators/interfaces	[no test files]
+2025-07-01T16:15:09.4588410Z ?   	github.com/ava-labs/subnet-evm/plugin/evm/validators/uptime/interfaces	[no test files]
+2025-07-01T16:15:09.4717870Z ?   	github.com/ava-labs/subnet-evm/plugin/evm/vmerrors	[no test files]
+2025-07-01T16:15:09.5148350Z 	github.com/ava-labs/subnet-evm/plugin/runner		coverage: 0.0% of statements
+2025-07-01T16:15:14.7482740Z # github.com/ava-labs/subnet-evm/precompile/allowlist.test
+2025-07-01T16:15:14.7586660Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-3823074455/000067.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-01T16:15:17.9580300Z # github.com/ava-labs/subnet-evm/precompile/contract.test
+2025-07-01T16:15:17.9681580Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-4223947520/000065.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-01T16:15:22.2569930Z # github.com/ava-labs/subnet-evm/precompile/contracts/deployerallowlist.test
+2025-07-01T16:15:22.2672730Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-2451837488/000067.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-01T16:15:26.5007790Z # github.com/ava-labs/subnet-evm/precompile/contracts/feemanager.test
+2025-07-01T16:15:26.5110770Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-3622667864/000067.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-01T16:15:29.8862980Z # github.com/ava-labs/subnet-evm/precompile/contracts/nativeminter.test
+2025-07-01T16:15:29.8963770Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-336190567/000067.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-01T16:15:33.2389340Z # github.com/ava-labs/subnet-evm/precompile/contracts/rewardmanager.test
+2025-07-01T16:15:33.2492780Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-3140376033/000067.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-01T16:15:36.8517750Z # github.com/ava-labs/subnet-evm/precompile/contracts/txallowlist.test
+2025-07-01T16:15:36.8620450Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-3150403323/000067.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-01T16:15:40.8589860Z # github.com/ava-labs/subnet-evm/precompile/contracts/warp.test
+2025-07-01T16:15:40.8692110Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-1018626426/000067.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-01T16:15:51.3389940Z # github.com/ava-labs/subnet-evm/precompile/modules.test
+2025-07-01T16:15:51.3474300Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-2149015251/000065.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-01T16:15:53.5930080Z # github.com/ava-labs/subnet-evm/precompile/precompileconfig.test
+2025-07-01T16:15:53.5937620Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-2396995202/000061.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-01T16:15:54.6646660Z ?   	github.com/ava-labs/subnet-evm/precompile/registry	[no test files]
+2025-07-01T16:15:54.6931680Z 	github.com/ava-labs/subnet-evm/precompile/testutils		coverage: 0.0% of statements
+2025-07-01T16:15:55.8661310Z # github.com/ava-labs/subnet-evm/predicate.test
+2025-07-01T16:15:55.8670850Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-1704748362/000065.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-01T16:15:58.6925120Z # github.com/ava-labs/subnet-evm/rpc.test
+2025-07-01T16:15:58.6936760Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-844594587/000016.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-01T16:16:36.6947050Z 	github.com/ava-labs/subnet-evm/signer/core/apitypes		coverage: 0.0% of statements
+2025-07-01T16:16:36.7069820Z 	github.com/ava-labs/subnet-evm/stateupgrade		coverage: 0.0% of statements
+2025-07-01T16:16:41.8629150Z # github.com/ava-labs/subnet-evm/sync/client.test
+2025-07-01T16:16:41.8631470Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-656132482/000067.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-01T16:16:42.6086250Z 	github.com/ava-labs/subnet-evm/sync/client/stats		coverage: 0.0% of statements
+2025-07-01T16:16:44.8687840Z # github.com/ava-labs/subnet-evm/sync/handlers.test
+2025-07-01T16:16:44.8789970Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-3624196035/000067.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-01T16:16:55.8769310Z 	github.com/ava-labs/subnet-evm/sync/handlers/stats		coverage: 0.0% of statements
+2025-07-01T16:16:56.4267950Z ok  	github.com/ava-labs/subnet-evm/core	252.193s	coverage: 72.0% of statements
+2025-07-01T16:16:56.4270430Z ok  	github.com/ava-labs/subnet-evm/core/bloombits	9.323s	coverage: 95.6% of statements
+2025-07-01T16:16:56.4273250Z ok  	github.com/ava-labs/subnet-evm/core/state	1.078s	coverage: 33.3% of statements
+2025-07-01T16:16:56.4274590Z ok  	github.com/ava-labs/subnet-evm/core/state/snapshot	8.699s	coverage: 69.7% of statements
+2025-07-01T16:16:56.4275930Z ok  	github.com/ava-labs/subnet-evm/core/txpool/blobpool	2.916s	coverage: 55.7% of statements
+2025-07-01T16:16:56.4278520Z ok  	github.com/ava-labs/subnet-evm/core/txpool/legacypool	26.557s	coverage: 81.0% of statements
+2025-07-01T16:16:56.4279410Z ok  	github.com/ava-labs/subnet-evm/core/vm/runtime	1.458s	coverage: 93.6% of statements
+2025-07-01T16:16:56.4280470Z ok  	github.com/ava-labs/subnet-evm/eth	1.234s	coverage: 4.0% of statements
+2025-07-01T16:16:56.4303570Z ok  	github.com/ava-labs/subnet-evm/eth/filters	4.424s	coverage: 62.1% of statements
+2025-07-01T16:16:56.4304110Z ok  	github.com/ava-labs/subnet-evm/eth/gasprice	19.616s	coverage: 81.9% of statements
+2025-07-01T16:16:56.4304800Z ok  	github.com/ava-labs/subnet-evm/eth/tracers	5.547s	coverage: 42.9% of statements
+2025-07-01T16:16:56.4305360Z ok  	github.com/ava-labs/subnet-evm/ethclient	1.202s	coverage: 0.0% of statements
+2025-07-01T16:16:56.4306020Z ok  	github.com/ava-labs/subnet-evm/ethclient/simulated	1.352s	coverage: 84.0% of statements
+2025-07-01T16:16:56.4306710Z ok  	github.com/ava-labs/subnet-evm/internal/ethapi	2.014s	coverage: 36.2% of statements
+2025-07-01T16:16:56.4307260Z ok  	github.com/ava-labs/subnet-evm/internal/flags	1.180s	coverage: 5.1% of statements
+2025-07-01T16:16:56.4307980Z ok  	github.com/ava-labs/subnet-evm/metrics/prometheus	1.085s	coverage: 100.0% of statements
+2025-07-01T16:16:56.4308550Z ok  	github.com/ava-labs/subnet-evm/miner	2.114s	coverage: 15.6% of statements
+2025-07-01T16:16:56.4309150Z ok  	github.com/ava-labs/subnet-evm/params	1.214s	coverage: 33.6% of statements
+2025-07-01T16:16:56.4310160Z ok  	github.com/ava-labs/subnet-evm/params/extras	1.151s	coverage: 67.0% of statements
+2025-07-01T16:16:56.4310720Z ok  	github.com/ava-labs/subnet-evm/peer	3.580s	coverage: 83.4% of statements
+2025-07-01T16:16:56.4311230Z ok  	github.com/ava-labs/subnet-evm/plugin/evm	122.799s	coverage: 66.2% of statements
+2025-07-01T16:16:56.4311870Z ok  	github.com/ava-labs/subnet-evm/plugin/evm/blockgascost	1.153s	coverage: 93.3% of statements
+2025-07-01T16:16:56.4312570Z ok  	github.com/ava-labs/subnet-evm/plugin/evm/config	1.114s	coverage: 11.5% of statements
+2025-07-01T16:16:56.4313260Z ok  	github.com/ava-labs/subnet-evm/plugin/evm/customrawdb	1.095s	coverage: 32.3% of statements
+2025-07-01T16:16:56.4314220Z ok  	github.com/ava-labs/subnet-evm/plugin/evm/customtypes	4.441s	coverage: 86.4% of statements
+2025-07-01T16:16:56.4314950Z ok  	github.com/ava-labs/subnet-evm/plugin/evm/header	1.135s	coverage: 90.8% of statements
+2025-07-01T16:16:56.4315700Z ok  	github.com/ava-labs/subnet-evm/plugin/evm/message	1.138s	coverage: 12.5% of statements
+2025-07-01T16:16:56.4316320Z ok  	github.com/ava-labs/subnet-evm/plugin/evm/upgrade/subnetevm	1.161s	coverage: 100.0% of statements
+2025-07-01T16:16:56.4316900Z ok  	github.com/ava-labs/subnet-evm/plugin/evm/validators	1.035s	coverage: 18.3% of statements
+2025-07-01T16:16:56.4317500Z ok  	github.com/ava-labs/subnet-evm/plugin/evm/validators/state	1.100s	coverage: 72.6% of statements
+2025-07-01T16:16:56.4325320Z ok  	github.com/ava-labs/subnet-evm/plugin/evm/validators/state/interfaces	1.034s	coverage: 0.0% of statements [no tests to run]
+2025-07-01T16:16:56.4326170Z ok  	github.com/ava-labs/subnet-evm/plugin/evm/validators/uptime	1.150s	coverage: 62.9% of statements
+2025-07-01T16:16:56.4326730Z ok  	github.com/ava-labs/subnet-evm/precompile/allowlist	1.254s	coverage: 88.2% of statements
+2025-07-01T16:16:56.4327290Z ok  	github.com/ava-labs/subnet-evm/precompile/contract	1.111s	coverage: 0.0% of statements
+2025-07-01T16:16:56.4327980Z ok  	github.com/ava-labs/subnet-evm/precompile/contracts/deployerallowlist	1.118s	coverage: 64.7% of statements
+2025-07-01T16:16:56.4328620Z ok  	github.com/ava-labs/subnet-evm/precompile/contracts/feemanager	1.185s	coverage: 87.3% of statements
+2025-07-01T16:16:56.4406260Z ok  	github.com/ava-labs/subnet-evm/precompile/contracts/nativeminter	1.218s	coverage: 87.4% of statements
+2025-07-01T16:16:56.4409700Z ok  	github.com/ava-labs/subnet-evm/precompile/contracts/rewardmanager	1.232s	coverage: 83.2% of statements
+2025-07-01T16:16:56.4410600Z ok  	github.com/ava-labs/subnet-evm/precompile/contracts/txallowlist	1.163s	coverage: 64.7% of statements
+2025-07-01T16:16:56.4411360Z ok  	github.com/ava-labs/subnet-evm/precompile/contracts/warp	8.271s	coverage: 76.3% of statements
+2025-07-01T16:16:56.4411990Z ok  	github.com/ava-labs/subnet-evm/precompile/modules	1.118s	coverage: 46.9% of statements
+2025-07-01T16:16:56.4413320Z ok  	github.com/ava-labs/subnet-evm/precompile/precompileconfig	1.046s	coverage: 0.0% of statements [no tests to run]
+2025-07-01T16:16:56.4415120Z ok  	github.com/ava-labs/subnet-evm/predicate	1.164s	coverage: 58.5% of statements
+2025-07-01T16:16:56.4415790Z ok  	github.com/ava-labs/subnet-evm/rpc	37.549s	coverage: 83.3% of statements
+2025-07-01T16:16:56.4416240Z ok  	github.com/ava-labs/subnet-evm/sync/client	13.909s	coverage: 53.8% of statements
+2025-07-01T16:16:58.1353970Z # github.com/ava-labs/subnet-evm/sync/statesync.test
+2025-07-01T16:16:58.1355090Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-1638993447/000067.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-01T16:16:58.1426730Z 	github.com/ava-labs/subnet-evm/sync/syncutils		coverage: 0.0% of statements
+2025-07-01T16:16:58.1533260Z 	github.com/ava-labs/subnet-evm/triedb/hashdb		coverage: 0.0% of statements
+2025-07-01T16:17:00.1463780Z # github.com/ava-labs/subnet-evm/triedb/pathdb.test
+2025-07-01T16:17:00.1552110Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-3150192887/000067.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-01T16:17:06.2615040Z ok  	github.com/ava-labs/subnet-evm/sync/handlers	21.335s	coverage: 83.6% of statements
+2025-07-01T16:17:07.8127810Z # github.com/ava-labs/subnet-evm/utils.test
+2025-07-01T16:17:07.8226930Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-674100644/000061.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-01T16:17:11.1871800Z # github.com/ava-labs/subnet-evm/warp.test
+2025-07-01T16:17:11.1893850Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-3539919140/000065.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-01T16:17:13.9535370Z # github.com/ava-labs/subnet-evm/warp/aggregator.test
+2025-07-01T16:17:13.9543310Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-589173339/000065.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-01T16:17:16.4509450Z # github.com/ava-labs/subnet-evm/warp/handlers.test
+2025-07-01T16:17:16.4611420Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-3270991302/000065.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-01T16:17:17.6857830Z 	github.com/ava-labs/subnet-evm/warp/messages		coverage: 0.0% of statements
+2025-07-01T16:17:19.0036210Z # github.com/ava-labs/subnet-evm/warp/validators.test
+2025-07-01T16:17:19.0141640Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-491239095/000061.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-01T16:17:20.2189320Z 	github.com/ava-labs/subnet-evm/warp/warptest		coverage: 0.0% of statements
+2025-07-01T16:18:09.0230960Z ok  	github.com/ava-labs/subnet-evm/sync/statesync	70.848s	coverage: 79.1% of statements
+2025-07-01T16:18:09.0235990Z ok  	github.com/ava-labs/subnet-evm/triedb/pathdb	45.073s	coverage: 72.8% of statements
+2025-07-01T16:18:09.0236940Z ok  	github.com/ava-labs/subnet-evm/utils	1.202s	coverage: 18.6% of statements
+2025-07-01T16:18:09.0241900Z ok  	github.com/ava-labs/subnet-evm/warp	1.125s	coverage: 44.1% of statements
+2025-07-01T16:18:09.0242760Z ok  	github.com/ava-labs/subnet-evm/warp/aggregator	1.124s	coverage: 57.0% of statements
+2025-07-01T16:18:09.0243590Z ok  	github.com/ava-labs/subnet-evm/warp/handlers	1.194s	coverage: 84.0% of statements
+2025-07-01T16:18:09.0266860Z ok  	github.com/ava-labs/subnet-evm/warp/validators	1.163s	coverage: 100.0% of statements

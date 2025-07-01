@@ -1,0 +1,273 @@
+﻿2025-07-01T16:10:25.1586020Z ##[group]Run ./scripts/run_task.sh test-e2e-precompile-ci
+2025-07-01T16:10:25.1586471Z [36;1m./scripts/run_task.sh test-e2e-precompile-ci[0m
+2025-07-01T16:10:25.1647629Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2025-07-01T16:10:25.1647954Z ##[endgroup]
+2025-07-01T16:10:25.7828173Z task: [install-avalanchego-release] ./scripts/install_avalanchego_release.sh
+2025-07-01T16:10:25.8143455Z Using branch: 24d42c4a5
+2025-07-01T16:10:25.9632810Z https://github.com/ava-labs/avalanchego/releases/download/v1.13.2/avalanchego-linux-amd64-v1.13.2.tar.gz found
+2025-07-01T16:10:25.9634111Z downloading to /tmp/e2e-test/avalanchego-linux-amd64-v1.13.2.tar.gz
+2025-07-01T16:10:25.9686038Z   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+2025-07-01T16:10:25.9688903Z                                  Dload  Upload   Total   Spent    Left  Speed
+2025-07-01T16:10:25.9689310Z 
+2025-07-01T16:10:26.0064696Z   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+2025-07-01T16:10:26.0065661Z   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+2025-07-01T16:10:26.2184646Z 
+2025-07-01T16:10:26.2185747Z 100 36.2M  100 36.2M    0     0   144M      0 --:--:-- --:--:-- --:--:--  144M
+2025-07-01T16:10:26.2261855Z avalanchego-v1.13.2/avalanchego
+2025-07-01T16:10:26.8151376Z Installed AvalancheGo release v1.13.2
+2025-07-01T16:10:26.8151978Z AvalancheGo Path: /tmp/e2e-test/avalanchego/avalanchego
+2025-07-01T16:10:26.8152399Z Plugin Dir: /home/runner/.avalanchego/plugins
+2025-07-01T16:10:26.8178820Z task: [build] ./scripts/build.sh
+2025-07-01T16:10:26.8436190Z Using branch: 24d42c4a5
+2025-07-01T16:10:26.8437839Z Building Subnet EVM @ GitCommit: 24d42c4a5aa0c26b2727d8d8210c4ae7db4855fd at /home/runner/.avalanchego/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
+2025-07-01T16:10:26.8492756Z go: downloading github.com/ava-labs/avalanchego v1.13.2
+2025-07-01T16:10:27.3769800Z go: downloading github.com/spf13/viper v1.12.0
+2025-07-01T16:10:27.3813170Z go: downloading github.com/ava-labs/libevm v1.13.14-0.3.0.rc.1
+2025-07-01T16:10:28.2591437Z go: downloading github.com/gorilla/rpc v1.2.0
+2025-07-01T16:10:28.2594259Z go: downloading github.com/holiman/uint256 v1.2.4
+2025-07-01T16:10:28.2596418Z go: downloading github.com/prometheus/client_golang v1.16.0
+2025-07-01T16:10:28.2605789Z go: downloading golang.org/x/exp v0.0.0-20241215155358-4a5509556b9e
+2025-07-01T16:10:28.2842563Z go: downloading go.uber.org/zap v1.26.0
+2025-07-01T16:10:28.3446225Z go: downloading golang.org/x/term v0.30.0
+2025-07-01T16:10:28.3455405Z go: downloading gopkg.in/natefinch/lumberjack.v2 v2.0.0
+2025-07-01T16:10:28.3662706Z go: downloading github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
+2025-07-01T16:10:28.3663590Z go: downloading github.com/prometheus/client_model v0.3.0
+2025-07-01T16:10:28.3702687Z go: downloading google.golang.org/grpc v1.66.0
+2025-07-01T16:10:28.3899612Z go: downloading google.golang.org/protobuf v1.35.2
+2025-07-01T16:10:28.6094470Z go: downloading go.opentelemetry.io/otel v1.22.0
+2025-07-01T16:10:28.6529469Z go: downloading go.opentelemetry.io/otel/trace v1.22.0
+2025-07-01T16:10:28.6534888Z go: downloading github.com/prometheus/common v0.42.0
+2025-07-01T16:10:28.6535717Z go: downloading github.com/cockroachdb/pebble v0.0.0-20230928194634-aa077af62593
+2025-07-01T16:10:28.7022663Z go: downloading github.com/StephenButtolph/canoto v0.15.0
+2025-07-01T16:10:28.7388962Z go: downloading github.com/google/renameio/v2 v2.0.0
+2025-07-01T16:10:28.7513657Z go: downloading golang.org/x/sync v0.12.0
+2025-07-01T16:10:28.7558073Z go: downloading github.com/fsnotify/fsnotify v1.6.0
+2025-07-01T16:10:28.7575887Z go: downloading github.com/mitchellh/mapstructure v1.5.0
+2025-07-01T16:10:28.7720891Z go: downloading github.com/spf13/afero v1.8.2
+2025-07-01T16:10:28.7777249Z go: downloading github.com/spf13/cast v1.5.0
+2025-07-01T16:10:28.7814371Z go: downloading github.com/spf13/jwalterweatherman v1.1.0
+2025-07-01T16:10:28.7966710Z go: downloading golang.org/x/crypto v0.36.0
+2025-07-01T16:10:28.7986552Z go: downloading github.com/shirou/gopsutil v3.21.11+incompatible
+2025-07-01T16:10:28.8074383Z go: downloading golang.org/x/sys v0.31.0
+2025-07-01T16:10:28.8834361Z go: downloading github.com/dop251/goja v0.0.0-20230806174421-c933cf95e127
+2025-07-01T16:10:28.9645198Z go: downloading github.com/gofrs/flock v0.8.1
+2025-07-01T16:10:28.9728588Z go: downloading github.com/golang/snappy v0.0.5-0.20220116011046-fa5810519dcb
+2025-07-01T16:10:28.9862199Z go: downloading github.com/olekukonko/tablewriter v0.0.5
+2025-07-01T16:10:28.9977438Z go: downloading github.com/gballet/go-verkle v0.1.1-0.20231031103413-a67434b50f46
+2025-07-01T16:10:29.0178146Z go: downloading github.com/holiman/bloomfilter/v2 v2.0.3
+2025-07-01T16:10:29.0511152Z go: downloading github.com/stretchr/testify v1.10.0
+2025-07-01T16:10:29.1040620Z go: downloading go.uber.org/mock v0.5.0
+2025-07-01T16:10:29.1075240Z go: downloading github.com/deckarep/golang-set/v2 v2.1.0
+2025-07-01T16:10:29.1079926Z go: downloading github.com/gorilla/websocket v1.5.0
+2025-07-01T16:10:29.1356754Z go: downloading golang.org/x/time v0.3.0
+2025-07-01T16:10:29.1429385Z go: downloading github.com/beorn7/perks v1.0.1
+2025-07-01T16:10:29.1466178Z go: downloading github.com/cespare/xxhash/v2 v2.3.0
+2025-07-01T16:10:29.1541063Z go: downloading github.com/prometheus/procfs v0.10.1
+2025-07-01T16:10:29.1677495Z go: downloading go.uber.org/multierr v1.11.0
+2025-07-01T16:10:29.1700666Z go: downloading github.com/supranational/blst v0.3.14
+2025-07-01T16:10:29.1704724Z go: downloading google.golang.org/genproto/googleapis/rpc v0.0.0-20240827150818-7e3bb234dfed
+2025-07-01T16:10:29.1909070Z go: downloading github.com/golang/protobuf v1.5.4
+2025-07-01T16:10:29.2279641Z go: downloading golang.org/x/net v0.38.0
+2025-07-01T16:10:29.2432523Z go: downloading go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.22.0
+2025-07-01T16:10:29.2436366Z go: downloading go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.22.0
+2025-07-01T16:10:29.2652485Z go: downloading go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.22.0
+2025-07-01T16:10:29.2739185Z go: downloading go.opentelemetry.io/otel/sdk v1.22.0
+2025-07-01T16:10:29.3222363Z go: downloading github.com/syndtr/goleveldb v1.0.1-0.20220614013038-64ee5596c38a
+2025-07-01T16:10:29.3718915Z go: downloading github.com/matttproud/golang_protobuf_extensions v1.0.4
+2025-07-01T16:10:29.3727246Z go: downloading github.com/mr-tron/base58 v1.2.0
+2025-07-01T16:10:29.3965891Z go: downloading gonum.org/v1/gonum v0.11.0
+2025-07-01T16:10:29.3974178Z go: downloading github.com/DataDog/zstd v1.5.2
+2025-07-01T16:10:29.4942039Z go: downloading github.com/subosito/gotenv v1.3.0
+2025-07-01T16:10:29.4942817Z go: downloading github.com/hashicorp/hcl v1.0.0
+2025-07-01T16:10:29.5162525Z go: downloading gopkg.in/ini.v1 v1.67.0
+2025-07-01T16:10:29.5423643Z go: downloading github.com/magiconair/properties v1.8.6
+2025-07-01T16:10:29.5429084Z go: downloading github.com/pelletier/go-toml/v2 v2.0.5
+2025-07-01T16:10:29.5449824Z go: downloading golang.org/x/text v0.23.0
+2025-07-01T16:10:29.5872774Z go: downloading github.com/pelletier/go-toml v1.9.5
+2025-07-01T16:10:29.6294347Z go: downloading github.com/tklauser/go-sysconf v0.3.12
+2025-07-01T16:10:29.6649629Z go: downloading github.com/crate-crypto/go-kzg-4844 v0.7.0
+2025-07-01T16:10:29.8722301Z go: downloading github.com/VictoriaMetrics/fastcache v1.12.1
+2025-07-01T16:10:29.8922794Z go: downloading github.com/dlclark/regexp2 v1.7.0
+2025-07-01T16:10:30.0888467Z go: downloading github.com/google/pprof v0.0.0-20230207041349-798e818bf904
+2025-07-01T16:10:30.2142105Z go: downloading github.com/crate-crypto/go-ipa v0.0.0-20231025140028-3c0104f4b233
+2025-07-01T16:10:30.2143321Z go: downloading github.com/mattn/go-runewidth v0.0.13
+2025-07-01T16:10:30.2393752Z go: downloading github.com/holiman/billy v0.0.0-20240216141850-2abb0c79d3c4
+2025-07-01T16:10:30.2493091Z go: downloading github.com/hashicorp/golang-lru v0.5.5-0.20210104140557-80c98217689d
+2025-07-01T16:10:30.2555259Z go: downloading github.com/tyler-smith/go-bip39 v1.1.0
+2025-07-01T16:10:30.2658487Z go: downloading github.com/google/uuid v1.6.0
+2025-07-01T16:10:30.2677827Z go: downloading github.com/hashicorp/go-bexpr v0.1.10
+2025-07-01T16:10:30.2773743Z go: downloading github.com/mattn/go-isatty v0.0.17
+2025-07-01T16:10:30.2936361Z go: downloading github.com/urfave/cli/v2 v2.25.7
+2025-07-01T16:10:30.2962995Z go: downloading github.com/pmezard/go-difflib v1.0.0
+2025-07-01T16:10:30.2974235Z go: downloading github.com/cockroachdb/errors v1.9.1
+2025-07-01T16:10:30.3702253Z go: downloading github.com/cockroachdb/redact v1.1.3
+2025-07-01T16:10:30.3703370Z go: downloading github.com/cockroachdb/tokenbucket v0.0.0-20230807174530-cc333fc44b06
+2025-07-01T16:10:30.3910947Z go: downloading go.opentelemetry.io/proto/otlp v1.0.0
+2025-07-01T16:10:30.4211539Z go: downloading github.com/tklauser/numcpus v0.6.1
+2025-07-01T16:10:30.4216382Z go: downloading github.com/go-sourcemap/sourcemap v2.1.3+incompatible
+2025-07-01T16:10:30.4418076Z go: downloading github.com/rivo/uniseg v0.2.0
+2025-07-01T16:10:30.4427249Z go: downloading github.com/gballet/go-libpcsclite v0.0.0-20191108122812-4678299bea08
+2025-07-01T16:10:30.4525528Z go: downloading github.com/status-im/keycard-go v0.2.0
+2025-07-01T16:10:30.4619101Z go: downloading github.com/mitchellh/pointerstructure v1.2.0
+2025-07-01T16:10:30.4636805Z go: downloading github.com/cockroachdb/logtags v0.0.0-20230118201751-21c54148d20b
+2025-07-01T16:10:30.4812551Z go: downloading github.com/getsentry/sentry-go v0.18.0
+2025-07-01T16:10:30.4819057Z go: downloading github.com/pkg/errors v0.9.1
+2025-07-01T16:10:30.5029020Z go: downloading github.com/go-logr/logr v1.4.1
+2025-07-01T16:10:30.5209897Z go: downloading go.opentelemetry.io/otel/metric v1.22.0
+2025-07-01T16:10:30.5321124Z go: downloading github.com/cenkalti/backoff/v4 v4.2.1
+2025-07-01T16:10:30.5419386Z go: downloading github.com/grpc-ecosystem/grpc-gateway/v2 v2.16.0
+2025-07-01T16:10:30.5512317Z go: downloading github.com/go-logr/stdr v1.2.2
+2025-07-01T16:10:30.5707446Z go: downloading github.com/cpuguy83/go-md2man/v2 v2.0.4
+2025-07-01T16:10:30.5907695Z go: downloading github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673
+2025-07-01T16:10:30.6951839Z go: downloading github.com/consensys/gnark-crypto v0.12.1
+2025-07-01T16:10:30.6985419Z go: downloading github.com/gogo/protobuf v1.3.2
+2025-07-01T16:10:30.9944381Z go: downloading github.com/kr/pretty v0.3.1
+2025-07-01T16:10:30.9980510Z go: downloading github.com/huin/goupnp v1.3.0
+2025-07-01T16:10:31.0282462Z go: downloading github.com/jackpal/go-nat-pmp v1.0.2
+2025-07-01T16:10:31.0283862Z go: downloading github.com/russross/blackfriday/v2 v2.1.0
+2025-07-01T16:10:31.0465030Z go: downloading google.golang.org/genproto/googleapis/api v0.0.0-20240604185151-ef581f913117
+2025-07-01T16:10:31.0860007Z go: downloading github.com/kr/text v0.2.0
+2025-07-01T16:10:31.1059065Z go: downloading github.com/rogpeppe/go-internal v1.12.0
+2025-07-01T16:10:31.3443074Z go: downloading github.com/bits-and-blooms/bitset v1.10.0
+2025-07-01T16:10:31.3444511Z go: downloading github.com/consensys/bavard v0.1.13
+2025-07-01T16:10:31.3447231Z go: downloading github.com/mmcloughlin/addchain v0.4.0
+2025-07-01T16:10:31.3937358Z go: downloading rsc.io/tmplfunc v0.0.3
+2025-07-01T16:11:33.1750588Z task: [test-e2e-precompile] bash ./scripts/run_ginkgo_precompile.sh
+2025-07-01T16:11:33.2012186Z Using branch: 24d42c4a5
+2025-07-01T16:11:33.2092960Z go: downloading github.com/onsi/ginkgo/v2 v2.13.1
+2025-07-01T16:11:33.5111564Z go: downloading github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572
+2025-07-01T16:11:33.5116296Z go: downloading golang.org/x/tools v0.29.0
+2025-07-01T16:12:26.1751620Z go: downloading github.com/go-cmd/cmd v1.4.1
+2025-07-01T16:12:26.1752877Z go: downloading k8s.io/api v0.29.0
+2025-07-01T16:12:26.1753528Z go: downloading k8s.io/apimachinery v0.29.0
+2025-07-01T16:12:26.1754361Z go: downloading github.com/ava-labs/coreth v0.15.2-rc.0.0.20250620163936-0058a7ec6d9d
+2025-07-01T16:12:26.1755134Z go: downloading k8s.io/client-go v0.29.0
+2025-07-01T16:12:26.1756199Z go: downloading k8s.io/utils v0.0.0-20230726121419-3b25d923346b
+2025-07-01T16:12:26.1756911Z go: downloading github.com/pires/go-proxyproto v0.6.2
+2025-07-01T16:12:26.1757580Z go: downloading github.com/gorilla/mux v1.8.0
+2025-07-01T16:12:26.1758146Z go: downloading github.com/rs/cors v1.7.0
+2025-07-01T16:12:26.1758860Z go: downloading github.com/decred/dcrd/dcrec/secp256k1/v4 v4.1.0
+2025-07-01T16:12:26.1759696Z go: downloading github.com/btcsuite/btcd/btcutil v1.1.3
+2025-07-01T16:12:26.1760460Z go: downloading github.com/json-iterator/go v1.1.12
+2025-07-01T16:12:26.1761106Z go: downloading gopkg.in/inf.v0 v0.9.1
+2025-07-01T16:12:26.1762483Z go: downloading k8s.io/klog/v2 v2.110.1
+2025-07-01T16:12:26.1762935Z go: downloading github.com/google/gofuzz v1.2.0
+2025-07-01T16:12:26.1763442Z go: downloading sigs.k8s.io/yaml v1.3.0
+2025-07-01T16:12:26.1763932Z go: downloading github.com/imdario/mergo v0.3.16
+2025-07-01T16:12:26.1764613Z go: downloading github.com/google/btree v1.1.2
+2025-07-01T16:12:26.1765393Z go: downloading sigs.k8s.io/structured-merge-diff/v4 v4.4.1
+2025-07-01T16:12:26.1766380Z go: downloading github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd
+2025-07-01T16:12:26.1767224Z go: downloading github.com/modern-go/reflect2 v1.0.2
+2025-07-01T16:12:26.1768041Z go: downloading sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd
+2025-07-01T16:12:26.1768849Z go: downloading gopkg.in/yaml.v2 v2.4.0
+2025-07-01T16:12:26.1769542Z go: downloading github.com/google/gnostic-models v0.6.8
+2025-07-01T16:12:26.1770273Z go: downloading golang.org/x/oauth2 v0.21.0
+2025-07-01T16:12:26.1770953Z go: downloading github.com/moby/spdystream v0.2.0
+2025-07-01T16:12:26.1772574Z go: downloading k8s.io/kube-openapi v0.0.0-20231010175941-2dd684a91f00
+2025-07-01T16:12:26.1773860Z go: downloading github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f
+2025-07-01T16:12:26.1774876Z go: downloading github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822
+2025-07-01T16:12:26.1775787Z go: downloading github.com/go-openapi/jsonreference v0.20.2
+2025-07-01T16:12:26.1776564Z go: downloading github.com/go-openapi/swag v0.22.3
+2025-07-01T16:12:26.1777303Z go: downloading github.com/emicklei/go-restful/v3 v3.11.0
+2025-07-01T16:12:26.1778230Z go: downloading github.com/go-openapi/jsonpointer v0.19.6
+2025-07-01T16:12:26.1779049Z go: downloading github.com/mailru/easyjson v0.7.7
+2025-07-01T16:12:26.1779879Z go: downloading github.com/josharian/intern v1.0.0
+2025-07-01T16:12:26.1780272Z 
+2025-07-01T16:12:26.4056573Z Running Suite: subnet-evm precompile ginkgo test suite - /home/runner/work/subnet-evm/subnet-evm
+2025-07-01T16:12:26.4057756Z ================================================================================================
+2025-07-01T16:12:26.4058488Z Random Seed: [1m1751386294[0m
+2025-07-01T16:12:26.4058659Z 
+2025-07-01T16:12:26.4058844Z Will run [1m6[0m of [1m6[0m specs
+2025-07-01T16:12:26.4059251Z Running in parallel across [1m5[0m processes
+2025-07-01T16:12:26.4066599Z [streaming output] Creating data directory: /tmp/subnet-evm-start-node/2025-07-01%:16:12:26/node1
+2025-07-01T16:17:26.3579815Z [38;5;243m------------------------------[0m
+2025-07-01T16:17:26.3581100Z [38;5;9m[SynchronizedBeforeSuite] [FAILED] [300.002 seconds][0m
+2025-07-01T16:17:26.3582334Z [38;5;9m[1m[SynchronizedBeforeSuite] [0m
+2025-07-01T16:17:26.3583567Z [38;5;243m/home/runner/work/subnet-evm/subnet-evm/tests/utils/subnet.go:67[0m
+2025-07-01T16:17:26.3584176Z 
+2025-07-01T16:17:26.3584543Z   [38;5;243mCaptured StdOut/StdErr Output >>[0m
+2025-07-01T16:17:26.3585317Z   [streaming output] Creating data directory: /tmp/subnet-evm-start-node/2025-07-01%:16:12:26/node1
+2025-07-01T16:17:26.3586067Z   [38;5;243m<< Captured StdOut/StdErr Output[0m
+2025-07-01T16:17:26.3586353Z 
+2025-07-01T16:17:26.3586505Z   [38;5;9m[FAILED] 
+2025-07-01T16:17:26.3587149Z   	Error Trace:	/home/runner/work/subnet-evm/subnet-evm/tests/utils/subnet.go:81
+2025-07-01T16:17:26.3588456Z   	            				/opt/hostedtoolcache/go/1.23.9/x64/src/reflect/value.go:584
+2025-07-01T16:17:26.3590306Z   	            				/opt/hostedtoolcache/go/1.23.9/x64/src/reflect/value.go:368
+2025-07-01T16:17:26.3592148Z   	            				/home/runner/go/pkg/mod/github.com/onsi/ginkgo/v2@v2.13.1/internal/node.go:486
+2025-07-01T16:17:26.3593995Z   	            				/home/runner/go/pkg/mod/github.com/onsi/ginkgo/v2@v2.13.1/internal/suite.go:642
+2025-07-01T16:17:26.3595917Z   	            				/home/runner/go/pkg/mod/github.com/onsi/ginkgo/v2@v2.13.1/internal/suite.go:889
+2025-07-01T16:17:26.3597494Z   	            				/opt/hostedtoolcache/go/1.23.9/x64/src/runtime/asm_amd64.s:1700
+2025-07-01T16:17:26.3598116Z   	Error:      	Received unexpected error:
+2025-07-01T16:17:26.3598548Z   	            	context deadline exceeded
+2025-07-01T16:17:26.3598807Z   	Test:       	
+2025-07-01T16:17:26.3599061Z   [0m
+2025-07-01T16:17:26.3599944Z   [38;5;9mIn [1m[SynchronizedBeforeSuite][0m[38;5;9m at: [1m/home/runner/work/subnet-evm/subnet-evm/tests/utils/subnet.go:81[0m [38;5;243m@ 07/01/25 16:17:26.357[0m
+2025-07-01T16:17:26.3600670Z [38;5;243m------------------------------[0m
+2025-07-01T16:17:26.3960447Z [38;5;9m[SynchronizedBeforeSuite] [FAILED] [299.990 seconds][0m
+2025-07-01T16:17:26.3962261Z [38;5;9m[1m[SynchronizedBeforeSuite] [0m
+2025-07-01T16:17:26.3963432Z [38;5;243m/home/runner/work/subnet-evm/subnet-evm/tests/utils/subnet.go:67[0m
+2025-07-01T16:17:26.3963971Z 
+2025-07-01T16:17:26.3964787Z   [38;5;9m[FAILED] [1m[38;5;9mSynchronizedBeforeSuite failed on Ginkgo parallel process #1[0m
+2025-07-01T16:17:26.3965983Z     The first SynchronizedBeforeSuite function running on Ginkgo parallel process
+2025-07-01T16:17:26.3966861Z     #1 failed.  This suite will now abort.
+2025-07-01T16:17:26.3967669Z 
+2025-07-01T16:17:26.3967907Z   [0m
+2025-07-01T16:17:26.3969608Z   [38;5;9mIn [1m[SynchronizedBeforeSuite][0m[38;5;9m at: [1m/home/runner/work/subnet-evm/subnet-evm/tests/utils/subnet.go:67[0m [38;5;243m@ 07/01/25 16:17:26.395[0m
+2025-07-01T16:17:26.3971023Z [38;5;243m------------------------------[0m
+2025-07-01T16:17:26.3972073Z [38;5;9m[SynchronizedBeforeSuite] [FAILED] [300.013 seconds][0m
+2025-07-01T16:17:26.3972964Z [38;5;9m[1m[SynchronizedBeforeSuite] [0m
+2025-07-01T16:17:26.3974016Z [38;5;243m/home/runner/work/subnet-evm/subnet-evm/tests/utils/subnet.go:67[0m
+2025-07-01T16:17:26.3977126Z 
+2025-07-01T16:17:26.3978371Z   [38;5;9m[FAILED] [1m[38;5;9mSynchronizedBeforeSuite failed on Ginkgo parallel process #1[0m
+2025-07-01T16:17:26.3979523Z     The first SynchronizedBeforeSuite function running on Ginkgo parallel process
+2025-07-01T16:17:26.3980317Z     #1 failed.  This suite will now abort.
+2025-07-01T16:17:26.3980609Z 
+2025-07-01T16:17:26.3980775Z   [0m
+2025-07-01T16:17:26.3982751Z   [38;5;9mIn [1m[SynchronizedBeforeSuite][0m[38;5;9m at: [1m/home/runner/work/subnet-evm/subnet-evm/tests/utils/subnet.go:67[0m [38;5;243m@ 07/01/25 16:17:26.395[0m
+2025-07-01T16:17:26.3984008Z [38;5;243m------------------------------[0m
+2025-07-01T16:17:26.3984792Z [38;5;9m[SynchronizedBeforeSuite] [FAILED] [300.018 seconds][0m
+2025-07-01T16:17:26.3985513Z [38;5;9m[1m[SynchronizedBeforeSuite] [0m
+2025-07-01T16:17:26.3986413Z [38;5;243m/home/runner/work/subnet-evm/subnet-evm/tests/utils/subnet.go:67[0m
+2025-07-01T16:17:26.3986905Z 
+2025-07-01T16:17:26.3987632Z   [38;5;9m[FAILED] [1m[38;5;9mSynchronizedBeforeSuite failed on Ginkgo parallel process #1[0m
+2025-07-01T16:17:26.3988744Z     The first SynchronizedBeforeSuite function running on Ginkgo parallel process
+2025-07-01T16:17:26.3989478Z     #1 failed.  This suite will now abort.
+2025-07-01T16:17:26.3989745Z 
+2025-07-01T16:17:26.3989902Z   [0m
+2025-07-01T16:17:26.3991445Z   [38;5;9mIn [1m[SynchronizedBeforeSuite][0m[38;5;9m at: [1m/home/runner/work/subnet-evm/subnet-evm/tests/utils/subnet.go:67[0m [38;5;243m@ 07/01/25 16:17:26.395[0m
+2025-07-01T16:17:26.3992610Z [38;5;243m------------------------------[0m
+2025-07-01T16:17:26.3993371Z [38;5;9m[SynchronizedBeforeSuite] [FAILED] [300.021 seconds][0m
+2025-07-01T16:17:26.3994315Z [38;5;9m[1m[SynchronizedBeforeSuite] [0m
+2025-07-01T16:17:26.3995176Z [38;5;243m/home/runner/work/subnet-evm/subnet-evm/tests/utils/subnet.go:67[0m
+2025-07-01T16:17:26.3995641Z 
+2025-07-01T16:17:26.3996343Z   [38;5;9m[FAILED] [1m[38;5;9mSynchronizedBeforeSuite failed on Ginkgo parallel process #1[0m
+2025-07-01T16:17:26.3997412Z     The first SynchronizedBeforeSuite function running on Ginkgo parallel process
+2025-07-01T16:17:26.3998139Z     #1 failed.  This suite will now abort.
+2025-07-01T16:17:26.3998420Z 
+2025-07-01T16:17:26.3998561Z   [0m
+2025-07-01T16:17:26.3999869Z   [38;5;9mIn [1m[SynchronizedBeforeSuite][0m[38;5;9m at: [1m/home/runner/work/subnet-evm/subnet-evm/tests/utils/subnet.go:67[0m [38;5;243m@ 07/01/25 16:17:26.395[0m
+2025-07-01T16:17:26.4001025Z [38;5;243m------------------------------[0m
+2025-07-01T16:17:26.4093923Z 
+2025-07-01T16:17:26.4094424Z [38;5;9m[1mSummarizing 5 Failures:[0m
+2025-07-01T16:17:26.4095266Z   [38;5;9m[FAIL][0m [38;5;9m[1m[SynchronizedBeforeSuite] [0m
+2025-07-01T16:17:26.4096709Z   [38;5;243m/home/runner/work/subnet-evm/subnet-evm/tests/utils/subnet.go:67[0m
+2025-07-01T16:17:26.4097556Z   [38;5;9m[FAIL][0m [38;5;9m[1m[SynchronizedBeforeSuite] [0m
+2025-07-01T16:17:26.4098159Z   [38;5;243m/home/runner/work/subnet-evm/subnet-evm/tests/utils/subnet.go:67[0m
+2025-07-01T16:17:26.4098700Z   [38;5;9m[FAIL][0m [38;5;9m[1m[SynchronizedBeforeSuite] [0m
+2025-07-01T16:17:26.4099257Z   [38;5;243m/home/runner/work/subnet-evm/subnet-evm/tests/utils/subnet.go:67[0m
+2025-07-01T16:17:26.4099778Z   [38;5;9m[FAIL][0m [38;5;9m[1m[SynchronizedBeforeSuite] [0m
+2025-07-01T16:17:26.4100459Z   [38;5;243m/home/runner/work/subnet-evm/subnet-evm/tests/utils/subnet.go:67[0m
+2025-07-01T16:17:26.4101467Z   [38;5;9m[FAIL][0m [38;5;9m[1m[SynchronizedBeforeSuite] [0m
+2025-07-01T16:17:26.4102084Z   [38;5;243m/home/runner/work/subnet-evm/subnet-evm/tests/utils/subnet.go:81[0m
+2025-07-01T16:17:26.4102366Z 
+2025-07-01T16:17:26.4102617Z [38;5;9m[1mRan 0 of 6 Specs in 300.055 seconds[0m
+2025-07-01T16:17:26.4103200Z [38;5;9m[1mFAIL![0m -- [38;5;14m[1mA BeforeSuite node failed so all tests were skipped.[0m
+2025-07-01T16:17:26.4118058Z 
+2025-07-01T16:17:26.4259729Z 
+2025-07-01T16:17:26.4260472Z Ginkgo ran 1 suite in 5m51.455186774s
+2025-07-01T16:17:26.4260798Z 
+2025-07-01T16:17:26.4260945Z Test Suite Failed
+2025-07-01T16:17:26.4270992Z exit status 1
+2025-07-01T16:17:26.4344971Z task: Failed to run task "test-e2e-precompile-ci": exit status 1
+2025-07-01T16:17:26.4354890Z exit status 201
+2025-07-01T16:17:26.4410324Z ##[error]Process completed with exit code 1.

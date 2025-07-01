@@ -1,0 +1,69 @@
+﻿2025-07-01T16:09:23.1050960Z ##[group]Run actions/checkout@v4
+2025-07-01T16:09:23.1051510Z with:
+2025-07-01T16:09:23.1051800Z   repository: ava-labs/subnet-evm
+2025-07-01T16:09:23.1052290Z   token: ***
+2025-07-01T16:09:23.1052560Z   ssh-strict: true
+2025-07-01T16:09:23.1052840Z   ssh-user: git
+2025-07-01T16:09:23.1053140Z   persist-credentials: true
+2025-07-01T16:09:23.1053450Z   clean: true
+2025-07-01T16:09:23.1053730Z   sparse-checkout-cone-mode: true
+2025-07-01T16:09:23.1054070Z   fetch-depth: 1
+2025-07-01T16:09:23.1054340Z   fetch-tags: false
+2025-07-01T16:09:23.1054630Z   show-progress: true
+2025-07-01T16:09:23.1054910Z   lfs: false
+2025-07-01T16:09:23.1055170Z   submodules: false
+2025-07-01T16:09:23.1055460Z   set-safe-directory: true
+2025-07-01T16:09:23.1055870Z ##[endgroup]
+2025-07-01T16:09:23.4452180Z Syncing repository: ava-labs/subnet-evm
+2025-07-01T16:09:23.4454100Z ##[group]Getting Git version info
+2025-07-01T16:09:23.4454770Z Working directory is '/Users/runner/work/subnet-evm/subnet-evm'
+2025-07-01T16:09:23.4455780Z [command]/opt/homebrew/bin/git version
+2025-07-01T16:09:23.5510560Z git version 2.50.0
+2025-07-01T16:09:23.5547900Z ##[endgroup]
+2025-07-01T16:09:23.5560660Z Copying '/Users/runner/.gitconfig' to '/Users/runner/work/_temp/725b0c95-c1b8-4197-b23e-9a6acd5e0e5d/.gitconfig'
+2025-07-01T16:09:23.5564030Z Temporarily overriding HOME='/Users/runner/work/_temp/725b0c95-c1b8-4197-b23e-9a6acd5e0e5d' before making global git config changes
+2025-07-01T16:09:23.5565910Z Adding repository directory to the temporary git global config as a safe directory
+2025-07-01T16:09:23.5568210Z [command]/opt/homebrew/bin/git config --global --add safe.directory /Users/runner/work/subnet-evm/subnet-evm
+2025-07-01T16:09:23.5684330Z Deleting the contents of '/Users/runner/work/subnet-evm/subnet-evm'
+2025-07-01T16:09:23.5687770Z ##[group]Initializing the repository
+2025-07-01T16:09:23.5695320Z [command]/opt/homebrew/bin/git init /Users/runner/work/subnet-evm/subnet-evm
+2025-07-01T16:09:23.5872360Z hint: Using 'master' as the name for the initial branch. This default branch name
+2025-07-01T16:09:23.5874710Z hint: is subject to change. To configure the initial branch name to use in all
+2025-07-01T16:09:23.5876430Z hint: of your new repositories, which will suppress this warning, call:
+2025-07-01T16:09:23.5877690Z hint:
+2025-07-01T16:09:23.5878650Z hint: 	git config --global init.defaultBranch <name>
+2025-07-01T16:09:23.5879710Z hint:
+2025-07-01T16:09:23.5880720Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2025-07-01T16:09:23.5882370Z hint: 'development'. The just-created branch can be renamed via this command:
+2025-07-01T16:09:23.5883640Z hint:
+2025-07-01T16:09:23.5884360Z hint: 	git branch -m <name>
+2025-07-01T16:09:23.5885360Z hint:
+2025-07-01T16:09:23.5888750Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2025-07-01T16:09:23.5891020Z Initialized empty Git repository in /Users/runner/work/subnet-evm/subnet-evm/.git/
+2025-07-01T16:09:23.5894620Z [command]/opt/homebrew/bin/git remote add origin https://github.com/ava-labs/subnet-evm
+2025-07-01T16:09:23.5947620Z ##[endgroup]
+2025-07-01T16:09:23.5948870Z ##[group]Disabling automatic garbage collection
+2025-07-01T16:09:23.5950040Z [command]/opt/homebrew/bin/git config --local gc.auto 0
+2025-07-01T16:09:23.5993420Z ##[endgroup]
+2025-07-01T16:09:23.5994580Z ##[group]Setting up auth
+2025-07-01T16:09:23.5997400Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-07-01T16:09:23.6039120Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-07-01T16:09:23.7146320Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-07-01T16:09:23.7172570Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-07-01T16:09:23.7775440Z [command]/opt/homebrew/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2025-07-01T16:09:23.7869300Z ##[endgroup]
+2025-07-01T16:09:23.7870840Z ##[group]Fetching the repository
+2025-07-01T16:09:23.7880770Z [command]/opt/homebrew/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +24d42c4a5aa0c26b2727d8d8210c4ae7db4855fd:refs/remotes/pull/1610/merge
+2025-07-01T16:09:25.2676660Z From https://github.com/ava-labs/subnet-evm
+2025-07-01T16:09:25.2677560Z  * [new ref]         24d42c4a5aa0c26b2727d8d8210c4ae7db4855fd -> pull/1610/merge
+2025-07-01T16:09:25.2730740Z ##[endgroup]
+2025-07-01T16:09:25.2731200Z ##[group]Determining the checkout info
+2025-07-01T16:09:25.2731610Z ##[endgroup]
+2025-07-01T16:09:25.2735200Z [command]/opt/homebrew/bin/git sparse-checkout disable
+2025-07-01T16:09:25.2788970Z [command]/opt/homebrew/bin/git config --local --unset-all extensions.worktreeConfig
+2025-07-01T16:09:25.2829270Z ##[group]Checking out the ref
+2025-07-01T16:09:25.2831920Z [command]/opt/homebrew/bin/git checkout --progress --force refs/remotes/pull/1610/merge
+2025-07-01T16:09:25.3824820Z HEAD is now at 24d42c4 Merge 72fe798449dc295323c0bbd1689a53e43867529e into 7abb4c64d7a8a26513a93cd55d800f61e867ffe3
+2025-07-01T16:09:25.4229650Z ##[endgroup]
+2025-07-01T16:09:25.4531520Z [command]/opt/homebrew/bin/git log -1 --format=%H
+2025-07-01T16:09:25.4620550Z 24d42c4a5aa0c26b2727d8d8210c4ae7db4855fd

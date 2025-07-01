@@ -1,0 +1,6 @@
+﻿2025-07-01T16:18:18.9812820Z Post job cleanup.
+2025-07-01T16:18:19.3599280Z [command]/Users/runner/hostedtoolcache/go/1.23.9/arm64/bin/go env GOCACHE
+2025-07-01T16:18:19.3623080Z [command]/Users/runner/hostedtoolcache/go/1.23.9/arm64/bin/go env GOMODCACHE
+2025-07-01T16:18:19.3683460Z /Users/runner/Library/Caches/go-build
+2025-07-01T16:18:19.3688220Z /Users/runner/go/pkg/mod
+2025-07-01T16:18:19.3714750Z Cache hit occurred on the primary key setup-go-macOS-arm64-go-1.23.9-8a5f6b0ec156c644c456755461212fdb4b5f31e3982b840cb9a5e30f16f98494, not saving cache.
