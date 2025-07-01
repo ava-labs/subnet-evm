@@ -1,7 +1,0 @@
-﻿2025-07-01T14:44:52.4852240Z ##[group]Run ./scripts/run_task.sh build
-2025-07-01T14:44:52.4852490Z [36;1m./scripts/run_task.sh build[0m
-2025-07-01T14:44:52.4902030Z shell: /bin/bash --noprofile --norc -e -o pipefail {0}
-2025-07-01T14:44:52.4902260Z ##[endgroup]
-2025-07-01T14:44:58.9423670Z task: [build] ./scripts/build.sh
-2025-07-01T14:44:58.9748070Z Using branch: c46a4f1
-2025-07-01T14:44:58.9748780Z Building Subnet EVM @ GitCommit: c46a4f11ecd55a5ab361920393adf5859e0dc097 at /Users/runner/.avalanchego/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy

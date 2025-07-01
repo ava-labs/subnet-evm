@@ -1,7 +1,0 @@
-﻿2025-07-01T14:44:42.5890516Z ##[group]Run npx hardhat compile
-2025-07-01T14:44:42.5890839Z [36;1mnpx hardhat compile[0m
-2025-07-01T14:44:42.5949064Z shell: /usr/bin/bash -e {0}
-2025-07-01T14:44:42.5949315Z ##[endgroup]
-2025-07-01T14:44:44.2730403Z Generating typings for: 27 artifacts in dir: typechain-types for target: ethers-v6
-2025-07-01T14:44:45.5373873Z Successfully generated 78 typings!
-2025-07-01T14:44:45.5387417Z Compiled 24 Solidity files successfully (evm target: shanghai).

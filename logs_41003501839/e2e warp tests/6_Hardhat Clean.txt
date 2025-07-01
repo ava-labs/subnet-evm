@@ -1,4 +1,0 @@
-﻿2025-07-01T14:44:41.6252049Z ##[group]Run npx hardhat clean
-2025-07-01T14:44:41.6252358Z [36;1mnpx hardhat clean[0m
-2025-07-01T14:44:41.6311565Z shell: /usr/bin/bash -e {0}
-2025-07-01T14:44:41.6311837Z ##[endgroup]

@@ -71,6 +71,9 @@ tasks:
 
   install-avalanchego-release:
     desc: Install AvalancheGo release for testing
+    env:
+      BASEDIR: '{{.BASEDIR | default "/tmp/e2e-test"}}'
+      AVALANCHEGO_BUILD_PATH: '{{.AVALANCHEGO_BUILD_PATH | default "/tmp/e2e-test/avalanchego"}}'
     cmd: ./scripts/install_avalanchego_release.sh # tests.yml
 
   lint:

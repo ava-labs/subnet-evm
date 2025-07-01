@@ -1,4 +1,0 @@
-﻿2025-07-01T14:44:13.5319034Z ##[group]Run go mod download
-2025-07-01T14:44:13.5319356Z [36;1mgo mod download[0m
-2025-07-01T14:44:13.5412623Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
-2025-07-01T14:44:13.5412995Z ##[endgroup]
