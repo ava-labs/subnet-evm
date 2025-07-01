@@ -4,6 +4,11 @@
 
 version: '3'
 
+env:
+  BASEDIR: '{{.BASEDIR | default "/tmp/e2e-test"}}'
+  AVALANCHEGO_BUILD_PATH: '{{.AVALANCHEGO_BUILD_PATH | default "/tmp/e2e-test/avalanchego"}}'
+  DATA_DIR: '{{.DATA_DIR | default "/tmp/e2e-test/precompile-data"}}'
+
 tasks:
   default: ./scripts/run_task.sh --list
 
@@ -71,9 +76,6 @@ tasks:
 
   install-avalanchego-release:
     desc: Download and install AvalancheGo release binary for testing, with fallback to building from source
-    env:
-      BASEDIR: '{{.BASEDIR | default "/tmp/e2e-test"}}'
-      AVALANCHEGO_BUILD_PATH: '{{.AVALANCHEGO_BUILD_PATH | default "/tmp/e2e-test/avalanchego"}}'
     cmd: ./scripts/install_avalanchego_release.sh # tests.yml
 
   lint:
@@ -116,9 +118,6 @@ tasks:
 
   test-build-antithesis-images-ci: # consolidated test-build-antithesis-images
     desc: Test antithesis images build with CI setup
-    env:
-      BASEDIR: '{{.BASEDIR | default "/tmp/e2e-test"}}'
-      AVALANCHEGO_BUILD_PATH: '{{.AVALANCHEGO_BUILD_PATH | default "/tmp/e2e-test/avalanchego"}}'
     cmds:
       - task: install-avalanchego-release
       - task: build
@@ -135,9 +134,6 @@ tasks:
 
   test-e2e-load-ci: # consolidated test-e2e-load
     desc: Run E2E load tests with CI setup
-    env:
-      BASEDIR: '{{.BASEDIR | default "/tmp/e2e-test"}}'
-      AVALANCHEGO_BUILD_PATH: '{{.AVALANCHEGO_BUILD_PATH | default "/tmp/e2e-test/avalanchego"}}'
     cmds:
       - task: install-avalanchego-release
       - task: build
@@ -145,16 +141,10 @@ tasks:
 
   test-e2e-precompile:
     desc: Run end-to-end precompile tests using Ginkgo with parallel execution
-    env:
-      AVALANCHEGO_BUILD_PATH: '{{.AVALANCHEGO_BUILD_PATH | default "/tmp/e2e-test/avalanchego"}}'
     cmd: bash ./scripts/run_ginkgo_precompile.sh # tests.yml
 
   test-e2e-precompile-ci: # consolidated test-e2e-precompile
     desc: Run E2E precompile tests with CI setup
-    env:
-      BASEDIR: '{{.BASEDIR | default "/tmp/e2e-test"}}'
-      AVALANCHEGO_BUILD_PATH: '{{.AVALANCHEGO_BUILD_PATH | default "/tmp/e2e-test/avalanchego"}}'
-      DATA_DIR: '{{.DATA_DIR | default "/tmp/e2e-test/precompile-data"}}'
     cmds:
       - task: install-avalanchego-release
       - task: build
@@ -166,9 +156,6 @@ tasks:
 
   test-e2e-warp-ci: # consolidated test-e2e-warp
     desc: Run E2E warp tests with CI setup
-    env:
-      BASEDIR: '{{.BASEDIR | default "/tmp/e2e-test"}}'
-      AVALANCHEGO_BUILD_PATH: '{{.AVALANCHEGO_BUILD_PATH | default "/tmp/e2e-test/avalanchego"}}'
     cmds:
       - task: install-avalanchego-release
       - task: build
