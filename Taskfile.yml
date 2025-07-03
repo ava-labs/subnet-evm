@@ -36,9 +36,19 @@ tasks:
     desc: Run all Go tests with retry logic for flaky tests, race detection, and coverage reporting
     cmd: ./scripts/build_test.sh # tests.yml
 
+  check-avalanchego-version:
+    desc: Ensure consistent avalanchego version by updating and checking for changes
+    cmds:
+      - task: update-avalanchego-version
+      - cmd: git diff --exit-code
+
   check-clean-branch:
     desc: Checks that the git working tree is clean
-    cmd: .github/workflows/check-clean-branch.sh
+    cmds:
+      - cmd: git add --all
+      - cmd: git update-index --really-refresh >> /dev/null
+      - cmd: git status --short # Show the status of the working tree.
+      - cmd: git diff-index --quiet HEAD # Exits if any uncommitted changes are found.
 
   check-generate-codec:
     desc: Checks that generated codec files are up-to-date (requires a clean git working tree)
@@ -161,6 +171,6 @@ tasks:
       - task: build
       - task: test-e2e-warp
 
-  update_avalanchego_version:
+  update-avalanchego-version:
     desc: Update AvalancheGo version in go.mod and sync GitHub Actions workflow custom action version
     cmd: ./scripts/update_avalanchego_version.sh # tests.yml

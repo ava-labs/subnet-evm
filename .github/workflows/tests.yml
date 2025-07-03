@@ -20,15 +20,11 @@ jobs:
         with:
           go-version-file: "go.mod"
       - name: Run all lint checks
-        shell: bash
         run: ./scripts/run_task.sh lint-all-ci
       - name: Check go.mod and go.sum are up-to-date
         run: ./scripts/run_task.sh check-go-mod-tidy
       - name: Ensure consistent avalanchego version
-        shell: bash
-        run: |
-          ./scripts/run_task.sh update_avalanchego_version
-          git diff --exit-code
+        run: ./scripts/run_task.sh check-avalanchego-version
 
   unit_test:
     name: Golang Unit Tests (${{ matrix.os }})
@@ -43,21 +39,15 @@ jobs:
         with:
           go-version-file: "go.mod"
       - run: go mod download
-        shell: bash
       - name: Check generated codec files are up to date
-        shell: bash
         run: ./scripts/run_task.sh check-generate-codec
       - name: Check generated mocks are up to date
-        shell: bash
         run: ./scripts/run_task.sh check-generate-mocks
       - run: ./scripts/run_task.sh build
-        shell: bash
       - run: ./scripts/run_task.sh build-test
         env:
           TIMEOUT: ${{ env.TIMEOUT }}
-        shell: bash
       - run: ./scripts/run_task.sh coverage
-        shell: bash
 
   e2e_precompile:
     name: e2e precompile tests
@@ -76,10 +66,8 @@ jobs:
         with:
           node-version: "20.13"
       - name: Setup Contracts
-        shell: bash
         run: ./scripts/run_task.sh setup-contracts
       - name: Run E2E Precompile Tests
-        shell: bash
         run: ./scripts/run_task.sh test-e2e-precompile-ci
       - name: Upload Artifact
         if: always()
@@ -105,13 +93,11 @@ jobs:
         with:
           node-version: "20.13"
       - name: Setup Contracts
-        shell: bash
         run: ./scripts/run_task.sh setup-contracts
       - name: Run Warp E2E Tests
         uses: ava-labs/avalanchego/.github/actions/run-monitored-tmpnet-cmd@092cf182dd92b66a8ab882b657d3ae52b174c913
         with:
           run: ./scripts/run_task.sh test-e2e-warp-ci
-          run_env: AVALANCHEGO_BUILD_PATH=/tmp/e2e-test/avalanchego
           artifact_prefix: warp
           prometheus_username: ${{ secrets.PROMETHEUS_ID || '' }}
           prometheus_password: ${{ secrets.PROMETHEUS_PASSWORD || '' }}
@@ -133,7 +119,6 @@ jobs:
         uses: ava-labs/avalanchego/.github/actions/run-monitored-tmpnet-cmd@092cf182dd92b66a8ab882b657d3ae52b174c913
         with:
           run: ./scripts/run_task.sh test-e2e-load-ci
-          run_env: AVALANCHEGO_BUILD_PATH=/tmp/e2e-test/avalanchego
           artifact_prefix: load
           prometheus_username: ${{ secrets.PROMETHEUS_ID || '' }}
           prometheus_password: ${{ secrets.PROMETHEUS_PASSWORD || '' }}
@@ -149,7 +134,6 @@ jobs:
           sudo apt update
           sudo apt -y install qemu-system qemu-user-static
       - name: Check image build
-        shell: bash
         run: ./scripts/run_task.sh test-build-image
   test_build_antithesis_images:
     name: Build Antithesis images
@@ -160,5 +144,4 @@ jobs:
         with:
           go-version-file: "go.mod"
       - name: Check antithesis image build
-        shell: bash
         run: ./scripts/run_task.sh test-build-antithesis-images-ci
