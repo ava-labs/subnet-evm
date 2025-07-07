@@ -28,7 +28,6 @@ import (
 	"github.com/ava-labs/libevm/metrics"
 	ethparams "github.com/ava-labs/libevm/params"
 	"github.com/ava-labs/libevm/triedb"
-	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
 	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/core"
@@ -524,11 +523,7 @@ func parseGenesis(ctx *snow.Context, genesisBytes []byte, upgradeBytes []byte, a
 	configExtra.AvalancheContext = extras.AvalancheContext{
 		SnowCtx: ctx,
 	}
-
-	if configExtra.FeeConfig == commontype.EmptyFeeConfig {
-		log.Info("No fee config given in genesis, setting default fee config", "DefaultFeeConfig", params.DefaultFeeConfig)
-		configExtra.FeeConfig = params.DefaultFeeConfig
-	}
+	configExtra.NetworkUpgrades = extras.GetNetworkUpgrades(ctx.NetworkUpgrades)
 
 	// Load airdrop file if provided
 	if airdropFile != "" {

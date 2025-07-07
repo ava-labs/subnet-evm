@@ -8,12 +8,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ava-labs/avalanchego/snow/snowtest"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
-	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
@@ -108,7 +108,7 @@ func (test PrecompileTest) setup(t testing.TB, module modules.Module, state cont
 		blockContext.EXPECT().Number().Return(big.NewInt(0)).AnyTimes()
 		blockContext.EXPECT().Timestamp().Return(uint64(time.Now().Unix())).AnyTimes()
 	}
-	snowContext := utils.TestSnowContext()
+	snowContext := snowtest.Context(t, snowtest.CChainID)
 
 	accessibleState := contract.NewMockAccessibleState(ctrl)
 	accessibleState.EXPECT().GetStateDB().Return(state).AnyTimes()

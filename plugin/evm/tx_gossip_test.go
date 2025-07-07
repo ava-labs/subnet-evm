@@ -19,7 +19,9 @@ import (
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/avalanchego/snow/engine/common"
 	"github.com/ava-labs/avalanchego/snow/engine/enginetest"
+	"github.com/ava-labs/avalanchego/snow/snowtest"
 	"github.com/ava-labs/avalanchego/snow/validators"
+	"github.com/ava-labs/avalanchego/upgrade/upgradetest"
 	agoUtils "github.com/ava-labs/avalanchego/utils"
 	"github.com/ava-labs/avalanchego/utils/logging"
 	"github.com/ava-labs/avalanchego/utils/set"
@@ -35,7 +37,7 @@ import (
 func TestEthTxGossip(t *testing.T) {
 	require := require.New(t)
 	ctx := context.Background()
-	snowCtx := utils.TestSnowContext()
+	snowCtx := snowtest.Context(t, snowtest.CChainID)
 	validatorState := utils.NewTestValidatorState()
 	snowCtx.ValidatorState = validatorState
 
@@ -50,7 +52,7 @@ func TestEthTxGossip(t *testing.T) {
 		ctx,
 		snowCtx,
 		memdb.New(),
-		[]byte(genesisJSONLatest),
+		[]byte(genesisJSON),
 		nil,
 		nil,
 		make(chan common.Message),
@@ -118,7 +120,7 @@ func TestEthTxGossip(t *testing.T) {
 	address := testEthAddrs[0]
 	key := testKeys[0]
 	tx := types.NewTransaction(0, address, big.NewInt(10), 21000, big.NewInt(testMinGasPrice), nil)
-	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), key)
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), key.ToECDSA())
 	require.NoError(err)
 
 	errs := vm.txPool.Add([]*types.Transaction{signedTx}, true, true)
@@ -153,7 +155,7 @@ func TestEthTxGossip(t *testing.T) {
 func TestEthTxPushGossipOutbound(t *testing.T) {
 	require := require.New(t)
 	ctx := context.Background()
-	snowCtx := utils.TestSnowContext()
+	snowCtx := snowtest.Context(t, snowtest.CChainID)
 	sender := &enginetest.SenderStub{
 		SentAppGossip: make(chan []byte, 1),
 	}
@@ -166,7 +168,7 @@ func TestEthTxPushGossipOutbound(t *testing.T) {
 		ctx,
 		snowCtx,
 		memdb.New(),
-		[]byte(genesisJSONLatest),
+		[]byte(genesisJSON),
 		nil,
 		nil,
 		make(chan common.Message),
@@ -182,7 +184,7 @@ func TestEthTxPushGossipOutbound(t *testing.T) {
 	address := testEthAddrs[0]
 	key := testKeys[0]
 	tx := types.NewTransaction(0, address, big.NewInt(10), 21000, big.NewInt(testMinGasPrice), nil)
-	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), key)
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), key.ToECDSA())
 	require.NoError(err)
 
 	// issue a tx
@@ -208,7 +210,7 @@ func TestEthTxPushGossipOutbound(t *testing.T) {
 func TestEthTxPushGossipInbound(t *testing.T) {
 	require := require.New(t)
 	ctx := context.Background()
-	snowCtx := utils.TestSnowContext()
+	snowCtx := snowtest.Context(t, snowtest.CChainID)
 
 	sender := &enginetest.Sender{}
 	vm := &VM{
@@ -219,7 +221,7 @@ func TestEthTxPushGossipInbound(t *testing.T) {
 		ctx,
 		snowCtx,
 		memdb.New(),
-		[]byte(genesisJSONLatest),
+		[]byte(genesisJSON(forkToChainConfig[upgradetest.Latest])),
 		nil,
 		nil,
 		make(chan common.Message),
@@ -235,7 +237,7 @@ func TestEthTxPushGossipInbound(t *testing.T) {
 	address := testEthAddrs[0]
 	key := testKeys[0]
 	tx := types.NewTransaction(0, address, big.NewInt(10), 21000, big.NewInt(testMinGasPrice), nil)
-	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), key)
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), key.ToECDSA())
 	require.NoError(err)
 
 	marshaller := GossipEthTxMarshaller{}

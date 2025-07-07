@@ -38,11 +38,15 @@ var (
 	}
 
 	TestChainConfig = &ChainConfig{
-		AvalancheContext:   AvalancheContext{SnowCtx: utils.TestSnowContext()},
-		FeeConfig:          DefaultFeeConfig,
-		NetworkUpgrades:    GetNetworkUpgrades(upgrade.GetConfig(constants.UnitTestID)), // This can be changed to correct network (local, test) via VM.
-		GenesisPrecompiles: Precompiles{},
+		NetworkUpgrades: NetworkUpgrades{
+			SubnetEVMTimestamp: utils.NewUint64(0),
+			DurangoTimestamp:   utils.NewUint64(0),
+			EtnaTimestamp:      utils.NewUint64(0),
+			FortunaTimestamp:   utils.NewUint64(0),
+		},
 	}
+
+	TestLaunchConfig = &ChainConfig{}
 
 	TestPreSubnetEVMChainConfig = copyAndSet(TestChainConfig, func(c *ChainConfig) {
 		c.NetworkUpgrades = NetworkUpgrades{

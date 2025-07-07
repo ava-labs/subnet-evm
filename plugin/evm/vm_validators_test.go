@@ -12,11 +12,12 @@ import (
 	"github.com/ava-labs/avalanchego/snow"
 	commonEng "github.com/ava-labs/avalanchego/snow/engine/common"
 	"github.com/ava-labs/avalanchego/snow/engine/enginetest"
+	"github.com/ava-labs/avalanchego/snow/snowtest"
 	avagovalidators "github.com/ava-labs/avalanchego/snow/validators"
 	"github.com/ava-labs/avalanchego/snow/validators/validatorstest"
+	"github.com/ava-labs/avalanchego/upgrade/upgradetest"
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/plugin/evm/validators"
-	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -24,12 +25,14 @@ import (
 func TestValidatorState(t *testing.T) {
 	require := require.New(t)
 	genesis := &core.Genesis{}
-	require.NoError(genesis.UnmarshalJSON([]byte(genesisJSONLatest)))
+	require.NoError(genesis.UnmarshalJSON([]byte(genesisJSON(forkToChainConfig[upgradetest.Latest]))))
 	genesisJSON, err := genesis.MarshalJSON()
 	require.NoError(err)
 
-	vm := &VM{}
-	ctx, dbManager, genesisBytes, issuer, _ := setupGenesis(t, string(genesisJSON))
+	tvm := newVM(t, testVMConfig{
+		genesisJSON: string(genesisJSON),
+	})
+
 	appSender := &enginetest.Sender{T: t}
 	appSender.CantSendAppGossip = true
 	testNodeIDs := []ids.NodeID{
@@ -42,7 +45,7 @@ func TestValidatorState(t *testing.T) {
 		ids.GenerateTestID(),
 		ids.GenerateTestID(),
 	}
-	ctx.ValidatorState = &validatorstest.State{
+	tvm.vm.ctx.ValidatorState = &validatorstest.State{
 		GetCurrentValidatorSetF: func(ctx context.Context, subnetID ids.ID) (map[ids.ID]*avagovalidators.GetCurrentValidatorOutput, uint64, error) {
 			return map[ids.ID]*avagovalidators.GetCurrentValidatorOutput{
 				testValidationIDs[0]: {
@@ -64,55 +67,55 @@ func TestValidatorState(t *testing.T) {
 		},
 	}
 	appSender.SendAppGossipF = func(context.Context, commonEng.SendConfig, []byte) error { return nil }
-	err = vm.Initialize(
+	err = tvm.vm.Initialize(
 		context.Background(),
-		ctx,
-		dbManager,
-		genesisBytes,
-		[]byte(""),
-		[]byte(""),
-		issuer,
+		tvm.vm.ctx,
+		tvm.vm.db,
+		[]byte(genesisJSON),
+		[]byte{},
+		[]byte{},
+		tvm.toEngine,
 		[]*commonEng.Fx{},
-		appSender,
+		tvm.appSender,
 	)
 	require.NoError(err, "error initializing GenesisVM")
 
 	// Test case 1: state should not be populated until bootstrapped
-	require.NoError(vm.SetState(context.Background(), snow.Bootstrapping))
-	require.Equal(0, vm.validatorsManager.GetValidationIDs().Len())
-	_, _, err = vm.validatorsManager.CalculateUptime(testNodeIDs[0])
+	require.NoError(tvm.vm.SetState(context.Background(), snow.Bootstrapping))
+	require.Equal(0, tvm.vm.validatorsManager.GetValidationIDs().Len())
+	_, _, err = tvm.vm.validatorsManager.CalculateUptime(testNodeIDs[0])
 	require.ErrorIs(database.ErrNotFound, err)
-	require.False(vm.validatorsManager.StartedTracking())
+	require.False(tvm.vm.validatorsManager.StartedTracking())
 
 	// Test case 2: state should be populated after bootstrapped
-	require.NoError(vm.SetState(context.Background(), snow.NormalOp))
-	require.Len(vm.validatorsManager.GetValidationIDs(), 3)
-	_, _, err = vm.validatorsManager.CalculateUptime(testNodeIDs[0])
+	require.NoError(tvm.vm.SetState(context.Background(), snow.NormalOp))
+	require.Len(tvm.vm.validatorsManager.GetValidationIDs(), 3)
+	_, _, err = tvm.vm.validatorsManager.CalculateUptime(testNodeIDs[0])
 	require.NoError(err)
-	require.True(vm.validatorsManager.StartedTracking())
+	require.True(tvm.vm.validatorsManager.StartedTracking())
 
 	// Test case 3: restarting VM should not lose state
-	vm.Shutdown(context.Background())
+	tvm.vm.Shutdown(context.Background())
 	// Shutdown should stop tracking
-	require.False(vm.validatorsManager.StartedTracking())
+	require.False(tvm.vm.validatorsManager.StartedTracking())
 
-	vm = &VM{}
-	err = vm.Initialize(
+	tvm.vm = &VM{}
+	err = tvm.vm.Initialize(
 		context.Background(),
-		utils.TestSnowContext(), // this context does not have validators state, making VM to source it from the database
-		dbManager,
-		genesisBytes,
-		[]byte(""),
-		[]byte(""),
-		issuer,
+		snowtest.Context(t, snowtest.CChainID), // this context does not have validators state, making VM to source it from the database
+		tvm.vm.db,
+		[]byte(genesisJSON),
+		[]byte{},
+		[]byte{},
+		tvm.toEngine,
 		[]*commonEng.Fx{},
-		appSender,
+		tvm.appSender,
 	)
 	require.NoError(err, "error initializing GenesisVM")
-	require.Len(vm.validatorsManager.GetValidationIDs(), 3)
-	_, _, err = vm.validatorsManager.CalculateUptime(testNodeIDs[0])
+	require.Len(tvm.vm.validatorsManager.GetValidationIDs(), 3)
+	_, _, err = tvm.vm.validatorsManager.CalculateUptime(testNodeIDs[0])
 	require.NoError(err)
-	require.False(vm.validatorsManager.StartedTracking())
+	require.False(tvm.vm.validatorsManager.StartedTracking())
 
 	// Test case 4: new validators should be added to the state
 	newValidationID := ids.GenerateTestID()
@@ -144,17 +147,17 @@ func TestValidatorState(t *testing.T) {
 		},
 	}
 	// set VM as bootstrapped
-	require.NoError(vm.SetState(context.Background(), snow.Bootstrapping))
-	require.NoError(vm.SetState(context.Background(), snow.NormalOp))
+	require.NoError(tvm.vm.SetState(context.Background(), snow.Bootstrapping))
+	require.NoError(tvm.vm.SetState(context.Background(), snow.NormalOp))
 
-	vm.ctx.ValidatorState = testState
+	tvm.vm.ctx.ValidatorState = testState
 
 	// new validator should be added to the state eventually after SyncFrequency
 	require.EventuallyWithT(func(c *assert.CollectT) {
-		vm.vmLock.Lock()
-		defer vm.vmLock.Unlock()
-		assert.Len(c, vm.validatorsManager.GetNodeIDs(), 4)
-		newValidator, err := vm.validatorsManager.GetValidator(newValidationID)
+		tvm.vm.vmLock.Lock()
+		defer tvm.vm.vmLock.Unlock()
+		assert.Len(c, tvm.vm.validatorsManager.GetNodeIDs(), 4)
+		newValidator, err := tvm.vm.validatorsManager.GetValidator(newValidationID)
 		assert.NoError(c, err)
 		assert.Equal(c, newNodeID, newValidator.NodeID)
 	}, validators.SyncFrequency*2, 5*time.Second)
