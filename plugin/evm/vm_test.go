@@ -84,8 +84,16 @@ var (
 		cpy.ChainID = big.NewInt(43111)
 		g.Config = &cpy
 
-		allocStr := `{"0x71562b71999873DB5b286dF957af199Ec94617F7": {"balance":"0x4192927743b88000"}, "0x703c4b2bD70c169f5717101CaeE543299Fc946C7": {"balance":"0x4192927743b88000"}}`
-		json.Unmarshal([]byte(allocStr), &g.Alloc)
+		// Dynamically fund the test key addresses
+		alloc := make(map[string]map[string]string)
+		for _, addr := range testEthAddrs {
+			alloc[addr.Hex()] = map[string]string{"balance": "0x4192927743b88000"}
+		}
+		allocBytes, err := json.Marshal(alloc)
+		if err != nil {
+			panic(err)
+		}
+		json.Unmarshal(allocBytes, &g.Alloc)
 
 		b, err := json.Marshal(g)
 		if err != nil {
