@@ -762,18 +762,18 @@ func TestMessageSignatureRequestsToVM(t *testing.T) {
 
 	defer func() {
 		err := tvm.vm.Shutdown(context.Background())
-		require.NoError(t, err)
+		require.NoError(err)
 	}()
 
 	// Generate a new warp unsigned message and add to warp backend
 	warpMessage, err := avalancheWarp.NewUnsignedMessage(tvm.vm.ctx.NetworkID, tvm.vm.ctx.ChainID, []byte{1, 2, 3})
-	require.NoError(t, err)
+	require.NoError(err)
 
 	// Add the known message and get its signature to confirm.
 	err = tvm.vm.warpBackend.AddMessage(warpMessage)
-	require.NoError(t, err)
+	require.NoError(err)
 	signature, err := tvm.vm.warpBackend.GetMessageSignature(context.TODO(), warpMessage)
-	require.NoError(t, err)
+	require.NoError(err)
 	var knownSignature [bls.SignatureLen]byte
 	copy(knownSignature[:], signature)
 
@@ -797,8 +797,8 @@ func TestMessageSignatureRequestsToVM(t *testing.T) {
 			calledSendAppResponseFn = true
 			var response message.SignatureResponse
 			_, err := message.Codec.Unmarshal(responseBytes, &response)
-			require.NoError(t, err)
-			require.Equal(t, test.expectedResponse, response.Signature)
+			require.NoError(err)
+			require.Equal(test.expectedResponse, response.Signature)
 
 			return nil
 		}
@@ -808,12 +808,12 @@ func TestMessageSignatureRequestsToVM(t *testing.T) {
 			}
 
 			requestBytes, err := message.Codec.Marshal(message.Version, &signatureRequest)
-			require.NoError(t, err)
+			require.NoError(err)
 
 			// Send the app request and make sure we called SendAppResponseFn
 			deadline := time.Now().Add(60 * time.Second)
-			require.NoError(t, tvm.vm.Network.AppRequest(context.Background(), ids.GenerateTestNodeID(), peertest.TestPeerRequestID, deadline, requestBytes))
-			require.True(t, calledSendAppResponseFn)
+			require.NoError(tvm.vm.Network.AppRequest(context.Background(), ids.GenerateTestNodeID(), peertest.TestPeerRequestID, deadline, requestBytes))
+			require.True(calledSendAppResponseFn)
 		})
 	}
 }
@@ -826,14 +826,14 @@ func TestBlockSignatureRequestsToVM(t *testing.T) {
 
 	defer func() {
 		err := tvm.vm.Shutdown(context.Background())
-		require.NoError(t, err)
+		require.NoError(err)
 	}()
 
 	lastAcceptedID, err := tvm.vm.LastAccepted(context.Background())
-	require.NoError(t, err)
+	require.NoError(err)
 
 	signature, err := tvm.vm.warpBackend.GetBlockSignature(context.TODO(), lastAcceptedID)
-	require.NoError(t, err)
+	require.NoError(err)
 	var knownSignature [bls.SignatureLen]byte
 	copy(knownSignature[:], signature)
 
@@ -857,8 +857,8 @@ func TestBlockSignatureRequestsToVM(t *testing.T) {
 			calledSendAppResponseFn = true
 			var response message.SignatureResponse
 			_, err := message.Codec.Unmarshal(responseBytes, &response)
-			require.NoError(t, err)
-			require.Equal(t, test.expectedResponse, response.Signature)
+			require.NoError(err)
+			require.Equal(test.expectedResponse, response.Signature)
 
 			return nil
 		}
@@ -868,12 +868,12 @@ func TestBlockSignatureRequestsToVM(t *testing.T) {
 			}
 
 			requestBytes, err := message.Codec.Marshal(message.Version, &signatureRequest)
-			require.NoError(t, err)
+			require.NoError(err)
 
 			// Send the app request and make sure we called SendAppResponseFn
 			deadline := time.Now().Add(60 * time.Second)
-			require.NoError(t, tvm.vm.Network.AppRequest(context.Background(), ids.GenerateTestNodeID(), peertest.TestPeerRequestID, deadline, requestBytes))
-			require.True(t, calledSendAppResponseFn)
+			require.NoError(tvm.vm.Network.AppRequest(context.Background(), ids.GenerateTestNodeID(), peertest.TestPeerRequestID, deadline, requestBytes))
+			require.True(calledSendAppResponseFn)
 		})
 	}
 }
@@ -883,7 +883,7 @@ func TestClearWarpDB(t *testing.T) {
 	ctx, db, genesisBytes, issuer, _ := setupGenesis(t, upgradetest.Latest)
 	vm := &VM{}
 	err := vm.Initialize(context.Background(), ctx, db, genesisBytes, []byte{}, []byte{}, issuer, []*commonEng.Fx{}, &enginetest.Sender{})
-	require.NoError(t, err)
+	require.NoError(err)
 
 	// use multiple messages to test that all messages get cleared
 	payloads := [][]byte{[]byte("test1"), []byte("test2"), []byte("test3"), []byte("test4"), []byte("test5")}
@@ -892,47 +892,47 @@ func TestClearWarpDB(t *testing.T) {
 	// add all messages
 	for _, payload := range payloads {
 		unsignedMsg, err := avalancheWarp.NewUnsignedMessage(vm.ctx.NetworkID, vm.ctx.ChainID, payload)
-		require.NoError(t, err)
+		require.NoError(err)
 		err = vm.warpBackend.AddMessage(unsignedMsg)
-		require.NoError(t, err)
+		require.NoError(err)
 		// ensure that the message was added
 		_, err = vm.warpBackend.GetMessageSignature(context.TODO(), unsignedMsg)
-		require.NoError(t, err)
+		require.NoError(err)
 		messages = append(messages, unsignedMsg)
 	}
 
-	require.NoError(t, vm.Shutdown(context.Background()))
+	require.NoError(vm.Shutdown(context.Background()))
 
 	// Restart VM with the same database default should not prune the warp db
 	vm = &VM{}
 	// we need new context since the previous one has registered metrics.
 	ctx, _, _, _, _ = setupGenesis(t, upgradetest.Latest)
 	err = vm.Initialize(context.Background(), ctx, db, genesisBytes, []byte{}, []byte{}, issuer, []*commonEng.Fx{}, &enginetest.Sender{})
-	require.NoError(t, err)
+	require.NoError(err)
 
 	// check messages are still present
 	for _, message := range messages {
 		bytes, err := vm.warpBackend.GetMessageSignature(context.TODO(), message)
-		require.NoError(t, err)
-		require.NotEmpty(t, bytes)
+		require.NoError(err)
+		require.NotEmpty(bytes)
 	}
 
-	require.NoError(t, vm.Shutdown(context.Background()))
+	require.NoError(vm.Shutdown(context.Background()))
 
 	// restart the VM with pruning enabled
 	vm = &VM{}
 	config := `{"prune-warp-db-enabled": true}`
 	ctx, _, _, _, _ = setupGenesis(t, upgradetest.Latest)
 	err = vm.Initialize(context.Background(), ctx, db, genesisBytes, []byte{}, []byte(config), issuer, []*commonEng.Fx{}, &enginetest.Sender{})
-	require.NoError(t, err)
+	require.NoError(err)
 
 	it := vm.warpDB.NewIterator()
-	require.False(t, it.Next())
+	require.False(it.Next())
 	it.Release()
 
 	// ensure all messages have been deleted
 	for _, message := range messages {
 		_, err := vm.warpBackend.GetMessageSignature(context.TODO(), message)
-		require.ErrorIs(t, err, &commonEng.AppError{Code: warp.ParseErrCode})
+		require.ErrorIs(err, &commonEng.AppError{Code: warp.ParseErrCode})
 	}
 }

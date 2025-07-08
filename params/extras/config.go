@@ -38,6 +38,7 @@ var (
 	}
 
 	TestChainConfig = &ChainConfig{
+		FeeConfig: DefaultFeeConfig,
 		NetworkUpgrades: NetworkUpgrades{
 			SubnetEVMTimestamp: utils.NewUint64(0),
 			DurangoTimestamp:   utils.NewUint64(0),
@@ -49,6 +50,7 @@ var (
 	TestLaunchConfig = &ChainConfig{}
 
 	TestPreSubnetEVMChainConfig = copyAndSet(TestChainConfig, func(c *ChainConfig) {
+		c.FeeConfig = DefaultFeeConfig
 		c.NetworkUpgrades = NetworkUpgrades{
 			SubnetEVMTimestamp: utils.TimeToNewUint64(upgrade.UnscheduledActivationTime),
 			DurangoTimestamp:   utils.TimeToNewUint64(upgrade.UnscheduledActivationTime),
@@ -58,6 +60,7 @@ var (
 	})
 
 	TestSubnetEVMChainConfig = copyAndSet(TestChainConfig, func(c *ChainConfig) {
+		c.FeeConfig = DefaultFeeConfig
 		c.NetworkUpgrades = NetworkUpgrades{
 			SubnetEVMTimestamp: utils.NewUint64(0),
 			DurangoTimestamp:   utils.TimeToNewUint64(upgrade.UnscheduledActivationTime),
@@ -67,6 +70,7 @@ var (
 	})
 
 	TestDurangoChainConfig = copyAndSet(TestChainConfig, func(c *ChainConfig) {
+		c.FeeConfig = DefaultFeeConfig
 		c.NetworkUpgrades = NetworkUpgrades{
 			SubnetEVMTimestamp: utils.NewUint64(0),
 			DurangoTimestamp:   utils.TimeToNewUint64(upgrade.InitiallyActiveTime),
@@ -76,6 +80,7 @@ var (
 	})
 
 	TestEtnaChainConfig = copyAndSet(TestChainConfig, func(c *ChainConfig) {
+		c.FeeConfig = DefaultFeeConfig
 		c.NetworkUpgrades = NetworkUpgrades{
 			SubnetEVMTimestamp: utils.NewUint64(0),
 			DurangoTimestamp:   utils.TimeToNewUint64(upgrade.InitiallyActiveTime),
@@ -85,6 +90,7 @@ var (
 	})
 
 	TestFortunaChainConfig = copyAndSet(TestChainConfig, func(c *ChainConfig) {
+		c.FeeConfig = DefaultFeeConfig
 		c.NetworkUpgrades = NetworkUpgrades{
 			SubnetEVMTimestamp: utils.NewUint64(0),
 			DurangoTimestamp:   utils.TimeToNewUint64(upgrade.InitiallyActiveTime),
@@ -94,6 +100,7 @@ var (
 	})
 
 	TestGraniteChainConfig = copyAndSet(TestChainConfig, func(c *ChainConfig) {
+		c.FeeConfig = DefaultFeeConfig
 		c.NetworkUpgrades = NetworkUpgrades{
 			SubnetEVMTimestamp: utils.NewUint64(0),
 			DurangoTimestamp:   utils.TimeToNewUint64(upgrade.InitiallyActiveTime),
