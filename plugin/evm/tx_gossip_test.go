@@ -52,7 +52,7 @@ func TestEthTxGossip(t *testing.T) {
 		ctx,
 		snowCtx,
 		memdb.New(),
-		[]byte(genesisJSON),
+		[]byte(genesisJSON(forkToChainConfig[upgradetest.Latest])),
 		nil,
 		nil,
 		make(chan common.Message),
@@ -156,6 +156,7 @@ func TestEthTxPushGossipOutbound(t *testing.T) {
 	require := require.New(t)
 	ctx := context.Background()
 	snowCtx := snowtest.Context(t, snowtest.CChainID)
+	snowCtx.ValidatorState = utils.NewTestValidatorState()
 	sender := &enginetest.SenderStub{
 		SentAppGossip: make(chan []byte, 1),
 	}
@@ -168,7 +169,7 @@ func TestEthTxPushGossipOutbound(t *testing.T) {
 		ctx,
 		snowCtx,
 		memdb.New(),
-		[]byte(genesisJSON),
+		[]byte(genesisJSON(forkToChainConfig[upgradetest.Latest])),
 		nil,
 		nil,
 		make(chan common.Message),
@@ -211,6 +212,7 @@ func TestEthTxPushGossipInbound(t *testing.T) {
 	require := require.New(t)
 	ctx := context.Background()
 	snowCtx := snowtest.Context(t, snowtest.CChainID)
+	snowCtx.ValidatorState = utils.NewTestValidatorState()
 
 	sender := &enginetest.Sender{}
 	vm := &VM{

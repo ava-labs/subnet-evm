@@ -138,11 +138,15 @@ type testVM struct {
 
 func newVM(t *testing.T, config testVMConfig) *testVM {
 	ctx := snowtest.Context(t, snowtest.CChainID)
+	ctx.ValidatorState = utils.NewTestValidatorState()
 	fork := upgradetest.Latest
 	if config.fork != nil && *config.fork != 0 {
 		fork = *config.fork
 	}
 	ctx.NetworkUpgrades = upgradetest.GetConfig(fork)
+
+	// Set up validator state with required functions
+	ctx.ValidatorState = utils.NewTestValidatorState()
 
 	// Genesis JSON fallback logic:
 	// - If genesisJSON is provided, use it directly (fallback for forks not in upgradetest)
@@ -215,6 +219,7 @@ func setupGenesis(
 	*atomic.Memory,
 ) {
 	ctx := snowtest.Context(t, snowtest.CChainID)
+	ctx.ValidatorState = utils.NewTestValidatorState()
 	ctx.NetworkUpgrades = upgradetest.GetConfig(fork)
 
 	baseDB := memdb.New()
@@ -451,6 +456,7 @@ func TestBuildEthTxBlock(t *testing.T) {
 	restartedVM := &VM{}
 	newCTX := snowtest.Context(t, snowtest.CChainID)
 	newCTX.NetworkUpgrades = upgradetest.GetConfig(0)
+	newCTX.ValidatorState = utils.NewTestValidatorState()
 	if err := restartedVM.Initialize(
 		context.Background(),
 		newCTX,
@@ -3151,6 +3157,7 @@ func TestParentBeaconRootBlock(t *testing.T) {
 func TestStandaloneDB(t *testing.T) {
 	vm := &VM{}
 	ctx := snowtest.Context(t, snowtest.CChainID)
+	ctx.ValidatorState = utils.NewTestValidatorState()
 	baseDB := memdb.New()
 	atomicMemory := atomic.NewMemory(prefixdb.New([]byte{0}, baseDB))
 	ctx.SharedMemory = atomicMemory.NewSharedMemory(ctx.ChainID)

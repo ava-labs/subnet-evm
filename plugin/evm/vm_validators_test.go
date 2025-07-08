@@ -12,7 +12,6 @@ import (
 	"github.com/ava-labs/avalanchego/snow"
 	commonEng "github.com/ava-labs/avalanchego/snow/engine/common"
 	"github.com/ava-labs/avalanchego/snow/engine/enginetest"
-	"github.com/ava-labs/avalanchego/snow/snowtest"
 	avagovalidators "github.com/ava-labs/avalanchego/snow/validators"
 	"github.com/ava-labs/avalanchego/snow/validators/validatorstest"
 	"github.com/ava-labs/avalanchego/upgrade/upgradetest"
@@ -99,18 +98,9 @@ func TestValidatorState(t *testing.T) {
 	// Shutdown should stop tracking
 	require.False(tvm.vm.validatorsManager.StartedTracking())
 
-	tvm.vm = &VM{}
-	err = tvm.vm.Initialize(
-		context.Background(),
-		snowtest.Context(t, snowtest.CChainID), // this context does not have validators state, making VM to source it from the database
-		tvm.vm.db,
-		[]byte(genesisJSON),
-		[]byte{},
-		[]byte{},
-		tvm.toEngine,
-		[]*commonEng.Fx{},
-		tvm.appSender,
-	)
+	tvm.vm = newVM(t, testVMConfig{
+		genesisJSON: string(genesisJSON),
+	}).vm
 	require.NoError(err, "error initializing GenesisVM")
 	require.Len(tvm.vm.validatorsManager.GetValidationIDs(), 3)
 	_, _, err = tvm.vm.validatorsManager.CalculateUptime(testNodeIDs[0])

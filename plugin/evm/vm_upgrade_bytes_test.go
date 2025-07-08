@@ -15,7 +15,6 @@ import (
 	"github.com/ava-labs/avalanchego/api/metrics"
 	"github.com/ava-labs/avalanchego/snow"
 	commonEng "github.com/ava-labs/avalanchego/snow/engine/common"
-	"github.com/ava-labs/avalanchego/snow/engine/enginetest"
 	"github.com/ava-labs/avalanchego/upgrade"
 	"github.com/ava-labs/avalanchego/upgrade/upgradetest"
 	"github.com/ava-labs/avalanchego/vms/components/chain"
@@ -174,10 +173,6 @@ func TestNetworkUpgradesOverriden(t *testing.T) {
 	if err := json.Unmarshal([]byte(genesisJSONPreSubnetEVM), &genesis); err != nil {
 		t.Fatalf("could not unmarshal genesis bytes: %s", err)
 	}
-	genesisBytes, err := json.Marshal(&genesis)
-	if err != nil {
-		t.Fatalf("could not unmarshal genesis bytes: %s", err)
-	}
 
 	upgradeBytesJSON := `{
 			"networkUpgradeOverrides": {
@@ -186,23 +181,9 @@ func TestNetworkUpgradesOverriden(t *testing.T) {
 			}
 		}`
 
-	vm := &VM{}
-	ctx, dbManager, genesisBytes, issuer, _ := setupGenesis(t, upgradetest.Latest)
-	appSender := &enginetest.Sender{T: t}
-	appSender.CantSendAppGossip = true
-	appSender.SendAppGossipF = func(context.Context, commonEng.SendConfig, []byte) error { return nil }
-	err = vm.Initialize(
-		context.Background(),
-		ctx,
-		dbManager,
-		genesisBytes,
-		[]byte(upgradeBytesJSON),
-		nil,
-		issuer,
-		[]*commonEng.Fx{},
-		appSender,
-	)
-	require.NoError(t, err, "error initializing GenesisVM")
+	vm := newVM(t, testVMConfig{
+		upgradeJSON: upgradeBytesJSON,
+	}).vm
 
 	require.NoError(t, vm.SetState(context.Background(), snow.Bootstrapping))
 	require.NoError(t, vm.SetState(context.Background(), snow.NormalOp))
