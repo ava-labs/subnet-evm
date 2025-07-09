@@ -5,7 +5,6 @@ package evm
 
 import (
 	"context"
-	"crypto/ecdsa"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -18,12 +17,13 @@ import (
 
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/types"
-	"github.com/ava-labs/libevm/crypto"
 	"github.com/ava-labs/libevm/log"
+	"github.com/ava-labs/libevm/trie"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/ava-labs/avalanchego/api/metrics"
 	"github.com/ava-labs/avalanchego/chains/atomic"
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/database/memdb"
@@ -35,10 +35,9 @@ import (
 	"github.com/ava-labs/avalanchego/snow/engine/enginetest"
 	"github.com/ava-labs/avalanchego/snow/snowtest"
 	"github.com/ava-labs/avalanchego/upgrade"
+	"github.com/ava-labs/avalanchego/utils/crypto/secp256k1"
 	"github.com/ava-labs/avalanchego/vms/components/chain"
 
-	"github.com/ava-labs/avalanchego/api/metrics"
-	"github.com/ava-labs/libevm/trie"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/core"
@@ -66,8 +65,8 @@ import (
 var (
 	testNetworkID uint32 = avagoconstants.UnitTestID
 
-	testMinGasPrice int64 = 225_000_000_000
-	testKeys        []*ecdsa.PrivateKey
+	testMinGasPrice int64            = 225_000_000_000
+	testKeys                         = secp256k1.TestKeys()[:2]
 	testEthAddrs    []common.Address // testEthAddrs[i] corresponds to testKeys[i]
 
 	firstTxAmount = new(big.Int).Mul(big.NewInt(testMinGasPrice), big.NewInt(21000*100))
@@ -104,12 +103,9 @@ var (
 )
 
 func init() {
-	key1, _ := crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
-	key2, _ := crypto.HexToECDSA("8a1f9a8f95be41cd7ccb6168179afb4504aefe388d1e14474d32c45c72ce7b7a")
-	testKeys = append(testKeys, key1, key2)
-	addr1 := crypto.PubkeyToAddress(key1.PublicKey)
-	addr2 := crypto.PubkeyToAddress(key2.PublicKey)
-	testEthAddrs = append(testEthAddrs, addr1, addr2)
+	for _, key := range testKeys {
+		testEthAddrs = append(testEthAddrs, key.EthAddress())
+	}
 }
 
 // setupGenesis sets up the genesis
@@ -316,7 +312,7 @@ func TestBuildEthTxBlock(t *testing.T) {
 	key := testutils.NewKey(t)
 
 	tx := types.NewTransaction(uint64(0), key.Address, firstTxAmount, 21000, big.NewInt(testMinGasPrice), nil)
-	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0])
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0].ToECDSA())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -446,7 +442,7 @@ func TestSetPreferenceRace(t *testing.T) {
 	vm2.txPool.SubscribeNewReorgEvent(newTxPoolHeadChan2)
 
 	tx := types.NewTransaction(uint64(0), testEthAddrs[1], firstTxAmount, 21000, big.NewInt(testMinGasPrice), nil)
-	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm1.chainConfig.ChainID), testKeys[0])
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm1.chainConfig.ChainID), testKeys[0].ToECDSA())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -505,7 +501,7 @@ func TestSetPreferenceRace(t *testing.T) {
 	txs := make([]*types.Transaction, 10)
 	for i := 0; i < 10; i++ {
 		tx := types.NewTransaction(uint64(i), testEthAddrs[0], big.NewInt(10), 21000, big.NewInt(testMinGasPrice), nil)
-		signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm1.chainConfig.ChainID), testKeys[1])
+		signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm1.chainConfig.ChainID), testKeys[1].ToECDSA())
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -678,7 +674,7 @@ func TestReorgProtection(t *testing.T) {
 	vm2.txPool.SubscribeNewReorgEvent(newTxPoolHeadChan2)
 
 	tx := types.NewTransaction(uint64(0), testEthAddrs[1], firstTxAmount, 21000, big.NewInt(testMinGasPrice), nil)
-	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm1.chainConfig.ChainID), testKeys[0])
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm1.chainConfig.ChainID), testKeys[0].ToECDSA())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -737,7 +733,7 @@ func TestReorgProtection(t *testing.T) {
 	txs := make([]*types.Transaction, 10)
 	for i := 0; i < 10; i++ {
 		tx := types.NewTransaction(uint64(i), testEthAddrs[0], big.NewInt(10), 21000, big.NewInt(testMinGasPrice), nil)
-		signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm1.chainConfig.ChainID), testKeys[1])
+		signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm1.chainConfig.ChainID), testKeys[1].ToECDSA())
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -842,7 +838,7 @@ func TestNonCanonicalAccept(t *testing.T) {
 	vm2.txPool.SubscribeNewReorgEvent(newTxPoolHeadChan2)
 
 	tx := types.NewTransaction(uint64(0), testEthAddrs[1], firstTxAmount, 21000, big.NewInt(testMinGasPrice), nil)
-	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm1.chainConfig.ChainID), testKeys[0])
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm1.chainConfig.ChainID), testKeys[0].ToECDSA())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -918,7 +914,7 @@ func TestNonCanonicalAccept(t *testing.T) {
 	txs := make([]*types.Transaction, 10)
 	for i := 0; i < 10; i++ {
 		tx := types.NewTransaction(uint64(i), testEthAddrs[0], big.NewInt(10), 21000, big.NewInt(testMinGasPrice), nil)
-		signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm1.chainConfig.ChainID), testKeys[1])
+		signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm1.chainConfig.ChainID), testKeys[1].ToECDSA())
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1031,7 +1027,7 @@ func TestStickyPreference(t *testing.T) {
 	vm2.txPool.SubscribeNewReorgEvent(newTxPoolHeadChan2)
 
 	tx := types.NewTransaction(uint64(0), testEthAddrs[1], firstTxAmount, 21000, big.NewInt(testMinGasPrice), nil)
-	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm1.chainConfig.ChainID), testKeys[0])
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm1.chainConfig.ChainID), testKeys[0].ToECDSA())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1090,7 +1086,7 @@ func TestStickyPreference(t *testing.T) {
 	txs := make([]*types.Transaction, 10)
 	for i := 0; i < 10; i++ {
 		tx := types.NewTransaction(uint64(i), testEthAddrs[0], big.NewInt(10), 21000, big.NewInt(testMinGasPrice), nil)
-		signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm1.chainConfig.ChainID), testKeys[1])
+		signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm1.chainConfig.ChainID), testKeys[1].ToECDSA())
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1283,7 +1279,7 @@ func TestUncleBlock(t *testing.T) {
 	vm2.txPool.SubscribeNewReorgEvent(newTxPoolHeadChan2)
 
 	tx := types.NewTransaction(uint64(0), testEthAddrs[1], firstTxAmount, 21000, big.NewInt(testMinGasPrice), nil)
-	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm1.chainConfig.ChainID), testKeys[0])
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm1.chainConfig.ChainID), testKeys[0].ToECDSA())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1340,7 +1336,7 @@ func TestUncleBlock(t *testing.T) {
 	txs := make([]*types.Transaction, 10)
 	for i := 0; i < 10; i++ {
 		tx := types.NewTransaction(uint64(i), testEthAddrs[0], big.NewInt(10), 21000, big.NewInt(testMinGasPrice), nil)
-		signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm1.chainConfig.ChainID), testKeys[1])
+		signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm1.chainConfig.ChainID), testKeys[1].ToECDSA())
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1448,7 +1444,7 @@ func TestEmptyBlock(t *testing.T) {
 	}()
 
 	tx := types.NewTransaction(uint64(0), testEthAddrs[1], firstTxAmount, 21000, big.NewInt(testMinGasPrice), nil)
-	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0])
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0].ToECDSA())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1516,7 +1512,7 @@ func TestAcceptReorg(t *testing.T) {
 	vm2.txPool.SubscribeNewReorgEvent(newTxPoolHeadChan2)
 
 	tx := types.NewTransaction(uint64(0), testEthAddrs[1], firstTxAmount, 21000, big.NewInt(testMinGasPrice), nil)
-	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm1.chainConfig.ChainID), testKeys[0])
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm1.chainConfig.ChainID), testKeys[0].ToECDSA())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1575,7 +1571,7 @@ func TestAcceptReorg(t *testing.T) {
 	txs := make([]*types.Transaction, 10)
 	for i := 0; i < 10; i++ {
 		tx := types.NewTransaction(uint64(i), testEthAddrs[0], big.NewInt(10), 21000, big.NewInt(testMinGasPrice), nil)
-		signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm1.chainConfig.ChainID), testKeys[1])
+		signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm1.chainConfig.ChainID), testKeys[1].ToECDSA())
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1701,7 +1697,7 @@ func TestFutureBlock(t *testing.T) {
 	}()
 
 	tx := types.NewTransaction(uint64(0), testEthAddrs[1], firstTxAmount, 21000, big.NewInt(testMinGasPrice), nil)
-	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0])
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0].ToECDSA())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1755,7 +1751,7 @@ func TestLastAcceptedBlockNumberAllow(t *testing.T) {
 	}()
 
 	tx := types.NewTransaction(uint64(0), testEthAddrs[1], firstTxAmount, 21000, big.NewInt(testMinGasPrice), nil)
-	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0])
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0].ToECDSA())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1827,7 +1823,7 @@ func TestBuildSubnetEVMBlock(t *testing.T) {
 	vm.txPool.SubscribeNewReorgEvent(newTxPoolHeadChan)
 
 	tx := types.NewTransaction(uint64(0), testEthAddrs[1], new(big.Int).Mul(firstTxAmount, big.NewInt(4)), 21000, big.NewInt(testMinGasPrice*3), nil)
-	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0])
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0].ToECDSA())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1848,7 +1844,7 @@ func TestBuildSubnetEVMBlock(t *testing.T) {
 	txs := make([]*types.Transaction, 10)
 	for i := 0; i < 10; i++ {
 		tx := types.NewTransaction(uint64(i), testEthAddrs[0], big.NewInt(10), 21000, big.NewInt(testMinGasPrice*3), nil)
-		signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[1])
+		signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[1].ToECDSA())
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1930,7 +1926,7 @@ func TestBuildAllowListActivationBlock(t *testing.T) {
 
 	// Send basic transaction to construct a simple block and confirm that the precompile state configuration in the worker behaves correctly.
 	tx := types.NewTransaction(uint64(0), testEthAddrs[1], new(big.Int).Mul(firstTxAmount, big.NewInt(4)), 21000, big.NewInt(testMinGasPrice*3), nil)
-	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0])
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0].ToECDSA())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -2026,7 +2022,7 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 
 	// Submit a successful transaction
 	tx0 := types.NewTransaction(uint64(0), testEthAddrs[0], big.NewInt(1), 21000, big.NewInt(testMinGasPrice), nil)
-	signedTx0, err := types.SignTx(tx0, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0])
+	signedTx0, err := types.SignTx(tx0, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0].ToECDSA())
 	require.NoError(t, err)
 
 	errs := vm.txPool.AddRemotesSync([]*types.Transaction{signedTx0})
@@ -2036,7 +2032,7 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 
 	// Submit a rejected transaction, should throw an error
 	tx1 := types.NewTransaction(uint64(0), testEthAddrs[1], big.NewInt(2), 21000, big.NewInt(testMinGasPrice), nil)
-	signedTx1, err := types.SignTx(tx1, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[1])
+	signedTx1, err := types.SignTx(tx1, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[1].ToECDSA())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -2048,7 +2044,7 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 
 	// Submit a rejected transaction, should throw an error because manager is not activated
 	tx2 := types.NewTransaction(uint64(0), managerAddress, big.NewInt(2), 21000, big.NewInt(testMinGasPrice), nil)
-	signedTx2, err := types.SignTx(tx2, types.NewEIP155Signer(vm.chainConfig.ChainID), managerKey)
+	signedTx2, err := types.SignTx(tx2, types.NewEIP155Signer(vm.chainConfig.ChainID), managerKey.ToECDSA())
 	require.NoError(t, err)
 
 	errs = vm.txPool.AddRemotesSync([]*types.Transaction{signedTx2})
@@ -2073,7 +2069,7 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 
 	// Re-Submit a successful transaction
 	tx0 = types.NewTransaction(uint64(1), testEthAddrs[0], big.NewInt(1), 21000, big.NewInt(testMinGasPrice), nil)
-	signedTx0, err = types.SignTx(tx0, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0])
+	signedTx0, err = types.SignTx(tx0, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0].ToECDSA())
 	require.NoError(t, err)
 
 	errs = vm.txPool.AddRemotesSync([]*types.Transaction{signedTx0})
@@ -2097,7 +2093,7 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 	vm.clock.Set(vm.clock.Time().Add(2 * time.Second)) // add 2 seconds for gas fee to adjust
 	// Submit a successful transaction, should not throw an error because manager is activated
 	tx3 := types.NewTransaction(uint64(0), managerAddress, big.NewInt(1), 21000, big.NewInt(testMinGasPrice), nil)
-	signedTx3, err := types.SignTx(tx3, types.NewEIP155Signer(vm.chainConfig.ChainID), managerKey)
+	signedTx3, err := types.SignTx(tx3, types.NewEIP155Signer(vm.chainConfig.ChainID), managerKey.ToECDSA())
 	require.NoError(t, err)
 
 	vm.clock.Set(vm.clock.Time().Add(2 * time.Second)) // add 2 seconds for gas fee to adjust
@@ -2240,7 +2236,7 @@ func TestTxAllowListDisablePrecompile(t *testing.T) {
 
 	// Submit a successful transaction
 	tx0 := types.NewTransaction(uint64(0), testEthAddrs[0], big.NewInt(1), 21000, big.NewInt(testMinGasPrice), nil)
-	signedTx0, err := types.SignTx(tx0, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0])
+	signedTx0, err := types.SignTx(tx0, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0].ToECDSA())
 	require.NoError(t, err)
 
 	errs := vm.txPool.AddRemotesSync([]*types.Transaction{signedTx0})
@@ -2250,7 +2246,7 @@ func TestTxAllowListDisablePrecompile(t *testing.T) {
 
 	// Submit a rejected transaction, should throw an error
 	tx1 := types.NewTransaction(uint64(0), testEthAddrs[1], big.NewInt(2), 21000, big.NewInt(testMinGasPrice), nil)
-	signedTx1, err := types.SignTx(tx1, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[1])
+	signedTx1, err := types.SignTx(tx1, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[1].ToECDSA())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -2373,7 +2369,7 @@ func TestFeeManagerChangeFee(t *testing.T) {
 		Data:      data,
 	})
 
-	signedTx, err := types.SignTx(tx, types.LatestSigner(genesis.Config), testKeys[0])
+	signedTx, err := types.SignTx(tx, types.LatestSigner(genesis.Config), testKeys[0].ToECDSA())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -2408,7 +2404,7 @@ func TestFeeManagerChangeFee(t *testing.T) {
 		Data:      data,
 	})
 
-	signedTx2, err := types.SignTx(tx2, types.LatestSigner(genesis.Config), testKeys[0])
+	signedTx2, err := types.SignTx(tx2, types.LatestSigner(genesis.Config), testKeys[0].ToECDSA())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -2441,7 +2437,7 @@ func TestAllowFeeRecipientDisabled(t *testing.T) {
 	vm.txPool.SubscribeNewReorgEvent(newTxPoolHeadChan)
 
 	tx := types.NewTransaction(uint64(0), testEthAddrs[1], new(big.Int).Mul(firstTxAmount, big.NewInt(4)), 21000, big.NewInt(testMinGasPrice*3), nil)
-	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0])
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0].ToECDSA())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -2509,7 +2505,7 @@ func TestAllowFeeRecipientEnabled(t *testing.T) {
 	vm.txPool.SubscribeNewReorgEvent(newTxPoolHeadChan)
 
 	tx := types.NewTransaction(uint64(0), testEthAddrs[1], new(big.Int).Mul(firstTxAmount, big.NewInt(4)), 21000, big.NewInt(testMinGasPrice*3), nil)
-	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0])
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0].ToECDSA())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -2592,7 +2588,7 @@ func TestRewardManagerPrecompileSetRewardAddress(t *testing.T) {
 
 	tx := types.NewTransaction(uint64(0), rewardmanager.ContractAddress, big.NewInt(1), gas, big.NewInt(testMinGasPrice), data)
 
-	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0])
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0].ToECDSA())
 	require.NoError(t, err)
 
 	txErrors := vm.txPool.AddRemotesSync([]*types.Transaction{signedTx})
@@ -2607,7 +2603,7 @@ func TestRewardManagerPrecompileSetRewardAddress(t *testing.T) {
 	require.Equal(t, etherBase, ethBlock.Coinbase()) // reward address is activated at this block so this is fine
 
 	tx1 := types.NewTransaction(uint64(0), testEthAddrs[0], big.NewInt(2), 21000, big.NewInt(testMinGasPrice*3), nil)
-	signedTx1, err := types.SignTx(tx1, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[1])
+	signedTx1, err := types.SignTx(tx1, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[1].ToECDSA())
 	require.NoError(t, err)
 
 	txErrors = vm.txPool.AddRemotesSync([]*types.Transaction{signedTx1})
@@ -2634,7 +2630,7 @@ func TestRewardManagerPrecompileSetRewardAddress(t *testing.T) {
 	// issue a new block to trigger the upgrade
 	vm.clock.Set(disableTime) // upgrade takes effect after a block is issued, so we can set vm's clock here.
 	tx2 := types.NewTransaction(uint64(1), testEthAddrs[0], big.NewInt(2), 21000, big.NewInt(testMinGasPrice), nil)
-	signedTx2, err := types.SignTx(tx2, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[1])
+	signedTx2, err := types.SignTx(tx2, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[1].ToECDSA())
 	require.NoError(t, err)
 
 	txErrors = vm.txPool.AddRemotesSync([]*types.Transaction{signedTx2})
@@ -2655,7 +2651,7 @@ func TestRewardManagerPrecompileSetRewardAddress(t *testing.T) {
 	vm.clock.Set(vm.clock.Time().Add(3 * time.Hour)) // let time pass to decrease gas price
 	// issue another block to verify that the reward manager is disabled
 	tx2 = types.NewTransaction(uint64(2), testEthAddrs[0], big.NewInt(2), 21000, big.NewInt(testMinGasPrice), nil)
-	signedTx2, err = types.SignTx(tx2, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[1])
+	signedTx2, err = types.SignTx(tx2, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[1].ToECDSA())
 	require.NoError(t, err)
 
 	txErrors = vm.txPool.AddRemotesSync([]*types.Transaction{signedTx2})
@@ -2730,7 +2726,7 @@ func TestRewardManagerPrecompileAllowFeeRecipients(t *testing.T) {
 
 	tx := types.NewTransaction(uint64(0), rewardmanager.ContractAddress, big.NewInt(1), gas, big.NewInt(testMinGasPrice), data)
 
-	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0])
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0].ToECDSA())
 	require.NoError(t, err)
 
 	txErrors := vm.txPool.AddRemotesSync([]*types.Transaction{signedTx})
@@ -2745,7 +2741,7 @@ func TestRewardManagerPrecompileAllowFeeRecipients(t *testing.T) {
 	require.Equal(t, constants.BlackholeAddr, ethBlock.Coinbase()) // reward address is activated at this block so this is fine
 
 	tx1 := types.NewTransaction(uint64(0), testEthAddrs[0], big.NewInt(2), 21000, big.NewInt(testMinGasPrice*3), nil)
-	signedTx1, err := types.SignTx(tx1, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[1])
+	signedTx1, err := types.SignTx(tx1, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[1].ToECDSA())
 	require.NoError(t, err)
 
 	txErrors = vm.txPool.AddRemotesSync([]*types.Transaction{signedTx1})
@@ -2771,7 +2767,7 @@ func TestRewardManagerPrecompileAllowFeeRecipients(t *testing.T) {
 
 	vm.clock.Set(disableTime) // upgrade takes effect after a block is issued, so we can set vm's clock here.
 	tx2 := types.NewTransaction(uint64(1), testEthAddrs[0], big.NewInt(2), 21000, big.NewInt(testMinGasPrice), nil)
-	signedTx2, err := types.SignTx(tx2, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[1])
+	signedTx2, err := types.SignTx(tx2, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[1].ToECDSA())
 	require.NoError(t, err)
 
 	txErrors = vm.txPool.AddRemotesSync([]*types.Transaction{signedTx2})
@@ -2788,7 +2784,7 @@ func TestRewardManagerPrecompileAllowFeeRecipients(t *testing.T) {
 
 	vm.clock.Set(vm.clock.Time().Add(3 * time.Hour)) // let time pass so that gas price is reduced
 	tx2 = types.NewTransaction(uint64(2), testEthAddrs[0], big.NewInt(2), 21000, big.NewInt(testMinGasPrice), nil)
-	signedTx2, err = types.SignTx(tx2, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[1])
+	signedTx2, err = types.SignTx(tx2, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[1].ToECDSA())
 	require.NoError(t, err)
 
 	txErrors = vm.txPool.AddRemotesSync([]*types.Transaction{signedTx2})
@@ -2831,7 +2827,7 @@ func TestSkipChainConfigCheckCompatible(t *testing.T) {
 	key := testutils.NewKey(t)
 
 	tx := types.NewTransaction(uint64(0), key.Address, firstTxAmount, 21000, big.NewInt(testMinGasPrice), nil)
-	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0])
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0].ToECDSA())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -2934,7 +2930,7 @@ func TestParentBeaconRootBlock(t *testing.T) {
 			}()
 
 			tx := types.NewTransaction(uint64(0), testEthAddrs[1], firstTxAmount, 21000, big.NewInt(testMinGasPrice), nil)
-			signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0])
+			signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0].ToECDSA())
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -3024,7 +3020,7 @@ func TestStandaloneDB(t *testing.T) {
 	acceptedBlockEvent := make(chan core.ChainEvent, 1)
 	vm.blockChain.SubscribeChainAcceptedEvent(acceptedBlockEvent)
 	tx0 := types.NewTransaction(uint64(0), testEthAddrs[0], big.NewInt(1), 21000, big.NewInt(testMinGasPrice), nil)
-	signedTx0, err := types.SignTx(tx0, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0])
+	signedTx0, err := types.SignTx(tx0, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0].ToECDSA())
 	require.NoError(t, err)
 	errs := vm.txPool.AddRemotesSync([]*types.Transaction{signedTx0})
 	require.NoError(t, errs[0])
@@ -3085,7 +3081,7 @@ func TestFeeManagerRegressionMempoolMinFeeAfterRestart(t *testing.T) {
 		GasTipCap: common.Big0,
 		Data:      nil,
 	})
-	signedTx, err := types.SignTx(tx, types.LatestSigner(genesis.Config), testKeys[0])
+	signedTx, err := types.SignTx(tx, types.LatestSigner(genesis.Config), testKeys[0].ToECDSA())
 	require.NoError(t, err)
 
 	errs := vm.txPool.AddRemotesSync([]*types.Transaction{signedTx})
@@ -3106,7 +3102,7 @@ func TestFeeManagerRegressionMempoolMinFeeAfterRestart(t *testing.T) {
 	restartedVM.txPool.SubscribeNewReorgEvent(newTxPoolHeadChan)
 	restartedVM.clock.Set(utils.Uint64ToTime(precompileActivationTime).Add(time.Second * 10))
 	tx = types.NewTransaction(uint64(0), testEthAddrs[0], common.Big0, 21000, big.NewInt(testHighFeeConfig.MinBaseFee.Int64()), nil)
-	signedTx, err = types.SignTx(tx, types.LatestSigner(genesis.Config), testKeys[0])
+	signedTx, err = types.SignTx(tx, types.LatestSigner(genesis.Config), testKeys[0].ToECDSA())
 	require.NoError(t, err)
 	errs = restartedVM.txPool.AddRemotesSync([]*types.Transaction{signedTx})
 	require.NoError(t, errs[0])
@@ -3135,7 +3131,7 @@ func TestFeeManagerRegressionMempoolMinFeeAfterRestart(t *testing.T) {
 	})
 	// let some time pass for block gas cost
 	restartedVM.clock.Set(restartedVM.clock.Time().Add(time.Second * 10))
-	signedTx, err = types.SignTx(tx, types.LatestSigner(genesis.Config), testKeys[0])
+	signedTx, err = types.SignTx(tx, types.LatestSigner(genesis.Config), testKeys[0].ToECDSA())
 	require.NoError(t, err)
 	errs = restartedVM.txPool.AddRemotesSync([]*types.Transaction{signedTx})
 	require.NoError(t, errs[0])
@@ -3152,7 +3148,7 @@ func TestFeeManagerRegressionMempoolMinFeeAfterRestart(t *testing.T) {
 
 	// send another tx with low fee
 	tx = types.NewTransaction(uint64(2), testEthAddrs[0], common.Big0, 21000, big.NewInt(testLowFeeConfig.MinBaseFee.Int64()), nil)
-	signedTx, err = types.SignTx(tx, types.LatestSigner(genesis.Config), testKeys[0])
+	signedTx, err = types.SignTx(tx, types.LatestSigner(genesis.Config), testKeys[0].ToECDSA())
 	require.NoError(t, err)
 	errs = restartedVM.txPool.AddRemotesSync([]*types.Transaction{signedTx})
 	require.NoError(t, errs[0])
@@ -3169,7 +3165,7 @@ func TestFeeManagerRegressionMempoolMinFeeAfterRestart(t *testing.T) {
 	restartedVM.txPool.SubscribeNewReorgEvent(newTxPoolHeadChan)
 	// send a tx with low fee
 	tx = types.NewTransaction(uint64(3), testEthAddrs[0], common.Big0, 21000, big.NewInt(testLowFeeConfig.MinBaseFee.Int64()), nil)
-	signedTx, err = types.SignTx(tx, types.LatestSigner(genesis.Config), testKeys[0])
+	signedTx, err = types.SignTx(tx, types.LatestSigner(genesis.Config), testKeys[0].ToECDSA())
 	require.NoError(t, err)
 	errs = restartedVM.txPool.AddRemotesSync([]*types.Transaction{signedTx})
 	require.NoError(t, errs[0])

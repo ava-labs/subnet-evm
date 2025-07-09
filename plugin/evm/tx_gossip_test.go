@@ -118,9 +118,8 @@ func TestEthTxGossip(t *testing.T) {
 
 	// Issue a tx to the VM
 	address := testEthAddrs[0]
-	key := testKeys[0]
 	tx := types.NewTransaction(0, address, big.NewInt(10), 21000, big.NewInt(testMinGasPrice), nil)
-	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), key)
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0].ToECDSA())
 	require.NoError(err)
 
 	errs := vm.txPool.Add([]*types.Transaction{signedTx}, true, true)
@@ -182,9 +181,8 @@ func TestEthTxPushGossipOutbound(t *testing.T) {
 	}()
 
 	address := testEthAddrs[0]
-	key := testKeys[0]
 	tx := types.NewTransaction(0, address, big.NewInt(10), 21000, big.NewInt(testMinGasPrice), nil)
-	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), key)
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0].ToECDSA())
 	require.NoError(err)
 
 	// issue a tx
@@ -235,9 +233,8 @@ func TestEthTxPushGossipInbound(t *testing.T) {
 	}()
 
 	address := testEthAddrs[0]
-	key := testKeys[0]
 	tx := types.NewTransaction(0, address, big.NewInt(10), 21000, big.NewInt(testMinGasPrice), nil)
-	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), key)
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0].ToECDSA())
 	require.NoError(err)
 
 	marshaller := GossipEthTxMarshaller{}

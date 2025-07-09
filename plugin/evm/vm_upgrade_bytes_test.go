@@ -56,7 +56,7 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 
 	// Submit a successful transaction
 	tx0 := types.NewTransaction(uint64(0), testEthAddrs[0], big.NewInt(1), 21000, big.NewInt(testMinGasPrice), nil)
-	signedTx0, err := types.SignTx(tx0, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0])
+	signedTx0, err := types.SignTx(tx0, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0].ToECDSA())
 	assert.NoError(t, err)
 
 	errs := vm.txPool.AddRemotesSync([]*types.Transaction{signedTx0})
@@ -66,7 +66,7 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 
 	// Submit a rejected transaction, should throw an error
 	tx1 := types.NewTransaction(uint64(0), testEthAddrs[1], big.NewInt(2), 21000, big.NewInt(testMinGasPrice), nil)
-	signedTx1, err := types.SignTx(tx1, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[1])
+	signedTx1, err := types.SignTx(tx1, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[1].ToECDSA())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -293,7 +293,7 @@ func TestVMStateUpgrade(t *testing.T) {
 	// Submit a successful (unrelated) transaction, so we can build a block
 	// in this tx, testEthAddrs[1] sends 1 wei to itself.
 	tx0 := types.NewTransaction(uint64(0), testEthAddrs[1], big.NewInt(1), 21000, big.NewInt(testMinGasPrice), nil)
-	signedTx0, err := types.SignTx(tx0, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[1])
+	signedTx0, err := types.SignTx(tx0, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[1].ToECDSA())
 	require.NoError(t, err)
 
 	errs := vm.txPool.AddRemotesSync([]*types.Transaction{signedTx0})

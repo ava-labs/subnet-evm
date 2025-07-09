@@ -104,7 +104,7 @@ func TestSendWarpMessage(t *testing.T) {
 
 	// Submit a transaction to trigger sending a warp message
 	tx0 := types.NewTransaction(uint64(0), warpcontract.ContractAddress, big.NewInt(1), 100_000, big.NewInt(testMinGasPrice), warpSendMessageInput)
-	signedTx0, err := types.SignTx(tx0, types.LatestSignerForChainID(vm.chainConfig.ChainID), testKeys[0])
+	signedTx0, err := types.SignTx(tx0, types.LatestSignerForChainID(vm.chainConfig.ChainID), testKeys[0].ToECDSA())
 	require.NoError(err)
 
 	errs := vm.txPool.AddRemotesSync([]*types.Transaction{signedTx0})
@@ -347,7 +347,7 @@ func testWarpVMTransaction(t *testing.T, unsignedMessage *avalancheWarp.Unsigned
 	createTx, err := types.SignTx(
 		types.NewContractCreation(0, common.Big0, 7_000_000, big.NewInt(225*utils.GWei), common.Hex2Bytes(exampleWarpBin)),
 		types.LatestSignerForChainID(vm.chainConfig.ChainID),
-		testKeys[0],
+		testKeys[0].ToECDSA(),
 	)
 	require.NoError(err)
 	exampleWarpAddress := crypto.CreateAddress(testEthAddrs[0], 0)
@@ -367,7 +367,7 @@ func testWarpVMTransaction(t *testing.T, unsignedMessage *avalancheWarp.Unsigned
 			signedMessage.Bytes(),
 		),
 		types.LatestSignerForChainID(vm.chainConfig.ChainID),
-		testKeys[0],
+		testKeys[0].ToECDSA(),
 	)
 	require.NoError(err)
 	errs := vm.txPool.AddRemotesSync([]*types.Transaction{createTx, tx})
@@ -656,7 +656,7 @@ func testReceiveWarpMessage(
 			signedMessage.Bytes(),
 		),
 		types.LatestSignerForChainID(vm.chainConfig.ChainID),
-		testKeys[0],
+		testKeys[0].ToECDSA(),
 	)
 	require.NoError(err)
 	errs := vm.txPool.AddRemotesSync([]*types.Transaction{getVerifiedWarpMessageTx})
