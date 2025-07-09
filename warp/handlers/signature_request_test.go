@@ -12,7 +12,6 @@ import (
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow/snowtest"
 	"github.com/ava-labs/avalanchego/utils/crypto/bls"
-	"github.com/ava-labs/avalanchego/utils/crypto/bls/signer/localsigner"
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
 	"github.com/ava-labs/subnet-evm/internal/testutils"
@@ -29,9 +28,6 @@ func TestMessageSignatureHandler(t *testing.T) {
 
 	database := memdb.New()
 	snowCtx := snowtest.Context(t, snowtest.CChainID)
-	blsSecretKey, err := localsigner.New()
-	require.NoError(t, err)
-	warpSigner := avalancheWarp.NewSigner(blsSecretKey, snowCtx.NetworkID, snowCtx.ChainID)
 
 	addressedPayload, err := payload.NewAddressedCall([]byte{1, 2, 3}, []byte{1, 2, 3})
 	require.NoError(t, err)
@@ -39,7 +35,16 @@ func TestMessageSignatureHandler(t *testing.T) {
 	require.NoError(t, err)
 
 	messageSignatureCache := lru.NewCache[ids.ID, []byte](100)
-	backend, err := warp.NewBackend(snowCtx.NetworkID, snowCtx.ChainID, warpSigner, warptest.EmptyBlockClient, warptest.NoOpValidatorReader{}, database, messageSignatureCache, [][]byte{offchainMessage.Bytes()})
+	backend, err := warp.NewBackend(
+		snowCtx.NetworkID,
+		snowCtx.ChainID,
+		snowCtx.WarpSigner,
+		warptest.EmptyBlockClient,
+		nil,
+		database,
+		messageSignatureCache,
+		[][]byte{offchainMessage.Bytes()},
+	)
 	require.NoError(t, err)
 
 	msg, err := avalancheWarp.NewUnsignedMessage(snowCtx.NetworkID, snowCtx.ChainID, []byte("test"))
@@ -135,17 +140,14 @@ func TestBlockSignatureHandler(t *testing.T) {
 
 	database := memdb.New()
 	snowCtx := snowtest.Context(t, snowtest.CChainID)
-	blsSecretKey, err := localsigner.New()
-	require.NoError(t, err)
 
-	warpSigner := avalancheWarp.NewSigner(blsSecretKey, snowCtx.NetworkID, snowCtx.ChainID)
 	blkID := ids.GenerateTestID()
 	blockClient := warptest.MakeBlockClient(blkID)
 	messageSignatureCache := lru.NewCache[ids.ID, []byte](100)
 	backend, err := warp.NewBackend(
 		snowCtx.NetworkID,
 		snowCtx.ChainID,
-		warpSigner,
+		snowCtx.WarpSigner,
 		blockClient,
 		warptest.NoOpValidatorReader{},
 		database,
