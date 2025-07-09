@@ -16,7 +16,6 @@ import (
 	"github.com/ava-labs/subnet-evm/core/txpool"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/holiman/uint256"
-	"go.uber.org/zap"
 )
 
 const (
@@ -115,15 +114,11 @@ func (b *blockBuilder) waitForEvent(ctx context.Context) (commonEng.Message, err
 	}
 	timeSinceLastBuildTime := time.Since(lastBuildTime)
 	if b.lastBuildTime.IsZero() || timeSinceLastBuildTime >= minBlockBuildingRetryDelay {
-		b.ctx.Log.Debug("Last time we built a block was long enough ago, no need to wait",
-			zap.Duration("timeSinceLastBuildTime", timeSinceLastBuildTime),
-		)
+		log.Debug("Last time we built a block was long enough ago, no need to wait", "timeSinceLastBuildTime", timeSinceLastBuildTime)
 		return commonEng.PendingTxs, nil
 	}
 	timeUntilNextBuild := minBlockBuildingRetryDelay - timeSinceLastBuildTime
-	b.ctx.Log.Debug("Last time we built a block was too recent, waiting",
-		zap.Duration("timeUntilNextBuild", timeUntilNextBuild),
-	)
+	log.Debug("Last time we built a block was too recent, waiting", "timeUntilNextBuild", timeUntilNextBuild)
 	select {
 	case <-ctx.Done():
 		return 0, ctx.Err()
