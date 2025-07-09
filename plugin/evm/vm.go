@@ -149,7 +149,6 @@ var (
 
 var (
 	errEmptyBlock                    = errors.New("empty block")
-	errUnsupportedFXs                = errors.New("unsupported feature extensions")
 	errInvalidBlock                  = errors.New("invalid block")
 	errInvalidNonce                  = errors.New("invalid nonce")
 	errUnclesUnsupported             = errors.New("uncles unsupported")
@@ -282,7 +281,7 @@ func (vm *VM) Initialize(
 	upgradeBytes []byte,
 	configBytes []byte,
 	toEngine chan<- commonEng.Message,
-	fxs []*commonEng.Fx,
+	_ []*commonEng.Fx,
 	appSender commonEng.AppSender,
 ) error {
 	vm.config.SetDefaults(defaultTxPoolConfig)

@@ -2344,7 +2344,7 @@ func TestTxAllowListDisablePrecompile(t *testing.T) {
 
 	tvm := newVM(t, testVMConfig{
 		genesisJSON: string(genesisJSON),
-		upgradeJSON: string(upgradeConfig),
+		upgradeJSON: upgradeConfig,
 	})
 
 	tvm.vm.clock.Set(disableAllowListTimestamp) // upgrade takes effect after a block is issued, so we can set vm's clock here.
@@ -2968,7 +2968,7 @@ func TestSkipChainConfigCheckCompatible(t *testing.T) {
 	t.Skip("no skippable upgrades")
 
 	tvm := newVM(t, testVMConfig{
-		genesisJSON: string(genesisJSONPreSubnetEVM),
+		genesisJSON: genesisJSONPreSubnetEVM,
 		configJSON:  `{"pruning-enabled":true}`,
 	})
 
