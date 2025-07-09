@@ -754,7 +754,7 @@ func testReceiveWarpMessage(
 
 func TestMessageSignatureRequestsToVM(t *testing.T) {
 	tvm := newVM(t, testVMConfig{
-		genesisJSON: string(genesisJSONSubnetEVM),
+		genesisJSON: genesisJSONSubnetEVM,
 	})
 
 	defer func() {
@@ -817,7 +817,7 @@ func TestMessageSignatureRequestsToVM(t *testing.T) {
 
 func TestBlockSignatureRequestsToVM(t *testing.T) {
 	tvm := newVM(t, testVMConfig{
-		genesisJSON: string(genesisJSONSubnetEVM),
+		genesisJSON: genesisJSONSubnetEVM,
 	})
 
 	defer func() {

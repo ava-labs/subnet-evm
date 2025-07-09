@@ -218,7 +218,6 @@ func setupGenesis(
 	chan commonEng.Message,
 	*atomic.Memory,
 ) {
-
 	ctx := utilstest.NewTestSnowContext(t, snowtest.CChainID)
 
 	var genesisJSON string
@@ -3272,10 +3271,13 @@ func TestFeeManagerRegressionMempoolMinFeeAfterRestart(t *testing.T) {
 	newHead := <-newTxPoolHeadChan
 	require.Equal(t, newHead.Head.Hash(), common.Hash(blk.ID()))
 	// Contract is initialized but no preconfig is given, reader should return genesis fee config
-	feeConfig, lastChangedAt, err := restartedVM.blockChain.GetFeeConfigAt(restartedVM.blockChain.Genesis().Header())
+	// We must query the current block header here (not genesis) because the FeeManager precompile
+	// is only activated at precompileActivationTime, not at genesis. Querying the genesis header would
+	// return the chain config fee config and lastChangedAt as zero, which is not correct after activation.
+	feeConfig, lastChangedAt, err := restartedVM.blockChain.GetFeeConfigAt(restartedVM.blockChain.CurrentBlock())
 	require.NoError(t, err)
 	require.EqualValues(t, feeConfig, testHighFeeConfig)
-	require.Zero(t, restartedVM.blockChain.CurrentBlock().Number.Cmp(lastChangedAt))
+	require.EqualValues(t, restartedVM.blockChain.CurrentBlock().Number, lastChangedAt)
 
 	// set a lower fee config now through feemanager
 	testLowFeeConfig := testHighFeeConfig

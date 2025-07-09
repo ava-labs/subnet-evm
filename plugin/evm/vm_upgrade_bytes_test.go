@@ -53,7 +53,7 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 
 	// initialize the VM with these upgrade bytes
 	tvm := newVM(t, testVMConfig{
-		genesisJSON: string(genesisJSONSubnetEVM),
+		genesisJSON: genesisJSONSubnetEVM,
 		upgradeJSON: string(upgradeBytesJSON),
 	})
 
