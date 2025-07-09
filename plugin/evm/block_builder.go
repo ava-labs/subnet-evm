@@ -35,7 +35,6 @@ type blockBuilder struct {
 
 	pendingSignal *lock.Cond
 
-	// [buildBlockLock] must be held when accessing [buildSent]
 	buildBlockLock sync.Mutex
 
 	// lastBuildTime is the time when the last block was built.
@@ -72,8 +71,7 @@ func (b *blockBuilder) needToBuild() bool {
 	return size > 0
 }
 
-// markBuilding adds a PendingTxs message to the toEngine channel.
-// markBuilding assumes the [buildBlockLock] is held.
+// signalCanBuild signals that a new block can be built.
 func (b *blockBuilder) signalCanBuild() {
 	b.buildBlockLock.Lock()
 	defer b.buildBlockLock.Unlock()
