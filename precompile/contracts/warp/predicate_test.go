@@ -187,7 +187,7 @@ func createSnowCtx(tb testing.TB, validatorRanges []validatorRange) *snow.Contex
 		}
 	}
 
-	snowCtx := snowtest.Context(tb, snowtest.CChainID)
+	snowCtx := utilstest.NewTestSnowContext(tb, snowtest.CChainID)
 	state := &validatorstest.State{
 		GetSubnetIDF: func(ctx context.Context, chainID ids.ID) (ids.ID, error) {
 			return sourceSubnetID, nil
@@ -667,7 +667,7 @@ func makeWarpPredicateTests(tb testing.TB) map[string]testutils.PredicateTest {
 			}
 		}
 
-		snowCtx := snowtest.Context(tb, snowtest.CChainID)
+		snowCtx := utilstest.NewTestSnowContext(tb, snowtest.CChainID)
 
 		state := &validatorstest.State{
 			GetSubnetIDF: func(ctx context.Context, chainID ids.ID) (ids.ID, error) {

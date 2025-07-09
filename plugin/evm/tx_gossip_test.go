@@ -21,6 +21,7 @@ import (
 	"github.com/ava-labs/avalanchego/snow/engine/enginetest"
 	"github.com/ava-labs/avalanchego/snow/snowtest"
 	"github.com/ava-labs/avalanchego/snow/validators"
+	"github.com/ava-labs/avalanchego/upgrade/upgradetest"
 	agoUtils "github.com/ava-labs/avalanchego/utils"
 	"github.com/ava-labs/avalanchego/utils/logging"
 	"github.com/ava-labs/avalanchego/utils/set"
@@ -52,7 +53,7 @@ func TestEthTxGossip(t *testing.T) {
 		ctx,
 		snowCtx,
 		memdb.New(),
-		[]byte(genesisJSONLatest),
+		[]byte(toGenesisJSON(forkToChainConfig[upgradetest.Latest])),
 		nil,
 		nil,
 		make(chan common.Message),
@@ -167,7 +168,7 @@ func TestEthTxPushGossipOutbound(t *testing.T) {
 		ctx,
 		snowCtx,
 		memdb.New(),
-		[]byte(genesisJSONLatest),
+		[]byte(toGenesisJSON(forkToChainConfig[upgradetest.Latest])),
 		nil,
 		nil,
 		make(chan common.Message),
@@ -219,7 +220,7 @@ func TestEthTxPushGossipInbound(t *testing.T) {
 		ctx,
 		snowCtx,
 		memdb.New(),
-		[]byte(genesisJSONLatest),
+		[]byte(toGenesisJSON(forkToChainConfig[upgradetest.Latest])),
 		nil,
 		nil,
 		make(chan common.Message),
