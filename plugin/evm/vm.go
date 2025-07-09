@@ -815,8 +815,10 @@ func (vm *VM) onNormalOperationsStarted() error {
 	}
 
 	// NOTE: gossip network must be initialized first otherwise ETH tx gossip will not work.
+	vm.builderLock.Lock()
 	vm.builder = vm.NewBlockBuilder()
 	vm.builder.awaitSubmittedTxs()
+	vm.builderLock.Unlock()
 
 	if vm.ethTxGossipHandler == nil {
 		vm.ethTxGossipHandler = newTxGossipHandler[*GossipEthTx](
