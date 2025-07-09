@@ -281,7 +281,7 @@ func (vm *VM) Initialize(
 	upgradeBytes []byte,
 	configBytes []byte,
 	toEngine chan<- commonEng.Message,
-	_ []*commonEng.Fx,
+	fxs []*commonEng.Fx,
 	appSender commonEng.AppSender,
 ) error {
 	vm.config.SetDefaults(defaultTxPoolConfig)
@@ -318,10 +318,6 @@ func (vm *VM) Initialize(
 
 	if deprecateMsg != "" {
 		log.Warn("Deprecation Warning", "msg", deprecateMsg)
-	}
-
-	if len(fxs) > 0 {
-		return errUnsupportedFXs
 	}
 
 	// Enable debug-level metrics that might impact runtime performance
