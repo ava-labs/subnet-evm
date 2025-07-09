@@ -10,13 +10,13 @@ import (
 	"github.com/ava-labs/avalanchego/cache/lru"
 	"github.com/ava-labs/avalanchego/database/memdb"
 	"github.com/ava-labs/avalanchego/ids"
+	"github.com/ava-labs/avalanchego/snow/snowtest"
 	"github.com/ava-labs/avalanchego/utils/crypto/bls"
 	"github.com/ava-labs/avalanchego/utils/crypto/bls/signer/localsigner"
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
 	"github.com/ava-labs/subnet-evm/internal/testutils"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
-	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ava-labs/subnet-evm/warp"
 	"github.com/ava-labs/subnet-evm/warp/warptest"
 	"github.com/stretchr/testify/require"
@@ -28,7 +28,7 @@ func TestMessageSignatureHandler(t *testing.T) {
 	testutils.WithMetrics(t)
 
 	database := memdb.New()
-	snowCtx := utils.TestSnowContext()
+	snowCtx := snowtest.Context(t, snowtest.CChainID)
 	blsSecretKey, err := localsigner.New()
 	require.NoError(t, err)
 	warpSigner := avalancheWarp.NewSigner(blsSecretKey, snowCtx.NetworkID, snowCtx.ChainID)
@@ -134,7 +134,7 @@ func TestBlockSignatureHandler(t *testing.T) {
 	testutils.WithMetrics(t)
 
 	database := memdb.New()
-	snowCtx := utils.TestSnowContext()
+	snowCtx := snowtest.Context(t, snowtest.CChainID)
 	blsSecretKey, err := localsigner.New()
 	require.NoError(t, err)
 

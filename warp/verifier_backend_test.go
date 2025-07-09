@@ -16,6 +16,7 @@ import (
 	"github.com/ava-labs/avalanchego/network/p2p/acp118"
 	"github.com/ava-labs/avalanchego/proto/pb/sdk"
 	"github.com/ava-labs/avalanchego/snow/engine/common"
+	"github.com/ava-labs/avalanchego/snow/snowtest"
 	"github.com/ava-labs/avalanchego/utils/crypto/bls/signer/localsigner"
 	"github.com/ava-labs/avalanchego/utils/timer/mockable"
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
@@ -23,7 +24,6 @@ import (
 	"github.com/ava-labs/subnet-evm/internal/testutils"
 	"github.com/ava-labs/subnet-evm/plugin/evm/validators"
 	stateinterfaces "github.com/ava-labs/subnet-evm/plugin/evm/validators/state/interfaces"
-	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ava-labs/subnet-evm/warp/messages"
 	"github.com/ava-labs/subnet-evm/warp/warptest"
 	"github.com/stretchr/testify/require"
@@ -34,7 +34,7 @@ func TestAddressedCallSignatures(t *testing.T) {
 	testutils.WithMetrics(t)
 
 	database := memdb.New()
-	snowCtx := utils.TestSnowContext()
+	snowCtx := snowtest.Context(t, snowtest.CChainID)
 	blsSecretKey, err := localsigner.New()
 	require.NoError(t, err)
 	warpSigner := avalancheWarp.NewSigner(blsSecretKey, snowCtx.NetworkID, snowCtx.ChainID)
@@ -150,7 +150,7 @@ func TestBlockSignatures(t *testing.T) {
 	testutils.WithMetrics(t)
 
 	database := memdb.New()
-	snowCtx := utils.TestSnowContext()
+	snowCtx := snowtest.Context(t, snowtest.CChainID)
 	blsSecretKey, err := localsigner.New()
 	require.NoError(t, err)
 
@@ -268,7 +268,7 @@ func TestBlockSignatures(t *testing.T) {
 
 func TestUptimeSignatures(t *testing.T) {
 	database := memdb.New()
-	snowCtx := utils.TestSnowContext()
+	snowCtx := snowtest.Context(t, snowtest.CChainID)
 	blsSecretKey, err := localsigner.New()
 	require.NoError(t, err)
 	warpSigner := avalancheWarp.NewSigner(blsSecretKey, snowCtx.NetworkID, snowCtx.ChainID)
@@ -294,7 +294,7 @@ func TestUptimeSignatures(t *testing.T) {
 		} else {
 			sigCache = &cache.Empty[ids.ID, []byte]{}
 		}
-		chainCtx := utils.TestSnowContext()
+		chainCtx := snowtest.Context(t, snowtest.CChainID)
 		clk := &mockable.Clock{}
 		validatorsManager, err := validators.NewManager(chainCtx, memdb.New(), clk)
 		require.NoError(t, err)
