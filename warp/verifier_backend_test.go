@@ -23,6 +23,7 @@ import (
 	"github.com/ava-labs/subnet-evm/internal/testutils"
 	"github.com/ava-labs/subnet-evm/plugin/evm/validators"
 	stateinterfaces "github.com/ava-labs/subnet-evm/plugin/evm/validators/state/interfaces"
+	"github.com/ava-labs/subnet-evm/utils/utilstest"
 	"github.com/ava-labs/subnet-evm/warp/messages"
 	"github.com/ava-labs/subnet-evm/warp/warptest"
 	"github.com/stretchr/testify/require"
@@ -33,7 +34,7 @@ func TestAddressedCallSignatures(t *testing.T) {
 	testutils.WithMetrics(t)
 
 	database := memdb.New()
-	snowCtx := snowtest.Context(t, snowtest.CChainID)
+	snowCtx := utilstest.NewTestSnowContext(t, snowtest.CChainID)
 
 	offChainPayload, err := payload.NewAddressedCall([]byte{1, 2, 3}, []byte{1, 2, 3})
 	require.NoError(t, err)
@@ -155,7 +156,7 @@ func TestBlockSignatures(t *testing.T) {
 	testutils.WithMetrics(t)
 
 	database := memdb.New()
-	snowCtx := snowtest.Context(t, snowtest.CChainID)
+	snowCtx := utilstest.NewTestSnowContext(t, snowtest.CChainID)
 
 	knownBlkID := ids.GenerateTestID()
 	blockClient := warptest.MakeBlockClient(knownBlkID)
@@ -270,7 +271,7 @@ func TestBlockSignatures(t *testing.T) {
 
 func TestUptimeSignatures(t *testing.T) {
 	database := memdb.New()
-	snowCtx := snowtest.Context(t, snowtest.CChainID)
+	snowCtx := utilstest.NewTestSnowContext(t, snowtest.CChainID)
 
 	getUptimeMessageBytes := func(sourceAddress []byte, vID ids.ID, totalUptime uint64) ([]byte, *avalancheWarp.UnsignedMessage) {
 		uptimePayload, err := messages.NewValidatorUptime(vID, 80)
@@ -293,7 +294,7 @@ func TestUptimeSignatures(t *testing.T) {
 		} else {
 			sigCache = &cache.Empty[ids.ID, []byte]{}
 		}
-		chainCtx := snowtest.Context(t, snowtest.CChainID)
+		chainCtx := utilstest.NewTestSnowContext(t, snowtest.CChainID)
 		clk := &mockable.Clock{}
 		validatorsManager, err := validators.NewManager(chainCtx, memdb.New(), clk)
 		require.NoError(t, err)

@@ -58,6 +58,7 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/contracts/txallowlist"
 	"github.com/ava-labs/subnet-evm/rpc"
 	"github.com/ava-labs/subnet-evm/utils"
+	"github.com/ava-labs/subnet-evm/utils/utilstest"
 
 	avagoconstants "github.com/ava-labs/avalanchego/utils/constants"
 )
@@ -125,7 +126,7 @@ func setupGenesis(
 	if len(genesisJSON) == 0 {
 		genesisJSON = genesisJSONLatest
 	}
-	ctx := snowtest.Context(t, snowtest.CChainID)
+	ctx := utilstest.NewTestSnowContext(t, snowtest.CChainID)
 
 	baseDB := memdb.New()
 
@@ -389,7 +390,7 @@ func TestBuildEthTxBlock(t *testing.T) {
 
 	if err := restartedVM.Initialize(
 		context.Background(),
-		snowtest.Context(t, snowtest.CChainID),
+		utilstest.NewTestSnowContext(t, snowtest.CChainID),
 		dbManager,
 		[]byte(genesisJSONSubnetEVM),
 		[]byte(""),
@@ -2982,7 +2983,7 @@ func TestParentBeaconRootBlock(t *testing.T) {
 
 func TestStandaloneDB(t *testing.T) {
 	vm := &VM{}
-	ctx := snowtest.Context(t, snowtest.CChainID)
+	ctx := utilstest.NewTestSnowContext(t, snowtest.CChainID)
 	baseDB := memdb.New()
 	atomicMemory := atomic.NewMemory(prefixdb.New([]byte{0}, baseDB))
 	ctx.SharedMemory = atomicMemory.NewSharedMemory(ctx.ChainID)

@@ -26,6 +26,7 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/testutils"
 	"github.com/ava-labs/subnet-evm/predicate"
 	"github.com/ava-labs/subnet-evm/utils"
+	"github.com/ava-labs/subnet-evm/utils/utilstest"
 	"github.com/stretchr/testify/require"
 )
 
@@ -259,7 +260,7 @@ func testWarpMessageFromPrimaryNetwork(t *testing.T, requirePrimaryNetworkSigner
 
 	predicateBytes := predicate.PackPredicate(warpMsg.Bytes())
 
-	snowCtx := snowtest.Context(t, snowtest.CChainID)
+	snowCtx := utilstest.NewTestSnowContext(t, snowtest.CChainID)
 	snowCtx.SubnetID = ids.GenerateTestID()
 	snowCtx.ChainID = ids.GenerateTestID()
 	snowCtx.CChainID = cChainID

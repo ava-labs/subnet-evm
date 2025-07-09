@@ -31,12 +31,13 @@ import (
 
 	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/subnet-evm/utils"
+	"github.com/ava-labs/subnet-evm/utils/utilstest"
 )
 
 func TestEthTxGossip(t *testing.T) {
 	require := require.New(t)
 	ctx := context.Background()
-	snowCtx := snowtest.Context(t, snowtest.CChainID)
+	snowCtx := utilstest.NewTestSnowContext(t, snowtest.CChainID)
 	validatorState := utils.NewTestValidatorState()
 	snowCtx.ValidatorState = validatorState
 
@@ -154,7 +155,7 @@ func TestEthTxGossip(t *testing.T) {
 func TestEthTxPushGossipOutbound(t *testing.T) {
 	require := require.New(t)
 	ctx := context.Background()
-	snowCtx := snowtest.Context(t, snowtest.CChainID)
+	snowCtx := utilstest.NewTestSnowContext(t, snowtest.CChainID)
 	sender := &enginetest.SenderStub{
 		SentAppGossip: make(chan []byte, 1),
 	}
@@ -209,7 +210,7 @@ func TestEthTxPushGossipOutbound(t *testing.T) {
 func TestEthTxPushGossipInbound(t *testing.T) {
 	require := require.New(t)
 	ctx := context.Background()
-	snowCtx := snowtest.Context(t, snowtest.CChainID)
+	snowCtx := utilstest.NewTestSnowContext(t, snowtest.CChainID)
 
 	sender := &enginetest.Sender{}
 	vm := &VM{

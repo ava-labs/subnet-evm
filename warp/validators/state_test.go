@@ -12,6 +12,7 @@ import (
 	"github.com/ava-labs/avalanchego/snow/validators"
 	"github.com/ava-labs/avalanchego/snow/validators/validatorsmock"
 	"github.com/ava-labs/avalanchego/utils/constants"
+	"github.com/ava-labs/subnet-evm/utils/utilstest"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
@@ -24,7 +25,7 @@ func TestGetValidatorSetPrimaryNetwork(t *testing.T) {
 	otherSubnetID := ids.GenerateTestID()
 
 	mockState := validatorsmock.NewState(ctrl)
-	snowCtx := snowtest.Context(t, snowtest.CChainID)
+	snowCtx := utilstest.NewTestSnowContext(t, snowtest.CChainID)
 	snowCtx.SubnetID = mySubnetID
 	snowCtx.ValidatorState = mockState
 	state := NewState(snowCtx.ValidatorState, snowCtx.SubnetID, snowCtx.ChainID, false)

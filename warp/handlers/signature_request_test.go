@@ -16,6 +16,7 @@ import (
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
 	"github.com/ava-labs/subnet-evm/internal/testutils"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
+	"github.com/ava-labs/subnet-evm/utils/utilstest"
 	"github.com/ava-labs/subnet-evm/warp"
 	"github.com/ava-labs/subnet-evm/warp/warptest"
 	"github.com/stretchr/testify/require"
@@ -27,7 +28,7 @@ func TestMessageSignatureHandler(t *testing.T) {
 	testutils.WithMetrics(t)
 
 	database := memdb.New()
-	snowCtx := snowtest.Context(t, snowtest.CChainID)
+	snowCtx := utilstest.NewTestSnowContext(t, snowtest.CChainID)
 
 	addressedPayload, err := payload.NewAddressedCall([]byte{1, 2, 3}, []byte{1, 2, 3})
 	require.NoError(t, err)
@@ -139,7 +140,7 @@ func TestBlockSignatureHandler(t *testing.T) {
 	testutils.WithMetrics(t)
 
 	database := memdb.New()
-	snowCtx := snowtest.Context(t, snowtest.CChainID)
+	snowCtx := utilstest.NewTestSnowContext(t, snowtest.CChainID)
 
 	blkID := ids.GenerateTestID()
 	blockClient := warptest.MakeBlockClient(blkID)

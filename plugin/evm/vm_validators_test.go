@@ -17,6 +17,7 @@ import (
 	"github.com/ava-labs/avalanchego/snow/validators/validatorstest"
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/plugin/evm/validators"
+	"github.com/ava-labs/subnet-evm/utils/utilstest"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -99,7 +100,7 @@ func TestValidatorState(t *testing.T) {
 	vm = &VM{}
 	err = vm.Initialize(
 		context.Background(),
-		snowtest.Context(t, snowtest.CChainID), // this context does not have validators state, making VM to source it from the database
+		utilstest.NewTestSnowContext(t, snowtest.CChainID), // this context does not have validators state, making VM to source it from the database
 		dbManager,
 		genesisBytes,
 		[]byte(""),
