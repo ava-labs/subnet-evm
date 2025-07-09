@@ -220,7 +220,16 @@ func setupGenesis(
 ) {
 
 	ctx := utilstest.NewTestSnowContext(t, snowtest.CChainID)
-	ctx.NetworkUpgrades = upgradetest.GetConfig(fork)
+
+	var genesisJSON string
+	if fork == 0 { // 0 is passed when no fork can be specificied
+		genesisJSON = fallbackGenesisJSON
+		// For fallback genesis, use the latest network upgrades to match the chain config
+		ctx.NetworkUpgrades = upgradetest.GetConfig(upgradetest.Latest)
+	} else {
+		genesisJSON = toGenesisJSON(forkToChainConfig[fork])
+		ctx.NetworkUpgrades = upgradetest.GetConfig(fork)
+	}
 
 	baseDB := memdb.New()
 
@@ -234,13 +243,6 @@ func setupGenesis(
 
 	issuer := make(chan commonEng.Message, 1)
 	prefixedDB := prefixdb.New([]byte{1}, baseDB)
-
-	var genesisJSON string
-	if fork == 0 { // 0 is passed when no fork can be specificied
-		genesisJSON = fallbackGenesisJSON
-	} else {
-		genesisJSON = toGenesisJSON(forkToChainConfig[fork])
-	}
 
 	return ctx, prefixedDB, []byte(genesisJSON), issuer, atomicMemory
 }
