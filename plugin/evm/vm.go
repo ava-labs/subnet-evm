@@ -149,6 +149,7 @@ var (
 
 var (
 	errEmptyBlock                    = errors.New("empty block")
+	errUnsupportedFXs                = errors.New("unsupported feature extensions")
 	errInvalidBlock                  = errors.New("invalid block")
 	errInvalidNonce                  = errors.New("invalid nonce")
 	errUnclesUnsupported             = errors.New("uncles unsupported")
@@ -318,6 +319,10 @@ func (vm *VM) Initialize(
 
 	if deprecateMsg != "" {
 		log.Warn("Deprecation Warning", "msg", deprecateMsg)
+	}
+
+	if len(fxs) > 0 {
+		return errUnsupportedFXs
 	}
 
 	// Enable debug-level metrics that might impact runtime performance
