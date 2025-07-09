@@ -13,6 +13,8 @@ import (
 	"github.com/ava-labs/avalanchego/utils/constants"
 )
 
+// @TODO: This should eventually be replaced by a more robust solution, or alternatively, the presence of nil
+// validator states shouldn't be depended upon by tests
 func NewTestValidatorState() *validatorstest.State {
 	return &validatorstest.State{
 		GetCurrentHeightF: func(context.Context) (uint64, error) {

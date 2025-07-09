@@ -9,6 +9,7 @@ import (
 	"math/big"
 
 	"github.com/ava-labs/avalanchego/snow"
+	"github.com/ava-labs/avalanchego/snow/snowtest"
 	"github.com/ava-labs/avalanchego/upgrade"
 	"github.com/ava-labs/avalanchego/utils/constants"
 	"github.com/ava-labs/libevm/common"
@@ -38,6 +39,13 @@ var (
 	}
 
 	TestChainConfig = &ChainConfig{
+		AvalancheContext: AvalancheContext{
+			SnowCtx: &snow.Context{
+				NetworkID:       constants.UnitTestID,
+				ChainID:         snowtest.CChainID,
+				NetworkUpgrades: upgrade.GetConfig(constants.UnitTestID),
+			},
+		},
 		FeeConfig:          DefaultFeeConfig,
 		NetworkUpgrades:    GetNetworkUpgrades(upgrade.GetConfig(constants.UnitTestID)), // This can be changed to correct network (local, test) via VM.
 		GenesisPrecompiles: Precompiles{},
@@ -350,7 +358,7 @@ func (c *ChainConfig) Verify() error {
 	}
 
 	// Verify the network upgrades are internally consistent given the existing chainConfig.
-	if err := c.verifyNetworkUpgrades(c.SnowCtx.NetworkUpgrades); err != nil {
+	if err := c.NetworkUpgrades.verifyNetworkUpgrades(c.SnowCtx.NetworkUpgrades); err != nil {
 		return fmt.Errorf("invalid network upgrades: %w", err)
 	}
 
