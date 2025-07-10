@@ -185,7 +185,7 @@ func newVM(t *testing.T, config testVMConfig) *testVM {
 		[]byte(config.upgradeJSON),
 		[]byte(config.configJSON),
 		[]*commonEng.Fx{},
-		nil,
+		appSender,
 	)
 	require.NoError(t, err, "error initializing vm")
 
