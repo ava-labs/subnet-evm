@@ -1,0 +1,588 @@
+dtrace: system integrity protection is on, some features will not be available
+SYSCALL(args) 		 = return
+=== RUN   TestStateSyncFromScratch
+    syncervm_test.go:62: Starting TestStateSyncFromScratch
+    syncervm_test.go:69: Creating sync server and client VMs
+    syncervm_test.go:295: generateAndAcceptBlocks: Starting with 256 blocks
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 1
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 1
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 2
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 2
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 3
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 3
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 4
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 4
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 5
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 5
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 6
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 6
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 7
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 7
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 8
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 8
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 9
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 9
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 10
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 10
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 11
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 11
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 12
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 12
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 13
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 13
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 14
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 14
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 15
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 15
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 16
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 16
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 17
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 17
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 18
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 18
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 19
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 19
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 20
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 20
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 21
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 21
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 22
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 22
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 23
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 23
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 24
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 24
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 25
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 25
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 26
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 26
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 27
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 27
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 28
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 28
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 29
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 29
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 30
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 30
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 31
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 31
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 32
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 32
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 33
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 33
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 34
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 34
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 35
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 35
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 36
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 36
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 37
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 37
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 38
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 38
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 39
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 39
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 40
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 40
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 41
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 41
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 42
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 42
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 43
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 43
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 44
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 44
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 45
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 45
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 46
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 46
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 47
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 47
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 48
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 48
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 49
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 49
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 50
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 50
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 51
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 51
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 52
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 52
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 53
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 53
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 54
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 54
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 55
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 55
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 56
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 56
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 57
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 57
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 58
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 58
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 59
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 59
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 60
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 60
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 61
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 61
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 62
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 62
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 63
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 63
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 64
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 64
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 65
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 65
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 66
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 66
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 67
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 67
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 68
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 68
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 69
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 69
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 70
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 70
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 71
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 71
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 72
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 72
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 73
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 73
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 74
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 74
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 75
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 75
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 76
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 76
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 77
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 77
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 78
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 78
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 79
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 79
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 80
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 80
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 81
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 81
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 82
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 82
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 83
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 83
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 84
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 84
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 85
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 85
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 86
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 86
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 87
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 87
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 88
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 88
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 89
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 89
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 90
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 90
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 91
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 91
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 92
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 92
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 93
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 93
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 94
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 94
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 95
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 95
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 96
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 96
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 97
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 97
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 98
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 98
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 99
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 99
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 100
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 100
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 101
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 101
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 102
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 102
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 103
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 103
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 104
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 104
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 105
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 105
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 106
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 106
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 107
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 107
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 108
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 108
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 109
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 109
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 110
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 110
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 111
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 111
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 112
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 112
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 113
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 113
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 114
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 114
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 115
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 115
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 116
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 116
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 117
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 117
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 118
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 118
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 119
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 119
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 120
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 120
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 121
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 121
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 122
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 122
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 123
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 123
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 124
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 124
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 125
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 125
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 126
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 126
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 127
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 127
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 128
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 128
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 129
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 129
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 130
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 130
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 131
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 131
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 132
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 132
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 133
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 133
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 134
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 134
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 135
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 135
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 136
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 136
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 137
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 137
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 138
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 138
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 139
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 139
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 140
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 140
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 141
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 141
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 142
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 142
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 143
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 143
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 144
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 144
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 145
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 145
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 146
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 146
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 147
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 147
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 148
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 148
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 149
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 149
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 150
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 150
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 151
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 151
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 152
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 152
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 153
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 153
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 154
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 154
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 155
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 155
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 156
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 156
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 157
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 157
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 158
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 158
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 159
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 159
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 160
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 160
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 161
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 161
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 162
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 162
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 163
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 163
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 164
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 164
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 165
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 165
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 166
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 166
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 167
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 167
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 168
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 168
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 169
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 169
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 170
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 170
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 171
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 171
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 172
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 172
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 173
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 173
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 174
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 174
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 175
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 175
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 176
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 176
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 177
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 177
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 178
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 178
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 179
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 179
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 180
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 180
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 181
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 181
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 182
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 182
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 183
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 183
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 184
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 184
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 185
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 185
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 186
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 186
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 187
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 187
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 188
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 188
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 189
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 189
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 190
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 190
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 191
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 191
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 192
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 192
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 193
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 193
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 194
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 194
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 195
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 195
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 196
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 196
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 197
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 197
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 198
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 198
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 199
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 199
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 200
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 200
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 201
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 201
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 202
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 202
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 203
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 203
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 204
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 204
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 205
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 205
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 206
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 206
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 207
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 207
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 208
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 208
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 209
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 209
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 210
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 210
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 211
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 211
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 212
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 212
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 213
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 213
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 214
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 214
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 215
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 215
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 216
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 216
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 217
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 217
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 218
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 218
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 219
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 219
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 220
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 220
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 221
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 221
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 222
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 222
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 223
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 223
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 224
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 224
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 225
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 225
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 226
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 226
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 227
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 227
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 228
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 228
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 229
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 229
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 230
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 230
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 231
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 231
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 232
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 232
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 233
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 233
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 234
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 234
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 235
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 235
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 236
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 236
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 237
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 237
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 238
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 238
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 239
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 239
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 240
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 240
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 241
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 241
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 242
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 242
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 243
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 243
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 244
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 244
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 245
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 245
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 246
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 246
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 247
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 247
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 248
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 248
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 249
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 249
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 250
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 250
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 251
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 251
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 252
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 252
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 253
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 253
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 254
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 254
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 255
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 255
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 256
+    syncervm_test.go:621: generateAndAcceptBlocks: Successfully processed block 256
+    syncervm_test.go:295: generateAndAcceptBlocks: Completed successfully with 256 blocks
+    syncervm_test.go:71: Created VMs, calling testSyncerVM
+    syncervm_test.go:73: testSyncerVM: Starting
+    syncervm_test.go:73: testSyncerVM: Getting last state summary
+    syncervm_test.go:73: testSyncerVM: Parsing state summary
+    syncervm_test.go:73: testSyncerVM: Getting state summary at height
+    syncervm_test.go:73: testSyncerVM: Accepting state summary
+    syncervm_test.go:73: testSyncerVM: Waiting for StateSyncDone message
+    syncervm_test.go:73: testSyncerVM: Received StateSyncDone message
+    syncervm_test.go:73: testSyncerVM: Checking state sync error
+    syncervm_test.go:73: testSyncerVM: State sync completed successfully
+    syncervm_test.go:73: testSyncerVM: Setting syncerVM to Bootstrapping state
+    syncervm_test.go:73: testSyncerVM: Checking block height: serverVM=256, syncerVM=256
+    syncervm_test.go:73: testSyncerVM: Checking block ID: serverVM=sScbrr1Sq4TsRAKY1R5SsYcDYyKFvTeFi6hQBkF1onbvSDDLR, syncerVM=sScbrr1Sq4TsRAKY1R5SsYcDYyKFvTeFi6hQBkF1onbvSDDLR
+    syncervm_test.go:73: testSyncerVM: Checking state for last accepted block root: 9267017d0694df36b4236375f076f315f9c5c4b2aaf0eafb885bf96fd95023cf
+    syncervm_test.go:73: testSyncerVM: Asserting sync performed heights: 256
+    syncervm_test.go:653: assertSyncPerformedHeights: expected=map[256:{}], found=map[256:{}]
+    syncervm_test.go:73: testSyncerVM: Checking transaction indices for last block: number=256
+    syncervm_test.go:73: testSyncerVM: Tx hash=0xfc60972e9b56694d01e7951b47c473b1b4b2c34b84f1176bd14eb2e1c2b06cb3, index=0x140008b16e0
+    syncervm_test.go:73: testSyncerVM: Transaction index checks passed
+    syncervm_test.go:73: testSyncerVM: Checking tx indices with tail=256
+    syncervm_test.go:73: testSyncerVM: Tx index tail check passed
+    syncervm_test.go:73: generateAndAcceptBlocks: Starting with 10 blocks
+    syncervm_test.go:598: generateAndAcceptBlocks: Processing block 257
+FAIL	github.com/ava-labs/subnet-evm/plugin/evm	1.300s
+testing: warning: no tests to run
+PASS
+ok  	github.com/ava-labs/subnet-evm/plugin/evm/blockgascost	(cached) [no tests to run]
+?   	github.com/ava-labs/subnet-evm/plugin/evm/client	[no test files]
+testing: warning: no tests to run
+PASS
+ok  	github.com/ava-labs/subnet-evm/plugin/evm/config	(cached) [no tests to run]
+?   	github.com/ava-labs/subnet-evm/plugin/evm/customlogs	[no test files]
+testing: warning: no tests to run
+PASS
+ok  	github.com/ava-labs/subnet-evm/plugin/evm/customrawdb	(cached) [no tests to run]
+testing: warning: no tests to run
+PASS
+ok  	github.com/ava-labs/subnet-evm/plugin/evm/customtypes	(cached) [no tests to run]
+?   	github.com/ava-labs/subnet-evm/plugin/evm/database	[no test files]
+testing: warning: no tests to run
+PASS
+ok  	github.com/ava-labs/subnet-evm/plugin/evm/header	(cached) [no tests to run]
+testing: warning: no tests to run
+PASS
+ok  	github.com/ava-labs/subnet-evm/plugin/evm/log	(cached) [no tests to run]
+testing: warning: no tests to run
+PASS
+ok  	github.com/ava-labs/subnet-evm/plugin/evm/message	(cached) [no tests to run]
+?   	github.com/ava-labs/subnet-evm/plugin/evm/upgrade/legacy	[no test files]
+testing: warning: no tests to run
+PASS
+ok  	github.com/ava-labs/subnet-evm/plugin/evm/upgrade/subnetevm	(cached) [no tests to run]
+testing: warning: no tests to run
+PASS
+ok  	github.com/ava-labs/subnet-evm/plugin/evm/validators	(cached) [no tests to run]
+?   	github.com/ava-labs/subnet-evm/plugin/evm/validators/interfaces	[no test files]
+testing: warning: no tests to run
+PASS
+ok  	github.com/ava-labs/subnet-evm/plugin/evm/validators/state	(cached) [no tests to run]
+testing: warning: no tests to run
+PASS
+ok  	github.com/ava-labs/subnet-evm/plugin/evm/validators/state/interfaces	(cached) [no tests to run]
+testing: warning: no tests to run
+PASS
+ok  	github.com/ava-labs/subnet-evm/plugin/evm/validators/uptime	(cached) [no tests to run]
+?   	github.com/ava-labs/subnet-evm/plugin/evm/validators/uptime/interfaces	[no test files]
+?   	github.com/ava-labs/subnet-evm/plugin/evm/vmerrors	[no test files]
+FAIL
+

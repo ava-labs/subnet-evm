@@ -104,7 +104,7 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 	tvm.vm.ctx.Metrics = metrics.NewPrefixGatherer()
 
 	if err := tvm.vm.Initialize(
-		context.Background(), tvm.vm.ctx, tvm.db, []byte(genesisJSONSubnetEVM), upgradeBytesJSON, []byte{}, tvm.toEngine, []*commonEng.Fx{}, tvm.appSender,
+		context.Background(), tvm.vm.ctx, tvm.db, []byte(genesisJSONSubnetEVM), upgradeBytesJSON, []byte{}, []*commonEng.Fx{}, tvm.appSender,
 	); err != nil {
 		t.Fatal(err)
 	}
@@ -137,7 +137,7 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 		t.Fatalf("expected ErrSenderAddressNotAllowListed, got: %s", err)
 	}
 
-	blk := issueAndAccept(t, tvm.toEngine, tvm.vm)
+	blk := issueAndAccept(t, tvm.vm)
 
 	// Verify that the constructed block only has the whitelisted tx
 	block := blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
@@ -159,7 +159,7 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 	}
 
 	tvm.vm.clock.Set(tvm.vm.clock.Time().Add(2 * time.Second)) // add 2 seconds for gas fee to adjust
-	blk = issueAndAccept(t, tvm.toEngine, tvm.vm)
+	blk = issueAndAccept(t, tvm.vm)
 
 	// Verify that the constructed block only has the previously rejected tx
 	block = blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
@@ -188,7 +188,7 @@ func TestNetworkUpgradesOverriden(t *testing.T) {
 		}`
 
 	vm := &VM{}
-	ctx, dbManager, genesisBytes, issuer, _ := setupGenesis(t, 0, string(genesisBytes))
+	ctx, dbManager, genesisBytes, _ := setupGenesis(t, 0, string(genesisBytes))
 	appSender := &enginetest.Sender{T: t}
 	appSender.CantSendAppGossip = true
 	appSender.SendAppGossipF = func(context.Context, commonEng.SendConfig, []byte) error { return nil }
@@ -199,7 +199,6 @@ func TestNetworkUpgradesOverriden(t *testing.T) {
 		genesisBytes,
 		[]byte(upgradeBytesJSON),
 		nil,
-		issuer,
 		[]*commonEng.Fx{},
 		appSender,
 	)
@@ -308,7 +307,7 @@ func TestVMStateUpgrade(t *testing.T) {
 	errs := tvm.vm.txPool.AddRemotesSync([]*types.Transaction{signedTx0})
 	require.NoError(t, errs[0], "Failed to add tx")
 
-	blk := issueAndAccept(t, tvm.toEngine, tvm.vm)
+	blk := issueAndAccept(t, tvm.vm)
 	require.NotNil(t, blk)
 	require.EqualValues(t, 1, blk.Height())
 

@@ -17,7 +17,6 @@ import (
 	"github.com/ava-labs/avalanchego/network/p2p/gossip"
 	"github.com/ava-labs/avalanchego/proto/pb/sdk"
 	"github.com/ava-labs/avalanchego/snow"
-	"github.com/ava-labs/avalanchego/snow/engine/common"
 	"github.com/ava-labs/avalanchego/snow/engine/enginetest"
 	"github.com/ava-labs/avalanchego/snow/validators"
 	"github.com/ava-labs/avalanchego/upgrade/upgradetest"
@@ -54,7 +53,6 @@ func TestEthTxGossip(t *testing.T) {
 		[]byte(toGenesisJSON(forkToChainConfig[upgradetest.Latest])),
 		nil,
 		nil,
-		make(chan common.Message),
 		nil,
 		&enginetest.Sender{},
 	))
@@ -169,7 +167,6 @@ func TestEthTxPushGossipOutbound(t *testing.T) {
 		[]byte(toGenesisJSON(forkToChainConfig[upgradetest.Latest])),
 		nil,
 		nil,
-		make(chan common.Message),
 		nil,
 		sender,
 	))
@@ -221,7 +218,6 @@ func TestEthTxPushGossipInbound(t *testing.T) {
 		[]byte(toGenesisJSON(forkToChainConfig[upgradetest.Latest])),
 		nil,
 		nil,
-		make(chan common.Message),
 		nil,
 		sender,
 	))
