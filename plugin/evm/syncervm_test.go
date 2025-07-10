@@ -318,6 +318,7 @@ func createSyncServerAndClientVMs(t *testing.T, test syncTest, numBlocks int) *s
 	syncerVM := newVM(t, testVMConfig{
 		genesisJSON: toGenesisJSON(forkToChainConfig[upgradetest.Latest]),
 		configJSON:  stateSyncEnabledJSON,
+		isSyncing:   true,
 	})
 
 	shutdownOnceSyncerVM := &shutdownOnceVM{VM: syncerVM.vm}
