@@ -13,6 +13,9 @@ import (
 	"github.com/ava-labs/avalanchego/utils/constants"
 )
 
+// SubnetEVMTestChainID is a subnet-evm specific chain ID for testing
+var SubnetEVMTestChainID = ids.GenerateTestID()
+
 // @TODO: This should eventually be replaced by a more robust solution, or alternatively, the presence of nil
 // validator states shouldn't be depended upon by tests
 func NewTestValidatorState() *validatorstest.State {
@@ -25,6 +28,7 @@ func NewTestValidatorState() *validatorstest.State {
 				constants.PlatformChainID: constants.PrimaryNetworkID,
 				snowtest.XChainID:         constants.PrimaryNetworkID,
 				snowtest.CChainID:         constants.PrimaryNetworkID,
+				SubnetEVMTestChainID:      constants.PrimaryNetworkID,
 			}[chainID]
 			if !ok {
 				return ids.Empty, errors.New("unknown chain")
@@ -51,11 +55,19 @@ func NewTestValidatorState() *validatorstest.State {
 //	// snowCtx.ValidatorState = validatorState
 //
 //	// Use:
-//	snowCtx := utils.NewTestSnowContext(t, snowtest.CChainID)
+//	snowCtx := utils.NewTestSnowContext(t)
 //
 // This function ensures that the snow context has a properly configured validator state
 // that includes the GetValidatorSetF function, which is required by many tests.
-func NewTestSnowContext(t testing.TB, chainID ids.ID) *snow.Context {
+func NewTestSnowContext(t testing.TB) *snow.Context {
+	snowCtx := snowtest.Context(t, SubnetEVMTestChainID)
+	snowCtx.ValidatorState = NewTestValidatorState()
+	return snowCtx
+}
+
+// NewTestSnowContextWithChainID returns a snow.Context with validator state properly configured for testing
+// with a specific chain ID. This is provided for backward compatibility when a specific chain ID is needed.
+func NewTestSnowContextWithChainID(t testing.TB, chainID ids.ID) *snow.Context {
 	snowCtx := snowtest.Context(t, chainID)
 	snowCtx.ValidatorState = NewTestValidatorState()
 	return snowCtx

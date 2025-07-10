@@ -19,7 +19,6 @@ import (
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/avalanchego/snow/engine/common"
 	"github.com/ava-labs/avalanchego/snow/engine/enginetest"
-	"github.com/ava-labs/avalanchego/snow/snowtest"
 	"github.com/ava-labs/avalanchego/snow/validators"
 	"github.com/ava-labs/avalanchego/upgrade/upgradetest"
 	agoUtils "github.com/ava-labs/avalanchego/utils"
@@ -31,15 +30,14 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/ava-labs/libevm/core/types"
-	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ava-labs/subnet-evm/utils/utilstest"
 )
 
 func TestEthTxGossip(t *testing.T) {
 	require := require.New(t)
 	ctx := context.Background()
-	snowCtx := utilstest.NewTestSnowContext(t, snowtest.CChainID)
-	validatorState := utils.NewTestValidatorState()
+	snowCtx := utilstest.NewTestSnowContext(t)
+	validatorState := utilstest.NewTestValidatorState()
 	snowCtx.ValidatorState = validatorState
 
 	responseSender := &enginetest.SenderStub{
@@ -155,7 +153,7 @@ func TestEthTxGossip(t *testing.T) {
 func TestEthTxPushGossipOutbound(t *testing.T) {
 	require := require.New(t)
 	ctx := context.Background()
-	snowCtx := utilstest.NewTestSnowContext(t, snowtest.CChainID)
+	snowCtx := utilstest.NewTestSnowContext(t)
 	sender := &enginetest.SenderStub{
 		SentAppGossip: make(chan []byte, 1),
 	}
@@ -209,7 +207,7 @@ func TestEthTxPushGossipOutbound(t *testing.T) {
 func TestEthTxPushGossipInbound(t *testing.T) {
 	require := require.New(t)
 	ctx := context.Background()
-	snowCtx := utilstest.NewTestSnowContext(t, snowtest.CChainID)
+	snowCtx := utilstest.NewTestSnowContext(t)
 
 	sender := &enginetest.Sender{}
 	vm := &VM{

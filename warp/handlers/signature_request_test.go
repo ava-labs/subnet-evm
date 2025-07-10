@@ -10,7 +10,6 @@ import (
 	"github.com/ava-labs/avalanchego/cache/lru"
 	"github.com/ava-labs/avalanchego/database/memdb"
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/avalanchego/snow/snowtest"
 	"github.com/ava-labs/avalanchego/utils/crypto/bls"
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
@@ -28,7 +27,7 @@ func TestMessageSignatureHandler(t *testing.T) {
 	testutils.WithMetrics(t)
 
 	database := memdb.New()
-	snowCtx := utilstest.NewTestSnowContext(t, snowtest.CChainID)
+	snowCtx := utilstest.NewTestSnowContext(t)
 
 	addressedPayload, err := payload.NewAddressedCall([]byte{1, 2, 3}, []byte{1, 2, 3})
 	require.NoError(t, err)
@@ -140,7 +139,7 @@ func TestBlockSignatureHandler(t *testing.T) {
 	testutils.WithMetrics(t)
 
 	database := memdb.New()
-	snowCtx := utilstest.NewTestSnowContext(t, snowtest.CChainID)
+	snowCtx := utilstest.NewTestSnowContext(t)
 
 	blkID := ids.GenerateTestID()
 	blockClient := warptest.MakeBlockClient(blkID)

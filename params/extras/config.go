@@ -358,7 +358,7 @@ func (c *ChainConfig) Verify() error {
 	}
 
 	// Verify the network upgrades are internally consistent given the existing chainConfig.
-	if err := c.NetworkUpgrades.verifyNetworkUpgrades(c.SnowCtx.NetworkUpgrades); err != nil {
+	if err := c.verifyNetworkUpgrades(c.SnowCtx.NetworkUpgrades); err != nil {
 		return fmt.Errorf("invalid network upgrades: %w", err)
 	}
 

@@ -12,7 +12,6 @@ import (
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
-	"github.com/ava-labs/avalanchego/snow/snowtest"
 	"github.com/ava-labs/avalanchego/snow/validators"
 	"github.com/ava-labs/avalanchego/snow/validators/validatorstest"
 	agoUtils "github.com/ava-labs/avalanchego/utils"
@@ -187,7 +186,7 @@ func createSnowCtx(tb testing.TB, validatorRanges []validatorRange) *snow.Contex
 		}
 	}
 
-	snowCtx := utilstest.NewTestSnowContext(tb, snowtest.CChainID)
+	snowCtx := utilstest.NewTestSnowContext(tb)
 	state := &validatorstest.State{
 		GetSubnetIDF: func(ctx context.Context, chainID ids.ID) (ids.ID, error) {
 			return sourceSubnetID, nil
@@ -260,7 +259,7 @@ func testWarpMessageFromPrimaryNetwork(t *testing.T, requirePrimaryNetworkSigner
 
 	predicateBytes := predicate.PackPredicate(warpMsg.Bytes())
 
-	snowCtx := utilstest.NewTestSnowContext(t, snowtest.CChainID)
+	snowCtx := utilstest.NewTestSnowContext(t)
 	snowCtx.SubnetID = ids.GenerateTestID()
 	snowCtx.ChainID = ids.GenerateTestID()
 	snowCtx.CChainID = cChainID
@@ -667,7 +666,7 @@ func makeWarpPredicateTests(tb testing.TB) map[string]testutils.PredicateTest {
 			}
 		}
 
-		snowCtx := utilstest.NewTestSnowContext(tb, snowtest.CChainID)
+		snowCtx := utilstest.NewTestSnowContext(tb)
 
 		state := &validatorstest.State{
 			GetSubnetIDF: func(ctx context.Context, chainID ids.ID) (ids.ID, error) {

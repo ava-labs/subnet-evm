@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ava-labs/avalanchego/snow/snowtest"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
@@ -109,7 +108,7 @@ func (test PrecompileTest) setup(t testing.TB, module modules.Module, state cont
 		blockContext.EXPECT().Number().Return(big.NewInt(0)).AnyTimes()
 		blockContext.EXPECT().Timestamp().Return(uint64(time.Now().Unix())).AnyTimes()
 	}
-	snowContext := utilstest.NewTestSnowContext(t, snowtest.CChainID)
+	snowContext := utilstest.NewTestSnowContext(t)
 
 	accessibleState := contract.NewMockAccessibleState(ctrl)
 	accessibleState.EXPECT().GetStateDB().Return(state).AnyTimes()

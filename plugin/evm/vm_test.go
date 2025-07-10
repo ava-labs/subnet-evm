@@ -33,7 +33,6 @@ import (
 	"github.com/ava-labs/avalanchego/snow/consensus/snowman"
 	commonEng "github.com/ava-labs/avalanchego/snow/engine/common"
 	"github.com/ava-labs/avalanchego/snow/engine/enginetest"
-	"github.com/ava-labs/avalanchego/snow/snowtest"
 	"github.com/ava-labs/avalanchego/upgrade"
 	"github.com/ava-labs/avalanchego/upgrade/upgradetest"
 	"github.com/ava-labs/avalanchego/utils/crypto/secp256k1"
@@ -150,7 +149,7 @@ type testVM struct {
 }
 
 func newVM(t *testing.T, config testVMConfig) *testVM {
-	ctx := utilstest.NewTestSnowContext(t, snowtest.CChainID)
+	ctx := utilstest.NewTestSnowContext(t)
 	fork := upgradetest.Latest
 	if config.fork != nil {
 		fork = *config.fork
@@ -218,7 +217,7 @@ func setupGenesis(
 	chan commonEng.Message,
 	*atomic.Memory,
 ) {
-	ctx := utilstest.NewTestSnowContext(t, snowtest.CChainID)
+	ctx := utilstest.NewTestSnowContext(t)
 
 	var genesisJSON string
 	if fork == 0 { // 0 is passed when no fork can be specificied
@@ -464,7 +463,7 @@ func TestBuildEthTxBlock(t *testing.T) {
 	}
 
 	restartedVM := &VM{}
-	newCTX := utilstest.NewTestSnowContext(t, snowtest.CChainID)
+	newCTX := utilstest.NewTestSnowContext(t)
 	// Use the network upgrades from the existing VM's context to ensure consistency
 	newCTX.NetworkUpgrades = tvm.vm.ctx.NetworkUpgrades
 
@@ -3138,7 +3137,7 @@ func TestParentBeaconRootBlock(t *testing.T) {
 
 func TestStandaloneDB(t *testing.T) {
 	vm := &VM{}
-	ctx := utilstest.NewTestSnowContext(t, snowtest.CChainID)
+	ctx := utilstest.NewTestSnowContext(t)
 	baseDB := memdb.New()
 	atomicMemory := atomic.NewMemory(prefixdb.New([]byte{0}, baseDB))
 	ctx.SharedMemory = atomicMemory.NewSharedMemory(ctx.ChainID)
