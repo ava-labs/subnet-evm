@@ -14,9 +14,10 @@ import (
 	"github.com/ava-labs/avalanchego/snow/engine/enginetest"
 	avagovalidators "github.com/ava-labs/avalanchego/snow/validators"
 	"github.com/ava-labs/avalanchego/snow/validators/validatorstest"
+	"github.com/ava-labs/avalanchego/upgrade/upgradetest"
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/plugin/evm/validators"
-	"github.com/ava-labs/subnet-evm/utils"
+	"github.com/ava-labs/subnet-evm/utils/utilstest"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -24,12 +25,12 @@ import (
 func TestValidatorState(t *testing.T) {
 	require := require.New(t)
 	genesis := &core.Genesis{}
-	require.NoError(genesis.UnmarshalJSON([]byte(genesisJSONLatest)))
+	require.NoError(genesis.UnmarshalJSON([]byte(toGenesisJSON(forkToChainConfig[upgradetest.Latest]))))
 	genesisJSON, err := genesis.MarshalJSON()
 	require.NoError(err)
 
 	vm := &VM{}
-	ctx, dbManager, genesisBytes, _ := setupGenesis(t, string(genesisJSON))
+	ctx, dbManager, genesisBytes, _ := setupGenesis(t, 0, string(genesisJSON))
 	appSender := &enginetest.Sender{T: t}
 	appSender.CantSendAppGossip = true
 	testNodeIDs := []ids.NodeID{
@@ -98,7 +99,7 @@ func TestValidatorState(t *testing.T) {
 	vm = &VM{}
 	err = vm.Initialize(
 		context.Background(),
-		utils.TestSnowContext(), // this context does not have validators state, making VM to source it from the database
+		utilstest.NewTestSnowContext(t), // this context does not have validators state, making VM to source it from the database
 		dbManager,
 		genesisBytes,
 		[]byte(""),
