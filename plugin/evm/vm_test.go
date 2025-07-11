@@ -67,7 +67,7 @@ var (
 	testNetworkID uint32 = avagoconstants.UnitTestID
 
 	testMinGasPrice int64            = 225_000_000_000
-	testKeys                         = secp256k1.TestKeys()[:2]
+	testKeys                         = secp256k1.TestKeys()[:3]
 	testEthAddrs    []common.Address // testEthAddrs[i] corresponds to testKeys[i]
 
 	firstTxAmount = new(big.Int).Mul(big.NewInt(testMinGasPrice), big.NewInt(21000*100))
