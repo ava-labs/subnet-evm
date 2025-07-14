@@ -24,9 +24,7 @@ func TestVerifyWithChainConfig(t *testing.T) {
 	admins := []common.Address{{1}}
 	copy := *TestChainConfig
 	config := &copy
-	config.AvalancheContext = AvalancheContext{
-		SnowCtx: utilstest.NewTestSnowContext(t),
-	}
+	config.SnowCtx = utilstest.NewTestSnowContext(t)
 	config.GenesisPrecompiles = Precompiles{
 		txallowlist.ConfigKey: txallowlist.NewConfig(utils.NewUint64(2), nil, nil, nil),
 	}
@@ -72,9 +70,7 @@ func TestVerifyWithChainConfigAtNilTimestamp(t *testing.T) {
 	admins := []common.Address{{0}}
 	copy := *TestChainConfig
 	config := &copy
-	config.AvalancheContext = AvalancheContext{
-		SnowCtx: utilstest.NewTestSnowContext(t),
-	}
+	config.SnowCtx = utilstest.NewTestSnowContext(t)
 	config.PrecompileUpgrades = []PrecompileUpgrade{
 		// this does NOT enable the precompile, so it should be upgradeable.
 		{Config: txallowlist.NewConfig(nil, nil, nil, nil)},
@@ -195,9 +191,7 @@ func TestVerifyPrecompileUpgrades(t *testing.T) {
 			require := require.New(t)
 			copy := *TestChainConfig
 			config := &copy
-			config.AvalancheContext = AvalancheContext{
-				SnowCtx: utilstest.NewTestSnowContext(t),
-			}
+			config.SnowCtx = utilstest.NewTestSnowContext(t)
 			config.PrecompileUpgrades = tt.upgrades
 
 			err := config.Verify()
@@ -242,9 +236,7 @@ func TestVerifyPrecompiles(t *testing.T) {
 			require := require.New(t)
 			copy := *TestChainConfig
 			config := &copy
-			config.AvalancheContext = AvalancheContext{
-				SnowCtx: utilstest.NewTestSnowContext(t),
-			}
+			config.SnowCtx = utilstest.NewTestSnowContext(t)
 			config.GenesisPrecompiles = tt.precompiles
 
 			err := config.Verify()

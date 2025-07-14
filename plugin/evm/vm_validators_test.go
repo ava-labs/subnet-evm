@@ -31,7 +31,6 @@ func TestValidatorState(t *testing.T) {
 
 	vm := &VM{}
 	ctx, dbManager, _, _ := setupGenesis(t, upgradetest.Latest)
-	genesisBytes := []byte(genesisJSON) // Manually set genesis bytes due to custom genesis
 
 	appSender := &enginetest.Sender{T: t}
 	appSender.CantSendAppGossip = true
@@ -71,7 +70,7 @@ func TestValidatorState(t *testing.T) {
 		context.Background(),
 		ctx,
 		dbManager,
-		genesisBytes,
+		genesisJSON, // Manually set genesis bytes due to custom genesis
 		[]byte(""),
 		[]byte(""),
 		[]*commonEng.Fx{},
@@ -103,7 +102,7 @@ func TestValidatorState(t *testing.T) {
 		context.Background(),
 		utilstest.NewTestSnowContext(t), // this context does not have validators state, making VM to source it from the database
 		dbManager,
-		genesisBytes,
+		genesisJSON, // Manually set genesis bytes due to custom genesis
 		[]byte(""),
 		[]byte(""),
 		[]*commonEng.Fx{},
