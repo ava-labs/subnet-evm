@@ -2306,7 +2306,7 @@ func TestVerifyManagerConfig(t *testing.T) {
 		context.Background(),
 		ctx,
 		dbManager,
-		genesisJSON,
+		genesisJSON, // Manually set genesis bytes due to custom genesis
 		[]byte(""),
 		[]byte(""),
 		[]*commonEng.Fx{},
@@ -2336,7 +2336,7 @@ func TestVerifyManagerConfig(t *testing.T) {
 		context.Background(),
 		ctx,
 		dbManager,
-		genesisJSON,
+		genesisJSON, // Manually set genesis bytes due to custom genesis
 		upgradeBytesJSON,
 		[]byte(""),
 		[]*commonEng.Fx{},
