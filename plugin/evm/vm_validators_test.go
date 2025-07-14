@@ -30,7 +30,9 @@ func TestValidatorState(t *testing.T) {
 	require.NoError(err)
 
 	vm := &VM{}
-	ctx, dbManager, genesisBytes, _ := setupGenesis(t, 0, string(genesisJSON))
+	ctx, dbManager, _, _ := setupGenesis(t, upgradetest.Latest)
+	genesisBytes := []byte(genesisJSON) // Manually set genesis bytes due to custom genesis
+
 	appSender := &enginetest.Sender{T: t}
 	appSender.CantSendAppGossip = true
 	testNodeIDs := []ids.NodeID{

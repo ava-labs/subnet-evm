@@ -200,7 +200,6 @@ func newVM(t *testing.T, config testVMConfig) *testVM {
 func setupGenesis(
 	t *testing.T,
 	fork upgradetest.Fork,
-	fallbackGenesisJSON string,
 ) (*snow.Context,
 	*prefixdb.Database,
 	[]byte,
@@ -208,15 +207,8 @@ func setupGenesis(
 ) {
 	ctx := utilstest.NewTestSnowContext(t)
 
-	var genesisJSON string
-	if fork == 0 { // 0 is passed when no fork can be specificied
-		genesisJSON = fallbackGenesisJSON
-		// For fallback genesis, use the latest network upgrades to match the chain config
-		ctx.NetworkUpgrades = upgradetest.GetConfig(upgradetest.Latest)
-	} else {
-		genesisJSON = toGenesisJSON(forkToChainConfig[fork])
-		ctx.NetworkUpgrades = upgradetest.GetConfig(fork)
-	}
+	genesisJSON := toGenesisJSON(forkToChainConfig[fork])
+	ctx.NetworkUpgrades = upgradetest.GetConfig(fork)
 
 	baseDB := memdb.New()
 
@@ -2309,7 +2301,8 @@ func TestVerifyManagerConfig(t *testing.T) {
 	require.NoError(t, err)
 
 	vm := &VM{}
-	ctx, dbManager, genesisBytes, _ := setupGenesis(t, 0, string(genesisJSON))
+	ctx, dbManager, _, _ := setupGenesis(t, upgradetest.Latest)
+	genesisBytes := []byte(genesisJSON) // Manually set genesis bytes due to custom genesis
 	err = vm.Initialize(
 		context.Background(),
 		ctx,
@@ -2339,7 +2332,8 @@ func TestVerifyManagerConfig(t *testing.T) {
 	require.NoError(t, err)
 
 	vm = &VM{}
-	ctx, dbManager, genesisBytes, _ = setupGenesis(t, 0, string(genesisJSON))
+	ctx, dbManager, _, _ = setupGenesis(t, upgradetest.Latest)
+	genesisBytes = []byte(genesisJSON) // Manually set genesis bytes due to custom genesis
 	err = vm.Initialize(
 		context.Background(),
 		ctx,
