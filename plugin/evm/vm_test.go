@@ -103,13 +103,7 @@ var (
 
 	// These will be initialized after init() runs
 	// forkToChainConfig maps a fork to a chain config
-	forkToChainConfig = map[upgradetest.Fork]*params.ChainConfig{
-		upgradetest.Durango: params.TestDurangoChainConfig,
-		upgradetest.Etna:    params.TestEtnaChainConfig,
-		// upgradetest.Fortuna: params.TestFortunaChainConfig,
-		upgradetest.Granite: params.TestGraniteChainConfig,
-	}
-
+	forkToChainConfig       map[upgradetest.Fork]*params.ChainConfig
 	genesisJSONPreSubnetEVM string
 	genesisJSONSubnetEVM    string
 )
