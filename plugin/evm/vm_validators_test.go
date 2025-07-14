@@ -15,7 +15,6 @@ import (
 	avagovalidators "github.com/ava-labs/avalanchego/snow/validators"
 	"github.com/ava-labs/avalanchego/snow/validators/validatorstest"
 	"github.com/ava-labs/avalanchego/upgrade/upgradetest"
-	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/plugin/evm/validators"
 	"github.com/ava-labs/subnet-evm/utils/utilstest"
 	"github.com/stretchr/testify/assert"
@@ -24,13 +23,9 @@ import (
 
 func TestValidatorState(t *testing.T) {
 	require := require.New(t)
-	genesis := &core.Genesis{}
-	require.NoError(genesis.UnmarshalJSON([]byte(toGenesisJSON(forkToChainConfig[upgradetest.Latest]))))
-	genesisJSON, err := genesis.MarshalJSON()
-	require.NoError(err)
+	ctx, dbManager, genesisBytes, _ := setupGenesis(t, upgradetest.Latest)
 
 	vm := &VM{}
-	ctx, dbManager, _, _ := setupGenesis(t, upgradetest.Latest)
 
 	appSender := &enginetest.Sender{T: t}
 	appSender.CantSendAppGossip = true
@@ -66,11 +61,11 @@ func TestValidatorState(t *testing.T) {
 		},
 	}
 	appSender.SendAppGossipF = func(context.Context, commonEng.SendConfig, []byte) error { return nil }
-	err = vm.Initialize(
+	err := vm.Initialize(
 		context.Background(),
 		ctx,
 		dbManager,
-		genesisJSON, // Manually set genesis bytes due to custom genesis
+		genesisBytes,
 		[]byte(""),
 		[]byte(""),
 		[]*commonEng.Fx{},
@@ -102,7 +97,7 @@ func TestValidatorState(t *testing.T) {
 		context.Background(),
 		utilstest.NewTestSnowContext(t), // this context does not have validators state, making VM to source it from the database
 		dbManager,
-		genesisJSON, // Manually set genesis bytes due to custom genesis
+		genesisBytes,
 		[]byte(""),
 		[]byte(""),
 		[]*commonEng.Fx{},
