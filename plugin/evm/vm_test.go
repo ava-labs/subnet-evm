@@ -102,7 +102,6 @@ var (
 	}
 
 	// forkToChainConfig maps a fork to a chain config
-	// Initialize forkToChainConfig after testEthAddrs is populated
 	forkToChainConfig = map[upgradetest.Fork]*params.ChainConfig{
 		upgradetest.Durango: params.TestDurangoChainConfig,
 		upgradetest.Etna:    params.TestEtnaChainConfig,
