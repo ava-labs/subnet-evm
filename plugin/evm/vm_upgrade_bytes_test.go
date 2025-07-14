@@ -188,7 +188,7 @@ func TestNetworkUpgradesOverriden(t *testing.T) {
 		}`
 
 	vm := &VM{}
-	ctx, dbManager, _, _ := setupGenesis(t, upgradetest.NoUpgrades)
+	ctx, dbManager, _, _ := setupGenesis(t, upgradetest.Latest)
 	appSender := &enginetest.Sender{T: t}
 	appSender.CantSendAppGossip = true
 	appSender.SendAppGossipF = func(context.Context, commonEng.SendConfig, []byte) error { return nil }
