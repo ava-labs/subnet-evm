@@ -101,9 +101,16 @@ var (
 		return string(b)
 	}
 
-	// These will be initialized after init() runs
 	// forkToChainConfig maps a fork to a chain config
-	forkToChainConfig       map[upgradetest.Fork]*params.ChainConfig
+	// Initialize forkToChainConfig after testEthAddrs is populated
+	forkToChainConfig = map[upgradetest.Fork]*params.ChainConfig{
+		upgradetest.Durango: params.TestDurangoChainConfig,
+		upgradetest.Etna:    params.TestEtnaChainConfig,
+		// upgradetest.Fortuna: params.TestFortunaChainConfig,
+		upgradetest.Granite: params.TestGraniteChainConfig,
+	}
+
+	// These will be initialized after init() runs
 	genesisJSONPreSubnetEVM string
 	genesisJSONSubnetEVM    string
 )
@@ -111,14 +118,6 @@ var (
 func init() {
 	for _, key := range testKeys {
 		testEthAddrs = append(testEthAddrs, key.EthAddress())
-	}
-
-	// Initialize forkToChainConfig after testEthAddrs is populated
-	forkToChainConfig = map[upgradetest.Fork]*params.ChainConfig{
-		upgradetest.Durango: params.TestDurangoChainConfig,
-		upgradetest.Etna:    params.TestEtnaChainConfig,
-		// upgradetest.Fortuna: params.TestFortunaChainConfig,
-		upgradetest.Granite: params.TestGraniteChainConfig,
 	}
 
 	genesisJSONPreSubnetEVM = toGenesisJSON(params.TestPreSubnetEVMChainConfig)
