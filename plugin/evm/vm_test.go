@@ -2288,7 +2288,8 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 
 func TestVerifyManagerConfig(t *testing.T) {
 	genesis := &core.Genesis{}
-	require.NoError(t, genesis.UnmarshalJSON([]byte(toGenesisJSON(forkToChainConfig[upgradetest.Durango]))))
+	ctx, dbManager, genesisBytes, _ := setupGenesis(t, upgradetest.Durango)
+	require.NoError(t, genesis.UnmarshalJSON(genesisBytes))
 
 	durangoTimestamp := time.Now().Add(10 * time.Hour)
 	params.GetExtra(genesis.Config).DurangoTimestamp = utils.TimeToNewUint64(durangoTimestamp)
@@ -2301,13 +2302,11 @@ func TestVerifyManagerConfig(t *testing.T) {
 	require.NoError(t, err)
 
 	vm := &VM{}
-	ctx, dbManager, _, _ := setupGenesis(t, upgradetest.Latest)
-	genesisBytes := []byte(genesisJSON) // Manually set genesis bytes due to custom genesis
 	err = vm.Initialize(
 		context.Background(),
 		ctx,
 		dbManager,
-		genesisBytes,
+		genesisJSON,
 		[]byte(""),
 		[]byte(""),
 		[]*commonEng.Fx{},
@@ -2333,12 +2332,11 @@ func TestVerifyManagerConfig(t *testing.T) {
 
 	vm = &VM{}
 	ctx, dbManager, _, _ = setupGenesis(t, upgradetest.Latest)
-	genesisBytes = []byte(genesisJSON) // Manually set genesis bytes due to custom genesis
 	err = vm.Initialize(
 		context.Background(),
 		ctx,
 		dbManager,
-		genesisBytes,
+		genesisJSON,
 		upgradeBytesJSON,
 		[]byte(""),
 		[]*commonEng.Fx{},
