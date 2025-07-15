@@ -1,4 +1,4 @@
-// (c) 2019-2022, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package peer
@@ -38,18 +38,18 @@ var (
 		Patch: 0,
 	}
 
-	_ message.Request = &HelloRequest{}
-	_                 = &HelloResponse{}
-	_                 = &GreetingRequest{}
-	_                 = &GreetingResponse{}
-	_                 = &TestMessage{}
+	_ message.Request = (*HelloRequest)(nil)
+	_                 = (*HelloResponse)(nil)
+	_                 = (*GreetingRequest)(nil)
+	_                 = (*GreetingResponse)(nil)
+	_                 = (*TestMessage)(nil)
 
-	_ message.RequestHandler = &HelloGreetingRequestHandler{}
-	_ message.RequestHandler = &testRequestHandler{}
+	_ message.RequestHandler = (*HelloGreetingRequestHandler)(nil)
+	_ message.RequestHandler = (*testRequestHandler)(nil)
 
 	_ common.AppSender = testAppSender{}
 
-	_ p2p.Handler = &testSDKHandler{}
+	_ p2p.Handler = (*testSDKHandler)(nil)
 )
 
 func TestNetworkDoesNotConnectToItself(t *testing.T) {

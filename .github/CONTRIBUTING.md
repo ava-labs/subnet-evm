@@ -45,7 +45,8 @@ Mocks are auto-generated using [mockgen](https://pkg.go.dev/go.uber.org/mock/moc
 
     ```go
     // Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
-    // See the file LICENSE for licensing terms.
+    // Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
 
     package mypackage
 

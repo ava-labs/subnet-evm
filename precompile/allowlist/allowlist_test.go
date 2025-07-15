@@ -1,4 +1,4 @@
-// (c) 2019-2023, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package allowlist_test
@@ -15,8 +15,8 @@ import (
 )
 
 var (
-	_ precompileconfig.Config = &dummyConfig{}
-	_ contract.Configurator   = &dummyConfigurator{}
+	_ precompileconfig.Config = (*dummyConfig)(nil)
+	_ contract.Configurator   = (*dummyConfigurator)(nil)
 
 	dummyAddr = common.Address{1}
 )

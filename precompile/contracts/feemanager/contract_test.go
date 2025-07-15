@@ -1,4 +1,4 @@
-// (c) 2019-2023, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package feemanager
@@ -162,8 +162,7 @@ var (
 				blockContext := contract.NewMockBlockContext(gomock.NewController(t))
 				blockContext.EXPECT().Number().Return(big.NewInt(6)).Times(1)
 				allowlist.SetDefaultRoles(Module.Address)(t, state)
-				err := StoreFeeConfig(state, testFeeConfig, blockContext)
-				require.NoError(t, err)
+				require.NoError(t, StoreFeeConfig(state, testFeeConfig, blockContext))
 			},
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackGetFeeConfig()
@@ -224,8 +223,7 @@ var (
 				blockContext := contract.NewMockBlockContext(gomock.NewController(t))
 				blockContext.EXPECT().Number().Return(testBlockNumber).Times(1)
 				allowlist.SetDefaultRoles(Module.Address)(t, state)
-				err := StoreFeeConfig(state, testFeeConfig, blockContext)
-				require.NoError(t, err)
+				require.NoError(t, StoreFeeConfig(state, testFeeConfig, blockContext))
 			},
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackGetFeeConfigLastChangedAt()

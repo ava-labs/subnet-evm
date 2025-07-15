@@ -1,0 +1,10 @@
+accounts/abi/bind/precompilebind/precompile_config_template.go
+accounts/abi/bind/precompilebind/precompile_config_test_template.go
+accounts/abi/bind/precompilebind/precompile_contract_template.go
+accounts/abi/bind/precompilebind/precompile_contract_test_template.go
+accounts/abi/bind/precompilebind/precompile_event_template.go
+accounts/abi/bind/precompilebind/precompile_module_template.go
+precompile/allowlist/event.go
+precompile/contracts/feemanager/event.go
+precompile/contracts/nativeminter/event.go
+precompile/contracts/rewardmanager/event.go

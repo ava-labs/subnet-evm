@@ -1,4 +1,4 @@
-// (c) 2021-2022, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package evm
@@ -47,7 +47,7 @@ import (
 )
 
 func TestSkipStateSync(t *testing.T) {
-	rand.Seed(1)
+	rand.New(rand.NewSource(1))
 	test := syncTest{
 		syncableInterval:   256,
 		stateSyncMinBlocks: 300, // must be greater than [syncableInterval] to skip sync
@@ -59,7 +59,7 @@ func TestSkipStateSync(t *testing.T) {
 }
 
 func TestStateSyncFromScratch(t *testing.T) {
-	rand.Seed(1)
+	rand.New(rand.NewSource(1))
 	test := syncTest{
 		syncableInterval:   256,
 		stateSyncMinBlocks: 50, // must be less than [syncableInterval] to perform sync
@@ -71,7 +71,7 @@ func TestStateSyncFromScratch(t *testing.T) {
 }
 
 func TestStateSyncFromScratchExceedParent(t *testing.T) {
-	rand.Seed(1)
+	rand.New(rand.NewSource(1))
 	numToGen := parentsToGet + uint64(32)
 	test := syncTest{
 		syncableInterval:   numToGen,
@@ -84,7 +84,7 @@ func TestStateSyncFromScratchExceedParent(t *testing.T) {
 }
 
 func TestStateSyncToggleEnabledToDisabled(t *testing.T) {
-	rand.Seed(1)
+	rand.New(rand.NewSource(1))
 
 	var lock sync.Mutex
 	reqCount := 0
