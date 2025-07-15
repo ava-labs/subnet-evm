@@ -27,8 +27,6 @@ var (
 
 	initiallyActive       = uint64(upgrade.InitiallyActiveTime.Unix())
 	unscheduledActivation = uint64(upgrade.UnscheduledActivationTime.Unix())
-
-	errInvalidUpgradeTime = errors.New("invalid upgrade time")
 )
 
 // SetEthUpgrades enables Ethereum network upgrades using the same time as
