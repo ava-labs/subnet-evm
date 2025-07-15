@@ -27,9 +27,11 @@ var (
 
 	initiallyActive       = uint64(upgrade.InitiallyActiveTime.Unix())
 	unscheduledActivation = uint64(upgrade.UnscheduledActivationTime.Unix())
+
+	errInvalidUpgradeTime = errors.New("invalid upgrade time")
 )
 
-// SetEthUpgrades enables Etheruem network upgrades using the same time as
+// SetEthUpgrades enables Ethereum network upgrades using the same time as
 // the Avalanche network upgrade that enables them.
 //
 // TODO: Prior to Cancun, Avalanche upgrades are referenced inline in the
