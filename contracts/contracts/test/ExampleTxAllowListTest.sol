@@ -41,7 +41,7 @@ contract ExampleTxAllowListTest is AllowListTest {
   }
 
   function step_fromOther() public {
-    // used as a noop to test transaction-success or failure, depending on wether the signer has been added to the tx-allow-list
+    // used as a noop to test transaction-success or failure, depending on whether the signer has been added to the tx-allow-list
   }
 
   function step_enableOther() public {

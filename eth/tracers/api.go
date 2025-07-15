@@ -219,10 +219,10 @@ type blockTraceTask struct {
 	statedb *state.StateDB   // Intermediate state prepped for tracing
 	block   *types.Block     // Block to trace the transactions from
 	release StateReleaseFunc // The function to release the held resource for this task
-	results []*txTraceResult // Trace results procudes by the task
+	results []*txTraceResult // Trace results produces by the task
 }
 
-// blockTraceResult represets the results of tracing a single block when an entire
+// blockTraceResult represents the results of tracing a single block when an entire
 // chain is being traced.
 type blockTraceResult struct {
 	Block  hexutil.Uint64   `json:"block"`  // Block number corresponding to this trace

@@ -186,7 +186,7 @@ func TestGetBlocks(t *testing.T) {
 		assertResponse func(t *testing.T, response []*types.Block)
 		expectedErr    string
 	}{
-		"normal resonse": {
+		"normal response": {
 			request: message.BlockRequest{
 				Hash:    blocks[100].Hash(),
 				Height:  100,
