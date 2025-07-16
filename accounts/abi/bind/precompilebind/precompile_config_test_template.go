@@ -15,10 +15,10 @@ import (
 	"testing"
 
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
-	"github.com/ava-labs/subnet-evm/precompile/testutils"
+	"github.com/ava-labs/subnet-evm/precompile/precompiletest"
 	"github.com/ava-labs/subnet-evm/utils"
 	{{- if .Contract.AllowList}}
-	"github.com/ava-labs/subnet-evm/precompile/allowlist"
+	"github.com/ava-labs/subnet-evm/precompile/allowlist/allowlisttest"
 
 	"github.com/ava-labs/libevm/common"
 	{{- end}}
@@ -28,11 +28,11 @@ import (
 // TestVerify tests the verification of Config.
 func TestVerify(t *testing.T) {
 	{{- if .Contract.AllowList}}
-	admins := []common.Address{allowlist.TestAdminAddr}
-	enableds := []common.Address{allowlist.TestEnabledAddr}
-	managers := []common.Address{allowlist.TestManagerAddr}
+	admins := []common.Address{allowlisttest.TestAdminAddr}
+	enableds := []common.Address{allowlisttest.TestEnabledAddr}
+	managers := []common.Address{allowlisttest.TestManagerAddr}
 	{{- end}}
-	tests := map[string]testutils.ConfigVerifyTest{
+	tests := map[string]precompiletest.ConfigVerifyTest{
 		"valid config": {
 			Config: NewConfig(utils.NewUint64(3){{- if .Contract.AllowList}}, admins, enableds, managers{{- end}}),
 			ChainConfig: func() precompileconfig.ChainConfig {
@@ -55,21 +55,21 @@ func TestVerify(t *testing.T) {
 	// and runs them all together.
 	// Even if you don't add any custom tests, keep this. This will still
 	// run the default allowlist verify tests.
-	allowlist.VerifyPrecompileWithAllowListTests(t, Module, tests)
+	allowlisttest.VerifyPrecompileWithAllowListTests(t, Module, tests)
 	{{- else}}
-	// Run verify tests.
-	testutils.RunVerifyTests(t, tests)
+			// Run verify tests.
+		precompiletest.RunVerifyTests(t, tests)
 	{{- end}}
 }
 
 // TestEqual tests the equality of Config with other precompile configs.
 func TestEqual(t *testing.T) {
 	{{- if .Contract.AllowList}}
-	admins := []common.Address{allowlist.TestAdminAddr}
-	enableds := []common.Address{allowlist.TestEnabledAddr}
-	managers := []common.Address{allowlist.TestManagerAddr}
+	admins := []common.Address{allowlisttest.TestAdminAddr}
+	enableds := []common.Address{allowlisttest.TestEnabledAddr}
+	managers := []common.Address{allowlisttest.TestManagerAddr}
 	{{- end}}
-	tests := map[string]testutils.ConfigEqualTest{
+	tests := map[string]precompiletest.ConfigEqualTest{
 		"non-nil config and nil other": {
 			Config:   NewConfig(utils.NewUint64(3){{- if .Contract.AllowList}}, admins, enableds,managers{{- end}}),
 			Other:    nil,
@@ -99,10 +99,10 @@ func TestEqual(t *testing.T) {
 		// and runs them all together.
 		// Even if you don't add any custom tests, keep this. This will still
 		// run the default allowlist equal tests.
-		allowlist.EqualPrecompileWithAllowListTests(t, Module, tests)
+		allowlisttest.EqualPrecompileWithAllowListTests(t, Module, tests)
 		{{- else}}
 		// Run equal tests.
-		testutils.RunEqualTests(t, tests)
+		precompiletest.RunEqualTests(t, tests)
 		{{- end}}
 	}
 `
