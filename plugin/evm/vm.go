@@ -21,6 +21,7 @@ import (
 	"github.com/ava-labs/avalanchego/network/p2p"
 	"github.com/ava-labs/avalanchego/network/p2p/acp118"
 	"github.com/ava-labs/avalanchego/network/p2p/gossip"
+	"github.com/ava-labs/coreth/plugin/evm/extension"
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/ava-labs/libevm/core/rawdb"
@@ -42,6 +43,7 @@ import (
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/params/extras"
 	"github.com/ava-labs/subnet-evm/plugin/evm/config"
+	"github.com/ava-labs/subnet-evm/plugin/evm/customrawdb"
 	subnetevmlog "github.com/ava-labs/subnet-evm/plugin/evm/log"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
 	"github.com/ava-labs/subnet-evm/plugin/evm/validators"
@@ -52,6 +54,7 @@ import (
 	"github.com/ava-labs/subnet-evm/rpc"
 	statesyncclient "github.com/ava-labs/subnet-evm/sync/client"
 	"github.com/ava-labs/subnet-evm/sync/client/stats"
+	"github.com/ava-labs/subnet-evm/sync/handlers"
 	"github.com/ava-labs/subnet-evm/warp"
 
 	// Force-load tracer engine to trigger registration
@@ -92,6 +95,9 @@ import (
 	avalancheUtils "github.com/ava-labs/avalanchego/utils"
 	avalancheJSON "github.com/ava-labs/avalanchego/utils/json"
 )
+
+// LeafHandlers maps node types to their corresponding leaf request handlers
+type LeafHandlers map[message.NodeType]handlers.LeafRequestHandler
 
 var (
 	_ block.ChainVM                      = (*VM)(nil)
@@ -392,6 +398,30 @@ func (vm *VM) Initialize(
 	vm.ethConfig.StateHistory = vm.config.StateHistory
 	vm.ethConfig.TransactionHistory = vm.config.TransactionHistory
 	vm.ethConfig.SkipTxIndexing = vm.config.SkipTxIndexing
+	vm.ethConfig.StateScheme = vm.config.StateScheme
+
+	if vm.ethConfig.StateScheme == customrawdb.FirewoodScheme {
+		log.Warn("Firewood state scheme is enabled")
+		log.Warn("This is untested in production, use at your own risk")
+		// Firewood only supports pruning for now.
+		if !vm.config.Pruning {
+			return errors.New("Pruning must be enabled for Firewood")
+		}
+		// Firewood does not support iterators, so the snapshot cannot be constructed
+		if vm.config.SnapshotCache > 0 {
+			return errors.New("Snapshot cache must be disabled for Firewood")
+		}
+		if vm.config.OfflinePruning {
+			return errors.New("Offline pruning is not supported for Firewood")
+		}
+		if vm.config.StateSyncEnabled == nil || *vm.config.StateSyncEnabled {
+			return errors.New("State sync is not yet supported for Firewood")
+		}
+	}
+	if vm.ethConfig.StateScheme == rawdb.PathScheme {
+		log.Error("Path state scheme is not supported. Please use HashDB or Firewood state schemes instead")
+		return errors.New("Path state scheme is not supported")
+	}
 
 	// Create directory for offline pruning
 	if len(vm.ethConfig.OfflinePruningDataDirectory) != 0 {
@@ -610,7 +640,56 @@ func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.
 // initializeStateSyncClient initializes the client for performing state sync.
 // If state sync is disabled, this function will wipe any ongoing summary from
 // disk to ensure that we do not continue syncing from an invalid snapshot.
-func (vm *VM) initializeStateSyncClient(lastAcceptedHeight uint64) error {
+func (vm *VM) initializeStateSync(lastAcceptedHeight uint64) error {
+	// Create standalone EVM TrieDB (read only) for serving leafs requests.
+	// We create a standalone TrieDB here, so that it has a standalone cache from the one
+	// used by the node when processing blocks.
+	// However, Firewood does not support multiple TrieDBs, so we use the same one.
+	evmTrieDB := vm.eth.BlockChain().TrieDB()
+	if vm.ethConfig.StateScheme != customrawdb.FirewoodScheme {
+		evmTrieDB = triedb.NewDatabase(
+			vm.chaindb,
+			&triedb.Config{
+				DBOverride: hashdb.Config{
+					CleanCacheSize: vm.config.StateSyncServerTrieCache * units.MiB,
+				}.BackendConstructor,
+			},
+		)
+	}
+	leafHandlers := make(LeafHandlers)
+	leafMetricsNames := make(map[message.NodeType]string)
+	// register default leaf request handler for state trie
+	syncStats := handlerstats.GetOrRegisterHandlerStats(metrics.Enabled)
+	stateLeafRequestConfig := &extension.LeafRequestConfig{
+		LeafType:   message.StateTrieNode,
+		MetricName: "sync_state_trie_leaves",
+		Handler: handlers.NewLeafsRequestHandler(evmTrieDB,
+			message.StateTrieKeyLength,
+			vm.blockChain, vm.networkCodec,
+			syncStats,
+		),
+	}
+	leafHandlers[stateLeafRequestConfig.LeafType] = stateLeafRequestConfig.Handler
+	leafMetricsNames[stateLeafRequestConfig.LeafType] = stateLeafRequestConfig.MetricName
+
+	extraLeafConfig := vm.extensionConfig.ExtraSyncLeafHandlerConfig
+	if extraLeafConfig != nil {
+		leafHandlers[extraLeafConfig.LeafType] = extraLeafConfig.Handler
+		leafMetricsNames[extraLeafConfig.LeafType] = extraLeafConfig.MetricName
+	}
+
+	networkHandler := newNetworkHandler(
+		vm.blockChain,
+		vm.chaindb,
+		vm.warpBackend,
+		vm.networkCodec,
+		leafHandlers,
+		syncStats,
+	)
+	vm.Network.SetRequestHandler(networkHandler)
+
+	vm.Server = vmsync.NewServer(vm.blockChain, vm.extensionConfig.SyncSummaryProvider, vm.config.StateSyncCommitInterval)
+	stateSyncEnabled := vm.stateSyncEnabled(lastAcceptedHeight)
 	// parse nodeIDs from state sync IDs in vm config
 	var stateSyncIDs []ids.NodeID
 	if vm.config.StateSyncEnabled && len(vm.config.StateSyncIDs) > 0 {

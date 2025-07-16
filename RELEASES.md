@@ -2,6 +2,7 @@
 
 ## Pending Release
 - Added maximum number of addresses (1000) to be queried in a single filter.
+- Enable expermiental `state-scheme` flag to specify Firewood as a state database.
 
 ## [v0.7.6](https://github.com/ava-labs/subnet-evm/releases/tag/v0.7.6)
 - Demoted unnecessary error log in `core/txpool/legacypool.go` to warning, displaying unexpected but valid behavior

@@ -70,6 +70,14 @@ const (
 )
 
 func TestSendWarpMessage(t *testing.T) {
+	for _, scheme := range schemes {
+		t.Run(scheme, func(t *testing.T) {
+			testSendWarpMessage(t, scheme)
+		})
+	}
+}
+
+func testSendWarpMessage(t *testing.T, scheme string) {
 	require := require.New(t)
 	genesis := &core.Genesis{}
 	require.NoError(genesis.UnmarshalJSON([]byte(toGenesisJSON(forkToChainConfig[upgradetest.Durango]))))
@@ -80,6 +88,8 @@ func TestSendWarpMessage(t *testing.T) {
 	require.NoError(err)
 	tvm := newVM(t, testVMConfig{
 		genesisJSON: string(genesisJSON),
+		fork:        &fork,
+		configJSON:  getConfig(scheme, ""),
 	})
 
 	defer func() {
@@ -183,6 +193,14 @@ func TestSendWarpMessage(t *testing.T) {
 }
 
 func TestValidateWarpMessage(t *testing.T) {
+	for _, scheme := range schemes {
+		t.Run(scheme, func(t *testing.T) {
+			testValidateWarpMessage(t, scheme)
+		})
+	}
+}
+
+func testValidateWarpMessage(t *testing.T, scheme string) {
 	require := require.New(t)
 	sourceChainID := ids.GenerateTestID()
 	sourceAddress := common.HexToAddress("0x376c47978271565f56DEB45495afa69E59c16Ab2")
@@ -205,10 +223,18 @@ func TestValidateWarpMessage(t *testing.T) {
 	)
 	require.NoError(err)
 
-	testWarpVMTransaction(t, unsignedMessage, true, exampleWarpPayload)
+	testWarpVMTransaction(t, scheme, unsignedMessage, true, exampleWarpPayload)
 }
 
 func TestValidateInvalidWarpMessage(t *testing.T) {
+	for _, scheme := range schemes {
+		t.Run(scheme, func(t *testing.T) {
+			testValidateInvalidWarpMessage(t, scheme)
+		})
+	}
+}
+
+func testValidateInvalidWarpMessage(t *testing.T, scheme string) {
 	require := require.New(t)
 	sourceChainID := ids.GenerateTestID()
 	sourceAddress := common.HexToAddress("0x376c47978271565f56DEB45495afa69E59c16Ab2")
@@ -228,10 +254,18 @@ func TestValidateInvalidWarpMessage(t *testing.T) {
 	)
 	require.NoError(err)
 
-	testWarpVMTransaction(t, unsignedMessage, false, exampleWarpPayload)
+	testWarpVMTransaction(t, scheme, unsignedMessage, false, exampleWarpPayload)
 }
 
 func TestValidateWarpBlockHash(t *testing.T) {
+	for _, scheme := range schemes {
+		t.Run(scheme, func(t *testing.T) {
+			testValidateWarpBlockHash(t, scheme)
+		})
+	}
+}
+
+func testValidateWarpBlockHash(t *testing.T, scheme string) {
 	require := require.New(t)
 	sourceChainID := ids.GenerateTestID()
 	blockHash := ids.GenerateTestID()
@@ -249,10 +283,18 @@ func TestValidateWarpBlockHash(t *testing.T) {
 	)
 	require.NoError(err)
 
-	testWarpVMTransaction(t, unsignedMessage, true, exampleWarpPayload)
+	testWarpVMTransaction(t, scheme, unsignedMessage, true, exampleWarpPayload)
 }
 
 func TestValidateInvalidWarpBlockHash(t *testing.T) {
+	for _, scheme := range schemes {
+		t.Run(scheme, func(t *testing.T) {
+			testValidateInvalidWarpBlockHash(t, scheme)
+		})
+	}
+}
+
+func testValidateInvalidWarpBlockHash(t *testing.T, scheme string) {
 	require := require.New(t)
 	sourceChainID := ids.GenerateTestID()
 	blockHash := ids.GenerateTestID()
@@ -268,10 +310,10 @@ func TestValidateInvalidWarpBlockHash(t *testing.T) {
 	)
 	require.NoError(err)
 
-	testWarpVMTransaction(t, unsignedMessage, false, exampleWarpPayload)
+	testWarpVMTransaction(t, scheme, unsignedMessage, false, exampleWarpPayload)
 }
 
-func testWarpVMTransaction(t *testing.T, unsignedMessage *avalancheWarp.UnsignedMessage, validSignature bool, txPayload []byte) {
+func testWarpVMTransaction(t *testing.T, scheme string, unsignedMessage *avalancheWarp.UnsignedMessage, validSignature bool, txPayload []byte) {
 	require := require.New(t)
 	genesis := &core.Genesis{}
 	require.NoError(genesis.UnmarshalJSON([]byte(toGenesisJSON(forkToChainConfig[upgradetest.Durango]))))
@@ -282,6 +324,8 @@ func testWarpVMTransaction(t *testing.T, unsignedMessage *avalancheWarp.Unsigned
 	require.NoError(err)
 	tvm := newVM(t, testVMConfig{
 		genesisJSON: string(genesisJSON),
+		fork:        &fork,
+		configJSON:  getConfig(scheme, ""),
 	})
 
 	defer func() {
@@ -435,16 +479,27 @@ func testWarpVMTransaction(t *testing.T, unsignedMessage *avalancheWarp.Unsigned
 }
 
 func TestReceiveWarpMessage(t *testing.T) {
-	require := require.New(t)
-	genesis := &core.Genesis{}
-	require.NoError(genesis.UnmarshalJSON([]byte(toGenesisJSON(forkToChainConfig[upgradetest.Durango]))))
-	params.GetExtra(genesis.Config).GenesisPrecompiles = extras.Precompiles{
-		// Note that warp is enabled without RequirePrimaryNetworkSigners
-		// by default in the genesis configuration.
-		warpcontract.ConfigKey: warpcontract.NewDefaultConfig(utils.TimeToNewUint64(upgrade.InitiallyActiveTime)),
+	for _, scheme := range schemes {
+		t.Run(scheme, func(t *testing.T) {
+			testReceiveWarpMessageWithScheme(t, scheme)
+		})
 	}
-	genesisJSON, err := genesis.MarshalJSON()
-	require.NoError(err)
+}
+
+func testReceiveWarpMessageWithScheme(t *testing.T, scheme string) {
+	require := require.New(t)
+	fork := upgradetest.Durango
+	tvm := newVM(t, testVMConfig{
+		fork:       &fork,
+		configJSON: getConfig(scheme, ""),
+	})
+	defer func() {
+		require.NoError(tvm.vm.Shutdown(context.Background()))
+	}()
+
+	// enable warp at the default genesis time
+	enableTime := upgrade.InitiallyActiveTime
+	enableConfig := warpcontract.NewDefaultConfig(utils.TimeToNewUint64(enableTime))
 
 	// disable warp so we can re-enable it with RequirePrimaryNetworkSigners
 	disableTime := upgrade.InitiallyActiveTime.Add(10 * time.Second)
@@ -762,9 +817,19 @@ func testReceiveWarpMessage(
 	require.JSONEq(string(txTraceResultBytes), string(blockTxTraceResultBytes))
 }
 
-func TestMessageSignatureRequestsToVM(t *testing.T) {
+func TestSignatureRequestsToVM(t *testing.T) {
+	for _, scheme := range schemes {
+		t.Run(scheme, func(t *testing.T) {
+			testSignatureRequestsToVM(t, scheme)
+		})
+	}
+}
+
+func testSignatureRequestsToVM(t *testing.T, scheme string) {
+	fork := upgradetest.Durango
 	tvm := newVM(t, testVMConfig{
-		genesisJSON: genesisJSONSubnetEVM,
+		fork:       &fork,
+		configJSON: getConfig(scheme, ""),
 	})
 
 	defer func() {
