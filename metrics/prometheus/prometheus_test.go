@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ava-labs/subnet-evm/internal/testutils"
+	"github.com/ava-labs/coreth/metrics/metricstest"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -15,7 +15,7 @@ import (
 )
 
 func TestGatherer_Gather(t *testing.T) {
-	testutils.WithMetrics(t)
+	metricstest.WithMetrics(t)
 
 	registry := metrics.NewRegistry()
 	register := func(t *testing.T, name string, collector any) {

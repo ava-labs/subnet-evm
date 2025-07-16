@@ -44,7 +44,6 @@ import (
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/txpool"
 	"github.com/ava-labs/subnet-evm/eth"
-	"github.com/ava-labs/subnet-evm/internal/testutils"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/params/extras"
 	"github.com/ava-labs/subnet-evm/plugin/evm/config"
@@ -370,7 +369,7 @@ func TestBuildEthTxBlock(t *testing.T) {
 	newTxPoolHeadChan := make(chan core.NewTxPoolReorgEvent, 1)
 	tvm.vm.txPool.SubscribeNewReorgEvent(newTxPoolHeadChan)
 
-	key := testutils.NewKey(t)
+	key := utilstest.NewKey(t)
 
 	tx := types.NewTransaction(uint64(0), key.Address, firstTxAmount, 21000, big.NewInt(testMinGasPrice), nil)
 	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(tvm.vm.chainConfig.ChainID), testKeys[0].ToECDSA())
@@ -3017,7 +3016,7 @@ func TestSkipChainConfigCheckCompatible(t *testing.T) {
 	newTxPoolHeadChan := make(chan core.NewTxPoolReorgEvent, 1)
 	tvm.vm.txPool.SubscribeNewReorgEvent(newTxPoolHeadChan)
 
-	key := testutils.NewKey(t)
+	key := utilstest.NewKey(t)
 
 	tx := types.NewTransaction(uint64(0), key.Address, firstTxAmount, 21000, big.NewInt(testMinGasPrice), nil)
 	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(tvm.vm.chainConfig.ChainID), testKeys[0].ToECDSA())

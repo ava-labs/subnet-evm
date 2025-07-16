@@ -7,8 +7,9 @@ import (
 	"testing"
 
 	"github.com/ava-labs/libevm/common"
-	"github.com/ava-labs/subnet-evm/core/extstate"
-	. "github.com/ava-labs/subnet-evm/precompile/allowlist"
+	"github.com/ava-labs/subnet-evm/core/extstate/extstatetest"
+	"github.com/ava-labs/subnet-evm/precompile/allowlist"
+	"github.com/ava-labs/subnet-evm/precompile/allowlist/allowlisttest"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
@@ -23,7 +24,7 @@ var (
 
 type dummyConfig struct {
 	precompileconfig.Upgrade
-	AllowListConfig
+	allowlist.AllowListConfig
 }
 
 func (d *dummyConfig) Key() string      { return "dummy" }
@@ -59,19 +60,19 @@ func (d *dummyConfigurator) Configure(
 func TestAllowListRun(t *testing.T) {
 	dummyModule := modules.Module{
 		Address:      dummyAddr,
-		Contract:     CreateAllowListPrecompile(dummyAddr),
+		Contract:     allowlist.CreateAllowListPrecompile(dummyAddr),
 		Configurator: &dummyConfigurator{},
 		ConfigKey:    "dummy",
 	}
-	RunPrecompileWithAllowListTests(t, dummyModule, extstate.NewTestStateDB, nil)
+	allowlisttest.RunPrecompileWithAllowListTests(t, dummyModule, extstatetest.NewTestStateDB, nil)
 }
 
 func BenchmarkAllowList(b *testing.B) {
 	dummyModule := modules.Module{
 		Address:      dummyAddr,
-		Contract:     CreateAllowListPrecompile(dummyAddr),
+		Contract:     allowlist.CreateAllowListPrecompile(dummyAddr),
 		Configurator: &dummyConfigurator{},
 		ConfigKey:    "dummy",
 	}
-	BenchPrecompileWithAllowList(b, dummyModule, extstate.NewTestStateDB, nil)
+	allowlisttest.BenchPrecompileWithAllowList(b, dummyModule, extstatetest.NewTestStateDB, nil)
 }

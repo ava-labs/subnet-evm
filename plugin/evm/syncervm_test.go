@@ -38,12 +38,13 @@ import (
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
 	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/core"
-	"github.com/ava-labs/subnet-evm/internal/testutils"
+	"github.com/ava-labs/subnet-evm/core/coretest"
 	"github.com/ava-labs/subnet-evm/plugin/evm/customrawdb"
 	"github.com/ava-labs/subnet-evm/plugin/evm/database"
 	"github.com/ava-labs/subnet-evm/predicate"
 	statesyncclient "github.com/ava-labs/subnet-evm/sync/client"
-	"github.com/ava-labs/subnet-evm/sync/statesync"
+	"github.com/ava-labs/subnet-evm/sync/statesync/statesynctest"
+	"github.com/ava-labs/subnet-evm/utils/utilstest"
 )
 
 func TestSkipStateSync(t *testing.T) {
@@ -296,7 +297,7 @@ func createSyncServerAndClientVMs(t *testing.T, test syncTest, numBlocks int) *s
 
 	// make some accounts
 	trieDB := triedb.NewDatabase(serverVM.vm.chaindb, nil)
-	root, accounts := statesync.FillAccountsWithOverlappingStorage(t, trieDB, types.EmptyRootHash, 1000, 16)
+	root, accounts := statesynctest.FillAccountsWithOverlappingStorage(t, trieDB, types.EmptyRootHash, 1000, 16)
 
 	// patch serverVM's lastAcceptedBlock to have the new root
 	// and update the vm's state so the trie with accounts will
@@ -373,7 +374,7 @@ type syncVMSetup struct {
 	serverVM        *VM
 	serverAppSender *enginetest.Sender
 
-	fundedAccounts map[*testutils.Key]*types.StateAccount
+	fundedAccounts map[*utilstest.Key]*types.StateAccount
 
 	syncerVM             *VM
 	syncerDB             avalanchedatabase.Database
@@ -459,7 +460,7 @@ func testSyncerVM(t *testing.T, vmSetup *syncVMSetup, test syncTest) {
 	if syncerVM.ethConfig.TransactionHistory != 0 {
 		tail := lastSyncedBlock.NumberU64()
 
-		core.CheckTxIndices(t, &tail, tail, syncerVM.chaindb, true)
+		coretest.CheckTxIndices(t, &tail, tail, tail, tail, syncerVM.chaindb, true)
 	}
 
 	blocksToBuild := 10
@@ -490,7 +491,7 @@ func testSyncerVM(t *testing.T, vmSetup *syncVMSetup, test syncTest) {
 				if tail < lastSyncedBlock.NumberU64() {
 					tail = lastSyncedBlock.NumberU64()
 				}
-				core.CheckTxIndices(t, &tail, block.NumberU64(), syncerVM.chaindb, true)
+				coretest.CheckTxIndices(t, &tail, tail, block.NumberU64(), block.NumberU64(), syncerVM.chaindb, true)
 			}
 		},
 	)
@@ -523,7 +524,7 @@ func testSyncerVM(t *testing.T, vmSetup *syncVMSetup, test syncTest) {
 				if tail < lastSyncedBlock.NumberU64() {
 					tail = lastSyncedBlock.NumberU64()
 				}
-				core.CheckTxIndices(t, &tail, block.NumberU64(), syncerVM.chaindb, true)
+				coretest.CheckTxIndices(t, &tail, tail, block.NumberU64(), block.NumberU64(), syncerVM.chaindb, true)
 			}
 		},
 	)
