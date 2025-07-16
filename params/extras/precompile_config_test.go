@@ -319,8 +319,7 @@ func TestPrecompileUpgradeUnmarshalJSON(t *testing.T) {
 	`)
 
 	var upgradeConfig UpgradeConfig
-	err := json.Unmarshal(upgradeBytes, &upgradeConfig)
-	require.NoError(err)
+	require.NoError(json.Unmarshal(upgradeBytes, &upgradeConfig))
 
 	require.Len(upgradeConfig.PrecompileUpgrades, 2)
 
@@ -345,7 +344,6 @@ func TestPrecompileUpgradeUnmarshalJSON(t *testing.T) {
 	upgradeBytes2, err := json.Marshal(upgradeConfig)
 	require.NoError(err)
 	var upgradeConfig2 UpgradeConfig
-	err = json.Unmarshal(upgradeBytes2, &upgradeConfig2)
-	require.NoError(err)
+	require.NoError(json.Unmarshal(upgradeBytes2, &upgradeConfig2))
 	require.Equal(upgradeConfig, upgradeConfig2)
 }

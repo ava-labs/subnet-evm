@@ -372,8 +372,7 @@ func TestAppRequestAnyOnCtxCancellation(t *testing.T) {
 	<-doneChan
 	// Should still be able to process a response after cancelling.
 	assert.Len(t, net.(*network).outstandingRequestHandlers, 1) // context cancellation SendAppRequestAny failure doesn't clear
-	err = net.AppResponse(context.Background(), sentAppRequestInfo.nodeID, sentAppRequestInfo.requestID, []byte{})
-	assert.NoError(t, err)
+	assert.NoError(t, net.AppResponse(context.Background(), sentAppRequestInfo.nodeID, sentAppRequestInfo.requestID, []byte{}))
 	assert.Empty(t, net.(*network).outstandingRequestHandlers) // Received response
 }
 
@@ -396,8 +395,7 @@ func TestRequestMinVersion(t *testing.T) {
 				if err != nil {
 					panic(err)
 				}
-				err = net.AppResponse(context.Background(), nodeID, reqID, responseBytes)
-				assert.NoError(t, err)
+				assert.NoError(t, net.AppResponse(context.Background(), nodeID, reqID, responseBytes))
 			}()
 			return nil
 		},
@@ -483,8 +481,7 @@ func TestOnRequestHonoursDeadline(t *testing.T) {
 	assert.EqualValues(t, requestHandler.calls, 0)
 
 	requestHandler.processingDuration = 0
-	err = net.AppRequest(context.Background(), nodeID, 2, time.Now().Add(250*time.Millisecond), requestBytes)
-	assert.NoError(t, err)
+	assert.NoError(t, net.AppRequest(context.Background(), nodeID, 2, time.Now().Add(250*time.Millisecond), requestBytes))
 	assert.True(t, responded)
 	assert.EqualValues(t, requestHandler.calls, 1)
 }

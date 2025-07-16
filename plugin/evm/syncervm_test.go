@@ -260,8 +260,7 @@ func TestVMShutdownWhileSyncing(t *testing.T) {
 				// Note this verifies the VM shutdown does not time out while syncing.
 				require.NoError(t, vmSetup.shutdownOnceSyncerVM.Shutdown(context.Background()))
 			} else if reqCount < 50 {
-				err := syncerVM.AppResponse(context.Background(), nodeID, requestID, response)
-				require.NoError(t, err)
+				require.NoError(t, syncerVM.AppResponse(context.Background(), nodeID, requestID, response))
 			}
 		},
 		expectedErr: context.Canceled,
@@ -354,8 +353,7 @@ func createSyncServerAndClientVMs(t *testing.T, test syncTest, numBlocks int) *s
 	syncerVM.appSender.SendAppRequestF = func(ctx context.Context, nodeSet set.Set[ids.NodeID], requestID uint32, request []byte) error {
 		nodeID, hasItem := nodeSet.Pop()
 		require.True(hasItem, "expected nodeSet to contain at least 1 nodeID")
-		err := serverVM.vm.AppRequest(ctx, nodeID, requestID, time.Now().Add(1*time.Second), request)
-		require.NoError(err)
+		require.NoError(serverVM.vm.AppRequest(ctx, nodeID, requestID, time.Now().Add(1*time.Second), request))
 		return nil
 	}
 

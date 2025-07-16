@@ -19,7 +19,7 @@ type Client struct {
 
 // New creates a client that uses the given RPC client.
 func New(c *rpc.Client) *Client {
-	return &Client{c: c, client: ethclient.NewClientWithHook(c, nil)}
+	return &Client{c: c, client: ethclient.NewClient(c)}
 }
 
 // Dial connects a client to the given URL.

@@ -183,7 +183,6 @@ func TestUnmarshalStateUpgradeJSON(t *testing.T) {
 		},
 	}
 	var unmarshaledConfig UpgradeConfig
-	err := json.Unmarshal(jsonBytes, &unmarshaledConfig)
-	require.NoError(t, err)
+	require.NoError(t, json.Unmarshal(jsonBytes, &unmarshaledConfig))
 	require.Equal(t, upgradeConfig, unmarshaledConfig)
 }

@@ -184,8 +184,7 @@ func TestTraceTransactionPrecompileActivation(t *testing.T) {
 			require := require.New(t)
 			require.NoError(err)
 			var have *logger.ExecutionResult
-			err = json.Unmarshal(result.(json.RawMessage), &have)
-			require.NoError(err)
+			require.NoError(json.Unmarshal(result.(json.RawMessage), &have))
 			expected := &logger.ExecutionResult{
 				Gas:         ethparams.TxGas,
 				Failed:      false,
