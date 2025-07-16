@@ -4,7 +4,6 @@
 
 - Removed static API handler: `subnetevm.decodeGenesis`, `subnetevm.buildGenesis`
 - Demoted unnecessary error log in `core/txpool/legacypool.go` to warning, displaying unexpected but valid behavior.
-- Moved extra types returned in `ethclient` package to a new package `plugin/evm/customethclient` which supports the same functionality as `ethclient` but with the new types registered in header and block.
 
 ## [v0.7.4](https://github.com/ava-labs/subnet-evm/releases/tag/v0.7.4)
 
