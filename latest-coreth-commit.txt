@@ -1,7 +1,7 @@
 # This is the latest commit of coreth that is synced with the subnet-evm
 
-d09d7cb8610be5ee5b8e9de771b4076ab194bf8f
+032b013c652d20dd98b7911d4a9c2629f8dd6d79
 
 # Notes: 
 - Coreth PR 1034 has already been synced (ahead of schedule) - see https://github.com/ava-labs/subnet-evm/pull/1622
-- Last PR done is currently 967
+- Last PR done is currently 969
