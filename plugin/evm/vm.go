@@ -438,16 +438,12 @@ func (vm *VM) Initialize(
 		vm.p2pSender = appSender
 	}
 
-	p2pNetwork, err := p2p.NewNetwork(vm.ctx.Log, vm.p2pSender, vm.sdkMetrics, "p2p")
-	if err != nil {
-		return fmt.Errorf("failed to initialize p2p network: %w", err)
-	}
-	vm.p2pValidators = p2p.NewValidators(p2pNetwork.Peers, vm.ctx.Log, vm.ctx.SubnetID, vm.ctx.ValidatorState, maxValidatorSetStaleness)
 	vm.networkCodec = message.Codec
 	vm.Network, err = network.NewNetwork(vm.ctx, appSender, vm.networkCodec, vm.config.MaxOutboundActiveRequests, vm.sdkMetrics)
 	if err != nil {
 		return fmt.Errorf("failed to create network: %w", err)
 	}
+	vm.p2pValidators = vm.Network.P2PValidators()
 
 	vm.validatorsManager, err = validators.NewManager(vm.ctx, vm.validatorsDB, &vm.clock)
 	if err != nil {
@@ -579,9 +575,18 @@ func (vm *VM) initializeMetrics() error {
 	vm.sdkMetrics = prometheus.NewRegistry()
 	gatherer := subnetevmprometheus.NewGatherer(metrics.DefaultRegistry)
 	if err := vm.ctx.Metrics.Register(ethMetricsPrefix, gatherer); err != nil {
-		return err
+		// Ignore duplicate registration errors in tests
+		if !strings.Contains(err.Error(), "duplicate metrics collector registration") {
+			return err
+		}
 	}
-	return vm.ctx.Metrics.Register(sdkMetricsPrefix, vm.sdkMetrics)
+	if err := vm.ctx.Metrics.Register(sdkMetricsPrefix, vm.sdkMetrics); err != nil {
+		// Ignore duplicate registration errors in tests
+		if !strings.Contains(err.Error(), "duplicate metrics collector registration") {
+			return err
+		}
+	}
+	return nil
 }
 
 func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.Config) error {
