@@ -575,18 +575,9 @@ func (vm *VM) initializeMetrics() error {
 	vm.sdkMetrics = prometheus.NewRegistry()
 	gatherer := subnetevmprometheus.NewGatherer(metrics.DefaultRegistry)
 	if err := vm.ctx.Metrics.Register(ethMetricsPrefix, gatherer); err != nil {
-		// Ignore duplicate registration errors in tests
-		if !strings.Contains(err.Error(), "duplicate metrics collector registration") {
-			return err
-		}
+		return err
 	}
-	if err := vm.ctx.Metrics.Register(sdkMetricsPrefix, vm.sdkMetrics); err != nil {
-		// Ignore duplicate registration errors in tests
-		if !strings.Contains(err.Error(), "duplicate metrics collector registration") {
-			return err
-		}
-	}
-	return nil
+	return vm.ctx.Metrics.Register(sdkMetricsPrefix, vm.sdkMetrics)
 }
 
 func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.Config) error {
