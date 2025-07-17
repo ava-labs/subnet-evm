@@ -46,10 +46,10 @@ require (
 	github.com/DataDog/zstd v1.5.2 // indirect
 	github.com/Microsoft/go-winio v0.6.1 // indirect
 	github.com/StephenButtolph/canoto v0.17.1 // indirect
+	github.com/ava-labs/coreth v0.15.3-rc.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bits-and-blooms/bitset v1.10.0 // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.3.2 // indirect
-	github.com/ava-labs/coreth v0.15.3-rc.1 // indirect
 	github.com/btcsuite/btcd/btcutil v1.1.3 // indirect
 	github.com/cenkalti/backoff/v4 v4.2.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
