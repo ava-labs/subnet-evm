@@ -2,17 +2,6 @@
 
 set -euo pipefail
 
-# This script runs various linting checks including:
-# - golangci-lint for Go code quality
-# - License header verification (excluding generated files)
-# - Custom linting rules for require.ErrorIs, require.NoError, etc.
-# - Single import checks
-# - Interface compliance checks
-# - Import testing package checks
-#
-# Generated files can be excluded from license header checks by adding
-# their paths to ./scripts/generated_file_list (one path per line).
-
 if ! [[ "$0" =~ scripts/lint.sh ]]; then
   echo "must be run from repository root"
   exit 255
@@ -32,16 +21,10 @@ grep -P 'lint.sh' scripts/lint.sh &>/dev/null || (
 # Read excluded directories into arrays
 DEFAULT_FILES=()
 UPSTREAM_FILES=()
-GENERATED_FILES=()
 function read_dirs {
   local upstream_folders_file="./scripts/upstream_files.txt"
-  local generated_files_file="./scripts/generated_file_list.txt"
-  
   # Read the upstream_folders file into an array
   mapfile -t upstream_folders <"$upstream_folders_file"
-
-  # Read the generated files list into an array
-  mapfile -t GENERATED_FILES <"$generated_files_file"
 
   # Shared find filters
   local -a find_filters=(
@@ -102,56 +85,23 @@ function test_golangci_lint {
 # TESTS='license_header' ADDLICENSE_FLAGS="--debug" ./scripts/lint.sh
 _addlicense_flags=${ADDLICENSE_FLAGS:-"--verify --debug"}
 function test_license_header {
-  # Filter out generated files from upstream files
-  local -a upstream_files_to_check=()
-  for file in "${UPSTREAM_FILES[@]}"; do
-    local is_generated=false
-    local norm_file="${file#./}"
-    for gen_file in "${GENERATED_FILES[@]}"; do
-      if [[ "$norm_file" == "$gen_file" ]]; then
-        is_generated=true
-        break
-      fi
-    done
-    if [[ "$is_generated" == "false" ]]; then
-      upstream_files_to_check+=("$file")
-    fi
-  done
-
-  # Filter out generated files from default files
-  local -a default_files_to_check=()
-  for file in "${DEFAULT_FILES[@]}"; do
-    local is_generated=false
-    local norm_file="${file#./}"
-    for gen_file in "${GENERATED_FILES[@]}"; do
-      if [[ "$norm_file" == "$gen_file" ]]; then
-        is_generated=true
-        break
-      fi
-    done
-    if [[ "$is_generated" == "false" ]]; then
-      default_files_to_check+=("$file")
-    fi
-  done
-
-  # Run license tool on upstream files
-  if [[ ${#upstream_files_to_check[@]} -gt 0 ]]; then
+  # Run license tool
+  if [[ ${#UPSTREAM_FILES[@]} -gt 0 ]]; then
     echo "Running license tool on upstream files with header for upstream..."
     # shellcheck disable=SC2086
     go run github.com/palantir/go-license@v1.25.0 \
       --config=./license_header_for_upstream.yml \
       ${_addlicense_flags} \
-      "${upstream_files_to_check[@]}"
+      "${UPSTREAM_FILES[@]}"
   fi
 
-  # Run license tool on default files
-  if [[ ${#default_files_to_check[@]} -gt 0 ]]; then
+  if [[ ${#DEFAULT_FILES[@]} -gt 0 ]]; then
     echo "Running license tool on remaining files with default header..."
     # shellcheck disable=SC2086
     go run github.com/palantir/go-license@v1.25.0 \
       --config=./license_header.yml \
       ${_addlicense_flags} \
-      "${default_files_to_check[@]}"
+      "${DEFAULT_FILES[@]}"
   fi
 }
 

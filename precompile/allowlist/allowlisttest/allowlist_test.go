@@ -1,7 +1,7 @@
 // Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-package allowlist_test
+package allowlisttest
 
 import (
 	"testing"
@@ -9,7 +9,6 @@ import (
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/subnet-evm/core/extstate/extstatetest"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
-	"github.com/ava-labs/subnet-evm/precompile/allowlist/allowlisttest"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
@@ -64,7 +63,7 @@ func TestAllowListRun(t *testing.T) {
 		Configurator: &dummyConfigurator{},
 		ConfigKey:    "dummy",
 	}
-	allowlisttest.RunPrecompileWithAllowListTests(t, dummyModule, extstatetest.NewTestStateDB, nil)
+	RunPrecompileWithAllowListTests(t, dummyModule, extstatetest.NewTestStateDB, nil)
 }
 
 func BenchmarkAllowList(b *testing.B) {
@@ -74,5 +73,5 @@ func BenchmarkAllowList(b *testing.B) {
 		Configurator: &dummyConfigurator{},
 		ConfigKey:    "dummy",
 	}
-	allowlisttest.BenchPrecompileWithAllowList(b, dummyModule, extstatetest.NewTestStateDB, nil)
+	BenchPrecompileWithAllowList(b, dummyModule, extstatetest.NewTestStateDB, nil)
 }

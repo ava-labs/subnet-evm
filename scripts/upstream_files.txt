@@ -1,5 +1,11 @@
 !accounts/abi/abi_extra_test.go
 !accounts/abi/bind/bind_extra.go
+!accounts/abi/bind/precompilebind/precompile_config_template.go
+!accounts/abi/bind/precompilebind/precompile_config_test_template.go
+!accounts/abi/bind/precompilebind/precompile_contract_template.go
+!accounts/abi/bind/precompilebind/precompile_contract_test_template.go
+!accounts/abi/bind/precompilebind/precompile_event_template.go
+!accounts/abi/bind/precompilebind/precompile_module_template.go
 !cmd/simulator/*
 !consensus/dummy/*
 !core/blockchain_ext.go
@@ -16,6 +22,8 @@
 !core/main_test.go
 !core/predicate_check.go
 !core/predicate_check_test.go
+!core/state/database_test.go
+!core/state/firewood_database.go
 !core/state/snapshot/snapshot_ext.go
 !core/state/trie_prefetcher_extra_test.go
 !core/state_manager_test.go
@@ -30,6 +38,7 @@
 !internal/ethapi/api_extra_test.go
 !internal/testutils/*
 !plugin/evm/customtypes/*
+!triedb/firewood/*
 
 accounts/*
 cmd/*

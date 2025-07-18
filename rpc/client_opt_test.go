@@ -9,7 +9,6 @@
 //
 // Much love to the original authors for their work.
 // **********
-// TODO: FIND THE ORIGINAL LICENSE BECAUSE IT IS NOT HERE! >:O
 
 package rpc_test
 
