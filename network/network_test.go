@@ -474,6 +474,7 @@ func TestOnRequestHonoursDeadline(t *testing.T) {
 	requestHandler.response, err = marshalStruct(codecManager, TestMessage{Message: "hi there"})
 	assert.NoError(t, err)
 	assert.NoError(t, net.AppRequest(context.Background(), nodeID, 0, time.Now().Add(1*time.Millisecond), requestBytes))
+
 	// ensure the handler didn't get called (as peer.Network would've dropped the request)
 	assert.EqualValues(t, requestHandler.calls, 0)
 

@@ -263,15 +263,15 @@ func (n *network) AppRequest(ctx context.Context, nodeID ids.NodeID, requestID u
 
 	log.Debug("received AppRequest from node", "nodeID", nodeID, "requestID", requestID, "requestLen", len(request))
 
-	var req message.Request
-	if _, err := n.codec.Unmarshal(request, &req); err != nil {
-		log.Debug("forwarding AppRequest to SDK network", "nodeID", nodeID, "requestID", requestID, "requestLen", len(request), "err", err)
-		return n.sdkNetwork.AppRequest(ctx, nodeID, requestID, deadline, request)
-	}
-
 	bufferedDeadline, err := calculateTimeUntilDeadline(deadline, n.appStats)
 	if err != nil {
 		log.Debug("deadline to process AppRequest has expired, skipping", "nodeID", nodeID, "requestID", requestID, "err", err)
+		return nil
+	}
+
+	var req message.Request
+	if _, err := n.codec.Unmarshal(request, &req); err != nil {
+		log.Debug("failed to unmarshal AppRequest", "nodeID", nodeID, "requestID", requestID, "err", err)
 		return nil
 	}
 
