@@ -114,14 +114,6 @@ const (
 	ethMetricsPrefix        = "eth"
 	sdkMetricsPrefix        = "sdk"
 	chainStateMetricsPrefix = "chain_state"
-
-	// gossip constants
-	pushGossipDiscardedElements = 16_384
-	txGossipTargetMessageSize   = 20 * units.KiB
-	txGossipThrottlingPeriod    = 10 * time.Second
-	txGossipThrottlingLimit     = 2
-	txGossipPollSize            = 1
-	maxValidatorSetStaleness    = time.Minute
 )
 
 // Define the API endpoints for the VM
@@ -794,8 +786,8 @@ func (vm *VM) onNormalOperationsStarted() error {
 			ethTxGossipMetrics,
 			pushGossipParams,
 			pushRegossipParams,
-			pushGossipDiscardedElements,
-			txGossipTargetMessageSize,
+			config.PushGossipDiscardedElements,
+			config.TxGossipTargetMessageSize,
 			vm.config.RegossipFrequency.Duration,
 		)
 		if err != nil {
@@ -816,9 +808,9 @@ func (vm *VM) onNormalOperationsStarted() error {
 			ethTxGossipMarshaller,
 			ethTxPool,
 			ethTxGossipMetrics,
-			txGossipTargetMessageSize,
-			txGossipThrottlingPeriod,
-			txGossipThrottlingLimit,
+			config.TxGossipTargetMessageSize,
+			config.TxGossipThrottlingPeriod,
+			config.TxGossipThrottlingLimit,
 			vm.P2PValidators(),
 		)
 	}
@@ -834,7 +826,7 @@ func (vm *VM) onNormalOperationsStarted() error {
 			ethTxPool,
 			ethTxGossipClient,
 			ethTxGossipMetrics,
-			txGossipPollSize,
+			config.TxGossipPollSize,
 		)
 
 		vm.ethTxPullGossiper = gossip.ValidatorGossiper{
