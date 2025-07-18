@@ -43,9 +43,7 @@ func TestEthTxGossip(t *testing.T) {
 	responseSender := &enginetest.SenderStub{
 		SentAppResponse: make(chan []byte, 1),
 	}
-	vm := &VM{
-		p2pSender: responseSender,
-	}
+	vm := &VM{}
 
 	require.NoError(vm.Initialize(
 		ctx,
