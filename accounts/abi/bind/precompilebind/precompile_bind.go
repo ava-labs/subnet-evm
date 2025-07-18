@@ -1,4 +1,5 @@
-// (c) 2019-2020, Ava Labs, Inc.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -28,6 +29,7 @@
 //
 // Detailed usage document and tutorial available on the go-ethereum Wiki page:
 // https://github.com/ethereum/go-ethereum/wiki/Native-DApps:-Go-bindings-to-Ethereum-contracts
+
 package precompilebind
 
 import (
@@ -37,6 +39,7 @@ import (
 
 	"github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ava-labs/subnet-evm/accounts/abi/bind"
+	"github.com/ava-labs/subnet-evm/accounts/abi/bind/precompilebind/precompilebindtest"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 )
 
@@ -76,8 +79,8 @@ func PrecompileBind(types []string, abiData string, bytecodes []string, fsigs []
 	contractHook := createPrecompileHook(abifilename, tmplSourcePrecompileContractGo)
 	moduleHook := createPrecompileHook(abifilename, tmplSourcePrecompileModuleGo)
 	eventHook := createPrecompileHook(abifilename, tmplSourcePrecompileEventGo)
-	configTestHook := createPrecompileHook(abifilename, tmplSourcePrecompileConfigTestGo)
-	contractTestHook := createPrecompileHook(abifilename, tmplSourcePrecompileContractTestGo)
+	configTestHook := createPrecompileHook(abifilename, precompilebindtest.TmplSourcePrecompileConfigTestGo)
+	contractTestHook := createPrecompileHook(abifilename, precompilebindtest.TmplSourcePrecompileContractTestGo)
 
 	if err := verifyABI(abiData); err != nil {
 		return nil, err
