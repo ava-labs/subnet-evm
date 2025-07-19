@@ -191,6 +191,10 @@ function run {
     fi
   done
 
+  if [ ${#filtered_files[@]} -eq 0 ]; then
+    echo "SKIPPED: '${test}' - No files remain after filtering at $(date)"
+    return 0
+  fi
   if "test_${test}" "${filtered_files[@]}"; then
     echo "SUCCESS: '${test}' completed at $(date)"
   else
