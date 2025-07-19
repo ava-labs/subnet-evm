@@ -106,21 +106,24 @@ function test_license_header {
 }
 
 function test_single_import {
-  if grep -R -zo -P 'import \(\n\t".*"\n\)' "${DEFAULT_FILES[@]}"; then
+  local files=("$@")
+  if grep -R -zo -P 'import \(\n\t".*"\n\)' "${files[@]}"; then
     echo ""
     return 1
   fi
 }
 
 function test_require_error_is_no_funcs_as_params {
-  if grep -R -zo -P 'require.ErrorIs\(.+?\)[^\n]*\)\n' "${DEFAULT_FILES[@]}"; then
+  local files=("$@")
+  if grep -R -zo -P 'require.ErrorIs\(.+?\)[^\n]*\)\n' "${files[@]}"; then
     echo ""
     return 1
   fi
 }
 
 function test_require_no_error_inline_func {
-  if grep -R -zo -P '\t+err :?= ((?!require|if).|\n)*require\.NoError\((t, )?err\)' "${DEFAULT_FILES[@]}"; then
+  local files=("$@")
+  if grep -R -zo -P '\t+err :?= ((?!require|if).|\n)*require\.NoError\((t, )?err\)' "${files[@]}"; then
     echo ""
     echo "Checking that a function with a single error return doesn't error should be done in-line."
     echo ""
@@ -130,7 +133,8 @@ function test_require_no_error_inline_func {
 
 # Ref: https://go.dev/doc/effective_go#blank_implements
 function test_interface_compliance_nil {
-  if grep -R -o -P '_ .+? = &.+?\{\}' "${DEFAULT_FILES[@]}"; then
+  local files=("$@")
+  if grep -R -o -P '_ .+? = &.+?\{\}' "${files[@]}"; then
     echo ""
     echo "Interface compliance checks need to be of the form:"
     echo "  var _ json.Marshaler = (*RawMessage)(nil)"
@@ -140,8 +144,9 @@ function test_interface_compliance_nil {
 }
 
 function test_import_testing_only_in_tests {
+  local files=("$@")
   NON_TEST_GO_FILES=$(
-    echo "${DEFAULT_FILES[@]}" | tr ' ' '\n' |
+    echo "${files[@]}" | tr ' ' '\n' |
       grep -i '\.go$' |
       grep -vi '_test\.go$' |
       grep -v '^./tests/'
@@ -176,7 +181,21 @@ function run {
   local test="${1}"
   shift 1
   echo "START: '${test}' at $(date)"
-  if "test_${test}" "$@"; then
+
+  # Filter out files that have skiplint comments for this specific test
+  local filtered_files=()
+  for file in "${DEFAULT_FILES[@]}"; do
+    # Check if file has skiplint comment for this test
+    if ! grep -q "// #skiplint: ${test}" "$file" 2>/dev/null; then
+      filtered_files+=("$file")
+    fi
+  done
+
+  if [ ${#filtered_files[@]} -eq 0 ]; then
+    echo "SKIPPED: '${test}' - No files remain after filtering at $(date)"
+    return 0
+  fi
+  if "test_${test}" "${filtered_files[@]}"; then
     echo "SUCCESS: '${test}' completed at $(date)"
   else
     echo "FAIL: '${test}' failed at $(date)"
