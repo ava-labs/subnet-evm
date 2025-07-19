@@ -1,7 +1,8 @@
 // Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-package precompilebindtest
+// #skiplint: import_testing_only_in_tests
+package precompilebind
 
 // tmplSourcePrecompileConfigGo is the Go precompiled config source template.
 const TmplSourcePrecompileConfigTestGo = `
