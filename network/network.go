@@ -1,4 +1,4 @@
-// (c) 2019-2022, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package network
@@ -38,9 +38,9 @@ const (
 var (
 	errAcquiringSemaphore                      = errors.New("error acquiring semaphore")
 	errExpiredRequest                          = errors.New("expired request")
-	_                     Network              = &network{}
-	_                     validators.Connector = &network{}
-	_                     common.AppHandler    = &network{}
+	_                     Network              = (*network)(nil)
+	_                     validators.Connector = (*network)(nil)
+	_                     common.AppHandler    = (*network)(nil)
 )
 
 // SyncedNetworkClient defines ability to send request / response through the Network
