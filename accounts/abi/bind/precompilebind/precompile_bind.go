@@ -78,8 +78,8 @@ func PrecompileBind(types []string, abiData string, bytecodes []string, fsigs []
 	contractHook := createPrecompileHook(abifilename, tmplSourcePrecompileContractGo)
 	moduleHook := createPrecompileHook(abifilename, tmplSourcePrecompileModuleGo)
 	eventHook := createPrecompileHook(abifilename, tmplSourcePrecompileEventGo)
-	configTestHook := createPrecompileHook(abifilename, TmplSourcePrecompileConfigTestGo)
-	contractTestHook := createPrecompileHook(abifilename, TmplSourcePrecompileContractTestGo)
+	configTestHook := createPrecompileHook(abifilename, tmplSourcePrecompileConfigTestGo)
+	contractTestHook := createPrecompileHook(abifilename, tmplSourcePrecompileContractTestGo)
 
 	if err := verifyABI(abiData); err != nil {
 		return nil, err
