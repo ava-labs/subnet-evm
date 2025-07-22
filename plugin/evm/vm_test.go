@@ -529,7 +529,6 @@ func testSetPreferenceRace(t *testing.T, scheme string) {
 	// build the two distinct preferred chains above
 	tvmConfig := testVMConfig{
 		genesisJSON: genesisJSONSubnetEVM,
-		fork:        &fork,
 		configJSON:  getConfig(scheme, `"pruning-enabled":true`),
 	}
 	tvm1 := newVM(t, tvmConfig)

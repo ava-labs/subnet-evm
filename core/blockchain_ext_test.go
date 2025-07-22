@@ -28,37 +28,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var (
-	TestCallbacks = dummy.ConsensusCallbacks{
-		OnExtraStateChange: func(block *types.Block, _ *types.Header, sdb *state.StateDB) (*big.Int, *big.Int, error) {
-			sdb.AddBalance(common.HexToAddress("0xdeadbeef"), uint256.NewInt(uint64(block.Number().Int64())))
-			return nil, nil, nil
-		},
-		OnFinalizeAndAssemble: func(
-			header *types.Header,
-			_ *types.Header,
-			sdb *state.StateDB,
-			_ []*types.Transaction,
-		) ([]byte, *big.Int, *big.Int, error) {
-			sdb.AddBalance(common.HexToAddress("0xdeadbeef"), uint256.NewInt(uint64(header.Number.Int64())))
-			return nil, nil, nil, nil
-		},
-	}
-	TestEmptyCallbacks = dummy.ConsensusCallbacks{
-		OnExtraStateChange: func(_ *types.Block, _ *types.Header, _ *state.StateDB) (*big.Int, *big.Int, error) {
-			return nil, nil, nil
-		},
-		OnFinalizeAndAssemble: func(
-			_ *types.Header,
-			_ *types.Header,
-			_ *state.StateDB,
-			_ []*types.Transaction,
-		) ([]byte, *big.Int, *big.Int, error) {
-			return nil, nil, nil, nil
-		},
-	}
-)
-
 type createFunc func(db ethdb.Database, gspec *Genesis, lastAcceptedHash common.Hash, dataPath string) (*BlockChain, error)
 
 type ChainTest struct {
@@ -123,7 +92,7 @@ var tests = []ChainTest{
 		InsertChainValidBlockFee,
 	},
 	{
-		"StatefulPrecompiles",
+		"TestStatefulPrecompiles",
 		StatefulPrecompiles,
 	},
 }
@@ -141,11 +110,11 @@ type ReexecTest struct {
 var reexecTests = []ReexecTest{
 	{
 		"ReexecBlocks",
-		ReexecBlocks,
+		ReexecBlocksTest,
 	},
 	{
 		"ReexecMaxBlocks",
-		ReexecMaxBlocks,
+		ReexecMaxBlocksTest,
 	},
 }
 
@@ -1323,7 +1292,6 @@ func ReprocessAcceptBlockIdenticalStateRoot(t *testing.T, create createFunc) {
 
 	blockchain.Stop()
 
-	// Restart the chain with a new database.
 	chainDB = rawdb.NewMemoryDatabase()
 	blockchain, err = create(chainDB, gspec, common.Hash{}, t.TempDir())
 	if err != nil {
@@ -1576,7 +1544,7 @@ func InsertChainValidBlockFee(t *testing.T, create createFunc) {
 }
 
 // StatefulPrecompiles provides a testing framework to ensure that processing transactions interacting with the stateful precompiles work as expected.
-func StatefulPrecompiles(t *testing.T, create func(db ethdb.Database, gspec *Genesis, lastAcceptedHash common.Hash) (*BlockChain, error)) {
+func StatefulPrecompiles(t *testing.T, create createFunc) {
 	var (
 		key1, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 		key2, _ = crypto.HexToECDSA("8a1f9a8f95be41cd7ccb6168179afb4504aefe388d1e14474d32c45c72ce7b7a")
@@ -1598,7 +1566,7 @@ func StatefulPrecompiles(t *testing.T, create func(db ethdb.Database, gspec *Gen
 		Alloc:  GenesisAlloc{addr1: {Balance: genesisBalance}},
 	}
 
-	blockchain, err := create(chainDB, gspec, common.Hash{})
+	blockchain, err := create(chainDB, gspec, common.Hash{}, t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}
