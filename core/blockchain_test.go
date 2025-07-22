@@ -28,11 +28,13 @@ import (
 
 var (
 	archiveConfig = &CacheConfig{
-		TrieCleanLimit:     256,
-		TrieDirtyLimit:     256,
-		Pruning:            false, // Archive mode
-		SnapshotLimit:      256,
-		AcceptorQueueLimit: 64,
+		TrieCleanLimit:            256,
+		TrieDirtyLimit:            256,
+		TrieDirtyCommitTarget:     20,
+		TriePrefetcherParallelism: 4,
+		Pruning:                   false, // Archive mode
+		SnapshotLimit:             256,
+		AcceptorQueueLimit:        64,
 	}
 
 	pruningConfig = &CacheConfig{
