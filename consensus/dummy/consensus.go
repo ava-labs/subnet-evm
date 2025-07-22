@@ -41,47 +41,17 @@ type Mode struct {
 }
 
 type (
-	OnFinalizeAndAssembleCallbackType = func(
-		header *types.Header,
-		parent *types.Header,
-		state *state.StateDB,
-		txs []*types.Transaction,
-	) (
-		extraData []byte,
-		blockFeeContribution *big.Int,
-		extDataGasUsed *big.Int,
-		err error,
-	)
-
-	OnExtraStateChangeType = func(
-		block *types.Block,
-		parent *types.Header,
-		statedb *state.StateDB,
-	) (
-		blockFeeContribution *big.Int,
-		extDataGasUsed *big.Int,
-		err error,
-	)
-
-	ConsensusCallbacks struct {
-		OnFinalizeAndAssemble OnFinalizeAndAssembleCallbackType
-		OnExtraStateChange    OnExtraStateChangeType
-	}
-
 	DummyEngine struct {
-		cb            ConsensusCallbacks
 		clock         *mockable.Clock
 		consensusMode Mode
 	}
 )
 
 func NewDummyEngine(
-	cb ConsensusCallbacks,
 	mode Mode,
 	clock *mockable.Clock,
 ) *DummyEngine {
 	return &DummyEngine{
-		cb:            cb,
 		clock:         clock,
 		consensusMode: mode,
 	}
@@ -100,23 +70,14 @@ func NewFaker() *DummyEngine {
 	}
 }
 
-func NewFakerWithClock(cb ConsensusCallbacks, clock *mockable.Clock) *DummyEngine {
+func NewFakerWithClock(clock *mockable.Clock) *DummyEngine {
 	return &DummyEngine{
-		cb:    cb,
 		clock: clock,
 	}
 }
 
-func NewFakerWithCallbacks(cb ConsensusCallbacks) *DummyEngine {
+func NewFakerWithMode(mode Mode) *DummyEngine {
 	return &DummyEngine{
-		cb:    cb,
-		clock: &mockable.Clock{},
-	}
-}
-
-func NewFakerWithMode(cb ConsensusCallbacks, mode Mode) *DummyEngine {
-	return &DummyEngine{
-		cb:            cb,
 		clock:         &mockable.Clock{},
 		consensusMode: mode,
 	}
@@ -405,13 +366,6 @@ func (eng *DummyEngine) Finalize(chain consensus.ChainHeaderReader, block *types
 func (eng *DummyEngine) FinalizeAndAssemble(chain consensus.ChainHeaderReader, header *types.Header, parent *types.Header, state *state.StateDB, txs []*types.Transaction,
 	uncles []*types.Header, receipts []*types.Receipt,
 ) (*types.Block, error) {
-	if eng.cb.OnFinalizeAndAssemble != nil {
-		_, _, _, err := eng.cb.OnFinalizeAndAssemble(header, parent, state, txs)
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	// we use the parent to determine the fee config
 	// since the current block has not been finalized yet.
 	feeConfig, _, err := chain.GetFeeConfigAt(parent)
