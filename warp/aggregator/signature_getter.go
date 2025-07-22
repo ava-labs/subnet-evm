@@ -1,4 +1,4 @@
-// (c) 2023, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package aggregator
@@ -31,7 +31,7 @@ type SignatureGetter interface {
 }
 
 type NetworkClient interface {
-	SendAppRequest(ctx context.Context, nodeID ids.NodeID, message []byte) ([]byte, error)
+	SendSyncedAppRequest(ctx context.Context, nodeID ids.NodeID, message []byte) ([]byte, error)
 }
 
 // NetworkSignatureGetter fetches warp signatures on behalf of the
@@ -81,7 +81,7 @@ func (s *NetworkSignatureGetter) GetSignature(ctx context.Context, nodeID ids.No
 	timer := time.NewTimer(delay)
 	defer timer.Stop()
 	for {
-		signatureRes, err := s.client.SendAppRequest(ctx, nodeID, signatureReqBytes)
+		signatureRes, err := s.client.SendSyncedAppRequest(ctx, nodeID, signatureReqBytes)
 		// If the client fails to retrieve a response perform an exponential backoff.
 		// Note: it is up to the caller to ensure that [ctx] is eventually cancelled
 		if err != nil {

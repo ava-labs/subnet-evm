@@ -1,4 +1,4 @@
-// (c) 2019-2021, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package evm
@@ -14,7 +14,6 @@ import (
 	"github.com/ava-labs/libevm/log"
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/txpool"
-	"github.com/ava-labs/subnet-evm/params"
 	"github.com/holiman/uint256"
 )
 
@@ -25,8 +24,7 @@ const (
 )
 
 type blockBuilder struct {
-	ctx         *snow.Context
-	chainConfig *params.ChainConfig
+	ctx *snow.Context
 
 	txPool *txpool.TxPool
 
@@ -46,7 +44,6 @@ type blockBuilder struct {
 func (vm *VM) NewBlockBuilder() *blockBuilder {
 	b := &blockBuilder{
 		ctx:          vm.ctx,
-		chainConfig:  vm.chainConfig,
 		txPool:       vm.txPool,
 		shutdownChan: vm.shutdownChan,
 		shutdownWg:   &vm.shutdownWg,

@@ -1,4 +1,5 @@
-// (c) 2019-2021, Ava Labs, Inc.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -313,6 +314,7 @@ func (snaptest *gappedSnapshotTest) test(t *testing.T) {
 		SnapshotLimit:  0,
 		Pruning:        true,
 		CommitInterval: 4096,
+		StateHistory:   32,
 		StateScheme:    snaptest.scheme,
 	}
 	newchain, err := NewBlockChain(snaptest.db, cacheConfig, snaptest.gspec, snaptest.engine, vm.Config{}, snaptest.lastAcceptedHash, false)
@@ -358,6 +360,7 @@ func (snaptest *wipeCrashSnapshotTest) test(t *testing.T) {
 		SnapshotLimit:  0,
 		Pruning:        true,
 		CommitInterval: 4096,
+		StateHistory:   32,
 		StateScheme:    snaptest.scheme,
 	}
 	newchain, err := NewBlockChain(snaptest.db, config, snaptest.gspec, snaptest.engine, vm.Config{}, snaptest.lastAcceptedHash, false)
@@ -375,6 +378,7 @@ func (snaptest *wipeCrashSnapshotTest) test(t *testing.T) {
 		SnapshotLimit:  256,
 		Pruning:        true,
 		CommitInterval: 4096,
+		StateHistory:   32,
 		SnapshotWait:   false, // Don't wait rebuild
 		StateScheme:    snaptest.scheme,
 	}

@@ -1,4 +1,4 @@
-// (c) 2019-2024, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package ethapi
@@ -18,7 +18,10 @@ import (
 func TestBlockChainAPI_stateQueryBlockNumberAllowed(t *testing.T) {
 	t.Parallel()
 
-	const queryWindow uint64 = 1024
+	const (
+		queryWindow      uint64 = 1024
+		nonArchiveWindow uint64 = 32
+	)
 
 	makeBlockWithNumber := func(number uint64) *types.Block {
 		header := &types.Header{
@@ -104,7 +107,7 @@ func TestBlockChainAPI_stateQueryBlockNumberAllowed(t *testing.T) {
 			makeBackend: func(ctrl *gomock.Controller) *MockBackend {
 				backend := NewMockBackend(ctrl)
 				backend.EXPECT().IsArchive().Return(false)
-				// query window is 32 as set to core.TipBufferSize
+				backend.EXPECT().HistoricalProofQueryWindow().Return(nonArchiveWindow)
 				backend.EXPECT().LastAcceptedBlock().Return(makeBlockWithNumber(1033))
 				return backend
 			},
