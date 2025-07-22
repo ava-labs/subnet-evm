@@ -1,4 +1,5 @@
-// (c) 2019-2020, Ava Labs, Inc.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -191,7 +192,9 @@ func SetupGenesisBlock(
 	//   have the Berlin or London forks initialized by block number on disk.
 	//   See https://github.com/ava-labs/coreth/pull/667/files
 	// - this is not needed in subnet-evm but it does not impact it either
-	params.SetEthUpgrades(storedcfg, params.GetExtra(storedcfg).NetworkUpgrades)
+	if err := params.SetEthUpgrades(storedcfg); err != nil {
+		return genesis.Config, common.Hash{}, err
+	}
 	// Check config compatibility and write the config. Compatibility errors
 	// are returned to the caller unless we're already at block zero.
 	// we use last accepted block for cfg compatibility check. Note this allows

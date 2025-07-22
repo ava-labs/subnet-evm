@@ -1,4 +1,5 @@
-// (c) 2019-2021, Ava Labs, Inc.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -547,6 +548,7 @@ func testRepairWithScheme(t *testing.T, tt *rewindTest, snapshots bool, scheme s
 			TrieDirtyLimit:            256,
 			TriePrefetcherParallelism: 4,
 			SnapshotLimit:             0, // Disable snapshot by default
+			StateHistory:              32,
 			StateScheme:               scheme,
 		}
 	)

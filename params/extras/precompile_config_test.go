@@ -1,4 +1,4 @@
-// (c) 2022 Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package extras
@@ -16,6 +16,7 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/contracts/rewardmanager"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/txallowlist"
 	"github.com/ava-labs/subnet-evm/utils"
+	"github.com/ava-labs/subnet-evm/utils/utilstest"
 	"github.com/stretchr/testify/require"
 )
 
@@ -23,6 +24,7 @@ func TestVerifyWithChainConfig(t *testing.T) {
 	admins := []common.Address{{1}}
 	copy := *TestChainConfig
 	config := &copy
+	config.SnowCtx = utilstest.NewTestSnowContext(t)
 	config.GenesisPrecompiles = Precompiles{
 		txallowlist.ConfigKey: txallowlist.NewConfig(utils.NewUint64(2), nil, nil, nil),
 	}
@@ -68,6 +70,7 @@ func TestVerifyWithChainConfigAtNilTimestamp(t *testing.T) {
 	admins := []common.Address{{0}}
 	copy := *TestChainConfig
 	config := &copy
+	config.SnowCtx = utilstest.NewTestSnowContext(t)
 	config.PrecompileUpgrades = []PrecompileUpgrade{
 		// this does NOT enable the precompile, so it should be upgradeable.
 		{Config: txallowlist.NewConfig(nil, nil, nil, nil)},
@@ -188,6 +191,7 @@ func TestVerifyPrecompileUpgrades(t *testing.T) {
 			require := require.New(t)
 			copy := *TestChainConfig
 			config := &copy
+			config.SnowCtx = utilstest.NewTestSnowContext(t)
 			config.PrecompileUpgrades = tt.upgrades
 
 			err := config.Verify()
@@ -232,6 +236,7 @@ func TestVerifyPrecompiles(t *testing.T) {
 			require := require.New(t)
 			copy := *TestChainConfig
 			config := &copy
+			config.SnowCtx = utilstest.NewTestSnowContext(t)
 			config.GenesisPrecompiles = tt.precompiles
 
 			err := config.Verify()
@@ -248,6 +253,9 @@ func TestVerifyRequiresSortedTimestamps(t *testing.T) {
 	admins := []common.Address{{1}}
 	config := &ChainConfig{
 		FeeConfig: DefaultFeeConfig,
+		AvalancheContext: AvalancheContext{
+			SnowCtx: utilstest.NewTestSnowContext(t),
+		},
 	}
 	config.PrecompileUpgrades = []PrecompileUpgrade{
 		{
@@ -311,8 +319,7 @@ func TestPrecompileUpgradeUnmarshalJSON(t *testing.T) {
 	`)
 
 	var upgradeConfig UpgradeConfig
-	err := json.Unmarshal(upgradeBytes, &upgradeConfig)
-	require.NoError(err)
+	require.NoError(json.Unmarshal(upgradeBytes, &upgradeConfig))
 
 	require.Len(upgradeConfig.PrecompileUpgrades, 2)
 
@@ -337,7 +344,6 @@ func TestPrecompileUpgradeUnmarshalJSON(t *testing.T) {
 	upgradeBytes2, err := json.Marshal(upgradeConfig)
 	require.NoError(err)
 	var upgradeConfig2 UpgradeConfig
-	err = json.Unmarshal(upgradeBytes2, &upgradeConfig2)
-	require.NoError(err)
+	require.NoError(json.Unmarshal(upgradeBytes2, &upgradeConfig2))
 	require.Equal(upgradeConfig, upgradeConfig2)
 }

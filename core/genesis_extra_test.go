@@ -1,4 +1,4 @@
-// (c) 2025 Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package core
@@ -70,8 +70,7 @@ func TestGenesisEthUpgrades(t *testing.T) {
 	rawdb.WriteBlock(db, block)
 	// We should still be able to re-initialize
 	config = *preEthUpgrades
-	avalancheUpgrades := extras.NetworkUpgrades{}
-	params.SetEthUpgrades(&config, avalancheUpgrades) // New versions will set additional fields eg, LondonBlock
+	require.NoError(t, params.SetEthUpgrades(&config)) // New versions will set additional fields eg, LondonBlock
 	_, _, err = SetupGenesisBlock(db, tdb, &Genesis{Config: &config}, block.Hash(), false)
 	require.NoError(t, err)
 }

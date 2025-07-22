@@ -1,4 +1,4 @@
-// (c) 2024-2025, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package params
@@ -12,6 +12,7 @@ import (
 	"github.com/ava-labs/libevm/core/vm"
 	"github.com/ava-labs/libevm/libevm"
 	"github.com/ava-labs/libevm/libevm/legacy"
+	ethparams "github.com/ava-labs/libevm/params"
 	"github.com/ava-labs/subnet-evm/params/extras"
 	customheader "github.com/ava-labs/subnet-evm/plugin/evm/header"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
@@ -50,6 +51,11 @@ func (r RulesExtra) CanExecuteTransaction(_ common.Address, _ *common.Address, _
 
 func (r RulesExtra) ActivePrecompiles(existing []common.Address) []common.Address {
 	return existing
+}
+
+// MinimumGasConsumption is a no-op.
+func (r RulesExtra) MinimumGasConsumption(x uint64) uint64 {
+	return (ethparams.NOOPHooks{}).MinimumGasConsumption(x)
 }
 
 // precompileOverrideBuiltin specifies precompiles that were activated prior to the

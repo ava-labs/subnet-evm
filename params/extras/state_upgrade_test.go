@@ -1,4 +1,4 @@
-// (c) 2022, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package extras
@@ -11,6 +11,7 @@ import (
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/common/math"
 	"github.com/ava-labs/subnet-evm/utils"
+	"github.com/ava-labs/subnet-evm/utils/utilstest"
 	"github.com/stretchr/testify/require"
 )
 
@@ -61,6 +62,7 @@ func TestVerifyStateUpgrades(t *testing.T) {
 			require := require.New(t)
 			copy := *TestChainConfig
 			config := &copy
+			config.SnowCtx = utilstest.NewTestSnowContext(t)
 			config.StateUpgrades = tt.upgrades
 
 			err := config.Verify()
@@ -181,7 +183,6 @@ func TestUnmarshalStateUpgradeJSON(t *testing.T) {
 		},
 	}
 	var unmarshaledConfig UpgradeConfig
-	err := json.Unmarshal(jsonBytes, &unmarshaledConfig)
-	require.NoError(t, err)
+	require.NoError(t, json.Unmarshal(jsonBytes, &unmarshaledConfig))
 	require.Equal(t, upgradeConfig, unmarshaledConfig)
 }

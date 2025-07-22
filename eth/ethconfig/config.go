@@ -1,4 +1,5 @@
-// (c) 2019-2020, Ava Labs, Inc.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -139,7 +140,7 @@ type Config struct {
 
 	// HistoricalProofQueryWindow is the number of blocks before the last accepted block to be accepted for state queries.
 	// For archive nodes, it defaults to 43200 and can be set to 0 to indicate to accept any block query.
-	// For non-archive nodes, it is forcibly set to the value of [core.TipBufferSize].
+	// For non-archive nodes, it is forcibly set to the value of StateHistory.
 	HistoricalProofQueryWindow uint64
 
 	// AllowUnprotectedTxs allow unprotected transactions to be locally issued.
