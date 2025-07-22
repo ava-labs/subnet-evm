@@ -1148,6 +1148,10 @@ func (vm *VM) NewHTTPHandler(ctx context.Context) (http.Handler, error) {
 	}), nil
 }
 
+func (vm *VM) CreateHTTP2Handler(context.Context) (http.Handler, error) {
+	return nil, nil
+}
+
 /*
  ******************************************************************************
  *********************************** Helpers **********************************
