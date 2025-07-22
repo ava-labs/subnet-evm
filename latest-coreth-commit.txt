@@ -3,4 +3,6 @@
 e8e848b2f0b2f4f206fc319700a420d83d19685c
 
 # Notes: 
-- Last PR done is currently 1034
+- Coreth PR 1029 has already been synced (ahead of schedule) - see https://github.com/ava-labs/subnet-evm/pull/1631
+- Coreth PR 1034 has already been synced (ahead of schedule) - see https://github.com/ava-labs/subnet-evm/pull/1622
+- Last PR done is currently #1034
