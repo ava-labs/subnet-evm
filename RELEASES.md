@@ -2,7 +2,40 @@
 
 ## Pending Release
 
+... 
+
+## [v0.7.6](https://github.com/ava-labs/subnet-evm/releases/tag/v0.7.6)
+- Demoted unnecessary error log in `core/txpool/legacypool.go` to warning, displaying unexpected but valid behavior
+- Use `state-history` eth config flag to designate the number of recent states queryable.
+- @TODO - write release notes here on what is in this release
+
+## [v0.7.5](https://github.com/ava-labs/subnet-evm/releases/tag/v0.7.5)
+
+This version is backwards compatible to v0.7.0. It is optional, but encouraged.
+
+### AvalancheGo Compatibility
+
+The plugin version is **updated** to 41 and is compatible with AvalancheGo version v1.13.2.
+
+### Breaking changes
+
+- Removed static API handler and functions: `subnetevm.decodeGenesis`, `subnetevm.buildGenesis`
+
+### Updates
+
+- Updated AvalancheGo dependency to v1.13.2
+- Updated libevm dependency to v1.13.14-0.3.0.rc.1
+- Reduced custom types and simplified VM tests
+- Fixed log structuring and removed handler special cases
+
+
+## [v0.7.4](https://github.com/ava-labs/subnet-evm/releases/tag/v0.7.4)
+
+- Major refactor to use [`libevm`](https://github.com/ava-labs/libevm) for EVM execution, database access, types & chain configuration. This improves maintainability and enables keeping up with upstream changes more easily.
+- Wrapped database with `corruptabledb` to prevent corruption of the database.
 - Updated dockerhub image name to `avaplatform/subnet-evm_avalanchego` and tags to accommodate the new versioning scheme: {subnet-evm version}_{avalanchego version}
+- Updated golang version to 1.23.9
+- Fixed a bug in mempool where the min fee was not updated after restart
 
 ## [v0.7.3](https://github.com/ava-labs/subnet-evm/releases/tag/v0.7.3)
 

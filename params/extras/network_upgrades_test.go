@@ -1,4 +1,4 @@
-// (c) 2024, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package extras
@@ -162,11 +162,11 @@ func TestCheckNetworkUpgradesCompatible(t *testing.T) {
 		{
 			name: "Incompatible_fastforward_nil_NetworkUpgrades",
 			upgrades1: func() *NetworkUpgrades {
-				upgrades := getDefaultNetworkUpgrades(upgrade.Fuji)
+				upgrades := GetNetworkUpgrades(upgrade.Fuji)
 				return &upgrades
 			}(),
 			upgrades2: func() *NetworkUpgrades {
-				upgrades := getDefaultNetworkUpgrades(upgrade.Fuji)
+				upgrades := GetNetworkUpgrades(upgrade.Fuji)
 				upgrades.EtnaTimestamp = nil
 				return &upgrades
 			}(),
@@ -176,11 +176,11 @@ func TestCheckNetworkUpgradesCompatible(t *testing.T) {
 		{
 			name: "Compatible_Fortuna_fastforward_nil_NetworkUpgrades",
 			upgrades1: func() *NetworkUpgrades {
-				upgrades := getDefaultNetworkUpgrades(upgrade.Fuji)
+				upgrades := GetNetworkUpgrades(upgrade.Fuji)
 				return &upgrades
 			}(),
 			upgrades2: func() *NetworkUpgrades {
-				upgrades := getDefaultNetworkUpgrades(upgrade.Fuji)
+				upgrades := GetNetworkUpgrades(upgrade.Fuji)
 				upgrades.FortunaTimestamp = nil
 				return &upgrades
 			}(),

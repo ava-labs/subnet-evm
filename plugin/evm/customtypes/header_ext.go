@@ -1,4 +1,4 @@
-// (c) 2025, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package customtypes
@@ -208,5 +208,5 @@ type headerMarshaling struct {
 // This function MUST be exported and is used in [HeaderSerializable.EncodeJSON] which is
 // generated to the file gen_header_json.go.
 func (h *HeaderSerializable) Hash() common.Hash {
-	return rlpHash(h)
+	return ethtypes.RLPHash(h)
 }

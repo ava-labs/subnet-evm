@@ -1,4 +1,5 @@
-// (c) 2019-2020, Ava Labs, Inc.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -1076,6 +1077,10 @@ func overrideConfig(original *params.ChainConfig, override *params.ChainConfig) 
 	}
 	if timestamp := overrideExtra.FortunaTimestamp; timestamp != nil {
 		params.GetExtra(copy).FortunaTimestamp = timestamp
+		canon = false
+	}
+	if timestamp := overrideExtra.GraniteTimestamp; timestamp != nil {
+		params.GetExtra(copy).GraniteTimestamp = timestamp
 		canon = false
 	}
 	if timestamp := override.CancunTime; timestamp != nil {

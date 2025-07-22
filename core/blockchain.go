@@ -1,4 +1,5 @@
-// (c) 2019-2020, Ava Labs, Inc.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -46,6 +47,7 @@ import (
 	"github.com/ava-labs/libevm/core/vm"
 	"github.com/ava-labs/libevm/ethdb"
 	"github.com/ava-labs/libevm/event"
+	"github.com/ava-labs/libevm/libevm/stateconf"
 	"github.com/ava-labs/libevm/log"
 	"github.com/ava-labs/libevm/metrics"
 	"github.com/ava-labs/libevm/trie"
@@ -57,6 +59,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/state/snapshot"
 	"github.com/ava-labs/subnet-evm/internal/version"
 	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/plugin/evm/customlogs"
 	"github.com/ava-labs/subnet-evm/plugin/evm/customrawdb"
 	"github.com/ava-labs/subnet-evm/plugin/evm/customtypes"
 	"github.com/ava-labs/subnet-evm/triedb/hashdb"
@@ -93,6 +96,7 @@ var (
 	triedbCommitTimer = getOrOverrideAsRegisteredCounter("chain/triedb/commits", nil)
 
 	blockInsertTimer            = metrics.GetOrRegisterCounter("chain/block/inserts", nil)
+	blockSignatureRecoveryTimer = metrics.GetOrRegisterCounter("chain/block/signature/recovery", nil)
 	blockInsertCount            = metrics.GetOrRegisterCounter("chain/block/inserts/count", nil)
 	blockContentValidationTimer = metrics.GetOrRegisterCounter("chain/block/validations/content", nil)
 	blockStateInitTimer         = metrics.GetOrRegisterCounter("chain/block/inits/state", nil)
@@ -241,6 +245,7 @@ var DefaultCacheConfig = &CacheConfig{
 	AcceptorQueueLimit:        64, // Provides 2 minutes of buffer (2s block target) for a commit delay
 	SnapshotLimit:             256,
 	AcceptedCacheSize:         32,
+	StateHistory:              32, // Default state history size
 	StateScheme:               rawdb.HashScheme,
 }
 
@@ -611,7 +616,7 @@ func (bc *BlockChain) startAcceptor() {
 		bc.acceptorTipLock.Unlock()
 
 		// Update accepted feeds
-		flattenedLogs := customtypes.FlattenLogs(logs)
+		flattenedLogs := customlogs.FlattenLogs(logs)
 		bc.chainAcceptedFeed.Send(ChainEvent{Block: next, Hash: next.Hash(), Logs: flattenedLogs})
 		if len(flattenedLogs) > 0 {
 			bc.logsAcceptedFeed.Send(flattenedLogs)
@@ -1322,6 +1327,7 @@ func (bc *BlockChain) InsertBlockManual(block *types.Block, writes bool) error {
 func (bc *BlockChain) insertBlock(block *types.Block, writes bool) error {
 	start := time.Now()
 	bc.senderCacher.Recover(types.MakeSigner(bc.chainConfig, block.Number(), block.Time()), block.Transactions())
+	blockSignatureRecoveryTimer.Inc(time.Since(start).Milliseconds())
 
 	substart := time.Now()
 	err := bc.engine.VerifyHeader(bc, block.Header())
@@ -1486,7 +1492,7 @@ func (bc *BlockChain) collectUnflattenedLogs(b *types.Block, removed bool) [][]*
 // the processing of a block. These logs are later announced as deleted or reborn.
 func (bc *BlockChain) collectLogs(b *types.Block, removed bool) []*types.Log {
 	unflattenedLogs := bc.collectUnflattenedLogs(b, removed)
-	return customtypes.FlattenLogs(unflattenedLogs)
+	return customlogs.FlattenLogs(unflattenedLogs)
 }
 
 // reorg takes two blocks, an old chain and a new chain and will reconstruct the
@@ -1759,8 +1765,8 @@ func (bc *BlockChain) commitWithSnap(
 ) (common.Hash, error) {
 	// blockHashes must be passed through [state.StateDB]'s Commit since snapshots
 	// are based on the block hash.
-	blockHashes := snapshot.WithBlockHashes(current.Hash(), current.ParentHash())
-	root, err := statedb.Commit(current.NumberU64(), bc.chainConfig.IsEIP158(current.Number()), blockHashes)
+	snapshotOpt := snapshot.WithBlockHashes(current.Hash(), current.ParentHash())
+	root, err := statedb.Commit(current.NumberU64(), bc.chainConfig.IsEIP158(current.Number()), stateconf.WithSnapshotUpdateOpts(snapshotOpt))
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -1768,7 +1774,7 @@ func (bc *BlockChain) commitWithSnap(
 	// parent root, however here the snapshots are based on the block hash, so
 	// this update is necessary. Note blockHashes are passed here as well.
 	if bc.snaps != nil && root == parentRoot {
-		if err := bc.snaps.Update(root, parentRoot, nil, nil, nil, blockHashes); err != nil {
+		if err := bc.snaps.Update(root, parentRoot, nil, nil, nil, snapshotOpt); err != nil {
 			return common.Hash{}, err
 		}
 	}
