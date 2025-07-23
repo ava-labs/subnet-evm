@@ -110,11 +110,11 @@ type ReexecTest struct {
 var reexecTests = []ReexecTest{
 	{
 		"ReexecBlocks",
-		ReexecBlocksTest,
+		ReexecBlocks,
 	},
 	{
 		"ReexecMaxBlocks",
-		ReexecMaxBlocksTest,
+		ReexecMaxBlocks,
 	},
 }
 

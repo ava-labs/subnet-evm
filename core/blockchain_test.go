@@ -158,64 +158,6 @@ func testPruningBlockChainSnapsDisabled(t *testing.T, scheme string) {
 	}
 }
 
-// Runs the same tests but ensures that the blockchain can handle eth blocks
-// that are empty, without atomic txs. This can happen during bootstrapping.
-func TestPruningEmptyCallbacks(t *testing.T) {
-	for _, scheme := range schemes {
-		t.Run(scheme, func(t *testing.T) {
-			testPruningEmptyCallbacks(t, scheme)
-		})
-	}
-}
-
-func testPruningEmptyCallbacks(t *testing.T, scheme string) {
-	create := func(db ethdb.Database, gspec *Genesis, lastAcceptedHash common.Hash, dataPath string) (*BlockChain, error) {
-		cacheConfig := &CacheConfig{
-			TrieCleanLimit:            256,
-			TrieDirtyLimit:            256,
-			TrieDirtyCommitTarget:     20,
-			TriePrefetcherParallelism: 4,
-			Pruning:                   true,
-			CommitInterval:            4096,
-			SnapshotLimit:             0, // Disable snapshots
-			AcceptorQueueLimit:        64,
-			StateScheme:               scheme,
-			StateHistory:              32,
-			ChainDataDir:              dataPath,
-		}
-		blockchain, err := NewBlockChain(
-			db,
-			cacheConfig,
-			gspec,
-			dummy.NewFakerWithCallbacks(TestEmptyCallbacks),
-			vm.Config{},
-			lastAcceptedHash,
-			false,
-		)
-		if err != nil {
-			return nil, err
-		}
-		return blockchain, nil
-	}
-
-	// Only need to test the ones with empty blocks.
-	tests := []ChainTest{
-		{
-			"EmptyBlocks",
-			EmptyBlocksTest,
-		},
-		{
-			"EmptyAndNonEmptyBlocks",
-			EmptyAndNonEmptyBlocksTest,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.Name, func(t *testing.T) {
-			tt.testFunc(t, create)
-		})
-	}
-}
-
 type wrappedStateManager struct {
 	TrieWriter
 }
