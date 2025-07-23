@@ -246,6 +246,7 @@ type Config struct {
 	DatabaseType          string `json:"database-type"`
 	DatabasePath          string `json:"database-path"`
 	DatabaseReadOnly      bool   `json:"database-read-only"`
+
 	// Database Scheme
 	StateScheme string `json:"state-scheme"`
 }
