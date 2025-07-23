@@ -28,6 +28,7 @@ type StateUpgradeAccount struct {
 	Code          hexutil.Bytes               `json:"code,omitempty"`
 	Storage       map[common.Hash]common.Hash `json:"storage,omitempty"`
 	BalanceChange *math.HexOrDecimal256       `json:"balanceChange,omitempty"`
+	Nonce         *uint64                     `json:"nonce,omitempty"`
 }
 
 func (s *StateUpgrade) Equal(other *StateUpgrade) bool {
