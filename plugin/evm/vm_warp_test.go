@@ -33,10 +33,8 @@ import (
 	"github.com/ava-labs/libevm/core/rawdb"
 	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/libevm/crypto"
-	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/eth/tracers"
 	"github.com/ava-labs/subnet-evm/network/peertest"
-	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/params/extras"
 	customheader "github.com/ava-labs/subnet-evm/plugin/evm/header"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
@@ -79,17 +77,10 @@ func TestSendWarpMessage(t *testing.T) {
 
 func testSendWarpMessage(t *testing.T, scheme string) {
 	require := require.New(t)
-	genesis := &core.Genesis{}
-	require.NoError(genesis.UnmarshalJSON([]byte(toGenesisJSON(forkToChainConfig[upgradetest.Durango]))))
-	params.GetExtra(genesis.Config).GenesisPrecompiles = extras.Precompiles{
-		warpcontract.ConfigKey: warpcontract.NewDefaultConfig(utils.TimeToNewUint64(upgrade.InitiallyActiveTime)),
-	}
-	genesisJSON, err := genesis.MarshalJSON()
-	require.NoError(err)
+	fork := upgradetest.Durango
 	tvm := newVM(t, testVMConfig{
-		genesisJSON: string(genesisJSON),
-		fork:        &fork,
-		configJSON:  getConfig(scheme, ""),
+		fork:       &fork,
+		configJSON: getConfig(scheme, ""),
 	})
 
 	defer func() {
@@ -315,17 +306,10 @@ func testValidateInvalidWarpBlockHash(t *testing.T, scheme string) {
 
 func testWarpVMTransaction(t *testing.T, scheme string, unsignedMessage *avalancheWarp.UnsignedMessage, validSignature bool, txPayload []byte) {
 	require := require.New(t)
-	genesis := &core.Genesis{}
-	require.NoError(genesis.UnmarshalJSON([]byte(toGenesisJSON(forkToChainConfig[upgradetest.Durango]))))
-	params.GetExtra(genesis.Config).GenesisPrecompiles = extras.Precompiles{
-		warpcontract.ConfigKey: warpcontract.NewDefaultConfig(utils.TimeToNewUint64(upgrade.InitiallyActiveTime)),
-	}
-	genesisJSON, err := genesis.MarshalJSON()
-	require.NoError(err)
+	fork := upgradetest.Durango
 	tvm := newVM(t, testVMConfig{
-		genesisJSON: string(genesisJSON),
-		fork:        &fork,
-		configJSON:  getConfig(scheme, ""),
+		fork:       &fork,
+		configJSON: getConfig(scheme, ""),
 	})
 
 	defer func() {
@@ -513,23 +497,13 @@ func testReceiveWarpMessageWithScheme(t *testing.T, scheme string) {
 		true, // RequirePrimaryNetworkSigners
 	)
 
-	upgradeConfig := extras.UpgradeConfig{
+	tvm.vm.chainConfigExtra().UpgradeConfig = extras.UpgradeConfig{
 		PrecompileUpgrades: []extras.PrecompileUpgrade{
+			{Config: enableConfig},
 			{Config: disableConfig},
 			{Config: reEnableConfig},
 		},
 	}
-	upgradeBytes, err := json.Marshal(upgradeConfig)
-	require.NoError(err)
-
-	tvm := newVM(t, testVMConfig{
-		genesisJSON: string(genesisJSON),
-		upgradeJSON: string(upgradeBytes),
-	})
-
-	defer func() {
-		require.NoError(tvm.vm.Shutdown(context.Background()))
-	}()
 
 	type test struct {
 		name          string

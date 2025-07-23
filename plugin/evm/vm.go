@@ -21,7 +21,6 @@ import (
 	"github.com/ava-labs/avalanchego/network/p2p"
 	"github.com/ava-labs/avalanchego/network/p2p/acp118"
 	"github.com/ava-labs/avalanchego/network/p2p/gossip"
-	"github.com/ava-labs/coreth/plugin/evm/extension"
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/ava-labs/libevm/core/rawdb"
@@ -640,56 +639,7 @@ func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.
 // initializeStateSyncClient initializes the client for performing state sync.
 // If state sync is disabled, this function will wipe any ongoing summary from
 // disk to ensure that we do not continue syncing from an invalid snapshot.
-func (vm *VM) initializeStateSync(lastAcceptedHeight uint64) error {
-	// Create standalone EVM TrieDB (read only) for serving leafs requests.
-	// We create a standalone TrieDB here, so that it has a standalone cache from the one
-	// used by the node when processing blocks.
-	// However, Firewood does not support multiple TrieDBs, so we use the same one.
-	evmTrieDB := vm.eth.BlockChain().TrieDB()
-	if vm.ethConfig.StateScheme != customrawdb.FirewoodScheme {
-		evmTrieDB = triedb.NewDatabase(
-			vm.chaindb,
-			&triedb.Config{
-				DBOverride: hashdb.Config{
-					CleanCacheSize: vm.config.StateSyncServerTrieCache * units.MiB,
-				}.BackendConstructor,
-			},
-		)
-	}
-	leafHandlers := make(LeafHandlers)
-	leafMetricsNames := make(map[message.NodeType]string)
-	// register default leaf request handler for state trie
-	syncStats := handlerstats.GetOrRegisterHandlerStats(metrics.Enabled)
-	stateLeafRequestConfig := &extension.LeafRequestConfig{
-		LeafType:   message.StateTrieNode,
-		MetricName: "sync_state_trie_leaves",
-		Handler: handlers.NewLeafsRequestHandler(evmTrieDB,
-			message.StateTrieKeyLength,
-			vm.blockChain, vm.networkCodec,
-			syncStats,
-		),
-	}
-	leafHandlers[stateLeafRequestConfig.LeafType] = stateLeafRequestConfig.Handler
-	leafMetricsNames[stateLeafRequestConfig.LeafType] = stateLeafRequestConfig.MetricName
-
-	extraLeafConfig := vm.extensionConfig.ExtraSyncLeafHandlerConfig
-	if extraLeafConfig != nil {
-		leafHandlers[extraLeafConfig.LeafType] = extraLeafConfig.Handler
-		leafMetricsNames[extraLeafConfig.LeafType] = extraLeafConfig.MetricName
-	}
-
-	networkHandler := newNetworkHandler(
-		vm.blockChain,
-		vm.chaindb,
-		vm.warpBackend,
-		vm.networkCodec,
-		leafHandlers,
-		syncStats,
-	)
-	vm.Network.SetRequestHandler(networkHandler)
-
-	vm.Server = vmsync.NewServer(vm.blockChain, vm.extensionConfig.SyncSummaryProvider, vm.config.StateSyncCommitInterval)
-	stateSyncEnabled := vm.stateSyncEnabled(lastAcceptedHeight)
+func (vm *VM) initializeStateSyncClient(lastAcceptedHeight uint64) error {
 	// parse nodeIDs from state sync IDs in vm config
 	var stateSyncIDs []ids.NodeID
 	if vm.config.StateSyncEnabled && len(vm.config.StateSyncIDs) > 0 {

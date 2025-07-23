@@ -1963,8 +1963,7 @@ func testFutureBlock(t *testing.T, scheme string) {
 	tvm := newVM(t, testVMConfig{
 		genesisJSON: genesisJSONSubnetEVM,
 		fork:        &fork,
-
-		configJSON: getConfig(scheme, ""),
+		configJSON:  getConfig(scheme, ""),
 	})
 
 	defer func() {
@@ -2021,8 +2020,17 @@ func testFutureBlock(t *testing.T, scheme string) {
 }
 
 func TestLastAcceptedBlockNumberAllow(t *testing.T) {
+	for _, scheme := range schemes {
+		t.Run(scheme, func(t *testing.T) {
+			testLastAcceptedBlockNumberAllow(t, scheme)
+		})
+	}
+}
+
+func testLastAcceptedBlockNumberAllow(t *testing.T, scheme string) {
 	tvm := newVM(t, testVMConfig{
 		genesisJSON: genesisJSONSubnetEVM,
+		configJSON:  getConfig(scheme, ""),
 	})
 
 	defer func() {
@@ -2094,8 +2102,17 @@ func TestLastAcceptedBlockNumberAllow(t *testing.T) {
 // Regression test to ensure we can build blocks if we are starting with the
 // Subnet EVM ruleset in genesis.
 func TestBuildSubnetEVMBlock(t *testing.T) {
+	for _, scheme := range schemes {
+		t.Run(scheme, func(t *testing.T) {
+			testBuildSubnetEVMBlock(t, scheme)
+		})
+	}
+}
+
+func testBuildSubnetEVMBlock(t *testing.T, scheme string) {
 	tvm := newVM(t, testVMConfig{
 		genesisJSON: genesisJSONSubnetEVM,
+		configJSON:  getConfig(scheme, ""),
 	})
 
 	defer func() {
@@ -2177,6 +2194,14 @@ func TestBuildSubnetEVMBlock(t *testing.T) {
 }
 
 func TestBuildAllowListActivationBlock(t *testing.T) {
+	for _, scheme := range schemes {
+		t.Run(scheme, func(t *testing.T) {
+			testBuildAllowListActivationBlock(t, scheme)
+		})
+	}
+}
+
+func testBuildAllowListActivationBlock(t *testing.T, scheme string) {
 	genesis := &core.Genesis{}
 	if err := genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)); err != nil {
 		t.Fatal(err)
@@ -2191,6 +2216,7 @@ func TestBuildAllowListActivationBlock(t *testing.T) {
 	}
 	tvm := newVM(t, testVMConfig{
 		genesisJSON: string(genesisJSON),
+		configJSON:  getConfig(scheme, ""),
 	})
 
 	defer func() {
@@ -2709,6 +2735,14 @@ func TestFeeManagerChangeFee(t *testing.T) {
 
 // Test Allow Fee Recipients is disabled and, etherbase must be blackhole address
 func TestAllowFeeRecipientDisabled(t *testing.T) {
+	for _, scheme := range schemes {
+		t.Run(scheme, func(t *testing.T) {
+			testAllowFeeRecipientDisabled(t, scheme)
+		})
+	}
+}
+
+func testAllowFeeRecipientDisabled(t *testing.T, scheme string) {
 	genesis := &core.Genesis{}
 	if err := genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)); err != nil {
 		t.Fatal(err)
@@ -2720,6 +2754,7 @@ func TestAllowFeeRecipientDisabled(t *testing.T) {
 	}
 	tvm := newVM(t, testVMConfig{
 		genesisJSON: string(genesisJSON),
+		configJSON:  getConfig(scheme, ""),
 	})
 
 	tvm.vm.miner.SetEtherbase(common.HexToAddress("0x0123456789")) // set non-blackhole address by force
