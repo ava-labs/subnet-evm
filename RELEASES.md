@@ -18,6 +18,7 @@ The plugin version is **updated** to 42 and is compatible with AvalancheGo versi
 - Use `state-history` eth config flag to designate the number of recent states queryable.
 
 ## [v0.7.6](https://github.com/ava-labs/subnet-evm/releases/tag/v0.7.6)
+
 _This release should be skipped entirely in favor of 0.7.7 due to the use of a AvalancheGo release candidate version._
 
 ## [v0.7.5](https://github.com/ava-labs/subnet-evm/releases/tag/v0.7.5)
