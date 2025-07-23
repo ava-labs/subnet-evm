@@ -33,8 +33,10 @@ import (
 	"github.com/ava-labs/libevm/core/rawdb"
 	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/libevm/crypto"
+	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/eth/tracers"
 	"github.com/ava-labs/subnet-evm/network/peertest"
+	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/params/extras"
 	customheader "github.com/ava-labs/subnet-evm/plugin/evm/header"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
@@ -77,10 +79,17 @@ func TestSendWarpMessage(t *testing.T) {
 
 func testSendWarpMessage(t *testing.T, scheme string) {
 	require := require.New(t)
-	fork := upgradetest.Durango
+	genesis := &core.Genesis{}
+
+	require.NoError(genesis.UnmarshalJSON([]byte(toGenesisJSON(forkToChainConfig[upgradetest.Durango]))))
+	params.GetExtra(genesis.Config).GenesisPrecompiles = extras.Precompiles{
+		warpcontract.ConfigKey: warpcontract.NewDefaultConfig(utils.TimeToNewUint64(upgrade.InitiallyActiveTime)),
+	}
+	genesisJSON, err := genesis.MarshalJSON()
+	require.NoError(err)
 	tvm := newVM(t, testVMConfig{
-		fork:       &fork,
-		configJSON: getConfig(scheme, ""),
+		genesisJSON: string(genesisJSON),
+		configJSON:  getConfig(scheme, ""),
 	})
 
 	defer func() {
