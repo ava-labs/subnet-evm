@@ -42,7 +42,6 @@ import (
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/params/extras"
 	"github.com/ava-labs/subnet-evm/plugin/evm/config"
-	"github.com/ava-labs/subnet-evm/plugin/evm/customrawdb"
 	subnetevmlog "github.com/ava-labs/subnet-evm/plugin/evm/log"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
 	"github.com/ava-labs/subnet-evm/plugin/evm/validators"
@@ -53,7 +52,6 @@ import (
 	"github.com/ava-labs/subnet-evm/rpc"
 	statesyncclient "github.com/ava-labs/subnet-evm/sync/client"
 	"github.com/ava-labs/subnet-evm/sync/client/stats"
-	"github.com/ava-labs/subnet-evm/sync/handlers"
 	"github.com/ava-labs/subnet-evm/warp"
 
 	// Force-load tracer engine to trigger registration
@@ -94,9 +92,6 @@ import (
 	avalancheUtils "github.com/ava-labs/avalanchego/utils"
 	avalancheJSON "github.com/ava-labs/avalanchego/utils/json"
 )
-
-// LeafHandlers maps node types to their corresponding leaf request handlers
-type LeafHandlers map[message.NodeType]handlers.LeafRequestHandler
 
 var (
 	_ block.ChainVM                      = (*VM)(nil)
@@ -397,30 +392,6 @@ func (vm *VM) Initialize(
 	vm.ethConfig.StateHistory = vm.config.StateHistory
 	vm.ethConfig.TransactionHistory = vm.config.TransactionHistory
 	vm.ethConfig.SkipTxIndexing = vm.config.SkipTxIndexing
-	vm.ethConfig.StateScheme = vm.config.StateScheme
-
-	if vm.ethConfig.StateScheme == customrawdb.FirewoodScheme {
-		log.Warn("Firewood state scheme is enabled")
-		log.Warn("This is untested in production, use at your own risk")
-		// Firewood only supports pruning for now.
-		if !vm.config.Pruning {
-			return errors.New("Pruning must be enabled for Firewood")
-		}
-		// Firewood does not support iterators, so the snapshot cannot be constructed
-		if vm.config.SnapshotCache > 0 {
-			return errors.New("Snapshot cache must be disabled for Firewood")
-		}
-		if vm.config.OfflinePruning {
-			return errors.New("Offline pruning is not supported for Firewood")
-		}
-		if vm.config.StateSyncEnabled == nil || *vm.config.StateSyncEnabled {
-			return errors.New("State sync is not yet supported for Firewood")
-		}
-	}
-	if vm.ethConfig.StateScheme == rawdb.PathScheme {
-		log.Error("Path state scheme is not supported. Please use HashDB or Firewood state schemes instead")
-		return errors.New("Path state scheme is not supported")
-	}
 
 	// Create directory for offline pruning
 	if len(vm.ethConfig.OfflinePruningDataDirectory) != 0 {

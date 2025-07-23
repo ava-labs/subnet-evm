@@ -61,8 +61,6 @@ import (
 var (
 	errStateNotFound = errors.New("state not found")
 	errBlockNotFound = errors.New("block not found")
-
-	schemes = []string{rawdb.HashScheme, customrawdb.FirewoodScheme}
 )
 
 type testBackend struct {

@@ -32,10 +32,10 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/ava-labs/coreth/plugin/evm/customrawdb"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/libevm/ethdb"
+	"github.com/ava-labs/subnet-evm/plugin/evm/customrawdb"
 )
 
 func init() {
