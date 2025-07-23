@@ -84,8 +84,9 @@ export VERSION=v0.7.3
 1. Squash and merge your release branch into `master`, for example:
 
     ```bash
-    gh pr merge "releases/$VERSION_RC" --squash --subject "chore: release $VERSION" --body "\n- Update AvalancheGo from v1.12.3 to v1.13.0"
+    gh pr merge "releases/$VERSION_RC" --squash --subject "chore: release $VERSION_RC" --body "\n- Update AvalancheGo from v1.1X.X to v1.1X.X"
     ```
+    Ensure you properly label the AvalancheGo version.
 
 1. Create and push a tag from the `master` branch:
 
