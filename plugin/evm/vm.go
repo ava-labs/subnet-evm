@@ -389,6 +389,7 @@ func (vm *VM) Initialize(
 	vm.ethConfig.CommitInterval = vm.config.CommitInterval
 	vm.ethConfig.SkipUpgradeCheck = vm.config.SkipUpgradeCheck
 	vm.ethConfig.AcceptedCacheSize = vm.config.AcceptedCacheSize
+	vm.ethConfig.StateHistory = vm.config.StateHistory
 	vm.ethConfig.TransactionHistory = vm.config.TransactionHistory
 	vm.ethConfig.SkipTxIndexing = vm.config.SkipTxIndexing
 
@@ -1147,6 +1148,10 @@ func (vm *VM) NewHTTPHandler(ctx context.Context) (http.Handler, error) {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "No HTTP handler available", http.StatusNotFound)
 	}), nil
+}
+
+func (vm *VM) CreateHTTP2Handler(context.Context) (http.Handler, error) {
+	return nil, nil
 }
 
 /*

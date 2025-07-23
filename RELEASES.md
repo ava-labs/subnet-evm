@@ -1,11 +1,11 @@
 # Release Notes
 
 ## Pending Release
-
-... 
+- Added maximum number of addresses (1000) to be queried in a single filter.
 
 ## [v0.7.6](https://github.com/ava-labs/subnet-evm/releases/tag/v0.7.6)
 - Demoted unnecessary error log in `core/txpool/legacypool.go` to warning, displaying unexpected but valid behavior
+- Use `state-history` eth config flag to designate the number of recent states queryable.
 - @TODO - write release notes here on what is in this release
 
 ## [v0.7.5](https://github.com/ava-labs/subnet-evm/releases/tag/v0.7.5)
