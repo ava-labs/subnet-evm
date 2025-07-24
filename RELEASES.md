@@ -14,9 +14,10 @@ The plugin version is **updated** to 42 and is compatible with AvalancheGo versi
 
 ### Updates
 
-- Added maximum number of addresses (1000) to be queried in a single filter.
-- Demoted unnecessary error log in `core/txpool/legacypool.go` to warning, displaying unexpected but valid behavior
-- Use `state-history` eth config flag to designate the number of recent states queryable.
+- Demoted unnecessary error log in core/txpool/legacypool.go to warning, displaying unexpected but valid behavior
+- Added maximum number of addresses (1000) to be queried in a single filter by @ceyonur in #[1644](https://github.com/ava-labs/subnet-evm/pull/1642)
+- Use state-history eth config flag to designate the number of recent states queryable by @alarso16 in #[1642](https://github.com/ava-labs/subnet-evm/pull/1644)
+
 
 ## [v0.7.6](https://github.com/ava-labs/subnet-evm/releases/tag/v0.7.6)
 
