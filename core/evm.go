@@ -34,10 +34,12 @@ import (
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/libevm/core/vm"
+	"github.com/ava-labs/libevm/libevm/stateconf"
 	"github.com/ava-labs/libevm/log"
 	"github.com/ava-labs/subnet-evm/consensus"
 	"github.com/ava-labs/subnet-evm/consensus/misc/eip4844"
 	"github.com/ava-labs/subnet-evm/core/extstate"
+	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/params"
 	customheader "github.com/ava-labs/subnet-evm/plugin/evm/header"
 	"github.com/ava-labs/subnet-evm/predicate"
@@ -76,8 +78,28 @@ func (hooks) OverrideEVMResetArgs(rules params.Rules, args *vm.EVMResetArgs) *vm
 	return args
 }
 
-func wrapStateDB(rules params.Rules, db vm.StateDB) vm.StateDB {
-	return extstate.New(db.(extstate.VmStateDB))
+func wrapStateDB(rules params.Rules, statedb vm.StateDB) vm.StateDB {
+	wrappedStateDB := extstate.New(statedb.(*state.StateDB))
+	return &StateDBAP0{wrappedStateDB}
+}
+
+// StateDBAP0 implements the GetCommittedState behavior that existed prior to
+// the AP1 upgrade.
+//
+// Since launch, state keys have been normalized to allow for multicoin
+// balances. However, at launch GetCommittedState was not updated. This meant
+// that gas refunds were not calculated as expected for SSTORE opcodes.
+//
+// This oversight was fixed in AP1, but in order to execute blocks prior to AP1
+// and generate the same merkle root, this behavior must be maintained.
+//
+// See the [extstate] package for details around state key normalization.
+type StateDBAP0 struct {
+	*extstate.StateDB
+}
+
+func (s *StateDBAP0) GetCommittedState(addr common.Address, key common.Hash, _ ...stateconf.StateDBStateOption) common.Hash {
+	return s.StateDB.GetCommittedState(addr, key, stateconf.SkipStateKeyTransformation())
 }
 
 // ChainContext supports retrieving headers and consensus parameters from the
