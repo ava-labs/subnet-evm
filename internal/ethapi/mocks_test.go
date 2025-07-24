@@ -17,6 +17,7 @@ import (
 
 	accounts "github.com/ava-labs/libevm/accounts"
 	common "github.com/ava-labs/libevm/common"
+	state "github.com/ava-labs/libevm/core/state"
 	types "github.com/ava-labs/libevm/core/types"
 	vm "github.com/ava-labs/libevm/core/vm"
 	ethdb "github.com/ava-labs/libevm/ethdb"
