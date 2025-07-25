@@ -226,7 +226,6 @@ func (eth *Ethereum) pathState(block *types.Block) (*state.StateDB, func(), erro
 //     on disk.
 func (eth *Ethereum) stateAtBlock(ctx context.Context, block *types.Block, reexec uint64, base *state.StateDB, readOnly bool, preferDisk bool) (statedb *state.StateDB, release tracers.StateReleaseFunc, err error) {
 	// Check if we're using firewood backend by typecasting
-	// firewoodDB.Scheme() == rawdb.HashScheme, so typecasting is necessary
 	isFirewood := eth.blockchain.CacheConfig().StateScheme == customrawdb.FirewoodScheme
 
 	// Use `hashState` if the state can be recomputed from the live database.
