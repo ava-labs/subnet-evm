@@ -1,9 +1,7 @@
 # Release Notes
 
 ## Pending Release
-- Added maximum number of addresses (1000) to be queried in a single filter.
 - Enable expermiental `state-scheme` flag to specify Firewood as a state database.
-
 - Add pending releases here
 
 ## [v0.7.7](https://github.com/ava-labs/subnet-evm/releases/tag/v0.7.7)
