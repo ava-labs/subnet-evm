@@ -315,10 +315,16 @@ func testValidateInvalidWarpBlockHash(t *testing.T, scheme string) {
 
 func testWarpVMTransaction(t *testing.T, scheme string, unsignedMessage *avalancheWarp.UnsignedMessage, validSignature bool, txPayload []byte) {
 	require := require.New(t)
-	fork := upgradetest.Durango
+	genesis := &core.Genesis{}
+	require.NoError(genesis.UnmarshalJSON([]byte(toGenesisJSON(forkToChainConfig[upgradetest.Durango]))))
+	params.GetExtra(genesis.Config).GenesisPrecompiles = extras.Precompiles{
+		warpcontract.ConfigKey: warpcontract.NewDefaultConfig(utils.TimeToNewUint64(upgrade.InitiallyActiveTime)),
+	}
+	genesisJSON, err := genesis.MarshalJSON()
+	require.NoError(err)
 	tvm := newVM(t, testVMConfig{
-		fork:       &fork,
-		configJSON: getConfig(scheme, ""),
+		genesisJSON: string(genesisJSON),
+		configJSON:  getConfig(scheme, ""),
 	})
 
 	defer func() {
