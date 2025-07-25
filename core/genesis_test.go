@@ -145,7 +145,7 @@ func testSetupGenesis(t *testing.T, scheme string) {
 		{
 			name: "incompatible config for avalanche fork in DB",
 			fn: func(db ethdb.Database) (*params.ChainConfig, common.Hash, error) {
-				// Commit the 'old' genesis block with ApricotPhase1 transition at 90.
+				// Commit the 'old' genesis block with SubnetEVM transition at 90.
 				// Advance to block #4, past the SubnetEVM transition block of customg.
 				tdb := triedb.NewDatabase(db, newDbConfig(t, rawdb.HashScheme))
 				genesis, err := oldcustomg.Commit(db, tdb)
