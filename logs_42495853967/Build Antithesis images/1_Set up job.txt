@@ -1,0 +1,50 @@
+﻿2025-07-28T18:52:46.0859123Z Current runner version: '2.326.0'
+2025-07-28T18:52:46.0882660Z ##[group]Runner Image Provisioner
+2025-07-28T18:52:46.0883518Z Hosted Compute Agent
+2025-07-28T18:52:46.0884136Z Version: 20250711.363
+2025-07-28T18:52:46.0884722Z Commit: 6785254374ce925a23743850c1cb91912ce5c14c
+2025-07-28T18:52:46.0885517Z Build Date: 2025-07-11T20:04:25Z
+2025-07-28T18:52:46.0886172Z ##[endgroup]
+2025-07-28T18:52:46.0886724Z ##[group]Operating System
+2025-07-28T18:52:46.0887247Z Ubuntu
+2025-07-28T18:52:46.0887763Z 24.04.2
+2025-07-28T18:52:46.0888187Z LTS
+2025-07-28T18:52:46.0888635Z ##[endgroup]
+2025-07-28T18:52:46.0889115Z ##[group]Runner Image
+2025-07-28T18:52:46.0889708Z Image: ubuntu-24.04
+2025-07-28T18:52:46.0890184Z Version: 20250720.1.0
+2025-07-28T18:52:46.0891211Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20250720.1/images/ubuntu/Ubuntu2404-Readme.md
+2025-07-28T18:52:46.0892542Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20250720.1
+2025-07-28T18:52:46.0893673Z ##[endgroup]
+2025-07-28T18:52:46.0896343Z ##[group]GITHUB_TOKEN Permissions
+2025-07-28T18:52:46.0898330Z Actions: write
+2025-07-28T18:52:46.0898875Z Attestations: write
+2025-07-28T18:52:46.0899386Z Checks: write
+2025-07-28T18:52:46.0899816Z Contents: write
+2025-07-28T18:52:46.0900419Z Deployments: write
+2025-07-28T18:52:46.0900894Z Discussions: write
+2025-07-28T18:52:46.0901388Z Issues: write
+2025-07-28T18:52:46.0901928Z Metadata: read
+2025-07-28T18:52:46.0902377Z Models: read
+2025-07-28T18:52:46.0902841Z Packages: write
+2025-07-28T18:52:46.0903394Z Pages: write
+2025-07-28T18:52:46.0903892Z PullRequests: write
+2025-07-28T18:52:46.0904394Z RepositoryProjects: write
+2025-07-28T18:52:46.0905153Z SecurityEvents: write
+2025-07-28T18:52:46.0905781Z Statuses: write
+2025-07-28T18:52:46.0906246Z ##[endgroup]
+2025-07-28T18:52:46.0908308Z Secret source: Actions
+2025-07-28T18:52:46.0908970Z Prepare workflow directory
+2025-07-28T18:52:46.1228162Z Prepare all required actions
+2025-07-28T18:52:46.1265367Z Getting action download info
+2025-07-28T18:52:46.6033225Z ##[group]Download immutable action package 'actions/checkout@v4'
+2025-07-28T18:52:46.6034284Z Version: 4.2.2
+2025-07-28T18:52:46.6035401Z Digest: sha256:ccb2698953eaebd21c7bf6268a94f9c26518a7e38e27e0b83c1fe1ad049819b1
+2025-07-28T18:52:46.6036650Z Source commit SHA: 11bd71901bbe5b1630ceea73d27597364c9af683
+2025-07-28T18:52:46.6037344Z ##[endgroup]
+2025-07-28T18:52:46.7016763Z ##[group]Download immutable action package 'actions/setup-go@v5'
+2025-07-28T18:52:46.7017508Z Version: 5.5.0
+2025-07-28T18:52:46.7018262Z Digest: sha256:f5eeb2233d0c6714b5236de9b44ad0b935014e15eeab3c28d73dc44c1c641ebb
+2025-07-28T18:52:46.7019195Z Source commit SHA: d35c59abb061a4a6fb18e82ac0862c26744d6ab5
+2025-07-28T18:52:46.7019894Z ##[endgroup]
+2025-07-28T18:52:47.0851735Z Complete job name: Build Antithesis images

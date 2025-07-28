@@ -1,0 +1,21 @@
+﻿2025-07-28T18:57:12.8785943Z ##[group]Run actions/upload-artifact@v4
+2025-07-28T18:57:12.8786234Z with:
+2025-07-28T18:57:12.8786450Z   name: subnet-evm-e2e-logs-precompile
+2025-07-28T18:57:12.8786784Z   path: /tmp/e2e-test/precompile-data
+2025-07-28T18:57:12.8787041Z   retention-days: 5
+2025-07-28T18:57:12.8787286Z   if-no-files-found: warn
+2025-07-28T18:57:12.8787572Z   compression-level: 6
+2025-07-28T18:57:12.8787781Z   overwrite: false
+2025-07-28T18:57:12.8787993Z   include-hidden-files: false
+2025-07-28T18:57:12.8788222Z ##[endgroup]
+2025-07-28T18:57:13.1210534Z With the provided path, there will be 56 files uploaded
+2025-07-28T18:57:13.1215238Z Artifact name is valid!
+2025-07-28T18:57:13.1216856Z Root directory input is valid!
+2025-07-28T18:57:13.2402149Z Beginning upload of artifact content to blob storage
+2025-07-28T18:57:13.4643763Z Uploaded bytes 585262
+2025-07-28T18:57:13.4839496Z Finished uploading artifact content to blob storage!
+2025-07-28T18:57:13.4842882Z SHA256 digest of uploaded artifact zip is 60a3cd6601149cbf6192722801ce052a5e5c154634dc2259cea0af9e7c7f365f
+2025-07-28T18:57:13.4844746Z Finalizing artifact upload
+2025-07-28T18:57:13.5587078Z Artifact subnet-evm-e2e-logs-precompile.zip successfully finalized. Artifact ID 3632462668
+2025-07-28T18:57:13.5589391Z Artifact subnet-evm-e2e-logs-precompile has been successfully uploaded! Final size is 585262 bytes. Artifact ID is 3632462668
+2025-07-28T18:57:13.5596185Z Artifact download URL: https://github.com/ava-labs/subnet-evm/actions/runs/16577648665/artifacts/3632462668

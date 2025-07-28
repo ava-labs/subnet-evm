@@ -1,0 +1,3 @@
+﻿2025-07-28T18:57:51.5792930Z Cleaning up orphan processes
+2025-07-28T18:57:51.6135714Z Terminate orphan process: pid (18278) (prometheus)
+2025-07-28T18:57:51.6182823Z Terminate orphan process: pid (18288) (.promtail-wrapp)

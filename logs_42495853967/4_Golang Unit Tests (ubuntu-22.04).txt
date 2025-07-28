@@ -1,0 +1,665 @@
+﻿2025-07-28T18:52:44.8702915Z Current runner version: '2.326.0'
+2025-07-28T18:52:44.8725132Z ##[group]Runner Image Provisioner
+2025-07-28T18:52:44.8726088Z Hosted Compute Agent
+2025-07-28T18:52:44.8726963Z Version: 20250711.363
+2025-07-28T18:52:44.8727561Z Commit: 6785254374ce925a23743850c1cb91912ce5c14c
+2025-07-28T18:52:44.8728408Z Build Date: 2025-07-11T20:04:25Z
+2025-07-28T18:52:44.8729013Z ##[endgroup]
+2025-07-28T18:52:44.8729500Z ##[group]Operating System
+2025-07-28T18:52:44.8730161Z Ubuntu
+2025-07-28T18:52:44.8730611Z 22.04.5
+2025-07-28T18:52:44.8731072Z LTS
+2025-07-28T18:52:44.8731547Z ##[endgroup]
+2025-07-28T18:52:44.8732058Z ##[group]Runner Image
+2025-07-28T18:52:44.8732555Z Image: ubuntu-22.04
+2025-07-28T18:52:44.8733127Z Version: 20250720.1.0
+2025-07-28T18:52:44.8734152Z Included Software: https://github.com/actions/runner-images/blob/ubuntu22/20250720.1/images/ubuntu/Ubuntu2204-Readme.md
+2025-07-28T18:52:44.8735626Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu22%2F20250720.1
+2025-07-28T18:52:44.8736816Z ##[endgroup]
+2025-07-28T18:52:44.8739176Z ##[group]GITHUB_TOKEN Permissions
+2025-07-28T18:52:44.8741163Z Actions: write
+2025-07-28T18:52:44.8741779Z Attestations: write
+2025-07-28T18:52:44.8742375Z Checks: write
+2025-07-28T18:52:44.8742922Z Contents: write
+2025-07-28T18:52:44.8743445Z Deployments: write
+2025-07-28T18:52:44.8743986Z Discussions: write
+2025-07-28T18:52:44.8744519Z Issues: write
+2025-07-28T18:52:44.8744995Z Metadata: read
+2025-07-28T18:52:44.8745548Z Models: read
+2025-07-28T18:52:44.8746019Z Packages: write
+2025-07-28T18:52:44.8746548Z Pages: write
+2025-07-28T18:52:44.8747191Z PullRequests: write
+2025-07-28T18:52:44.8747823Z RepositoryProjects: write
+2025-07-28T18:52:44.8748379Z SecurityEvents: write
+2025-07-28T18:52:44.8749000Z Statuses: write
+2025-07-28T18:52:44.8749595Z ##[endgroup]
+2025-07-28T18:52:44.8751567Z Secret source: Actions
+2025-07-28T18:52:44.8752424Z Prepare workflow directory
+2025-07-28T18:52:44.9072643Z Prepare all required actions
+2025-07-28T18:52:44.9110118Z Getting action download info
+2025-07-28T18:52:45.2792400Z ##[group]Download immutable action package 'actions/checkout@v4'
+2025-07-28T18:52:45.2793447Z Version: 4.2.2
+2025-07-28T18:52:45.2794629Z Digest: sha256:ccb2698953eaebd21c7bf6268a94f9c26518a7e38e27e0b83c1fe1ad049819b1
+2025-07-28T18:52:45.2795872Z Source commit SHA: 11bd71901bbe5b1630ceea73d27597364c9af683
+2025-07-28T18:52:45.2796853Z ##[endgroup]
+2025-07-28T18:52:45.3767698Z ##[group]Download immutable action package 'actions/setup-go@v5'
+2025-07-28T18:52:45.3768639Z Version: 5.5.0
+2025-07-28T18:52:45.3769430Z Digest: sha256:f5eeb2233d0c6714b5236de9b44ad0b935014e15eeab3c28d73dc44c1c641ebb
+2025-07-28T18:52:45.3770434Z Source commit SHA: d35c59abb061a4a6fb18e82ac0862c26744d6ab5
+2025-07-28T18:52:45.3771241Z ##[endgroup]
+2025-07-28T18:52:45.6732846Z Complete job name: Golang Unit Tests (ubuntu-22.04)
+2025-07-28T18:52:45.7414767Z ##[group]Run actions/checkout@v4
+2025-07-28T18:52:45.7415640Z with:
+2025-07-28T18:52:45.7416086Z   repository: ava-labs/subnet-evm
+2025-07-28T18:52:45.7416958Z   token: ***
+2025-07-28T18:52:45.7417408Z   ssh-strict: true
+2025-07-28T18:52:45.7417850Z   ssh-user: git
+2025-07-28T18:52:45.7418285Z   persist-credentials: true
+2025-07-28T18:52:45.7418776Z   clean: true
+2025-07-28T18:52:45.7419205Z   sparse-checkout-cone-mode: true
+2025-07-28T18:52:45.7419726Z   fetch-depth: 1
+2025-07-28T18:52:45.7420128Z   fetch-tags: false
+2025-07-28T18:52:45.7420570Z   show-progress: true
+2025-07-28T18:52:45.7420995Z   lfs: false
+2025-07-28T18:52:45.7421393Z   submodules: false
+2025-07-28T18:52:45.7421828Z   set-safe-directory: true
+2025-07-28T18:52:45.7422825Z ##[endgroup]
+2025-07-28T18:52:45.8521434Z Syncing repository: ava-labs/subnet-evm
+2025-07-28T18:52:45.8524340Z ##[group]Getting Git version info
+2025-07-28T18:52:45.8525736Z Working directory is '/home/runner/work/subnet-evm/subnet-evm'
+2025-07-28T18:52:45.8528363Z [command]/usr/bin/git version
+2025-07-28T18:52:45.8566892Z git version 2.50.1
+2025-07-28T18:52:45.8593760Z ##[endgroup]
+2025-07-28T18:52:45.8609131Z Temporarily overriding HOME='/home/runner/work/_temp/204ab101-c8ef-439e-a498-de8cb603a945' before making global git config changes
+2025-07-28T18:52:45.8611811Z Adding repository directory to the temporary git global config as a safe directory
+2025-07-28T18:52:45.8615178Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/subnet-evm/subnet-evm
+2025-07-28T18:52:45.8650822Z Deleting the contents of '/home/runner/work/subnet-evm/subnet-evm'
+2025-07-28T18:52:45.8654811Z ##[group]Initializing the repository
+2025-07-28T18:52:45.8660754Z [command]/usr/bin/git init /home/runner/work/subnet-evm/subnet-evm
+2025-07-28T18:52:45.8728507Z hint: Using 'master' as the name for the initial branch. This default branch name
+2025-07-28T18:52:45.8731487Z hint: is subject to change. To configure the initial branch name to use in all
+2025-07-28T18:52:45.8732940Z hint: of your new repositories, which will suppress this warning, call:
+2025-07-28T18:52:45.8737744Z hint:
+2025-07-28T18:52:45.8738730Z hint: 	git config --global init.defaultBranch <name>
+2025-07-28T18:52:45.8739741Z hint:
+2025-07-28T18:52:45.8740394Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2025-07-28T18:52:45.8741405Z hint: 'development'. The just-created branch can be renamed via this command:
+2025-07-28T18:52:45.8742191Z hint:
+2025-07-28T18:52:45.8742940Z hint: 	git branch -m <name>
+2025-07-28T18:52:45.8743531Z hint:
+2025-07-28T18:52:45.8744216Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2025-07-28T18:52:45.8745713Z Initialized empty Git repository in /home/runner/work/subnet-evm/subnet-evm/.git/
+2025-07-28T18:52:45.8747874Z [command]/usr/bin/git remote add origin https://github.com/ava-labs/subnet-evm
+2025-07-28T18:52:45.8782983Z ##[endgroup]
+2025-07-28T18:52:45.8783900Z ##[group]Disabling automatic garbage collection
+2025-07-28T18:52:45.8788574Z [command]/usr/bin/git config --local gc.auto 0
+2025-07-28T18:52:45.8820814Z ##[endgroup]
+2025-07-28T18:52:45.8821646Z ##[group]Setting up auth
+2025-07-28T18:52:45.8830055Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-07-28T18:52:45.8863897Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-07-28T18:52:45.9152326Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-07-28T18:52:45.9188257Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-07-28T18:52:45.9425422Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2025-07-28T18:52:45.9466777Z ##[endgroup]
+2025-07-28T18:52:45.9467809Z ##[group]Fetching the repository
+2025-07-28T18:52:45.9474779Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +740f5ebbe5df6a0c1d20e5e4bc958b48e1ed9c6b:refs/remotes/pull/1654/merge
+2025-07-28T18:52:46.4765217Z From https://github.com/ava-labs/subnet-evm
+2025-07-28T18:52:46.4769397Z  * [new ref]         740f5ebbe5df6a0c1d20e5e4bc958b48e1ed9c6b -> pull/1654/merge
+2025-07-28T18:52:46.4791867Z ##[endgroup]
+2025-07-28T18:52:46.4793553Z ##[group]Determining the checkout info
+2025-07-28T18:52:46.4795523Z ##[endgroup]
+2025-07-28T18:52:46.4798375Z [command]/usr/bin/git sparse-checkout disable
+2025-07-28T18:52:46.4836503Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2025-07-28T18:52:46.4863785Z ##[group]Checking out the ref
+2025-07-28T18:52:46.4867108Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/1654/merge
+2025-07-28T18:52:46.5635231Z Note: switching to 'refs/remotes/pull/1654/merge'.
+2025-07-28T18:52:46.5636462Z 
+2025-07-28T18:52:46.5637609Z You are in 'detached HEAD' state. You can look around, make experimental
+2025-07-28T18:52:46.5640373Z changes and commit them, and you can discard any commits you make in this
+2025-07-28T18:52:46.5642475Z state without impacting any branches by switching back to a branch.
+2025-07-28T18:52:46.5643403Z 
+2025-07-28T18:52:46.5644013Z If you want to create a new branch to retain commits you create, you may
+2025-07-28T18:52:46.5645846Z do so (now or later) by using -c with the switch command. Example:
+2025-07-28T18:52:46.5647017Z 
+2025-07-28T18:52:46.5647356Z   git switch -c <new-branch-name>
+2025-07-28T18:52:46.5647977Z 
+2025-07-28T18:52:46.5648285Z Or undo this operation with:
+2025-07-28T18:52:46.5648929Z 
+2025-07-28T18:52:46.5649238Z   git switch -
+2025-07-28T18:52:46.5649796Z 
+2025-07-28T18:52:46.5650521Z Turn off this advice by setting config variable advice.detachedHead to false
+2025-07-28T18:52:46.5651579Z 
+2025-07-28T18:52:46.5652882Z HEAD is now at 740f5eb Merge e1a4ff2d2cc8219c93ebdfb69d7e196c62a8e3f0 into ff0ca07559e5a5dd2dfb421f4d7c66f4c4ee4046
+2025-07-28T18:52:46.5656982Z ##[endgroup]
+2025-07-28T18:52:46.5682348Z [command]/usr/bin/git log -1 --format=%H
+2025-07-28T18:52:46.5704019Z 740f5ebbe5df6a0c1d20e5e4bc958b48e1ed9c6b
+2025-07-28T18:52:46.5990616Z ##[group]Run actions/setup-go@v5
+2025-07-28T18:52:46.5991694Z with:
+2025-07-28T18:52:46.5992481Z   go-version-file: go.mod
+2025-07-28T18:52:46.5993452Z   check-latest: false
+2025-07-28T18:52:46.5994622Z   token: ***
+2025-07-28T18:52:46.5995423Z   cache: true
+2025-07-28T18:52:46.5996224Z ##[endgroup]
+2025-07-28T18:52:46.7580690Z Setup go version spec 1.23.9
+2025-07-28T18:52:46.7590995Z Attempting to download 1.23.9...
+2025-07-28T18:52:47.0687058Z matching 1.23.9...
+2025-07-28T18:52:47.0729895Z Acquiring 1.23.9 from https://github.com/actions/go-versions/releases/download/1.23.9-14875265214/go-1.23.9-linux-x64.tar.gz
+2025-07-28T18:52:47.6058513Z Extracting Go...
+2025-07-28T18:52:47.6165510Z [command]/usr/bin/tar xz --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/8d32602d-298a-45c8-b2c9-64eba7579a9e -f /home/runner/work/_temp/ab16823b-19cb-45ab-9796-8ab22ecb0bd3
+2025-07-28T18:52:49.2564222Z Successfully extracted go to /home/runner/work/_temp/8d32602d-298a-45c8-b2c9-64eba7579a9e
+2025-07-28T18:52:49.2565317Z Adding to the cache ...
+2025-07-28T18:52:53.5507464Z Successfully cached go to /opt/hostedtoolcache/go/1.23.9/x64
+2025-07-28T18:52:53.5509147Z Added go to the path
+2025-07-28T18:52:53.5512119Z Successfully set up Go version 1.23.9
+2025-07-28T18:52:53.5700627Z [command]/opt/hostedtoolcache/go/1.23.9/x64/bin/go env GOMODCACHE
+2025-07-28T18:52:53.5732945Z [command]/opt/hostedtoolcache/go/1.23.9/x64/bin/go env GOCACHE
+2025-07-28T18:52:53.5756445Z /home/runner/go/pkg/mod
+2025-07-28T18:52:53.5771741Z /home/runner/.cache/go-build
+2025-07-28T18:52:53.6351088Z Cache hit for: setup-go-Linux-x64-ubuntu22-go-1.23.9-1292029a45a2d5c75b177aaf45b3bd6bedea8fdfbf70511d33c49ad36e0e7f82
+2025-07-28T18:52:54.6884029Z Received 205520896 of 703804921 (29.2%), 195.4 MBs/sec
+2025-07-28T18:52:55.6882650Z Received 423624704 of 703804921 (60.2%), 201.7 MBs/sec
+2025-07-28T18:52:56.7264170Z Received 671088640 of 703804921 (95.4%), 210.5 MBs/sec
+2025-07-28T18:52:56.8804096Z Received 703804921 of 703804921 (100.0%), 210.1 MBs/sec
+2025-07-28T18:52:56.8805417Z Cache Size: ~671 MB (703804921 B)
+2025-07-28T18:52:56.8874773Z [command]/usr/bin/tar -xf /home/runner/work/_temp/90c1a077-400a-4609-bb03-9e3c13256e1f/cache.tzst -P -C /home/runner/work/subnet-evm/subnet-evm --use-compress-program unzstd
+2025-07-28T18:53:03.1422757Z Cache restored successfully
+2025-07-28T18:53:03.2828358Z Cache restored from key: setup-go-Linux-x64-ubuntu22-go-1.23.9-1292029a45a2d5c75b177aaf45b3bd6bedea8fdfbf70511d33c49ad36e0e7f82
+2025-07-28T18:53:03.2848470Z go version go1.23.9 linux/amd64
+2025-07-28T18:53:03.2848669Z 
+2025-07-28T18:53:03.2848962Z ##[group]go env
+2025-07-28T18:53:03.3018815Z GO111MODULE=''
+2025-07-28T18:53:03.3019287Z GOARCH='amd64'
+2025-07-28T18:53:03.3019671Z GOBIN=''
+2025-07-28T18:53:03.3019999Z GOCACHE='/home/runner/.cache/go-build'
+2025-07-28T18:53:03.3020614Z GOENV='/home/runner/.config/go/env'
+2025-07-28T18:53:03.3020994Z GOEXE=''
+2025-07-28T18:53:03.3021293Z GOEXPERIMENT=''
+2025-07-28T18:53:03.3021538Z GOFLAGS=''
+2025-07-28T18:53:03.3021787Z GOHOSTARCH='amd64'
+2025-07-28T18:53:03.3022098Z GOHOSTOS='linux'
+2025-07-28T18:53:03.3022515Z GOINSECURE=''
+2025-07-28T18:53:03.3022939Z GOMODCACHE='/home/runner/go/pkg/mod'
+2025-07-28T18:53:03.3023417Z GONOPROXY=''
+2025-07-28T18:53:03.3023767Z GONOSUMDB=''
+2025-07-28T18:53:03.3024058Z GOOS='linux'
+2025-07-28T18:53:03.3024287Z GOPATH='/home/runner/go'
+2025-07-28T18:53:03.3024540Z GOPRIVATE=''
+2025-07-28T18:53:03.3024838Z GOPROXY='https://proxy.golang.org,direct'
+2025-07-28T18:53:03.3025244Z GOROOT='/opt/hostedtoolcache/go/1.23.9/x64'
+2025-07-28T18:53:03.3025578Z GOSUMDB='sum.golang.org'
+2025-07-28T18:53:03.3025825Z GOTMPDIR=''
+2025-07-28T18:53:03.3026043Z GOTOOLCHAIN='auto'
+2025-07-28T18:53:03.3026731Z GOTOOLDIR='/opt/hostedtoolcache/go/1.23.9/x64/pkg/tool/linux_amd64'
+2025-07-28T18:53:03.3027396Z GOVCS=''
+2025-07-28T18:53:03.3027750Z GOVERSION='go1.23.9'
+2025-07-28T18:53:03.3028131Z GODEBUG=''
+2025-07-28T18:53:03.3028478Z GOTELEMETRY='local'
+2025-07-28T18:53:03.3029202Z GOTELEMETRYDIR='/home/runner/.config/go/telemetry'
+2025-07-28T18:53:03.3029552Z GCCGO='gccgo'
+2025-07-28T18:53:03.3029737Z GOAMD64='v1'
+2025-07-28T18:53:03.3029920Z AR='ar'
+2025-07-28T18:53:03.3030090Z CC='gcc'
+2025-07-28T18:53:03.3030250Z CXX='g++'
+2025-07-28T18:53:03.3030423Z CGO_ENABLED='1'
+2025-07-28T18:53:03.3030679Z GOMOD='/home/runner/work/subnet-evm/subnet-evm/go.mod'
+2025-07-28T18:53:03.3030965Z GOWORK=''
+2025-07-28T18:53:03.3031142Z CGO_CFLAGS='-O2 -g'
+2025-07-28T18:53:03.3031370Z CGO_CPPFLAGS=''
+2025-07-28T18:53:03.3031710Z CGO_CXXFLAGS='-O2 -g'
+2025-07-28T18:53:03.3032051Z CGO_FFLAGS='-O2 -g'
+2025-07-28T18:53:03.3032256Z CGO_LDFLAGS='-O2 -g'
+2025-07-28T18:53:03.3032477Z PKG_CONFIG='pkg-config'
+2025-07-28T18:53:03.3033118Z GOGCCFLAGS='-fPIC -m64 -pthread -Wl,--no-gc-sections -fmessage-length=0 -ffile-prefix-map=/tmp/go-build935590416=/tmp/go-build -gno-record-gcc-switches'
+2025-07-28T18:53:03.3033863Z 
+2025-07-28T18:53:03.3034130Z ##[endgroup]
+2025-07-28T18:53:03.3211539Z ##[group]Run go mod download
+2025-07-28T18:53:03.3211868Z [36;1mgo mod download[0m
+2025-07-28T18:53:03.3250715Z shell: /usr/bin/bash -e {0}
+2025-07-28T18:53:03.3250970Z ##[endgroup]
+2025-07-28T18:53:03.3823489Z ##[group]Run ./scripts/run_task.sh check-generate-codec
+2025-07-28T18:53:03.3823937Z [36;1m./scripts/run_task.sh check-generate-codec[0m
+2025-07-28T18:53:03.3857436Z shell: /usr/bin/bash -e {0}
+2025-07-28T18:53:03.3857695Z ##[endgroup]
+2025-07-28T18:53:04.3173572Z task: [generate-codec] grep -lr -E '^// Code generated by github\.com\/fjl\/gencodec\. DO NOT EDIT\.$' . | xargs -r rm
+2025-07-28T18:53:04.3334206Z task: [generate-codec] go generate -run "github.com/fjl/gencodec" ./...
+2025-07-28T18:53:20.8628999Z task: [check-clean-branch] git add --all
+2025-07-28T18:53:20.9050297Z task: [check-clean-branch] git update-index --really-refresh >> /dev/null
+2025-07-28T18:53:20.9101768Z task: [check-clean-branch] git status --short
+2025-07-28T18:53:20.9183809Z task: [check-clean-branch] git diff-index --quiet HEAD
+2025-07-28T18:53:20.9328883Z ##[group]Run ./scripts/run_task.sh check-generate-mocks
+2025-07-28T18:53:20.9329311Z [36;1m./scripts/run_task.sh check-generate-mocks[0m
+2025-07-28T18:53:20.9362204Z shell: /usr/bin/bash -e {0}
+2025-07-28T18:53:20.9362456Z ##[endgroup]
+2025-07-28T18:53:21.3745767Z task: [generate-mocks] grep -lr -E '^// Code generated by MockGen\. DO NOT EDIT\.$' . | xargs -r rm
+2025-07-28T18:53:21.3888299Z task: [generate-mocks] go generate -run "go.uber.org/mock/mockgen" ./...
+2025-07-28T18:53:35.9340780Z task: [check-clean-branch] git add --all
+2025-07-28T18:53:35.9428441Z task: [check-clean-branch] git update-index --really-refresh >> /dev/null
+2025-07-28T18:53:35.9483489Z task: [check-clean-branch] git status --short
+2025-07-28T18:53:35.9564313Z task: [check-clean-branch] git diff-index --quiet HEAD
+2025-07-28T18:53:35.9708602Z ##[group]Run ./scripts/run_task.sh build
+2025-07-28T18:53:35.9709122Z [36;1m./scripts/run_task.sh build[0m
+2025-07-28T18:53:35.9742218Z shell: /usr/bin/bash -e {0}
+2025-07-28T18:53:35.9742462Z ##[endgroup]
+2025-07-28T18:53:36.3779592Z task: [build] ./scripts/build.sh
+2025-07-28T18:53:36.4013241Z Using branch: 740f5eb
+2025-07-28T18:53:36.4014554Z Building Subnet EVM @ GitCommit: 740f5ebbe5df6a0c1d20e5e4bc958b48e1ed9c6b at /home/runner/.avalanchego/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
+2025-07-28T18:54:21.9809458Z ##[group]Run ./scripts/run_task.sh build-test
+2025-07-28T18:54:21.9809811Z [36;1m./scripts/run_task.sh build-test[0m
+2025-07-28T18:54:21.9842515Z shell: /usr/bin/bash -e {0}
+2025-07-28T18:54:21.9842780Z env:
+2025-07-28T18:54:21.9842953Z   TIMEOUT: 
+2025-07-28T18:54:21.9843137Z ##[endgroup]
+2025-07-28T18:54:22.7829098Z task: [build-test] ./scripts/build_test.sh
+2025-07-28T18:54:22.8050626Z Using branch: 740f5eb
+2025-07-28T18:54:47.0737257Z ok  	github.com/ava-labs/subnet-evm/accounts/abi	1.279s	coverage: 89.4% of statements
+2025-07-28T18:56:07.6368960Z ok  	github.com/ava-labs/subnet-evm/accounts/abi/bind	33.565s	coverage: 62.7% of statements
+2025-07-28T18:56:08.3463849Z 	github.com/ava-labs/subnet-evm/accounts/abi/bind/backends		coverage: 0.0% of statements
+2025-07-28T18:56:12.8068476Z 	github.com/ava-labs/subnet-evm/cmd/evm/internal/t8ntool		coverage: 0.0% of statements
+2025-07-28T18:56:12.8070143Z 	github.com/ava-labs/subnet-evm/cmd/evm/internal/compiler		coverage: 0.0% of statements
+2025-07-28T18:56:13.0601238Z 	github.com/ava-labs/subnet-evm/cmd/precompilegen		coverage: 0.0% of statements
+2025-07-28T18:56:15.8680054Z 	github.com/ava-labs/subnet-evm/cmd/simulator/config		coverage: 0.0% of statements
+2025-07-28T18:56:15.9149157Z 	github.com/ava-labs/subnet-evm/cmd/simulator/key		coverage: 0.0% of statements
+2025-07-28T18:56:17.4381425Z 	github.com/ava-labs/subnet-evm/cmd/simulator/load		coverage: 0.0% of statements
+2025-07-28T18:56:17.5212889Z 	github.com/ava-labs/subnet-evm/cmd/simulator/main		coverage: 0.0% of statements
+2025-07-28T18:56:17.5259023Z 	github.com/ava-labs/subnet-evm/cmd/simulator/metrics		coverage: 0.0% of statements
+2025-07-28T18:56:17.5311550Z 	github.com/ava-labs/subnet-evm/cmd/utils		coverage: 0.0% of statements
+2025-07-28T18:56:17.5318976Z 	github.com/ava-labs/subnet-evm/cmd/simulator/txs		coverage: 0.0% of statements
+2025-07-28T18:56:18.2500802Z ?   	github.com/ava-labs/subnet-evm/consensus	[no test files]
+2025-07-28T18:56:18.9143697Z -test.shuffle 1753728968391096297
+2025-07-28T18:56:18.9144268Z --- FAIL: TestPrecompileBind (10.51s)
+2025-07-28T18:56:18.9145233Z     precompile_bind_test.go:708: failed to run binding test: exit status 1
+2025-07-28T18:56:18.9146369Z         # precompilebindtest/HelloWorld [precompilebindtest/HelloWorld.test]
+2025-07-28T18:56:18.9175347Z ##[error]        HelloWorld/helloworld_test.go:26:30: undefined: precompiletest.NewTestStateDB
+2025-07-28T18:56:18.9184046Z         FAIL	precompilebindtest/HelloWorld [build failed]
+2025-07-28T18:56:18.9184543Z         === RUN   TestVerify
+2025-07-28T18:56:18.9184874Z         === RUN   TestVerify/valid_config
+2025-07-28T18:56:18.9185319Z         --- PASS: TestVerify (0.00s)
+2025-07-28T18:56:18.9185728Z             --- PASS: TestVerify/valid_config (0.00s)
+2025-07-28T18:56:18.9186133Z         === RUN   TestEqual
+2025-07-28T18:56:18.9186476Z         === RUN   TestEqual/non-nil_config_and_nil_other
+2025-07-28T18:56:18.9187075Z         === RUN   TestEqual/different_type
+2025-07-28T18:56:18.9187436Z         === RUN   TestEqual/different_timestamp
+2025-07-28T18:56:18.9187874Z         === RUN   TestEqual/same_config
+2025-07-28T18:56:18.9188219Z         --- PASS: TestEqual (0.00s)
+2025-07-28T18:56:18.9188784Z             --- PASS: TestEqual/non-nil_config_and_nil_other (0.00s)
+2025-07-28T18:56:18.9189339Z             --- PASS: TestEqual/different_type (0.00s)
+2025-07-28T18:56:18.9189777Z             --- PASS: TestEqual/different_timestamp (0.00s)
+2025-07-28T18:56:18.9190283Z             --- PASS: TestEqual/same_config (0.00s)
+2025-07-28T18:56:18.9191000Z         === RUN   TestDeeplyNestedArrayRun
+2025-07-28T18:56:18.9191625Z         === RUN   TestDeeplyNestedArrayRun/insufficient_gas_for_retrieveDeepArray_should_fail
+2025-07-28T18:56:18.9192365Z         === RUN   TestDeeplyNestedArrayRun/readOnly_storeDeepUintArray_should_fail
+2025-07-28T18:56:18.9193113Z         === RUN   TestDeeplyNestedArrayRun/insufficient_gas_for_storeDeepUintArray_should_fail
+2025-07-28T18:56:18.9193919Z         --- PASS: TestDeeplyNestedArrayRun (0.00s)
+2025-07-28T18:56:18.9194751Z             --- PASS: TestDeeplyNestedArrayRun/insufficient_gas_for_retrieveDeepArray_should_fail (0.00s)
+2025-07-28T18:56:18.9195735Z             --- PASS: TestDeeplyNestedArrayRun/readOnly_storeDeepUintArray_should_fail (0.00s)
+2025-07-28T18:56:18.9196926Z             --- PASS: TestDeeplyNestedArrayRun/insufficient_gas_for_storeDeepUintArray_should_fail (0.00s)
+2025-07-28T18:56:18.9197577Z         === RUN   TestDeeplyNestedArray
+2025-07-28T18:56:18.9197941Z         --- PASS: TestDeeplyNestedArray (0.00s)
+2025-07-28T18:56:18.9198344Z         PASS
+2025-07-28T18:56:18.9198682Z         ok  	precompilebindtest/DeeplyNestedArray	0.052s
+2025-07-28T18:56:18.9199125Z         === RUN   TestVerify
+2025-07-28T18:56:18.9199427Z         === RUN   TestVerify/valid_config
+2025-07-28T18:56:18.9199828Z         --- PASS: TestVerify (0.00s)
+2025-07-28T18:56:18.9200277Z             --- PASS: TestVerify/valid_config (0.00s)
+2025-07-28T18:56:18.9200687Z         === RUN   TestEqual
+2025-07-28T18:56:18.9201055Z         === RUN   TestEqual/non-nil_config_and_nil_other
+2025-07-28T18:56:18.9201493Z         === RUN   TestEqual/different_type
+2025-07-28T18:56:18.9201869Z         === RUN   TestEqual/different_timestamp
+2025-07-28T18:56:18.9202256Z         === RUN   TestEqual/same_config
+2025-07-28T18:56:18.9202631Z         --- PASS: TestEqual (0.00s)
+2025-07-28T18:56:18.9203190Z             --- PASS: TestEqual/non-nil_config_and_nil_other (0.00s)
+2025-07-28T18:56:18.9203656Z             --- PASS: TestEqual/different_type (0.00s)
+2025-07-28T18:56:18.9204213Z             --- PASS: TestEqual/different_timestamp (0.00s)
+2025-07-28T18:56:18.9204623Z             --- PASS: TestEqual/same_config (0.00s)
+2025-07-28T18:56:18.9205056Z         === RUN   TestFallbackRun
+2025-07-28T18:56:18.9205476Z         === RUN   TestFallbackRun/readOnly_testFunction_should_fail
+2025-07-28T18:56:18.9206113Z         === RUN   TestFallbackRun/insufficient_gas_for_testFunction_should_fail
+2025-07-28T18:56:18.9206990Z         === RUN   TestFallbackRun/insufficient_gas_for_fallback_should_fail
+2025-07-28T18:56:18.9207602Z         === RUN   TestFallbackRun/readOnly_fallback_should_fail
+2025-07-28T18:56:18.9208096Z         === RUN   TestFallbackRun/fallback_should_succeed
+2025-07-28T18:56:18.9208491Z         --- PASS: TestFallbackRun (0.01s)
+2025-07-28T18:56:18.9209159Z             --- PASS: TestFallbackRun/readOnly_testFunction_should_fail (0.00s)
+2025-07-28T18:56:18.9210062Z             --- PASS: TestFallbackRun/insufficient_gas_for_testFunction_should_fail (0.00s)
+2025-07-28T18:56:18.9210883Z             --- PASS: TestFallbackRun/insufficient_gas_for_fallback_should_fail (0.00s)
+2025-07-28T18:56:18.9211513Z             --- PASS: TestFallbackRun/readOnly_fallback_should_fail (0.00s)
+2025-07-28T18:56:18.9212077Z             --- PASS: TestFallbackRun/fallback_should_succeed (0.00s)
+2025-07-28T18:56:18.9212513Z         === RUN   TestFallback
+2025-07-28T18:56:18.9212814Z         --- PASS: TestFallback (0.00s)
+2025-07-28T18:56:18.9213074Z         PASS
+2025-07-28T18:56:18.9213364Z         ok  	precompilebindtest/Fallback	0.073s
+2025-07-28T18:56:18.9213678Z         === RUN   TestVerify
+2025-07-28T18:56:18.9213975Z         === RUN   TestVerify/valid_config
+2025-07-28T18:56:18.9214315Z         --- PASS: TestVerify (0.00s)
+2025-07-28T18:56:18.9214856Z             --- PASS: TestVerify/valid_config (0.00s)
+2025-07-28T18:56:18.9215192Z         === RUN   TestEqual
+2025-07-28T18:56:18.9215504Z         === RUN   TestEqual/different_timestamp
+2025-07-28T18:56:18.9215827Z         === RUN   TestEqual/same_config
+2025-07-28T18:56:18.9216365Z         === RUN   TestEqual/non-nil_config_and_nil_other
+2025-07-28T18:56:18.9216957Z         === RUN   TestEqual/different_type
+2025-07-28T18:56:18.9217281Z         --- PASS: TestEqual (0.00s)
+2025-07-28T18:56:18.9217687Z             --- PASS: TestEqual/different_timestamp (0.00s)
+2025-07-28T18:56:18.9218114Z             --- PASS: TestEqual/same_config (0.00s)
+2025-07-28T18:56:18.9218846Z             --- PASS: TestEqual/non-nil_config_and_nil_other (0.00s)
+2025-07-28T18:56:18.9219298Z             --- PASS: TestEqual/different_type (0.00s)
+2025-07-28T18:56:18.9219650Z         === RUN   TestHelloWorldNoALRun
+2025-07-28T18:56:18.9220148Z         === RUN   TestHelloWorldNoALRun/insufficient_gas_for_sayHello_should_fail
+2025-07-28T18:56:18.9220682Z         === RUN   TestHelloWorldNoALRun/readOnly_setAdmin_should_fail
+2025-07-28T18:56:18.9221225Z         === RUN   TestHelloWorldNoALRun/insufficient_gas_for_setAdmin_should_fail
+2025-07-28T18:56:18.9221787Z         === RUN   TestHelloWorldNoALRun/readOnly_setGreeting_should_fail
+2025-07-28T18:56:18.9222389Z         === RUN   TestHelloWorldNoALRun/insufficient_gas_for_setGreeting_should_fail
+2025-07-28T18:56:18.9223046Z         === RUN   TestHelloWorldNoALRun/readOnly_setNone_should_fail
+2025-07-28T18:56:18.9223598Z         === RUN   TestHelloWorldNoALRun/insufficient_gas_for_setNone_should_fail
+2025-07-28T18:56:18.9224050Z         --- PASS: TestHelloWorldNoALRun (0.01s)
+2025-07-28T18:56:18.9224692Z             --- PASS: TestHelloWorldNoALRun/insufficient_gas_for_sayHello_should_fail (0.00s)
+2025-07-28T18:56:18.9225504Z             --- PASS: TestHelloWorldNoALRun/readOnly_setAdmin_should_fail (0.00s)
+2025-07-28T18:56:18.9226212Z             --- PASS: TestHelloWorldNoALRun/insufficient_gas_for_setAdmin_should_fail (0.00s)
+2025-07-28T18:56:18.9227136Z             --- PASS: TestHelloWorldNoALRun/readOnly_setGreeting_should_fail (0.00s)
+2025-07-28T18:56:18.9227880Z             --- PASS: TestHelloWorldNoALRun/insufficient_gas_for_setGreeting_should_fail (0.00s)
+2025-07-28T18:56:18.9228575Z             --- PASS: TestHelloWorldNoALRun/readOnly_setNone_should_fail (0.00s)
+2025-07-28T18:56:18.9229273Z             --- PASS: TestHelloWorldNoALRun/insufficient_gas_for_setNone_should_fail (0.00s)
+2025-07-28T18:56:18.9229721Z         === RUN   TestHelloWorldNoAL
+2025-07-28T18:56:18.9230054Z         --- PASS: TestHelloWorldNoAL (0.00s)
+2025-07-28T18:56:18.9230322Z         PASS
+2025-07-28T18:56:18.9230642Z         ok  	precompilebindtest/HelloWorldNoAL	0.112s
+2025-07-28T18:56:18.9230960Z         === RUN   TestVerify
+2025-07-28T18:56:18.9231253Z         === RUN   TestVerify/valid_config
+2025-07-28T18:56:18.9231575Z         --- PASS: TestVerify (0.00s)
+2025-07-28T18:56:18.9231958Z             --- PASS: TestVerify/valid_config (0.00s)
+2025-07-28T18:56:18.9232255Z         === RUN   TestEqual
+2025-07-28T18:56:18.9232595Z         === RUN   TestEqual/non-nil_config_and_nil_other
+2025-07-28T18:56:18.9232947Z         === RUN   TestEqual/different_type
+2025-07-28T18:56:18.9233289Z         === RUN   TestEqual/different_timestamp
+2025-07-28T18:56:18.9233613Z         === RUN   TestEqual/same_config
+2025-07-28T18:56:18.9233919Z         --- PASS: TestEqual (0.00s)
+2025-07-28T18:56:18.9234367Z             --- PASS: TestEqual/non-nil_config_and_nil_other (0.00s)
+2025-07-28T18:56:18.9234814Z             --- PASS: TestEqual/different_type (0.00s)
+2025-07-28T18:56:18.9235252Z             --- PASS: TestEqual/different_timestamp (0.00s)
+2025-07-28T18:56:18.9235667Z             --- PASS: TestEqual/same_config (0.00s)
+2025-07-28T18:56:18.9235978Z         === RUN   TestIEventerRun
+2025-07-28T18:56:18.9236423Z         === RUN   TestIEventerRun/insufficient_gas_for_eventTest_should_fail
+2025-07-28T18:56:18.9236943Z         --- PASS: TestIEventerRun (0.00s)
+2025-07-28T18:56:18.9237520Z             --- PASS: TestIEventerRun/insufficient_gas_for_eventTest_should_fail (0.00s)
+2025-07-28T18:56:18.9238015Z         === RUN   TestPackUnpackDynamicEventData
+2025-07-28T18:56:18.9238925Z         --- PASS: TestPackUnpackDynamicEventData (0.00s)
+2025-07-28T18:56:18.9239604Z         === RUN   TestPackUnpackMixedEventData
+2025-07-28T18:56:18.9240299Z         --- PASS: TestPackUnpackMixedEventData (0.00s)
+2025-07-28T18:56:18.9240957Z         === RUN   TestPackUnpackTestEventData
+2025-07-28T18:56:18.9241629Z         --- PASS: TestPackUnpackTestEventData (0.00s)
+2025-07-28T18:56:18.9242182Z         === RUN   TestIEventer
+2025-07-28T18:56:18.9242842Z         --- PASS: TestIEventer (0.00s)
+2025-07-28T18:56:18.9243272Z         PASS
+2025-07-28T18:56:18.9243752Z         ok  	precompilebindtest/IEventer	0.062s
+2025-07-28T18:56:18.9244275Z         === RUN   TestVerify
+2025-07-28T18:56:18.9244779Z         === RUN   TestVerify/valid_config
+2025-07-28T18:56:18.9245308Z         --- PASS: TestVerify (0.00s)
+2025-07-28T18:56:18.9245983Z             --- PASS: TestVerify/valid_config (0.00s)
+2025-07-28T18:56:18.9246503Z         === RUN   TestEqual
+2025-07-28T18:56:18.9247175Z         === RUN   TestEqual/different_timestamp
+2025-07-28T18:56:18.9247739Z         === RUN   TestEqual/same_config
+2025-07-28T18:56:18.9248371Z         === RUN   TestEqual/non-nil_config_and_nil_other
+2025-07-28T18:56:18.9248967Z         === RUN   TestEqual/different_type
+2025-07-28T18:56:18.9249494Z         --- PASS: TestEqual (0.00s)
+2025-07-28T18:56:18.9250202Z             --- PASS: TestEqual/different_timestamp (0.00s)
+2025-07-28T18:56:18.9250983Z             --- PASS: TestEqual/same_config (0.00s)
+2025-07-28T18:56:18.9278875Z             --- PASS: TestEqual/non-nil_config_and_nil_other (0.00s)
+2025-07-28T18:56:18.9279812Z             --- PASS: TestEqual/different_type (0.00s)
+2025-07-28T18:56:18.9280446Z         === RUN   TestInputCheckerRun
+2025-07-28T18:56:18.9281348Z         === RUN   TestInputCheckerRun/insufficient_gas_for_namedInput_should_fail
+2025-07-28T18:56:18.9282455Z         === RUN   TestInputCheckerRun/insufficient_gas_for_namedInputs_should_fail
+2025-07-28T18:56:18.9283524Z         === RUN   TestInputCheckerRun/insufficient_gas_for_noInput_should_fail
+2025-07-28T18:56:18.9284338Z         --- PASS: TestInputCheckerRun (0.00s)
+2025-07-28T18:56:18.9285513Z             --- PASS: TestInputCheckerRun/insufficient_gas_for_namedInput_should_fail (0.00s)
+2025-07-28T18:56:18.9287139Z             --- PASS: TestInputCheckerRun/insufficient_gas_for_namedInputs_should_fail (0.00s)
+2025-07-28T18:56:18.9288570Z             --- PASS: TestInputCheckerRun/insufficient_gas_for_noInput_should_fail (0.00s)
+2025-07-28T18:56:18.9289402Z         === RUN   TestInputChecker
+2025-07-28T18:56:18.9290066Z         --- PASS: TestInputChecker (0.00s)
+2025-07-28T18:56:18.9290548Z         PASS
+2025-07-28T18:56:18.9291093Z         ok  	precompilebindtest/InputChecker	0.064s
+2025-07-28T18:56:18.9291656Z         === RUN   TestVerify
+2025-07-28T18:56:18.9292189Z         === RUN   TestVerify/valid_config
+2025-07-28T18:56:18.9292761Z         --- PASS: TestVerify (0.00s)
+2025-07-28T18:56:18.9293464Z             --- PASS: TestVerify/valid_config (0.00s)
+2025-07-28T18:56:18.9294018Z         === RUN   TestEqual
+2025-07-28T18:56:18.9294630Z         === RUN   TestEqual/non-nil_config_and_nil_other
+2025-07-28T18:56:18.9295254Z         === RUN   TestEqual/different_type
+2025-07-28T18:56:18.9295873Z         === RUN   TestEqual/different_timestamp
+2025-07-28T18:56:18.9296457Z         === RUN   TestEqual/same_config
+2025-07-28T18:56:18.9297197Z         --- PASS: TestEqual (0.00s)
+2025-07-28T18:56:18.9298043Z             --- PASS: TestEqual/non-nil_config_and_nil_other (0.00s)
+2025-07-28T18:56:18.9298868Z             --- PASS: TestEqual/different_type (0.00s)
+2025-07-28T18:56:18.9299666Z             --- PASS: TestEqual/different_timestamp (0.00s)
+2025-07-28T18:56:18.9300418Z             --- PASS: TestEqual/same_config (0.00s)
+2025-07-28T18:56:18.9301021Z         === RUN   TestOutputCheckerRun
+2025-07-28T18:56:18.9301952Z         === RUN   TestOutputCheckerRun/insufficient_gas_for_namedOutput_should_fail
+2025-07-28T18:56:18.9303088Z         === RUN   TestOutputCheckerRun/insufficient_gas_for_namedOutputs_should_fail
+2025-07-28T18:56:18.9304460Z         === RUN   TestOutputCheckerRun/insufficient_gas_for_noOutput_should_fail
+2025-07-28T18:56:18.9305262Z         --- PASS: TestOutputCheckerRun (0.00s)
+2025-07-28T18:56:18.9306451Z             --- PASS: TestOutputCheckerRun/insufficient_gas_for_namedOutput_should_fail (0.00s)
+2025-07-28T18:56:18.9308244Z             --- PASS: TestOutputCheckerRun/insufficient_gas_for_namedOutputs_should_fail (0.00s)
+2025-07-28T18:56:18.9309658Z             --- PASS: TestOutputCheckerRun/insufficient_gas_for_noOutput_should_fail (0.00s)
+2025-07-28T18:56:18.9310467Z         === RUN   TestOutputChecker
+2025-07-28T18:56:18.9311047Z         --- PASS: TestOutputChecker (0.00s)
+2025-07-28T18:56:18.9311510Z         PASS
+2025-07-28T18:56:18.9312056Z         ok  	precompilebindtest/OutputChecker	0.048s
+2025-07-28T18:56:18.9312628Z         === RUN   TestVerify
+2025-07-28T18:56:18.9313172Z         === RUN   TestVerify/valid_config
+2025-07-28T18:56:18.9313727Z         --- PASS: TestVerify (0.00s)
+2025-07-28T18:56:18.9314386Z             --- PASS: TestVerify/valid_config (0.00s)
+2025-07-28T18:56:18.9314891Z         === RUN   TestEqual
+2025-07-28T18:56:18.9315532Z         === RUN   TestEqual/non-nil_config_and_nil_other
+2025-07-28T18:56:18.9316157Z         === RUN   TestEqual/different_type
+2025-07-28T18:56:18.9317100Z         === RUN   TestEqual/different_timestamp
+2025-07-28T18:56:18.9317693Z         === RUN   TestEqual/same_config
+2025-07-28T18:56:18.9318228Z         --- PASS: TestEqual (0.00s)
+2025-07-28T18:56:18.9319060Z             --- PASS: TestEqual/non-nil_config_and_nil_other (0.00s)
+2025-07-28T18:56:18.9319878Z             --- PASS: TestEqual/different_type (0.00s)
+2025-07-28T18:56:18.9320673Z             --- PASS: TestEqual/different_timestamp (0.00s)
+2025-07-28T18:56:18.9321426Z             --- PASS: TestEqual/same_config (0.00s)
+2025-07-28T18:56:18.9321979Z         === RUN   TestSlicerRun
+2025-07-28T18:56:18.9322799Z         === RUN   TestSlicerRun/insufficient_gas_for_echoAddresses_should_fail
+2025-07-28T18:56:18.9323796Z         === RUN   TestSlicerRun/insufficient_gas_for_echoBools_should_fail
+2025-07-28T18:56:18.9324829Z         === RUN   TestSlicerRun/insufficient_gas_for_echoFancyInts_should_fail
+2025-07-28T18:56:18.9325799Z         === RUN   TestSlicerRun/insufficient_gas_for_echoInts_should_fail
+2025-07-28T18:56:18.9326504Z         --- PASS: TestSlicerRun (0.01s)
+2025-07-28T18:56:18.9327768Z             --- PASS: TestSlicerRun/insufficient_gas_for_echoAddresses_should_fail (0.00s)
+2025-07-28T18:56:18.9329054Z             --- PASS: TestSlicerRun/insufficient_gas_for_echoBools_should_fail (0.00s)
+2025-07-28T18:56:18.9330342Z             --- PASS: TestSlicerRun/insufficient_gas_for_echoFancyInts_should_fail (0.01s)
+2025-07-28T18:56:18.9331599Z             --- PASS: TestSlicerRun/insufficient_gas_for_echoInts_should_fail (0.00s)
+2025-07-28T18:56:18.9332305Z         === RUN   TestSlicer
+2025-07-28T18:56:18.9332813Z         --- PASS: TestSlicer (0.00s)
+2025-07-28T18:56:18.9333254Z         PASS
+2025-07-28T18:56:18.9333772Z         ok  	precompilebindtest/Slicer	0.088s
+2025-07-28T18:56:18.9334336Z         === RUN   TestVerify
+2025-07-28T18:56:18.9334877Z         === RUN   TestVerify/valid_config
+2025-07-28T18:56:18.9335428Z         --- PASS: TestVerify (0.00s)
+2025-07-28T18:56:18.9336148Z             --- PASS: TestVerify/valid_config (0.00s)
+2025-07-28T18:56:18.9336852Z         === RUN   TestEqual
+2025-07-28T18:56:18.9337433Z         === RUN   TestEqual/different_timestamp
+2025-07-28T18:56:18.9338025Z         === RUN   TestEqual/same_config
+2025-07-28T18:56:18.9338658Z         === RUN   TestEqual/non-nil_config_and_nil_other
+2025-07-28T18:56:18.9339251Z         === RUN   TestEqual/different_type
+2025-07-28T18:56:18.9339785Z         --- PASS: TestEqual (0.00s)
+2025-07-28T18:56:18.9340494Z             --- PASS: TestEqual/different_timestamp (0.00s)
+2025-07-28T18:56:18.9341203Z             --- PASS: TestEqual/same_config (0.00s)
+2025-07-28T18:56:18.9342234Z             --- PASS: TestEqual/non-nil_config_and_nil_other (0.00s)
+2025-07-28T18:56:18.9343019Z             --- PASS: TestEqual/different_type (0.00s)
+2025-07-28T18:56:18.9343601Z         === RUN   TestStructsRun
+2025-07-28T18:56:18.9344335Z         === RUN   TestStructsRun/insufficient_gas_for_f_should_fail
+2025-07-28T18:56:18.9345191Z         === RUN   TestStructsRun/insufficient_gas_for_g_should_fail
+2025-07-28T18:56:18.9345893Z         --- PASS: TestStructsRun (0.01s)
+2025-07-28T18:56:18.9347208Z             --- PASS: TestStructsRun/insufficient_gas_for_f_should_fail (0.00s)
+2025-07-28T18:56:18.9348340Z             --- PASS: TestStructsRun/insufficient_gas_for_g_should_fail (0.00s)
+2025-07-28T18:56:18.9349015Z         === RUN   TestStructs
+2025-07-28T18:56:18.9349522Z         --- PASS: TestStructs (0.00s)
+2025-07-28T18:56:18.9349787Z         PASS
+2025-07-28T18:56:18.9350086Z         ok  	precompilebindtest/Structs	0.058s
+2025-07-28T18:56:18.9350396Z         === RUN   TestVerify
+2025-07-28T18:56:18.9350694Z         === RUN   TestVerify/valid_config
+2025-07-28T18:56:18.9351020Z         --- PASS: TestVerify (0.00s)
+2025-07-28T18:56:18.9351427Z             --- PASS: TestVerify/valid_config (0.00s)
+2025-07-28T18:56:18.9351742Z         === RUN   TestEqual
+2025-07-28T18:56:18.9352049Z         === RUN   TestEqual/different_timestamp
+2025-07-28T18:56:18.9352381Z         === RUN   TestEqual/same_config
+2025-07-28T18:56:18.9352753Z         === RUN   TestEqual/non-nil_config_and_nil_other
+2025-07-28T18:56:18.9353100Z         === RUN   TestEqual/different_type
+2025-07-28T18:56:18.9353410Z         --- PASS: TestEqual (0.00s)
+2025-07-28T18:56:18.9353817Z             --- PASS: TestEqual/different_timestamp (0.00s)
+2025-07-28T18:56:18.9354229Z             --- PASS: TestEqual/same_config (0.00s)
+2025-07-28T18:56:18.9354713Z             --- PASS: TestEqual/non-nil_config_and_nil_other (0.00s)
+2025-07-28T18:56:18.9355161Z             --- PASS: TestEqual/different_type (0.00s)
+2025-07-28T18:56:18.9355487Z         === RUN   TestTuplerRun
+2025-07-28T18:56:18.9355899Z         === RUN   TestTuplerRun/insufficient_gas_for_tuple_should_fail
+2025-07-28T18:56:18.9356281Z         --- PASS: TestTuplerRun (0.00s)
+2025-07-28T18:56:18.9357063Z             --- PASS: TestTuplerRun/insufficient_gas_for_tuple_should_fail (0.00s)
+2025-07-28T18:56:18.9357455Z         === RUN   TestTupler
+2025-07-28T18:56:18.9357742Z         --- PASS: TestTupler (0.00s)
+2025-07-28T18:56:18.9357992Z         PASS
+2025-07-28T18:56:18.9358277Z         ok  	precompilebindtest/Tupler	0.050s
+2025-07-28T18:56:18.9358582Z         === RUN   TestVerify
+2025-07-28T18:56:18.9358873Z         === RUN   TestVerify/valid_config
+2025-07-28T18:56:18.9359184Z         --- PASS: TestVerify (0.00s)
+2025-07-28T18:56:18.9359563Z             --- PASS: TestVerify/valid_config (0.00s)
+2025-07-28T18:56:18.9359864Z         === RUN   TestEqual
+2025-07-28T18:56:18.9360199Z         === RUN   TestEqual/non-nil_config_and_nil_other
+2025-07-28T18:56:18.9360539Z         === RUN   TestEqual/different_type
+2025-07-28T18:56:18.9360882Z         === RUN   TestEqual/different_timestamp
+2025-07-28T18:56:18.9361205Z         === RUN   TestEqual/same_config
+2025-07-28T18:56:18.9361502Z         --- PASS: TestEqual (0.00s)
+2025-07-28T18:56:18.9361954Z             --- PASS: TestEqual/non-nil_config_and_nil_other (0.00s)
+2025-07-28T18:56:18.9362397Z             --- PASS: TestEqual/different_type (0.00s)
+2025-07-28T18:56:18.9362828Z             --- PASS: TestEqual/different_timestamp (0.00s)
+2025-07-28T18:56:18.9363240Z             --- PASS: TestEqual/same_config (0.00s)
+2025-07-28T18:56:18.9363568Z         === RUN   TestUnderscorerRun
+2025-07-28T18:56:18.9364016Z         === RUN   TestUnderscorerRun/readOnly_underscoredOutput_should_fail
+2025-07-28T18:56:18.9364616Z         === RUN   TestUnderscorerRun/insufficient_gas_for_underscoredOutput_should_fail
+2025-07-28T18:56:18.9365079Z         --- PASS: TestUnderscorerRun (0.00s)
+2025-07-28T18:56:18.9365663Z             --- PASS: TestUnderscorerRun/readOnly_underscoredOutput_should_fail (0.00s)
+2025-07-28T18:56:18.9366738Z             --- PASS: TestUnderscorerRun/insufficient_gas_for_underscoredOutput_should_fail (0.00s)
+2025-07-28T18:56:18.9367280Z         === RUN   TestUnderscorer
+2025-07-28T18:56:18.9367608Z         --- PASS: TestUnderscorer (0.00s)
+2025-07-28T18:56:18.9367878Z         PASS
+2025-07-28T18:56:18.9368180Z         ok  	precompilebindtest/Underscorer	0.042s
+2025-07-28T18:56:18.9368457Z         FAIL
+2025-07-28T18:56:18.9368617Z FAIL
+2025-07-28T18:56:18.9368939Z coverage: 87.6% of statements
+2025-07-28T18:56:18.9369330Z FAIL	github.com/ava-labs/subnet-evm/accounts/abi/bind/precompilebind	10.564s
+2025-07-28T18:56:18.9369843Z ok  	github.com/ava-labs/subnet-evm/cmd/abigen	1.043s	coverage: 24.5% of statements
+2025-07-28T18:56:19.9226295Z ?   	github.com/ava-labs/subnet-evm/constants	[no test files]
+2025-07-28T18:56:23.9767572Z 	github.com/ava-labs/subnet-evm/core/coretest		coverage: 0.0% of statements
+2025-07-28T18:56:23.9811721Z 	github.com/ava-labs/subnet-evm/core/extstate		coverage: 0.0% of statements
+2025-07-28T18:56:37.2688180Z 	github.com/ava-labs/subnet-evm/core/state/pruner		coverage: 0.0% of statements
+2025-07-28T18:56:38.3941335Z ok  	github.com/ava-labs/subnet-evm/cmd/evm	25.518s	coverage: 3.9% of statements
+2025-07-28T18:56:38.3967404Z ok  	github.com/ava-labs/subnet-evm/commontype	1.033s	coverage: 64.3% of statements
+2025-07-28T18:56:38.3968377Z ok  	github.com/ava-labs/subnet-evm/consensus/dummy	1.080s	coverage: 10.8% of statements
+2025-07-28T18:56:38.3969354Z ok  	github.com/ava-labs/subnet-evm/consensus/misc/eip4844	1.033s	coverage: 42.9% of statements
+2025-07-28T18:56:48.4990423Z 	github.com/ava-labs/subnet-evm/core/txpool		coverage: 0.0% of statements
+2025-07-28T18:57:58.4032473Z 	github.com/ava-labs/subnet-evm/eth/ethconfig		coverage: 0.0% of statements
+2025-07-28T18:58:03.9902436Z 	github.com/ava-labs/subnet-evm/eth/gasestimator		coverage: 0.0% of statements
+2025-07-28T18:58:26.5379871Z 	github.com/ava-labs/subnet-evm/ethclient/subnetevmclient		coverage: 0.0% of statements
+2025-07-28T18:59:01.1238998Z ?   	github.com/ava-labs/subnet-evm/interfaces	[no test files]
+2025-07-28T18:59:01.1285292Z 	github.com/ava-labs/subnet-evm/examples/sign-uptime-message		coverage: 0.0% of statements
+2025-07-28T18:59:01.1291141Z 	github.com/ava-labs/subnet-evm/internal/cmdtest		coverage: 0.0% of statements
+2025-07-28T18:59:01.1320349Z 	github.com/ava-labs/subnet-evm/internal/blocktest		coverage: 0.0% of statements
+2025-07-28T18:59:01.1397611Z 	github.com/ava-labs/subnet-evm/internal/debug		coverage: 0.0% of statements
+2025-07-28T18:59:06.6939013Z 	github.com/ava-labs/subnet-evm/internal/reexec		coverage: 0.0% of statements
+2025-07-28T18:59:06.7062308Z 	github.com/ava-labs/subnet-evm/internal/shutdowncheck		coverage: 0.0% of statements
+2025-07-28T18:59:06.7199377Z 	github.com/ava-labs/subnet-evm/internal/version		coverage: 0.0% of statements
+2025-07-28T18:59:06.7337792Z 	github.com/ava-labs/subnet-evm/log		coverage: 0.0% of statements
+2025-07-28T18:59:06.8131885Z 	github.com/ava-labs/subnet-evm/metrics/metricstest		coverage: 0.0% of statements
+2025-07-28T18:59:12.8344512Z ?   	github.com/ava-labs/subnet-evm/network/peertest	[no test files]
+2025-07-28T18:59:12.8400739Z 	github.com/ava-labs/subnet-evm/network/stats		coverage: 0.0% of statements
+2025-07-28T18:59:12.8529873Z 	github.com/ava-labs/subnet-evm/node		coverage: 0.0% of statements
+2025-07-28T18:59:24.2497516Z 	github.com/ava-labs/subnet-evm/plugin		coverage: 0.0% of statements
+2025-07-28T18:59:37.7960733Z 	github.com/ava-labs/subnet-evm/plugin/evm/client		coverage: 0.0% of statements
+2025-07-28T18:59:39.1532240Z 	github.com/ava-labs/subnet-evm/plugin/evm/customlogs		coverage: 0.0% of statements
+2025-07-28T18:59:43.9994022Z 	github.com/ava-labs/subnet-evm/plugin/evm/database		coverage: 0.0% of statements
+2025-07-28T18:59:51.8129931Z ?   	github.com/ava-labs/subnet-evm/plugin/evm/upgrade/legacy	[no test files]
+2025-07-28T18:59:54.6116858Z ?   	github.com/ava-labs/subnet-evm/plugin/evm/validators/interfaces	[no test files]
+2025-07-28T18:59:57.9031568Z ?   	github.com/ava-labs/subnet-evm/plugin/evm/validators/uptime/interfaces	[no test files]
+2025-07-28T18:59:57.9032692Z ?   	github.com/ava-labs/subnet-evm/plugin/evm/vmerrors	[no test files]
+2025-07-28T18:59:57.9090622Z 	github.com/ava-labs/subnet-evm/plugin/runner		coverage: 0.0% of statements
+2025-07-28T19:00:04.2317936Z 	github.com/ava-labs/subnet-evm/precompile/contracts/deployerallowlist		coverage: 0.0% of statements
+2025-07-28T19:00:23.9828943Z 	github.com/ava-labs/subnet-evm/precompile/precompiletest		coverage: 0.0% of statements
+2025-07-28T19:00:23.9893497Z ?   	github.com/ava-labs/subnet-evm/precompile/registry	[no test files]
+2025-07-28T19:00:31.5076436Z 	github.com/ava-labs/subnet-evm/signer/core/apitypes		coverage: 0.0% of statements
+2025-07-28T19:00:31.5127886Z 	github.com/ava-labs/subnet-evm/stateupgrade		coverage: 0.0% of statements
+2025-07-28T19:00:55.7033957Z 	github.com/ava-labs/subnet-evm/sync/client/stats		coverage: 0.0% of statements
+2025-07-28T19:01:14.5993267Z 	github.com/ava-labs/subnet-evm/sync/handlers/stats		coverage: 0.0% of statements
+2025-07-28T19:01:25.3772035Z 	github.com/ava-labs/subnet-evm/sync/statesync/statesynctest		coverage: 0.0% of statements
+2025-07-28T19:01:25.3831116Z 	github.com/ava-labs/subnet-evm/sync/syncutils		coverage: 0.0% of statements
+2025-07-28T19:01:25.3906501Z 	github.com/ava-labs/subnet-evm/triedb/firewood		coverage: 0.0% of statements
+2025-07-28T19:01:25.3967803Z 	github.com/ava-labs/subnet-evm/triedb/hashdb		coverage: 0.0% of statements
+2025-07-28T19:02:12.4552318Z 	github.com/ava-labs/subnet-evm/warp/messages		coverage: 0.0% of statements
+2025-07-28T19:02:14.4818050Z 	github.com/ava-labs/subnet-evm/warp/warptest		coverage: 0.0% of statements
+2025-07-28T19:02:35.0660714Z ok  	github.com/ava-labs/subnet-evm/core	371.083s	coverage: 70.2% of statements
+2025-07-28T19:02:35.0661667Z ok  	github.com/ava-labs/subnet-evm/core/bloombits	13.260s	coverage: 95.6% of statements
+2025-07-28T19:02:35.0662387Z ok  	github.com/ava-labs/subnet-evm/core/state	91.043s	coverage: 48.5% of statements
+2025-07-28T19:02:35.0663003Z ok  	github.com/ava-labs/subnet-evm/core/state/snapshot	42.219s	coverage: 69.6% of statements
+2025-07-28T19:02:35.0663580Z ok  	github.com/ava-labs/subnet-evm/core/txpool/blobpool	7.550s	coverage: 55.7% of statements
+2025-07-28T19:02:35.0664162Z ok  	github.com/ava-labs/subnet-evm/core/txpool/legacypool	56.551s	coverage: 80.8% of statements
+2025-07-28T19:02:35.0664730Z ok  	github.com/ava-labs/subnet-evm/core/vm/runtime	4.072s	coverage: 93.6% of statements
+2025-07-28T19:02:35.0665216Z ok  	github.com/ava-labs/subnet-evm/eth	1.565s	coverage: 4.0% of statements
+2025-07-28T19:02:35.0665685Z ok  	github.com/ava-labs/subnet-evm/eth/filters	6.514s	coverage: 62.4% of statements
+2025-07-28T19:02:35.0666188Z ok  	github.com/ava-labs/subnet-evm/eth/gasprice	29.233s	coverage: 81.9% of statements
+2025-07-28T19:02:35.0666935Z ok  	github.com/ava-labs/subnet-evm/eth/tracers	8.655s	coverage: 42.9% of statements
+2025-07-28T19:02:35.0667464Z ok  	github.com/ava-labs/subnet-evm/ethclient	1.123s	coverage: 0.0% of statements
+2025-07-28T19:02:35.0668023Z ok  	github.com/ava-labs/subnet-evm/ethclient/simulated	1.665s	coverage: 84.0% of statements
+2025-07-28T19:02:35.0668583Z ok  	github.com/ava-labs/subnet-evm/internal/ethapi	1.983s	coverage: 36.1% of statements
+2025-07-28T19:02:35.0669129Z ok  	github.com/ava-labs/subnet-evm/internal/flags	1.117s	coverage: 5.1% of statements
+2025-07-28T19:02:35.0669897Z ok  	github.com/ava-labs/subnet-evm/metrics/prometheus	1.046s	coverage: 100.0% of statements
+2025-07-28T19:02:35.0670422Z ok  	github.com/ava-labs/subnet-evm/miner	2.011s	coverage: 15.6% of statements
+2025-07-28T19:02:35.0670897Z ok  	github.com/ava-labs/subnet-evm/network	2.682s	coverage: 83.6% of statements
+2025-07-28T19:02:35.0671365Z ok  	github.com/ava-labs/subnet-evm/params	1.072s	coverage: 53.2% of statements
+2025-07-28T19:02:35.0671860Z ok  	github.com/ava-labs/subnet-evm/params/extras	1.216s	coverage: 67.0% of statements
+2025-07-28T19:02:35.0672369Z ok  	github.com/ava-labs/subnet-evm/plugin/evm	157.990s	coverage: 65.1% of statements
+2025-07-28T19:02:35.0686443Z ok  	github.com/ava-labs/subnet-evm/plugin/evm/blockgascost	1.033s	coverage: 93.3% of statements
+2025-07-28T19:02:35.0687246Z ok  	github.com/ava-labs/subnet-evm/plugin/evm/config	1.057s	coverage: 11.1% of statements
+2025-07-28T19:02:35.0687834Z ok  	github.com/ava-labs/subnet-evm/plugin/evm/customrawdb	1.116s	coverage: 31.3% of statements
+2025-07-28T19:02:35.0688624Z ok  	github.com/ava-labs/subnet-evm/plugin/evm/customtypes	5.750s	coverage: 86.4% of statements
+2025-07-28T19:02:35.0689196Z ok  	github.com/ava-labs/subnet-evm/plugin/evm/header	1.134s	coverage: 90.8% of statements
+2025-07-28T19:02:35.0689733Z ok  	github.com/ava-labs/subnet-evm/plugin/evm/log	1.037s	coverage: 42.1% of statements
+2025-07-28T19:02:35.0690286Z ok  	github.com/ava-labs/subnet-evm/plugin/evm/message	1.098s	coverage: 17.3% of statements
+2025-07-28T19:02:35.0690893Z ok  	github.com/ava-labs/subnet-evm/plugin/evm/upgrade/subnetevm	1.020s	coverage: 100.0% of statements
+2025-07-28T19:02:35.0691507Z ok  	github.com/ava-labs/subnet-evm/plugin/evm/validators	1.058s	coverage: 18.3% of statements
+2025-07-28T19:02:35.0692111Z ok  	github.com/ava-labs/subnet-evm/plugin/evm/validators/state	1.028s	coverage: 72.6% of statements
+2025-07-28T19:02:35.0692852Z ok  	github.com/ava-labs/subnet-evm/plugin/evm/validators/state/interfaces	1.036s	coverage: 0.0% of statements [no tests to run]
+2025-07-28T19:02:35.0693591Z ok  	github.com/ava-labs/subnet-evm/plugin/evm/validators/uptime	1.030s	coverage: 62.9% of statements
+2025-07-28T19:02:35.0694194Z ok  	github.com/ava-labs/subnet-evm/precompile/allowlist	1.072s	coverage: 18.5% of statements
+2025-07-28T19:02:35.0694831Z ok  	github.com/ava-labs/subnet-evm/precompile/allowlist/allowlisttest	1.239s	coverage: 89.0% of statements
+2025-07-28T19:02:35.0695461Z ok  	github.com/ava-labs/subnet-evm/precompile/contract	1.103s	coverage: 0.0% of statements
+2025-07-28T19:02:35.0696191Z ok  	github.com/ava-labs/subnet-evm/precompile/contracts/deployerallowlist/deployerallowlisttest	1.297s	coverage: [no statements]
+2025-07-28T19:02:35.0697388Z ok  	github.com/ava-labs/subnet-evm/precompile/contracts/feemanager	1.321s	coverage: 87.3% of statements
+2025-07-28T19:02:35.0698273Z ok  	github.com/ava-labs/subnet-evm/precompile/contracts/nativeminter	1.348s	coverage: 87.4% of statements
+2025-07-28T19:02:35.0698985Z ok  	github.com/ava-labs/subnet-evm/precompile/contracts/rewardmanager	1.320s	coverage: 83.2% of statements
+2025-07-28T19:02:35.0699661Z ok  	github.com/ava-labs/subnet-evm/precompile/contracts/txallowlist	1.165s	coverage: 64.7% of statements
+2025-07-28T19:02:35.0700307Z ok  	github.com/ava-labs/subnet-evm/precompile/contracts/warp	13.397s	coverage: 76.3% of statements
+2025-07-28T19:02:35.0700896Z ok  	github.com/ava-labs/subnet-evm/precompile/modules	1.098s	coverage: 46.9% of statements
+2025-07-28T19:02:35.0701562Z ok  	github.com/ava-labs/subnet-evm/precompile/precompileconfig	1.035s	coverage: 0.0% of statements [no tests to run]
+2025-07-28T19:02:35.0702191Z ok  	github.com/ava-labs/subnet-evm/predicate	1.090s	coverage: 58.5% of statements
+2025-07-28T19:02:35.0702666Z ok  	github.com/ava-labs/subnet-evm/rpc	55.892s	coverage: 83.4% of statements
+2025-07-28T19:02:35.0703149Z ok  	github.com/ava-labs/subnet-evm/sync/client	20.374s	coverage: 53.8% of statements
+2025-07-28T19:02:35.0703662Z ok  	github.com/ava-labs/subnet-evm/sync/handlers	15.656s	coverage: 83.6% of statements
+2025-07-28T19:02:46.8870958Z ok  	github.com/ava-labs/subnet-evm/sync/statesync	89.177s	coverage: 77.0% of statements
+2025-07-28T19:02:46.8871615Z ok  	github.com/ava-labs/subnet-evm/triedb/pathdb	38.155s	coverage: 73.3% of statements
+2025-07-28T19:02:46.8872147Z ok  	github.com/ava-labs/subnet-evm/utils	1.025s	coverage: 22.8% of statements
+2025-07-28T19:02:46.8872656Z ok  	github.com/ava-labs/subnet-evm/utils/utilstest	1.041s	coverage: 33.3% of statements
+2025-07-28T19:02:46.8873174Z ok  	github.com/ava-labs/subnet-evm/warp	1.114s	coverage: 48.0% of statements
+2025-07-28T19:02:46.8873952Z ok  	github.com/ava-labs/subnet-evm/warp/validators	1.041s	coverage: 100.0% of statements
+2025-07-28T19:02:46.8874322Z FAIL
+2025-07-28T19:02:47.2696087Z Unexpected test failures: TestPrecompileBind
+2025-07-28T19:02:47.2700021Z task: Failed to run task "build-test": exit status 1
+2025-07-28T19:02:47.2712980Z exit status 201
+2025-07-28T19:02:47.2762229Z ##[error]Process completed with exit code 1.
+2025-07-28T19:02:47.2860491Z Post job cleanup.
+2025-07-28T19:02:47.3873905Z [command]/usr/bin/git version
+2025-07-28T19:02:47.3921838Z git version 2.50.1
+2025-07-28T19:02:47.3966479Z Temporarily overriding HOME='/home/runner/work/_temp/9e685cdd-09ea-4db7-bfbb-e1bdbf73c7ec' before making global git config changes
+2025-07-28T19:02:47.3969534Z Adding repository directory to the temporary git global config as a safe directory
+2025-07-28T19:02:47.3972600Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/subnet-evm/subnet-evm
+2025-07-28T19:02:47.4005934Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-07-28T19:02:47.4039495Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-07-28T19:02:47.4280169Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-07-28T19:02:47.4302201Z http.https://github.com/.extraheader
+2025-07-28T19:02:47.4314001Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2025-07-28T19:02:47.4347606Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-07-28T19:02:47.4683618Z Cleaning up orphan processes

@@ -1,0 +1,76 @@
+﻿2025-07-28T18:53:00.5493453Z ##[group]Run actions/setup-go@v5
+2025-07-28T18:53:00.5493789Z with:
+2025-07-28T18:53:00.5494027Z   go-version-file: go.mod
+2025-07-28T18:53:00.5494295Z   check-latest: false
+2025-07-28T18:53:00.5494696Z   token: ***
+2025-07-28T18:53:00.5494932Z   cache: true
+2025-07-28T18:53:00.5495335Z ##[endgroup]
+2025-07-28T18:53:00.7062470Z Setup go version spec 1.23.9
+2025-07-28T18:53:00.7073947Z Attempting to download 1.23.9...
+2025-07-28T18:53:01.0039772Z matching 1.23.9...
+2025-07-28T18:53:01.0080834Z Acquiring 1.23.9 from https://github.com/actions/go-versions/releases/download/1.23.9-14875265214/go-1.23.9-linux-x64.tar.gz
+2025-07-28T18:53:01.5377398Z Extracting Go...
+2025-07-28T18:53:01.5484102Z [command]/usr/bin/tar xz --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/45be9e6c-d33b-403e-847e-b5763cfb9bc2 -f /home/runner/work/_temp/d16ac0f2-31a9-48e3-9c3c-1ba21515f75c
+2025-07-28T18:53:03.2074089Z Successfully extracted go to /home/runner/work/_temp/45be9e6c-d33b-403e-847e-b5763cfb9bc2
+2025-07-28T18:53:03.2074665Z Adding to the cache ...
+2025-07-28T18:53:07.5575680Z Successfully cached go to /opt/hostedtoolcache/go/1.23.9/x64
+2025-07-28T18:53:07.5576509Z Added go to the path
+2025-07-28T18:53:07.5579535Z Successfully set up Go version 1.23.9
+2025-07-28T18:53:07.5809733Z [command]/opt/hostedtoolcache/go/1.23.9/x64/bin/go env GOMODCACHE
+2025-07-28T18:53:07.5842608Z [command]/opt/hostedtoolcache/go/1.23.9/x64/bin/go env GOCACHE
+2025-07-28T18:53:07.5874581Z /home/runner/go/pkg/mod
+2025-07-28T18:53:07.5888517Z /home/runner/.cache/go-build
+2025-07-28T18:53:07.6482125Z Cache hit for: setup-go-Linux-x64-ubuntu24-go-1.23.9-1292029a45a2d5c75b177aaf45b3bd6bedea8fdfbf70511d33c49ad36e0e7f82
+2025-07-28T18:53:07.9926203Z Received 44536687 of 44536687 (100.0%), 146.0 MBs/sec
+2025-07-28T18:53:07.9927063Z Cache Size: ~42 MB (44536687 B)
+2025-07-28T18:53:07.9988901Z [command]/usr/bin/tar -xf /home/runner/work/_temp/5519710a-ad0b-4787-aba4-c0c4d5820545/cache.tzst -P -C /home/runner/work/subnet-evm/subnet-evm --use-compress-program unzstd
+2025-07-28T18:53:08.4775382Z Cache restored successfully
+2025-07-28T18:53:08.4864677Z Cache restored from key: setup-go-Linux-x64-ubuntu24-go-1.23.9-1292029a45a2d5c75b177aaf45b3bd6bedea8fdfbf70511d33c49ad36e0e7f82
+2025-07-28T18:53:08.4886932Z go version go1.23.9 linux/amd64
+2025-07-28T18:53:08.4887133Z 
+2025-07-28T18:53:08.4887411Z ##[group]go env
+2025-07-28T18:53:08.4968110Z GO111MODULE=''
+2025-07-28T18:53:08.4968484Z GOARCH='amd64'
+2025-07-28T18:53:08.4968799Z GOBIN=''
+2025-07-28T18:53:08.4969150Z GOCACHE='/home/runner/.cache/go-build'
+2025-07-28T18:53:08.4969461Z GOENV='/home/runner/.config/go/env'
+2025-07-28T18:53:08.4969709Z GOEXE=''
+2025-07-28T18:53:08.4969892Z GOEXPERIMENT=''
+2025-07-28T18:53:08.4970097Z GOFLAGS=''
+2025-07-28T18:53:08.4970345Z GOHOSTARCH='amd64'
+2025-07-28T18:53:08.4970556Z GOHOSTOS='linux'
+2025-07-28T18:53:08.4970768Z GOINSECURE=''
+2025-07-28T18:53:08.4971000Z GOMODCACHE='/home/runner/go/pkg/mod'
+2025-07-28T18:53:08.4971265Z GONOPROXY=''
+2025-07-28T18:53:08.4971451Z GONOSUMDB=''
+2025-07-28T18:53:08.4971653Z GOOS='linux'
+2025-07-28T18:53:08.4971843Z GOPATH='/home/runner/go'
+2025-07-28T18:53:08.4972056Z GOPRIVATE=''
+2025-07-28T18:53:08.4972301Z GOPROXY='https://proxy.golang.org,direct'
+2025-07-28T18:53:08.4972935Z GOROOT='/opt/hostedtoolcache/go/1.23.9/x64'
+2025-07-28T18:53:08.4973230Z GOSUMDB='sum.golang.org'
+2025-07-28T18:53:08.4973451Z GOTMPDIR=''
+2025-07-28T18:53:08.4973636Z GOTOOLCHAIN='auto'
+2025-07-28T18:53:08.4973957Z GOTOOLDIR='/opt/hostedtoolcache/go/1.23.9/x64/pkg/tool/linux_amd64'
+2025-07-28T18:53:08.4974294Z GOVCS=''
+2025-07-28T18:53:08.4974476Z GOVERSION='go1.23.9'
+2025-07-28T18:53:08.4974681Z GODEBUG=''
+2025-07-28T18:53:08.4974869Z GOTELEMETRY='local'
+2025-07-28T18:53:08.4975414Z GOTELEMETRYDIR='/home/runner/.config/go/telemetry'
+2025-07-28T18:53:08.4975706Z GCCGO='gccgo'
+2025-07-28T18:53:08.4975893Z GOAMD64='v1'
+2025-07-28T18:53:08.4976066Z AR='ar'
+2025-07-28T18:53:08.4976233Z CC='gcc'
+2025-07-28T18:53:08.4976399Z CXX='g++'
+2025-07-28T18:53:08.4976570Z CGO_ENABLED='1'
+2025-07-28T18:53:08.4977078Z GOMOD='/home/runner/work/subnet-evm/subnet-evm/go.mod'
+2025-07-28T18:53:08.4977378Z GOWORK=''
+2025-07-28T18:53:08.4977560Z CGO_CFLAGS='-O2 -g'
+2025-07-28T18:53:08.4977763Z CGO_CPPFLAGS=''
+2025-07-28T18:53:08.4977956Z CGO_CXXFLAGS='-O2 -g'
+2025-07-28T18:53:08.4978163Z CGO_FFLAGS='-O2 -g'
+2025-07-28T18:53:08.4978356Z CGO_LDFLAGS='-O2 -g'
+2025-07-28T18:53:08.4978570Z PKG_CONFIG='pkg-config'
+2025-07-28T18:53:08.4979210Z GOGCCFLAGS='-fPIC -m64 -pthread -Wl,--no-gc-sections -fmessage-length=0 -ffile-prefix-map=/tmp/go-build2517044304=/tmp/go-build -gno-record-gcc-switches'
+2025-07-28T18:53:08.4979740Z 
+2025-07-28T18:53:08.4979982Z ##[endgroup]

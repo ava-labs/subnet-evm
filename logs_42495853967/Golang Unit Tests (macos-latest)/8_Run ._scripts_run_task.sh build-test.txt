@@ -1,0 +1,521 @@
+﻿2025-07-28T18:57:28.3410380Z ##[group]Run ./scripts/run_task.sh build-test
+2025-07-28T18:57:28.3411250Z [36;1m./scripts/run_task.sh build-test[0m
+2025-07-28T18:57:28.3820660Z shell: /bin/bash -e {0}
+2025-07-28T18:57:28.3823710Z env:
+2025-07-28T18:57:28.3824670Z   TIMEOUT: 
+2025-07-28T18:57:28.3825530Z ##[endgroup]
+2025-07-28T18:57:34.2142850Z task: [build-test] ./scripts/build_test.sh
+2025-07-28T18:57:34.4628710Z Using branch: 740f5eb
+2025-07-28T18:58:24.5372170Z # github.com/ava-labs/subnet-evm/accounts/abi.test
+2025-07-28T18:58:24.5434300Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-3895664591/000014.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-28T18:58:25.9069680Z ok  	github.com/ava-labs/subnet-evm/accounts/abi	1.350s	coverage: 89.4% of statements
+2025-07-28T18:59:54.6544080Z # github.com/ava-labs/subnet-evm/accounts/abi/bind/precompilebind.test
+2025-07-28T18:59:54.6556820Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-2816386551/000065.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-28T18:59:54.8571300Z # github.com/ava-labs/subnet-evm/cmd/abigen.test
+2025-07-28T18:59:54.8673510Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-64461835/000065.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-28T19:00:13.4383740Z # github.com/ava-labs/subnet-evm/accounts/abi/bind.test
+2025-07-28T19:00:13.4509090Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-2354879179/000072.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-28T19:00:13.7363890Z 	github.com/ava-labs/subnet-evm/accounts/abi/bind/backends		coverage: 0.0% of statements
+2025-07-28T19:01:31.6615500Z ok  	github.com/ava-labs/subnet-evm/accounts/abi/bind	78.142s	coverage: 62.7% of statements
+2025-07-28T19:01:42.0278490Z -test.shuffle 1753729213654423000
+2025-07-28T19:01:42.0333870Z --- FAIL: TestPrecompileBind (88.22s)
+2025-07-28T19:01:42.0483590Z     precompile_bind_test.go:708: failed to run binding test: exit status 1
+2025-07-28T19:01:42.0489720Z         # precompilebindtest/HelloWorld [precompilebindtest/HelloWorld.test]
+2025-07-28T19:01:42.0957620Z ##[error]        HelloWorld/helloworld_test.go:26:30: undefined: precompiletest.NewTestStateDB
+2025-07-28T19:01:42.1238270Z         === RUN   TestVerify
+2025-07-28T19:01:42.1239360Z         === RUN   TestVerify/valid_config
+2025-07-28T19:01:42.1241040Z         --- PASS: TestVerify (0.00s)
+2025-07-28T19:01:42.1246130Z             --- PASS: TestVerify/valid_config (0.00s)
+2025-07-28T19:01:42.1250410Z         === RUN   TestEqual
+2025-07-28T19:01:42.1251350Z         === RUN   TestEqual/non-nil_config_and_nil_other
+2025-07-28T19:01:42.1254600Z         === RUN   TestEqual/different_type
+2025-07-28T19:01:42.1260060Z         === RUN   TestEqual/different_timestamp
+2025-07-28T19:01:42.1267690Z         === RUN   TestEqual/same_config
+2025-07-28T19:01:42.1273560Z         --- PASS: TestEqual (0.00s)
+2025-07-28T19:01:42.1275030Z             --- PASS: TestEqual/non-nil_config_and_nil_other (0.00s)
+2025-07-28T19:01:42.1278920Z             --- PASS: TestEqual/different_type (0.00s)
+2025-07-28T19:01:42.1279530Z             --- PASS: TestEqual/different_timestamp (0.00s)
+2025-07-28T19:01:42.1304740Z             --- PASS: TestEqual/same_config (0.00s)
+2025-07-28T19:01:42.1309470Z         === RUN   TestDeeplyNestedArrayRun
+2025-07-28T19:01:42.1342240Z         === RUN   TestDeeplyNestedArrayRun/insufficient_gas_for_storeDeepUintArray_should_fail
+2025-07-28T19:01:42.1343190Z         === RUN   TestDeeplyNestedArrayRun/insufficient_gas_for_retrieveDeepArray_should_fail
+2025-07-28T19:01:42.1343890Z         === RUN   TestDeeplyNestedArrayRun/readOnly_storeDeepUintArray_should_fail
+2025-07-28T19:01:42.1432060Z         --- PASS: TestDeeplyNestedArrayRun (0.01s)
+2025-07-28T19:01:42.1438890Z             --- PASS: TestDeeplyNestedArrayRun/insufficient_gas_for_storeDeepUintArray_should_fail (0.00s)
+2025-07-28T19:01:42.1455980Z             --- PASS: TestDeeplyNestedArrayRun/insufficient_gas_for_retrieveDeepArray_should_fail (0.00s)
+2025-07-28T19:01:42.1460730Z             --- PASS: TestDeeplyNestedArrayRun/readOnly_storeDeepUintArray_should_fail (0.00s)
+2025-07-28T19:01:42.1463900Z         === RUN   TestDeeplyNestedArray
+2025-07-28T19:01:42.1466550Z         --- PASS: TestDeeplyNestedArray (0.00s)
+2025-07-28T19:01:42.1466930Z         PASS
+2025-07-28T19:01:42.1468210Z         ok  	precompilebindtest/DeeplyNestedArray	0.133s
+2025-07-28T19:01:42.1488770Z         FAIL	precompilebindtest/HelloWorld [build failed]
+2025-07-28T19:01:42.1490100Z         === RUN   TestVerify
+2025-07-28T19:01:42.1490900Z         === RUN   TestVerify/valid_config
+2025-07-28T19:01:42.1516120Z         --- PASS: TestVerify (0.00s)
+2025-07-28T19:01:42.1524360Z             --- PASS: TestVerify/valid_config (0.00s)
+2025-07-28T19:01:42.1532060Z         === RUN   TestEqual
+2025-07-28T19:01:42.1532580Z         === RUN   TestEqual/different_timestamp
+2025-07-28T19:01:42.1543820Z         === RUN   TestEqual/same_config
+2025-07-28T19:01:42.1547040Z         === RUN   TestEqual/non-nil_config_and_nil_other
+2025-07-28T19:01:42.1550530Z         === RUN   TestEqual/different_type
+2025-07-28T19:01:42.1551360Z         --- PASS: TestEqual (0.00s)
+2025-07-28T19:01:42.1560200Z             --- PASS: TestEqual/different_timestamp (0.00s)
+2025-07-28T19:01:42.1569750Z             --- PASS: TestEqual/same_config (0.00s)
+2025-07-28T19:01:42.1572000Z             --- PASS: TestEqual/non-nil_config_and_nil_other (0.00s)
+2025-07-28T19:01:42.1584520Z             --- PASS: TestEqual/different_type (0.00s)
+2025-07-28T19:01:42.1587180Z         === RUN   TestFallbackRun
+2025-07-28T19:01:42.1593750Z         === RUN   TestFallbackRun/insufficient_gas_for_testFunction_should_fail
+2025-07-28T19:01:42.1595910Z         === RUN   TestFallbackRun/insufficient_gas_for_fallback_should_fail
+2025-07-28T19:01:42.1599420Z         === RUN   TestFallbackRun/readOnly_fallback_should_fail
+2025-07-28T19:01:42.1600060Z         === RUN   TestFallbackRun/fallback_should_succeed
+2025-07-28T19:01:42.1602320Z         === RUN   TestFallbackRun/readOnly_testFunction_should_fail
+2025-07-28T19:01:42.1603100Z         --- PASS: TestFallbackRun (0.08s)
+2025-07-28T19:01:42.1614580Z             --- PASS: TestFallbackRun/insufficient_gas_for_testFunction_should_fail (0.02s)
+2025-07-28T19:01:42.1617750Z             --- PASS: TestFallbackRun/insufficient_gas_for_fallback_should_fail (0.03s)
+2025-07-28T19:01:42.1633810Z             --- PASS: TestFallbackRun/readOnly_fallback_should_fail (0.00s)
+2025-07-28T19:01:42.1639950Z             --- PASS: TestFallbackRun/fallback_should_succeed (0.00s)
+2025-07-28T19:01:42.1652490Z             --- PASS: TestFallbackRun/readOnly_testFunction_should_fail (0.02s)
+2025-07-28T19:01:42.1660500Z         === RUN   TestFallback
+2025-07-28T19:01:42.1661830Z         --- PASS: TestFallback (0.00s)
+2025-07-28T19:01:42.1674360Z         PASS
+2025-07-28T19:01:42.1677140Z         ok  	precompilebindtest/Fallback	0.238s
+2025-07-28T19:01:42.1686420Z         === RUN   TestVerify
+2025-07-28T19:01:42.1763730Z         === RUN   TestVerify/valid_config
+2025-07-28T19:01:42.1771500Z         --- PASS: TestVerify (0.00s)
+2025-07-28T19:01:42.1832060Z             --- PASS: TestVerify/valid_config (0.00s)
+2025-07-28T19:01:42.1848380Z         === RUN   TestEqual
+2025-07-28T19:01:42.1851030Z         === RUN   TestEqual/non-nil_config_and_nil_other
+2025-07-28T19:01:42.1852020Z         === RUN   TestEqual/different_type
+2025-07-28T19:01:42.1861870Z         === RUN   TestEqual/different_timestamp
+2025-07-28T19:01:42.1864880Z         === RUN   TestEqual/same_config
+2025-07-28T19:01:42.1866890Z         --- PASS: TestEqual (0.00s)
+2025-07-28T19:01:42.1873150Z             --- PASS: TestEqual/non-nil_config_and_nil_other (0.00s)
+2025-07-28T19:01:42.1905170Z             --- PASS: TestEqual/different_type (0.00s)
+2025-07-28T19:01:42.1915950Z             --- PASS: TestEqual/different_timestamp (0.00s)
+2025-07-28T19:01:42.1917000Z             --- PASS: TestEqual/same_config (0.00s)
+2025-07-28T19:01:42.1917450Z         === RUN   TestHelloWorldNoALRun
+2025-07-28T19:01:42.1936870Z         === RUN   TestHelloWorldNoALRun/insufficient_gas_for_setNone_should_fail
+2025-07-28T19:01:42.1937770Z         === RUN   TestHelloWorldNoALRun/insufficient_gas_for_sayHello_should_fail
+2025-07-28T19:01:42.1943030Z         === RUN   TestHelloWorldNoALRun/readOnly_setAdmin_should_fail
+2025-07-28T19:01:42.1959360Z         === RUN   TestHelloWorldNoALRun/insufficient_gas_for_setAdmin_should_fail
+2025-07-28T19:01:42.1966420Z         === RUN   TestHelloWorldNoALRun/readOnly_setGreeting_should_fail
+2025-07-28T19:01:42.1971100Z         === RUN   TestHelloWorldNoALRun/insufficient_gas_for_setGreeting_should_fail
+2025-07-28T19:01:42.1974310Z         === RUN   TestHelloWorldNoALRun/readOnly_setNone_should_fail
+2025-07-28T19:01:42.1976290Z         --- PASS: TestHelloWorldNoALRun (0.02s)
+2025-07-28T19:01:42.1984940Z             --- PASS: TestHelloWorldNoALRun/insufficient_gas_for_setNone_should_fail (0.00s)
+2025-07-28T19:01:42.1991090Z             --- PASS: TestHelloWorldNoALRun/insufficient_gas_for_sayHello_should_fail (0.00s)
+2025-07-28T19:01:42.1993730Z             --- PASS: TestHelloWorldNoALRun/readOnly_setAdmin_should_fail (0.00s)
+2025-07-28T19:01:42.1994940Z             --- PASS: TestHelloWorldNoALRun/insufficient_gas_for_setAdmin_should_fail (0.00s)
+2025-07-28T19:01:42.1997640Z             --- PASS: TestHelloWorldNoALRun/readOnly_setGreeting_should_fail (0.00s)
+2025-07-28T19:01:42.1999540Z             --- PASS: TestHelloWorldNoALRun/insufficient_gas_for_setGreeting_should_fail (0.00s)
+2025-07-28T19:01:42.2001150Z             --- PASS: TestHelloWorldNoALRun/readOnly_setNone_should_fail (0.00s)
+2025-07-28T19:01:42.2001910Z         === RUN   TestHelloWorldNoAL
+2025-07-28T19:01:42.2003230Z         --- PASS: TestHelloWorldNoAL (0.00s)
+2025-07-28T19:01:42.2007270Z         PASS
+2025-07-28T19:01:42.2010390Z         ok  	precompilebindtest/HelloWorldNoAL	0.085s
+2025-07-28T19:01:42.2011110Z         === RUN   TestVerify
+2025-07-28T19:01:42.2011490Z         === RUN   TestVerify/valid_config
+2025-07-28T19:01:42.2014680Z         --- PASS: TestVerify (0.00s)
+2025-07-28T19:01:42.2017960Z             --- PASS: TestVerify/valid_config (0.00s)
+2025-07-28T19:01:42.2018970Z         === RUN   TestEqual
+2025-07-28T19:01:42.2020120Z         === RUN   TestEqual/non-nil_config_and_nil_other
+2025-07-28T19:01:42.2021610Z         === RUN   TestEqual/different_type
+2025-07-28T19:01:42.2026830Z         === RUN   TestEqual/different_timestamp
+2025-07-28T19:01:42.2033810Z         === RUN   TestEqual/same_config
+2025-07-28T19:01:42.2034990Z         --- PASS: TestEqual (0.00s)
+2025-07-28T19:01:42.2040890Z             --- PASS: TestEqual/non-nil_config_and_nil_other (0.00s)
+2025-07-28T19:01:42.2041830Z             --- PASS: TestEqual/different_type (0.00s)
+2025-07-28T19:01:42.2042830Z             --- PASS: TestEqual/different_timestamp (0.00s)
+2025-07-28T19:01:42.2045130Z             --- PASS: TestEqual/same_config (0.00s)
+2025-07-28T19:01:42.2045710Z         === RUN   TestIEventerRun
+2025-07-28T19:01:42.2046370Z         === RUN   TestIEventerRun/insufficient_gas_for_eventTest_should_fail
+2025-07-28T19:01:42.2047560Z         --- PASS: TestIEventerRun (0.00s)
+2025-07-28T19:01:42.2049150Z             --- PASS: TestIEventerRun/insufficient_gas_for_eventTest_should_fail (0.00s)
+2025-07-28T19:01:42.2049880Z         === RUN   TestPackUnpackDynamicEventData
+2025-07-28T19:01:42.2050390Z         --- PASS: TestPackUnpackDynamicEventData (0.00s)
+2025-07-28T19:01:42.2050950Z         === RUN   TestPackUnpackMixedEventData
+2025-07-28T19:01:42.2051460Z         --- PASS: TestPackUnpackMixedEventData (0.00s)
+2025-07-28T19:01:42.2052160Z         === RUN   TestPackUnpackTestEventData
+2025-07-28T19:01:42.2055740Z         --- PASS: TestPackUnpackTestEventData (0.00s)
+2025-07-28T19:01:42.2057720Z         === RUN   TestIEventer
+2025-07-28T19:01:42.2058110Z         --- PASS: TestIEventer (0.00s)
+2025-07-28T19:01:42.2058670Z         PASS
+2025-07-28T19:01:42.2061680Z         ok  	precompilebindtest/IEventer	0.131s
+2025-07-28T19:01:42.2063730Z         === RUN   TestVerify
+2025-07-28T19:01:42.2066530Z         === RUN   TestVerify/valid_config
+2025-07-28T19:01:42.2069300Z         --- PASS: TestVerify (0.00s)
+2025-07-28T19:01:42.2072380Z             --- PASS: TestVerify/valid_config (0.00s)
+2025-07-28T19:01:42.2073420Z         === RUN   TestEqual
+2025-07-28T19:01:42.2073940Z         === RUN   TestEqual/same_config
+2025-07-28T19:01:42.2074460Z         === RUN   TestEqual/non-nil_config_and_nil_other
+2025-07-28T19:01:42.2078700Z         === RUN   TestEqual/different_type
+2025-07-28T19:01:42.2079730Z         === RUN   TestEqual/different_timestamp
+2025-07-28T19:01:42.2080950Z         --- PASS: TestEqual (0.00s)
+2025-07-28T19:01:42.2081980Z             --- PASS: TestEqual/same_config (0.00s)
+2025-07-28T19:01:42.2094120Z             --- PASS: TestEqual/non-nil_config_and_nil_other (0.00s)
+2025-07-28T19:01:42.2096000Z             --- PASS: TestEqual/different_type (0.00s)
+2025-07-28T19:01:42.2096760Z             --- PASS: TestEqual/different_timestamp (0.00s)
+2025-07-28T19:01:42.2097330Z         === RUN   TestInputCheckerRun
+2025-07-28T19:01:42.2098740Z         === RUN   TestInputCheckerRun/insufficient_gas_for_namedInput_should_fail
+2025-07-28T19:01:42.2099470Z         === RUN   TestInputCheckerRun/insufficient_gas_for_namedInputs_should_fail
+2025-07-28T19:01:42.2103570Z         === RUN   TestInputCheckerRun/insufficient_gas_for_noInput_should_fail
+2025-07-28T19:01:42.2109060Z         --- PASS: TestInputCheckerRun (0.01s)
+2025-07-28T19:01:42.2112550Z             --- PASS: TestInputCheckerRun/insufficient_gas_for_namedInput_should_fail (0.00s)
+2025-07-28T19:01:42.2115030Z             --- PASS: TestInputCheckerRun/insufficient_gas_for_namedInputs_should_fail (0.00s)
+2025-07-28T19:01:42.2119920Z             --- PASS: TestInputCheckerRun/insufficient_gas_for_noInput_should_fail (0.00s)
+2025-07-28T19:01:42.2121150Z         === RUN   TestInputChecker
+2025-07-28T19:01:42.2122710Z         --- PASS: TestInputChecker (0.00s)
+2025-07-28T19:01:42.2209050Z         PASS
+2025-07-28T19:01:42.2211300Z         ok  	precompilebindtest/InputChecker	0.217s
+2025-07-28T19:01:42.2214480Z         === RUN   TestVerify
+2025-07-28T19:01:42.2229830Z         === RUN   TestVerify/valid_config
+2025-07-28T19:01:42.2230360Z         --- PASS: TestVerify (0.00s)
+2025-07-28T19:01:42.2404850Z             --- PASS: TestVerify/valid_config (0.00s)
+2025-07-28T19:01:42.2406320Z         === RUN   TestEqual
+2025-07-28T19:01:42.2407350Z         === RUN   TestEqual/non-nil_config_and_nil_other
+2025-07-28T19:01:42.2410850Z         === RUN   TestEqual/different_type
+2025-07-28T19:01:42.2411420Z         === RUN   TestEqual/different_timestamp
+2025-07-28T19:01:42.2411790Z         === RUN   TestEqual/same_config
+2025-07-28T19:01:42.2413770Z         --- PASS: TestEqual (0.00s)
+2025-07-28T19:01:42.2414340Z             --- PASS: TestEqual/non-nil_config_and_nil_other (0.00s)
+2025-07-28T19:01:42.2414870Z             --- PASS: TestEqual/different_type (0.00s)
+2025-07-28T19:01:42.2415450Z             --- PASS: TestEqual/different_timestamp (0.00s)
+2025-07-28T19:01:42.2415930Z             --- PASS: TestEqual/same_config (0.00s)
+2025-07-28T19:01:42.2418210Z         === RUN   TestOutputCheckerRun
+2025-07-28T19:01:42.2419400Z         === RUN   TestOutputCheckerRun/insufficient_gas_for_namedOutput_should_fail
+2025-07-28T19:01:42.2420070Z         === RUN   TestOutputCheckerRun/insufficient_gas_for_namedOutputs_should_fail
+2025-07-28T19:01:42.2420830Z         === RUN   TestOutputCheckerRun/insufficient_gas_for_noOutput_should_fail
+2025-07-28T19:01:42.2421290Z         --- PASS: TestOutputCheckerRun (0.00s)
+2025-07-28T19:01:42.2422020Z             --- PASS: TestOutputCheckerRun/insufficient_gas_for_namedOutput_should_fail (0.00s)
+2025-07-28T19:01:42.2423160Z             --- PASS: TestOutputCheckerRun/insufficient_gas_for_namedOutputs_should_fail (0.00s)
+2025-07-28T19:01:42.2423990Z             --- PASS: TestOutputCheckerRun/insufficient_gas_for_noOutput_should_fail (0.00s)
+2025-07-28T19:01:42.2424490Z         === RUN   TestOutputChecker
+2025-07-28T19:01:42.2424920Z         --- PASS: TestOutputChecker (0.00s)
+2025-07-28T19:01:42.2425690Z         PASS
+2025-07-28T19:01:42.2426430Z         ok  	precompilebindtest/OutputChecker	0.128s
+2025-07-28T19:01:42.2426920Z         === RUN   TestVerify
+2025-07-28T19:01:42.2427360Z         === RUN   TestVerify/valid_config
+2025-07-28T19:01:42.2428040Z         --- PASS: TestVerify (0.00s)
+2025-07-28T19:01:42.2428570Z             --- PASS: TestVerify/valid_config (0.00s)
+2025-07-28T19:01:42.2428980Z         === RUN   TestEqual
+2025-07-28T19:01:42.2431740Z         === RUN   TestEqual/same_config
+2025-07-28T19:01:42.2432290Z         === RUN   TestEqual/non-nil_config_and_nil_other
+2025-07-28T19:01:42.2432740Z         === RUN   TestEqual/different_type
+2025-07-28T19:01:42.2433390Z         === RUN   TestEqual/different_timestamp
+2025-07-28T19:01:42.2433760Z         --- PASS: TestEqual (0.00s)
+2025-07-28T19:01:42.2434310Z             --- PASS: TestEqual/same_config (0.00s)
+2025-07-28T19:01:42.2434890Z             --- PASS: TestEqual/non-nil_config_and_nil_other (0.00s)
+2025-07-28T19:01:42.2435400Z             --- PASS: TestEqual/different_type (0.00s)
+2025-07-28T19:01:42.2435990Z             --- PASS: TestEqual/different_timestamp (0.00s)
+2025-07-28T19:01:42.2436340Z         === RUN   TestSlicerRun
+2025-07-28T19:01:42.2436840Z         === RUN   TestSlicerRun/insufficient_gas_for_echoBools_should_fail
+2025-07-28T19:01:42.2437510Z         === RUN   TestSlicerRun/insufficient_gas_for_echoFancyInts_should_fail
+2025-07-28T19:01:42.2636890Z         === RUN   TestSlicerRun/insufficient_gas_for_echoInts_should_fail
+2025-07-28T19:01:42.2639240Z         === RUN   TestSlicerRun/insufficient_gas_for_echoAddresses_should_fail
+2025-07-28T19:01:42.2651780Z         --- PASS: TestSlicerRun (0.01s)
+2025-07-28T19:01:42.2653760Z             --- PASS: TestSlicerRun/insufficient_gas_for_echoBools_should_fail (0.00s)
+2025-07-28T19:01:42.2658170Z             --- PASS: TestSlicerRun/insufficient_gas_for_echoFancyInts_should_fail (0.01s)
+2025-07-28T19:01:42.2660890Z             --- PASS: TestSlicerRun/insufficient_gas_for_echoInts_should_fail (0.00s)
+2025-07-28T19:01:42.2663010Z             --- PASS: TestSlicerRun/insufficient_gas_for_echoAddresses_should_fail (0.00s)
+2025-07-28T19:01:42.2664000Z         === RUN   TestSlicer
+2025-07-28T19:01:42.2664640Z         --- PASS: TestSlicer (0.00s)
+2025-07-28T19:01:42.2666140Z         PASS
+2025-07-28T19:01:42.2667000Z         ok  	precompilebindtest/Slicer	0.333s
+2025-07-28T19:01:42.2667850Z         === RUN   TestVerify
+2025-07-28T19:01:42.2668670Z         === RUN   TestVerify/valid_config
+2025-07-28T19:01:42.2669430Z         --- PASS: TestVerify (0.00s)
+2025-07-28T19:01:42.2670470Z             --- PASS: TestVerify/valid_config (0.00s)
+2025-07-28T19:01:42.2671140Z         === RUN   TestEqual
+2025-07-28T19:01:42.2671970Z         === RUN   TestEqual/non-nil_config_and_nil_other
+2025-07-28T19:01:42.2672450Z         === RUN   TestEqual/different_type
+2025-07-28T19:01:42.2672990Z         === RUN   TestEqual/different_timestamp
+2025-07-28T19:01:42.2673630Z         === RUN   TestEqual/same_config
+2025-07-28T19:01:42.2674230Z         --- PASS: TestEqual (0.00s)
+2025-07-28T19:01:42.2677270Z             --- PASS: TestEqual/non-nil_config_and_nil_other (0.00s)
+2025-07-28T19:01:42.2681090Z             --- PASS: TestEqual/different_type (0.00s)
+2025-07-28T19:01:42.2681630Z             --- PASS: TestEqual/different_timestamp (0.00s)
+2025-07-28T19:01:42.2684600Z             --- PASS: TestEqual/same_config (0.00s)
+2025-07-28T19:01:42.2686530Z         === RUN   TestStructsRun
+2025-07-28T19:01:42.2688410Z         === RUN   TestStructsRun/insufficient_gas_for_f_should_fail
+2025-07-28T19:01:42.2693290Z         === RUN   TestStructsRun/insufficient_gas_for_g_should_fail
+2025-07-28T19:01:42.2698140Z         --- PASS: TestStructsRun (0.02s)
+2025-07-28T19:01:42.2700100Z             --- PASS: TestStructsRun/insufficient_gas_for_f_should_fail (0.01s)
+2025-07-28T19:01:42.2702410Z             --- PASS: TestStructsRun/insufficient_gas_for_g_should_fail (0.00s)
+2025-07-28T19:01:42.2703380Z         === RUN   TestStructs
+2025-07-28T19:01:42.2704700Z         --- PASS: TestStructs (0.00s)
+2025-07-28T19:01:42.2706990Z         PASS
+2025-07-28T19:01:42.2707460Z         ok  	precompilebindtest/Structs	0.375s
+2025-07-28T19:01:42.2707760Z         === RUN   TestVerify
+2025-07-28T19:01:42.2708170Z         === RUN   TestVerify/valid_config
+2025-07-28T19:01:42.2708510Z         --- PASS: TestVerify (0.00s)
+2025-07-28T19:01:42.2708990Z             --- PASS: TestVerify/valid_config (0.00s)
+2025-07-28T19:01:42.2709420Z         === RUN   TestEqual
+2025-07-28T19:01:42.2709840Z         === RUN   TestEqual/non-nil_config_and_nil_other
+2025-07-28T19:01:42.2710250Z         === RUN   TestEqual/different_type
+2025-07-28T19:01:42.2710590Z         === RUN   TestEqual/different_timestamp
+2025-07-28T19:01:42.2713630Z         === RUN   TestEqual/same_config
+2025-07-28T19:01:42.2714050Z         --- PASS: TestEqual (0.00s)
+2025-07-28T19:01:42.2714540Z             --- PASS: TestEqual/non-nil_config_and_nil_other (0.00s)
+2025-07-28T19:01:42.2715060Z             --- PASS: TestEqual/different_type (0.00s)
+2025-07-28T19:01:42.2715650Z             --- PASS: TestEqual/different_timestamp (0.00s)
+2025-07-28T19:01:42.2716130Z             --- PASS: TestEqual/same_config (0.00s)
+2025-07-28T19:01:42.2716500Z         === RUN   TestTuplerRun
+2025-07-28T19:01:42.2717050Z         === RUN   TestTuplerRun/insufficient_gas_for_tuple_should_fail
+2025-07-28T19:01:42.2717480Z         --- PASS: TestTuplerRun (0.00s)
+2025-07-28T19:01:42.2720160Z             --- PASS: TestTuplerRun/insufficient_gas_for_tuple_should_fail (0.00s)
+2025-07-28T19:01:42.2722010Z         === RUN   TestTupler
+2025-07-28T19:01:42.2723430Z         --- PASS: TestTupler (0.00s)
+2025-07-28T19:01:42.2724130Z         PASS
+2025-07-28T19:01:42.2729610Z         ok  	precompilebindtest/Tupler	0.162s
+2025-07-28T19:01:42.2730880Z         === RUN   TestVerify
+2025-07-28T19:01:42.2731960Z         === RUN   TestVerify/valid_config
+2025-07-28T19:01:42.2733850Z         --- PASS: TestVerify (0.00s)
+2025-07-28T19:01:42.2734320Z             --- PASS: TestVerify/valid_config (0.00s)
+2025-07-28T19:01:42.2734660Z         === RUN   TestEqual
+2025-07-28T19:01:42.2735130Z         === RUN   TestEqual/non-nil_config_and_nil_other
+2025-07-28T19:01:42.2735520Z         === RUN   TestEqual/different_type
+2025-07-28T19:01:42.2735920Z         === RUN   TestEqual/different_timestamp
+2025-07-28T19:01:42.2736290Z         === RUN   TestEqual/same_config
+2025-07-28T19:01:42.2736670Z         --- PASS: TestEqual (0.00s)
+2025-07-28T19:01:42.2739320Z             --- PASS: TestEqual/non-nil_config_and_nil_other (0.00s)
+2025-07-28T19:01:42.2739880Z             --- PASS: TestEqual/different_type (0.00s)
+2025-07-28T19:01:42.2740430Z             --- PASS: TestEqual/different_timestamp (0.00s)
+2025-07-28T19:01:42.2740970Z             --- PASS: TestEqual/same_config (0.00s)
+2025-07-28T19:01:42.2741280Z         === RUN   TestUnderscorerRun
+2025-07-28T19:01:42.2741760Z         === RUN   TestUnderscorerRun/readOnly_underscoredOutput_should_fail
+2025-07-28T19:01:42.2742470Z         === RUN   TestUnderscorerRun/insufficient_gas_for_underscoredOutput_should_fail
+2025-07-28T19:01:42.2743690Z         --- PASS: TestUnderscorerRun (0.01s)
+2025-07-28T19:01:42.2744340Z             --- PASS: TestUnderscorerRun/readOnly_underscoredOutput_should_fail (0.00s)
+2025-07-28T19:01:42.2745200Z             --- PASS: TestUnderscorerRun/insufficient_gas_for_underscoredOutput_should_fail (0.01s)
+2025-07-28T19:01:42.2745690Z         === RUN   TestUnderscorer
+2025-07-28T19:01:42.2746090Z         --- PASS: TestUnderscorer (0.00s)
+2025-07-28T19:01:42.2746300Z         PASS
+2025-07-28T19:01:42.2746990Z         ok  	precompilebindtest/Underscorer	0.181s
+2025-07-28T19:01:42.2747260Z         FAIL
+2025-07-28T19:01:42.2747380Z FAIL
+2025-07-28T19:01:42.2747530Z coverage: 87.6% of statements
+2025-07-28T19:01:42.2747840Z FAIL	github.com/ava-labs/subnet-evm/accounts/abi/bind/precompilebind	88.503s
+2025-07-28T19:01:42.2748260Z ok  	github.com/ava-labs/subnet-evm/cmd/abigen	1.454s	coverage: 24.5% of statements
+2025-07-28T19:02:01.3586170Z # github.com/ava-labs/subnet-evm/cmd/evm.test
+2025-07-28T19:02:01.3729190Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-3807058724/000072.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-28T19:02:02.8171260Z 	github.com/ava-labs/subnet-evm/cmd/evm/internal/compiler		coverage: 0.0% of statements
+2025-07-28T19:02:02.8201490Z 	github.com/ava-labs/subnet-evm/cmd/evm/internal/t8ntool		coverage: 0.0% of statements
+2025-07-28T19:02:03.5105770Z 	github.com/ava-labs/subnet-evm/cmd/precompilegen		coverage: 0.0% of statements
+2025-07-28T19:02:08.9902750Z 	github.com/ava-labs/subnet-evm/cmd/simulator/config		coverage: 0.0% of statements
+2025-07-28T19:02:08.9921840Z 	github.com/ava-labs/subnet-evm/cmd/simulator/key		coverage: 0.0% of statements
+2025-07-28T19:02:10.6795120Z 	github.com/ava-labs/subnet-evm/cmd/simulator/load		coverage: 0.0% of statements
+2025-07-28T19:02:10.9613000Z 	github.com/ava-labs/subnet-evm/cmd/simulator/main		coverage: 0.0% of statements
+2025-07-28T19:02:11.0126410Z 	github.com/ava-labs/subnet-evm/cmd/simulator/metrics		coverage: 0.0% of statements
+2025-07-28T19:02:11.0466980Z 	github.com/ava-labs/subnet-evm/cmd/simulator/txs		coverage: 0.0% of statements
+2025-07-28T19:02:11.0639050Z 	github.com/ava-labs/subnet-evm/cmd/utils		coverage: 0.0% of statements
+2025-07-28T19:02:13.7239890Z # github.com/ava-labs/subnet-evm/commontype.test
+2025-07-28T19:02:13.7347480Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-2519364047/000012.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-28T19:02:13.8038740Z ?   	github.com/ava-labs/subnet-evm/consensus	[no test files]
+2025-07-28T19:02:16.7560500Z # github.com/ava-labs/subnet-evm/consensus/misc/eip4844.test
+2025-07-28T19:02:16.7694270Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-699348786/000014.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-28T19:02:19.0608020Z # github.com/ava-labs/subnet-evm/consensus/dummy.test
+2025-07-28T19:02:19.0626410Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-2091424335/000072.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-28T19:02:20.3098580Z ?   	github.com/ava-labs/subnet-evm/constants	[no test files]
+2025-07-28T19:02:22.5284250Z # github.com/ava-labs/subnet-evm/core/bloombits.test
+2025-07-28T19:02:22.5295630Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-296985382/000014.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-28T19:02:27.7504050Z # github.com/ava-labs/subnet-evm/core.test
+2025-07-28T19:02:27.7506030Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-4197562117/000072.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-28T19:02:29.7360110Z ok  	github.com/ava-labs/subnet-evm/cmd/evm	26.997s	coverage: 3.9% of statements
+2025-07-28T19:02:29.7458370Z ok  	github.com/ava-labs/subnet-evm/commontype	1.129s	coverage: 64.3% of statements
+2025-07-28T19:02:29.7561740Z ok  	github.com/ava-labs/subnet-evm/consensus/dummy	1.223s	coverage: 10.8% of statements
+2025-07-28T19:02:29.7664810Z ok  	github.com/ava-labs/subnet-evm/consensus/misc/eip4844	1.232s	coverage: 42.9% of statements
+2025-07-28T19:02:29.7775400Z 	github.com/ava-labs/subnet-evm/core/coretest		coverage: 0.0% of statements
+2025-07-28T19:02:29.7909020Z 	github.com/ava-labs/subnet-evm/core/extstate		coverage: 0.0% of statements
+2025-07-28T19:02:36.2190220Z # github.com/ava-labs/subnet-evm/core/state.test
+2025-07-28T19:02:36.2290720Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-149540560/000072.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-28T19:02:50.5471970Z 	github.com/ava-labs/subnet-evm/core/state/pruner		coverage: 0.0% of statements
+2025-07-28T19:02:56.7646830Z # github.com/ava-labs/subnet-evm/core/state/snapshot.test
+2025-07-28T19:02:56.7754270Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-2506325871/000067.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-28T19:03:16.1013860Z 	github.com/ava-labs/subnet-evm/core/txpool		coverage: 0.0% of statements
+2025-07-28T19:03:44.8049520Z # github.com/ava-labs/subnet-evm/core/txpool/blobpool.test
+2025-07-28T19:03:44.8104350Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-780943321/000072.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-28T19:03:44.8828180Z # github.com/ava-labs/subnet-evm/core/txpool/legacypool.test
+2025-07-28T19:03:44.8942310Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-528957735/000072.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-28T19:04:13.1253360Z # github.com/ava-labs/subnet-evm/core/vm/runtime.test
+2025-07-28T19:04:13.1265240Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-672435754/000072.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-28T19:04:26.5571090Z # github.com/ava-labs/subnet-evm/eth.test
+2025-07-28T19:04:26.5695690Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-716634049/000072.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-28T19:04:29.5009000Z 	github.com/ava-labs/subnet-evm/eth/ethconfig		coverage: 0.0% of statements
+2025-07-28T19:04:38.5806480Z # github.com/ava-labs/subnet-evm/eth/filters.test
+2025-07-28T19:04:38.5933510Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-2044836959/000072.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-28T19:04:43.3723970Z 	github.com/ava-labs/subnet-evm/eth/gasestimator		coverage: 0.0% of statements
+2025-07-28T19:04:50.9430310Z # github.com/ava-labs/subnet-evm/eth/gasprice.test
+2025-07-28T19:04:50.9573270Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-2662630082/000072.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-28T19:04:53.5498310Z # github.com/ava-labs/subnet-evm/eth/tracers.test
+2025-07-28T19:04:53.5580170Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-765795199/000072.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-28T19:05:08.4784530Z # github.com/ava-labs/subnet-evm/ethclient.test
+2025-07-28T19:05:08.4910530Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-4250846106/000065.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-28T19:05:22.5938860Z # github.com/ava-labs/subnet-evm/ethclient/simulated.test
+2025-07-28T19:05:22.6048180Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-2081429587/000072.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-28T19:05:25.3843840Z 	github.com/ava-labs/subnet-evm/ethclient/subnetevmclient		coverage: 0.0% of statements
+2025-07-28T19:06:03.5446740Z ?   	github.com/ava-labs/subnet-evm/interfaces	[no test files]
+2025-07-28T19:06:03.5972980Z 	github.com/ava-labs/subnet-evm/examples/sign-uptime-message		coverage: 0.0% of statements
+2025-07-28T19:06:03.7121170Z 	github.com/ava-labs/subnet-evm/internal/blocktest		coverage: 0.0% of statements
+2025-07-28T19:06:03.7245110Z 	github.com/ava-labs/subnet-evm/internal/cmdtest		coverage: 0.0% of statements
+2025-07-28T19:06:03.7573320Z 	github.com/ava-labs/subnet-evm/internal/debug		coverage: 0.0% of statements
+2025-07-28T19:06:16.0653200Z # github.com/ava-labs/subnet-evm/internal/flags.test
+2025-07-28T19:06:16.0768090Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-1021864974/000065.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-28T19:06:17.6838880Z # github.com/ava-labs/subnet-evm/internal/ethapi.test
+2025-07-28T19:06:17.6961900Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-3650301293/000072.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-28T19:06:19.0261040Z 	github.com/ava-labs/subnet-evm/internal/reexec		coverage: 0.0% of statements
+2025-07-28T19:06:19.0466230Z 	github.com/ava-labs/subnet-evm/internal/shutdowncheck		coverage: 0.0% of statements
+2025-07-28T19:06:19.0983840Z 	github.com/ava-labs/subnet-evm/internal/version		coverage: 0.0% of statements
+2025-07-28T19:06:19.1501140Z 	github.com/ava-labs/subnet-evm/log		coverage: 0.0% of statements
+2025-07-28T19:06:19.3879620Z 	github.com/ava-labs/subnet-evm/metrics/metricstest		coverage: 0.0% of statements
+2025-07-28T19:06:21.0279970Z # github.com/ava-labs/subnet-evm/metrics/prometheus.test
+2025-07-28T19:06:21.0383000Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-896529542/000012.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-28T19:06:25.6213050Z # github.com/ava-labs/subnet-evm/miner.test
+2025-07-28T19:06:25.6315840Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-328602519/000072.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-28T19:06:26.3641330Z # github.com/ava-labs/subnet-evm/network.test
+2025-07-28T19:06:26.3743540Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-503956664/000065.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-28T19:06:27.7556600Z ?   	github.com/ava-labs/subnet-evm/network/peertest	[no test files]
+2025-07-28T19:06:27.7942170Z 	github.com/ava-labs/subnet-evm/network/stats		coverage: 0.0% of statements
+2025-07-28T19:06:27.8469700Z 	github.com/ava-labs/subnet-evm/node		coverage: 0.0% of statements
+2025-07-28T19:06:31.9677270Z # github.com/ava-labs/subnet-evm/params.test
+2025-07-28T19:06:31.9784910Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-1704651543/000065.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-28T19:06:35.5835860Z # github.com/ava-labs/subnet-evm/params/extras.test
+2025-07-28T19:06:35.5863410Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-503309892/000065.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-28T19:06:44.5334590Z 	github.com/ava-labs/subnet-evm/plugin		coverage: 0.0% of statements
+2025-07-28T19:06:49.2433940Z # github.com/ava-labs/subnet-evm/plugin/evm/blockgascost.test
+2025-07-28T19:06:49.2532010Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-3267783657/000012.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-28T19:07:17.3268950Z # github.com/ava-labs/subnet-evm/plugin/evm.test
+2025-07-28T19:07:17.3379670Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-3085479028/000072.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-28T19:07:20.5570690Z 	github.com/ava-labs/subnet-evm/plugin/evm/client		coverage: 0.0% of statements
+2025-07-28T19:07:26.4700590Z # github.com/ava-labs/subnet-evm/plugin/evm/config.test
+2025-07-28T19:07:26.4796060Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-4063736298/000057.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-28T19:07:27.7827080Z 	github.com/ava-labs/subnet-evm/plugin/evm/customlogs		coverage: 0.0% of statements
+2025-07-28T19:07:35.4147890Z # github.com/ava-labs/subnet-evm/plugin/evm/customrawdb.test
+2025-07-28T19:07:35.4265970Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-859513196/000067.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-28T19:07:44.4235420Z # github.com/ava-labs/subnet-evm/plugin/evm/customtypes.test
+2025-07-28T19:07:44.4251260Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-2678418319/000067.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-28T19:07:51.9251220Z 	github.com/ava-labs/subnet-evm/plugin/evm/database		coverage: 0.0% of statements
+2025-07-28T19:07:55.7858250Z # github.com/ava-labs/subnet-evm/plugin/evm/header.test
+2025-07-28T19:07:55.7961640Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-3712812727/000065.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-28T19:08:02.7877840Z # github.com/ava-labs/subnet-evm/plugin/evm/message.test
+2025-07-28T19:08:02.7892480Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-521405851/000063.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-28T19:08:04.1537710Z ?   	github.com/ava-labs/subnet-evm/plugin/evm/upgrade/legacy	[no test files]
+2025-07-28T19:08:12.5889250Z # github.com/ava-labs/subnet-evm/plugin/evm/validators.test
+2025-07-28T19:08:12.6025080Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-3639786510/000059.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-28T19:08:13.7739530Z ?   	github.com/ava-labs/subnet-evm/plugin/evm/validators/interfaces	[no test files]
+2025-07-28T19:08:22.2678440Z ?   	github.com/ava-labs/subnet-evm/plugin/evm/validators/uptime/interfaces	[no test files]
+2025-07-28T19:08:22.2758030Z ?   	github.com/ava-labs/subnet-evm/plugin/evm/vmerrors	[no test files]
+2025-07-28T19:08:22.3688990Z 	github.com/ava-labs/subnet-evm/plugin/runner		coverage: 0.0% of statements
+2025-07-28T19:08:28.0742070Z # github.com/ava-labs/subnet-evm/precompile/allowlist.test
+2025-07-28T19:08:28.0787590Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-1942506184/000065.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-28T19:08:36.9286630Z # github.com/ava-labs/subnet-evm/precompile/allowlist/allowlisttest.test
+2025-07-28T19:08:36.9296250Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-3658877121/000072.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-28T19:08:40.9947770Z # github.com/ava-labs/subnet-evm/precompile/contract.test
+2025-07-28T19:08:41.0070950Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-1520589391/000065.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-28T19:08:42.4076630Z 	github.com/ava-labs/subnet-evm/precompile/contracts/deployerallowlist		coverage: 0.0% of statements
+2025-07-28T19:08:47.7771580Z # github.com/ava-labs/subnet-evm/precompile/contracts/deployerallowlist/deployerallowlisttest.test
+2025-07-28T19:08:47.7907390Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-3678118730/000072.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-28T19:08:55.8598980Z # github.com/ava-labs/subnet-evm/precompile/contracts/feemanager.test
+2025-07-28T19:08:55.8718840Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-2039332889/000072.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-28T19:09:02.5726660Z # github.com/ava-labs/subnet-evm/precompile/contracts/nativeminter.test
+2025-07-28T19:09:02.5756970Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-115224823/000072.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-28T19:09:11.5310320Z # github.com/ava-labs/subnet-evm/precompile/contracts/rewardmanager.test
+2025-07-28T19:09:11.5321950Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-1945351408/000072.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-28T19:09:20.3732260Z # github.com/ava-labs/subnet-evm/precompile/contracts/txallowlist.test
+2025-07-28T19:09:20.3838500Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-924959053/000072.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-28T19:09:33.3287690Z # github.com/ava-labs/subnet-evm/precompile/contracts/warp.test
+2025-07-28T19:09:33.3416810Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-1124501587/000072.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-28T19:09:51.0117010Z # github.com/ava-labs/subnet-evm/precompile/modules.test
+2025-07-28T19:09:51.0122710Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-782476205/000065.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-28T19:09:55.0229390Z # github.com/ava-labs/subnet-evm/precompile/precompileconfig.test
+2025-07-28T19:09:55.0342280Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-2854724998/000061.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-28T19:09:56.2153920Z 	github.com/ava-labs/subnet-evm/precompile/precompiletest		coverage: 0.0% of statements
+2025-07-28T19:09:56.2294390Z ?   	github.com/ava-labs/subnet-evm/precompile/registry	[no test files]
+2025-07-28T19:09:58.2346030Z # github.com/ava-labs/subnet-evm/predicate.test
+2025-07-28T19:09:58.2466670Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-3306572787/000016.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-28T19:10:02.9706140Z # github.com/ava-labs/subnet-evm/rpc.test
+2025-07-28T19:10:02.9779050Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-289568451/000016.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-28T19:10:18.7991070Z 	github.com/ava-labs/subnet-evm/signer/core/apitypes		coverage: 0.0% of statements
+2025-07-28T19:10:18.8256820Z 	github.com/ava-labs/subnet-evm/stateupgrade		coverage: 0.0% of statements
+2025-07-28T19:10:27.0621940Z # github.com/ava-labs/subnet-evm/sync/client.test
+2025-07-28T19:10:27.0720650Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-1403975741/000072.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-28T19:10:42.8284560Z ok  	github.com/ava-labs/subnet-evm/core	494.510s	coverage: 70.2% of statements
+2025-07-28T19:10:42.8286470Z ok  	github.com/ava-labs/subnet-evm/core/bloombits	22.461s	coverage: 95.6% of statements
+2025-07-28T19:10:42.8411630Z ok  	github.com/ava-labs/subnet-evm/core/state	39.608s	coverage: 48.5% of statements
+2025-07-28T19:10:42.8521460Z ok  	github.com/ava-labs/subnet-evm/core/state/snapshot	21.172s	coverage: 69.6% of statements
+2025-07-28T19:10:42.8652150Z ok  	github.com/ava-labs/subnet-evm/core/txpool/blobpool	10.724s	coverage: 55.7% of statements
+2025-07-28T19:10:42.8754130Z ok  	github.com/ava-labs/subnet-evm/core/txpool/legacypool	56.885s	coverage: 80.7% of statements
+2025-07-28T19:10:42.8854300Z ok  	github.com/ava-labs/subnet-evm/core/vm/runtime	2.264s	coverage: 93.6% of statements
+2025-07-28T19:10:42.8955900Z ok  	github.com/ava-labs/subnet-evm/eth	2.345s	coverage: 4.0% of statements
+2025-07-28T19:10:42.9056100Z ok  	github.com/ava-labs/subnet-evm/eth/filters	7.838s	coverage: 62.4% of statements
+2025-07-28T19:10:42.9158430Z ok  	github.com/ava-labs/subnet-evm/eth/gasprice	44.067s	coverage: 81.9% of statements
+2025-07-28T19:10:42.9259270Z ok  	github.com/ava-labs/subnet-evm/eth/tracers	9.671s	coverage: 42.9% of statements
+2025-07-28T19:10:42.9360680Z ok  	github.com/ava-labs/subnet-evm/ethclient	1.248s	coverage: 0.0% of statements
+2025-07-28T19:10:42.9459910Z ok  	github.com/ava-labs/subnet-evm/ethclient/simulated	1.762s	coverage: 84.0% of statements
+2025-07-28T19:10:42.9561800Z ok  	github.com/ava-labs/subnet-evm/internal/ethapi	2.856s	coverage: 36.1% of statements
+2025-07-28T19:10:42.9664540Z ok  	github.com/ava-labs/subnet-evm/internal/flags	1.257s	coverage: 5.1% of statements
+2025-07-28T19:10:42.9764980Z ok  	github.com/ava-labs/subnet-evm/metrics/prometheus	1.128s	coverage: 100.0% of statements
+2025-07-28T19:10:42.9865600Z ok  	github.com/ava-labs/subnet-evm/miner	2.107s	coverage: 15.6% of statements
+2025-07-28T19:10:42.9966340Z ok  	github.com/ava-labs/subnet-evm/network	4.544s	coverage: 83.6% of statements
+2025-07-28T19:10:43.0067560Z ok  	github.com/ava-labs/subnet-evm/params	1.334s	coverage: 53.2% of statements
+2025-07-28T19:10:43.0168180Z ok  	github.com/ava-labs/subnet-evm/params/extras	1.338s	coverage: 67.0% of statements
+2025-07-28T19:10:43.0268080Z ok  	github.com/ava-labs/subnet-evm/plugin/evm	179.531s	coverage: 65.0% of statements
+2025-07-28T19:10:43.0369310Z ok  	github.com/ava-labs/subnet-evm/plugin/evm/blockgascost	1.549s	coverage: 93.3% of statements
+2025-07-28T19:10:43.0469910Z ok  	github.com/ava-labs/subnet-evm/plugin/evm/config	1.105s	coverage: 11.1% of statements
+2025-07-28T19:10:43.0571270Z ok  	github.com/ava-labs/subnet-evm/plugin/evm/customrawdb	1.291s	coverage: 31.3% of statements
+2025-07-28T19:10:43.0671680Z ok  	github.com/ava-labs/subnet-evm/plugin/evm/customtypes	7.071s	coverage: 86.4% of statements
+2025-07-28T19:10:43.0772790Z ok  	github.com/ava-labs/subnet-evm/plugin/evm/header	1.211s	coverage: 90.8% of statements
+2025-07-28T19:10:43.0874180Z ok  	github.com/ava-labs/subnet-evm/plugin/evm/log	1.151s	coverage: 42.1% of statements
+2025-07-28T19:10:43.0976080Z ok  	github.com/ava-labs/subnet-evm/plugin/evm/message	1.211s	coverage: 17.3% of statements
+2025-07-28T19:10:43.1077500Z ok  	github.com/ava-labs/subnet-evm/plugin/evm/upgrade/subnetevm	1.204s	coverage: 100.0% of statements
+2025-07-28T19:10:43.1178770Z ok  	github.com/ava-labs/subnet-evm/plugin/evm/validators	1.099s	coverage: 18.3% of statements
+2025-07-28T19:10:43.1280300Z ok  	github.com/ava-labs/subnet-evm/plugin/evm/validators/state	1.130s	coverage: 72.6% of statements
+2025-07-28T19:10:43.1381620Z ok  	github.com/ava-labs/subnet-evm/plugin/evm/validators/state/interfaces	1.058s	coverage: 0.0% of statements [no tests to run]
+2025-07-28T19:10:43.1483190Z ok  	github.com/ava-labs/subnet-evm/plugin/evm/validators/uptime	1.215s	coverage: 62.9% of statements
+2025-07-28T19:10:43.1584700Z ok  	github.com/ava-labs/subnet-evm/precompile/allowlist	1.217s	coverage: 18.5% of statements
+2025-07-28T19:10:43.1685980Z ok  	github.com/ava-labs/subnet-evm/precompile/allowlist/allowlisttest	1.336s	coverage: 89.0% of statements
+2025-07-28T19:10:43.1786820Z ok  	github.com/ava-labs/subnet-evm/precompile/contract	1.250s	coverage: 0.0% of statements
+2025-07-28T19:10:43.1888310Z ok  	github.com/ava-labs/subnet-evm/precompile/contracts/deployerallowlist/deployerallowlisttest	1.307s	coverage: [no statements]
+2025-07-28T19:10:43.1988040Z ok  	github.com/ava-labs/subnet-evm/precompile/contracts/feemanager	1.447s	coverage: 87.3% of statements
+2025-07-28T19:10:43.2088590Z ok  	github.com/ava-labs/subnet-evm/precompile/contracts/nativeminter	1.302s	coverage: 87.4% of statements
+2025-07-28T19:10:43.2190050Z ok  	github.com/ava-labs/subnet-evm/precompile/contracts/rewardmanager	1.651s	coverage: 83.2% of statements
+2025-07-28T19:10:43.2291770Z ok  	github.com/ava-labs/subnet-evm/precompile/contracts/txallowlist	1.516s	coverage: 64.7% of statements
+2025-07-28T19:10:43.2391900Z ok  	github.com/ava-labs/subnet-evm/precompile/contracts/warp	11.073s	coverage: 76.3% of statements
+2025-07-28T19:10:43.2493740Z ok  	github.com/ava-labs/subnet-evm/precompile/modules	1.167s	coverage: 46.9% of statements
+2025-07-28T19:10:43.2593380Z ok  	github.com/ava-labs/subnet-evm/precompile/precompileconfig	1.054s	coverage: 0.0% of statements [no tests to run]
+2025-07-28T19:10:43.2693850Z ok  	github.com/ava-labs/subnet-evm/predicate	1.223s	coverage: 58.5% of statements
+2025-07-28T19:10:43.2795120Z 	github.com/ava-labs/subnet-evm/sync/client/stats		coverage: 0.0% of statements
+2025-07-28T19:10:47.9101590Z # github.com/ava-labs/subnet-evm/sync/handlers.test
+2025-07-28T19:10:47.9103420Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-3698935918/000072.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-28T19:10:48.0447820Z 	github.com/ava-labs/subnet-evm/sync/handlers/stats		coverage: 0.0% of statements
+2025-07-28T19:10:50.4733040Z # github.com/ava-labs/subnet-evm/sync/statesync.test
+2025-07-28T19:10:50.4836440Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-3717990926/000067.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-28T19:10:55.2418290Z ok  	github.com/ava-labs/subnet-evm/rpc	51.804s	coverage: 83.3% of statements
+2025-07-28T19:10:55.2539100Z ok  	github.com/ava-labs/subnet-evm/sync/client	20.690s	coverage: 53.8% of statements
+2025-07-28T19:10:55.2642160Z 	github.com/ava-labs/subnet-evm/sync/statesync/statesynctest		coverage: 0.0% of statements
+2025-07-28T19:10:55.2891350Z 	github.com/ava-labs/subnet-evm/sync/syncutils		coverage: 0.0% of statements
+2025-07-28T19:10:55.3130540Z 	github.com/ava-labs/subnet-evm/triedb/firewood		coverage: 0.0% of statements
+2025-07-28T19:10:55.3325670Z 	github.com/ava-labs/subnet-evm/triedb/hashdb		coverage: 0.0% of statements
+2025-07-28T19:10:58.1542870Z # github.com/ava-labs/subnet-evm/triedb/pathdb.test
+2025-07-28T19:10:58.1643130Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-3760586262/000067.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-28T19:11:17.9819350Z ok  	github.com/ava-labs/subnet-evm/sync/handlers	29.936s	coverage: 83.6% of statements
+2025-07-28T19:11:19.4593250Z # github.com/ava-labs/subnet-evm/utils.test
+2025-07-28T19:11:19.4699170Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-857141619/000012.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-28T19:11:22.9236380Z # github.com/ava-labs/subnet-evm/utils/utilstest.test
+2025-07-28T19:11:22.9371180Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-3421291664/000063.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-28T19:11:29.6254140Z # github.com/ava-labs/subnet-evm/warp.test
+2025-07-28T19:11:29.6370330Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-916474643/000065.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-28T19:11:31.3015710Z 	github.com/ava-labs/subnet-evm/warp/messages		coverage: 0.0% of statements
+2025-07-28T19:11:34.5097200Z # github.com/ava-labs/subnet-evm/warp/validators.test
+2025-07-28T19:11:34.5205990Z ld: warning: '/private/var/folders/y6/nj790rtn62lfktb1sh__79hc0000gn/T/go-link-2720509417/000063.o' has malformed LC_DYSYMTAB, expected 98 undefined symbols to start at index 1626, found 95 undefined symbols starting at index 1626
+2025-07-28T19:11:35.7786160Z 	github.com/ava-labs/subnet-evm/warp/warptest		coverage: 0.0% of statements
+2025-07-28T19:12:52.2353330Z ok  	github.com/ava-labs/subnet-evm/sync/statesync	121.676s	coverage: 77.0% of statements
+2025-07-28T19:12:52.2447710Z ok  	github.com/ava-labs/subnet-evm/triedb/pathdb	88.849s	coverage: 75.2% of statements
+2025-07-28T19:12:52.2549530Z ok  	github.com/ava-labs/subnet-evm/utils	1.135s	coverage: 22.8% of statements
+2025-07-28T19:12:52.2570300Z ok  	github.com/ava-labs/subnet-evm/utils/utilstest	1.104s	coverage: 33.3% of statements
+2025-07-28T19:12:52.2572750Z ok  	github.com/ava-labs/subnet-evm/warp	1.301s	coverage: 48.0% of statements
+2025-07-28T19:12:52.2575220Z ok  	github.com/ava-labs/subnet-evm/warp/validators	1.167s	coverage: 100.0% of statements
+2025-07-28T19:12:52.2577300Z FAIL
+2025-07-28T19:12:53.6559870Z Unexpected test failures: TestPrecompileBind
+2025-07-28T19:12:53.6663090Z task: Failed to run task "build-test": exit status 1
+2025-07-28T19:12:53.6771660Z exit status 201
+2025-07-28T19:12:53.7445710Z ##[error]Process completed with exit code 1.

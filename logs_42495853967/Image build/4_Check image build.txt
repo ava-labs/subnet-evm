@@ -1,0 +1,746 @@
+﻿2025-07-28T18:53:21.3446630Z ##[group]Run ./scripts/run_task.sh test-build-image
+2025-07-28T18:53:21.3446996Z [36;1m./scripts/run_task.sh test-build-image[0m
+2025-07-28T18:53:21.3476167Z shell: /usr/bin/bash -e {0}
+2025-07-28T18:53:21.3476392Z ##[endgroup]
+2025-07-28T18:53:21.9682433Z go: downloading github.com/go-task/task/v3 v3.39.2
+2025-07-28T18:53:22.2466846Z go: downloading github.com/spf13/pflag v1.0.5
+2025-07-28T18:53:22.2468200Z go: downloading mvdan.cc/sh/v3 v3.9.0
+2025-07-28T18:53:22.3007433Z go: downloading github.com/Masterminds/semver/v3 v3.3.0
+2025-07-28T18:53:22.3024245Z go: downloading github.com/alecthomas/chroma/v2 v2.14.0
+2025-07-28T18:53:22.3651852Z go: downloading github.com/fatih/color v1.17.0
+2025-07-28T18:53:22.4078425Z go: downloading gopkg.in/yaml.v3 v3.0.1
+2025-07-28T18:53:22.4688974Z go: downloading github.com/Ladicle/tabwriter v1.0.0
+2025-07-28T18:53:22.4971105Z go: downloading github.com/joho/godotenv v1.5.1
+2025-07-28T18:53:22.6701671Z go: downloading github.com/dominikbraun/graph v0.23.0
+2025-07-28T18:53:22.6712315Z go: downloading golang.org/x/sync v0.8.0
+2025-07-28T18:53:22.6906538Z go: downloading github.com/radovskyb/watcher v1.0.7
+2025-07-28T18:53:22.7103405Z go: downloading github.com/sajari/fuzzy v1.0.0
+2025-07-28T18:53:24.0750031Z go: downloading github.com/mattn/go-colorable v0.1.13
+2025-07-28T18:53:24.1034593Z go: downloading github.com/mattn/go-isatty v0.0.20
+2025-07-28T18:53:24.1300382Z go: downloading github.com/muesli/cancelreader v0.2.2
+2025-07-28T18:53:24.1325453Z go: downloading golang.org/x/sys v0.25.0
+2025-07-28T18:53:24.1495686Z go: downloading golang.org/x/term v0.24.0
+2025-07-28T18:53:24.3018870Z go: downloading github.com/dlclark/regexp2 v1.11.0
+2025-07-28T18:53:24.3222910Z go: downloading github.com/davecgh/go-spew v1.1.1
+2025-07-28T18:53:24.3540395Z go: downloading github.com/go-task/slim-sprig/v3 v3.0.0
+2025-07-28T18:53:24.3625699Z go: downloading github.com/go-task/template v0.1.0
+2025-07-28T18:53:24.5424289Z go: downloading github.com/mattn/go-zglob v0.0.6
+2025-07-28T18:53:24.5686695Z go: downloading github.com/zeebo/xxh3 v1.0.2
+2025-07-28T18:53:24.5695210Z go: downloading github.com/mitchellh/hashstructure/v2 v2.0.2
+2025-07-28T18:53:25.0607918Z go: downloading github.com/klauspost/cpuid/v2 v2.0.9
+2025-07-28T18:53:42.7316973Z task: [test-build-image] bash -x scripts/tests.build_docker_image.sh
+2025-07-28T18:53:42.7347206Z + set -euo pipefail
+2025-07-28T18:53:42.7353100Z +++ dirname scripts/tests.build_docker_image.sh
+2025-07-28T18:53:42.7363545Z ++ cd scripts
+2025-07-28T18:53:42.7364075Z ++ cd ..
+2025-07-28T18:53:42.7364515Z ++ pwd
+2025-07-28T18:53:42.7366522Z + SUBNET_EVM_PATH=/home/runner/work/subnet-evm/subnet-evm
+2025-07-28T18:53:42.7367224Z + source /home/runner/work/subnet-evm/subnet-evm/scripts/constants.sh
+2025-07-28T18:53:42.7368889Z ++ set -euo pipefail
+2025-07-28T18:53:42.7370541Z +++ go env GOPATH
+2025-07-28T18:53:42.7398185Z ++ GOPATH=/home/runner/go
+2025-07-28T18:53:42.7398629Z ++ DEFAULT_PLUGIN_DIR=/home/runner/.avalanchego/plugins
+2025-07-28T18:53:42.7399104Z ++ DEFAULT_VM_NAME=subnet-evm
+2025-07-28T18:53:42.7399574Z ++ DEFAULT_VM_ID=srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
+2025-07-28T18:53:42.7400163Z ++ IMAGE_NAME=subnet-evm_avalanchego
+2025-07-28T18:53:42.7400632Z ++ AVALANCHEGO_IMAGE_NAME=avaplatform/avalanchego
+2025-07-28T18:53:42.7401081Z ++ '[' '!' -d .git ']'
+2025-07-28T18:53:42.7403243Z +++ git describe --tags --exact-match
+2025-07-28T18:53:42.7420159Z +++ git symbolic-ref -q --short HEAD
+2025-07-28T18:53:42.7433943Z +++ git rev-parse --short HEAD
+2025-07-28T18:53:42.7450341Z ++ CURRENT_BRANCH=740f5eb
+2025-07-28T18:53:42.7453432Z +++ git --git-dir=/home/runner/work/subnet-evm/subnet-evm/.git rev-parse HEAD
+2025-07-28T18:53:42.7469067Z ++ SUBNET_EVM_COMMIT=740f5ebbe5df6a0c1d20e5e4bc958b48e1ed9c6b
+2025-07-28T18:53:42.7469503Z ++ [[ -z '' ]]
+2025-07-28T18:53:42.7472751Z +++ go list -m github.com/ava-labs/avalanchego
+2025-07-28T18:53:42.7869897Z ++ MODULE_DETAILS='github.com/ava-labs/avalanchego v1.13.3'
+2025-07-28T18:53:42.7874568Z +++ echo 'github.com/ava-labs/avalanchego v1.13.3'
+2025-07-28T18:53:42.7876438Z +++ awk '{print $2}'
+2025-07-28T18:53:42.7898462Z ++ AVALANCHE_VERSION=v1.13.3
+2025-07-28T18:53:42.7898902Z ++ [[ v1.13.3 =~ ^v.*[0-9]{14}-[0-9a-f]{12}$ ]]
+2025-07-28T18:53:42.7899387Z ++ DOCKERHUB_TAG=740f5ebb_v1.13.3
+2025-07-28T18:53:42.7899805Z ++ BUILD_IMAGE_ID=740f5eb_v1.13.3
+2025-07-28T18:53:42.7900231Z ++ echo 'Using branch: 740f5eb'
+2025-07-28T18:53:42.7900634Z ++ STATIC_LD_FLAGS=
+2025-07-28T18:53:42.7900960Z ++ '[' '' = 1 ']'
+2025-07-28T18:53:42.7901480Z ++ export 'CGO_CFLAGS=-O2 -D__BLST_PORTABLE__'
+2025-07-28T18:53:42.7902199Z ++ CGO_CFLAGS='-O2 -D__BLST_PORTABLE__'
+2025-07-28T18:53:42.7902633Z Using branch: 740f5eb
+2025-07-28T18:53:42.7903003Z ++ export CGO_ENABLED=1
+2025-07-28T18:53:42.7903332Z ++ CGO_ENABLED=1
+2025-07-28T18:53:42.7903785Z + VM_ID=srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
+2025-07-28T18:53:42.7904372Z + echo 'checking build of single-arch image'
+2025-07-28T18:53:42.7904827Z checking build of single-arch image
+2025-07-28T18:53:42.7905669Z + build_and_test subnet-evm_avalanchego srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy false avalanchego
+2025-07-28T18:53:42.7906379Z + local imagename=subnet-evm_avalanchego
+2025-07-28T18:53:42.7906750Z + local vm_id=srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
+2025-07-28T18:53:42.7907112Z + local multiarch_image=false
+2025-07-28T18:53:42.7907384Z + local avalanchego_local_image_name=avalanchego
+2025-07-28T18:53:42.7907807Z + [[ false == true ]]
+2025-07-28T18:53:42.7908103Z + local host_arch
+2025-07-28T18:53:42.7908379Z ++ go env GOARCH
+2025-07-28T18:53:42.7937388Z + host_arch=amd64
+2025-07-28T18:53:42.7937868Z + local arches=linux/amd64
+2025-07-28T18:53:42.7938149Z + local imgtag=testtag
+2025-07-28T18:53:42.7938372Z + PLATFORMS=linux/amd64
+2025-07-28T18:53:42.7938572Z + BUILD_IMAGE_ID=testtag
+2025-07-28T18:53:42.7938842Z + VM_ID=srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
+2025-07-28T18:53:42.7939159Z + IMAGE_NAME=subnet-evm_avalanchego
+2025-07-28T18:53:42.7939400Z + AVALANCHEGO_LOCAL_IMAGE_NAME=avalanchego
+2025-07-28T18:53:42.7939664Z + ./scripts/build_docker_image.sh
+2025-07-28T18:53:42.8150592Z Using branch: 740f5eb
+2025-07-28T18:53:43.3224728Z v1.13.3: Pulling from avaplatform/avalanchego
+2025-07-28T18:53:43.4425209Z 59e22667830b: Pulling fs layer
+2025-07-28T18:53:43.4425812Z 6b75f5ca9b51: Pulling fs layer
+2025-07-28T18:53:43.4426126Z 4f4fb700ef54: Pulling fs layer
+2025-07-28T18:53:43.4426498Z b54ae1c8d5c8: Pulling fs layer
+2025-07-28T18:53:43.4426853Z b54ae1c8d5c8: Waiting
+2025-07-28T18:53:43.5626741Z 4f4fb700ef54: Download complete
+2025-07-28T18:53:43.5657442Z 6b75f5ca9b51: Verifying Checksum
+2025-07-28T18:53:43.5657799Z 6b75f5ca9b51: Download complete
+2025-07-28T18:53:44.0964995Z 59e22667830b: Verifying Checksum
+2025-07-28T18:53:44.0965489Z 59e22667830b: Download complete
+2025-07-28T18:53:44.3307912Z b54ae1c8d5c8: Verifying Checksum
+2025-07-28T18:53:44.3308447Z b54ae1c8d5c8: Download complete
+2025-07-28T18:53:45.1601369Z 59e22667830b: Pull complete
+2025-07-28T18:53:46.3059319Z 6b75f5ca9b51: Pull complete
+2025-07-28T18:53:46.3173239Z 4f4fb700ef54: Pull complete
+2025-07-28T18:53:46.7117525Z b54ae1c8d5c8: Pull complete
+2025-07-28T18:53:46.7157256Z Digest: sha256:e48a8e19390c9af72e0fb5ad95633b0a78485cf0f4e25121fcd4f1128b41b102
+2025-07-28T18:53:46.7169120Z Status: Downloaded newer image for avaplatform/avalanchego:v1.13.3
+2025-07-28T18:53:46.7177289Z docker.io/avaplatform/avalanchego:v1.13.3
+2025-07-28T18:53:46.7193059Z Building Docker Image: subnet-evm_avalanchego:testtag based of AvalancheGo@v1.13.3
+2025-07-28T18:53:47.1967919Z #0 building with "default" instance using docker driver
+2025-07-28T18:53:47.1968343Z 
+2025-07-28T18:53:47.1968484Z #1 [internal] load build definition from Dockerfile
+2025-07-28T18:53:47.1968826Z #1 transferring dockerfile: 2.42kB done
+2025-07-28T18:53:47.1969098Z #1 DONE 0.0s
+2025-07-28T18:53:47.1969214Z 
+2025-07-28T18:53:47.1969424Z #2 [internal] load metadata for docker.io/avaplatform/avalanchego:v1.13.3
+2025-07-28T18:53:47.1969821Z #2 DONE 0.0s
+2025-07-28T18:53:47.1970207Z 
+2025-07-28T18:53:47.1970367Z #3 [auth] library/golang:pull token for registry-1.docker.io
+2025-07-28T18:53:47.1970702Z #3 DONE 0.0s
+2025-07-28T18:53:47.1970812Z 
+2025-07-28T18:53:47.1971004Z #4 [internal] load metadata for docker.io/library/golang:1.23.9-bookworm
+2025-07-28T18:53:47.4356800Z #4 DONE 0.5s
+2025-07-28T18:53:47.5579023Z 
+2025-07-28T18:53:47.5579534Z #5 [internal] load .dockerignore
+2025-07-28T18:53:47.5580060Z #5 transferring context: 105B done
+2025-07-28T18:53:47.5580473Z #5 DONE 0.0s
+2025-07-28T18:53:47.5580647Z 
+2025-07-28T18:53:47.5580923Z #6 [execution 1/2] FROM docker.io/avaplatform/avalanchego:v1.13.3
+2025-07-28T18:53:47.5581480Z #6 DONE 0.0s
+2025-07-28T18:53:47.5581661Z 
+2025-07-28T18:53:47.5582512Z #7 [builder 1/8] FROM docker.io/library/golang:1.23.9-bookworm@sha256:6a3aa4fd2c3e15bc8cb450e4a0ae353fb73b5f593bcbb5b25ffeee860cc2ec2a
+2025-07-28T18:53:47.5583971Z #7 resolve docker.io/library/golang:1.23.9-bookworm@sha256:6a3aa4fd2c3e15bc8cb450e4a0ae353fb73b5f593bcbb5b25ffeee860cc2ec2a done
+2025-07-28T18:53:47.5585265Z #7 sha256:6a3aa4fd2c3e15bc8cb450e4a0ae353fb73b5f593bcbb5b25ffeee860cc2ec2a 9.10kB / 9.10kB done
+2025-07-28T18:53:47.5586349Z #7 sha256:3e6b9d1a95114e19f12262a4e8a59ad1d1a10ca7b82108adcf0605a200294964 7.34MB / 48.49MB 0.1s
+2025-07-28T18:53:47.5587362Z #7 sha256:37927ed901b1b2608b72796c6881bf645480268eca4ac9a37b9219e050bb4d84 0B / 24.02MB 0.1s
+2025-07-28T18:53:47.5588375Z #7 sha256:0c9738aabadd34e99cf5263ae1337ad5330126c87a1fab4ffabec2284944c991 2.32kB / 2.32kB done
+2025-07-28T18:53:47.5589433Z #7 sha256:7a0d537c74048d90164dee15b033ba23c217803a53cd9e2efc48482d9b7b4e51 2.80kB / 2.80kB done
+2025-07-28T18:53:47.5590481Z #7 sha256:79b2f47ad4443652b9b5cc81a95ede249fd976310efdbee159f29638783778c0 0B / 64.40MB 0.1s
+2025-07-28T18:53:47.7570325Z #7 ...
+2025-07-28T18:53:47.7570536Z 
+2025-07-28T18:53:47.7570635Z #8 [internal] load build context
+2025-07-28T18:53:47.7570922Z #8 transferring context: 13.24MB 0.2s done
+2025-07-28T18:53:47.7571190Z #8 DONE 0.2s
+2025-07-28T18:53:47.7571333Z 
+2025-07-28T18:53:47.7571766Z #7 [builder 1/8] FROM docker.io/library/golang:1.23.9-bookworm@sha256:6a3aa4fd2c3e15bc8cb450e4a0ae353fb73b5f593bcbb5b25ffeee860cc2ec2a
+2025-07-28T18:53:47.7572786Z #7 sha256:3e6b9d1a95114e19f12262a4e8a59ad1d1a10ca7b82108adcf0605a200294964 36.70MB / 48.49MB 0.3s
+2025-07-28T18:53:47.7573461Z #7 sha256:37927ed901b1b2608b72796c6881bf645480268eca4ac9a37b9219e050bb4d84 7.34MB / 24.02MB 0.3s
+2025-07-28T18:53:47.7574136Z #7 sha256:79b2f47ad4443652b9b5cc81a95ede249fd976310efdbee159f29638783778c0 29.36MB / 64.40MB 0.3s
+2025-07-28T18:53:47.8572289Z #7 sha256:3e6b9d1a95114e19f12262a4e8a59ad1d1a10ca7b82108adcf0605a200294964 45.09MB / 48.49MB 0.4s
+2025-07-28T18:53:47.8573312Z #7 sha256:37927ed901b1b2608b72796c6881bf645480268eca4ac9a37b9219e050bb4d84 11.53MB / 24.02MB 0.4s
+2025-07-28T18:53:47.8574060Z #7 sha256:79b2f47ad4443652b9b5cc81a95ede249fd976310efdbee159f29638783778c0 39.85MB / 64.40MB 0.4s
+2025-07-28T18:53:47.9586313Z #7 sha256:3e6b9d1a95114e19f12262a4e8a59ad1d1a10ca7b82108adcf0605a200294964 48.49MB / 48.49MB 0.5s done
+2025-07-28T18:53:47.9587759Z #7 sha256:37927ed901b1b2608b72796c6881bf645480268eca4ac9a37b9219e050bb4d84 18.87MB / 24.02MB 0.5s
+2025-07-28T18:53:47.9588772Z #7 sha256:79b2f47ad4443652b9b5cc81a95ede249fd976310efdbee159f29638783778c0 48.23MB / 64.40MB 0.5s
+2025-07-28T18:53:47.9589658Z #7 sha256:86e38a7bd2e6ef4808a08ab7f5de538ee046e73d5eed810956ebe5e2dd30967f 0B / 92.34MB 0.5s
+2025-07-28T18:53:47.9590708Z #7 extracting sha256:3e6b9d1a95114e19f12262a4e8a59ad1d1a10ca7b82108adcf0605a200294964
+2025-07-28T18:53:48.0636703Z #7 sha256:37927ed901b1b2608b72796c6881bf645480268eca4ac9a37b9219e050bb4d84 24.02MB / 24.02MB 0.6s
+2025-07-28T18:53:48.0638388Z #7 sha256:79b2f47ad4443652b9b5cc81a95ede249fd976310efdbee159f29638783778c0 55.57MB / 64.40MB 0.6s
+2025-07-28T18:53:48.0639475Z #7 sha256:86e38a7bd2e6ef4808a08ab7f5de538ee046e73d5eed810956ebe5e2dd30967f 7.34MB / 92.34MB 0.6s
+2025-07-28T18:53:48.1799519Z #7 sha256:37927ed901b1b2608b72796c6881bf645480268eca4ac9a37b9219e050bb4d84 24.02MB / 24.02MB 0.6s done
+2025-07-28T18:53:48.1801060Z #7 sha256:79b2f47ad4443652b9b5cc81a95ede249fd976310efdbee159f29638783778c0 64.40MB / 64.40MB 0.7s done
+2025-07-28T18:53:48.1802096Z #7 sha256:86e38a7bd2e6ef4808a08ab7f5de538ee046e73d5eed810956ebe5e2dd30967f 19.92MB / 92.34MB 0.7s
+2025-07-28T18:53:48.1802998Z #7 sha256:e10405b45d13228df144c8d42d389347041bf176392f5f9606fc4a4d7826647d 0B / 74.06MB 0.7s
+2025-07-28T18:53:48.1803782Z #7 sha256:05996fe98294b61bc5bf02c69305b84d9db840baad71fd1b5c2fd7cf1686088c 0B / 126B 0.7s
+2025-07-28T18:53:48.2808961Z #7 sha256:86e38a7bd2e6ef4808a08ab7f5de538ee046e73d5eed810956ebe5e2dd30967f 35.65MB / 92.34MB 0.8s
+2025-07-28T18:53:48.2811743Z #7 sha256:e10405b45d13228df144c8d42d389347041bf176392f5f9606fc4a4d7826647d 5.24MB / 74.06MB 0.8s
+2025-07-28T18:53:48.2812992Z #7 sha256:05996fe98294b61bc5bf02c69305b84d9db840baad71fd1b5c2fd7cf1686088c 126B / 126B 0.8s done
+2025-07-28T18:53:48.2813981Z #7 sha256:4f4fb700ef54461cfa02571ae0db9a0dc1e0cdb5577484a6d75e68dc38e8acc1 0B / 32B 0.8s
+2025-07-28T18:53:48.3828033Z #7 sha256:86e38a7bd2e6ef4808a08ab7f5de538ee046e73d5eed810956ebe5e2dd30967f 49.28MB / 92.34MB 0.9s
+2025-07-28T18:53:48.3829495Z #7 sha256:4f4fb700ef54461cfa02571ae0db9a0dc1e0cdb5577484a6d75e68dc38e8acc1 32B / 32B 0.8s done
+2025-07-28T18:53:48.5568293Z #7 sha256:86e38a7bd2e6ef4808a08ab7f5de538ee046e73d5eed810956ebe5e2dd30967f 70.25MB / 92.34MB 1.1s
+2025-07-28T18:53:48.5569435Z #7 sha256:e10405b45d13228df144c8d42d389347041bf176392f5f9606fc4a4d7826647d 16.78MB / 74.06MB 1.1s
+2025-07-28T18:53:48.6571542Z #7 sha256:86e38a7bd2e6ef4808a08ab7f5de538ee046e73d5eed810956ebe5e2dd30967f 81.64MB / 92.34MB 1.2s
+2025-07-28T18:53:48.6574460Z #7 sha256:e10405b45d13228df144c8d42d389347041bf176392f5f9606fc4a4d7826647d 22.02MB / 74.06MB 1.2s
+2025-07-28T18:53:48.8048725Z #7 sha256:86e38a7bd2e6ef4808a08ab7f5de538ee046e73d5eed810956ebe5e2dd30967f 89.13MB / 92.34MB 1.3s
+2025-07-28T18:53:48.8050111Z #7 sha256:e10405b45d13228df144c8d42d389347041bf176392f5f9606fc4a4d7826647d 30.41MB / 74.06MB 1.3s
+2025-07-28T18:53:48.9103606Z #7 sha256:86e38a7bd2e6ef4808a08ab7f5de538ee046e73d5eed810956ebe5e2dd30967f 92.34MB / 92.34MB 1.4s done
+2025-07-28T18:53:48.9104857Z #7 sha256:e10405b45d13228df144c8d42d389347041bf176392f5f9606fc4a4d7826647d 35.65MB / 74.06MB 1.4s
+2025-07-28T18:53:49.0131818Z #7 sha256:e10405b45d13228df144c8d42d389347041bf176392f5f9606fc4a4d7826647d 42.99MB / 74.06MB 1.5s
+2025-07-28T18:53:49.1171029Z #7 sha256:e10405b45d13228df144c8d42d389347041bf176392f5f9606fc4a4d7826647d 49.28MB / 74.06MB 1.6s
+2025-07-28T18:53:49.2340652Z #7 sha256:e10405b45d13228df144c8d42d389347041bf176392f5f9606fc4a4d7826647d 55.57MB / 74.06MB 1.7s
+2025-07-28T18:53:49.3567773Z #7 sha256:e10405b45d13228df144c8d42d389347041bf176392f5f9606fc4a4d7826647d 74.06MB / 74.06MB 1.9s done
+2025-07-28T18:53:49.6771511Z #7 extracting sha256:3e6b9d1a95114e19f12262a4e8a59ad1d1a10ca7b82108adcf0605a200294964 1.7s done
+2025-07-28T18:53:49.8368786Z #7 extracting sha256:37927ed901b1b2608b72796c6881bf645480268eca4ac9a37b9219e050bb4d84 0.1s
+2025-07-28T18:53:50.3873885Z #7 extracting sha256:37927ed901b1b2608b72796c6881bf645480268eca4ac9a37b9219e050bb4d84 0.5s done
+2025-07-28T18:53:50.5275946Z #7 extracting sha256:79b2f47ad4443652b9b5cc81a95ede249fd976310efdbee159f29638783778c0
+2025-07-28T18:53:52.7326419Z #7 extracting sha256:79b2f47ad4443652b9b5cc81a95ede249fd976310efdbee159f29638783778c0 2.1s done
+2025-07-28T18:53:52.8383169Z #7 extracting sha256:86e38a7bd2e6ef4808a08ab7f5de538ee046e73d5eed810956ebe5e2dd30967f
+2025-07-28T18:53:54.6632866Z #7 extracting sha256:86e38a7bd2e6ef4808a08ab7f5de538ee046e73d5eed810956ebe5e2dd30967f 1.8s done
+2025-07-28T18:53:55.0701045Z #7 extracting sha256:e10405b45d13228df144c8d42d389347041bf176392f5f9606fc4a4d7826647d
+2025-07-28T18:53:59.1283191Z #7 extracting sha256:e10405b45d13228df144c8d42d389347041bf176392f5f9606fc4a4d7826647d 3.9s done
+2025-07-28T18:53:59.6183373Z #7 extracting sha256:05996fe98294b61bc5bf02c69305b84d9db840baad71fd1b5c2fd7cf1686088c
+2025-07-28T18:53:59.8273549Z #7 extracting sha256:05996fe98294b61bc5bf02c69305b84d9db840baad71fd1b5c2fd7cf1686088c done
+2025-07-28T18:53:59.8274864Z #7 extracting sha256:4f4fb700ef54461cfa02571ae0db9a0dc1e0cdb5577484a6d75e68dc38e8acc1 done
+2025-07-28T18:53:59.8275327Z #7 DONE 12.2s
+2025-07-28T18:53:59.8275438Z 
+2025-07-28T18:53:59.8275536Z #9 [builder 2/8] WORKDIR /build
+2025-07-28T18:53:59.8275762Z #9 DONE 0.0s
+2025-07-28T18:53:59.8275874Z 
+2025-07-28T18:53:59.8275997Z #10 [builder 3/8] COPY go.mod go.sum avalanchego* ./
+2025-07-28T18:53:59.8276301Z #10 DONE 0.0s
+2025-07-28T18:53:59.8276419Z 
+2025-07-28T18:53:59.8276534Z #11 [builder 4/8] RUN go mod download && go mod tidy
+2025-07-28T18:54:07.8522242Z #11 8.175 go: warning: "all" matched no packages
+2025-07-28T18:54:09.9542269Z #11 DONE 10.3s
+2025-07-28T18:54:10.0999001Z 
+2025-07-28T18:54:10.0999494Z #12 [builder 5/8] COPY . .
+2025-07-28T18:54:10.0999873Z #12 DONE 0.1s
+2025-07-28T18:54:10.2098683Z 
+2025-07-28T18:54:10.2099512Z #13 [builder 6/8] RUN [ -d ./build ] && rm -rf ./build/* || true
+2025-07-28T18:54:10.2100116Z #13 DONE 0.1s
+2025-07-28T18:54:10.3616858Z 
+2025-07-28T18:54:10.3619506Z #14 [builder 7/8] RUN if [ "linux/amd64" = "linux/arm64" ] && [ "linux/amd64" != "linux/arm64" ]; then   apt-get update && apt-get install -y gcc-aarch64-linux-gnu &&   echo "export CC=aarch64-linux-gnu-gcc" > ./build_env.sh   ; elif [ "linux/amd64" = "linux/amd64" ] && [ "linux/amd64" != "linux/amd64" ]; then   apt-get update && apt-get install -y gcc-x86-64-linux-gnu &&   echo "export CC=x86_64-linux-gnu-gcc" > ./build_env.sh   ; else   echo "export CC=gcc" > ./build_env.sh   ; fi
+2025-07-28T18:54:10.3900386Z #14 DONE 0.2s
+2025-07-28T18:54:10.5188327Z 
+2025-07-28T18:54:10.5191027Z #15 [builder 8/8] RUN . ./build_env.sh &&   echo "{CC=$CC, TARGETPLATFORM=linux/amd64, BUILDPLATFORM=linux/amd64}" &&   export GOARCH=$(echo linux/amd64 | cut -d / -f2) &&   export CURRENT_BRANCH=740f5eb &&   export SUBNET_EVM_COMMIT=740f5ebbe5df6a0c1d20e5e4bc958b48e1ed9c6b &&   ./scripts/build.sh build/subnet-evm
+2025-07-28T18:54:10.5192788Z #15 0.128 {CC=gcc, TARGETPLATFORM=linux/amd64, BUILDPLATFORM=linux/amd64}
+2025-07-28T18:54:10.6880534Z #15 0.146 Using branch: 740f5eb
+2025-07-28T18:54:10.6881569Z #15 0.147 Building Subnet EVM @ GitCommit: 740f5ebbe5df6a0c1d20e5e4bc958b48e1ed9c6b at build/subnet-evm
+2025-07-28T18:55:18.1655735Z #15 DONE 67.8s
+2025-07-28T18:55:18.3525154Z 
+2025-07-28T18:55:18.3526233Z #16 [execution 2/2] COPY --from=builder /build/build/subnet-evm /avalanchego/build/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
+2025-07-28T18:55:18.3527227Z #16 DONE 0.1s
+2025-07-28T18:55:18.5042714Z 
+2025-07-28T18:55:18.5043512Z #17 exporting to image
+2025-07-28T18:55:18.5043905Z #17 exporting layers
+2025-07-28T18:55:19.0040066Z #17 exporting layers 0.7s done
+2025-07-28T18:55:19.0229477Z #17 writing image sha256:31e9b13009729a6cd66078ede69feaff66b770daecdf5af23812649f066692b5 done
+2025-07-28T18:55:19.0230603Z #17 naming to docker.io/library/subnet-evm_avalanchego:testtag done
+2025-07-28T18:55:19.0231354Z #17 naming to docker.io/library/subnet-evm_avalanchego:740f5ebb_v1.13.3 done
+2025-07-28T18:55:19.0232453Z #17 DONE 0.7s
+2025-07-28T18:55:19.0282710Z + echo 'listing images'
+2025-07-28T18:55:19.0283046Z listing images
+2025-07-28T18:55:19.0283516Z + docker images
+2025-07-28T18:55:19.0392589Z REPOSITORY                TAG                IMAGE ID       CREATED        SIZE
+2025-07-28T18:55:19.0393380Z subnet-evm_avalanchego    740f5ebb_v1.13.3   31e9b1300972   1 second ago   225MB
+2025-07-28T18:55:19.0394132Z subnet-evm_avalanchego    testtag            31e9b1300972   1 second ago   225MB
+2025-07-28T18:55:19.0394575Z avaplatform/avalanchego   v1.13.3            98c1bcc22e29   6 days ago     164MB
+2025-07-28T18:55:19.0406760Z + target_images=('subnet-evm_avalanchego:testtag' 'subnet-evm_avalanchego:740f5ebb_v1.13.3')
+2025-07-28T18:55:19.0407463Z + local target_images
+2025-07-28T18:55:19.0407758Z + IFS=,
+2025-07-28T18:55:19.0408275Z + read -r -a archarray
+2025-07-28T18:55:19.0425857Z + for arch in "${archarray[@]}"
+2025-07-28T18:55:19.0426279Z + for target_image in "${target_images[@]}"
+2025-07-28T18:55:19.0427308Z + echo 'checking sanity of image subnet-evm_avalanchego:testtag for linux/amd64 by running '\''srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy version'\'''
+2025-07-28T18:55:19.0428264Z checking sanity of image subnet-evm_avalanchego:testtag for linux/amd64 by running 'srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy version'
+2025-07-28T18:55:19.0429262Z + docker run -t --rm --platform linux/amd64 subnet-evm_avalanchego:testtag /avalanchego/build/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy --version
+2025-07-28T18:55:19.2183912Z Subnet-EVM/v0.7.7@740f5ebbe5df6a0c1d20e5e4bc958b48e1ed9c6b [AvalancheGo=v1.13.3, rpcchainvm=42]
+2025-07-28T18:55:19.2941728Z + for target_image in "${target_images[@]}"
+2025-07-28T18:55:19.2944027Z + echo 'checking sanity of image subnet-evm_avalanchego:740f5ebb_v1.13.3 for linux/amd64 by running '\''srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy version'\'''
+2025-07-28T18:55:19.2945914Z + docker run -t --rm --platform linux/amd64 subnet-evm_avalanchego:740f5ebb_v1.13.3 /avalanchego/build/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy --version
+2025-07-28T18:55:19.2947856Z checking sanity of image subnet-evm_avalanchego:740f5ebb_v1.13.3 for linux/amd64 by running 'srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy version'
+2025-07-28T18:55:19.4558276Z Subnet-EVM/v0.7.7@740f5ebbe5df6a0c1d20e5e4bc958b48e1ed9c6b [AvalancheGo=v1.13.3, rpcchainvm=42]
+2025-07-28T18:55:19.5231207Z + echo 'starting local docker registry to allow verification of multi-arch image builds'
+2025-07-28T18:55:19.5232412Z starting local docker registry to allow verification of multi-arch image builds
+2025-07-28T18:55:19.5233994Z ++ docker run --rm -d -P registry:2
+2025-07-28T18:55:19.5345303Z Unable to find image 'registry:2' locally
+2025-07-28T18:55:19.9950079Z 2: Pulling from library/registry
+2025-07-28T18:55:20.1129118Z 44cf07d57ee4: Pulling fs layer
+2025-07-28T18:55:20.1129591Z bbbdd6c6894b: Pulling fs layer
+2025-07-28T18:55:20.1129985Z 8e82f80af0de: Pulling fs layer
+2025-07-28T18:55:20.1130387Z 3493bf46cdec: Pulling fs layer
+2025-07-28T18:55:20.1130763Z 6d464ea18732: Pulling fs layer
+2025-07-28T18:55:20.1131123Z 3493bf46cdec: Waiting
+2025-07-28T18:55:20.1131446Z 6d464ea18732: Waiting
+2025-07-28T18:55:20.2265846Z bbbdd6c6894b: Verifying Checksum
+2025-07-28T18:55:20.2266316Z bbbdd6c6894b: Download complete
+2025-07-28T18:55:20.2718722Z 44cf07d57ee4: Verifying Checksum
+2025-07-28T18:55:20.2719373Z 44cf07d57ee4: Download complete
+2025-07-28T18:55:20.3258265Z 8e82f80af0de: Verifying Checksum
+2025-07-28T18:55:20.3261181Z 8e82f80af0de: Download complete
+2025-07-28T18:55:20.3381349Z 3493bf46cdec: Verifying Checksum
+2025-07-28T18:55:20.3381758Z 3493bf46cdec: Download complete
+2025-07-28T18:55:20.3744154Z 44cf07d57ee4: Pull complete
+2025-07-28T18:55:20.4032480Z 6d464ea18732: Verifying Checksum
+2025-07-28T18:55:20.4032936Z 6d464ea18732: Download complete
+2025-07-28T18:55:20.4724851Z bbbdd6c6894b: Pull complete
+2025-07-28T18:55:20.5626243Z 8e82f80af0de: Pull complete
+2025-07-28T18:55:20.5710746Z 3493bf46cdec: Pull complete
+2025-07-28T18:55:20.5795414Z 6d464ea18732: Pull complete
+2025-07-28T18:55:20.5829268Z Digest: sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373
+2025-07-28T18:55:20.5839321Z Status: Downloaded newer image for registry:2
+2025-07-28T18:55:20.7281069Z + REGISTRY_CONTAINER_ID=6eae2cf709380425ead41ef6e3b40adc91a8b0dbde396cb791a902f81728932c
+2025-07-28T18:55:20.7287345Z ++ docker port 6eae2cf709380425ead41ef6e3b40adc91a8b0dbde396cb791a902f81728932c 5000/tcp
+2025-07-28T18:55:20.7305050Z ++ grep -v ::
+2025-07-28T18:55:20.7305410Z ++ awk -F: '{print $NF}'
+2025-07-28T18:55:20.7433064Z + REGISTRY_PORT=32768
+2025-07-28T18:55:20.7433387Z starting docker builder that supports multiplatform builds
+2025-07-28T18:55:20.7434027Z + echo 'starting docker builder that supports multiplatform builds'
+2025-07-28T18:55:20.7434782Z + docker buildx create --use --name ci-builder --driver-opt network=host
+2025-07-28T18:55:20.7908155Z ci-builder
+2025-07-28T18:55:20.7939402Z + trap cleanup EXIT
+2025-07-28T18:55:20.7939946Z + echo 'checking build of multi-arch images'
+2025-07-28T18:55:20.7940398Z checking build of multi-arch images
+2025-07-28T18:55:20.7941361Z + build_and_test localhost:32768/subnet-evm_avalanchego srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy true localhost:32768/avalanchego
+2025-07-28T18:55:20.7942283Z + local imagename=localhost:32768/subnet-evm_avalanchego
+2025-07-28T18:55:20.7942673Z + local vm_id=srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
+2025-07-28T18:55:20.7943140Z + local multiarch_image=true
+2025-07-28T18:55:20.7943596Z + local avalanchego_local_image_name=localhost:32768/avalanchego
+2025-07-28T18:55:20.7944080Z + [[ true == true ]]
+2025-07-28T18:55:20.7944390Z + local arches=linux/amd64,linux/arm64
+2025-07-28T18:55:20.7944747Z + local imgtag=testtag
+2025-07-28T18:55:20.7944944Z + PLATFORMS=linux/amd64,linux/arm64
+2025-07-28T18:55:20.7945170Z + BUILD_IMAGE_ID=testtag
+2025-07-28T18:55:20.7945422Z + VM_ID=srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
+2025-07-28T18:55:20.7945754Z + IMAGE_NAME=localhost:32768/subnet-evm_avalanchego
+2025-07-28T18:55:20.7946063Z + AVALANCHEGO_LOCAL_IMAGE_NAME=localhost:32768/avalanchego
+2025-07-28T18:55:20.7946349Z + ./scripts/build_docker_image.sh
+2025-07-28T18:55:20.8158173Z Using branch: 740f5eb
+2025-07-28T18:55:21.1185355Z v1.13.3: Pulling from avaplatform/avalanchego
+2025-07-28T18:55:21.1231475Z Digest: sha256:e48a8e19390c9af72e0fb5ad95633b0a78485cf0f4e25121fcd4f1128b41b102
+2025-07-28T18:55:21.1232495Z Status: Image is up to date for avaplatform/avalanchego:v1.13.3
+2025-07-28T18:55:21.1238612Z docker.io/avaplatform/avalanchego:v1.13.3
+2025-07-28T18:55:21.1254961Z Building Docker Image: localhost:32768/subnet-evm_avalanchego:testtag based of AvalancheGo@v1.13.3
+2025-07-28T18:55:21.1673713Z #0 building with "ci-builder" instance using docker-container driver
+2025-07-28T18:55:21.1674227Z 
+2025-07-28T18:55:21.1674364Z #1 [internal] booting buildkit
+2025-07-28T18:55:21.3179531Z #1 pulling image moby/buildkit:buildx-stable-1
+2025-07-28T18:55:24.8137283Z #1 pulling image moby/buildkit:buildx-stable-1 3.6s done
+2025-07-28T18:55:24.9645469Z #1 creating container buildx_buildkit_ci-builder0
+2025-07-28T18:55:25.1139729Z #1 creating container buildx_buildkit_ci-builder0 0.3s done
+2025-07-28T18:55:25.2424861Z #1 DONE 3.9s
+2025-07-28T18:55:25.2425120Z 
+2025-07-28T18:55:25.2425593Z #2 [internal] load build definition from Dockerfile
+2025-07-28T18:55:25.2426396Z #2 transferring dockerfile: 2.42kB done
+2025-07-28T18:55:25.2426966Z #2 DONE 0.0s
+2025-07-28T18:55:25.2427175Z 
+2025-07-28T18:55:25.2427507Z #3 [auth] avaplatform/avalanchego:pull token for registry-1.docker.io
+2025-07-28T18:55:25.3930769Z #3 DONE 0.0s
+2025-07-28T18:55:25.3930978Z 
+2025-07-28T18:55:25.3931159Z #4 [auth] library/golang:pull token for registry-1.docker.io
+2025-07-28T18:55:25.3931494Z #4 DONE 0.0s
+2025-07-28T18:55:25.3931607Z 
+2025-07-28T18:55:25.3931848Z #5 [linux/arm64 internal] load metadata for docker.io/avaplatform/avalanchego:v1.13.3
+2025-07-28T18:55:25.5995146Z #5 ...
+2025-07-28T18:55:25.5995459Z 
+2025-07-28T18:55:25.5995879Z #6 [linux/amd64 internal] load metadata for docker.io/avaplatform/avalanchego:v1.13.3
+2025-07-28T18:55:25.5996508Z #6 DONE 0.4s
+2025-07-28T18:55:25.7124089Z 
+2025-07-28T18:55:25.7125302Z #5 [linux/arm64 internal] load metadata for docker.io/avaplatform/avalanchego:v1.13.3
+2025-07-28T18:55:25.7126037Z #5 DONE 0.5s
+2025-07-28T18:55:25.7126223Z 
+2025-07-28T18:55:25.7126916Z #7 [linux/amd64 internal] load metadata for docker.io/library/golang:1.23.9-bookworm
+2025-07-28T18:55:25.7127479Z #7 DONE 0.5s
+2025-07-28T18:55:25.7127628Z 
+2025-07-28T18:55:25.7127753Z #8 [internal] load .dockerignore
+2025-07-28T18:55:25.7128097Z #8 transferring context: 105B done
+2025-07-28T18:55:25.7128466Z #8 DONE 0.0s
+2025-07-28T18:55:25.7128633Z 
+2025-07-28T18:55:25.7129397Z #9 [linux/arm64 execution 1/2] FROM docker.io/avaplatform/avalanchego:v1.13.3@sha256:e48a8e19390c9af72e0fb5ad95633b0a78485cf0f4e25121fcd4f1128b41b102
+2025-07-28T18:55:25.7131457Z #9 resolve docker.io/avaplatform/avalanchego:v1.13.3@sha256:e48a8e19390c9af72e0fb5ad95633b0a78485cf0f4e25121fcd4f1128b41b102 done
+2025-07-28T18:55:25.8524401Z #9 sha256:4f4fb700ef54461cfa02571ae0db9a0dc1e0cdb5577484a6d75e68dc38e8acc1 32B / 32B 0.1s done
+2025-07-28T18:55:25.8527561Z #9 sha256:fa4c382ed3ed4cf7d8e03a779d654ecbe423021a3275f0bf88bbabc074671010 123B / 123B 0.1s done
+2025-07-28T18:55:25.8530336Z #9 sha256:e251ff45f0c3ffe1f5600bc10d06eccf81d884f989bc81e6a9eb5fca9a8b4bd3 6.29MB / 38.81MB 0.2s
+2025-07-28T18:55:25.9658750Z #9 sha256:b3407f3b5b5beb45007b2980ccef71785b08dae5a2dcbdd91272f35c4c5e784f 5.10MB / 28.08MB 0.2s
+2025-07-28T18:55:26.0789646Z #9 ...
+2025-07-28T18:55:26.0789932Z 
+2025-07-28T18:55:26.0790076Z #10 [internal] load build context
+2025-07-28T18:55:26.0790523Z #10 transferring context: 13.24MB 0.3s done
+2025-07-28T18:55:26.0790918Z #10 DONE 0.3s
+2025-07-28T18:55:26.0791090Z 
+2025-07-28T18:55:26.0791862Z #9 [linux/arm64 execution 1/2] FROM docker.io/avaplatform/avalanchego:v1.13.3@sha256:e48a8e19390c9af72e0fb5ad95633b0a78485cf0f4e25121fcd4f1128b41b102
+2025-07-28T18:55:26.0793448Z #9 sha256:e251ff45f0c3ffe1f5600bc10d06eccf81d884f989bc81e6a9eb5fca9a8b4bd3 18.87MB / 38.81MB 0.3s
+2025-07-28T18:55:26.0794554Z #9 sha256:b3407f3b5b5beb45007b2980ccef71785b08dae5a2dcbdd91272f35c4c5e784f 16.11MB / 28.08MB 0.3s
+2025-07-28T18:55:26.2202510Z #9 sha256:e251ff45f0c3ffe1f5600bc10d06eccf81d884f989bc81e6a9eb5fca9a8b4bd3 26.21MB / 38.81MB 0.5s
+2025-07-28T18:55:26.2204751Z #9 sha256:b3407f3b5b5beb45007b2980ccef71785b08dae5a2dcbdd91272f35c4c5e784f 28.08MB / 28.08MB 0.4s done
+2025-07-28T18:55:26.2205756Z #9 extracting sha256:b3407f3b5b5beb45007b2980ccef71785b08dae5a2dcbdd91272f35c4c5e784f
+2025-07-28T18:55:26.3702583Z #9 sha256:e251ff45f0c3ffe1f5600bc10d06eccf81d884f989bc81e6a9eb5fca9a8b4bd3 38.81MB / 38.81MB 0.6s done
+2025-07-28T18:55:27.5149783Z #9 extracting sha256:b3407f3b5b5beb45007b2980ccef71785b08dae5a2dcbdd91272f35c4c5e784f 1.3s done
+2025-07-28T18:55:27.5150929Z #9 extracting sha256:fa4c382ed3ed4cf7d8e03a779d654ecbe423021a3275f0bf88bbabc074671010 done
+2025-07-28T18:55:27.5152341Z #9 extracting sha256:4f4fb700ef54461cfa02571ae0db9a0dc1e0cdb5577484a6d75e68dc38e8acc1 done
+2025-07-28T18:55:27.5153343Z #9 extracting sha256:e251ff45f0c3ffe1f5600bc10d06eccf81d884f989bc81e6a9eb5fca9a8b4bd3
+2025-07-28T18:55:27.9413212Z #9 extracting sha256:e251ff45f0c3ffe1f5600bc10d06eccf81d884f989bc81e6a9eb5fca9a8b4bd3 0.5s done
+2025-07-28T18:55:27.9414050Z #9 DONE 2.3s
+2025-07-28T18:55:27.9414253Z 
+2025-07-28T18:55:27.9415725Z #11 [linux/amd64 builder 1/8] FROM docker.io/library/golang:1.23.9-bookworm@sha256:6a3aa4fd2c3e15bc8cb450e4a0ae353fb73b5f593bcbb5b25ffeee860cc2ec2a
+2025-07-28T18:55:27.9417315Z #11 resolve docker.io/library/golang:1.23.9-bookworm@sha256:6a3aa4fd2c3e15bc8cb450e4a0ae353fb73b5f593bcbb5b25ffeee860cc2ec2a done
+2025-07-28T18:55:27.9418535Z #11 sha256:05996fe98294b61bc5bf02c69305b84d9db840baad71fd1b5c2fd7cf1686088c 126B / 126B 0.1s done
+2025-07-28T18:55:27.9420133Z #11 sha256:e10405b45d13228df144c8d42d389347041bf176392f5f9606fc4a4d7826647d 74.06MB / 74.06MB 1.0s done
+2025-07-28T18:55:27.9421260Z #11 sha256:86e38a7bd2e6ef4808a08ab7f5de538ee046e73d5eed810956ebe5e2dd30967f 92.34MB / 92.34MB 1.1s done
+2025-07-28T18:55:27.9422607Z #11 sha256:79b2f47ad4443652b9b5cc81a95ede249fd976310efdbee159f29638783778c0 64.40MB / 64.40MB 0.8s done
+2025-07-28T18:55:27.9423692Z #11 sha256:37927ed901b1b2608b72796c6881bf645480268eca4ac9a37b9219e050bb4d84 24.02MB / 24.02MB 0.2s done
+2025-07-28T18:55:27.9425048Z #11 sha256:3e6b9d1a95114e19f12262a4e8a59ad1d1a10ca7b82108adcf0605a200294964 48.49MB / 48.49MB 0.9s done
+2025-07-28T18:55:27.9426023Z #11 extracting sha256:3e6b9d1a95114e19f12262a4e8a59ad1d1a10ca7b82108adcf0605a200294964
+2025-07-28T18:55:28.1766294Z #11 ...
+2025-07-28T18:55:28.1766546Z 
+2025-07-28T18:55:28.1767176Z #12 [linux/amd64 execution 1/2] FROM docker.io/avaplatform/avalanchego:v1.13.3@sha256:e48a8e19390c9af72e0fb5ad95633b0a78485cf0f4e25121fcd4f1128b41b102
+2025-07-28T18:55:28.1768364Z #12 resolve docker.io/avaplatform/avalanchego:v1.13.3@sha256:e48a8e19390c9af72e0fb5ad95633b0a78485cf0f4e25121fcd4f1128b41b102 0.0s done
+2025-07-28T18:55:28.1769654Z #12 sha256:6b75f5ca9b51514ad71e26d2f17f7a4aec9a3836a2d1871cfbaa27285f71f266 123B / 123B 0.1s done
+2025-07-28T18:55:28.1770486Z #12 sha256:b54ae1c8d5c84f1515a8f144cbe033004f66cbfbc512498336b79309bf0ac4a8 41.13MB / 41.13MB 0.8s done
+2025-07-28T18:55:28.1771328Z #12 sha256:59e22667830bf04fb35e15ed9c70023e9d121719bb87f0db7f3159ee7c7e0b8d 28.23MB / 28.23MB 0.5s done
+2025-07-28T18:55:28.1772312Z #12 extracting sha256:59e22667830bf04fb35e15ed9c70023e9d121719bb87f0db7f3159ee7c7e0b8d 1.1s done
+2025-07-28T18:55:28.1773067Z #12 extracting sha256:6b75f5ca9b51514ad71e26d2f17f7a4aec9a3836a2d1871cfbaa27285f71f266 done
+2025-07-28T18:55:28.1773750Z #12 extracting sha256:4f4fb700ef54461cfa02571ae0db9a0dc1e0cdb5577484a6d75e68dc38e8acc1 done
+2025-07-28T18:55:28.1774517Z #12 extracting sha256:b54ae1c8d5c84f1515a8f144cbe033004f66cbfbc512498336b79309bf0ac4a8 0.5s done
+2025-07-28T18:55:28.1775029Z #12 DONE 2.4s
+2025-07-28T18:55:28.3259027Z 
+2025-07-28T18:55:28.3260121Z #11 [linux/amd64 builder 1/8] FROM docker.io/library/golang:1.23.9-bookworm@sha256:6a3aa4fd2c3e15bc8cb450e4a0ae353fb73b5f593bcbb5b25ffeee860cc2ec2a
+2025-07-28T18:55:28.9007642Z #11 extracting sha256:3e6b9d1a95114e19f12262a4e8a59ad1d1a10ca7b82108adcf0605a200294964 1.2s done
+2025-07-28T18:55:28.9008423Z #11 DONE 3.3s
+2025-07-28T18:55:29.0515672Z 
+2025-07-28T18:55:29.0516763Z #11 [linux/amd64 builder 1/8] FROM docker.io/library/golang:1.23.9-bookworm@sha256:6a3aa4fd2c3e15bc8cb450e4a0ae353fb73b5f593bcbb5b25ffeee860cc2ec2a
+2025-07-28T18:55:29.0518048Z #11 extracting sha256:37927ed901b1b2608b72796c6881bf645480268eca4ac9a37b9219e050bb4d84
+2025-07-28T18:55:29.2588174Z #11 extracting sha256:37927ed901b1b2608b72796c6881bf645480268eca4ac9a37b9219e050bb4d84 0.4s done
+2025-07-28T18:55:29.2589090Z #11 DONE 3.6s
+2025-07-28T18:55:29.4093447Z 
+2025-07-28T18:55:29.4094520Z #11 [linux/amd64 builder 1/8] FROM docker.io/library/golang:1.23.9-bookworm@sha256:6a3aa4fd2c3e15bc8cb450e4a0ae353fb73b5f593bcbb5b25ffeee860cc2ec2a
+2025-07-28T18:55:29.4095832Z #11 extracting sha256:79b2f47ad4443652b9b5cc81a95ede249fd976310efdbee159f29638783778c0
+2025-07-28T18:55:30.6393767Z #11 extracting sha256:79b2f47ad4443652b9b5cc81a95ede249fd976310efdbee159f29638783778c0 1.4s done
+2025-07-28T18:55:30.6394629Z #11 DONE 5.0s
+2025-07-28T18:55:30.7898701Z 
+2025-07-28T18:55:30.7900722Z #11 [linux/amd64 builder 1/8] FROM docker.io/library/golang:1.23.9-bookworm@sha256:6a3aa4fd2c3e15bc8cb450e4a0ae353fb73b5f593bcbb5b25ffeee860cc2ec2a
+2025-07-28T18:55:30.7901536Z #11 extracting sha256:86e38a7bd2e6ef4808a08ab7f5de538ee046e73d5eed810956ebe5e2dd30967f
+2025-07-28T18:55:32.0152962Z #11 extracting sha256:86e38a7bd2e6ef4808a08ab7f5de538ee046e73d5eed810956ebe5e2dd30967f 1.4s done
+2025-07-28T18:55:32.0153790Z #11 DONE 6.4s
+2025-07-28T18:55:32.1658736Z 
+2025-07-28T18:55:32.1660160Z #11 [linux/amd64 builder 1/8] FROM docker.io/library/golang:1.23.9-bookworm@sha256:6a3aa4fd2c3e15bc8cb450e4a0ae353fb73b5f593bcbb5b25ffeee860cc2ec2a
+2025-07-28T18:55:32.1661532Z #11 extracting sha256:e10405b45d13228df144c8d42d389347041bf176392f5f9606fc4a4d7826647d
+2025-07-28T18:55:34.7871876Z #11 extracting sha256:e10405b45d13228df144c8d42d389347041bf176392f5f9606fc4a4d7826647d 2.8s done
+2025-07-28T18:55:34.7872967Z #11 DONE 9.1s
+2025-07-28T18:55:34.9476184Z 
+2025-07-28T18:55:34.9477476Z #11 [linux/amd64 builder 1/8] FROM docker.io/library/golang:1.23.9-bookworm@sha256:6a3aa4fd2c3e15bc8cb450e4a0ae353fb73b5f593bcbb5b25ffeee860cc2ec2a
+2025-07-28T18:55:34.9478864Z #11 extracting sha256:05996fe98294b61bc5bf02c69305b84d9db840baad71fd1b5c2fd7cf1686088c done
+2025-07-28T18:55:34.9479568Z #11 extracting sha256:4f4fb700ef54461cfa02571ae0db9a0dc1e0cdb5577484a6d75e68dc38e8acc1 done
+2025-07-28T18:55:34.9480041Z #11 DONE 9.2s
+2025-07-28T18:55:34.9480159Z 
+2025-07-28T18:55:34.9480267Z #13 [linux/amd64 builder 2/8] WORKDIR /build
+2025-07-28T18:55:37.8227465Z #13 DONE 3.0s
+2025-07-28T18:55:38.0209263Z 
+2025-07-28T18:55:38.0209855Z #14 [linux/amd64 builder 3/8] COPY go.mod go.sum avalanchego* ./
+2025-07-28T18:55:38.0210575Z #14 DONE 0.0s
+2025-07-28T18:55:38.0210696Z 
+2025-07-28T18:55:38.0210864Z #15 [linux/amd64 builder 4/8] RUN go mod download && go mod tidy
+2025-07-28T18:55:46.1564245Z #15 8.286 go: warning: "all" matched no packages
+2025-07-28T18:55:48.2568507Z #15 DONE 10.4s
+2025-07-28T18:55:48.4080257Z 
+2025-07-28T18:55:48.4080744Z #16 [linux/amd64 builder 5/8] COPY . .
+2025-07-28T18:55:48.7150868Z #16 DONE 0.5s
+2025-07-28T18:55:48.8951031Z 
+2025-07-28T18:55:48.8952330Z #17 [linux/amd64 builder 6/8] RUN [ -d ./build ] && rm -rf ./build/* || true
+2025-07-28T18:55:48.8952941Z #17 DONE 0.1s
+2025-07-28T18:55:48.8953115Z 
+2025-07-28T18:55:48.8955132Z #18 [linux/amd64 builder 7/8] RUN if [ "linux/amd64" = "linux/arm64" ] && [ "linux/amd64" != "linux/arm64" ]; then   apt-get update && apt-get install -y gcc-aarch64-linux-gnu &&   echo "export CC=aarch64-linux-gnu-gcc" > ./build_env.sh   ; elif [ "linux/amd64" = "linux/amd64" ] && [ "linux/amd64" != "linux/amd64" ]; then   apt-get update && apt-get install -y gcc-x86-64-linux-gnu &&   echo "export CC=x86_64-linux-gnu-gcc" > ./build_env.sh   ; else   echo "export CC=gcc" > ./build_env.sh   ; fi
+2025-07-28T18:55:48.8957488Z #18 DONE 0.1s
+2025-07-28T18:55:48.8957668Z 
+2025-07-28T18:55:48.8959757Z #19 [linux/amd64->arm64 builder 7/8] RUN if [ "linux/arm64" = "linux/arm64" ] && [ "linux/amd64" != "linux/arm64" ]; then   apt-get update && apt-get install -y gcc-aarch64-linux-gnu &&   echo "export CC=aarch64-linux-gnu-gcc" > ./build_env.sh   ; elif [ "linux/arm64" = "linux/amd64" ] && [ "linux/amd64" != "linux/amd64" ]; then   apt-get update && apt-get install -y gcc-x86-64-linux-gnu &&   echo "export CC=x86_64-linux-gnu-gcc" > ./build_env.sh   ; else   echo "export CC=gcc" > ./build_env.sh   ; fi
+2025-07-28T18:55:49.0289604Z #19 0.170 Get:1 http://deb.debian.org/debian bookworm InRelease [151 kB]
+2025-07-28T18:55:49.0290421Z #19 0.182 Get:2 http://deb.debian.org/debian bookworm-updates InRelease [55.4 kB]
+2025-07-28T18:55:49.0297034Z #19 0.183 Get:3 http://deb.debian.org/debian-security bookworm-security InRelease [48.0 kB]
+2025-07-28T18:55:49.0297963Z #19 0.249 Get:4 http://deb.debian.org/debian bookworm/main amd64 Packages [8793 kB]
+2025-07-28T18:55:49.1741081Z #19 0.324 Get:5 http://deb.debian.org/debian bookworm-updates/main amd64 Packages [756 B]
+2025-07-28T18:55:49.1742353Z #19 0.394 Get:6 http://deb.debian.org/debian-security bookworm-security/main amd64 Packages [272 kB]
+2025-07-28T18:55:50.0092945Z #19 1.229 Fetched 9320 kB in 1s (8582 kB/s)
+2025-07-28T18:55:50.7122584Z #19 1.229 Reading package lists...
+2025-07-28T18:55:51.1747559Z #19 1.957 Reading package lists...
+2025-07-28T18:55:51.3181328Z #19 2.405 Building dependency tree...
+2025-07-28T18:55:51.4808939Z #19 2.538 Reading state information...
+2025-07-28T18:55:51.4816790Z #19 2.630 The following additional packages will be installed:
+2025-07-28T18:55:51.4817970Z #19 2.632   binutils-aarch64-linux-gnu cpp-12-aarch64-linux-gnu cpp-aarch64-linux-gnu
+2025-07-28T18:55:51.4819424Z #19 2.632   gcc-12-aarch64-linux-gnu gcc-12-aarch64-linux-gnu-base gcc-12-cross-base
+2025-07-28T18:55:51.4820417Z #19 2.632   libasan8-arm64-cross libatomic1-arm64-cross libc6-arm64-cross
+2025-07-28T18:55:51.4821271Z #19 2.632   libc6-dev-arm64-cross libgcc-12-dev-arm64-cross libgcc-s1-arm64-cross
+2025-07-28T18:55:51.4822570Z #19 2.632   libgomp1-arm64-cross libhwasan0-arm64-cross libitm1-arm64-cross
+2025-07-28T18:55:51.4823863Z #19 2.632   liblsan0-arm64-cross libstdc++6-arm64-cross libtsan2-arm64-cross
+2025-07-28T18:55:51.4825647Z #19 2.632   libubsan1-arm64-cross linux-libc-dev-arm64-cross
+2025-07-28T18:55:51.4826383Z #19 2.633 Suggested packages:
+2025-07-28T18:55:51.4827161Z #19 2.633   binutils-doc gcc-12-locales cpp-12-doc cpp-doc gcc-12-doc manpages-dev
+2025-07-28T18:55:51.4828118Z #19 2.633   autoconf automake libtool flex bison gdb-aarch64-linux-gnu gcc-doc
+2025-07-28T18:55:51.4828920Z #19 2.701 The following NEW packages will be installed:
+2025-07-28T18:55:51.4829694Z #19 2.701   binutils-aarch64-linux-gnu cpp-12-aarch64-linux-gnu cpp-aarch64-linux-gnu
+2025-07-28T18:55:51.4830756Z #19 2.701   gcc-12-aarch64-linux-gnu gcc-12-aarch64-linux-gnu-base gcc-12-cross-base
+2025-07-28T18:55:51.5969059Z #19 2.701   gcc-aarch64-linux-gnu libasan8-arm64-cross libatomic1-arm64-cross
+2025-07-28T18:55:51.5970668Z #19 2.701   libc6-arm64-cross libc6-dev-arm64-cross libgcc-12-dev-arm64-cross
+2025-07-28T18:55:51.5982828Z #19 2.701   libgcc-s1-arm64-cross libgomp1-arm64-cross libhwasan0-arm64-cross
+2025-07-28T18:55:51.5983965Z #19 2.702   libitm1-arm64-cross liblsan0-arm64-cross libstdc++6-arm64-cross
+2025-07-28T18:55:51.5985827Z #19 2.702   libtsan2-arm64-cross libubsan1-arm64-cross linux-libc-dev-arm64-cross
+2025-07-28T18:55:51.5986632Z #19 2.735 0 upgraded, 21 newly installed, 0 to remove and 5 not upgraded.
+2025-07-28T18:55:51.5987218Z #19 2.735 Need to get 43.6 MB of archives.
+2025-07-28T18:55:51.5987800Z #19 2.735 After this operation, 159 MB of additional disk space will be used.
+2025-07-28T18:55:51.5988768Z #19 2.735 Get:1 http://deb.debian.org/debian bookworm/main amd64 binutils-aarch64-linux-gnu amd64 2.40-2 [3353 kB]
+2025-07-28T18:55:51.5990018Z #19 2.767 Get:2 http://deb.debian.org/debian bookworm/main amd64 gcc-12-aarch64-linux-gnu-base amd64 12.2.0-14cross1 [37.7 kB]
+2025-07-28T18:55:51.5991238Z #19 2.774 Get:3 http://deb.debian.org/debian bookworm/main amd64 cpp-12-aarch64-linux-gnu amd64 12.2.0-14cross1 [9150 kB]
+2025-07-28T18:55:51.5992611Z #19 2.816 Get:4 http://deb.debian.org/debian bookworm/main amd64 cpp-aarch64-linux-gnu amd64 4:12.2.0-3 [3980 B]
+2025-07-28T18:55:51.7234061Z #19 2.817 Get:5 http://deb.debian.org/debian bookworm/main amd64 gcc-12-cross-base all 12.2.0-14cross1 [33.2 kB]
+2025-07-28T18:55:51.7242889Z #19 2.818 Get:6 http://deb.debian.org/debian bookworm/main amd64 libc6-arm64-cross all 2.36-8cross1 [1005 kB]
+2025-07-28T18:55:51.7244092Z #19 2.823 Get:7 http://deb.debian.org/debian bookworm/main amd64 libgcc-s1-arm64-cross all 12.2.0-14cross1 [34.8 kB]
+2025-07-28T18:55:51.7245255Z #19 2.825 Get:8 http://deb.debian.org/debian bookworm/main amd64 libgomp1-arm64-cross all 12.2.0-14cross1 [102 kB]
+2025-07-28T18:55:51.7246462Z #19 2.825 Get:9 http://deb.debian.org/debian bookworm/main amd64 libitm1-arm64-cross all 12.2.0-14cross1 [23.5 kB]
+2025-07-28T18:55:51.7247634Z #19 2.825 Get:10 http://deb.debian.org/debian bookworm/main amd64 libatomic1-arm64-cross all 12.2.0-14cross1 [9292 B]
+2025-07-28T18:55:51.7248810Z #19 2.826 Get:11 http://deb.debian.org/debian bookworm/main amd64 libasan8-arm64-cross all 12.2.0-14cross1 [2097 kB]
+2025-07-28T18:55:51.7249992Z #19 2.835 Get:12 http://deb.debian.org/debian bookworm/main amd64 liblsan0-arm64-cross all 12.2.0-14cross1 [926 kB]
+2025-07-28T18:55:51.7251192Z #19 2.839 Get:13 http://deb.debian.org/debian bookworm/main amd64 libtsan2-arm64-cross all 12.2.0-14cross1 [2179 kB]
+2025-07-28T18:55:51.7252691Z #19 2.848 Get:14 http://deb.debian.org/debian bookworm/main amd64 libstdc++6-arm64-cross all 12.2.0-14cross1 [514 kB]
+2025-07-28T18:55:51.7253912Z #19 2.851 Get:15 http://deb.debian.org/debian bookworm/main amd64 libubsan1-arm64-cross all 12.2.0-14cross1 [861 kB]
+2025-07-28T18:55:51.7255127Z #19 2.856 Get:16 http://deb.debian.org/debian bookworm/main amd64 libhwasan0-arm64-cross all 12.2.0-14cross1 [998 kB]
+2025-07-28T18:55:51.7256345Z #19 2.861 Get:17 http://deb.debian.org/debian bookworm/main amd64 libgcc-12-dev-arm64-cross all 12.2.0-14cross1 [961 kB]
+2025-07-28T18:55:51.7257568Z #19 2.867 Get:18 http://deb.debian.org/debian bookworm/main amd64 gcc-12-aarch64-linux-gnu amd64 12.2.0-14cross1 [18.0 MB]
+2025-07-28T18:55:51.7259111Z #19 2.943 Get:19 http://deb.debian.org/debian bookworm/main amd64 gcc-aarch64-linux-gnu amd64 4:12.2.0-3 [1468 B]
+2025-07-28T18:55:51.8844498Z #19 2.947 Get:20 http://deb.debian.org/debian bookworm/main amd64 linux-libc-dev-arm64-cross all 6.1.4-1cross1 [1815 kB]
+2025-07-28T18:55:51.8846005Z #19 2.953 Get:21 http://deb.debian.org/debian bookworm/main amd64 libc6-dev-arm64-cross all 2.36-8cross1 [1424 kB]
+2025-07-28T18:55:51.9049503Z #19 3.125 debconf: delaying package configuration, since apt-utils is not installed
+2025-07-28T18:55:52.0057598Z #19 3.170 Fetched 43.6 MB in 0s (173 MB/s)
+2025-07-28T18:55:52.0059093Z #19 3.203 Selecting previously unselected package binutils-aarch64-linux-gnu.
+2025-07-28T18:55:52.0061219Z #19 3.203 (Reading database ... 
+2025-07-28T18:55:52.0061631Z (Reading database ... 5%
+2025-07-28T18:55:52.0062213Z (Reading database ... 10%
+2025-07-28T18:55:52.0062613Z (Reading database ... 15%
+2025-07-28T18:55:52.0062971Z (Reading database ... 20%
+2025-07-28T18:55:52.0063380Z (Reading database ... 25%
+2025-07-28T18:55:52.0063803Z (Reading database ... 30%
+2025-07-28T18:55:52.0064144Z (Reading database ... 35%
+2025-07-28T18:55:52.0064483Z (Reading database ... 40%
+2025-07-28T18:55:52.0064815Z (Reading database ... 45%
+2025-07-28T18:55:52.0065159Z (Reading database ... 50%
+2025-07-28T18:55:52.0065485Z (Reading database ... 55%
+2025-07-28T18:55:52.0065837Z (Reading database ... 60%
+2025-07-28T18:55:52.0066177Z (Reading database ... 65%
+2025-07-28T18:55:52.0066544Z (Reading database ... 70%
+2025-07-28T18:55:52.0066877Z (Reading database ... 75%
+2025-07-28T18:55:52.0067219Z (Reading database ... 80%
+2025-07-28T18:55:52.0067548Z (Reading database ... 85%
+2025-07-28T18:55:52.0067894Z (Reading database ... 90%
+2025-07-28T18:55:52.0068237Z (Reading database ... 95%
+2025-07-28T18:55:52.0068573Z (Reading database ... 100%
+2025-07-28T18:55:52.0069077Z (Reading database ... 15609 files and directories currently installed.)
+2025-07-28T18:55:52.0069884Z #19 3.222 Preparing to unpack .../00-binutils-aarch64-linux-gnu_2.40-2_amd64.deb ...
+2025-07-28T18:55:52.0070620Z #19 3.226 Unpacking binutils-aarch64-linux-gnu (2.40-2) ...
+2025-07-28T18:55:52.3829631Z #19 3.603 Selecting previously unselected package gcc-12-aarch64-linux-gnu-base:amd64.
+2025-07-28T18:55:52.5857296Z #19 3.610 Preparing to unpack .../01-gcc-12-aarch64-linux-gnu-base_12.2.0-14cross1_amd64.deb ...
+2025-07-28T18:55:52.5860305Z #19 3.611 Unpacking gcc-12-aarch64-linux-gnu-base:amd64 (12.2.0-14cross1) ...
+2025-07-28T18:55:52.5861111Z #19 3.647 Selecting previously unselected package cpp-12-aarch64-linux-gnu.
+2025-07-28T18:55:52.5862168Z #19 3.649 Preparing to unpack .../02-cpp-12-aarch64-linux-gnu_12.2.0-14cross1_amd64.deb ...
+2025-07-28T18:55:52.5862938Z #19 3.655 Unpacking cpp-12-aarch64-linux-gnu (12.2.0-14cross1) ...
+2025-07-28T18:55:53.1679604Z #19 4.388 Selecting previously unselected package cpp-aarch64-linux-gnu.
+2025-07-28T18:55:53.4078931Z #19 4.390 Preparing to unpack .../03-cpp-aarch64-linux-gnu_4%3a12.2.0-3_amd64.deb ...
+2025-07-28T18:55:53.4083592Z #19 4.393 Unpacking cpp-aarch64-linux-gnu (4:12.2.0-3) ...
+2025-07-28T18:55:53.4084306Z #19 4.436 Selecting previously unselected package gcc-12-cross-base.
+2025-07-28T18:55:53.4085048Z #19 4.441 Preparing to unpack .../04-gcc-12-cross-base_12.2.0-14cross1_all.deb ...
+2025-07-28T18:55:53.4085722Z #19 4.449 Unpacking gcc-12-cross-base (12.2.0-14cross1) ...
+2025-07-28T18:55:53.4086337Z #19 4.481 Selecting previously unselected package libc6-arm64-cross.
+2025-07-28T18:55:53.4087096Z #19 4.487 Preparing to unpack .../05-libc6-arm64-cross_2.36-8cross1_all.deb ...
+2025-07-28T18:55:53.4087742Z #19 4.488 Unpacking libc6-arm64-cross (2.36-8cross1) ...
+2025-07-28T18:55:53.4088368Z #19 4.628 Selecting previously unselected package libgcc-s1-arm64-cross.
+2025-07-28T18:55:53.5566257Z #19 4.632 Preparing to unpack .../06-libgcc-s1-arm64-cross_12.2.0-14cross1_all.deb ...
+2025-07-28T18:55:53.5567413Z #19 4.633 Unpacking libgcc-s1-arm64-cross (12.2.0-14cross1) ...
+2025-07-28T18:55:53.5568072Z #19 4.662 Selecting previously unselected package libgomp1-arm64-cross.
+2025-07-28T18:55:53.5568775Z #19 4.667 Preparing to unpack .../07-libgomp1-arm64-cross_12.2.0-14cross1_all.deb ...
+2025-07-28T18:55:53.5569398Z #19 4.668 Unpacking libgomp1-arm64-cross (12.2.0-14cross1) ...
+2025-07-28T18:55:53.5569981Z #19 4.717 Selecting previously unselected package libitm1-arm64-cross.
+2025-07-28T18:55:53.5570622Z #19 4.720 Preparing to unpack .../08-libitm1-arm64-cross_12.2.0-14cross1_all.deb ...
+2025-07-28T18:55:53.5571430Z #19 4.727 Unpacking libitm1-arm64-cross (12.2.0-14cross1) ...
+2025-07-28T18:55:53.5572202Z #19 4.776 Selecting previously unselected package libatomic1-arm64-cross.
+2025-07-28T18:55:53.7463576Z #19 4.780 Preparing to unpack .../09-libatomic1-arm64-cross_12.2.0-14cross1_all.deb ...
+2025-07-28T18:55:53.7464397Z #19 4.783 Unpacking libatomic1-arm64-cross (12.2.0-14cross1) ...
+2025-07-28T18:55:53.7465096Z #19 4.809 Selecting previously unselected package libasan8-arm64-cross.
+2025-07-28T18:55:53.7465876Z #19 4.815 Preparing to unpack .../10-libasan8-arm64-cross_12.2.0-14cross1_all.deb ...
+2025-07-28T18:55:53.7466587Z #19 4.816 Unpacking libasan8-arm64-cross (12.2.0-14cross1) ...
+2025-07-28T18:55:53.8349929Z #19 5.053 Selecting previously unselected package liblsan0-arm64-cross.
+2025-07-28T18:55:53.9876668Z #19 5.056 Preparing to unpack .../11-liblsan0-arm64-cross_12.2.0-14cross1_all.deb ...
+2025-07-28T18:55:53.9877512Z #19 5.059 Unpacking liblsan0-arm64-cross (12.2.0-14cross1) ...
+2025-07-28T18:55:53.9878212Z #19 5.207 Selecting previously unselected package libtsan2-arm64-cross.
+2025-07-28T18:55:54.1440629Z #19 5.211 Preparing to unpack .../12-libtsan2-arm64-cross_12.2.0-14cross1_all.deb ...
+2025-07-28T18:55:54.1441677Z #19 5.214 Unpacking libtsan2-arm64-cross (12.2.0-14cross1) ...
+2025-07-28T18:55:54.2657613Z #19 5.486 Selecting previously unselected package libstdc++6-arm64-cross.
+2025-07-28T18:55:54.3781281Z #19 5.491 Preparing to unpack .../13-libstdc++6-arm64-cross_12.2.0-14cross1_all.deb ...
+2025-07-28T18:55:54.3783792Z #19 5.494 Unpacking libstdc++6-arm64-cross (12.2.0-14cross1) ...
+2025-07-28T18:55:54.3784490Z #19 5.598 Selecting previously unselected package libubsan1-arm64-cross.
+2025-07-28T18:55:54.5063584Z #19 5.601 Preparing to unpack .../14-libubsan1-arm64-cross_12.2.0-14cross1_all.deb ...
+2025-07-28T18:55:54.5064532Z #19 5.602 Unpacking libubsan1-arm64-cross (12.2.0-14cross1) ...
+2025-07-28T18:55:54.5065219Z #19 5.726 Selecting previously unselected package libhwasan0-arm64-cross.
+2025-07-28T18:55:54.6384035Z #19 5.730 Preparing to unpack .../15-libhwasan0-arm64-cross_12.2.0-14cross1_all.deb ...
+2025-07-28T18:55:54.6386505Z #19 5.732 Unpacking libhwasan0-arm64-cross (12.2.0-14cross1) ...
+2025-07-28T18:55:54.6387181Z #19 5.859 Selecting previously unselected package libgcc-12-dev-arm64-cross.
+2025-07-28T18:55:54.7944578Z #19 5.862 Preparing to unpack .../16-libgcc-12-dev-arm64-cross_12.2.0-14cross1_all.deb ...
+2025-07-28T18:55:54.7947684Z #19 5.864 Unpacking libgcc-12-dev-arm64-cross (12.2.0-14cross1) ...
+2025-07-28T18:55:54.8002436Z #19 6.020 Selecting previously unselected package gcc-12-aarch64-linux-gnu.
+2025-07-28T18:55:54.9613794Z #19 6.023 Preparing to unpack .../17-gcc-12-aarch64-linux-gnu_12.2.0-14cross1_amd64.deb ...
+2025-07-28T18:55:54.9615024Z #19 6.029 Unpacking gcc-12-aarch64-linux-gnu (12.2.0-14cross1) ...
+2025-07-28T18:55:55.8190226Z #19 7.039 Selecting previously unselected package gcc-aarch64-linux-gnu.
+2025-07-28T18:55:56.0225442Z #19 7.045 Preparing to unpack .../18-gcc-aarch64-linux-gnu_4%3a12.2.0-3_amd64.deb ...
+2025-07-28T18:55:56.0227143Z #19 7.046 Unpacking gcc-aarch64-linux-gnu (4:12.2.0-3) ...
+2025-07-28T18:55:56.0228589Z #19 7.084 Selecting previously unselected package linux-libc-dev-arm64-cross.
+2025-07-28T18:55:56.0229752Z #19 7.088 Preparing to unpack .../19-linux-libc-dev-arm64-cross_6.1.4-1cross1_all.deb ...
+2025-07-28T18:55:56.0230787Z #19 7.092 Unpacking linux-libc-dev-arm64-cross (6.1.4-1cross1) ...
+2025-07-28T18:55:56.1827581Z #19 7.402 Selecting previously unselected package libc6-dev-arm64-cross.
+2025-07-28T18:55:56.3372639Z #19 7.405 Preparing to unpack .../20-libc6-dev-arm64-cross_2.36-8cross1_all.deb ...
+2025-07-28T18:55:56.3373421Z #19 7.406 Unpacking libc6-dev-arm64-cross (2.36-8cross1) ...
+2025-07-28T18:55:56.5100016Z #19 7.628 Setting up gcc-12-cross-base (12.2.0-14cross1) ...
+2025-07-28T18:55:56.5101252Z #19 7.637 Setting up gcc-12-aarch64-linux-gnu-base:amd64 (12.2.0-14cross1) ...
+2025-07-28T18:55:56.5103955Z #19 7.643 Setting up binutils-aarch64-linux-gnu (2.40-2) ...
+2025-07-28T18:55:56.5104556Z #19 7.647 Setting up libc6-arm64-cross (2.36-8cross1) ...
+2025-07-28T18:55:56.5108258Z #19 7.650 Setting up libitm1-arm64-cross (12.2.0-14cross1) ...
+2025-07-28T18:55:56.5108968Z #19 7.653 Setting up linux-libc-dev-arm64-cross (6.1.4-1cross1) ...
+2025-07-28T18:55:56.5109846Z #19 7.656 Setting up libgcc-s1-arm64-cross (12.2.0-14cross1) ...
+2025-07-28T18:55:56.5110511Z #19 7.666 Setting up libatomic1-arm64-cross (12.2.0-14cross1) ...
+2025-07-28T18:55:56.5111371Z #19 7.674 Setting up liblsan0-arm64-cross (12.2.0-14cross1) ...
+2025-07-28T18:55:56.5112176Z #19 7.679 Setting up libgomp1-arm64-cross (12.2.0-14cross1) ...
+2025-07-28T18:55:56.5112806Z #19 7.683 Setting up cpp-12-aarch64-linux-gnu (12.2.0-14cross1) ...
+2025-07-28T18:55:56.5113453Z #19 7.686 Setting up libhwasan0-arm64-cross (12.2.0-14cross1) ...
+2025-07-28T18:55:56.5114046Z #19 7.689 Setting up libc6-dev-arm64-cross (2.36-8cross1) ...
+2025-07-28T18:55:56.5114708Z #19 7.700 Setting up libstdc++6-arm64-cross (12.2.0-14cross1) ...
+2025-07-28T18:55:56.5115329Z #19 7.709 Setting up cpp-aarch64-linux-gnu (4:12.2.0-3) ...
+2025-07-28T18:55:56.5115922Z #19 7.717 Setting up libasan8-arm64-cross (12.2.0-14cross1) ...
+2025-07-28T18:55:56.5119073Z #19 7.721 Setting up libtsan2-arm64-cross (12.2.0-14cross1) ...
+2025-07-28T18:55:56.5119716Z #19 7.730 Setting up libubsan1-arm64-cross (12.2.0-14cross1) ...
+2025-07-28T18:55:56.5122242Z #19 7.730 Setting up libgcc-12-dev-arm64-cross (12.2.0-14cross1) ...
+2025-07-28T18:55:56.6730555Z #19 7.733 Setting up gcc-12-aarch64-linux-gnu (12.2.0-14cross1) ...
+2025-07-28T18:55:56.6731641Z #19 7.737 Setting up gcc-aarch64-linux-gnu (4:12.2.0-3) ...
+2025-07-28T18:55:56.6732601Z #19 7.742 Processing triggers for libc-bin (2.36-9+deb12u10) ...
+2025-07-28T18:55:56.9122636Z #19 DONE 8.1s
+2025-07-28T18:55:56.9124103Z 
+2025-07-28T18:55:56.9125706Z #20 [linux/amd64 builder 8/8] RUN . ./build_env.sh &&   echo "{CC=$CC, TARGETPLATFORM=linux/amd64, BUILDPLATFORM=linux/amd64}" &&   export GOARCH=$(echo linux/amd64 | cut -d / -f2) &&   export CURRENT_BRANCH=740f5eb &&   export SUBNET_EVM_COMMIT=740f5ebbe5df6a0c1d20e5e4bc958b48e1ed9c6b &&   ./scripts/build.sh build/subnet-evm
+2025-07-28T18:55:56.9127784Z #20 0.049 {CC=gcc, TARGETPLATFORM=linux/amd64, BUILDPLATFORM=linux/amd64}
+2025-07-28T18:55:56.9128355Z #20 0.070 Using branch: 740f5eb
+2025-07-28T18:55:56.9129039Z #20 0.070 Building Subnet EVM @ GitCommit: 740f5ebbe5df6a0c1d20e5e4bc958b48e1ed9c6b at build/subnet-evm
+2025-07-28T18:55:57.0168680Z #20 ...
+2025-07-28T18:55:57.0173376Z 
+2025-07-28T18:55:57.0175086Z #21 [linux/amd64->arm64 builder 8/8] RUN . ./build_env.sh &&   echo "{CC=$CC, TARGETPLATFORM=linux/arm64, BUILDPLATFORM=linux/amd64}" &&   export GOARCH=$(echo linux/arm64 | cut -d / -f2) &&   export CURRENT_BRANCH=740f5eb &&   export SUBNET_EVM_COMMIT=740f5ebbe5df6a0c1d20e5e4bc958b48e1ed9c6b &&   ./scripts/build.sh build/subnet-evm
+2025-07-28T18:55:57.0177766Z #21 0.102 {CC=aarch64-linux-gnu-gcc, TARGETPLATFORM=linux/arm64, BUILDPLATFORM=linux/amd64}
+2025-07-28T18:55:57.2088624Z #21 0.143 Using branch: 740f5eb
+2025-07-28T18:55:57.2090037Z #21 0.144 Building Subnet EVM @ GitCommit: 740f5ebbe5df6a0c1d20e5e4bc958b48e1ed9c6b at build/subnet-evm
+2025-07-28T18:57:46.9093610Z #21 ...
+2025-07-28T18:57:46.9094221Z 
+2025-07-28T18:57:46.9100167Z #20 [linux/amd64 builder 8/8] RUN . ./build_env.sh &&   echo "{CC=$CC, TARGETPLATFORM=linux/amd64, BUILDPLATFORM=linux/amd64}" &&   export GOARCH=$(echo linux/amd64 | cut -d / -f2) &&   export CURRENT_BRANCH=740f5eb &&   export SUBNET_EVM_COMMIT=740f5ebbe5df6a0c1d20e5e4bc958b48e1ed9c6b &&   ./scripts/build.sh build/subnet-evm
+2025-07-28T18:57:46.9103200Z #20 DONE 118.0s
+2025-07-28T18:57:47.1173773Z 
+2025-07-28T18:57:47.1174949Z #22 [linux/amd64 execution 2/2] COPY --from=builder /build/build/subnet-evm /avalanchego/build/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
+2025-07-28T18:57:47.1176026Z #22 DONE 0.2s
+2025-07-28T18:57:47.1176202Z 
+2025-07-28T18:57:47.1178123Z #21 [linux/amd64->arm64 builder 8/8] RUN . ./build_env.sh &&   echo "{CC=$CC, TARGETPLATFORM=linux/arm64, BUILDPLATFORM=linux/amd64}" &&   export GOARCH=$(echo linux/arm64 | cut -d / -f2) &&   export CURRENT_BRANCH=740f5eb &&   export SUBNET_EVM_COMMIT=740f5ebbe5df6a0c1d20e5e4bc958b48e1ed9c6b &&   ./scripts/build.sh build/subnet-evm
+2025-07-28T18:57:57.7639799Z #21 DONE 120.8s
+2025-07-28T18:57:57.9050965Z 
+2025-07-28T18:57:57.9052277Z #23 [linux/arm64 execution 2/2] COPY --from=builder /build/build/subnet-evm /avalanchego/build/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
+2025-07-28T18:57:57.9053565Z #23 DONE 0.1s
+2025-07-28T18:57:58.0573485Z 
+2025-07-28T18:57:58.0574164Z #24 exporting to image
+2025-07-28T18:57:58.0574571Z #24 exporting layers
+2025-07-28T18:57:59.8630936Z #24 exporting layers 2.0s done
+2025-07-28T18:58:00.0428428Z #24 exporting manifest sha256:62851a23ac9ca3e638c9a1df86f254c13c9fad9906f88a477ae22d1199232ed9 done
+2025-07-28T18:58:00.0429575Z #24 exporting config sha256:1c09023c8637a1053bef03018e8b410d6aaf0aec06b3a804706cb6819fd534fe done
+2025-07-28T18:58:00.0430722Z #24 exporting attestation manifest sha256:f8b0852fab2a53143f8c20216c9ee713523090eb60ad0da2fdad339ab7783025 done
+2025-07-28T18:58:00.0431843Z #24 exporting manifest sha256:6454a9494dbd772d65bc32ea0cf5654eb6947caa72d64bda4d16eb61e3332bfc done
+2025-07-28T18:58:00.0433073Z #24 exporting config sha256:1e72a62c96b6d29f00cac6c6a83ab527e0367b60b8e5730f1eaf4dcae66d3700 done
+2025-07-28T18:58:00.0434201Z #24 exporting attestation manifest sha256:abb5fc6dda52fc0d45c50c357316eb09f04f950557cce3a93411260bf26adbb2 done
+2025-07-28T18:58:00.0435344Z #24 exporting manifest list sha256:e94d935315b046b6af46df3b737181f57b971f6266b97c7e24ac7b0ad2ade42f done
+2025-07-28T18:58:00.0436080Z #24 pushing layers
+2025-07-28T18:58:00.3258574Z #24 pushing layers 0.4s done
+2025-07-28T18:58:00.3259613Z #24 pushing manifest for localhost:32768/subnet-evm_avalanchego:testtag@sha256:e94d935315b046b6af46df3b737181f57b971f6266b97c7e24ac7b0ad2ade42f
+2025-07-28T18:58:00.3994220Z #24 pushing layers 0.0s done
+2025-07-28T18:58:00.3995615Z #24 pushing manifest for localhost:32768/subnet-evm_avalanchego:testtag@sha256:e94d935315b046b6af46df3b737181f57b971f6266b97c7e24ac7b0ad2ade42f 0.0s done
+2025-07-28T18:58:00.3997435Z #24 pushing manifest for localhost:32768/subnet-evm_avalanchego:740f5ebb_v1.13.3@sha256:e94d935315b046b6af46df3b737181f57b971f6266b97c7e24ac7b0ad2ade42f done
+2025-07-28T18:58:00.3998490Z #24 DONE 2.5s
+2025-07-28T18:58:00.4056532Z + echo 'listing images'
+2025-07-28T18:58:00.4056910Z listing images
+2025-07-28T18:58:00.4057194Z + docker images
+2025-07-28T18:58:00.4171888Z REPOSITORY                TAG                IMAGE ID       CREATED         SIZE
+2025-07-28T18:58:00.4172881Z subnet-evm_avalanchego    740f5ebb_v1.13.3   31e9b1300972   2 minutes ago   225MB
+2025-07-28T18:58:00.4173676Z subnet-evm_avalanchego    testtag            31e9b1300972   2 minutes ago   225MB
+2025-07-28T18:58:00.4174433Z avaplatform/avalanchego   v1.13.3            98c1bcc22e29   6 days ago      164MB
+2025-07-28T18:58:00.4175184Z moby/buildkit             buildx-stable-1    72a94020693f   2 months ago    216MB
+2025-07-28T18:58:00.4175813Z registry                  2                  26b2eb03618e   22 months ago   25.4MB
+2025-07-28T18:58:00.4186253Z + target_images=('localhost:32768/subnet-evm_avalanchego:testtag' 'localhost:32768/subnet-evm_avalanchego:740f5ebb_v1.13.3')
+2025-07-28T18:58:00.4187153Z + local target_images
+2025-07-28T18:58:00.4187906Z + IFS=,
+2025-07-28T18:58:00.4188172Z + read -r -a archarray
+2025-07-28T18:58:00.4188491Z + for arch in "${archarray[@]}"
+2025-07-28T18:58:00.4188875Z + for target_image in "${target_images[@]}"
+2025-07-28T18:58:00.4189854Z + echo 'checking sanity of image localhost:32768/subnet-evm_avalanchego:testtag for linux/amd64 by running '\''srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy version'\'''
+2025-07-28T18:58:00.4190997Z + docker run -t --rm --platform linux/amd64 localhost:32768/subnet-evm_avalanchego:testtag /avalanchego/build/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy --version
+2025-07-28T18:58:00.4192548Z checking sanity of image localhost:32768/subnet-evm_avalanchego:testtag for linux/amd64 by running 'srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy version'
+2025-07-28T18:58:00.4299487Z Unable to find image 'localhost:32768/subnet-evm_avalanchego:testtag' locally
+2025-07-28T18:58:00.4425364Z testtag: Pulling from subnet-evm_avalanchego
+2025-07-28T18:58:00.4476221Z 59e22667830b: Already exists
+2025-07-28T18:58:00.4488727Z 6b75f5ca9b51: Already exists
+2025-07-28T18:58:00.4501161Z 4f4fb700ef54: Already exists
+2025-07-28T18:58:00.4515229Z b54ae1c8d5c8: Already exists
+2025-07-28T18:58:00.4524855Z 072cf7f00611: Pulling fs layer
+2025-07-28T18:58:00.5121803Z 072cf7f00611: Verifying Checksum
+2025-07-28T18:58:00.5122426Z 072cf7f00611: Download complete
+2025-07-28T18:58:00.7888968Z 072cf7f00611: Pull complete
+2025-07-28T18:58:00.7923452Z Digest: sha256:e94d935315b046b6af46df3b737181f57b971f6266b97c7e24ac7b0ad2ade42f
+2025-07-28T18:58:00.7934966Z Status: Downloaded newer image for localhost:32768/subnet-evm_avalanchego:testtag
+2025-07-28T18:58:00.9501409Z Subnet-EVM/v0.7.7@740f5ebbe5df6a0c1d20e5e4bc958b48e1ed9c6b [AvalancheGo=v1.13.3, rpcchainvm=42]
+2025-07-28T18:58:01.0153294Z + for target_image in "${target_images[@]}"
+2025-07-28T18:58:01.0154569Z checking sanity of image localhost:32768/subnet-evm_avalanchego:740f5ebb_v1.13.3 for linux/amd64 by running 'srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy version'
+2025-07-28T18:58:01.0155779Z + echo 'checking sanity of image localhost:32768/subnet-evm_avalanchego:740f5ebb_v1.13.3 for linux/amd64 by running '\''srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy version'\'''
+2025-07-28T18:58:01.0156932Z + docker run -t --rm --platform linux/amd64 localhost:32768/subnet-evm_avalanchego:740f5ebb_v1.13.3 /avalanchego/build/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy --version
+2025-07-28T18:58:01.0264353Z Unable to find image 'localhost:32768/subnet-evm_avalanchego:740f5ebb_v1.13.3' locally
+2025-07-28T18:58:01.0368410Z 740f5ebb_v1.13.3: Pulling from subnet-evm_avalanchego
+2025-07-28T18:58:01.0411596Z Digest: sha256:e94d935315b046b6af46df3b737181f57b971f6266b97c7e24ac7b0ad2ade42f
+2025-07-28T18:58:01.0421058Z Status: Downloaded newer image for localhost:32768/subnet-evm_avalanchego:740f5ebb_v1.13.3
+2025-07-28T18:58:01.2059345Z Subnet-EVM/v0.7.7@740f5ebbe5df6a0c1d20e5e4bc958b48e1ed9c6b [AvalancheGo=v1.13.3, rpcchainvm=42]
+2025-07-28T18:58:01.2715286Z + for arch in "${archarray[@]}"
+2025-07-28T18:58:01.2715798Z + for target_image in "${target_images[@]}"
+2025-07-28T18:58:01.2716848Z + echo 'checking sanity of image localhost:32768/subnet-evm_avalanchego:testtag for linux/arm64 by running '\''srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy version'\'''
+2025-07-28T18:58:01.2718006Z + docker run -t --rm --platform linux/arm64 localhost:32768/subnet-evm_avalanchego:testtag /avalanchego/build/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy --version
+2025-07-28T18:58:01.2719093Z checking sanity of image localhost:32768/subnet-evm_avalanchego:testtag for linux/arm64 by running 'srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy version'
+2025-07-28T18:58:01.2869265Z Unable to find image 'localhost:32768/subnet-evm_avalanchego:testtag' locally
+2025-07-28T18:58:01.2967579Z testtag: Pulling from subnet-evm_avalanchego
+2025-07-28T18:58:01.3017479Z b3407f3b5b5b: Pulling fs layer
+2025-07-28T18:58:01.3017935Z fa4c382ed3ed: Pulling fs layer
+2025-07-28T18:58:01.3021243Z 4f4fb700ef54: Pulling fs layer
+2025-07-28T18:58:01.3021782Z e251ff45f0c3: Pulling fs layer
+2025-07-28T18:58:01.3022354Z 1545445c87d6: Pulling fs layer
+2025-07-28T18:58:01.3022701Z e251ff45f0c3: Waiting
+2025-07-28T18:58:01.3022995Z 1545445c87d6: Waiting
+2025-07-28T18:58:01.3087198Z fa4c382ed3ed: Verifying Checksum
+2025-07-28T18:58:01.3087775Z fa4c382ed3ed: Download complete
+2025-07-28T18:58:01.3106073Z 4f4fb700ef54: Verifying Checksum
+2025-07-28T18:58:01.3109755Z 4f4fb700ef54: Download complete
+2025-07-28T18:58:01.3765342Z 1545445c87d6: Verifying Checksum
+2025-07-28T18:58:01.3767265Z 1545445c87d6: Download complete
+2025-07-28T18:58:01.3772907Z b3407f3b5b5b: Verifying Checksum
+2025-07-28T18:58:01.3773440Z b3407f3b5b5b: Download complete
+2025-07-28T18:58:01.4040433Z e251ff45f0c3: Verifying Checksum
+2025-07-28T18:58:01.4040900Z e251ff45f0c3: Download complete
+2025-07-28T18:58:02.5161173Z b3407f3b5b5b: Pull complete
+2025-07-28T18:58:02.6752767Z fa4c382ed3ed: Pull complete
+2025-07-28T18:58:02.7034325Z 4f4fb700ef54: Pull complete
+2025-07-28T18:58:03.0760850Z e251ff45f0c3: Pull complete
+2025-07-28T18:58:03.3314123Z 1545445c87d6: Pull complete
+2025-07-28T18:58:03.3362961Z Digest: sha256:e94d935315b046b6af46df3b737181f57b971f6266b97c7e24ac7b0ad2ade42f
+2025-07-28T18:58:03.3367758Z Status: Downloaded newer image for localhost:32768/subnet-evm_avalanchego:testtag
+2025-07-28T18:58:04.0607577Z Subnet-EVM/v0.7.7@740f5ebbe5df6a0c1d20e5e4bc958b48e1ed9c6b [AvalancheGo=v1.13.3, rpcchainvm=42]
+2025-07-28T18:58:04.1244141Z + for target_image in "${target_images[@]}"
+2025-07-28T18:58:04.1245195Z + echo 'checking sanity of image localhost:32768/subnet-evm_avalanchego:740f5ebb_v1.13.3 for linux/arm64 by running '\''srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy version'\'''
+2025-07-28T18:58:04.1246927Z + docker run -t --rm --platform linux/arm64 localhost:32768/subnet-evm_avalanchego:740f5ebb_v1.13.3 /avalanchego/build/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy --version
+2025-07-28T18:58:04.1248095Z checking sanity of image localhost:32768/subnet-evm_avalanchego:740f5ebb_v1.13.3 for linux/arm64 by running 'srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy version'
+2025-07-28T18:58:04.1402745Z Unable to find image 'localhost:32768/subnet-evm_avalanchego:740f5ebb_v1.13.3' locally
+2025-07-28T18:58:04.1490138Z 740f5ebb_v1.13.3: Pulling from subnet-evm_avalanchego
+2025-07-28T18:58:04.1530108Z Digest: sha256:e94d935315b046b6af46df3b737181f57b971f6266b97c7e24ac7b0ad2ade42f
+2025-07-28T18:58:04.1560906Z Status: Downloaded newer image for localhost:32768/subnet-evm_avalanchego:740f5ebb_v1.13.3
+2025-07-28T18:58:04.8798915Z Subnet-EVM/v0.7.7@740f5ebbe5df6a0c1d20e5e4bc958b48e1ed9c6b [AvalancheGo=v1.13.3, rpcchainvm=42]
+2025-07-28T18:58:04.9497185Z + cleanup
+2025-07-28T18:58:04.9497590Z stopping local docker registry
+2025-07-28T18:58:04.9497946Z + echo 'stopping local docker registry'
+2025-07-28T18:58:04.9498550Z + docker stop 6eae2cf709380425ead41ef6e3b40adc91a8b0dbde396cb791a902f81728932c
+2025-07-28T18:58:05.0553148Z 6eae2cf709380425ead41ef6e3b40adc91a8b0dbde396cb791a902f81728932c
+2025-07-28T18:58:05.0569733Z + echo 'removing multiplatform builder'
+2025-07-28T18:58:05.0570224Z removing multiplatform builder
+2025-07-28T18:58:05.0570617Z + docker buildx rm ci-builder
+2025-07-28T18:58:08.3856081Z ci-builder removed

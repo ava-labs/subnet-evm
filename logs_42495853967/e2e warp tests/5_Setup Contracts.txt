@@ -1,0 +1,43 @@
+﻿2025-07-28T18:53:12.2708863Z ##[group]Run ./scripts/run_task.sh setup-contracts
+2025-07-28T18:53:12.2709297Z [36;1m./scripts/run_task.sh setup-contracts[0m
+2025-07-28T18:53:12.2740940Z shell: /usr/bin/bash -e {0}
+2025-07-28T18:53:12.2741212Z ##[endgroup]
+2025-07-28T18:53:12.9529776Z task: [setup-contracts] npm ci
+2025-07-28T18:53:15.0484714Z npm WARN deprecated rimraf@2.7.1: Rimraf versions prior to v4 are no longer supported
+2025-07-28T18:53:15.5232570Z npm WARN deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+2025-07-28T18:53:15.5827208Z npm WARN deprecated glob@7.2.0: Glob versions prior to v9 are no longer supported
+2025-07-28T18:53:17.0747178Z npm WARN deprecated glob@7.1.7: Glob versions prior to v9 are no longer supported
+2025-07-28T18:53:17.1918203Z npm WARN deprecated glob@5.0.15: Glob versions prior to v9 are no longer supported
+2025-07-28T18:53:17.2499868Z npm WARN deprecated glob@8.1.0: Glob versions prior to v9 are no longer supported
+2025-07-28T18:53:21.7530438Z 
+2025-07-28T18:53:21.7531102Z > @avalabs/subnet-evm-contracts@1.2.2 prepublish
+2025-07-28T18:53:21.7531487Z > npm run build
+2025-07-28T18:53:21.7531624Z 
+2025-07-28T18:53:21.8707746Z 
+2025-07-28T18:53:21.8708531Z > @avalabs/subnet-evm-contracts@1.2.2 build
+2025-07-28T18:53:21.8710793Z > rm -rf dist/ && npx hardhat compile && npx tsc -b
+2025-07-28T18:53:21.8711466Z 
+2025-07-28T18:53:22.9361228Z Downloading compiler 0.8.24
+2025-07-28T18:53:24.2370784Z Generating typings for: 27 artifacts in dir: typechain-types for target: ethers-v6
+2025-07-28T18:53:25.5034509Z Successfully generated 78 typings!
+2025-07-28T18:53:25.5070726Z Compiled 24 Solidity files successfully (evm target: shanghai).
+2025-07-28T18:53:28.1186998Z 
+2025-07-28T18:53:28.1187801Z added 587 packages, and audited 588 packages in 15s
+2025-07-28T18:53:28.1188294Z 
+2025-07-28T18:53:28.1188614Z 97 packages are looking for funding
+2025-07-28T18:53:28.1189183Z   run `npm fund` for details
+2025-07-28T18:53:28.1448956Z 
+2025-07-28T18:53:28.1449586Z 26 vulnerabilities (15 low, 3 moderate, 5 high, 3 critical)
+2025-07-28T18:53:28.1449901Z 
+2025-07-28T18:53:28.1450135Z To address issues that do not require attention, run:
+2025-07-28T18:53:28.1450477Z   npm audit fix
+2025-07-28T18:53:28.1450607Z 
+2025-07-28T18:53:28.1451027Z Some issues need review, and may require choosing
+2025-07-28T18:53:28.1451555Z a different dependency.
+2025-07-28T18:53:28.1451784Z 
+2025-07-28T18:53:28.1452025Z Run `npm audit` for details.
+2025-07-28T18:53:28.1725294Z task: [setup-contracts] npx hardhat clean
+2025-07-28T18:53:29.1114339Z task: [setup-contracts] npx hardhat compile
+2025-07-28T18:53:30.7569720Z Generating typings for: 27 artifacts in dir: typechain-types for target: ethers-v6
+2025-07-28T18:53:32.0100331Z Successfully generated 78 typings!
+2025-07-28T18:53:32.0127264Z Compiled 24 Solidity files successfully (evm target: shanghai).
