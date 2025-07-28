@@ -13,7 +13,6 @@ import (
 
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/constants"
-	"github.com/ava-labs/subnet-evm/core/extstate/extstatetest"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist/allowlisttest"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
@@ -239,8 +238,8 @@ var (
 			},
 		},
 		"disable rewards should not emit event pre-Durango": {
-			Caller:     allowlisttest.TestManagerAddr,
-			BeforeHook: allowlisttest.SetDefaultRoles(Module.Address),
+			Caller: allowlisttest.TestManagerAddr,
+			Config: allowlisttest.DefaultAllowListConfig(Module),
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackDisableRewards()
 				require.NoError(t, err)
@@ -435,11 +434,11 @@ var (
 )
 
 func TestRewardManagerRun(t *testing.T) {
-	allowlisttest.RunPrecompileWithAllowListTests(t, Module, extstatetest.NewTestStateDB, tests)
+	allowlisttest.RunPrecompileWithAllowListTests(t, Module, tests)
 }
 
 func BenchmarkRewardManager(b *testing.B) {
-	allowlisttest.BenchPrecompileWithAllowList(b, Module, extstatetest.NewTestStateDB, tests)
+	allowlisttest.BenchPrecompileWithAllowList(b, Module, tests)
 }
 
 func assertRewardAddressChanged(

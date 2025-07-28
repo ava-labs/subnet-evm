@@ -10,7 +10,6 @@ import (
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/vm"
 	"github.com/ava-labs/subnet-evm/commontype"
-	"github.com/ava-labs/subnet-evm/core/extstate/extstatetest"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist/allowlisttest"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
@@ -56,8 +55,8 @@ var (
 	testBlockNumber = big.NewInt(7)
 	tests           = map[string]precompiletest.PrecompileTest{
 		"set config from no role fails": {
-			Caller:     allowlisttest.TestNoRoleAddr,
-			BeforeHook: allowlisttest.SetDefaultRoles(Module.Address),
+			Caller: allowlisttest.TestNoRoleAddr,
+			Config: allowlisttest.DefaultAllowListConfig(Module),
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackSetFeeConfig(testFeeConfig)
 				require.NoError(t, err)
@@ -69,8 +68,8 @@ var (
 			ExpectedErr: ErrCannotChangeFee.Error(),
 		},
 		"set config from enabled address succeeds and emits logs": {
-			Caller:     allowlisttest.TestEnabledAddr,
-			BeforeHook: allowlisttest.SetDefaultRoles(Module.Address),
+			Caller: allowlisttest.TestEnabledAddr,
+			Config: allowlisttest.DefaultAllowListConfig(Module),
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackSetFeeConfig(testFeeConfig)
 				require.NoError(t, err)
@@ -89,8 +88,8 @@ var (
 			},
 		},
 		"set config from manager succeeds": {
-			Caller:     allowlisttest.TestManagerAddr,
-			BeforeHook: allowlisttest.SetDefaultRoles(Module.Address),
+			Caller: allowlisttest.TestManagerAddr,
+			Config: allowlisttest.DefaultAllowListConfig(Module),
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackSetFeeConfig(testFeeConfig)
 				require.NoError(t, err)
@@ -109,8 +108,11 @@ var (
 			},
 		},
 		"set invalid config from enabled address": {
-			Caller:     allowlisttest.TestEnabledAddr,
-			BeforeHook: allowlisttest.SetDefaultRoles(Module.Address),
+			Caller: allowlisttest.TestEnabledAddr,
+			// Config: allowlisttest.DefaultAllowListConfig(Module),
+			Config: &Config{
+				InitialFeeConfig: &testFeeConfig,
+			},
 			InputFn: func(t testing.TB) []byte {
 				feeConfig := testFeeConfig
 				feeConfig.MinBlockGasCost = new(big.Int).Mul(feeConfig.MaxBlockGasCost, common.Big2)
@@ -121,9 +123,6 @@ var (
 			},
 			SuppliedGas: SetFeeConfigGasCost + FeeConfigChangedEventGasCost,
 			ReadOnly:    false,
-			Config: &Config{
-				InitialFeeConfig: &testFeeConfig,
-			},
 			ExpectedErr: "cannot be greater than maxBlockGasCost",
 			AfterHook: func(t testing.TB, state contract.StateDB) {
 				feeConfig := GetStoredFeeConfig(state)
@@ -131,8 +130,8 @@ var (
 			},
 		},
 		"set config from admin address": {
-			Caller:     allowlisttest.TestAdminAddr,
-			BeforeHook: allowlisttest.SetDefaultRoles(Module.Address),
+			Caller: allowlisttest.TestAdminAddr,
+			Config: allowlisttest.DefaultAllowListConfig(Module),
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackSetFeeConfig(testFeeConfig)
 				require.NoError(t, err)
@@ -248,8 +247,8 @@ var (
 			},
 		},
 		"readOnly setFeeConfig with noRole fails": {
-			Caller:     allowlisttest.TestNoRoleAddr,
-			BeforeHook: allowlisttest.SetDefaultRoles(Module.Address),
+			Caller: allowlisttest.TestNoRoleAddr,
+			Config: allowlisttest.DefaultAllowListConfig(Module),
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackSetFeeConfig(testFeeConfig)
 				require.NoError(t, err)
@@ -424,11 +423,11 @@ var (
 )
 
 func TestFeeManager(t *testing.T) {
-	allowlisttest.RunPrecompileWithAllowListTests(t, Module, extstatetest.NewTestStateDB, tests)
+	allowlisttest.RunPrecompileWithAllowListTests(t, Module, tests)
 }
 
 func BenchmarkFeeManager(b *testing.B) {
-	allowlisttest.BenchPrecompileWithAllowList(b, Module, extstatetest.NewTestStateDB, tests)
+	allowlisttest.BenchPrecompileWithAllowList(b, Module, tests)
 }
 
 func assertFeeEvent(

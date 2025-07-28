@@ -10,7 +10,6 @@ import (
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/common/math"
 	"github.com/ava-labs/libevm/core/vm"
-	"github.com/ava-labs/subnet-evm/core/extstate/extstatetest"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist/allowlisttest"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
@@ -256,11 +255,11 @@ var (
 )
 
 func TestContractNativeMinterRun(t *testing.T) {
-	allowlisttest.RunPrecompileWithAllowListTests(t, Module, extstatetest.NewTestStateDB, tests)
+	allowlisttest.RunPrecompileWithAllowListTests(t, Module, tests)
 }
 
 func BenchmarkContractNativeMinter(b *testing.B) {
-	allowlisttest.BenchPrecompileWithAllowList(b, Module, extstatetest.NewTestStateDB, tests)
+	allowlisttest.BenchPrecompileWithAllowList(b, Module, tests)
 }
 
 func assertNativeCoinMintedEvent(t testing.TB,

@@ -15,7 +15,6 @@ import (
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/vm"
-	extstate "github.com/ava-labs/subnet-evm/core/extstate/extstatetest"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/precompile/precompiletest"
 	"github.com/ava-labs/subnet-evm/predicate"
@@ -80,6 +79,11 @@ func TestGetBlockchainID(t *testing.T) {
 
 	precompiletest.RunPrecompileTests(t, Module, tests)
 }
+
+func TestSendWarpMessage(t *testing.T) {
+	callerAddr := common.HexToAddress("0x0123")
+
+	defaultSnowCtx := utilstest.NewTestSnowContext(t)
 	blockchainID := defaultSnowCtx.ChainID
 	sendWarpMessagePayload := agoUtils.RandomBytes(100)
 
