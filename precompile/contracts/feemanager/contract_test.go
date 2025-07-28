@@ -110,9 +110,6 @@ var (
 		"set invalid config from enabled address": {
 			Caller:     allowlisttest.TestEnabledAddr,
 			BeforeHook: allowlisttest.SetDefaultRoles(Module.Address),
-			Config: &Config{
-				InitialFeeConfig: &testFeeConfig,
-			},
 			InputFn: func(t testing.TB) []byte {
 				feeConfig := testFeeConfig
 				feeConfig.MinBlockGasCost = new(big.Int).Mul(feeConfig.MaxBlockGasCost, common.Big2)
@@ -123,6 +120,9 @@ var (
 			},
 			SuppliedGas: SetFeeConfigGasCost + FeeConfigChangedEventGasCost,
 			ReadOnly:    false,
+			Config: &Config{
+				InitialFeeConfig: &testFeeConfig,
+			},
 			ExpectedErr: "cannot be greater than maxBlockGasCost",
 			AfterHook: func(t testing.TB, state contract.StateDB) {
 				feeConfig := GetStoredFeeConfig(state)
@@ -188,9 +188,6 @@ var (
 		"get initial fee config": {
 			Caller:     allowlisttest.TestNoRoleAddr,
 			BeforeHook: allowlisttest.SetDefaultRoles(Module.Address),
-			Config: &Config{
-				InitialFeeConfig: &testFeeConfig,
-			},
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackGetFeeConfig()
 				require.NoError(t, err)
@@ -199,6 +196,9 @@ var (
 			},
 			SuppliedGas: GetFeeConfigGasCost,
 			ReadOnly:    true,
+			Config: &Config{
+				InitialFeeConfig: &testFeeConfig,
+			},
 			ExpectedRes: func() []byte {
 				res, err := PackGetFeeConfigOutput(testFeeConfig)
 				if err != nil {
