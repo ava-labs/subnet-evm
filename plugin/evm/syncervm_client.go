@@ -45,12 +45,12 @@ type stateSyncClientConfig struct {
 
 	lastAcceptedHeight uint64
 
-	chain           *eth.Ethereum
-	state           *chain.State
-	chaindb         ethdb.Database
-	metadataDB      database.Database
-	acceptedBlockDB database.Database
-	db              *versiondb.Database
+	Chain      *eth.Ethereum
+	State      *chain.State
+	ChainDB    ethdb.Database
+	Acceptor   BlockAcceptor
+	VerDB      *versiondb.Database
+	MetadataDB database.Database
 
 	client        syncclient.Client
 	stateSyncDone chan struct{}
@@ -111,7 +111,7 @@ func (client *stateSyncerClient) GetOngoingSyncStateSummary(context.Context) (bl
 		return nil, database.ErrNotFound
 	}
 
-	summaryBytes, err := client.metadataDB.Get(stateSyncSummaryKey)
+	summaryBytes, err := client.MetadataDB.Get(stateSyncSummaryKey)
 	if err != nil {
 		return nil, err // includes the [database.ErrNotFound] case
 	}
@@ -126,10 +126,10 @@ func (client *stateSyncerClient) GetOngoingSyncStateSummary(context.Context) (bl
 
 // ClearOngoingSummary clears any marker of an ongoing state sync summary
 func (client *stateSyncerClient) ClearOngoingSummary() error {
-	if err := client.metadataDB.Delete(stateSyncSummaryKey); err != nil {
+	if err := client.MetadataDB.Delete(stateSyncSummaryKey); err != nil {
 		return fmt.Errorf("failed to clear ongoing summary: %w", err)
 	}
-	if err := client.db.Commit(); err != nil {
+	if err := client.VerDB.Commit(); err != nil {
 		return fmt.Errorf("failed to commit db while clearing ongoing summary: %w", err)
 	}
 
@@ -175,21 +175,21 @@ func (client *stateSyncerClient) acceptSyncSummary(proposedSummary message.SyncS
 		// sync marker will be wiped, so we do not accidentally resume progress from an incorrect version
 		// of the snapshot. (if switching between versions that come before this change and back this could
 		// lead to the snapshot not being cleaned up correctly)
-		<-snapshot.WipeSnapshot(client.chaindb, true)
+		<-snapshot.WipeSnapshot(client.ChainDB, true)
 		// Reset the snapshot generator here so that when state sync completes, snapshots will not attempt to read an
 		// invalid generator.
 		// Note: this must be called after WipeSnapshot is called so that we do not invalidate a partially generated snapshot.
-		snapshot.ResetSnapshotGeneration(client.chaindb)
+		snapshot.ResetSnapshotGeneration(client.ChainDB)
 	}
 	client.syncSummary = proposedSummary
 
 	// Update the current state sync summary key in the database
 	// Note: this must be performed after WipeSnapshot finishes so that we do not start a state sync
 	// session from a partially wiped snapshot.
-	if err := client.metadataDB.Put(stateSyncSummaryKey, proposedSummary.Bytes()); err != nil {
+	if err := client.MetadataDB.Put(stateSyncSummaryKey, proposedSummary.Bytes()); err != nil {
 		return block.StateSyncSkipped, fmt.Errorf("failed to write state sync summary key to disk: %w", err)
 	}
-	if err := client.db.Commit(); err != nil {
+	if err := client.VerDB.Commit(); err != nil {
 		return block.StateSyncSkipped, fmt.Errorf("failed to commit db: %w", err)
 	}
 
@@ -229,7 +229,7 @@ func (client *stateSyncerClient) syncBlocks(ctx context.Context, fromHash common
 	// first, check for blocks already available on disk so we don't
 	// request them from peers.
 	for parentsToGet >= 0 {
-		blk := rawdb.ReadBlock(client.chaindb, nextHash, nextHeight)
+		blk := rawdb.ReadBlock(client.ChainDB, nextHash, nextHeight)
 		if blk != nil {
 			// block exists
 			nextHash = blk.ParentHash()
@@ -244,7 +244,7 @@ func (client *stateSyncerClient) syncBlocks(ctx context.Context, fromHash common
 
 	// get any blocks we couldn't find on disk from peers and write
 	// them to disk.
-	batch := client.chaindb.NewBatch()
+	batch := client.ChainDB.NewBatch()
 	for i := parentsToGet - 1; i >= 0 && (nextHash != common.Hash{}); {
 		if err := ctx.Err(); err != nil {
 			return err
@@ -274,7 +274,7 @@ func (client *stateSyncerClient) syncStateTrie(ctx context.Context) error {
 		Client:                   client.client,
 		Root:                     client.syncSummary.BlockRoot,
 		BatchSize:                ethdb.IdealBatchSize,
-		DB:                       client.chaindb,
+		DB:                       client.ChainDB,
 		MaxOutstandingCodeHashes: statesync.DefaultMaxOutstandingCodeHashes,
 		NumCodeFetchingWorkers:   statesync.DefaultNumCodeFetchingWorkers,
 		RequestSize:              client.stateSyncRequestSize,
@@ -301,7 +301,7 @@ func (client *stateSyncerClient) Shutdown() error {
 // finishSync is responsible for updating disk and memory pointers so the VM is prepared
 // for bootstrapping.
 func (client *stateSyncerClient) finishSync() error {
-	stateBlock, err := client.state.GetBlock(context.TODO(), ids.ID(client.syncSummary.BlockHash))
+	stateBlock, err := client.State.GetBlock(context.TODO(), ids.ID(client.syncSummary.BlockHash))
 	if err != nil {
 		return fmt.Errorf("could not get block by hash from client state: %s", client.syncSummary.BlockHash)
 	}
@@ -334,9 +334,9 @@ func (client *stateSyncerClient) finishSync() error {
 	// by [params.BloomBitsBlocks].
 	parentHeight := block.NumberU64() - 1
 	parentHash := block.ParentHash()
-	client.chain.BloomIndexer().AddCheckpoint(parentHeight/params.BloomBitsBlocks, parentHash)
+	client.Chain.BloomIndexer().AddCheckpoint(parentHeight/params.BloomBitsBlocks, parentHash)
 
-	if err := client.chain.BlockChain().ResetToStateSyncedBlock(block); err != nil {
+	if err := client.Chain.BlockChain().ResetToStateSyncedBlock(block); err != nil {
 		return err
 	}
 
@@ -344,7 +344,7 @@ func (client *stateSyncerClient) finishSync() error {
 		return fmt.Errorf("error updating vm markers, height=%d, hash=%s, err=%w", block.NumberU64(), block.Hash(), err)
 	}
 
-	return client.state.SetLastAcceptedBlock(evmBlock)
+	return client.State.SetLastAcceptedBlock(evmBlock)
 }
 
 // updateVMMarkers updates the following markers in the VM's database
@@ -352,13 +352,13 @@ func (client *stateSyncerClient) finishSync() error {
 // - updates lastAcceptedKey
 // - removes state sync progress markers
 func (client *stateSyncerClient) updateVMMarkers() error {
-	if err := client.acceptedBlockDB.Put(lastAcceptedKey, client.syncSummary.BlockHash[:]); err != nil {
+	if err := client.AcceptedBlockDB.Put(lastAcceptedKey, client.syncSummary.BlockHash[:]); err != nil { // TODO: fix this
 		return err
 	}
-	if err := client.metadataDB.Delete(stateSyncSummaryKey); err != nil {
+	if err := client.MetadataDB.Delete(stateSyncSummaryKey); err != nil {
 		return err
 	}
-	return client.db.Commit()
+	return client.VerDB.Commit()
 }
 
 // Error returns a non-nil error if one occurred during the sync.

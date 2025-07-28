@@ -661,8 +661,8 @@ func (vm *VM) initializeStateSyncClient(lastAcceptedHeight uint64) error {
 	}
 
 	vm.StateSyncClient = NewStateSyncClient(&stateSyncClientConfig{
-		chain:         vm.eth,
-		state:         vm.State,
+		Chain:         vm.eth,
+		State:         vm.State,
 		stateSyncDone: vm.stateSyncDone,
 		client: statesyncclient.NewClient(
 			&statesyncclient.ClientConfig{
@@ -678,10 +678,12 @@ func (vm *VM) initializeStateSyncClient(lastAcceptedHeight uint64) error {
 		stateSyncMinBlocks:   vm.config.StateSyncMinBlocks,
 		stateSyncRequestSize: vm.config.StateSyncRequestSize,
 		lastAcceptedHeight:   lastAcceptedHeight, // TODO clean up how this is passed around
-		chaindb:              vm.chaindb,
-		metadataDB:           vm.metadataDB,
-		acceptedBlockDB:      vm.acceptedBlockDB,
-		db:                   vm.versiondb,
+		ChainDB:              vm.chaindb,
+		VerDB:                vm.versiondb,
+		MetadataDB:           vm.metadataDB,
+		Acceptor:             vm,
+		Parser:               vm.extensionConfig.SyncableParser,
+		Extender:             vm.extensionConfig.SyncExtender,
 	})
 
 	// If StateSync is disabled, clear any ongoing summary so that we will not attempt to resume
