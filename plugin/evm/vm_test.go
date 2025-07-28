@@ -391,7 +391,6 @@ func testBuildEthTxBlock(t *testing.T, scheme string) {
 	fork := upgradetest.ApricotPhase2
 	tvm := newVM(t, testVMConfig{
 		genesisJSON: genesisJSONSubnetEVM,
-		fork:        &fork,
 		configJSON:  getConfig(scheme, `"pruning-enabled":true`),
 	})
 
@@ -783,10 +782,8 @@ func TestReorgProtection(t *testing.T) {
 }
 
 func testReorgProtection(t *testing.T, scheme string) {
-	fork := upgradetest.NoUpgrades
 	tvmConfig := testVMConfig{
 		genesisJSON: genesisJSONSubnetEVM,
-		fork:        &fork,
 		configJSON:  getConfig(scheme, `"pruning-enabled":false`),
 	}
 	tvm1 := newVM(t, tvmConfig)
@@ -970,10 +967,8 @@ func TestNonCanonicalAccept(t *testing.T) {
 	}
 }
 func testNonCanonicalAccept(t *testing.T, scheme string) {
-	fork := upgradetest.NoUpgrades
 	tvmConfig := testVMConfig{
 		genesisJSON: genesisJSONSubnetEVM,
-		fork:        &fork,
 		configJSON:  getConfig(scheme, ""),
 	}
 	tvm1 := newVM(t, tvmConfig)
@@ -1183,10 +1178,8 @@ func TestStickyPreference(t *testing.T) {
 }
 
 func testStickyPreference(t *testing.T, scheme string) {
-	fork := upgradetest.NoUpgrades
 	tvmConfig := testVMConfig{
 		genesisJSON: genesisJSONSubnetEVM,
-		fork:        &fork,
 		configJSON:  getConfig(scheme, ""),
 	}
 	tvm1 := newVM(t, tvmConfig)
@@ -1463,10 +1456,8 @@ func TestUncleBlock(t *testing.T) {
 }
 
 func testUncleBlock(t *testing.T, scheme string) {
-	fork := upgradetest.NoUpgrades
 	tvmConfig := testVMConfig{
 		genesisJSON: genesisJSONSubnetEVM,
-		fork:        &fork,
 		configJSON:  getConfig(scheme, ""),
 	}
 	tvm1 := newVM(t, tvmConfig)
@@ -1664,12 +1655,9 @@ func TestEmptyBlock(t *testing.T) {
 }
 
 func testEmptyBlock(t *testing.T, scheme string) {
-	fork := upgradetest.NoUpgrades
 	tvm := newVM(t, testVMConfig{
 		genesisJSON: genesisJSONSubnetEVM,
-		fork:        &fork,
-
-		configJSON: getConfig(scheme, ""),
+		configJSON:  getConfig(scheme, ""),
 	})
 
 	defer func() {
@@ -1738,12 +1726,9 @@ func TestAcceptReorg(t *testing.T) {
 }
 
 func testAcceptReorg(t *testing.T, scheme string) {
-	fork := upgradetest.NoUpgrades
 	tvmConfig := testVMConfig{
 		genesisJSON: genesisJSONSubnetEVM,
-		fork:        &fork,
-
-		configJSON: getConfig(scheme, ""),
+		configJSON:  getConfig(scheme, ""),
 	}
 	tvm1 := newVM(t, tvmConfig)
 	tvm2 := newVM(t, tvmConfig)
@@ -1959,10 +1944,8 @@ func TestFutureBlock(t *testing.T) {
 }
 
 func testFutureBlock(t *testing.T, scheme string) {
-	fork := upgradetest.NoUpgrades
 	tvm := newVM(t, testVMConfig{
 		genesisJSON: genesisJSONSubnetEVM,
-		fork:        &fork,
 		configJSON:  getConfig(scheme, ""),
 	})
 
