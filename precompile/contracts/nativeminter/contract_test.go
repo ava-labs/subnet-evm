@@ -258,10 +258,6 @@ func TestContractNativeMinterRun(t *testing.T) {
 	allowlisttest.RunPrecompileWithAllowListTests(t, Module, tests)
 }
 
-func BenchmarkContractNativeMinter(b *testing.B) {
-	allowlisttest.BenchPrecompileWithAllowList(b, Module, tests)
-}
-
 func assertNativeCoinMintedEvent(t testing.TB,
 	logsTopics [][]common.Hash,
 	logsData [][]byte,

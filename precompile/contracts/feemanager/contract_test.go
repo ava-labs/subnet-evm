@@ -55,8 +55,8 @@ var (
 	testBlockNumber = big.NewInt(7)
 	tests           = map[string]precompiletest.PrecompileTest{
 		"set config from no role fails": {
-			Caller: allowlisttest.TestNoRoleAddr,
-			Config: allowlisttest.DefaultAllowListConfig(Module),
+			Caller:     allowlisttest.TestNoRoleAddr,
+			BeforeHook: allowlisttest.SetDefaultRoles(Module.Address),
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackSetFeeConfig(testFeeConfig)
 				require.NoError(t, err)
@@ -68,8 +68,8 @@ var (
 			ExpectedErr: ErrCannotChangeFee.Error(),
 		},
 		"set config from enabled address succeeds and emits logs": {
-			Caller: allowlisttest.TestEnabledAddr,
-			Config: allowlisttest.DefaultAllowListConfig(Module),
+			Caller:     allowlisttest.TestEnabledAddr,
+			BeforeHook: allowlisttest.SetDefaultRoles(Module.Address),
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackSetFeeConfig(testFeeConfig)
 				require.NoError(t, err)
@@ -88,8 +88,8 @@ var (
 			},
 		},
 		"set config from manager succeeds": {
-			Caller: allowlisttest.TestManagerAddr,
-			Config: allowlisttest.DefaultAllowListConfig(Module),
+			Caller:     allowlisttest.TestManagerAddr,
+			BeforeHook: allowlisttest.SetDefaultRoles(Module.Address),
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackSetFeeConfig(testFeeConfig)
 				require.NoError(t, err)
@@ -108,8 +108,8 @@ var (
 			},
 		},
 		"set invalid config from enabled address": {
-			Caller: allowlisttest.TestEnabledAddr,
-			// Config: allowlisttest.DefaultAllowListConfig(Module),
+			Caller:     allowlisttest.TestEnabledAddr,
+			BeforeHook: allowlisttest.SetDefaultRoles(Module.Address),
 			Config: &Config{
 				InitialFeeConfig: &testFeeConfig,
 			},
@@ -130,8 +130,8 @@ var (
 			},
 		},
 		"set config from admin address": {
-			Caller: allowlisttest.TestAdminAddr,
-			Config: allowlisttest.DefaultAllowListConfig(Module),
+			Caller:     allowlisttest.TestAdminAddr,
+			BeforeHook: allowlisttest.SetDefaultRoles(Module.Address),
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackSetFeeConfig(testFeeConfig)
 				require.NoError(t, err)
@@ -188,6 +188,9 @@ var (
 		"get initial fee config": {
 			Caller:     allowlisttest.TestNoRoleAddr,
 			BeforeHook: allowlisttest.SetDefaultRoles(Module.Address),
+			Config: &Config{
+				InitialFeeConfig: &testFeeConfig,
+			},
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackGetFeeConfig()
 				require.NoError(t, err)
@@ -195,10 +198,7 @@ var (
 				return input
 			},
 			SuppliedGas: GetFeeConfigGasCost,
-			Config: &Config{
-				InitialFeeConfig: &testFeeConfig,
-			},
-			ReadOnly: true,
+			ReadOnly:    true,
 			ExpectedRes: func() []byte {
 				res, err := PackGetFeeConfigOutput(testFeeConfig)
 				if err != nil {
@@ -247,8 +247,8 @@ var (
 			},
 		},
 		"readOnly setFeeConfig with noRole fails": {
-			Caller: allowlisttest.TestNoRoleAddr,
-			Config: allowlisttest.DefaultAllowListConfig(Module),
+			Caller:     allowlisttest.TestNoRoleAddr,
+			BeforeHook: allowlisttest.SetDefaultRoles(Module.Address),
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackSetFeeConfig(testFeeConfig)
 				require.NoError(t, err)
@@ -424,10 +424,6 @@ var (
 
 func TestFeeManager(t *testing.T) {
 	allowlisttest.RunPrecompileWithAllowListTests(t, Module, tests)
-}
-
-func BenchmarkFeeManager(b *testing.B) {
-	allowlisttest.BenchPrecompileWithAllowList(b, Module, tests)
 }
 
 func assertFeeEvent(

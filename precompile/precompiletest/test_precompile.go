@@ -40,6 +40,8 @@ type PrecompileTest struct {
 	// precompile's configurator.
 	// If nil, Configure will not be called.
 	Config precompileconfig.Config
+	// BeforeHook is called before the precompile is called.
+	BeforeHook func(t testing.TB, state contract.StateDB)
 	// Predicates that the precompile should have access to.
 	Predicates [][]byte
 	// SetupBlockContext sets the expected calls on MockBlockContext for the test execution.

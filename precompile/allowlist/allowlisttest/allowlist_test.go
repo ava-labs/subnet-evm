@@ -64,13 +64,3 @@ func TestAllowListRun(t *testing.T) {
 	}
 	RunPrecompileWithAllowListTests(t, dummyModule, nil)
 }
-
-func BenchmarkAllowList(b *testing.B) {
-	dummyModule := modules.Module{
-		Address:      dummyAddr,
-		Contract:     allowlist.CreateAllowListPrecompile(dummyAddr),
-		Configurator: &dummyConfigurator{},
-		ConfigKey:    "dummy",
-	}
-	BenchPrecompileWithAllowList(b, dummyModule, nil)
-}

@@ -28,8 +28,8 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]precompilete
 	contractAddress := module.Address
 	return map[string]precompiletest.PrecompileTest{
 		"admin set admin": {
-			Caller: TestAdminAddr,
-			Config: DefaultAllowListConfig(module),
+			Caller:     TestAdminAddr,
+			BeforeHook: SetDefaultRoles(module.Address),
 			InputFn: func(t testing.TB) []byte {
 				input, err := allowlist.PackModifyAllowList(TestNoRoleAddr, allowlist.AdminRole)
 				require.NoError(t, err)
@@ -48,8 +48,8 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]precompilete
 			},
 		},
 		"admin set enabled": {
-			Caller: TestAdminAddr,
-			Config: DefaultAllowListConfig(module),
+			Caller:     TestAdminAddr,
+			BeforeHook: SetDefaultRoles(module.Address),
 			InputFn: func(t testing.TB) []byte {
 				input, err := allowlist.PackModifyAllowList(TestNoRoleAddr, allowlist.EnabledRole)
 				require.NoError(t, err)
@@ -68,8 +68,8 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]precompilete
 			},
 		},
 		"admin set no role": {
-			Caller: TestAdminAddr,
-			Config: DefaultAllowListConfig(module),
+			Caller:     TestAdminAddr,
+			BeforeHook: SetDefaultRoles(module.Address),
 			InputFn: func(t testing.TB) []byte {
 				input, err := allowlist.PackModifyAllowList(TestEnabledAddr, allowlist.NoRole)
 				require.NoError(t, err)
@@ -88,8 +88,8 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]precompilete
 			},
 		},
 		"no role set no role": {
-			Caller: TestNoRoleAddr,
-			Config: DefaultAllowListConfig(module),
+			Caller:     TestNoRoleAddr,
+			BeforeHook: SetDefaultRoles(module.Address),
 			InputFn: func(t testing.TB) []byte {
 				input, err := allowlist.PackModifyAllowList(TestEnabledAddr, allowlist.NoRole)
 				require.NoError(t, err)
@@ -101,8 +101,8 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]precompilete
 			ExpectedErr: allowlist.ErrCannotModifyAllowList.Error(),
 		},
 		"no role set enabled": {
-			Caller: TestNoRoleAddr,
-			Config: DefaultAllowListConfig(module),
+			Caller:     TestNoRoleAddr,
+			BeforeHook: SetDefaultRoles(module.Address),
 			InputFn: func(t testing.TB) []byte {
 				input, err := allowlist.PackModifyAllowList(TestNoRoleAddr, allowlist.EnabledRole)
 				require.NoError(t, err)
@@ -114,8 +114,8 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]precompilete
 			ExpectedErr: allowlist.ErrCannotModifyAllowList.Error(),
 		},
 		"no role set admin": {
-			Caller: TestNoRoleAddr,
-			Config: DefaultAllowListConfig(module),
+			Caller:     TestNoRoleAddr,
+			BeforeHook: SetDefaultRoles(module.Address),
 			InputFn: func(t testing.TB) []byte {
 				input, err := allowlist.PackModifyAllowList(TestEnabledAddr, allowlist.AdminRole)
 				require.NoError(t, err)
@@ -127,8 +127,8 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]precompilete
 			ExpectedErr: allowlist.ErrCannotModifyAllowList.Error(),
 		},
 		"enabled set no role": {
-			Caller: TestEnabledAddr,
-			Config: DefaultAllowListConfig(module),
+			Caller:     TestEnabledAddr,
+			BeforeHook: SetDefaultRoles(module.Address),
 			InputFn: func(t testing.TB) []byte {
 				input, err := allowlist.PackModifyAllowList(TestAdminAddr, allowlist.NoRole)
 				require.NoError(t, err)
@@ -140,8 +140,8 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]precompilete
 			ExpectedErr: allowlist.ErrCannotModifyAllowList.Error(),
 		},
 		"enabled set enabled": {
-			Caller: TestEnabledAddr,
-			Config: DefaultAllowListConfig(module),
+			Caller:     TestEnabledAddr,
+			BeforeHook: SetDefaultRoles(module.Address),
 			InputFn: func(t testing.TB) []byte {
 				input, err := allowlist.PackModifyAllowList(TestNoRoleAddr, allowlist.EnabledRole)
 				require.NoError(t, err)
@@ -153,8 +153,8 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]precompilete
 			ExpectedErr: allowlist.ErrCannotModifyAllowList.Error(),
 		},
 		"enabled set admin": {
-			Caller: TestEnabledAddr,
-			Config: DefaultAllowListConfig(module),
+			Caller:     TestEnabledAddr,
+			BeforeHook: SetDefaultRoles(module.Address),
 			InputFn: func(t testing.TB) []byte {
 				input, err := allowlist.PackModifyAllowList(TestNoRoleAddr, allowlist.AdminRole)
 				require.NoError(t, err)
@@ -166,8 +166,8 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]precompilete
 			ExpectedErr: allowlist.ErrCannotModifyAllowList.Error(),
 		},
 		"no role set manager pre-Durango": {
-			Caller: TestNoRoleAddr,
-			Config: DefaultAllowListConfig(module),
+			Caller:     TestNoRoleAddr,
+			BeforeHook: SetDefaultRoles(module.Address),
 			ChainConfigFn: func(ctrl *gomock.Controller) precompileconfig.ChainConfig {
 				config := precompileconfig.NewMockChainConfig(ctrl)
 				config.EXPECT().IsDurango(gomock.Any()).Return(false).AnyTimes()
@@ -184,8 +184,8 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]precompilete
 			ExpectedErr: "invalid non-activated function selector",
 		},
 		"no role set manager": {
-			Caller: TestNoRoleAddr,
-			Config: DefaultAllowListConfig(module),
+			Caller:     TestNoRoleAddr,
+			BeforeHook: SetDefaultRoles(module.Address),
 			ChainConfigFn: func(ctrl *gomock.Controller) precompileconfig.ChainConfig {
 				config := precompileconfig.NewMockChainConfig(ctrl)
 				config.EXPECT().IsDurango(gomock.Any()).Return(true).AnyTimes()
@@ -202,8 +202,8 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]precompilete
 			ExpectedErr: allowlist.ErrCannotModifyAllowList.Error(),
 		},
 		"enabled role set manager pre-Durango": {
-			Caller: TestEnabledAddr,
-			Config: DefaultAllowListConfig(module),
+			Caller:     TestEnabledAddr,
+			BeforeHook: SetDefaultRoles(module.Address),
 			ChainConfigFn: func(ctrl *gomock.Controller) precompileconfig.ChainConfig {
 				config := precompileconfig.NewMockChainConfig(ctrl)
 				config.EXPECT().IsDurango(gomock.Any()).Return(false).AnyTimes()
@@ -220,8 +220,8 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]precompilete
 			ExpectedErr: "invalid non-activated function selector",
 		},
 		"enabled set manager": {
-			Caller: TestNoRoleAddr,
-			Config: DefaultAllowListConfig(module),
+			Caller:     TestNoRoleAddr,
+			BeforeHook: SetDefaultRoles(module.Address),
 			ChainConfigFn: func(ctrl *gomock.Controller) precompileconfig.ChainConfig {
 				config := precompileconfig.NewMockChainConfig(ctrl)
 				config.EXPECT().IsDurango(gomock.Any()).Return(true).AnyTimes()
@@ -238,8 +238,8 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]precompilete
 			ExpectedErr: allowlist.ErrCannotModifyAllowList.Error(),
 		},
 		"admin set manager pre-DUpgarde": {
-			Caller: TestAdminAddr,
-			Config: DefaultAllowListConfig(module),
+			Caller:     TestAdminAddr,
+			BeforeHook: SetDefaultRoles(module.Address),
 			InputFn: func(t testing.TB) []byte {
 				input, err := allowlist.PackModifyAllowList(TestNoRoleAddr, allowlist.ManagerRole)
 				require.NoError(t, err)
@@ -256,8 +256,8 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]precompilete
 			ExpectedErr: "invalid non-activated function selector",
 		},
 		"admin set manager": {
-			Caller: TestAdminAddr,
-			Config: DefaultAllowListConfig(module),
+			Caller:     TestAdminAddr,
+			BeforeHook: SetDefaultRoles(module.Address),
 			InputFn: func(t testing.TB) []byte {
 				input, err := allowlist.PackModifyAllowList(TestNoRoleAddr, allowlist.ManagerRole)
 				require.NoError(t, err)
@@ -281,8 +281,8 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]precompilete
 			},
 		},
 		"manager set no role to no role": {
-			Caller: TestManagerAddr,
-			Config: DefaultAllowListConfig(module),
+			Caller:     TestManagerAddr,
+			BeforeHook: SetDefaultRoles(module.Address),
 			InputFn: func(t testing.TB) []byte {
 				input, err := allowlist.PackModifyAllowList(TestNoRoleAddr, allowlist.NoRole)
 				require.NoError(t, err)
@@ -302,8 +302,8 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]precompilete
 			},
 		},
 		"manager set no role to enabled": {
-			Caller: TestManagerAddr,
-			Config: DefaultAllowListConfig(module),
+			Caller:     TestManagerAddr,
+			BeforeHook: SetDefaultRoles(module.Address),
 			InputFn: func(t testing.TB) []byte {
 				input, err := allowlist.PackModifyAllowList(TestNoRoleAddr, allowlist.EnabledRole)
 				require.NoError(t, err)
@@ -324,8 +324,8 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]precompilete
 			},
 		},
 		"manager set no role to manager": {
-			Caller: TestManagerAddr,
-			Config: DefaultAllowListConfig(module),
+			Caller:     TestManagerAddr,
+			BeforeHook: SetDefaultRoles(module.Address),
 			ChainConfigFn: func(ctrl *gomock.Controller) precompileconfig.ChainConfig {
 				config := precompileconfig.NewMockChainConfig(ctrl)
 				config.EXPECT().IsDurango(gomock.Any()).Return(true).AnyTimes()
@@ -342,8 +342,8 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]precompilete
 			ExpectedErr: allowlist.ErrCannotModifyAllowList.Error(),
 		},
 		"manager set no role to admin": {
-			Caller: TestManagerAddr,
-			Config: DefaultAllowListConfig(module),
+			Caller:     TestManagerAddr,
+			BeforeHook: SetDefaultRoles(module.Address),
 			InputFn: func(t testing.TB) []byte {
 				input, err := allowlist.PackModifyAllowList(TestNoRoleAddr, allowlist.AdminRole)
 				require.NoError(t, err)
@@ -355,8 +355,8 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]precompilete
 			ExpectedErr: allowlist.ErrCannotModifyAllowList.Error(),
 		},
 		"manager set enabled to admin": {
-			Caller: TestManagerAddr,
-			Config: DefaultAllowListConfig(module),
+			Caller:     TestManagerAddr,
+			BeforeHook: SetDefaultRoles(module.Address),
 			InputFn: func(t testing.TB) []byte {
 				input, err := allowlist.PackModifyAllowList(TestEnabledAddr, allowlist.AdminRole)
 				require.NoError(t, err)
@@ -368,8 +368,8 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]precompilete
 			ExpectedErr: allowlist.ErrCannotModifyAllowList.Error(),
 		},
 		"manager set enabled role to manager": {
-			Caller: TestManagerAddr,
-			Config: DefaultAllowListConfig(module),
+			Caller:     TestManagerAddr,
+			BeforeHook: SetDefaultRoles(module.Address),
 			ChainConfigFn: func(ctrl *gomock.Controller) precompileconfig.ChainConfig {
 				config := precompileconfig.NewMockChainConfig(ctrl)
 				config.EXPECT().IsDurango(gomock.Any()).Return(true).AnyTimes()
@@ -386,8 +386,8 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]precompilete
 			ExpectedErr: allowlist.ErrCannotModifyAllowList.Error(),
 		},
 		"manager set enabled role to no role": {
-			Caller: TestManagerAddr,
-			Config: DefaultAllowListConfig(module),
+			Caller:     TestManagerAddr,
+			BeforeHook: SetDefaultRoles(module.Address),
 			InputFn: func(t testing.TB) []byte {
 				input, err := allowlist.PackModifyAllowList(TestEnabledAddr, allowlist.NoRole)
 				require.NoError(t, err)
@@ -407,8 +407,8 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]precompilete
 			},
 		},
 		"manager set admin to no role": {
-			Caller: TestManagerAddr,
-			Config: DefaultAllowListConfig(module),
+			Caller:     TestManagerAddr,
+			BeforeHook: SetDefaultRoles(module.Address),
 			InputFn: func(t testing.TB) []byte {
 				input, err := allowlist.PackModifyAllowList(TestAdminAddr, allowlist.NoRole)
 				require.NoError(t, err)
@@ -420,8 +420,8 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]precompilete
 			ExpectedErr: allowlist.ErrCannotModifyAllowList.Error(),
 		},
 		"manager set admin role to enabled": {
-			Caller: TestManagerAddr,
-			Config: DefaultAllowListConfig(module),
+			Caller:     TestManagerAddr,
+			BeforeHook: SetDefaultRoles(module.Address),
 			InputFn: func(t testing.TB) []byte {
 				input, err := allowlist.PackModifyAllowList(TestAdminAddr, allowlist.EnabledRole)
 				require.NoError(t, err)
@@ -433,8 +433,8 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]precompilete
 			ExpectedErr: allowlist.ErrCannotModifyAllowList.Error(),
 		},
 		"manager set admin to manager": {
-			Caller: TestManagerAddr,
-			Config: DefaultAllowListConfig(module),
+			Caller:     TestManagerAddr,
+			BeforeHook: SetDefaultRoles(module.Address),
 			ChainConfigFn: func(ctrl *gomock.Controller) precompileconfig.ChainConfig {
 				config := precompileconfig.NewMockChainConfig(ctrl)
 				config.EXPECT().IsDurango(gomock.Any()).Return(true).AnyTimes()
@@ -451,8 +451,8 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]precompilete
 			ExpectedErr: allowlist.ErrCannotModifyAllowList.Error(),
 		},
 		"manager set manager to no role": {
-			Caller: TestManagerAddr,
-			Config: DefaultAllowListConfig(module),
+			Caller:     TestManagerAddr,
+			BeforeHook: SetDefaultRoles(module.Address),
 			InputFn: func(t testing.TB) []byte {
 				input, err := allowlist.PackModifyAllowList(TestManagerAddr, allowlist.NoRole)
 				require.NoError(t, err)
@@ -464,8 +464,8 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]precompilete
 			ExpectedErr: allowlist.ErrCannotModifyAllowList.Error(),
 		},
 		"admin set no role with readOnly enabled": {
-			Caller: TestAdminAddr,
-			Config: DefaultAllowListConfig(module),
+			Caller:     TestAdminAddr,
+			BeforeHook: SetDefaultRoles(module.Address),
 			InputFn: func(t testing.TB) []byte {
 				input, err := allowlist.PackModifyAllowList(TestEnabledAddr, allowlist.NoRole)
 				require.NoError(t, err)
@@ -477,8 +477,8 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]precompilete
 			ExpectedErr: vm.ErrWriteProtection.Error(),
 		},
 		"admin set no role insufficient gas": {
-			Caller: TestAdminAddr,
-			Config: DefaultAllowListConfig(module),
+			Caller:     TestAdminAddr,
+			BeforeHook: SetDefaultRoles(module.Address),
 			InputFn: func(t testing.TB) []byte {
 				input, err := allowlist.PackModifyAllowList(TestEnabledAddr, allowlist.NoRole)
 				require.NoError(t, err)
@@ -490,8 +490,8 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]precompilete
 			ExpectedErr: vm.ErrOutOfGas.Error(),
 		},
 		"no role read allow list": {
-			Caller: TestNoRoleAddr,
-			Config: DefaultAllowListConfig(module),
+			Caller:     TestNoRoleAddr,
+			BeforeHook: SetDefaultRoles(module.Address),
 			InputFn: func(t testing.TB) []byte {
 				input, err := allowlist.PackReadAllowList(TestNoRoleAddr)
 				require.NoError(t, err)
@@ -503,8 +503,8 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]precompilete
 			ExpectedRes: common.Hash(allowlist.NoRole).Bytes(),
 		},
 		"admin role read allow list": {
-			Caller: TestAdminAddr,
-			Config: DefaultAllowListConfig(module),
+			Caller:     TestAdminAddr,
+			BeforeHook: SetDefaultRoles(module.Address),
 			InputFn: func(t testing.TB) []byte {
 				input, err := allowlist.PackReadAllowList(TestAdminAddr)
 				require.NoError(t, err)
@@ -515,8 +515,8 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]precompilete
 			ExpectedRes: common.Hash(allowlist.AdminRole).Bytes(),
 		},
 		"admin read allow list with readOnly enabled": {
-			Caller: TestAdminAddr,
-			Config: DefaultAllowListConfig(module),
+			Caller:     TestAdminAddr,
+			BeforeHook: SetDefaultRoles(module.Address),
 			InputFn: func(t testing.TB) []byte {
 				input, err := allowlist.PackReadAllowList(TestNoRoleAddr)
 				require.NoError(t, err)
@@ -527,8 +527,8 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]precompilete
 			ExpectedRes: common.Hash(allowlist.NoRole).Bytes(),
 		},
 		"radmin read allow list out of gas": {
-			Caller: TestAdminAddr,
-			Config: DefaultAllowListConfig(module),
+			Caller:     TestAdminAddr,
+			BeforeHook: SetDefaultRoles(module.Address),
 			InputFn: func(t testing.TB) []byte {
 				input, err := allowlist.PackReadAllowList(TestNoRoleAddr)
 				require.NoError(t, err)
@@ -581,8 +581,8 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]precompilete
 			},
 		},
 		"admin set admin pre-Durango": {
-			Caller: TestAdminAddr,
-			Config: DefaultAllowListConfig(module),
+			Caller:     TestAdminAddr,
+			BeforeHook: SetDefaultRoles(module.Address),
 			ChainConfigFn: func(ctrl *gomock.Controller) precompileconfig.ChainConfig {
 				config := precompileconfig.NewMockChainConfig(ctrl)
 				config.EXPECT().IsDurango(gomock.Any()).Return(false).AnyTimes()
@@ -604,8 +604,8 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]precompilete
 			},
 		},
 		"admin set enabled pre-Durango": {
-			Caller: TestAdminAddr,
-			Config: DefaultAllowListConfig(module),
+			Caller:     TestAdminAddr,
+			BeforeHook: SetDefaultRoles(module.Address),
 			ChainConfigFn: func(ctrl *gomock.Controller) precompileconfig.ChainConfig {
 				config := precompileconfig.NewMockChainConfig(ctrl)
 				config.EXPECT().IsDurango(gomock.Any()).Return(false).AnyTimes()
@@ -627,8 +627,8 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]precompilete
 			},
 		},
 		"admin set no role pre-Durango": {
-			Caller: TestAdminAddr,
-			Config: DefaultAllowListConfig(module),
+			Caller:     TestAdminAddr,
+			BeforeHook: SetDefaultRoles(module.Address),
 			ChainConfigFn: func(ctrl *gomock.Controller) precompileconfig.ChainConfig {
 				config := precompileconfig.NewMockChainConfig(ctrl)
 				config.EXPECT().IsDurango(gomock.Any()).Return(false).AnyTimes()
@@ -652,16 +652,18 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]precompilete
 	}
 }
 
-// DefaultAllowListConfig returns the default allowlist configuration with Admin, Enabled, and Manager roles
-func DefaultAllowListConfig(module modules.Module) precompileconfig.Config {
-	return mkConfigWithAllowList(
-		module,
-		&allowlist.AllowListConfig{
-			AdminAddresses:   []common.Address{TestAdminAddr},
-			EnabledAddresses: []common.Address{TestEnabledAddr},
-			ManagerAddresses: []common.Address{TestManagerAddr},
-		},
-	)
+// SetDefaultRoles returns a BeforeHook that sets roles TestAdminAddr and TestEnabledAddr
+// to have the AdminRole and EnabledRole respectively.
+func SetDefaultRoles(contractAddress common.Address) func(t testing.TB, state contract.StateDB) {
+	return func(t testing.TB, state contract.StateDB) {
+		allowlist.SetAllowListRole(state, contractAddress, TestAdminAddr, allowlist.AdminRole)
+		allowlist.SetAllowListRole(state, contractAddress, TestManagerAddr, allowlist.ManagerRole)
+		allowlist.SetAllowListRole(state, contractAddress, TestEnabledAddr, allowlist.EnabledRole)
+		require.Equal(t, allowlist.AdminRole, allowlist.GetAllowListStatus(state, contractAddress, TestAdminAddr))
+		require.Equal(t, allowlist.ManagerRole, allowlist.GetAllowListStatus(state, contractAddress, TestManagerAddr))
+		require.Equal(t, allowlist.EnabledRole, allowlist.GetAllowListStatus(state, contractAddress, TestEnabledAddr))
+		require.Equal(t, allowlist.NoRole, allowlist.GetAllowListStatus(state, contractAddress, TestNoRoleAddr))
+	}
 }
 
 func RunPrecompileWithAllowListTests(t *testing.T, module modules.Module, contractTests map[string]precompiletest.PrecompileTest) {
@@ -676,25 +678,6 @@ func RunPrecompileWithAllowListTests(t *testing.T, module modules.Module, contra
 	}
 
 	precompiletest.RunPrecompileTests(t, module, tests)
-}
-
-func BenchPrecompileWithAllowList(b *testing.B, module modules.Module, contractTests map[string]precompiletest.PrecompileTest) {
-	b.Helper()
-
-	tests := AllowListTests(b, module)
-	// Add the contract specific tests to the map of tests to run.
-	for name, test := range contractTests {
-		if _, exists := tests[name]; exists {
-			b.Fatalf("duplicate bench name: %s", name)
-		}
-		tests[name] = test
-	}
-
-	for name, test := range tests {
-		b.Run(name, func(b *testing.B) {
-			test.Bench(b, module)
-		})
-	}
 }
 
 func assertSetRoleEvent(t testing.TB, logsTopics [][]common.Hash, logsData [][]byte, role allowlist.Role, addr common.Address, caller common.Address, oldRole allowlist.Role) {

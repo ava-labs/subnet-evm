@@ -238,8 +238,8 @@ var (
 			},
 		},
 		"disable rewards should not emit event pre-Durango": {
-			Caller: allowlisttest.TestManagerAddr,
-			Config: allowlisttest.DefaultAllowListConfig(Module),
+			Caller:     allowlisttest.TestManagerAddr,
+			BeforeHook: allowlisttest.SetDefaultRoles(Module.Address),
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackDisableRewards()
 				require.NoError(t, err)
@@ -435,10 +435,6 @@ var (
 
 func TestRewardManagerRun(t *testing.T) {
 	allowlisttest.RunPrecompileWithAllowListTests(t, Module, tests)
-}
-
-func BenchmarkRewardManager(b *testing.B) {
-	allowlisttest.BenchPrecompileWithAllowList(b, Module, tests)
 }
 
 func assertRewardAddressChanged(
