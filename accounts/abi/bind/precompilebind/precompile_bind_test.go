@@ -453,8 +453,8 @@ var bindTests = []struct {
 		`"github.com/stretchr/testify/require"
 		 "math/big"
 		 "github.com/ava-labs/libevm/common"
-		 "github.com/ava-labs/subnet-evm/core/extstate/extstatetest"
 		 "github.com/ava-labs/subnet-evm/precompile/allowlist"
+		 "github.com/ava-labs/subnet-evm/precompile/precompiletest"
 		`,
 		`
 			testGreeting := "test"
@@ -467,7 +467,7 @@ var bindTests = []struct {
 			require.Equal(t, testGreeting, unpackedGreeting)
 
 			// test that the allow list is generated correctly
-			stateDB := extstatetest.NewTestStateDB(t)
+			stateDB := precompiletest.NewTestStateDB(t, map[common.Address][][]byte{})
 			address := common.BigToAddress(big.NewInt(1))
 			SetHelloWorldAllowListStatus(stateDB, address, allowlist.EnabledRole)
 			role := GetHelloWorldAllowListStatus(stateDB, address)
