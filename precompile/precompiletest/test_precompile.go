@@ -94,6 +94,10 @@ func (test PrecompileTest) setup(t testing.TB, module modules.Module, state *tes
 
 	ctrl := gomock.NewController(t)
 
+	if test.BeforeHook != nil {
+		test.BeforeHook(t, state)
+	}
+
 	if test.ChainConfigFn == nil {
 		test.ChainConfigFn = func(ctrl *gomock.Controller) precompileconfig.ChainConfig {
 			mockChainConfig := precompileconfig.NewMockChainConfig(ctrl)
