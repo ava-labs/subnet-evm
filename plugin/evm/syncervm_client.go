@@ -286,7 +286,7 @@ func (client *stateSyncerClient) syncStateTrie(ctx context.Context) error {
 		return err
 	}
 	err = evmSyncer.Wait(ctx)
-	log.Info("state sync: sync finished", "root", client.summary.GetBlockRoot(), "err", err)
+	log.Info("state sync: sync finished", "root", client.syncSummary.BlockRoot, "err", err)
 	return err
 }
 
