@@ -1,9 +1,47 @@
 # Release Notes
 
 ## Pending Release
+- Enable expermiental `state-scheme` flag to specify Firewood as a state database.
+- Add pending releases here
 
-- Removed static API handler: `subnetevm.decodeGenesis`, `subnetevm.buildGenesis`
-- Demoted unnecessary error log in `core/txpool/legacypool.go` to warning, displaying unexpected but valid behavior.
+## [v0.7.7](https://github.com/ava-labs/subnet-evm/releases/tag/v0.7.7)
+
+This version is backwards compatible to v0.7.0. It is optional, but encouraged.
+
+### AvalancheGo Compatibility
+
+The plugin version is **updated** to 42 and is compatible with AvalancheGo version v1.13.3.
+
+### Updates
+
+- Demoted unnecessary error log in core/txpool/legacypool.go to warning, displaying unexpected but valid behavior
+- Added maximum number of addresses (1000) to be queried in a single filter
+- Use state-history eth config flag to designate the number of recent states queryable
+
+
+## [v0.7.6](https://github.com/ava-labs/subnet-evm/releases/tag/v0.7.6)
+
+_This release should be skipped entirely in favor of 0.7.7 due to the use of a AvalancheGo release candidate version._
+
+## [v0.7.5](https://github.com/ava-labs/subnet-evm/releases/tag/v0.7.5)
+
+This version is backwards compatible to v0.7.0. It is optional, but encouraged.
+
+### AvalancheGo Compatibility
+
+The plugin version is **updated** to 41 and is compatible with AvalancheGo version v1.13.2.
+
+### Breaking changes
+
+- Removed static API handler and functions: `subnetevm.decodeGenesis`, `subnetevm.buildGenesis`
+
+### Updates
+
+- Updated AvalancheGo dependency to v1.13.2
+- Updated libevm dependency to v1.13.14-0.3.0.rc.1
+- Reduced custom types and simplified VM tests
+- Fixed log structuring and removed handler special cases
+
 
 ## [v0.7.4](https://github.com/ava-labs/subnet-evm/releases/tag/v0.7.4)
 

@@ -1,4 +1,4 @@
-// (c) 2023, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package warp
@@ -23,7 +23,7 @@ import (
 )
 
 var (
-	_                         Backend = &backend{}
+	_                         Backend = (*backend)(nil)
 	errParsingOffChainMessage         = errors.New("failed to parse off-chain message")
 
 	messageCacheSize = 500
@@ -46,8 +46,6 @@ type Backend interface {
 	GetBlockSignature(ctx context.Context, blockID ids.ID) ([]byte, error)
 
 	// GetMessage retrieves the [unsignedMessage] from the warp backend database if available
-	// TODO: After Etna, the backend no longer needs to store the mapping from messageHash
-	// to unsignedMessage (and this method can be removed).
 	GetMessage(messageHash ids.ID) (*avalancheWarp.UnsignedMessage, error)
 
 	acp118.Verifier

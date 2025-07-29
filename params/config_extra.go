@@ -1,4 +1,4 @@
-// (c) 2024 Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package params
@@ -29,7 +29,7 @@ var (
 	unscheduledActivation = uint64(upgrade.UnscheduledActivationTime.Unix())
 )
 
-// SetEthUpgrades enables Etheruem network upgrades using the same time as
+// SetEthUpgrades enables Ethereum network upgrades using the same time as
 // the Avalanche network upgrade that enables them.
 //
 // TODO: Prior to Cancun, Avalanche upgrades are referenced inline in the

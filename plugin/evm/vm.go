@@ -1,4 +1,4 @@
-// (c) 2019-2020, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package evm
@@ -37,11 +37,12 @@ import (
 	"github.com/ava-labs/subnet-evm/eth/ethconfig"
 	subnetevmprometheus "github.com/ava-labs/subnet-evm/metrics/prometheus"
 	"github.com/ava-labs/subnet-evm/miner"
+	"github.com/ava-labs/subnet-evm/network"
 	"github.com/ava-labs/subnet-evm/node"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/params/extras"
-	"github.com/ava-labs/subnet-evm/peer"
 	"github.com/ava-labs/subnet-evm/plugin/evm/config"
+	"github.com/ava-labs/subnet-evm/plugin/evm/customrawdb"
 	subnetevmlog "github.com/ava-labs/subnet-evm/plugin/evm/log"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
 	"github.com/ava-labs/subnet-evm/plugin/evm/validators"
@@ -94,10 +95,10 @@ import (
 )
 
 var (
-	_ block.ChainVM                      = &VM{}
-	_ block.BuildBlockWithContextChainVM = &VM{}
-	_ block.StateSyncableVM              = &VM{}
-	_ statesyncclient.EthBlockParser     = &VM{}
+	_ block.ChainVM                      = (*VM)(nil)
+	_ block.BuildBlockWithContextChainVM = (*VM)(nil)
+	_ block.StateSyncableVM              = (*VM)(nil)
+	_ statesyncclient.EthBlockParser     = (*VM)(nil)
 )
 
 const (
@@ -114,18 +115,6 @@ const (
 	ethMetricsPrefix        = "eth"
 	sdkMetricsPrefix        = "sdk"
 	chainStateMetricsPrefix = "chain_state"
-
-	// gossip constants
-	pushGossipDiscardedElements          = 16_384
-	txGossipBloomMinTargetElements       = 8 * 1024
-	txGossipBloomTargetFalsePositiveRate = 0.01
-	txGossipBloomResetFalsePositiveRate  = 0.05
-	txGossipBloomChurnMultiplier         = 3
-	txGossipTargetMessageSize            = 20 * units.KiB
-	maxValidatorSetStaleness             = time.Minute
-	txGossipThrottlingPeriod             = 10 * time.Second
-	txGossipThrottlingLimit              = 2
-	txGossipPollSize                     = 1
 )
 
 // Define the API endpoints for the VM
@@ -193,7 +182,6 @@ type VM struct {
 
 	config config.Config
 
-	networkID   uint64
 	genesisHash common.Hash
 	chainConfig *params.ChainConfig
 	ethConfig   ethconfig.Config
@@ -242,11 +230,8 @@ type VM struct {
 	// Continuous Profiler
 	profiler profiler.ContinuousProfiler
 
-	peer.Network
-	client       peer.NetworkClient
+	network.Network
 	networkCodec codec.Manager
-
-	p2pValidators *p2p.Validators
 
 	// Metrics
 	sdkMetrics *prometheus.Registry
@@ -265,7 +250,7 @@ type VM struct {
 	warpBackend warp.Backend
 
 	// Initialize only sets these if nil so they can be overridden in tests
-	p2pSender          commonEng.AppSender
+	p2pValidators      *p2p.Validators
 	ethTxGossipHandler p2p.Handler
 	ethTxPushGossiper  avalancheUtils.Atomic[*gossip.PushGossiper[*GossipEthTx]]
 	ethTxPullGossiper  gossip.Gossiper
@@ -405,8 +390,33 @@ func (vm *VM) Initialize(
 	vm.ethConfig.CommitInterval = vm.config.CommitInterval
 	vm.ethConfig.SkipUpgradeCheck = vm.config.SkipUpgradeCheck
 	vm.ethConfig.AcceptedCacheSize = vm.config.AcceptedCacheSize
+	vm.ethConfig.StateHistory = vm.config.StateHistory
 	vm.ethConfig.TransactionHistory = vm.config.TransactionHistory
 	vm.ethConfig.SkipTxIndexing = vm.config.SkipTxIndexing
+	vm.ethConfig.StateScheme = vm.config.StateScheme
+
+	if vm.ethConfig.StateScheme == customrawdb.FirewoodScheme {
+		log.Warn("Firewood state scheme is enabled")
+		log.Warn("This is untested in production, use at your own risk")
+		// Firewood only supports pruning for now.
+		if !vm.config.Pruning {
+			return errors.New("Pruning must be enabled for Firewood")
+		}
+		// Firewood does not support iterators, so the snapshot cannot be constructed
+		if vm.config.SnapshotCache > 0 {
+			return errors.New("Snapshot cache must be disabled for Firewood")
+		}
+		if vm.config.OfflinePruning {
+			return errors.New("Offline pruning is not supported for Firewood")
+		}
+		if vm.config.StateSyncEnabled {
+			return errors.New("State sync is not yet supported for Firewood")
+		}
+	}
+	if vm.ethConfig.StateScheme == rawdb.PathScheme {
+		log.Error("Path state scheme is not supported. Please use HashDB or Firewood state schemes instead")
+		return errors.New("Path state scheme is not supported")
+	}
 
 	// Create directory for offline pruning
 	if len(vm.ethConfig.OfflinePruningDataDirectory) != 0 {
@@ -427,7 +437,6 @@ func (vm *VM) Initialize(
 	}
 
 	vm.chainConfig = g.Config
-	vm.networkID = vm.ethConfig.NetworkId
 
 	// create genesisHash after applying upgradeBytes in case
 	// upgradeBytes modifies genesis.
@@ -441,19 +450,12 @@ func (vm *VM) Initialize(
 		"height", lastAcceptedHeight,
 	)
 
-	// initialize peer network
-	if vm.p2pSender == nil {
-		vm.p2pSender = appSender
-	}
-
-	p2pNetwork, err := p2p.NewNetwork(vm.ctx.Log, vm.p2pSender, vm.sdkMetrics, "p2p")
-	if err != nil {
-		return fmt.Errorf("failed to initialize p2p network: %w", err)
-	}
-	vm.p2pValidators = p2p.NewValidators(p2pNetwork.Peers, vm.ctx.Log, vm.ctx.SubnetID, vm.ctx.ValidatorState, maxValidatorSetStaleness)
 	vm.networkCodec = message.Codec
-	vm.Network = peer.NewNetwork(p2pNetwork, appSender, vm.networkCodec, chainCtx.NodeID, vm.config.MaxOutboundActiveRequests)
-	vm.client = peer.NewNetworkClient(vm.Network)
+	vm.Network, err = network.NewNetwork(vm.ctx, appSender, vm.networkCodec, vm.config.MaxOutboundActiveRequests, vm.sdkMetrics)
+	if err != nil {
+		return fmt.Errorf("failed to create network: %w", err)
+	}
+	vm.p2pValidators = vm.Network.P2PValidators()
 
 	vm.validatorsManager, err = validators.NewManager(vm.ctx, vm.validatorsDB, &vm.clock)
 	if err != nil {
@@ -654,7 +656,7 @@ func (vm *VM) initializeStateSyncClient(lastAcceptedHeight uint64) error {
 		stateSyncDone: vm.stateSyncDone,
 		client: statesyncclient.NewClient(
 			&statesyncclient.ClientConfig{
-				NetworkClient:    vm.client,
+				NetworkClient:    vm.Network,
 				Codec:            vm.networkCodec,
 				Stats:            stats.NewClientSyncerStats(),
 				StateSyncNodeIDs: stateSyncIDs,
@@ -769,7 +771,7 @@ func (vm *VM) onNormalOperationsStarted() error {
 	// Initialize goroutines related to block building
 	// once we enter normal operation as there is no need to handle mempool gossip before this point.
 	ethTxGossipMarshaller := GossipEthTxMarshaller{}
-	ethTxGossipClient := vm.Network.NewClient(p2p.TxGossipHandlerID, p2p.WithValidatorSampling(vm.p2pValidators))
+	ethTxGossipClient := vm.Network.NewClient(p2p.TxGossipHandlerID, p2p.WithValidatorSampling(vm.P2PValidators()))
 	ethTxGossipMetrics, err := gossip.NewMetrics(vm.sdkMetrics, ethTxGossipNamespace)
 	if err != nil {
 		return fmt.Errorf("failed to initialize eth tx gossip metrics: %w", err)
@@ -799,13 +801,13 @@ func (vm *VM) onNormalOperationsStarted() error {
 		ethTxPushGossiper, err = gossip.NewPushGossiper[*GossipEthTx](
 			ethTxGossipMarshaller,
 			ethTxPool,
-			vm.p2pValidators,
+			vm.P2PValidators(),
 			ethTxGossipClient,
 			ethTxGossipMetrics,
 			pushGossipParams,
 			pushRegossipParams,
-			pushGossipDiscardedElements,
-			txGossipTargetMessageSize,
+			config.PushGossipDiscardedElements,
+			config.TxGossipTargetMessageSize,
 			vm.config.RegossipFrequency.Duration,
 		)
 		if err != nil {
@@ -826,10 +828,10 @@ func (vm *VM) onNormalOperationsStarted() error {
 			ethTxGossipMarshaller,
 			ethTxPool,
 			ethTxGossipMetrics,
-			txGossipTargetMessageSize,
-			txGossipThrottlingPeriod,
-			txGossipThrottlingLimit,
-			vm.p2pValidators,
+			config.TxGossipTargetMessageSize,
+			config.TxGossipThrottlingPeriod,
+			config.TxGossipThrottlingLimit,
+			vm.P2PValidators(),
 		)
 	}
 
@@ -844,13 +846,13 @@ func (vm *VM) onNormalOperationsStarted() error {
 			ethTxPool,
 			ethTxGossipClient,
 			ethTxGossipMetrics,
-			txGossipPollSize,
+			config.TxGossipPollSize,
 		)
 
 		vm.ethTxPullGossiper = gossip.ValidatorGossiper{
 			Gossiper:   ethTxPullGossiper,
 			NodeID:     vm.ctx.NodeID,
-			Validators: vm.p2pValidators,
+			Validators: vm.P2PValidators(),
 		}
 	}
 
@@ -1131,8 +1133,10 @@ func (vm *VM) CreateHandlers(context.Context) (map[string]http.Handler, error) {
 	}
 
 	if vm.config.WarpAPIEnabled {
-		warpAPI := warp.NewAPI(vm.ctx, vm.networkCodec, vm.warpBackend, vm.client, vm.requirePrimaryNetworkSigners)
-		if err := handler.RegisterName("warp", warpAPI); err != nil {
+		warpSDKClient := vm.Network.NewClient(p2p.SignatureRequestHandlerID)
+		signatureAggregator := acp118.NewSignatureAggregator(vm.ctx.Log, warpSDKClient)
+
+		if err := handler.RegisterName("warp", warp.NewAPI(vm.ctx, vm.warpBackend, signatureAggregator, vm.requirePrimaryNetworkSigners)); err != nil {
 			return nil, err
 		}
 		enabledAPIs = append(enabledAPIs, "warp")
@@ -1153,7 +1157,25 @@ func (vm *VM) CreateHandlers(context.Context) (map[string]http.Handler, error) {
 	return apis, nil
 }
 
-func (*VM) CreateHTTP2Handler(context.Context) (http.Handler, error) {
+// NewHTTPHandler implements the block.ChainVM interface
+func (vm *VM) NewHTTPHandler(ctx context.Context) (http.Handler, error) {
+	handlers, err := vm.CreateHandlers(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Return the main RPC handler as the primary HTTP handler
+	if handler, exists := handlers[ethRPCEndpoint]; exists {
+		return handler, nil
+	}
+
+	// Fallback to a default handler if no RPC handler exists
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "No HTTP handler available", http.StatusNotFound)
+	}), nil
+}
+
+func (vm *VM) CreateHTTP2Handler(context.Context) (http.Handler, error) {
 	return nil, nil
 }
 

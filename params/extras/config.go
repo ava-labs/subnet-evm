@@ -1,4 +1,4 @@
-// (c) 2024 Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package extras
@@ -38,7 +38,6 @@ var (
 	}
 
 	TestChainConfig = &ChainConfig{
-		AvalancheContext:   AvalancheContext{SnowCtx: utils.TestSnowContext()},
 		FeeConfig:          DefaultFeeConfig,
 		NetworkUpgrades:    GetNetworkUpgrades(upgrade.GetConfig(constants.UnitTestID)), // This can be changed to correct network (local, test) via VM.
 		GenesisPrecompiles: Precompiles{},
