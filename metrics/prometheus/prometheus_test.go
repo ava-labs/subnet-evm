@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/ava-labs/libevm/metrics"
+	"github.com/ava-labs/subnet-evm/metrics/metricstest"
 )
 
 func TestGatherer_Gather(t *testing.T) {
