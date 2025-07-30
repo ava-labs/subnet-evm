@@ -1,4 +1,4 @@
-// (c) 2019-2020, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package evm
@@ -16,11 +16,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ava-labs/avalanchego/cache"
+	"github.com/ava-labs/avalanchego/cache/lru"
 	"github.com/ava-labs/avalanchego/cache/metercacher"
 	"github.com/ava-labs/avalanchego/network/p2p"
 	"github.com/ava-labs/avalanchego/network/p2p/acp118"
 	"github.com/ava-labs/avalanchego/network/p2p/gossip"
+	"github.com/ava-labs/firewood-go-ethhash/ffi"
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/ava-labs/libevm/core/rawdb"
@@ -37,11 +38,13 @@ import (
 	"github.com/ava-labs/subnet-evm/eth/ethconfig"
 	subnetevmprometheus "github.com/ava-labs/subnet-evm/metrics/prometheus"
 	"github.com/ava-labs/subnet-evm/miner"
+	"github.com/ava-labs/subnet-evm/network"
 	"github.com/ava-labs/subnet-evm/node"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/params/extras"
-	"github.com/ava-labs/subnet-evm/peer"
 	"github.com/ava-labs/subnet-evm/plugin/evm/config"
+	"github.com/ava-labs/subnet-evm/plugin/evm/customrawdb"
+	subnetevmlog "github.com/ava-labs/subnet-evm/plugin/evm/log"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
 	"github.com/ava-labs/subnet-evm/plugin/evm/validators"
 	"github.com/ava-labs/subnet-evm/plugin/evm/validators/interfaces"
@@ -93,10 +96,10 @@ import (
 )
 
 var (
-	_ block.ChainVM                      = &VM{}
-	_ block.BuildBlockWithContextChainVM = &VM{}
-	_ block.StateSyncableVM              = &VM{}
-	_ statesyncclient.EthBlockParser     = &VM{}
+	_ block.ChainVM                      = (*VM)(nil)
+	_ block.BuildBlockWithContextChainVM = (*VM)(nil)
+	_ block.StateSyncableVM              = (*VM)(nil)
+	_ statesyncclient.EthBlockParser     = (*VM)(nil)
 )
 
 const (
@@ -113,18 +116,6 @@ const (
 	ethMetricsPrefix        = "eth"
 	sdkMetricsPrefix        = "sdk"
 	chainStateMetricsPrefix = "chain_state"
-
-	// gossip constants
-	pushGossipDiscardedElements          = 16_384
-	txGossipBloomMinTargetElements       = 8 * 1024
-	txGossipBloomTargetFalsePositiveRate = 0.01
-	txGossipBloomResetFalsePositiveRate  = 0.05
-	txGossipBloomChurnMultiplier         = 3
-	txGossipTargetMessageSize            = 20 * units.KiB
-	maxValidatorSetStaleness             = time.Minute
-	txGossipThrottlingPeriod             = 10 * time.Second
-	txGossipThrottlingLimit              = 2
-	txGossipPollSize                     = 1
 )
 
 // Define the API endpoints for the VM
@@ -155,6 +146,8 @@ var (
 	errNilBaseFeeSubnetEVM           = errors.New("nil base fee is invalid after subnetEVM")
 	errNilBlockGasCostSubnetEVM      = errors.New("nil blockGasCost is invalid after subnetEVM")
 	errInvalidHeaderPredicateResults = errors.New("invalid header predicate results")
+	errInitializingLogger            = errors.New("failed to initialize logger")
+	errShuttingDownVM                = errors.New("shutting down VM")
 )
 
 // legacyApiNames maps pre geth v1.10.20 api names to their updated counterparts.
@@ -190,7 +183,6 @@ type VM struct {
 
 	config config.Config
 
-	networkID   uint64
 	genesisHash common.Hash
 	chainConfig *params.ChainConfig
 	ethConfig   ethconfig.Config
@@ -224,11 +216,12 @@ type VM struct {
 
 	validatorsDB database.Database
 
-	toEngine chan<- commonEng.Message
-
 	syntacticBlockValidator BlockValidator
 
-	builder *blockBuilder
+	// builderLock is used to synchronize access to the block builder,
+	// as it is uninitialized at first and is only initialized when onNormalOperationsStarted is called.
+	builderLock sync.Mutex
+	builder     *blockBuilder
 
 	clock mockable.Clock
 
@@ -238,18 +231,17 @@ type VM struct {
 	// Continuous Profiler
 	profiler profiler.ContinuousProfiler
 
-	peer.Network
-	client       peer.NetworkClient
+	network.Network
 	networkCodec codec.Manager
-
-	p2pValidators *p2p.Validators
 
 	// Metrics
 	sdkMetrics *prometheus.Registry
 
 	bootstrapped avalancheUtils.Atomic[bool]
 
-	logger SubnetEVMLogger
+	stateSyncDone chan struct{}
+
+	logger subnetevmlog.Logger
 	// State sync server and client
 	StateSyncServer
 	StateSyncClient
@@ -259,7 +251,7 @@ type VM struct {
 	warpBackend warp.Backend
 
 	// Initialize only sets these if nil so they can be overridden in tests
-	p2pSender          commonEng.AppSender
+	p2pValidators      *p2p.Validators
 	ethTxGossipHandler p2p.Handler
 	ethTxPushGossiper  avalancheUtils.Atomic[*gossip.PushGossiper[*GossipEthTx]]
 	ethTxPullGossiper  gossip.Gossiper
@@ -279,10 +271,10 @@ func (vm *VM) Initialize(
 	genesisBytes []byte,
 	upgradeBytes []byte,
 	configBytes []byte,
-	toEngine chan<- commonEng.Message,
 	fxs []*commonEng.Fx,
 	appSender commonEng.AppSender,
 ) error {
+	vm.stateSyncDone = make(chan struct{})
 	vm.config.SetDefaults(defaultTxPoolConfig)
 	if len(configBytes) > 0 {
 		if err := json.Unmarshal(configBytes, &vm.config); err != nil {
@@ -307,9 +299,9 @@ func (vm *VM) Initialize(
 	}
 	vm.chainAlias = alias
 
-	subnetEVMLogger, err := InitLogger(vm.chainAlias, vm.config.LogLevel, vm.config.LogJSONFormat, vm.ctx.Log)
+	subnetEVMLogger, err := subnetevmlog.InitLogger(vm.chainAlias, vm.config.LogLevel, vm.config.LogJSONFormat, vm.ctx.Log)
 	if err != nil {
-		return fmt.Errorf("failed to initialize logger due to: %w ", err)
+		return fmt.Errorf("%w: %w ", errInitializingLogger, err)
 	}
 	vm.logger = subnetEVMLogger
 
@@ -326,7 +318,6 @@ func (vm *VM) Initialize(
 	// Enable debug-level metrics that might impact runtime performance
 	metrics.EnabledExpensive = vm.config.MetricsExpensiveEnabled
 
-	vm.toEngine = toEngine
 	vm.shutdownChan = make(chan struct{}, 1)
 
 	if err := vm.initializeMetrics(); err != nil {
@@ -344,65 +335,12 @@ func (vm *VM) Initialize(
 		}
 	}
 
-	g := new(core.Genesis)
-	if err := json.Unmarshal(genesisBytes, g); err != nil {
+	g, err := parseGenesis(chainCtx, genesisBytes, upgradeBytes, vm.config.AirdropFile)
+	if err != nil {
 		return err
 	}
 
-	if g.Config == nil {
-		g.Config = params.SubnetEVMDefaultChainConfig
-	}
-
-	// Set the Avalanche Context on the ChainConfig
-	configExtra := params.GetExtra(g.Config)
-	configExtra.AvalancheContext = extras.AvalancheContext{
-		SnowCtx: chainCtx,
-	}
-
-	params.SetNetworkUpgradeDefaults(g.Config)
-
-	// Load airdrop file if provided
-	if vm.config.AirdropFile != "" {
-		g.AirdropData, err = os.ReadFile(vm.config.AirdropFile)
-		if err != nil {
-			return fmt.Errorf("could not read airdrop file '%s': %w", vm.config.AirdropFile, err)
-		}
-	}
-
 	vm.syntacticBlockValidator = NewBlockValidator()
-
-	if configExtra.FeeConfig == commontype.EmptyFeeConfig {
-		log.Info("No fee config given in genesis, setting default fee config", "DefaultFeeConfig", params.DefaultFeeConfig)
-		configExtra.FeeConfig = params.DefaultFeeConfig
-	}
-
-	// Apply upgradeBytes (if any) by unmarshalling them into [chainConfig.UpgradeConfig].
-	// Initializing the chain will verify upgradeBytes are compatible with existing values.
-	// This should be called before g.Verify().
-	if len(upgradeBytes) > 0 {
-		var upgradeConfig extras.UpgradeConfig
-		if err := json.Unmarshal(upgradeBytes, &upgradeConfig); err != nil {
-			return fmt.Errorf("failed to parse upgrade bytes: %w", err)
-		}
-		configExtra.UpgradeConfig = upgradeConfig
-	}
-
-	if configExtra.UpgradeConfig.NetworkUpgradeOverrides != nil {
-		overrides := configExtra.UpgradeConfig.NetworkUpgradeOverrides
-		marshaled, err := json.Marshal(overrides)
-		if err != nil {
-			log.Warn("Failed to marshal network upgrade overrides", "error", err, "overrides", overrides)
-		} else {
-			log.Info("Applying network upgrade overrides", "overrides", string(marshaled))
-		}
-		configExtra.Override(overrides)
-	}
-
-	params.SetEthUpgrades(g.Config, configExtra.NetworkUpgrades)
-
-	if err := configExtra.Verify(); err != nil {
-		return fmt.Errorf("failed to verify genesis: %w", err)
-	}
 
 	vm.ethConfig = ethconfig.NewDefaultConfig()
 	vm.ethConfig.Genesis = g
@@ -453,8 +391,33 @@ func (vm *VM) Initialize(
 	vm.ethConfig.CommitInterval = vm.config.CommitInterval
 	vm.ethConfig.SkipUpgradeCheck = vm.config.SkipUpgradeCheck
 	vm.ethConfig.AcceptedCacheSize = vm.config.AcceptedCacheSize
+	vm.ethConfig.StateHistory = vm.config.StateHistory
 	vm.ethConfig.TransactionHistory = vm.config.TransactionHistory
 	vm.ethConfig.SkipTxIndexing = vm.config.SkipTxIndexing
+	vm.ethConfig.StateScheme = vm.config.StateScheme
+
+	if vm.ethConfig.StateScheme == customrawdb.FirewoodScheme {
+		log.Warn("Firewood state scheme is enabled")
+		log.Warn("This is untested in production, use at your own risk")
+		// Firewood only supports pruning for now.
+		if !vm.config.Pruning {
+			return errors.New("Pruning must be enabled for Firewood")
+		}
+		// Firewood does not support iterators, so the snapshot cannot be constructed
+		if vm.config.SnapshotCache > 0 {
+			return errors.New("Snapshot cache must be disabled for Firewood")
+		}
+		if vm.config.OfflinePruning {
+			return errors.New("Offline pruning is not supported for Firewood")
+		}
+		if vm.config.StateSyncEnabled {
+			return errors.New("State sync is not yet supported for Firewood")
+		}
+	}
+	if vm.ethConfig.StateScheme == rawdb.PathScheme {
+		log.Error("Path state scheme is not supported. Please use HashDB or Firewood state schemes instead")
+		return errors.New("Path state scheme is not supported")
+	}
 
 	// Create directory for offline pruning
 	if len(vm.ethConfig.OfflinePruningDataDirectory) != 0 {
@@ -475,7 +438,6 @@ func (vm *VM) Initialize(
 	}
 
 	vm.chainConfig = g.Config
-	vm.networkID = vm.ethConfig.NetworkId
 
 	// create genesisHash after applying upgradeBytes in case
 	// upgradeBytes modifies genesis.
@@ -484,21 +446,17 @@ func (vm *VM) Initialize(
 	if err != nil {
 		return err
 	}
-	log.Info(fmt.Sprintf("lastAccepted = %s", lastAcceptedHash))
+	log.Info("read last accepted",
+		"hash", lastAcceptedHash,
+		"height", lastAcceptedHeight,
+	)
 
-	// initialize peer network
-	if vm.p2pSender == nil {
-		vm.p2pSender = appSender
-	}
-
-	p2pNetwork, err := p2p.NewNetwork(vm.ctx.Log, vm.p2pSender, vm.sdkMetrics, "p2p")
-	if err != nil {
-		return fmt.Errorf("failed to initialize p2p network: %w", err)
-	}
-	vm.p2pValidators = p2p.NewValidators(p2pNetwork.Peers, vm.ctx.Log, vm.ctx.SubnetID, vm.ctx.ValidatorState, maxValidatorSetStaleness)
 	vm.networkCodec = message.Codec
-	vm.Network = peer.NewNetwork(p2pNetwork, appSender, vm.networkCodec, chainCtx.NodeID, vm.config.MaxOutboundActiveRequests)
-	vm.client = peer.NewNetworkClient(vm.Network)
+	vm.Network, err = network.NewNetwork(vm.ctx, appSender, vm.networkCodec, vm.config.MaxOutboundActiveRequests, vm.sdkMetrics)
+	if err != nil {
+		return fmt.Errorf("failed to create network: %w", err)
+	}
+	vm.p2pValidators = vm.Network.P2PValidators()
 
 	vm.validatorsManager, err = validators.NewManager(vm.ctx, vm.validatorsDB, &vm.clock)
 	if err != nil {
@@ -510,7 +468,7 @@ func (vm *VM) Initialize(
 	for i, hexMsg := range vm.config.WarpOffChainMessages {
 		offchainWarpMessages[i] = []byte(hexMsg)
 	}
-	warpSignatureCache := &cache.LRU[ids.ID, []byte]{Size: warpSignatureCacheSize}
+	warpSignatureCache := lru.NewCache[ids.ID, []byte](warpSignatureCacheSize)
 	meteredCache, err := metercacher.New("warp_signature_cache", vm.sdkMetrics, warpSignatureCache)
 	if err != nil {
 		return fmt.Errorf("failed to create warp signature cache: %w", err)
@@ -556,6 +514,73 @@ func (vm *VM) Initialize(
 	return vm.initializeStateSyncClient(lastAcceptedHeight)
 }
 
+func parseGenesis(ctx *snow.Context, genesisBytes []byte, upgradeBytes []byte, airdropFile string) (*core.Genesis, error) {
+	g := new(core.Genesis)
+	if err := json.Unmarshal(genesisBytes, g); err != nil {
+		return nil, fmt.Errorf("parsing genesis: %w", err)
+	}
+
+	// Set the default chain config if not provided
+	if g.Config == nil {
+		g.Config = params.SubnetEVMDefaultChainConfig
+	}
+
+	// Populate the Avalanche config extras.
+	configExtra := params.GetExtra(g.Config)
+	configExtra.AvalancheContext = extras.AvalancheContext{
+		SnowCtx: ctx,
+	}
+
+	if configExtra.FeeConfig == commontype.EmptyFeeConfig {
+		log.Info("No fee config given in genesis, setting default fee config", "DefaultFeeConfig", params.DefaultFeeConfig)
+		configExtra.FeeConfig = params.DefaultFeeConfig
+	}
+
+	// Load airdrop file if provided
+	if airdropFile != "" {
+		var err error
+		g.AirdropData, err = os.ReadFile(airdropFile)
+		if err != nil {
+			return nil, fmt.Errorf("could not read airdrop file '%s': %w", airdropFile, err)
+		}
+	}
+
+	// Set network upgrade defaults
+	configExtra.SetDefaults(ctx.NetworkUpgrades)
+
+	// Apply upgradeBytes (if any) by unmarshalling them into [chainConfig.UpgradeConfig].
+	// Initializing the chain will verify upgradeBytes are compatible with existing values.
+	// This should be called before g.Verify().
+	if len(upgradeBytes) > 0 {
+		var upgradeConfig extras.UpgradeConfig
+		if err := json.Unmarshal(upgradeBytes, &upgradeConfig); err != nil {
+			return nil, fmt.Errorf("failed to parse upgrade bytes: %w", err)
+		}
+		configExtra.UpgradeConfig = upgradeConfig
+	}
+
+	if configExtra.UpgradeConfig.NetworkUpgradeOverrides != nil {
+		overrides := configExtra.UpgradeConfig.NetworkUpgradeOverrides
+		marshaled, err := json.Marshal(overrides)
+		if err != nil {
+			log.Warn("Failed to marshal network upgrade overrides", "error", err, "overrides", overrides)
+		} else {
+			log.Info("Applying network upgrade overrides", "overrides", string(marshaled))
+		}
+		configExtra.Override(overrides)
+	}
+
+	if err := configExtra.Verify(); err != nil {
+		return nil, fmt.Errorf("invalid chain config: %w", err)
+	}
+
+	// Align all the Ethereum upgrades to the Avalanche upgrades
+	if err := params.SetEthUpgrades(g.Config); err != nil {
+		return nil, fmt.Errorf("setting eth upgrades: %w", err)
+	}
+	return g, nil
+}
+
 func (vm *VM) initializeMetrics() error {
 	// [metrics.Enabled] is a global variable imported from go-ethereum/metrics
 	// and must be set to true to enable metrics collection.
@@ -564,6 +589,15 @@ func (vm *VM) initializeMetrics() error {
 	gatherer := subnetevmprometheus.NewGatherer(metrics.DefaultRegistry)
 	if err := vm.ctx.Metrics.Register(ethMetricsPrefix, gatherer); err != nil {
 		return err
+	}
+
+	if vm.config.MetricsExpensiveEnabled && vm.config.StateScheme == customrawdb.FirewoodScheme {
+		if err := ffi.StartMetrics(); err != nil {
+			return fmt.Errorf("failed to start firewood metrics collection: %w", err)
+		}
+		if err := vm.ctx.Metrics.Register("firewood", ffi.Gatherer{}); err != nil {
+			return fmt.Errorf("failed to register firewood metrics: %w", err)
+		}
 	}
 	return vm.ctx.Metrics.Register(sdkMetricsPrefix, vm.sdkMetrics)
 }
@@ -594,13 +628,18 @@ func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.
 	}
 	vm.eth.SetEtherbase(ethConfig.Miner.Etherbase)
 	vm.txPool = vm.eth.TxPool()
-	vm.txPool.SetMinFee(vm.chainConfigExtra().FeeConfig.MinBaseFee)
-	vm.txPool.SetGasTip(big.NewInt(0))
 	vm.blockChain = vm.eth.BlockChain()
 	vm.miner = vm.eth.Miner()
+	lastAccepted := vm.blockChain.LastAcceptedBlock()
+	feeConfig, _, err := vm.blockChain.GetFeeConfigAt(lastAccepted.Header())
+	if err != nil {
+		return err
+	}
+	vm.txPool.SetMinFee(feeConfig.MinBaseFee)
+	vm.txPool.SetGasTip(big.NewInt(0))
 
 	vm.eth.Start()
-	return vm.initChainState(vm.blockChain.LastAcceptedBlock())
+	return vm.initChainState(lastAccepted)
 }
 
 // initializeStateSyncClient initializes the client for performing state sync.
@@ -622,11 +661,12 @@ func (vm *VM) initializeStateSyncClient(lastAcceptedHeight uint64) error {
 	}
 
 	vm.StateSyncClient = NewStateSyncClient(&stateSyncClientConfig{
-		chain: vm.eth,
-		state: vm.State,
+		chain:         vm.eth,
+		state:         vm.State,
+		stateSyncDone: vm.stateSyncDone,
 		client: statesyncclient.NewClient(
 			&statesyncclient.ClientConfig{
-				NetworkClient:    vm.client,
+				NetworkClient:    vm.Network,
 				Codec:            vm.networkCodec,
 				Stats:            stats.NewClientSyncerStats(),
 				StateSyncNodeIDs: stateSyncIDs,
@@ -642,7 +682,6 @@ func (vm *VM) initializeStateSyncClient(lastAcceptedHeight uint64) error {
 		metadataDB:           vm.metadataDB,
 		acceptedBlockDB:      vm.acceptedBlockDB,
 		db:                   vm.versiondb,
-		toEngine:             vm.toEngine,
 	})
 
 	// If StateSync is disabled, clear any ongoing summary so that we will not attempt to resume
@@ -742,7 +781,7 @@ func (vm *VM) onNormalOperationsStarted() error {
 	// Initialize goroutines related to block building
 	// once we enter normal operation as there is no need to handle mempool gossip before this point.
 	ethTxGossipMarshaller := GossipEthTxMarshaller{}
-	ethTxGossipClient := vm.Network.NewClient(p2p.TxGossipHandlerID, p2p.WithValidatorSampling(vm.p2pValidators))
+	ethTxGossipClient := vm.Network.NewClient(p2p.TxGossipHandlerID, p2p.WithValidatorSampling(vm.P2PValidators()))
 	ethTxGossipMetrics, err := gossip.NewMetrics(vm.sdkMetrics, ethTxGossipNamespace)
 	if err != nil {
 		return fmt.Errorf("failed to initialize eth tx gossip metrics: %w", err)
@@ -772,13 +811,13 @@ func (vm *VM) onNormalOperationsStarted() error {
 		ethTxPushGossiper, err = gossip.NewPushGossiper[*GossipEthTx](
 			ethTxGossipMarshaller,
 			ethTxPool,
-			vm.p2pValidators,
+			vm.P2PValidators(),
 			ethTxGossipClient,
 			ethTxGossipMetrics,
 			pushGossipParams,
 			pushRegossipParams,
-			pushGossipDiscardedElements,
-			txGossipTargetMessageSize,
+			config.PushGossipDiscardedElements,
+			config.TxGossipTargetMessageSize,
 			vm.config.RegossipFrequency.Duration,
 		)
 		if err != nil {
@@ -788,13 +827,10 @@ func (vm *VM) onNormalOperationsStarted() error {
 	}
 
 	// NOTE: gossip network must be initialized first otherwise ETH tx gossip will not work.
-	vm.builder = vm.NewBlockBuilder(vm.toEngine)
+	vm.builderLock.Lock()
+	vm.builder = vm.NewBlockBuilder()
 	vm.builder.awaitSubmittedTxs()
-
-	var p2pValidators p2p.ValidatorSet = &validatorSet{}
-	if vm.config.PullGossipFrequency.Duration > 0 {
-		p2pValidators = vm.p2pValidators
-	}
+	vm.builderLock.Unlock()
 
 	if vm.ethTxGossipHandler == nil {
 		vm.ethTxGossipHandler = newTxGossipHandler[*GossipEthTx](
@@ -802,10 +838,10 @@ func (vm *VM) onNormalOperationsStarted() error {
 			ethTxGossipMarshaller,
 			ethTxPool,
 			ethTxGossipMetrics,
-			txGossipTargetMessageSize,
-			txGossipThrottlingPeriod,
-			txGossipThrottlingLimit,
-			p2pValidators,
+			config.TxGossipTargetMessageSize,
+			config.TxGossipThrottlingPeriod,
+			config.TxGossipThrottlingLimit,
+			vm.P2PValidators(),
 		)
 	}
 
@@ -820,30 +856,26 @@ func (vm *VM) onNormalOperationsStarted() error {
 			ethTxPool,
 			ethTxGossipClient,
 			ethTxGossipMetrics,
-			txGossipPollSize,
+			config.TxGossipPollSize,
 		)
 
 		vm.ethTxPullGossiper = gossip.ValidatorGossiper{
 			Gossiper:   ethTxPullGossiper,
 			NodeID:     vm.ctx.NodeID,
-			Validators: vm.p2pValidators,
+			Validators: vm.P2PValidators(),
 		}
 	}
 
-	if vm.config.PushGossipFrequency.Duration > 0 {
-		vm.shutdownWg.Add(1)
-		go func() {
-			gossip.Every(ctx, vm.ctx.Log, ethTxPushGossiper, vm.config.PushGossipFrequency.Duration)
-			vm.shutdownWg.Done()
-		}()
-	}
-	if vm.config.PullGossipFrequency.Duration > 0 {
-		vm.shutdownWg.Add(1)
-		go func() {
-			gossip.Every(ctx, vm.ctx.Log, vm.ethTxPullGossiper, vm.config.PullGossipFrequency.Duration)
-			vm.shutdownWg.Done()
-		}()
-	}
+	vm.shutdownWg.Add(1)
+	go func() {
+		gossip.Every(ctx, vm.ctx.Log, ethTxPushGossiper, vm.config.PushGossipFrequency.Duration)
+		vm.shutdownWg.Done()
+	}()
+	vm.shutdownWg.Add(1)
+	go func() {
+		gossip.Every(ctx, vm.ctx.Log, vm.ethTxPullGossiper, vm.config.PullGossipFrequency.Duration)
+		vm.shutdownWg.Done()
+	}()
 
 	return nil
 }
@@ -865,6 +897,26 @@ func (vm *VM) setAppRequestHandlers() {
 
 	networkHandler := newNetworkHandler(vm.blockChain, vm.chaindb, evmTrieDB, vm.warpBackend, vm.networkCodec)
 	vm.Network.SetRequestHandler(networkHandler)
+}
+
+func (vm *VM) WaitForEvent(ctx context.Context) (commonEng.Message, error) {
+	vm.builderLock.Lock()
+	builder := vm.builder
+	vm.builderLock.Unlock()
+
+	// Block building is not initialized yet, so we haven't finished syncing or bootstrapping.
+	if builder == nil {
+		select {
+		case <-ctx.Done():
+			return 0, ctx.Err()
+		case <-vm.stateSyncDone:
+			return commonEng.StateSyncDone, nil
+		case <-vm.shutdownChan:
+			return commonEng.Message(0), errShuttingDownVM
+		}
+	}
+
+	return builder.waitForEvent(ctx)
 }
 
 // Shutdown implements the snowman.ChainVM interface
@@ -946,7 +998,9 @@ func (vm *VM) buildBlockWithContext(ctx context.Context, proposerVMBlockCtx *blo
 		return nil, fmt.Errorf("block failed verification due to: %w", err)
 	}
 
-	log.Debug(fmt.Sprintf("Built block %s", blk.ID()))
+	log.Debug("built block",
+		"id", blk.ID(),
+	)
 	// Marks the current transactions from the mempool as being successfully issued
 	// into a block.
 	return blk, nil
@@ -1025,12 +1079,6 @@ func (vm *VM) SetPreference(ctx context.Context, blkID ids.ID) error {
 	return vm.blockChain.SetPreference(block.(*Block).ethBlock)
 }
 
-// VerifyHeightIndex always returns a nil error since the index is maintained by
-// vm.blockChain.
-func (vm *VM) VerifyHeightIndex(context.Context) error {
-	return nil
-}
-
 // GetBlockIDAtHeight returns the canonical block at [height].
 // Note: the engine assumes that if a block is not found at [height], then
 // [database.ErrNotFound] will be returned. This indicates that the VM has state
@@ -1094,22 +1142,19 @@ func (vm *VM) CreateHandlers(context.Context) (map[string]http.Handler, error) {
 		enabledAPIs = append(enabledAPIs, "validators")
 	}
 
-	// RPC APIs
-	if vm.config.SnowmanAPIEnabled {
-		if err := handler.RegisterName("snowman", &SnowmanAPI{vm}); err != nil {
-			return nil, err
-		}
-		enabledAPIs = append(enabledAPIs, "snowman")
-	}
-
 	if vm.config.WarpAPIEnabled {
-		if err := handler.RegisterName("warp", warp.NewAPI(vm.ctx.NetworkID, vm.ctx.SubnetID, vm.ctx.ChainID, vm.ctx.ValidatorState, vm.warpBackend, vm.client, vm.requirePrimaryNetworkSigners)); err != nil {
+		warpSDKClient := vm.Network.NewClient(p2p.SignatureRequestHandlerID)
+		signatureAggregator := acp118.NewSignatureAggregator(vm.ctx.Log, warpSDKClient)
+
+		if err := handler.RegisterName("warp", warp.NewAPI(vm.ctx, vm.warpBackend, signatureAggregator, vm.requirePrimaryNetworkSigners)); err != nil {
 			return nil, err
 		}
 		enabledAPIs = append(enabledAPIs, "warp")
 	}
 
-	log.Info(fmt.Sprintf("Enabled APIs: %s", strings.Join(enabledAPIs, ", ")))
+	log.Info("enabling apis",
+		"apis", enabledAPIs,
+	)
 	apis[ethRPCEndpoint] = handler
 	apis[ethWSEndpoint] = handler.WebsocketHandlerWithDuration(
 		[]string{"*"},
@@ -1122,20 +1167,26 @@ func (vm *VM) CreateHandlers(context.Context) (map[string]http.Handler, error) {
 	return apis, nil
 }
 
-// CreateStaticHandlers makes new http handlers that can handle API calls
-func (vm *VM) CreateStaticHandlers(context.Context) (map[string]http.Handler, error) {
-	handler := rpc.NewServer(0)
-	if vm.config.HttpBodyLimit > 0 {
-		handler.SetHTTPBodyLimit(int(vm.config.HttpBodyLimit))
-	}
-	if err := handler.RegisterName("static", &StaticService{}); err != nil {
+// NewHTTPHandler implements the block.ChainVM interface
+func (vm *VM) NewHTTPHandler(ctx context.Context) (http.Handler, error) {
+	handlers, err := vm.CreateHandlers(ctx)
+	if err != nil {
 		return nil, err
 	}
 
-	vm.rpcHandlers = append(vm.rpcHandlers, handler)
-	return map[string]http.Handler{
-		"/rpc": handler,
-	}, nil
+	// Return the main RPC handler as the primary HTTP handler
+	if handler, exists := handlers[ethRPCEndpoint]; exists {
+		return handler, nil
+	}
+
+	// Fallback to a default handler if no RPC handler exists
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "No HTTP handler available", http.StatusNotFound)
+	}), nil
+}
+
+func (vm *VM) CreateHTTP2Handler(context.Context) (http.Handler, error) {
+	return nil, nil
 }
 
 /*

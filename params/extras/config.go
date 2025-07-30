@@ -1,4 +1,4 @@
-// (c) 2024 Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package extras
@@ -33,14 +33,13 @@ var (
 
 	SubnetEVMDefaultChainConfig = &ChainConfig{
 		FeeConfig:          DefaultFeeConfig,
-		NetworkUpgrades:    getDefaultNetworkUpgrades(upgrade.GetConfig(constants.MainnetID)),
+		NetworkUpgrades:    GetNetworkUpgrades(upgrade.GetConfig(constants.MainnetID)),
 		GenesisPrecompiles: Precompiles{},
 	}
 
 	TestChainConfig = &ChainConfig{
-		AvalancheContext:   AvalancheContext{SnowCtx: utils.TestSnowContext()},
 		FeeConfig:          DefaultFeeConfig,
-		NetworkUpgrades:    getDefaultNetworkUpgrades(upgrade.GetConfig(constants.UnitTestID)), // This can be changed to correct network (local, test) via VM.
+		NetworkUpgrades:    GetNetworkUpgrades(upgrade.GetConfig(constants.UnitTestID)), // This can be changed to correct network (local, test) via VM.
 		GenesisPrecompiles: Precompiles{},
 	}
 
@@ -86,6 +85,16 @@ var (
 			DurangoTimestamp:   utils.TimeToNewUint64(upgrade.InitiallyActiveTime),
 			EtnaTimestamp:      utils.TimeToNewUint64(upgrade.InitiallyActiveTime),
 			FortunaTimestamp:   utils.TimeToNewUint64(upgrade.InitiallyActiveTime),
+		}
+	})
+
+	TestGraniteChainConfig = copyAndSet(TestChainConfig, func(c *ChainConfig) {
+		c.NetworkUpgrades = NetworkUpgrades{
+			SubnetEVMTimestamp: utils.NewUint64(0),
+			DurangoTimestamp:   utils.TimeToNewUint64(upgrade.InitiallyActiveTime),
+			EtnaTimestamp:      utils.TimeToNewUint64(upgrade.InitiallyActiveTime),
+			FortunaTimestamp:   utils.TimeToNewUint64(upgrade.InitiallyActiveTime),
+			GraniteTimestamp:   utils.TimeToNewUint64(upgrade.InitiallyActiveTime),
 		}
 	})
 )

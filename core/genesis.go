@@ -1,4 +1,5 @@
-// (c) 2019-2020, Ava Labs, Inc.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -40,6 +41,7 @@ import (
 	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/libevm/crypto"
 	"github.com/ava-labs/libevm/ethdb"
+	"github.com/ava-labs/libevm/libevm/stateconf"
 	"github.com/ava-labs/libevm/log"
 	ethparams "github.com/ava-labs/libevm/params"
 	"github.com/ava-labs/libevm/trie"
@@ -191,7 +193,9 @@ func SetupGenesisBlock(
 	//   have the Berlin or London forks initialized by block number on disk.
 	//   See https://github.com/ava-labs/coreth/pull/667/files
 	// - this is not needed in subnet-evm but it does not impact it either
-	params.SetEthUpgrades(storedcfg, params.GetExtra(storedcfg).NetworkUpgrades)
+	if err := params.SetEthUpgrades(storedcfg); err != nil {
+		return genesis.Config, common.Hash{}, err
+	}
 	// Check config compatibility and write the config. Compatibility errors
 	// are returned to the caller unless we're already at block zero.
 	// we use last accepted block for cfg compatibility check. Note this allows
@@ -338,14 +342,20 @@ func (g *Genesis) toBlock(db ethdb.Database, triedb *triedb.Database) *types.Blo
 		}
 	}
 
-	statedb.Commit(0, false)
+	// Create the genesis block to use the block hash
+	block := types.NewBlock(head, nil, nil, nil, trie.NewStackTrie(nil))
+	triedbOpt := stateconf.WithTrieDBUpdatePayload(common.Hash{}, block.Hash())
+
+	if _, err := statedb.Commit(0, false, stateconf.WithTrieDBUpdateOpts(triedbOpt)); err != nil {
+		panic(fmt.Sprintf("unable to commit genesis block to statedb: %v", err))
+	}
 	// Commit newly generated states into disk if it's not empty.
 	if root != types.EmptyRootHash {
 		if err := triedb.Commit(root, true); err != nil {
 			panic(fmt.Sprintf("unable to commit genesis block: %v", err))
 		}
 	}
-	return types.NewBlock(head, nil, nil, nil, trie.NewStackTrie(nil))
+	return block
 }
 
 // Commit writes the block and state of a genesis specification to the database.

@@ -1,4 +1,4 @@
-// (c) 2021-2022, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package statesyncclient
@@ -144,12 +144,12 @@ func (c *CallbackLeafSyncer) syncTask(ctx context.Context, task LeafSyncTask) er
 	}
 }
 
-// Start launches [numThreads] worker goroutines to process LeafSyncTasks from [c.tasks].
+// Start launches [numWorkers] worker goroutines to process LeafSyncTasks from [c.tasks].
 // onFailure is called if the sync completes with an error.
-func (c *CallbackLeafSyncer) Start(ctx context.Context, numThreads int, onFailure func(error) error) {
+func (c *CallbackLeafSyncer) Start(ctx context.Context, numWorkers int, onFailure func(error) error) {
 	// Start the worker threads with the desired context.
 	eg, egCtx := errgroup.WithContext(ctx)
-	for i := 0; i < numThreads; i++ {
+	for i := 0; i < numWorkers; i++ {
 		eg.Go(func() error {
 			return c.workerLoop(egCtx)
 		})

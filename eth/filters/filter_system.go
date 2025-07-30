@@ -1,4 +1,5 @@
-// (c) 2019-2020, Ava Labs, Inc.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -291,6 +292,9 @@ func (es *EventSystem) subscribe(sub *subscription) *Subscription {
 func (es *EventSystem) SubscribeLogs(crit ethereum.FilterQuery, logs chan []*types.Log) (*Subscription, error) {
 	if len(crit.Topics) > maxTopics {
 		return nil, errExceedMaxTopics
+	}
+	if len(crit.Addresses) > maxAddresses {
+		return nil, errExceedMaxAddresses
 	}
 	var from, to rpc.BlockNumber
 	if crit.FromBlock == nil {

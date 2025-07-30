@@ -1,4 +1,4 @@
-// (c) 2021-2025, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package prometheus
@@ -175,7 +175,8 @@ func metricFamily(registry Registry, name string) (mf *dto.MetricFamily, err err
 		}, nil
 	case metrics.ResettingTimer:
 		snapshot := m.Snapshot()
-		if snapshot.Count() == 0 {
+		count := snapshot.Count()
+		if count == 0 {
 			return nil, fmt.Errorf("%w: %q resetting timer metric count is zero", errMetricSkip, name)
 		}
 
@@ -194,7 +195,8 @@ func metricFamily(registry Registry, name string) (mf *dto.MetricFamily, err err
 			Type: dto.MetricType_SUMMARY.Enum(),
 			Metric: []*dto.Metric{{
 				Summary: &dto.Summary{
-					SampleCount: ptrTo(uint64(snapshot.Count())), //nolint:gosec
+					SampleCount: ptrTo(uint64(count)), //nolint:gosec
+					SampleSum:   ptrTo(float64(count) * snapshot.Mean()),
 					Quantile:    dtoQuantiles,
 				},
 			}},

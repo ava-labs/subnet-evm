@@ -1,4 +1,5 @@
-// (c) 2019-2020, Ava Labs, Inc.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -150,7 +151,7 @@ func New(
 		"snapshot clean", common.StorageSize(config.SnapshotCache)*1024*1024,
 	)
 
-	scheme, err := rawdb.ParseStateScheme(config.StateScheme, chainDb)
+	scheme, err := customrawdb.ParseStateSchemeExt(config.StateScheme, chainDb)
 	if err != nil {
 		return nil, err
 	}
@@ -201,6 +202,13 @@ func New(
 			rawdb.WriteDatabaseVersion(chainDb, core.BlockChainVersion)
 		}
 	}
+
+	// If the context is not set, avoid a panic. Only necessary during firewood use.
+	chainDataDir := ""
+	if ctx := params.GetExtra(config.Genesis.Config).SnowCtx; ctx != nil {
+		chainDataDir = ctx.ChainDataDir
+	}
+
 	var (
 		vmConfig = vm.Config{
 			EnablePreimageRecording: config.EnablePreimageRecording,
@@ -227,6 +235,7 @@ func New(
 			SkipTxIndexing:                  config.SkipTxIndexing,
 			StateHistory:                    config.StateHistory,
 			StateScheme:                     scheme,
+			ChainDataDir:                    chainDataDir,
 		}
 	)
 
@@ -273,6 +282,9 @@ func New(
 		allowUnfinalizedQueries:    config.AllowUnfinalizedQueries,
 		historicalProofQueryWindow: config.HistoricalProofQueryWindow,
 		eth:                        eth,
+	}
+	if config.Pruning {
+		eth.APIBackend.historicalProofQueryWindow = config.StateHistory
 	}
 	if config.AllowUnprotectedTxs {
 		log.Info("Unprotected transactions allowed")
