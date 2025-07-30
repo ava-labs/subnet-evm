@@ -273,8 +273,14 @@ func TestVMShutdownWhileSyncing(t *testing.T) {
 func createSyncServerAndClientVMs(t *testing.T, test syncTest, numBlocks int) *syncVMSetup {
 	require := require.New(t)
 	// configure [serverVM]
+	// Align commit intervals with the test's syncable interval so summaries are created
+	// at the expected heights and Accept() does not skip.
+	serverConfigJSON := fmt.Sprintf(`{"commit-interval": %d, "state-sync-commit-interval": %d}`,
+		test.syncableInterval, test.syncableInterval,
+	)
 	serverVM := newVM(t, testVMConfig{
 		genesisJSON: toGenesisJSON(paramstest.ForkToChainConfig[upgradetest.Latest]),
+		configJSON:  serverConfigJSON,
 	})
 
 	t.Cleanup(func() {
@@ -311,7 +317,11 @@ func createSyncServerAndClientVMs(t *testing.T, test syncTest, numBlocks int) *s
 	require.NoError(serverVM.vm.State.SetLastAcceptedBlock(internalBlock))
 
 	// initialise [syncerVM] with blank genesis state
-	stateSyncEnabledJSON := fmt.Sprintf(`{"state-sync-enabled":true, "state-sync-min-blocks": %d, "tx-lookup-limit": %d}`, test.stateSyncMinBlocks, 4)
+	// Match the server's state-sync-commit-interval so parsed summaries are acceptable.
+	stateSyncEnabledJSON := fmt.Sprintf(
+		`{"state-sync-enabled":true, "state-sync-min-blocks": %d, "tx-lookup-limit": %d, "state-sync-commit-interval": %d}`,
+		test.stateSyncMinBlocks, 4, test.syncableInterval,
+	)
 	syncerVM := newVM(t, testVMConfig{
 		genesisJSON: toGenesisJSON(paramstest.ForkToChainConfig[upgradetest.Latest]),
 		configJSON:  stateSyncEnabledJSON,

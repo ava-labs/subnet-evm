@@ -320,7 +320,7 @@ func (client *client) syncStateTrie(ctx context.Context) error {
 	if err := evmSyncer.Start(ctx); err != nil {
 		return err
 	}
-	err = <-evmSyncer.Done()
+	err = evmSyncer.Wait(ctx)
 	log.Info("state sync: sync finished", "root", client.summary.GetBlockRoot(), "err", err)
 	return err
 }
