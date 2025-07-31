@@ -51,5 +51,3 @@ func (s *StateDB) GetPredicateStorageSlots(address common.Address, index int) ([
 	}
 	return predicates[index], true
 }
-
-// Note: Key normalization functions removed to avoid test failures
