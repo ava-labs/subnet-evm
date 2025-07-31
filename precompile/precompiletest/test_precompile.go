@@ -161,6 +161,16 @@ type testStateDB struct {
 	predicateStorageSlots map[common.Address][][]byte
 }
 
+// GetPredicateStorageSlots returns the storage slots associated with the address, index pair.
+// This method overrides the embedded StateDB's method to use the test predicates.
+func (s *testStateDB) GetPredicateStorageSlots(address common.Address, index int) ([]byte, bool) {
+	predicates, exists := s.predicateStorageSlots[address]
+	if !exists || index >= len(predicates) {
+		return nil, false
+	}
+	return predicates[index], true
+}
+
 func newTestStateDB(t testing.TB, predicateStorageSlots map[common.Address][][]byte) *testStateDB {
 	db := rawdb.NewMemoryDatabase()
 	statedb, err := state.New(common.Hash{}, state.NewDatabase(db), nil)
