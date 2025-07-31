@@ -467,10 +467,12 @@ var bindTests = []struct {
 			require.Equal(t, testGreeting, unpackedGreeting)
 
 			// test that the allow list is generated correctly
-			stateDB := precompiletest.NewTestStateDB(t, map[common.Address][][]byte{})
+			statedb, err := state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
+			require.NoError(t, err)
+			wrappedStateDB := extstate.New(statedb)
 			address := common.BigToAddress(big.NewInt(1))
-			SetHelloWorldAllowListStatus(stateDB, address, allowlist.EnabledRole)
-			role := GetHelloWorldAllowListStatus(stateDB, address)
+			SetHelloWorldAllowListStatus(wrappedStateDB, address, allowlist.EnabledRole)
+			role := GetHelloWorldAllowListStatus(wrappedStateDB, address)
 			require.Equal(t, role, allowlist.EnabledRole)
 		`,
 		"",

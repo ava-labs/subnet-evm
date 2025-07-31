@@ -170,17 +170,3 @@ func newTestStateDB(t testing.TB, predicateStorageSlots map[common.Address][][]b
 		predicateStorageSlots: predicateStorageSlots,
 	}
 }
-
-// NewTestStateDB creates a new test StateDB for use in precompile tests.
-// This is used by generated allow list functions that need a StateDB interface.
-func NewTestStateDB(t testing.TB, predicateStorageSlots map[common.Address][][]byte) contract.StateDB {
-	return newTestStateDB(t, predicateStorageSlots)
-}
-
-func (s *testStateDB) GetPredicateStorageSlots(address common.Address, index int) ([]byte, bool) {
-	predicates, exists := s.predicateStorageSlots[address]
-	if !exists || index >= len(predicates) {
-		return nil, false
-	}
-	return predicates[index], true
-}
