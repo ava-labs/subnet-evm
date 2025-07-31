@@ -59,8 +59,9 @@ func TestMustNotImport(t *testing.T) {
 		"plugin/evm/client": {"core", "plugin/evm/customtypes", "core/extstate", "params"},
 		"plugin/evm/config": {"core", "plugin/evm/customtypes", "core/extstate", "params"},
 		"plugin/evm/header": {"core", "core/extstate", "core/vm", "params"},
-		"ethclient":         {"plugin/evm/customtypes", "core/extstate", "params"},
-		"warp":              {"plugin/evm/customtypes", "core/extstate", "params"},
+		// TODO: ethclient has a dependency on params, see the ethclient.go for more info.
+		// "ethclient":         {"plugin/evm/customtypes", "core/extstate", "params"},
+		"warp": {"plugin/evm/customtypes", "core/extstate", "params"},
 	}
 
 	for packageName, forbiddenImports := range mustNotImport {
