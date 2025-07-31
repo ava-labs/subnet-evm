@@ -465,7 +465,7 @@ func assertRewardsDisabled(
 		},
 		log.Topics,
 	)
-	require.Len(t, log.Data, 0)
+	require.Empty(t, log.Data)
 }
 
 func assertFeeRecipientsAllowed(
