@@ -453,8 +453,10 @@ var bindTests = []struct {
 		`"github.com/stretchr/testify/require"
 		 "math/big"
 		 "github.com/ava-labs/libevm/common"
+		 "github.com/ava-labs/libevm/core/rawdb"
+		 "github.com/ava-labs/subnet-evm/core/state"
+		 "github.com/ava-labs/subnet-evm/core/extstate"
 		 "github.com/ava-labs/subnet-evm/precompile/allowlist"
-		 "github.com/ava-labs/subnet-evm/precompile/precompiletest"
 		`,
 		`
 			testGreeting := "test"
