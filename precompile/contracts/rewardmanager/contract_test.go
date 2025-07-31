@@ -104,7 +104,7 @@ var (
 			AfterHook: func(t testing.TB, stateDB *extstate.StateDB) {
 				// Check no logs are stored in state
 				logs := stateDB.Logs()
-				require.Len(t, logs, 0)
+				require.Empty(t, logs)
 			},
 		},
 		"set reward address from enabled succeeds": {
