@@ -1,0 +1,50 @@
+﻿2025-07-31T20:48:40.8153119Z Current runner version: '2.327.1'
+2025-07-31T20:48:40.8180346Z ##[group]Runner Image Provisioner
+2025-07-31T20:48:40.8181279Z Hosted Compute Agent
+2025-07-31T20:48:40.8181830Z Version: 20250711.363
+2025-07-31T20:48:40.8182479Z Commit: 6785254374ce925a23743850c1cb91912ce5c14c
+2025-07-31T20:48:40.8183139Z Build Date: 2025-07-11T20:04:25Z
+2025-07-31T20:48:40.8183724Z ##[endgroup]
+2025-07-31T20:48:40.8184226Z ##[group]Operating System
+2025-07-31T20:48:40.8184925Z Ubuntu
+2025-07-31T20:48:40.8185369Z 24.04.2
+2025-07-31T20:48:40.8185810Z LTS
+2025-07-31T20:48:40.8186299Z ##[endgroup]
+2025-07-31T20:48:40.8186785Z ##[group]Runner Image
+2025-07-31T20:48:40.8187317Z Image: ubuntu-24.04
+2025-07-31T20:48:40.8188005Z Version: 20250728.1.0
+2025-07-31T20:48:40.8189010Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20250728.1/images/ubuntu/Ubuntu2404-Readme.md
+2025-07-31T20:48:40.8190341Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20250728.1
+2025-07-31T20:48:40.8191560Z ##[endgroup]
+2025-07-31T20:48:40.8193981Z ##[group]GITHUB_TOKEN Permissions
+2025-07-31T20:48:40.8196240Z Actions: write
+2025-07-31T20:48:40.8196864Z Attestations: write
+2025-07-31T20:48:40.8197520Z Checks: write
+2025-07-31T20:48:40.8198173Z Contents: write
+2025-07-31T20:48:40.8198713Z Deployments: write
+2025-07-31T20:48:40.8199227Z Discussions: write
+2025-07-31T20:48:40.8199792Z Issues: write
+2025-07-31T20:48:40.8200275Z Metadata: read
+2025-07-31T20:48:40.8200812Z Models: read
+2025-07-31T20:48:40.8201291Z Packages: write
+2025-07-31T20:48:40.8201795Z Pages: write
+2025-07-31T20:48:40.8202232Z PullRequests: write
+2025-07-31T20:48:40.8202933Z RepositoryProjects: write
+2025-07-31T20:48:40.8203491Z SecurityEvents: write
+2025-07-31T20:48:40.8204050Z Statuses: write
+2025-07-31T20:48:40.8204617Z ##[endgroup]
+2025-07-31T20:48:40.8206762Z Secret source: Actions
+2025-07-31T20:48:40.8208063Z Prepare workflow directory
+2025-07-31T20:48:40.8542727Z Prepare all required actions
+2025-07-31T20:48:40.8581151Z Getting action download info
+2025-07-31T20:48:41.3443368Z ##[group]Download immutable action package 'actions/checkout@v4'
+2025-07-31T20:48:41.3444957Z Version: 4.2.2
+2025-07-31T20:48:41.3446083Z Digest: sha256:ccb2698953eaebd21c7bf6268a94f9c26518a7e38e27e0b83c1fe1ad049819b1
+2025-07-31T20:48:41.3447320Z Source commit SHA: 11bd71901bbe5b1630ceea73d27597364c9af683
+2025-07-31T20:48:41.3448457Z ##[endgroup]
+2025-07-31T20:48:41.4339265Z ##[group]Download immutable action package 'actions/setup-go@v5'
+2025-07-31T20:48:41.4340196Z Version: 5.5.0
+2025-07-31T20:48:41.4340943Z Digest: sha256:f5eeb2233d0c6714b5236de9b44ad0b935014e15eeab3c28d73dc44c1c641ebb
+2025-07-31T20:48:41.4342038Z Source commit SHA: d35c59abb061a4a6fb18e82ac0862c26744d6ab5
+2025-07-31T20:48:41.4342755Z ##[endgroup]
+2025-07-31T20:48:41.7683505Z Complete job name: Golang Unit Tests (ubuntu-latest)

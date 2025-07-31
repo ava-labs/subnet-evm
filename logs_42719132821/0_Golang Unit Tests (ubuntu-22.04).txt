@@ -1,0 +1,881 @@
+﻿2025-07-31T20:48:41.0716135Z Current runner version: '2.327.1'
+2025-07-31T20:48:41.0738372Z ##[group]Runner Image Provisioner
+2025-07-31T20:48:41.0739250Z Hosted Compute Agent
+2025-07-31T20:48:41.0739811Z Version: 20250711.363
+2025-07-31T20:48:41.0740355Z Commit: 6785254374ce925a23743850c1cb91912ce5c14c
+2025-07-31T20:48:41.0741138Z Build Date: 2025-07-11T20:04:25Z
+2025-07-31T20:48:41.0741693Z ##[endgroup]
+2025-07-31T20:48:41.0742234Z ##[group]Operating System
+2025-07-31T20:48:41.0742827Z Ubuntu
+2025-07-31T20:48:41.0743346Z 22.04.5
+2025-07-31T20:48:41.0743808Z LTS
+2025-07-31T20:48:41.0744280Z ##[endgroup]
+2025-07-31T20:48:41.0744794Z ##[group]Runner Image
+2025-07-31T20:48:41.0745271Z Image: ubuntu-22.04
+2025-07-31T20:48:41.0746207Z Version: 20250728.1.0
+2025-07-31T20:48:41.0747224Z Included Software: https://github.com/actions/runner-images/blob/ubuntu22/20250728.1/images/ubuntu/Ubuntu2204-Readme.md
+2025-07-31T20:48:41.0748845Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu22%2F20250728.1
+2025-07-31T20:48:41.0749840Z ##[endgroup]
+2025-07-31T20:48:41.0752245Z ##[group]GITHUB_TOKEN Permissions
+2025-07-31T20:48:41.0754152Z Actions: write
+2025-07-31T20:48:41.0754697Z Attestations: write
+2025-07-31T20:48:41.0755290Z Checks: write
+2025-07-31T20:48:41.0756186Z Contents: write
+2025-07-31T20:48:41.0756658Z Deployments: write
+2025-07-31T20:48:41.0757254Z Discussions: write
+2025-07-31T20:48:41.0757745Z Issues: write
+2025-07-31T20:48:41.0758226Z Metadata: read
+2025-07-31T20:48:41.0758872Z Models: read
+2025-07-31T20:48:41.0759341Z Packages: write
+2025-07-31T20:48:41.0759842Z Pages: write
+2025-07-31T20:48:41.0760363Z PullRequests: write
+2025-07-31T20:48:41.0760923Z RepositoryProjects: write
+2025-07-31T20:48:41.0761449Z SecurityEvents: write
+2025-07-31T20:48:41.0762153Z Statuses: write
+2025-07-31T20:48:41.0762684Z ##[endgroup]
+2025-07-31T20:48:41.0764983Z Secret source: Actions
+2025-07-31T20:48:41.0765985Z Prepare workflow directory
+2025-07-31T20:48:41.1078612Z Prepare all required actions
+2025-07-31T20:48:41.1115301Z Getting action download info
+2025-07-31T20:48:41.4640716Z ##[group]Download immutable action package 'actions/checkout@v4'
+2025-07-31T20:48:41.4641907Z Version: 4.2.2
+2025-07-31T20:48:41.4643141Z Digest: sha256:ccb2698953eaebd21c7bf6268a94f9c26518a7e38e27e0b83c1fe1ad049819b1
+2025-07-31T20:48:41.4644402Z Source commit SHA: 11bd71901bbe5b1630ceea73d27597364c9af683
+2025-07-31T20:48:41.4645307Z ##[endgroup]
+2025-07-31T20:48:41.5461056Z ##[group]Download immutable action package 'actions/setup-go@v5'
+2025-07-31T20:48:41.5462671Z Version: 5.5.0
+2025-07-31T20:48:41.5464328Z Digest: sha256:f5eeb2233d0c6714b5236de9b44ad0b935014e15eeab3c28d73dc44c1c641ebb
+2025-07-31T20:48:41.5466701Z Source commit SHA: d35c59abb061a4a6fb18e82ac0862c26744d6ab5
+2025-07-31T20:48:41.5468051Z ##[endgroup]
+2025-07-31T20:48:41.8308664Z Complete job name: Golang Unit Tests (ubuntu-22.04)
+2025-07-31T20:48:41.9011591Z ##[group]Run actions/checkout@v4
+2025-07-31T20:48:41.9012489Z with:
+2025-07-31T20:48:41.9012949Z   repository: ava-labs/subnet-evm
+2025-07-31T20:48:41.9013699Z   token: ***
+2025-07-31T20:48:41.9014144Z   ssh-strict: true
+2025-07-31T20:48:41.9014601Z   ssh-user: git
+2025-07-31T20:48:41.9015054Z   persist-credentials: true
+2025-07-31T20:48:41.9015869Z   clean: true
+2025-07-31T20:48:41.9016367Z   sparse-checkout-cone-mode: true
+2025-07-31T20:48:41.9016924Z   fetch-depth: 1
+2025-07-31T20:48:41.9017364Z   fetch-tags: false
+2025-07-31T20:48:41.9017822Z   show-progress: true
+2025-07-31T20:48:41.9018276Z   lfs: false
+2025-07-31T20:48:41.9018696Z   submodules: false
+2025-07-31T20:48:41.9019152Z   set-safe-directory: true
+2025-07-31T20:48:41.9019948Z ##[endgroup]
+2025-07-31T20:48:42.0089834Z Syncing repository: ava-labs/subnet-evm
+2025-07-31T20:48:42.0091664Z ##[group]Getting Git version info
+2025-07-31T20:48:42.0092465Z Working directory is '/home/runner/work/subnet-evm/subnet-evm'
+2025-07-31T20:48:42.0093653Z [command]/usr/bin/git version
+2025-07-31T20:48:42.0119351Z git version 2.50.1
+2025-07-31T20:48:42.0145442Z ##[endgroup]
+2025-07-31T20:48:42.0159287Z Temporarily overriding HOME='/home/runner/work/_temp/32fe0a6d-ebaf-44dd-b10e-f5fa4757980d' before making global git config changes
+2025-07-31T20:48:42.0160824Z Adding repository directory to the temporary git global config as a safe directory
+2025-07-31T20:48:42.0164158Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/subnet-evm/subnet-evm
+2025-07-31T20:48:42.0196495Z Deleting the contents of '/home/runner/work/subnet-evm/subnet-evm'
+2025-07-31T20:48:42.0199814Z ##[group]Initializing the repository
+2025-07-31T20:48:42.0203884Z [command]/usr/bin/git init /home/runner/work/subnet-evm/subnet-evm
+2025-07-31T20:48:42.0258156Z hint: Using 'master' as the name for the initial branch. This default branch name
+2025-07-31T20:48:42.0259934Z hint: is subject to change. To configure the initial branch name to use in all
+2025-07-31T20:48:42.0261287Z hint: of your new repositories, which will suppress this warning, call:
+2025-07-31T20:48:42.0262741Z hint:
+2025-07-31T20:48:42.0263737Z hint: 	git config --global init.defaultBranch <name>
+2025-07-31T20:48:42.0265055Z hint:
+2025-07-31T20:48:42.0266758Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2025-07-31T20:48:42.0268718Z hint: 'development'. The just-created branch can be renamed via this command:
+2025-07-31T20:48:42.0270183Z hint:
+2025-07-31T20:48:42.0270967Z hint: 	git branch -m <name>
+2025-07-31T20:48:42.0271939Z hint:
+2025-07-31T20:48:42.0273182Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2025-07-31T20:48:42.0275415Z Initialized empty Git repository in /home/runner/work/subnet-evm/subnet-evm/.git/
+2025-07-31T20:48:42.0278712Z [command]/usr/bin/git remote add origin https://github.com/ava-labs/subnet-evm
+2025-07-31T20:48:42.0307045Z ##[endgroup]
+2025-07-31T20:48:42.0308459Z ##[group]Disabling automatic garbage collection
+2025-07-31T20:48:42.0311560Z [command]/usr/bin/git config --local gc.auto 0
+2025-07-31T20:48:42.0339876Z ##[endgroup]
+2025-07-31T20:48:42.0341334Z ##[group]Setting up auth
+2025-07-31T20:48:42.0347502Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-07-31T20:48:42.0378461Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-07-31T20:48:42.0682649Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-07-31T20:48:42.0715976Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-07-31T20:48:42.0958810Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2025-07-31T20:48:42.0999448Z ##[endgroup]
+2025-07-31T20:48:42.1000941Z ##[group]Fetching the repository
+2025-07-31T20:48:42.1008961Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +458961795523cdde7218683f234d1bdfd7d9e2c6:refs/remotes/pull/1670/merge
+2025-07-31T20:48:42.6372762Z From https://github.com/ava-labs/subnet-evm
+2025-07-31T20:48:42.6374549Z  * [new ref]         458961795523cdde7218683f234d1bdfd7d9e2c6 -> pull/1670/merge
+2025-07-31T20:48:42.6397320Z ##[endgroup]
+2025-07-31T20:48:42.6399085Z ##[group]Determining the checkout info
+2025-07-31T20:48:42.6401028Z ##[endgroup]
+2025-07-31T20:48:42.6405181Z [command]/usr/bin/git sparse-checkout disable
+2025-07-31T20:48:42.6447698Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2025-07-31T20:48:42.6476179Z ##[group]Checking out the ref
+2025-07-31T20:48:42.6479652Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/1670/merge
+2025-07-31T20:48:42.7271822Z Note: switching to 'refs/remotes/pull/1670/merge'.
+2025-07-31T20:48:42.7273028Z 
+2025-07-31T20:48:42.7273898Z You are in 'detached HEAD' state. You can look around, make experimental
+2025-07-31T20:48:42.7276824Z changes and commit them, and you can discard any commits you make in this
+2025-07-31T20:48:42.7278966Z state without impacting any branches by switching back to a branch.
+2025-07-31T20:48:42.7279954Z 
+2025-07-31T20:48:42.7280556Z If you want to create a new branch to retain commits you create, you may
+2025-07-31T20:48:42.7282219Z do so (now or later) by using -c with the switch command. Example:
+2025-07-31T20:48:42.7283212Z 
+2025-07-31T20:48:42.7283529Z   git switch -c <new-branch-name>
+2025-07-31T20:48:42.7284074Z 
+2025-07-31T20:48:42.7284365Z Or undo this operation with:
+2025-07-31T20:48:42.7284864Z 
+2025-07-31T20:48:42.7285135Z   git switch -
+2025-07-31T20:48:42.7285728Z 
+2025-07-31T20:48:42.7286632Z Turn off this advice by setting config variable advice.detachedHead to false
+2025-07-31T20:48:42.7287818Z 
+2025-07-31T20:48:42.7289112Z HEAD is now at 4589617 Merge 621baa1f6abfd4cdb6de9f7d90086977ca126195 into cac7421f86c7d9b283181c568fbc6dc80abb74bc
+2025-07-31T20:48:42.7292916Z ##[endgroup]
+2025-07-31T20:48:42.7320915Z [command]/usr/bin/git log -1 --format=%H
+2025-07-31T20:48:42.7342144Z 458961795523cdde7218683f234d1bdfd7d9e2c6
+2025-07-31T20:48:42.7631555Z ##[group]Run actions/setup-go@v5
+2025-07-31T20:48:42.7632642Z with:
+2025-07-31T20:48:42.7633428Z   go-version-file: go.mod
+2025-07-31T20:48:42.7634392Z   check-latest: false
+2025-07-31T20:48:42.7635696Z   token: ***
+2025-07-31T20:48:42.7636491Z   cache: true
+2025-07-31T20:48:42.7637279Z ##[endgroup]
+2025-07-31T20:48:42.9229744Z Setup go version spec 1.23.9
+2025-07-31T20:48:42.9241684Z Attempting to download 1.23.9...
+2025-07-31T20:48:43.2356878Z matching 1.23.9...
+2025-07-31T20:48:43.2397881Z Acquiring 1.23.9 from https://github.com/actions/go-versions/releases/download/1.23.9-14875265214/go-1.23.9-linux-x64.tar.gz
+2025-07-31T20:48:43.7577618Z Extracting Go...
+2025-07-31T20:48:43.7686316Z [command]/usr/bin/tar xz --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/562e802d-a393-4ba2-9ad3-d0eb6b973794 -f /home/runner/work/_temp/151eff7c-a6e5-49b2-ab0b-4e37fb99524a
+2025-07-31T20:48:45.4488702Z Successfully extracted go to /home/runner/work/_temp/562e802d-a393-4ba2-9ad3-d0eb6b973794
+2025-07-31T20:48:45.4489733Z Adding to the cache ...
+2025-07-31T20:48:49.7305149Z Successfully cached go to /opt/hostedtoolcache/go/1.23.9/x64
+2025-07-31T20:48:49.7307134Z Added go to the path
+2025-07-31T20:48:49.7310063Z Successfully set up Go version 1.23.9
+2025-07-31T20:48:49.7514368Z [command]/opt/hostedtoolcache/go/1.23.9/x64/bin/go env GOMODCACHE
+2025-07-31T20:48:49.7546196Z [command]/opt/hostedtoolcache/go/1.23.9/x64/bin/go env GOCACHE
+2025-07-31T20:48:49.7577410Z /home/runner/go/pkg/mod
+2025-07-31T20:48:49.7596148Z /home/runner/.cache/go-build
+2025-07-31T20:48:49.9423815Z Cache is not found
+2025-07-31T20:48:49.9446604Z go version go1.23.9 linux/amd64
+2025-07-31T20:48:49.9446905Z 
+2025-07-31T20:48:49.9447307Z ##[group]go env
+2025-07-31T20:48:50.0398032Z GO111MODULE=''
+2025-07-31T20:48:50.0398564Z GOARCH='amd64'
+2025-07-31T20:48:50.0398979Z GOBIN=''
+2025-07-31T20:48:50.0399359Z GOCACHE='/home/runner/.cache/go-build'
+2025-07-31T20:48:50.0399866Z GOENV='/home/runner/.config/go/env'
+2025-07-31T20:48:50.0400324Z GOEXE=''
+2025-07-31T20:48:50.0400622Z GOEXPERIMENT=''
+2025-07-31T20:48:50.0400947Z GOFLAGS=''
+2025-07-31T20:48:50.0401266Z GOHOSTARCH='amd64'
+2025-07-31T20:48:50.0401597Z GOHOSTOS='linux'
+2025-07-31T20:48:50.0401915Z GOINSECURE=''
+2025-07-31T20:48:50.0402277Z GOMODCACHE='/home/runner/go/pkg/mod'
+2025-07-31T20:48:50.0402688Z GONOPROXY=''
+2025-07-31T20:48:50.0402993Z GONOSUMDB=''
+2025-07-31T20:48:50.0403360Z GOOS='linux'
+2025-07-31T20:48:50.0403706Z GOPATH='/home/runner/go'
+2025-07-31T20:48:50.0404111Z GOPRIVATE=''
+2025-07-31T20:48:50.0404743Z GOPROXY='https://proxy.golang.org,direct'
+2025-07-31T20:48:50.0405266Z GOROOT='/opt/hostedtoolcache/go/1.23.9/x64'
+2025-07-31T20:48:50.0405980Z GOSUMDB='sum.golang.org'
+2025-07-31T20:48:50.0406328Z GOTMPDIR=''
+2025-07-31T20:48:50.0406635Z GOTOOLCHAIN='auto'
+2025-07-31T20:48:50.0407139Z GOTOOLDIR='/opt/hostedtoolcache/go/1.23.9/x64/pkg/tool/linux_amd64'
+2025-07-31T20:48:50.0407994Z GOVCS=''
+2025-07-31T20:48:50.0408313Z GOVERSION='go1.23.9'
+2025-07-31T20:48:50.0408641Z GODEBUG=''
+2025-07-31T20:48:50.0408947Z GOTELEMETRY='local'
+2025-07-31T20:48:50.0409251Z GOTELEMETRYDIR='/home/runner/.config/go/telemetry'
+2025-07-31T20:48:50.0409556Z GCCGO='gccgo'
+2025-07-31T20:48:50.0409739Z GOAMD64='v1'
+2025-07-31T20:48:50.0409915Z AR='ar'
+2025-07-31T20:48:50.0410071Z CC='gcc'
+2025-07-31T20:48:50.0410234Z CXX='g++'
+2025-07-31T20:48:50.0410396Z CGO_ENABLED='1'
+2025-07-31T20:48:50.0410648Z GOMOD='/home/runner/work/subnet-evm/subnet-evm/go.mod'
+2025-07-31T20:48:50.0410927Z GOWORK=''
+2025-07-31T20:48:50.0411115Z CGO_CFLAGS='-O2 -g'
+2025-07-31T20:48:50.0411303Z CGO_CPPFLAGS=''
+2025-07-31T20:48:50.0411500Z CGO_CXXFLAGS='-O2 -g'
+2025-07-31T20:48:50.0411705Z CGO_FFLAGS='-O2 -g'
+2025-07-31T20:48:50.0411892Z CGO_LDFLAGS='-O2 -g'
+2025-07-31T20:48:50.0412104Z PKG_CONFIG='pkg-config'
+2025-07-31T20:48:50.0412722Z GOGCCFLAGS='-fPIC -m64 -pthread -Wl,--no-gc-sections -fmessage-length=0 -ffile-prefix-map=/tmp/go-build642850485=/tmp/go-build -gno-record-gcc-switches'
+2025-07-31T20:48:50.0413457Z 
+2025-07-31T20:48:50.0413828Z ##[endgroup]
+2025-07-31T20:48:50.0601005Z ##[group]Run go mod download
+2025-07-31T20:48:50.0601468Z [36;1mgo mod download[0m
+2025-07-31T20:48:50.0724392Z shell: /usr/bin/bash -e {0}
+2025-07-31T20:48:50.0724649Z ##[endgroup]
+2025-07-31T20:48:56.3029045Z ##[group]Run ./scripts/run_task.sh check-generate-codec
+2025-07-31T20:48:56.3029522Z [36;1m./scripts/run_task.sh check-generate-codec[0m
+2025-07-31T20:48:56.3062348Z shell: /usr/bin/bash -e {0}
+2025-07-31T20:48:56.3062588Z ##[endgroup]
+2025-07-31T20:48:56.3420985Z go: downloading github.com/go-task/task/v3 v3.39.2
+2025-07-31T20:48:56.5287138Z go: downloading github.com/spf13/pflag v1.0.5
+2025-07-31T20:48:56.5288003Z go: downloading mvdan.cc/sh/v3 v3.9.0
+2025-07-31T20:48:56.5322602Z go: downloading github.com/Masterminds/semver/v3 v3.3.0
+2025-07-31T20:48:56.5349865Z go: downloading github.com/alecthomas/chroma/v2 v2.14.0
+2025-07-31T20:48:56.5949430Z go: downloading github.com/fatih/color v1.17.0
+2025-07-31T20:48:56.6508562Z go: downloading github.com/Ladicle/tabwriter v1.0.0
+2025-07-31T20:48:56.6762486Z go: downloading github.com/joho/godotenv v1.5.1
+2025-07-31T20:48:56.7249946Z go: downloading github.com/dominikbraun/graph v0.23.0
+2025-07-31T20:48:56.7250925Z go: downloading golang.org/x/sync v0.8.0
+2025-07-31T20:48:56.7587311Z go: downloading github.com/sajari/fuzzy v1.0.0
+2025-07-31T20:48:56.7588251Z go: downloading github.com/radovskyb/watcher v1.0.7
+2025-07-31T20:48:56.8043907Z go: downloading github.com/mattn/go-isatty v0.0.20
+2025-07-31T20:48:56.8128006Z go: downloading github.com/muesli/cancelreader v0.2.2
+2025-07-31T20:48:56.8252788Z go: downloading golang.org/x/sys v0.25.0
+2025-07-31T20:48:56.8333348Z go: downloading golang.org/x/term v0.24.0
+2025-07-31T20:48:56.8676633Z go: downloading github.com/dlclark/regexp2 v1.11.0
+2025-07-31T20:48:56.8874593Z go: downloading github.com/go-task/slim-sprig/v3 v3.0.0
+2025-07-31T20:48:56.9239020Z go: downloading github.com/go-task/template v0.1.0
+2025-07-31T20:48:56.9577346Z go: downloading github.com/mattn/go-zglob v0.0.6
+2025-07-31T20:48:56.9599752Z go: downloading github.com/zeebo/xxh3 v1.0.2
+2025-07-31T20:48:56.9833687Z go: downloading github.com/mitchellh/hashstructure/v2 v2.0.2
+2025-07-31T20:48:57.0500770Z go: downloading github.com/klauspost/cpuid/v2 v2.0.9
+2025-07-31T20:49:11.3290829Z task: [generate-codec] grep -lr -E '^// Code generated by github\.com\/fjl\/gencodec\. DO NOT EDIT\.$' . | xargs -r rm
+2025-07-31T20:49:11.3451967Z task: [generate-codec] go generate -run "github.com/fjl/gencodec" ./...
+2025-07-31T20:49:56.6334664Z task: [check-clean-branch] git add --all
+2025-07-31T20:49:56.6754166Z task: [check-clean-branch] git update-index --really-refresh >> /dev/null
+2025-07-31T20:49:56.6811261Z task: [check-clean-branch] git status --short
+2025-07-31T20:49:56.6904757Z task: [check-clean-branch] git diff-index --quiet HEAD
+2025-07-31T20:49:56.7532871Z ##[group]Run ./scripts/run_task.sh check-generate-mocks
+2025-07-31T20:49:56.7533285Z [36;1m./scripts/run_task.sh check-generate-mocks[0m
+2025-07-31T20:49:56.7565814Z shell: /usr/bin/bash -e {0}
+2025-07-31T20:49:56.7566047Z ##[endgroup]
+2025-07-31T20:49:57.3035332Z task: [generate-mocks] grep -lr -E '^// Code generated by MockGen\. DO NOT EDIT\.$' . | xargs -r rm
+2025-07-31T20:49:57.3175626Z task: [generate-mocks] go generate -run "go.uber.org/mock/mockgen" ./...
+2025-07-31T20:50:17.7018706Z task: [check-clean-branch] git add --all
+2025-07-31T20:50:17.7102899Z task: [check-clean-branch] git update-index --really-refresh >> /dev/null
+2025-07-31T20:50:17.7148507Z task: [check-clean-branch] git status --short
+2025-07-31T20:50:17.7236037Z task: [check-clean-branch] git diff-index --quiet HEAD
+2025-07-31T20:50:17.7374509Z ##[group]Run ./scripts/run_task.sh build
+2025-07-31T20:50:17.7375035Z [36;1m./scripts/run_task.sh build[0m
+2025-07-31T20:50:17.7408096Z shell: /usr/bin/bash -e {0}
+2025-07-31T20:50:17.7408346Z ##[endgroup]
+2025-07-31T20:50:18.1255700Z task: [build] ./scripts/build.sh
+2025-07-31T20:50:18.1471884Z Using branch: 4589617
+2025-07-31T20:50:18.1473094Z Building Subnet EVM @ GitCommit: 458961795523cdde7218683f234d1bdfd7d9e2c6 at /home/runner/.avalanchego/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
+2025-07-31T20:51:11.6583058Z ##[group]Run ./scripts/run_task.sh build-test
+2025-07-31T20:51:11.6583410Z [36;1m./scripts/run_task.sh build-test[0m
+2025-07-31T20:51:11.6615870Z shell: /usr/bin/bash -e {0}
+2025-07-31T20:51:11.6616090Z env:
+2025-07-31T20:51:11.6616250Z   TIMEOUT: 
+2025-07-31T20:51:11.6616410Z ##[endgroup]
+2025-07-31T20:51:12.1156387Z task: [build-test] ./scripts/build_test.sh
+2025-07-31T20:51:12.1374724Z Using branch: 4589617
+2025-07-31T20:51:42.9877086Z ok  	github.com/ava-labs/subnet-evm/accounts/abi	1.262s	coverage: 89.4% of statements
+2025-07-31T20:53:03.1838260Z ok  	github.com/ava-labs/subnet-evm/accounts/abi/bind	36.099s	coverage: 62.7% of statements
+2025-07-31T20:53:03.9019634Z 	github.com/ava-labs/subnet-evm/accounts/abi/bind/backends		coverage: 0.0% of statements
+2025-07-31T20:53:08.5143355Z 	github.com/ava-labs/subnet-evm/cmd/evm/internal/t8ntool		coverage: 0.0% of statements
+2025-07-31T20:53:08.5144575Z 	github.com/ava-labs/subnet-evm/cmd/evm/internal/compiler		coverage: 0.0% of statements
+2025-07-31T20:53:08.7167653Z 	github.com/ava-labs/subnet-evm/cmd/precompilegen		coverage: 0.0% of statements
+2025-07-31T20:53:09.7494285Z 	github.com/ava-labs/subnet-evm/cmd/simulator/key		coverage: 0.0% of statements
+2025-07-31T20:53:09.7536240Z 	github.com/ava-labs/subnet-evm/cmd/simulator/config		coverage: 0.0% of statements
+2025-07-31T20:53:11.6910201Z 	github.com/ava-labs/subnet-evm/cmd/simulator/load		coverage: 0.0% of statements
+2025-07-31T20:53:11.8507175Z 	github.com/ava-labs/subnet-evm/cmd/simulator/main		coverage: 0.0% of statements
+2025-07-31T20:53:11.8557152Z 	github.com/ava-labs/subnet-evm/cmd/simulator/metrics		coverage: 0.0% of statements
+2025-07-31T20:53:11.8611808Z 	github.com/ava-labs/subnet-evm/cmd/simulator/txs		coverage: 0.0% of statements
+2025-07-31T20:53:11.8686238Z 	github.com/ava-labs/subnet-evm/cmd/utils		coverage: 0.0% of statements
+2025-07-31T20:53:12.5505051Z ?   	github.com/ava-labs/subnet-evm/consensus	[no test files]
+2025-07-31T20:53:15.9743916Z ok  	github.com/ava-labs/subnet-evm/accounts/abi/bind/precompilebind	12.069s	coverage: 87.6% of statements
+2025-07-31T20:53:15.9745020Z ok  	github.com/ava-labs/subnet-evm/cmd/abigen	1.043s	coverage: 24.5% of statements
+2025-07-31T20:53:15.9745964Z ?   	github.com/ava-labs/subnet-evm/constants	[no test files]
+2025-07-31T20:53:19.8356776Z 	github.com/ava-labs/subnet-evm/core/coretest		coverage: 0.0% of statements
+2025-07-31T20:53:30.2956836Z 	github.com/ava-labs/subnet-evm/core/state/pruner		coverage: 0.0% of statements
+2025-07-31T20:53:32.3831353Z ok  	github.com/ava-labs/subnet-evm/cmd/evm	23.797s	coverage: 3.9% of statements
+2025-07-31T20:53:32.3916455Z ok  	github.com/ava-labs/subnet-evm/commontype	1.035s	coverage: 64.3% of statements
+2025-07-31T20:53:32.3917733Z ok  	github.com/ava-labs/subnet-evm/consensus/dummy	1.061s	coverage: 10.8% of statements
+2025-07-31T20:53:32.3918695Z ok  	github.com/ava-labs/subnet-evm/consensus/misc/eip4844	1.023s	coverage: 42.9% of statements
+2025-07-31T20:53:41.8766073Z 	github.com/ava-labs/subnet-evm/core/txpool		coverage: 0.0% of statements
+2025-07-31T20:54:52.4257853Z 	github.com/ava-labs/subnet-evm/eth/ethconfig		coverage: 0.0% of statements
+2025-07-31T20:54:55.4310378Z 	github.com/ava-labs/subnet-evm/eth/gasestimator		coverage: 0.0% of statements
+2025-07-31T20:55:11.7570530Z 	github.com/ava-labs/subnet-evm/ethclient/subnetevmclient		coverage: 0.0% of statements
+2025-07-31T20:55:44.7240845Z ?   	github.com/ava-labs/subnet-evm/interfaces	[no test files]
+2025-07-31T20:55:44.7290064Z 	github.com/ava-labs/subnet-evm/internal/cmdtest		coverage: 0.0% of statements
+2025-07-31T20:55:44.7295183Z 	github.com/ava-labs/subnet-evm/examples/sign-uptime-message		coverage: 0.0% of statements
+2025-07-31T20:55:44.7322353Z 	github.com/ava-labs/subnet-evm/internal/blocktest		coverage: 0.0% of statements
+2025-07-31T20:55:44.7432849Z 	github.com/ava-labs/subnet-evm/internal/debug		coverage: 0.0% of statements
+2025-07-31T20:55:50.2687410Z 	github.com/ava-labs/subnet-evm/internal/reexec		coverage: 0.0% of statements
+2025-07-31T20:55:50.2794811Z 	github.com/ava-labs/subnet-evm/internal/shutdowncheck		coverage: 0.0% of statements
+2025-07-31T20:55:50.2960676Z 	github.com/ava-labs/subnet-evm/internal/version		coverage: 0.0% of statements
+2025-07-31T20:55:50.3060342Z 	github.com/ava-labs/subnet-evm/log		coverage: 0.0% of statements
+2025-07-31T20:55:50.3821645Z 	github.com/ava-labs/subnet-evm/metrics/metricstest		coverage: 0.0% of statements
+2025-07-31T20:55:56.3355419Z ?   	github.com/ava-labs/subnet-evm/network/peertest	[no test files]
+2025-07-31T20:55:56.3418263Z 	github.com/ava-labs/subnet-evm/network/stats		coverage: 0.0% of statements
+2025-07-31T20:55:56.3563172Z 	github.com/ava-labs/subnet-evm/node		coverage: 0.0% of statements
+2025-07-31T20:56:08.1843599Z 	github.com/ava-labs/subnet-evm/plugin		coverage: 0.0% of statements
+2025-07-31T20:56:22.7370268Z 	github.com/ava-labs/subnet-evm/plugin/evm/client		coverage: 0.0% of statements
+2025-07-31T20:56:24.2210620Z 	github.com/ava-labs/subnet-evm/plugin/evm/customlogs		coverage: 0.0% of statements
+2025-07-31T20:56:29.9010109Z 	github.com/ava-labs/subnet-evm/plugin/evm/database		coverage: 0.0% of statements
+2025-07-31T20:56:37.3471786Z ?   	github.com/ava-labs/subnet-evm/plugin/evm/upgrade/legacy	[no test files]
+2025-07-31T20:56:40.0981846Z ?   	github.com/ava-labs/subnet-evm/plugin/evm/validators/interfaces	[no test files]
+2025-07-31T20:56:44.0027656Z ?   	github.com/ava-labs/subnet-evm/plugin/evm/validators/uptime/interfaces	[no test files]
+2025-07-31T20:56:44.0029205Z ?   	github.com/ava-labs/subnet-evm/plugin/evm/vmerrors	[no test files]
+2025-07-31T20:56:44.0167059Z 	github.com/ava-labs/subnet-evm/plugin/runner		coverage: 0.0% of statements
+2025-07-31T20:56:50.7938652Z 	github.com/ava-labs/subnet-evm/precompile/contracts/deployerallowlist		coverage: 0.0% of statements
+2025-07-31T20:57:11.5467562Z 	github.com/ava-labs/subnet-evm/precompile/precompiletest		coverage: 0.0% of statements
+2025-07-31T20:57:11.5571114Z ?   	github.com/ava-labs/subnet-evm/precompile/registry	[no test files]
+2025-07-31T20:57:22.4694165Z 	github.com/ava-labs/subnet-evm/signer/core/apitypes		coverage: 0.0% of statements
+2025-07-31T20:57:22.4810728Z 	github.com/ava-labs/subnet-evm/stateupgrade		coverage: 0.0% of statements
+2025-07-31T20:57:45.8026791Z 	github.com/ava-labs/subnet-evm/sync/client/stats		coverage: 0.0% of statements
+2025-07-31T20:58:05.8211443Z 	github.com/ava-labs/subnet-evm/sync/handlers/stats		coverage: 0.0% of statements
+2025-07-31T20:58:21.6452057Z 	github.com/ava-labs/subnet-evm/sync/statesync/statesynctest		coverage: 0.0% of statements
+2025-07-31T20:58:21.6550657Z 	github.com/ava-labs/subnet-evm/sync/syncutils		coverage: 0.0% of statements
+2025-07-31T20:58:21.6656838Z 	github.com/ava-labs/subnet-evm/triedb/firewood		coverage: 0.0% of statements
+2025-07-31T20:58:21.6753049Z 	github.com/ava-labs/subnet-evm/triedb/hashdb		coverage: 0.0% of statements
+2025-07-31T20:59:19.0316504Z 	github.com/ava-labs/subnet-evm/warp/messages		coverage: 0.0% of statements
+2025-07-31T20:59:21.2275685Z 	github.com/ava-labs/subnet-evm/warp/warptest		coverage: 0.0% of statements
+2025-07-31T20:59:55.6241270Z -test.shuffle 1753995199954626554
+2025-07-31T20:59:55.6242238Z --- FAIL: TestVerkleGenesisCommit (15.07s)
+2025-07-31T20:59:55.6247155Z     genesis_test.go:417: invalid genesis state root, expected 14398d42be3394ff8d50681816a4b7bf8d8283306f577faba2d5bc57498de23b, got 22678ccc2daa04e91013ce47799973bd6c1824f37989d7cea4cbdcd79b39137f
+2025-07-31T20:59:55.6248831Z --- FAIL: TestTxLookupBlockChain (19.21s)
+2025-07-31T20:59:55.6249733Z     --- FAIL: TestTxLookupBlockChain/TestStatefulPrecompiles (0.08s)
+2025-07-31T20:59:55.6251065Z         blockchain_ext_test.go:1704: invalid block gas cost: have 0, want 1000000
+2025-07-31T20:59:55.6252051Z --- FAIL: TestTxLookupSkipIndexingBlockChain (18.01s)
+2025-07-31T20:59:55.6253126Z     --- FAIL: TestTxLookupSkipIndexingBlockChain/TestStatefulPrecompiles (0.05s)
+2025-07-31T20:59:55.6254451Z         blockchain_ext_test.go:1704: invalid block gas cost: have 0, want 1000000
+2025-07-31T20:59:55.6255748Z --- FAIL: TestCorruptSnapshots (19.54s)
+2025-07-31T20:59:55.6259181Z     --- FAIL: TestCorruptSnapshots/TestStatefulPrecompiles (0.03s)
+2025-07-31T20:59:55.6260441Z         blockchain_ext_test.go:1704: invalid block gas cost: have 0, want 1000000
+2025-07-31T20:59:55.6261246Z --- FAIL: TestPruningBlockChain (5.26s)
+2025-07-31T20:59:55.6262276Z     --- FAIL: TestPruningBlockChain/TestStatefulPrecompiles (0.02s)
+2025-07-31T20:59:55.6263484Z         blockchain_ext_test.go:1704: invalid block gas cost: have 0, want 1000000
+2025-07-31T20:59:55.6264267Z --- FAIL: TestEnableSnapshots (6.48s)
+2025-07-31T20:59:55.6265156Z     --- FAIL: TestEnableSnapshots/TestStatefulPrecompiles (0.04s)
+2025-07-31T20:59:55.6266642Z         blockchain_ext_test.go:1704: invalid block gas cost: have 0, want 1000000
+2025-07-31T20:59:55.6267628Z --- FAIL: TestPruningBlockChainUngracefulShutdownSnapsDisabled (5.97s)
+2025-07-31T20:59:55.6268975Z     --- FAIL: TestPruningBlockChainUngracefulShutdownSnapsDisabled/hash (2.35s)
+2025-07-31T20:59:55.6270593Z         --- FAIL: TestPruningBlockChainUngracefulShutdownSnapsDisabled/hash/TestStatefulPrecompiles (0.01s)
+2025-07-31T20:59:55.6272166Z             blockchain_ext_test.go:1704: invalid block gas cost: have 0, want 1000000
+2025-07-31T20:59:55.6273408Z     --- FAIL: TestPruningBlockChainUngracefulShutdownSnapsDisabled/firewood (3.62s)
+2025-07-31T20:59:55.6275110Z         --- FAIL: TestPruningBlockChainUngracefulShutdownSnapsDisabled/firewood/TestStatefulPrecompiles (0.08s)
+2025-07-31T20:59:55.6276979Z             blockchain_ext_test.go:1704: invalid block gas cost: have 0, want 1000000
+2025-07-31T20:59:55.6278013Z --- FAIL: TestBlockChainOfflinePruningUngracefulShutdown (0.00s)
+2025-07-31T20:59:55.6279236Z     --- FAIL: TestBlockChainOfflinePruningUngracefulShutdown/TestStatefulPrecompiles (0.04s)
+2025-07-31T20:59:55.6280669Z         blockchain_ext_test.go:1704: invalid block gas cost: have 0, want 1000000
+2025-07-31T20:59:55.6281533Z From: `0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE`
+2025-07-31T20:59:55.6282270Z To: `0x000F3df6D732807Ef1319fB7B8bB8522d0Beac02`
+2025-07-31T20:59:55.6283067Z Data: `0x0000000000000000000000000000000000000000000000000000000000000000`
+2025-07-31T20:59:55.6283775Z Gas: `30000000`
+2025-07-31T20:59:55.6284246Z Value `0` wei
+2025-07-31T20:59:55.6284494Z 
+2025-07-31T20:59:55.6284756Z |  Pc   |      Op     | Cost |   Stack   |   RStack  |  Refund |
+2025-07-31T20:59:55.6285678Z |-------|-------------|------|-----------|-----------|---------|
+2025-07-31T20:59:55.6286110Z 
+2025-07-31T20:59:55.6286360Z Output: ``
+2025-07-31T20:59:55.6286742Z Consumed gas: `0`
+2025-07-31T20:59:55.6287243Z Error: `<nil>`
+2025-07-31T20:59:55.6288183Z From: `0x71562b71999873DB5b286dF957af199Ec94617F7`
+2025-07-31T20:59:55.6288853Z To: `0x000000000000000000000000000000000000BbBB`
+2025-07-31T20:59:55.6289349Z Data: ``
+2025-07-31T20:59:55.6289893Z Gas: `479000`
+2025-07-31T20:59:55.6290286Z Value `0` wei
+2025-07-31T20:59:55.6290559Z 
+2025-07-31T20:59:55.6290807Z |  Pc   |      Op     | Cost |   Stack   |   RStack  |  Refund |
+2025-07-31T20:59:55.6291622Z |-------|-------------|------|-----------|-----------|---------|
+2025-07-31T20:59:55.6292234Z |    0  |      PUSH1  |    3 |        [] |         0 |
+2025-07-31T20:59:55.6292825Z |    2  |       DUP1  |    3 |     [0x0] |         0 |
+2025-07-31T20:59:55.6293496Z |    3  |       DUP1  |    3 | [0x0,0x0] |         0 |
+2025-07-31T20:59:55.6294114Z |    4  |       DUP1  |    3 |[0x0,0x0,0x0] |         0 |
+2025-07-31T20:59:55.6294724Z |    5  |      PUSH2  |    3 |[0x0,0x0,0x0,0x0] |         0 |
+2025-07-31T20:59:55.6295631Z |    8  |        GAS  |    2 |[0x0,0x0,0x0,0x0,0xaaaa] |         0 |
+2025-07-31T20:59:55.6296448Z |    9  | DELEGATECALL  |  471501 |[0x0,0x0,0x0,0x0,0xaaaa,0x74f07] |         0 |
+2025-07-31T20:59:55.6297158Z |    0  |         PC  |    2 |        [] |         0 |
+2025-07-31T20:59:55.6297866Z |    1  |         PC  |    2 |     [0x0] |         0 |
+2025-07-31T20:59:55.6298419Z |    2  |      SLOAD  |  2100 | [0x0,0x1] |         0 |
+2025-07-31T20:59:55.6299257Z |    3  |      SLOAD  |  2100 | [0x0,0x0] |         0 |
+2025-07-31T20:59:55.6299979Z |    4  |       STOP  |    0 | [0x0,0x0] |         0 |
+2025-07-31T20:59:55.6300534Z |   10  |       STOP  |    0 |     [0x1] |         0 |
+2025-07-31T20:59:55.6300874Z 
+2025-07-31T20:59:55.6301125Z Output: ``
+2025-07-31T20:59:55.6301551Z Consumed gas: `4321`
+2025-07-31T20:59:55.6302039Z Error: `<nil>`
+2025-07-31T20:59:55.6302486Z --- FAIL: TestSetupGenesis (0.14s)
+2025-07-31T20:59:55.6303214Z     --- FAIL: TestSetupGenesis/hash (0.03s)
+2025-07-31T20:59:55.6304262Z         --- FAIL: TestSetupGenesis/hash/compatible_config_in_DB_hash (0.00s)
+2025-07-31T20:59:55.6306309Z             genesis_test.go:198: returned error (*errors.errorString)missing last accepted block, want (interface {})<nil>
+2025-07-31T20:59:55.6309229Z             genesis_test.go:204: returned hash 0x0000000000000000000000000000000000000000000000000000000000000000, want 0x4a12fe7bf8d40d152d7e9de22337b115186a4662aa3a97217b36146202bbfc66
+2025-07-31T20:59:55.6311333Z         --- FAIL: TestSetupGenesis/hash/incompatible_config_for_avalanche_fork_in_DB_hash (0.02s)
+2025-07-31T20:59:55.6314018Z             genesis_test.go:204: returned hash 0x345af9a5a615fe184e45989b850afeee399d10a69b0e49000733c2593f3c487e, want 0x4a12fe7bf8d40d152d7e9de22337b115186a4662aa3a97217b36146202bbfc66
+2025-07-31T20:59:55.6315893Z     --- FAIL: TestSetupGenesis/path (0.05s)
+2025-07-31T20:59:55.6316965Z         --- FAIL: TestSetupGenesis/path/compatible_config_in_DB_path (0.00s)
+2025-07-31T20:59:55.6318703Z             genesis_test.go:198: returned error (*errors.errorString)missing last accepted block, want (interface {})<nil>
+2025-07-31T20:59:55.6321419Z             genesis_test.go:204: returned hash 0x0000000000000000000000000000000000000000000000000000000000000000, want 0x4a12fe7bf8d40d152d7e9de22337b115186a4662aa3a97217b36146202bbfc66
+2025-07-31T20:59:55.6323403Z         --- FAIL: TestSetupGenesis/path/incompatible_config_for_avalanche_fork_in_DB_path (0.04s)
+2025-07-31T20:59:55.6325278Z             genesis_test.go:204: returned hash 0x345af9a5a615fe184e45989b850afeee399d10a69b0e49000733c2593f3c487e, want 0x4a12fe7bf8d40d152d7e9de22337b115186a4662aa3a97217b36146202bbfc66
+2025-07-31T20:59:55.6326717Z     --- FAIL: TestSetupGenesis/firewood (0.06s)
+2025-07-31T20:59:55.6327886Z         --- FAIL: TestSetupGenesis/firewood/compatible_config_in_DB_firewood (0.00s)
+2025-07-31T20:59:55.6329785Z             genesis_test.go:198: returned error (*errors.errorString)missing last accepted block, want (interface {})<nil>
+2025-07-31T20:59:55.6332395Z             genesis_test.go:204: returned hash 0x0000000000000000000000000000000000000000000000000000000000000000, want 0x4a12fe7bf8d40d152d7e9de22337b115186a4662aa3a97217b36146202bbfc66
+2025-07-31T20:59:55.6334751Z         --- FAIL: TestSetupGenesis/firewood/incompatible_config_for_avalanche_fork_in_DB_firewood (0.04s)
+2025-07-31T20:59:55.6337689Z             genesis_test.go:204: returned hash 0x345af9a5a615fe184e45989b850afeee399d10a69b0e49000733c2593f3c487e, want 0x4a12fe7bf8d40d152d7e9de22337b115186a4662aa3a97217b36146202bbfc66
+2025-07-31T20:59:55.6339319Z --- FAIL: TestPruningBlockChainUngracefulShutdown (6.23s)
+2025-07-31T20:59:55.6340467Z     --- FAIL: TestPruningBlockChainUngracefulShutdown/TestStatefulPrecompiles (0.02s)
+2025-07-31T20:59:55.6341827Z         blockchain_ext_test.go:1704: invalid block gas cost: have 0, want 1000000
+2025-07-31T20:59:55.6342593Z --- FAIL: TestArchiveBlockChainSnapsDisabled (1.73s)
+2025-07-31T20:59:55.6343749Z     --- FAIL: TestArchiveBlockChainSnapsDisabled/TestStatefulPrecompiles (0.02s)
+2025-07-31T20:59:55.6345027Z         blockchain_ext_test.go:1704: invalid block gas cost: have 0, want 1000000
+2025-07-31T20:59:55.6345979Z --- FAIL: TestArchiveBlockChain (4.89s)
+2025-07-31T20:59:55.6346962Z     --- FAIL: TestArchiveBlockChain/TestStatefulPrecompiles (0.01s)
+2025-07-31T20:59:55.6348125Z         blockchain_ext_test.go:1704: invalid block gas cost: have 0, want 1000000
+2025-07-31T20:59:55.6349156Z --- FAIL: TestPruningBlockChainSnapsDisabled (4.35s)
+2025-07-31T20:59:55.6350094Z     --- FAIL: TestPruningBlockChainSnapsDisabled/hash (1.50s)
+2025-07-31T20:59:55.6351408Z         --- FAIL: TestPruningBlockChainSnapsDisabled/hash/TestStatefulPrecompiles (0.01s)
+2025-07-31T20:59:55.6353014Z             blockchain_ext_test.go:1704: invalid block gas cost: have 0, want 1000000
+2025-07-31T20:59:55.6354131Z     --- FAIL: TestPruningBlockChainSnapsDisabled/firewood (2.85s)
+2025-07-31T20:59:55.6355664Z         --- FAIL: TestPruningBlockChainSnapsDisabled/firewood/TestStatefulPrecompiles (0.08s)
+2025-07-31T20:59:55.6357229Z             blockchain_ext_test.go:1704: invalid block gas cost: have 0, want 1000000
+2025-07-31T20:59:55.6358060Z FAIL
+2025-07-31T20:59:55.6358456Z coverage: 70.7% of statements
+2025-07-31T20:59:55.6359089Z FAIL	github.com/ava-labs/subnet-evm/core	395.781s
+2025-07-31T20:59:55.6360051Z ok  	github.com/ava-labs/subnet-evm/core/bloombits	10.411s	coverage: 95.6% of statements
+2025-07-31T20:59:55.6361100Z ok  	github.com/ava-labs/subnet-evm/core/extstate	1.064s	coverage: 23.1% of statements
+2025-07-31T20:59:55.6362172Z ok  	github.com/ava-labs/subnet-evm/core/state	86.482s	coverage: 50.0% of statements
+2025-07-31T20:59:55.6390647Z ok  	github.com/ava-labs/subnet-evm/core/state/snapshot	42.837s	coverage: 69.6% of statements
+2025-07-31T20:59:55.6391288Z ok  	github.com/ava-labs/subnet-evm/core/txpool/blobpool	7.221s	coverage: 55.7% of statements
+2025-07-31T20:59:55.6391888Z ok  	github.com/ava-labs/subnet-evm/core/txpool/legacypool	47.577s	coverage: 80.9% of statements
+2025-07-31T20:59:55.6392467Z ok  	github.com/ava-labs/subnet-evm/core/vm/runtime	3.613s	coverage: 93.6% of statements
+2025-07-31T20:59:55.6392869Z -test.shuffle 1753995292143978234
+2025-07-31T20:59:55.6393125Z --- FAIL: TestStorageRangeAt (0.01s)
+2025-07-31T20:59:55.6393541Z     api_debug_test.go:229: wrong result for range .., limit 0:
+2025-07-31T20:59:55.6393937Z         got (eth.StorageRangeResult) {
+2025-07-31T20:59:55.6394292Z             Storage: (eth.storageMap) {
+2025-07-31T20:59:55.6394555Z             },
+2025-07-31T20:59:55.6395327Z             NextKey: (*common.Hash)(0xc0001152a0)((len=32 cap=32) 0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563)
+2025-07-31T20:59:55.6396244Z         }
+2025-07-31T20:59:55.6396524Z         
+2025-07-31T20:59:55.6397000Z         want (*eth.StorageRangeResult)(0xc0005d6da0)({
+2025-07-31T20:59:55.6397604Z             Storage: (eth.storageMap) {
+2025-07-31T20:59:55.6398018Z             },
+2025-07-31T20:59:55.6399214Z             NextKey: (*common.Hash)(0xc000118180)((len=32 cap=32) 0x340dd630ad21bf010b4e676dbfa9ba9a02175262d1fa356232cfde6cb5b47ef2)
+2025-07-31T20:59:55.6399936Z         })
+2025-07-31T20:59:55.6400107Z FAIL
+2025-07-31T20:59:55.6400288Z coverage: 2.9% of statements
+2025-07-31T20:59:55.6400550Z FAIL	github.com/ava-labs/subnet-evm/eth	0.411s
+2025-07-31T20:59:55.6400974Z ok  	github.com/ava-labs/subnet-evm/eth/filters	4.981s	coverage: 62.4% of statements
+2025-07-31T20:59:55.6401363Z -test.shuffle 1753995298566990162
+2025-07-31T20:59:55.6401671Z --- FAIL: TestSuggestGasPriceAfterFeeConfigUpdate (0.01s)
+2025-07-31T20:59:55.6402036Z     gasprice_test.go:448: 
+2025-07-31T20:59:55.6402639Z         	Error Trace:	/home/runner/work/subnet-evm/subnet-evm/eth/gasprice/gasprice_test.go:448
+2025-07-31T20:59:55.6403146Z         	Error:      	Received unexpected error:
+2025-07-31T20:59:55.6403713Z         	            	invalid block gas cost: have 0, want 1000000
+2025-07-31T20:59:55.6404152Z         	Test:       	TestSuggestGasPriceAfterFeeConfigUpdate
+2025-07-31T20:59:55.6404426Z FAIL
+2025-07-31T20:59:55.6404591Z coverage: 81.5% of statements
+2025-07-31T20:59:55.6404890Z FAIL	github.com/ava-labs/subnet-evm/eth/gasprice	21.988s
+2025-07-31T20:59:55.6405334Z ok  	github.com/ava-labs/subnet-evm/eth/tracers	10.260s	coverage: 42.9% of statements
+2025-07-31T20:59:55.6406065Z ok  	github.com/ava-labs/subnet-evm/ethclient	1.112s	coverage: 0.0% of statements
+2025-07-31T20:59:55.6406745Z ok  	github.com/ava-labs/subnet-evm/ethclient/simulated	1.488s	coverage: 84.0% of statements
+2025-07-31T20:59:55.6407342Z ok  	github.com/ava-labs/subnet-evm/internal/ethapi	2.039s	coverage: 36.1% of statements
+2025-07-31T20:59:55.6407874Z ok  	github.com/ava-labs/subnet-evm/internal/flags	1.083s	coverage: 5.1% of statements
+2025-07-31T20:59:55.6408414Z ok  	github.com/ava-labs/subnet-evm/metrics/prometheus	1.043s	coverage: 100.0% of statements
+2025-07-31T20:59:55.6408930Z ok  	github.com/ava-labs/subnet-evm/miner	2.144s	coverage: 15.6% of statements
+2025-07-31T20:59:55.6409406Z ok  	github.com/ava-labs/subnet-evm/network	2.502s	coverage: 83.1% of statements
+2025-07-31T20:59:55.6409883Z ok  	github.com/ava-labs/subnet-evm/params	1.108s	coverage: 53.2% of statements
+2025-07-31T20:59:55.6410394Z ok  	github.com/ava-labs/subnet-evm/params/extras	1.157s	coverage: 67.0% of statements
+2025-07-31T20:59:55.6410775Z -test.shuffle 1753995383313721143
+2025-07-31T20:59:55.6411035Z --- FAIL: TestFeeManagerChangeFee (0.05s)
+2025-07-31T20:59:55.6411342Z     vm_test.go:2654: 
+2025-07-31T20:59:55.6411891Z         	Error Trace:	/home/runner/work/subnet-evm/subnet-evm/plugin/evm/vm_test.go:2654
+2025-07-31T20:59:55.6412341Z         	Error:      	Not equal: 
+2025-07-31T20:59:55.6414302Z         	            	expected: commontype.FeeConfig{GasLimit:8000000, TargetBlockRate:0x12a05f200, MinBaseFee:5000000000, TargetGas:3396, BaseFeeChangeDenominator:3396, MinBlockGasCost:4000000, MaxBlockGasCost:4000000, BlockGasCostStep:500000}
+2025-07-31T20:59:55.6416969Z         	            	actual  : commontype.FeeConfig{GasLimit:8000000, TargetBlockRate:0x5, MinBaseFee:5000000000, TargetGas:18000000, BaseFeeChangeDenominator:3396, MinBlockGasCost:0, MaxBlockGasCost:4000000, BlockGasCostStep:500000}
+2025-07-31T20:59:55.6417831Z         	            	
+2025-07-31T20:59:55.6418100Z         	            	Diff:
+2025-07-31T20:59:55.6418439Z         	            	--- Expected
+2025-07-31T20:59:55.6418777Z         	            	+++ Actual
+2025-07-31T20:59:55.6419126Z         	            	@@ -7,3 +7,3 @@
+2025-07-31T20:59:55.6419429Z         	            	  }),
+2025-07-31T20:59:55.6419908Z         	            	- TargetBlockRate: (uint64) 5000000000,
+2025-07-31T20:59:55.6420398Z         	            	+ TargetBlockRate: (uint64) 5,
+2025-07-31T20:59:55.6420851Z         	            	  MinBaseFee: (*big.Int)({
+2025-07-31T20:59:55.6421235Z         	            	@@ -17,3 +17,3 @@
+2025-07-31T20:59:55.6421669Z         	            	   abs: (big.nat) (len=1) {
+2025-07-31T20:59:55.6422065Z         	            	-   (big.Word) 3396
+2025-07-31T20:59:55.6422471Z         	            	+   (big.Word) 18000000
+2025-07-31T20:59:55.6422781Z         	            	   }
+2025-07-31T20:59:55.6423269Z         	            	@@ -28,5 +28,3 @@
+2025-07-31T20:59:55.6423675Z         	            	   neg: (bool) false,
+2025-07-31T20:59:55.6424119Z         	            	-  abs: (big.nat) (len=1) {
+2025-07-31T20:59:55.6424542Z         	            	-   (big.Word) 4000000
+2025-07-31T20:59:55.6424861Z         	            	-  }
+2025-07-31T20:59:55.6425229Z         	            	+  abs: (big.nat) <nil>
+2025-07-31T20:59:55.6425708Z         	            	  }),
+2025-07-31T20:59:55.6426011Z         	Test:       	TestFeeManagerChangeFee
+2025-07-31T20:59:55.6426382Z --- FAIL: TestFeeManagerRegressionMempoolMinFeeAfterRestart (0.11s)
+2025-07-31T20:59:55.6426774Z     vm_test.go:3450: 
+2025-07-31T20:59:55.6427305Z         	Error Trace:	/home/runner/work/subnet-evm/subnet-evm/plugin/evm/vm_test.go:3450
+2025-07-31T20:59:55.6427752Z         	Error:      	Not equal: 
+2025-07-31T20:59:55.6429656Z         	            	expected: commontype.FeeConfig{GasLimit:8000000, TargetBlockRate:0x2faf080, MinBaseFee:50000000, TargetGas:3396, BaseFeeChangeDenominator:3396, MinBlockGasCost:4000000, MaxBlockGasCost:4000000, BlockGasCostStep:500000}
+2025-07-31T20:59:55.6432220Z         	            	actual  : commontype.FeeConfig{GasLimit:8000000, TargetBlockRate:0x5, MinBaseFee:50000000, TargetGas:18000000, BaseFeeChangeDenominator:3396, MinBlockGasCost:0, MaxBlockGasCost:4000000, BlockGasCostStep:500000}
+2025-07-31T20:59:55.6433086Z         	            	
+2025-07-31T20:59:55.6433365Z         	            	Diff:
+2025-07-31T20:59:55.6433691Z         	            	--- Expected
+2025-07-31T20:59:55.6434016Z         	            	+++ Actual
+2025-07-31T20:59:55.6434362Z         	            	@@ -7,3 +7,3 @@
+2025-07-31T20:59:55.6434667Z         	            	  }),
+2025-07-31T20:59:55.6435126Z         	            	- TargetBlockRate: (uint64) 50000000,
+2025-07-31T20:59:55.6435769Z         	            	+ TargetBlockRate: (uint64) 5,
+2025-07-31T20:59:55.6436229Z         	            	  MinBaseFee: (*big.Int)({
+2025-07-31T20:59:55.6436617Z         	            	@@ -17,3 +17,3 @@
+2025-07-31T20:59:55.6437052Z         	            	   abs: (big.nat) (len=1) {
+2025-07-31T20:59:55.6437450Z         	            	-   (big.Word) 3396
+2025-07-31T20:59:55.6437855Z         	            	+   (big.Word) 18000000
+2025-07-31T20:59:55.6438167Z         	            	   }
+2025-07-31T20:59:55.6438526Z         	            	@@ -28,5 +28,3 @@
+2025-07-31T20:59:55.6438931Z         	            	   neg: (bool) false,
+2025-07-31T20:59:55.6439363Z         	            	-  abs: (big.nat) (len=1) {
+2025-07-31T20:59:55.6439781Z         	            	-   (big.Word) 4000000
+2025-07-31T20:59:55.6440089Z         	            	-  }
+2025-07-31T20:59:55.6440461Z         	            	+  abs: (big.nat) <nil>
+2025-07-31T20:59:55.6440769Z         	            	  }),
+2025-07-31T20:59:55.6441189Z         	Test:       	TestFeeManagerRegressionMempoolMinFeeAfterRestart
+2025-07-31T20:59:55.6441530Z --- FAIL: TestMustNotImport (0.07s)
+2025-07-31T20:59:55.6441814Z     imports_test.go:69: 
+2025-07-31T20:59:55.6442372Z         	Error Trace:	/home/runner/work/subnet-evm/subnet-evm/plugin/evm/imports_test.go:69
+2025-07-31T20:59:55.6442870Z         	Error:      	Received unexpected error:
+2025-07-31T20:59:55.6443636Z         	            	failed to load package github.com/ava-labs/subnet-evm/plugin/evm/atomic
+2025-07-31T20:59:55.6444063Z         	Test:       	TestMustNotImport
+2025-07-31T20:59:55.6444283Z FAIL
+2025-07-31T20:59:55.6444455Z coverage: 64.6% of statements
+2025-07-31T20:59:55.6444733Z FAIL	github.com/ava-labs/subnet-evm/plugin/evm	169.058s
+2025-07-31T20:59:55.6445209Z ok  	github.com/ava-labs/subnet-evm/plugin/evm/blockgascost	1.033s	coverage: 93.3% of statements
+2025-07-31T20:59:55.6445955Z ok  	github.com/ava-labs/subnet-evm/plugin/evm/config	1.051s	coverage: 11.1% of statements
+2025-07-31T20:59:55.6446538Z ok  	github.com/ava-labs/subnet-evm/plugin/evm/customrawdb	1.147s	coverage: 31.3% of statements
+2025-07-31T20:59:55.6447124Z ok  	github.com/ava-labs/subnet-evm/plugin/evm/customtypes	6.027s	coverage: 86.4% of statements
+2025-07-31T20:59:55.6447877Z ok  	github.com/ava-labs/subnet-evm/plugin/evm/header	1.107s	coverage: 90.8% of statements
+2025-07-31T20:59:55.6448415Z ok  	github.com/ava-labs/subnet-evm/plugin/evm/log	1.039s	coverage: 42.1% of statements
+2025-07-31T20:59:55.6448968Z ok  	github.com/ava-labs/subnet-evm/plugin/evm/message	1.057s	coverage: 17.3% of statements
+2025-07-31T20:59:55.6449572Z ok  	github.com/ava-labs/subnet-evm/plugin/evm/upgrade/subnetevm	1.038s	coverage: 100.0% of statements
+2025-07-31T20:59:55.6450177Z ok  	github.com/ava-labs/subnet-evm/plugin/evm/validators	1.063s	coverage: 18.3% of statements
+2025-07-31T20:59:55.6450783Z ok  	github.com/ava-labs/subnet-evm/plugin/evm/validators/state	1.044s	coverage: 72.6% of statements
+2025-07-31T20:59:55.6451505Z ok  	github.com/ava-labs/subnet-evm/plugin/evm/validators/state/interfaces	1.026s	coverage: 0.0% of statements [no tests to run]
+2025-07-31T20:59:55.6452234Z ok  	github.com/ava-labs/subnet-evm/plugin/evm/validators/uptime	1.061s	coverage: 62.9% of statements
+2025-07-31T20:59:55.6452837Z ok  	github.com/ava-labs/subnet-evm/precompile/allowlist	1.080s	coverage: 18.5% of statements
+2025-07-31T20:59:55.6453460Z ok  	github.com/ava-labs/subnet-evm/precompile/allowlist/allowlisttest	1.289s	coverage: 88.6% of statements
+2025-07-31T20:59:55.6454192Z ok  	github.com/ava-labs/subnet-evm/precompile/contract	1.079s	coverage: 0.0% of statements
+2025-07-31T20:59:55.6454929Z ok  	github.com/ava-labs/subnet-evm/precompile/contracts/deployerallowlist/deployerallowlisttest	1.188s	coverage: [no statements]
+2025-07-31T20:59:55.6455652Z -test.shuffle 1753995415494343848
+2025-07-31T20:59:55.6455908Z --- FAIL: TestFeeManager (0.15s)
+2025-07-31T20:59:55.6456320Z     --- FAIL: TestFeeManager/set_invalid_config_from_enabled_address (0.01s)
+2025-07-31T20:59:55.6456762Z         contract_test.go:131: 
+2025-07-31T20:59:55.6457592Z             	Error Trace:	/home/runner/work/subnet-evm/subnet-evm/precompile/contracts/feemanager/contract_test.go:131
+2025-07-31T20:59:55.6459016Z             	            				/home/runner/work/subnet-evm/subnet-evm/precompile/precompiletest/test_precompile.go:87
+2025-07-31T20:59:55.6460330Z             	            				/home/runner/work/subnet-evm/subnet-evm/precompile/precompiletest/test_precompile.go:151
+2025-07-31T20:59:55.6460848Z             	Error:      	Not equal: 
+2025-07-31T20:59:55.6462913Z             	            	expected: commontype.FeeConfig{GasLimit:8000000, TargetBlockRate:0x2, MinBaseFee:25000000000, TargetGas:15000000, BaseFeeChangeDenominator:36, MinBlockGasCost:0, MaxBlockGasCost:1000000, BlockGasCostStep:200000}
+2025-07-31T20:59:55.6465732Z             	            	actual  : commontype.FeeConfig{GasLimit:8000000, TargetBlockRate:0x5d21dba00, MinBaseFee:25000000000, TargetGas:36, BaseFeeChangeDenominator:36, MinBlockGasCost:1000000, MaxBlockGasCost:1000000, BlockGasCostStep:200000}
+2025-07-31T20:59:55.6466622Z             	            	
+2025-07-31T20:59:55.6466928Z             	            	Diff:
+2025-07-31T20:59:55.6467291Z             	            	--- Expected
+2025-07-31T20:59:55.6467657Z             	            	+++ Actual
+2025-07-31T20:59:55.6468039Z             	            	@@ -7,3 +7,3 @@
+2025-07-31T20:59:55.6468376Z             	            	  }),
+2025-07-31T20:59:55.6468879Z             	            	- TargetBlockRate: (uint64) 2,
+2025-07-31T20:59:55.6469463Z             	            	+ TargetBlockRate: (uint64) 25000000000,
+2025-07-31T20:59:55.6469975Z             	            	  MinBaseFee: (*big.Int)({
+2025-07-31T20:59:55.6470403Z             	            	@@ -17,3 +17,3 @@
+2025-07-31T20:59:55.6470894Z             	            	   abs: (big.nat) (len=1) {
+2025-07-31T20:59:55.6471354Z             	            	-   (big.Word) 15000000
+2025-07-31T20:59:55.6471778Z             	            	+   (big.Word) 36
+2025-07-31T20:59:55.6472107Z             	            	   }
+2025-07-31T20:59:55.6472486Z             	            	@@ -28,3 +28,5 @@
+2025-07-31T20:59:55.6472928Z             	            	   neg: (bool) false,
+2025-07-31T20:59:55.6473543Z             	            	-  abs: (big.nat) <nil>
+2025-07-31T20:59:55.6474033Z             	            	+  abs: (big.nat) (len=1) {
+2025-07-31T20:59:55.6474496Z             	            	+   (big.Word) 1000000
+2025-07-31T20:59:55.6474840Z             	            	+  }
+2025-07-31T20:59:55.6475150Z             	            	  }),
+2025-07-31T20:59:55.6475815Z             	Test:       	TestFeeManager/set_invalid_config_from_enabled_address
+2025-07-31T20:59:55.6476274Z     --- FAIL: TestFeeManager/set_config_from_admin_address (0.01s)
+2025-07-31T20:59:55.6476669Z         contract_test.go:152: 
+2025-07-31T20:59:55.6477489Z             	Error Trace:	/home/runner/work/subnet-evm/subnet-evm/precompile/contracts/feemanager/contract_test.go:152
+2025-07-31T20:59:55.6478848Z             	            				/home/runner/work/subnet-evm/subnet-evm/precompile/precompiletest/test_precompile.go:87
+2025-07-31T20:59:55.6480155Z             	            				/home/runner/work/subnet-evm/subnet-evm/precompile/precompiletest/test_precompile.go:151
+2025-07-31T20:59:55.6480681Z             	Error:      	Not equal: 
+2025-07-31T20:59:55.6482893Z             	            	expected: commontype.FeeConfig{GasLimit:8000000, TargetBlockRate:0x2, MinBaseFee:25000000000, TargetGas:15000000, BaseFeeChangeDenominator:36, MinBlockGasCost:0, MaxBlockGasCost:1000000, BlockGasCostStep:200000}
+2025-07-31T20:59:55.6485776Z             	            	actual  : commontype.FeeConfig{GasLimit:8000000, TargetBlockRate:0x5d21dba00, MinBaseFee:25000000000, TargetGas:36, BaseFeeChangeDenominator:36, MinBlockGasCost:1000000, MaxBlockGasCost:1000000, BlockGasCostStep:200000}
+2025-07-31T20:59:55.6486667Z             	            	
+2025-07-31T20:59:55.6486979Z             	            	Diff:
+2025-07-31T20:59:55.6487337Z             	            	--- Expected
+2025-07-31T20:59:55.6487704Z             	            	+++ Actual
+2025-07-31T20:59:55.6488092Z             	            	@@ -7,3 +7,3 @@
+2025-07-31T20:59:55.6488439Z             	            	  }),
+2025-07-31T20:59:55.6488920Z             	            	- TargetBlockRate: (uint64) 2,
+2025-07-31T20:59:55.6489500Z             	            	+ TargetBlockRate: (uint64) 25000000000,
+2025-07-31T20:59:55.6490009Z             	            	  MinBaseFee: (*big.Int)({
+2025-07-31T20:59:55.6490437Z             	            	@@ -17,3 +17,3 @@
+2025-07-31T20:59:55.6490927Z             	            	   abs: (big.nat) (len=1) {
+2025-07-31T20:59:55.6491386Z             	            	-   (big.Word) 15000000
+2025-07-31T20:59:55.6491810Z             	            	+   (big.Word) 36
+2025-07-31T20:59:55.6492144Z             	            	   }
+2025-07-31T20:59:55.6492516Z             	            	@@ -28,3 +28,5 @@
+2025-07-31T20:59:55.6492967Z             	            	   neg: (bool) false,
+2025-07-31T20:59:55.6493418Z             	            	-  abs: (big.nat) <nil>
+2025-07-31T20:59:55.6493898Z             	            	+  abs: (big.nat) (len=1) {
+2025-07-31T20:59:55.6494348Z             	            	+   (big.Word) 1000000
+2025-07-31T20:59:55.6494692Z             	            	+  }
+2025-07-31T20:59:55.6494994Z             	            	  }),
+2025-07-31T20:59:55.6495443Z             	Test:       	TestFeeManager/set_config_from_admin_address
+2025-07-31T20:59:55.6496086Z     --- FAIL: TestFeeManager/get_initial_fee_config (0.00s)
+2025-07-31T20:59:55.6496462Z         test_precompile.go:83: 
+2025-07-31T20:59:55.6497260Z             	Error Trace:	/home/runner/work/subnet-evm/subnet-evm/precompile/precompiletest/test_precompile.go:83
+2025-07-31T20:59:55.6498609Z             	            				/home/runner/work/subnet-evm/subnet-evm/precompile/precompiletest/test_precompile.go:151
+2025-07-31T20:59:55.6499126Z             	Error:      	Not equal: 
+2025-07-31T20:59:55.6508695Z             	            	expected: []byte{0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x7a, 0x12, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x2, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x5, 0xd2, 0x1d, 0xba, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0xe4, 0xe1, 0xc0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x24, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0xf, 0x42, 0x40, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x3, 0xd, 0x40}
+2025-07-31T20:59:55.6523867Z             	            	actual  : []byte{0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x7a, 0x12, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x5, 0xd2, 0x1d, 0xba, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x5, 0xd2, 0x1d, 0xba, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x24, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x24, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0xf, 0x42, 0x40, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0xf, 0x42, 0x40, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x3, 0xd, 0x40}
+2025-07-31T20:59:55.6527826Z             	            	
+2025-07-31T20:59:55.6528400Z             	            	Diff:
+2025-07-31T20:59:55.6529075Z             	            	--- Expected
+2025-07-31T20:59:55.6529761Z             	            	+++ Actual
+2025-07-31T20:59:55.6530493Z             	            	@@ -4,3 +4,3 @@
+2025-07-31T20:59:55.6532130Z             	            	  00000020  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+2025-07-31T20:59:55.6533852Z             	            	- 00000030  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 02  |................|
+2025-07-31T20:59:55.6535743Z             	            	+ 00000030  00 00 00 00 00 00 00 00  00 00 00 05 d2 1d ba 00  |................|
+2025-07-31T20:59:55.6537546Z             	            	  00000040  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+2025-07-31T20:59:55.6538443Z             	            	@@ -8,3 +8,3 @@
+2025-07-31T20:59:55.6540115Z             	            	  00000060  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+2025-07-31T20:59:55.6541819Z             	            	- 00000070  00 00 00 00 00 00 00 00  00 00 00 00 00 e4 e1 c0  |................|
+2025-07-31T20:59:55.6543500Z             	            	+ 00000070  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 24  |...............$|
+2025-07-31T20:59:55.6545228Z             	            	  00000080  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+2025-07-31T20:59:55.6546290Z             	            	@@ -12,3 +12,3 @@
+2025-07-31T20:59:55.6547903Z             	            	  000000a0  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+2025-07-31T20:59:55.6549804Z             	            	- 000000b0  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+2025-07-31T20:59:55.6551480Z             	            	+ 000000b0  00 00 00 00 00 00 00 00  00 00 00 00 00 0f 42 40  |..............B@|
+2025-07-31T20:59:55.6553212Z             	            	  000000c0  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+2025-07-31T20:59:55.6554126Z             	Test:       	TestFeeManager/get_initial_fee_config
+2025-07-31T20:59:55.6555105Z     --- FAIL: TestFeeManager/set_config_from_enabled_address_succeeds_and_emits_logs (0.01s)
+2025-07-31T20:59:55.6556136Z         contract_test.go:86: 
+2025-07-31T20:59:55.6557667Z             	Error Trace:	/home/runner/work/subnet-evm/subnet-evm/precompile/contracts/feemanager/contract_test.go:86
+2025-07-31T20:59:55.6560187Z             	            				/home/runner/work/subnet-evm/subnet-evm/precompile/precompiletest/test_precompile.go:87
+2025-07-31T20:59:55.6562560Z             	            				/home/runner/work/subnet-evm/subnet-evm/precompile/precompiletest/test_precompile.go:151
+2025-07-31T20:59:55.6563499Z             	Error:      	Not equal: 
+2025-07-31T20:59:55.6567694Z             	            	expected: commontype.FeeConfig{GasLimit:8000000, TargetBlockRate:0x2, MinBaseFee:25000000000, TargetGas:15000000, BaseFeeChangeDenominator:36, MinBlockGasCost:0, MaxBlockGasCost:1000000, BlockGasCostStep:200000}
+2025-07-31T20:59:55.6572714Z             	            	actual  : commontype.FeeConfig{GasLimit:8000000, TargetBlockRate:0x5d21dba00, MinBaseFee:25000000000, TargetGas:36, BaseFeeChangeDenominator:36, MinBlockGasCost:1000000, MaxBlockGasCost:1000000, BlockGasCostStep:200000}
+2025-07-31T20:59:55.6573631Z             	            	
+2025-07-31T20:59:55.6573936Z             	            	Diff:
+2025-07-31T20:59:55.6574305Z             	            	--- Expected
+2025-07-31T20:59:55.6574677Z             	            	+++ Actual
+2025-07-31T20:59:55.6575067Z             	            	@@ -7,3 +7,3 @@
+2025-07-31T20:59:55.6575408Z             	            	  }),
+2025-07-31T20:59:55.6576038Z             	            	- TargetBlockRate: (uint64) 2,
+2025-07-31T20:59:55.6576623Z             	            	+ TargetBlockRate: (uint64) 25000000000,
+2025-07-31T20:59:55.6577138Z             	            	  MinBaseFee: (*big.Int)({
+2025-07-31T20:59:55.6577562Z             	            	@@ -17,3 +17,3 @@
+2025-07-31T20:59:55.6578044Z             	            	   abs: (big.nat) (len=1) {
+2025-07-31T20:59:55.6578509Z             	            	-   (big.Word) 15000000
+2025-07-31T20:59:55.6578932Z             	            	+   (big.Word) 36
+2025-07-31T20:59:55.6579259Z             	            	   }
+2025-07-31T20:59:55.6579638Z             	            	@@ -28,3 +28,5 @@
+2025-07-31T20:59:55.6580079Z             	            	   neg: (bool) false,
+2025-07-31T20:59:55.6580540Z             	            	-  abs: (big.nat) <nil>
+2025-07-31T20:59:55.6581016Z             	            	+  abs: (big.nat) (len=1) {
+2025-07-31T20:59:55.6581469Z             	            	+   (big.Word) 1000000
+2025-07-31T20:59:55.6581800Z             	            	+  }
+2025-07-31T20:59:55.6582108Z             	            	  }),
+2025-07-31T20:59:55.6582702Z             	Test:       	TestFeeManager/set_config_from_enabled_address_succeeds_and_emits_logs
+2025-07-31T20:59:55.6583236Z     --- FAIL: TestFeeManager/get_fee_config_from_non-enabled_address (0.00s)
+2025-07-31T20:59:55.6583674Z         test_precompile.go:83: 
+2025-07-31T20:59:55.6584462Z             	Error Trace:	/home/runner/work/subnet-evm/subnet-evm/precompile/precompiletest/test_precompile.go:83
+2025-07-31T20:59:55.6585935Z             	            				/home/runner/work/subnet-evm/subnet-evm/precompile/precompiletest/test_precompile.go:151
+2025-07-31T20:59:55.6586457Z             	Error:      	Not equal: 
+2025-07-31T20:59:55.6595948Z             	            	expected: []byte{0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x7a, 0x12, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x2, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x5, 0xd2, 0x1d, 0xba, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0xe4, 0xe1, 0xc0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x24, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0xf, 0x42, 0x40, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x3, 0xd, 0x40}
+2025-07-31T20:59:55.6607914Z             	            	actual  : []byte{0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x7a, 0x12, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x5, 0xd2, 0x1d, 0xba, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x5, 0xd2, 0x1d, 0xba, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x24, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x24, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0xf, 0x42, 0x40, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0xf, 0x42, 0x40, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x3, 0xd, 0x40}
+2025-07-31T20:59:55.6610386Z             	            	
+2025-07-31T20:59:55.6610692Z             	            	Diff:
+2025-07-31T20:59:55.6611055Z             	            	--- Expected
+2025-07-31T20:59:55.6611411Z             	            	+++ Actual
+2025-07-31T20:59:55.6611798Z             	            	@@ -4,3 +4,3 @@
+2025-07-31T20:59:55.6612639Z             	            	  00000020  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+2025-07-31T20:59:55.6613529Z             	            	- 00000030  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 02  |................|
+2025-07-31T20:59:55.6614404Z             	            	+ 00000030  00 00 00 00 00 00 00 00  00 00 00 05 d2 1d ba 00  |................|
+2025-07-31T20:59:55.6615295Z             	            	  00000040  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+2025-07-31T20:59:55.6615877Z             	            	@@ -8,3 +8,3 @@
+2025-07-31T20:59:55.6616705Z             	            	  00000060  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+2025-07-31T20:59:55.6617568Z             	            	- 00000070  00 00 00 00 00 00 00 00  00 00 00 00 00 e4 e1 c0  |................|
+2025-07-31T20:59:55.6618429Z             	            	+ 00000070  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 24  |...............$|
+2025-07-31T20:59:55.6619315Z             	            	  00000080  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+2025-07-31T20:59:55.6619945Z             	            	@@ -12,3 +12,3 @@
+2025-07-31T20:59:55.6620774Z             	            	  000000a0  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+2025-07-31T20:59:55.6621636Z             	            	- 000000b0  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+2025-07-31T20:59:55.6622500Z             	            	+ 000000b0  00 00 00 00 00 00 00 00  00 00 00 00 00 0f 42 40  |..............B@|
+2025-07-31T20:59:55.6623388Z             	            	  000000c0  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+2025-07-31T20:59:55.6623975Z             	Test:       	TestFeeManager/get_fee_config_from_non-enabled_address
+2025-07-31T20:59:55.6624546Z     --- FAIL: TestFeeManager/setFeeConfig_regression_test_should_succeed_after_Durango (0.00s)
+2025-07-31T20:59:55.6625036Z         contract_test.go:394: 
+2025-07-31T20:59:55.6625985Z             	Error Trace:	/home/runner/work/subnet-evm/subnet-evm/precompile/contracts/feemanager/contract_test.go:394
+2025-07-31T20:59:55.6627358Z             	            				/home/runner/work/subnet-evm/subnet-evm/precompile/precompiletest/test_precompile.go:87
+2025-07-31T20:59:55.6628662Z             	            				/home/runner/work/subnet-evm/subnet-evm/precompile/precompiletest/test_precompile.go:151
+2025-07-31T20:59:55.6629295Z             	Error:      	Not equal: 
+2025-07-31T20:59:55.6631587Z             	            	expected: commontype.FeeConfig{GasLimit:25000000, TargetBlockRate:0x2, MinBaseFee:5000000000, TargetGas:75000000, BaseFeeChangeDenominator:84, MinBlockGasCost:0, MaxBlockGasCost:2000000000000000000, BlockGasCostStep:1000000000000000000}
+2025-07-31T20:59:55.6634841Z             	            	actual  : commontype.FeeConfig{GasLimit:25000000, TargetBlockRate:0x12a05f200, MinBaseFee:5000000000, TargetGas:84, BaseFeeChangeDenominator:84, MinBlockGasCost:2000000000000000000, MaxBlockGasCost:2000000000000000000, BlockGasCostStep:1000000000000000000}
+2025-07-31T20:59:55.6636147Z             	            	
+2025-07-31T20:59:55.6636567Z             	            	Diff:
+2025-07-31T20:59:55.6636931Z             	            	--- Expected
+2025-07-31T20:59:55.6637299Z             	            	+++ Actual
+2025-07-31T20:59:55.6637684Z             	            	@@ -7,3 +7,3 @@
+2025-07-31T20:59:55.6638035Z             	            	  }),
+2025-07-31T20:59:55.6638517Z             	            	- TargetBlockRate: (uint64) 2,
+2025-07-31T20:59:55.6639208Z             	            	+ TargetBlockRate: (uint64) 5000000000,
+2025-07-31T20:59:55.6639723Z             	            	  MinBaseFee: (*big.Int)({
+2025-07-31T20:59:55.6640146Z             	            	@@ -17,3 +17,3 @@
+2025-07-31T20:59:55.6640640Z             	            	   abs: (big.nat) (len=1) {
+2025-07-31T20:59:55.6641103Z             	            	-   (big.Word) 75000000
+2025-07-31T20:59:55.6641526Z             	            	+   (big.Word) 84
+2025-07-31T20:59:55.6641865Z             	            	   }
+2025-07-31T20:59:55.6642247Z             	            	@@ -28,3 +28,5 @@
+2025-07-31T20:59:55.6642746Z             	            	   neg: (bool) false,
+2025-07-31T20:59:55.6643308Z             	            	-  abs: (big.nat) <nil>
+2025-07-31T20:59:55.6644010Z             	            	+  abs: (big.nat) (len=1) {
+2025-07-31T20:59:55.6644986Z             	            	+   (big.Word) 2000000000000000000
+2025-07-31T20:59:55.6645800Z             	            	+  }
+2025-07-31T20:59:55.6646375Z             	            	  }),
+2025-07-31T20:59:55.6647518Z             	Test:       	TestFeeManager/setFeeConfig_regression_test_should_succeed_after_Durango
+2025-07-31T20:59:55.6648693Z     --- FAIL: TestFeeManager/set_config_with_extra_padded_bytes_should_succeed_with_Durango (0.00s)
+2025-07-31T20:59:55.6649597Z         contract_test.go:350: 
+2025-07-31T20:59:55.6651110Z             	Error Trace:	/home/runner/work/subnet-evm/subnet-evm/precompile/contracts/feemanager/contract_test.go:350
+2025-07-31T20:59:55.6653630Z             	            				/home/runner/work/subnet-evm/subnet-evm/precompile/precompiletest/test_precompile.go:87
+2025-07-31T20:59:55.6656507Z             	            				/home/runner/work/subnet-evm/subnet-evm/precompile/precompiletest/test_precompile.go:151
+2025-07-31T20:59:55.6657447Z             	Error:      	Not equal: 
+2025-07-31T20:59:55.6661340Z             	            	expected: commontype.FeeConfig{GasLimit:8000000, TargetBlockRate:0x2, MinBaseFee:25000000000, TargetGas:15000000, BaseFeeChangeDenominator:36, MinBlockGasCost:0, MaxBlockGasCost:1000000, BlockGasCostStep:200000}
+2025-07-31T20:59:55.6666514Z             	            	actual  : commontype.FeeConfig{GasLimit:8000000, TargetBlockRate:0x5d21dba00, MinBaseFee:25000000000, TargetGas:36, BaseFeeChangeDenominator:36, MinBlockGasCost:1000000, MaxBlockGasCost:1000000, BlockGasCostStep:200000}
+2025-07-31T20:59:55.6668179Z             	            	
+2025-07-31T20:59:55.6668783Z             	            	Diff:
+2025-07-31T20:59:55.6669451Z             	            	--- Expected
+2025-07-31T20:59:55.6670126Z             	            	+++ Actual
+2025-07-31T20:59:55.6670839Z             	            	@@ -7,3 +7,3 @@
+2025-07-31T20:59:55.6671442Z             	            	  }),
+2025-07-31T20:59:55.6672318Z             	            	- TargetBlockRate: (uint64) 2,
+2025-07-31T20:59:55.6673614Z             	            	+ TargetBlockRate: (uint64) 25000000000,
+2025-07-31T20:59:55.6674508Z             	            	  MinBaseFee: (*big.Int)({
+2025-07-31T20:59:55.6674956Z             	            	@@ -17,3 +17,3 @@
+2025-07-31T20:59:55.6675447Z             	            	   abs: (big.nat) (len=1) {
+2025-07-31T20:59:55.6676150Z             	            	-   (big.Word) 15000000
+2025-07-31T20:59:55.6676575Z             	            	+   (big.Word) 36
+2025-07-31T20:59:55.6676916Z             	            	   }
+2025-07-31T20:59:55.6677293Z             	            	@@ -28,3 +28,5 @@
+2025-07-31T20:59:55.6677743Z             	            	   neg: (bool) false,
+2025-07-31T20:59:55.6678193Z             	            	-  abs: (big.nat) <nil>
+2025-07-31T20:59:55.6678682Z             	            	+  abs: (big.nat) (len=1) {
+2025-07-31T20:59:55.6679142Z             	            	+   (big.Word) 1000000
+2025-07-31T20:59:55.6679493Z             	            	+  }
+2025-07-31T20:59:55.6679811Z             	            	  }),
+2025-07-31T20:59:55.6680457Z             	Test:       	TestFeeManager/set_config_with_extra_padded_bytes_should_succeed_with_Durango
+2025-07-31T20:59:55.6681001Z     --- FAIL: TestFeeManager/set_config_from_manager_succeeds (0.01s)
+2025-07-31T20:59:55.6681409Z         contract_test.go:106: 
+2025-07-31T20:59:55.6682234Z             	Error Trace:	/home/runner/work/subnet-evm/subnet-evm/precompile/contracts/feemanager/contract_test.go:106
+2025-07-31T20:59:55.6683597Z             	            				/home/runner/work/subnet-evm/subnet-evm/precompile/precompiletest/test_precompile.go:87
+2025-07-31T20:59:55.6684894Z             	            				/home/runner/work/subnet-evm/subnet-evm/precompile/precompiletest/test_precompile.go:151
+2025-07-31T20:59:55.6685407Z             	Error:      	Not equal: 
+2025-07-31T20:59:55.6687688Z             	            	expected: commontype.FeeConfig{GasLimit:8000000, TargetBlockRate:0x2, MinBaseFee:25000000000, TargetGas:15000000, BaseFeeChangeDenominator:36, MinBlockGasCost:0, MaxBlockGasCost:1000000, BlockGasCostStep:200000}
+2025-07-31T20:59:55.6690354Z             	            	actual  : commontype.FeeConfig{GasLimit:8000000, TargetBlockRate:0x5d21dba00, MinBaseFee:25000000000, TargetGas:36, BaseFeeChangeDenominator:36, MinBlockGasCost:1000000, MaxBlockGasCost:1000000, BlockGasCostStep:200000}
+2025-07-31T20:59:55.6691235Z             	            	
+2025-07-31T20:59:55.6691539Z             	            	Diff:
+2025-07-31T20:59:55.6691902Z             	            	--- Expected
+2025-07-31T20:59:55.6692257Z             	            	+++ Actual
+2025-07-31T20:59:55.6692642Z             	            	@@ -7,3 +7,3 @@
+2025-07-31T20:59:55.6692979Z             	            	  }),
+2025-07-31T20:59:55.6693637Z             	            	- TargetBlockRate: (uint64) 2,
+2025-07-31T20:59:55.6694230Z             	            	+ TargetBlockRate: (uint64) 25000000000,
+2025-07-31T20:59:55.6694737Z             	            	  MinBaseFee: (*big.Int)({
+2025-07-31T20:59:55.6695199Z             	            	@@ -17,3 +17,3 @@
+2025-07-31T20:59:55.6695872Z             	            	   abs: (big.nat) (len=1) {
+2025-07-31T20:59:55.6696348Z             	            	-   (big.Word) 15000000
+2025-07-31T20:59:55.6696769Z             	            	+   (big.Word) 36
+2025-07-31T20:59:55.6697099Z             	            	   }
+2025-07-31T20:59:55.6697479Z             	            	@@ -28,3 +28,5 @@
+2025-07-31T20:59:55.6697922Z             	            	   neg: (bool) false,
+2025-07-31T20:59:55.6698376Z             	            	-  abs: (big.nat) <nil>
+2025-07-31T20:59:55.6698850Z             	            	+  abs: (big.nat) (len=1) {
+2025-07-31T20:59:55.6699306Z             	            	+   (big.Word) 1000000
+2025-07-31T20:59:55.6699645Z             	            	+  }
+2025-07-31T20:59:55.6699952Z             	            	  }),
+2025-07-31T20:59:55.6700412Z             	Test:       	TestFeeManager/set_config_from_manager_succeeds
+2025-07-31T20:59:55.6700900Z     --- FAIL: TestFeeManager/get_last_changed_at_from_non-enabled_address (0.01s)
+2025-07-31T20:59:55.6701464Z         contract_test.go:247: 
+2025-07-31T20:59:55.6702305Z             	Error Trace:	/home/runner/work/subnet-evm/subnet-evm/precompile/contracts/feemanager/contract_test.go:247
+2025-07-31T20:59:55.6703658Z             	            				/home/runner/work/subnet-evm/subnet-evm/precompile/precompiletest/test_precompile.go:87
+2025-07-31T20:59:55.6704947Z             	            				/home/runner/work/subnet-evm/subnet-evm/precompile/precompiletest/test_precompile.go:151
+2025-07-31T20:59:55.6705458Z             	Error:      	Not equal: 
+2025-07-31T20:59:55.6707696Z             	            	expected: commontype.FeeConfig{GasLimit:8000000, TargetBlockRate:0x2, MinBaseFee:25000000000, TargetGas:15000000, BaseFeeChangeDenominator:36, MinBlockGasCost:0, MaxBlockGasCost:1000000, BlockGasCostStep:200000}
+2025-07-31T20:59:55.6710372Z             	            	actual  : commontype.FeeConfig{GasLimit:8000000, TargetBlockRate:0x5d21dba00, MinBaseFee:25000000000, TargetGas:36, BaseFeeChangeDenominator:36, MinBlockGasCost:1000000, MaxBlockGasCost:1000000, BlockGasCostStep:200000}
+2025-07-31T20:59:55.6711250Z             	            	
+2025-07-31T20:59:55.6711554Z             	            	Diff:
+2025-07-31T20:59:55.6711907Z             	            	--- Expected
+2025-07-31T20:59:55.6712271Z             	            	+++ Actual
+2025-07-31T20:59:55.6712649Z             	            	@@ -7,3 +7,3 @@
+2025-07-31T20:59:55.6712983Z             	            	  }),
+2025-07-31T20:59:55.6713453Z             	            	- TargetBlockRate: (uint64) 2,
+2025-07-31T20:59:55.6714050Z             	            	+ TargetBlockRate: (uint64) 25000000000,
+2025-07-31T20:59:55.6714571Z             	            	  MinBaseFee: (*big.Int)({
+2025-07-31T20:59:55.6714997Z             	            	@@ -17,3 +17,3 @@
+2025-07-31T20:59:55.6715595Z             	            	   abs: (big.nat) (len=1) {
+2025-07-31T20:59:55.6716072Z             	            	-   (big.Word) 15000000
+2025-07-31T20:59:55.6716490Z             	            	+   (big.Word) 36
+2025-07-31T20:59:55.6716840Z             	            	   }
+2025-07-31T20:59:55.6717217Z             	            	@@ -28,3 +28,5 @@
+2025-07-31T20:59:55.6717673Z             	            	   neg: (bool) false,
+2025-07-31T20:59:55.6718123Z             	            	-  abs: (big.nat) <nil>
+2025-07-31T20:59:55.6718610Z             	            	+  abs: (big.nat) (len=1) {
+2025-07-31T20:59:55.6719064Z             	            	+   (big.Word) 1000000
+2025-07-31T20:59:55.6719407Z             	            	+  }
+2025-07-31T20:59:55.6719720Z             	            	  }),
+2025-07-31T20:59:55.6720243Z             	Test:       	TestFeeManager/get_last_changed_at_from_non-enabled_address
+2025-07-31T20:59:55.6720714Z FAIL
+2025-07-31T20:59:55.6720894Z coverage: 82.2% of statements
+2025-07-31T20:59:55.6721271Z FAIL	github.com/ava-labs/subnet-evm/precompile/contracts/feemanager	0.306s
+2025-07-31T20:59:55.6721864Z ok  	github.com/ava-labs/subnet-evm/precompile/contracts/nativeminter	1.269s	coverage: 87.4% of statements
+2025-07-31T20:59:55.6722566Z ok  	github.com/ava-labs/subnet-evm/precompile/contracts/rewardmanager	1.311s	coverage: 83.2% of statements
+2025-07-31T20:59:55.6723764Z ok  	github.com/ava-labs/subnet-evm/precompile/contracts/txallowlist	1.218s	coverage: 64.7% of statements
+2025-07-31T20:59:55.6724546Z ok  	github.com/ava-labs/subnet-evm/precompile/contracts/warp	16.132s	coverage: 76.3% of statements
+2025-07-31T20:59:55.6725754Z ok  	github.com/ava-labs/subnet-evm/precompile/modules	1.060s	coverage: 46.9% of statements
+2025-07-31T20:59:55.6726890Z ok  	github.com/ava-labs/subnet-evm/precompile/precompileconfig	1.057s	coverage: 0.0% of statements [no tests to run]
+2025-07-31T20:59:55.6727998Z ok  	github.com/ava-labs/subnet-evm/predicate	1.098s	coverage: 58.5% of statements
+2025-07-31T20:59:55.6728833Z ok  	github.com/ava-labs/subnet-evm/rpc	63.645s	coverage: 83.4% of statements
+2025-07-31T20:59:55.6729669Z ok  	github.com/ava-labs/subnet-evm/sync/client	19.041s	coverage: 53.8% of statements
+2025-07-31T20:59:55.6730756Z ok  	github.com/ava-labs/subnet-evm/sync/handlers	16.383s	coverage: 83.6% of statements
+2025-07-31T21:00:00.5222236Z ok  	github.com/ava-labs/subnet-evm/sync/statesync	111.746s	coverage: 77.2% of statements
+2025-07-31T21:00:00.5223392Z ok  	github.com/ava-labs/subnet-evm/triedb/pathdb	57.071s	coverage: 75.2% of statements
+2025-07-31T21:00:00.5224263Z ok  	github.com/ava-labs/subnet-evm/utils	1.033s	coverage: 22.8% of statements
+2025-07-31T21:00:00.5225129Z ok  	github.com/ava-labs/subnet-evm/utils/utilstest	1.025s	coverage: 33.3% of statements
+2025-07-31T21:00:00.5226146Z ok  	github.com/ava-labs/subnet-evm/warp	1.079s	coverage: 48.0% of statements
+2025-07-31T21:00:00.5227055Z ok  	github.com/ava-labs/subnet-evm/warp/validators	1.030s	coverage: 100.0% of statements
+2025-07-31T21:00:00.5227687Z FAIL
+2025-07-31T21:00:00.9069466Z Unexpected test failures: TestArchiveBlockChain
+2025-07-31T21:00:00.9070038Z TestArchiveBlockChainSnapsDisabled
+2025-07-31T21:00:00.9070573Z TestBlockChainOfflinePruningUngracefulShutdown
+2025-07-31T21:00:00.9072148Z TestCorruptSnapshots
+2025-07-31T21:00:00.9072630Z TestEnableSnapshots
+2025-07-31T21:00:00.9072865Z TestFeeManager
+2025-07-31T21:00:00.9073060Z TestFeeManagerChangeFee
+2025-07-31T21:00:00.9073469Z TestFeeManagerRegressionMempoolMinFeeAfterRestart
+2025-07-31T21:00:00.9073785Z TestMustNotImport
+2025-07-31T21:00:00.9074024Z TestPruningBlockChain
+2025-07-31T21:00:00.9075172Z TestPruningBlockChainSnapsDisabled
+2025-07-31T21:00:00.9075817Z TestPruningBlockChainUngracefulShutdown
+2025-07-31T21:00:00.9076377Z TestPruningBlockChainUngracefulShutdownSnapsDisabled
+2025-07-31T21:00:00.9076885Z TestSetupGenesis
+2025-07-31T21:00:00.9077178Z TestStorageRangeAt
+2025-07-31T21:00:00.9077534Z TestSuggestGasPriceAfterFeeConfigUpdate
+2025-07-31T21:00:00.9077949Z TestTxLookupBlockChain
+2025-07-31T21:00:00.9078293Z TestTxLookupSkipIndexingBlockChain
+2025-07-31T21:00:00.9078681Z TestVerkleGenesisCommit
+2025-07-31T21:00:00.9079089Z task: Failed to run task "build-test": exit status 1
+2025-07-31T21:00:00.9088712Z exit status 201
+2025-07-31T21:00:00.9147317Z ##[error]Process completed with exit code 1.
+2025-07-31T21:00:00.9267163Z Post job cleanup.
+2025-07-31T21:00:01.0482102Z [command]/usr/bin/git version
+2025-07-31T21:00:01.0530330Z git version 2.50.1
+2025-07-31T21:00:01.0589445Z Temporarily overriding HOME='/home/runner/work/_temp/56d1d0c4-5383-4543-bc0d-2505f8b59355' before making global git config changes
+2025-07-31T21:00:01.0590646Z Adding repository directory to the temporary git global config as a safe directory
+2025-07-31T21:00:01.0604367Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/subnet-evm/subnet-evm
+2025-07-31T21:00:01.0644984Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-07-31T21:00:01.0683954Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-07-31T21:00:01.0942565Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-07-31T21:00:01.0967816Z http.https://github.com/.extraheader
+2025-07-31T21:00:01.0989402Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2025-07-31T21:00:01.1030593Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-07-31T21:00:01.1448481Z Cleaning up orphan processes
