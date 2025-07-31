@@ -436,9 +436,14 @@ func assertFeeEvent(
 ) {
 	require.Len(t, logs, 1)
 	log := logs[0]
-	require.Len(t, log.Topics, 2)
-	require.Equal(t, FeeManagerABI.Events["FeeConfigChanged"].ID, log.Topics[0])
-	require.Equal(t, common.BytesToHash(sender[:]), log.Topics[1])
+	require.Equal(
+		t,
+		[]common.Hash{
+			FeeManagerABI.Events["FeeConfigChanged"].ID,
+			common.BytesToHash(sender[:]),
+		},
+		log.Topics,
+	)
 
 	oldFeeConfig, resFeeConfig, err := UnpackFeeConfigChangedEventData(log.Data)
 	require.NoError(t, err)
