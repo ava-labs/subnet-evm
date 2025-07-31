@@ -266,10 +266,15 @@ func assertNativeCoinMintedEvent(t testing.TB,
 ) {
 	require.Len(t, logs, 1)
 	log := logs[0]
-	require.Len(t, log.Topics, 3)
-	require.Equal(t, NativeMinterABI.Events["NativeCoinMinted"].ID, log.Topics[0])
-	require.Equal(t, common.BytesToHash(expectedSender[:]), log.Topics[1])
-	require.Equal(t, common.BytesToHash(expectedRecipient[:]), log.Topics[2])
+	require.Equal(
+		t,
+		[]common.Hash{
+			NativeMinterABI.Events["NativeCoinMinted"].ID,
+			common.BytesToHash(expectedSender[:]),
+			common.BytesToHash(expectedRecipient[:]),
+		},
+		log.Topics,
+	)
 	require.NotEmpty(t, log.Data)
 	amount, err := UnpackNativeCoinMintedEventData(log.Data)
 	require.NoError(t, err)
