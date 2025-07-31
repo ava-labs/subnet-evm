@@ -681,10 +681,15 @@ func RunPrecompileWithAllowListTests(t *testing.T, module modules.Module, contra
 func assertSetRoleEvent(t testing.TB, logs []*ethtypes.Log, role allowlist.Role, addr common.Address, caller common.Address, oldRole allowlist.Role) {
 	require.Len(t, logs, 1)
 	log := logs[0]
-	require.Len(t, log.Topics, 4)
-	require.Equal(t, allowlist.AllowListABI.Events["RoleSet"].ID, log.Topics[0])
-	require.Equal(t, role.Hash(), log.Topics[1])
-	require.Equal(t, common.BytesToHash(addr[:]), log.Topics[2])
-	require.Equal(t, common.BytesToHash(caller[:]), log.Topics[3])
+	require.Equal(
+		t,
+		[]common.Hash{
+			allowlist.AllowListABI.Events["RoleSet"].ID,
+			role.Hash(),
+			common.BytesToHash(addr[:]),
+			common.BytesToHash(caller[:]),
+		},
+		log.Topics,
+	)
 	require.Equal(t, oldRole.Bytes(), log.Data)
 }
