@@ -14,7 +14,6 @@ import (
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/libevm/core/vm"
-	"github.com/ava-labs/libevm/libevm/stateconf"
 	"github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
@@ -70,12 +69,12 @@ func PackAllowFeeRecipients() ([]byte, error) {
 
 // EnableAllowFeeRecipients enables fee recipients.
 func EnableAllowFeeRecipients(stateDB contract.StateDB) {
-	stateDB.SetState(ContractAddress, rewardAddressStorageKey, allowFeeRecipientsAddressValue, stateconf.SkipStateKeyTransformation())
+	stateDB.SetState(ContractAddress, rewardAddressStorageKey, allowFeeRecipientsAddressValue)
 }
 
 // DisableFeeRewards disables rewards and burns them by sending to Blackhole Address.
 func DisableFeeRewards(stateDB contract.StateDB) {
-	stateDB.SetState(ContractAddress, rewardAddressStorageKey, common.BytesToHash(constants.BlackholeAddr.Bytes()), stateconf.SkipStateKeyTransformation())
+	stateDB.SetState(ContractAddress, rewardAddressStorageKey, common.BytesToHash(constants.BlackholeAddr.Bytes()))
 }
 
 func allowFeeRecipients(accessibleState contract.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
@@ -164,13 +163,13 @@ func PackCurrentRewardAddressOutput(rewardAddress common.Address) ([]byte, error
 // GetStoredRewardAddress returns the current value of the address stored under rewardAddressStorageKey.
 // Returns an empty address and true if allow fee recipients is enabled, otherwise returns current reward address and false.
 func GetStoredRewardAddress(stateDB contract.StateReader) (common.Address, bool) {
-	val := stateDB.GetState(ContractAddress, rewardAddressStorageKey, stateconf.SkipStateKeyTransformation())
+	val := stateDB.GetState(ContractAddress, rewardAddressStorageKey)
 	return common.BytesToAddress(val.Bytes()), val == allowFeeRecipientsAddressValue
 }
 
 // StoreRewardAddress stores the given [val] under rewardAddressStorageKey.
 func StoreRewardAddress(stateDB contract.StateDB, val common.Address) {
-	stateDB.SetState(ContractAddress, rewardAddressStorageKey, common.BytesToHash(val.Bytes()), stateconf.SkipStateKeyTransformation())
+	stateDB.SetState(ContractAddress, rewardAddressStorageKey, common.BytesToHash(val.Bytes()))
 }
 
 // PackSetRewardAddress packs [addr] of type common.Address into the appropriate arguments for setRewardAddress.

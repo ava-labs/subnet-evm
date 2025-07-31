@@ -12,7 +12,6 @@ import (
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/libevm/core/vm"
-	"github.com/ava-labs/libevm/libevm/stateconf"
 	"github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
@@ -86,7 +85,7 @@ func SetFeeManagerStatus(stateDB contract.StateDB, address common.Address, role 
 func GetStoredFeeConfig(stateDB contract.StateReader) commontype.FeeConfig {
 	feeConfig := commontype.FeeConfig{}
 	for i := minFeeConfigFieldKey; i <= numFeeConfigField; i++ {
-		val := stateDB.GetState(ContractAddress, common.Hash{byte(i)}, stateconf.SkipStateKeyTransformation())
+		val := stateDB.GetState(ContractAddress, common.Hash{byte(i)})
 		switch i {
 		case gasLimitKey:
 			feeConfig.GasLimit = new(big.Int).Set(val.Big())
@@ -113,7 +112,7 @@ func GetStoredFeeConfig(stateDB contract.StateReader) commontype.FeeConfig {
 }
 
 func GetFeeConfigLastChangedAt(stateDB contract.StateReader) *big.Int {
-	val := stateDB.GetState(ContractAddress, feeConfigLastChangedAtKey, stateconf.SkipStateKeyTransformation())
+	val := stateDB.GetState(ContractAddress, feeConfigLastChangedAtKey)
 	return val.Big()
 }
 
@@ -147,14 +146,14 @@ func StoreFeeConfig(stateDB contract.StateDB, feeConfig commontype.FeeConfig, bl
 			// This should never encounter an unknown fee config key
 			panic(fmt.Sprintf("unknown fee config key: %d", i))
 		}
-		stateDB.SetState(ContractAddress, common.Hash{byte(i)}, input, stateconf.SkipStateKeyTransformation())
+		stateDB.SetState(ContractAddress, common.Hash{byte(i)}, input)
 	}
 
 	blockNumber := blockContext.Number()
 	if blockNumber == nil {
 		return fmt.Errorf("blockNumber cannot be nil")
 	}
-	stateDB.SetState(ContractAddress, feeConfigLastChangedAtKey, common.BigToHash(blockNumber), stateconf.SkipStateKeyTransformation())
+	stateDB.SetState(ContractAddress, feeConfigLastChangedAtKey, common.BigToHash(blockNumber))
 	return nil
 }
 
