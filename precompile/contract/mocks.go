@@ -59,18 +59,6 @@ func (mr *MockStateDBMockRecorder) AddBalance(arg0, arg1 any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddBalance", reflect.TypeOf((*MockStateDB)(nil).AddBalance), arg0, arg1)
 }
 
-// AddBalanceMultiCoin mocks base method.
-func (m *MockStateDB) AddBalanceMultiCoin(arg0 common.Address, arg1 common.Hash, arg2 *big.Int) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "AddBalanceMultiCoin", arg0, arg1, arg2)
-}
-
-// AddBalanceMultiCoin indicates an expected call of AddBalanceMultiCoin.
-func (mr *MockStateDBMockRecorder) AddBalanceMultiCoin(arg0, arg1, arg2 any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddBalanceMultiCoin", reflect.TypeOf((*MockStateDB)(nil).AddBalanceMultiCoin), arg0, arg1, arg2)
-}
-
 // AddLog mocks base method.
 func (m *MockStateDB) AddLog(arg0 *types.Log) {
 	m.ctrl.T.Helper()
@@ -121,20 +109,6 @@ func (m *MockStateDB) GetBalance(arg0 common.Address) *uint256.Int {
 func (mr *MockStateDBMockRecorder) GetBalance(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBalance", reflect.TypeOf((*MockStateDB)(nil).GetBalance), arg0)
-}
-
-// GetBalanceMultiCoin mocks base method.
-func (m *MockStateDB) GetBalanceMultiCoin(arg0 common.Address, arg1 common.Hash) *big.Int {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetBalanceMultiCoin", arg0, arg1)
-	ret0, _ := ret[0].(*big.Int)
-	return ret0
-}
-
-// GetBalanceMultiCoin indicates an expected call of GetBalanceMultiCoin.
-func (mr *MockStateDBMockRecorder) GetBalanceMultiCoin(arg0, arg1 any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBalanceMultiCoin", reflect.TypeOf((*MockStateDB)(nil).GetBalanceMultiCoin), arg0, arg1)
 }
 
 // GetNonce mocks base method.
@@ -252,18 +226,6 @@ func (m *MockStateDB) Snapshot() int {
 func (mr *MockStateDBMockRecorder) Snapshot() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Snapshot", reflect.TypeOf((*MockStateDB)(nil).Snapshot))
-}
-
-// SubBalanceMultiCoin mocks base method.
-func (m *MockStateDB) SubBalanceMultiCoin(arg0 common.Address, arg1 common.Hash, arg2 *big.Int) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "SubBalanceMultiCoin", arg0, arg1, arg2)
-}
-
-// SubBalanceMultiCoin indicates an expected call of SubBalanceMultiCoin.
-func (mr *MockStateDBMockRecorder) SubBalanceMultiCoin(arg0, arg1, arg2 any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SubBalanceMultiCoin", reflect.TypeOf((*MockStateDB)(nil).SubBalanceMultiCoin), arg0, arg1, arg2)
 }
 
 // TxHash mocks base method.

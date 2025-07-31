@@ -22,7 +22,7 @@ type StatefulPrecompiledContract interface {
 }
 
 type StateReader interface {
-	GetState(common.Address, common.Hash) common.Hash
+	GetState(common.Address, common.Hash, ...stateconf.StateDBStateOption) common.Hash
 }
 
 // StateDB is the interface for accessing EVM state
