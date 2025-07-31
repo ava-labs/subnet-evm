@@ -474,8 +474,13 @@ func assertFeeRecipientsAllowed(
 	caller common.Address) {
 	require.Len(t, logs, 1)
 	log := logs[0]
-	require.Len(t, log.Topics, 2)
-	require.Equal(t, RewardManagerABI.Events["FeeRecipientsAllowed"].ID, log.Topics[0])
-	require.Equal(t, common.BytesToHash(caller[:]), log.Topics[1])
+	require.Equal(
+		t,
+		[]common.Hash{
+			RewardManagerABI.Events["FeeRecipientsAllowed"].ID,
+			common.BytesToHash(caller[:]),
+		},
+		log.Topics,
+	)
 	require.Empty(t, log.Data)
 }
