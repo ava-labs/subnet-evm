@@ -56,12 +56,11 @@ func TestMustNotImport(t *testing.T) {
 		// Importing these packages configures libevm globally and it is not
 		// possible to do so for both coreth and subnet-evm, where the client may
 		// wish to connect to multiple chains.
-		"plugin/evm/atomic": {"core", "plugin/evm/customtypes", "core/extstate", "params"},
-		"plugin/evm/client": {"core", "plugin/evm/customtypes", "core/extstate", "params"},
-		"plugin/evm/config": {"core", "plugin/evm/customtypes", "core/extstate", "params"},
+		"plugin/evm/client": {"core", "core/extstate", "params"},
+		"plugin/evm/config": {"core", "core/extstate", "params"},
 		"plugin/evm/header": {"core", "core/extstate", "core/vm", "params"},
-		"ethclient":         {"plugin/evm/customtypes", "core/extstate", "params"},
-		"warp":              {"plugin/evm/customtypes", "core/extstate", "params"},
+		"ethclient":         {"core/extstate"},
+		"warp":              {"core/extstate", "params"},
 	}
 
 	for packageName, forbiddenImports := range mustNotImport {
