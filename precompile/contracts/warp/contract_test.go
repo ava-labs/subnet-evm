@@ -149,10 +149,16 @@ func TestSendWarpMessage(t *testing.T) {
 				logs := state.Logs()
 				require.Len(t, logs, 1)
 				log := logs[0]
-				require.Len(t, log.Topics, 3)
-				require.Equal(t, log.Topics[0], WarpABI.Events["SendWarpMessage"].ID)
-				require.Equal(t, log.Topics[1], common.BytesToHash(callerAddr[:]))
-				require.Equal(t, log.Topics[2], common.Hash(unsignedWarpMessage.ID()))
+				require.Equal(
+					t,
+					[]common.Hash{
+						WarpABI.Events["SendWarpMessage"].ID,
+						common.BytesToHash(callerAddr[:]),
+						common.Hash(unsignedWarpMessage.ID()),
+					},
+					log.Topics,
+					WarpABI.Events["SendWarpMessage"].ID,
+				)
 
 				unsignedWarpMsg, err := UnpackSendWarpEventDataToMessage(log.Data)
 				require.NoError(t, err)
