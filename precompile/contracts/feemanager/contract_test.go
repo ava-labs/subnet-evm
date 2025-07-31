@@ -417,7 +417,7 @@ var (
 			ExpectedRes: []byte{},
 			AfterHook: func(t testing.TB, state *extstate.StateDB) {
 				logs := state.Logs()
-				require.Len(t, logs, 0)
+				require.Empty(t, logs)
 			},
 		},
 	}
