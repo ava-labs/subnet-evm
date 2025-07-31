@@ -443,11 +443,16 @@ func assertRewardAddressChanged(
 	newAddress common.Address) {
 	require.Len(t, logs, 1)
 	log := logs[0]
-	require.Len(t, log.Topics, 4)
-	require.Equal(t, RewardManagerABI.Events["RewardAddressChanged"].ID, log.Topics[0])
-	require.Equal(t, common.BytesToHash(caller[:]), log.Topics[1])
-	require.Equal(t, common.BytesToHash(oldAddress[:]), log.Topics[2])
-	require.Equal(t, common.BytesToHash(newAddress[:]), log.Topics[3])
+	require.Equal(
+		t,
+		[]common.Hash{
+			RewardManagerABI.Events["RewardAddressChanged"].ID,
+			common.BytesToHash(caller[:]),
+			common.BytesToHash(oldAddress[:]),
+			common.BytesToHash(newAddress[:]),
+		},
+		log.Topics,
+	)
 	require.Empty(t, log.Data)
 }
 
