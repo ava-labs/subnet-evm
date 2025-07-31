@@ -33,12 +33,19 @@ func upgradeAccount(account common.Address, upgrade extras.StateUpgradeAccount, 
 		balanceChange, _ := uint256.FromBig((*big.Int)(upgrade.BalanceChange))
 		state.AddBalance(account, balanceChange)
 	}
-	if len(upgrade.Code) != 0 {
-		// if the nonce is 0, set the nonce to 1 as we would when deploying a contract at
-		// the address.
+
+	// Set nonce if explicitly provided
+	if upgrade.Nonce != nil {
+		state.SetNonce(account, *upgrade.Nonce)
+	} else if len(upgrade.Code) != 0 {
+		// If no explicit nonce is provided but code is being set, set the nonce to
+		// 1 as we would when deploying a contract at the address.
 		if isEIP158 && state.GetNonce(account) == 0 {
 			state.SetNonce(account, 1)
 		}
+	}
+
+	if len(upgrade.Code) != 0 {
 		state.SetCode(account, upgrade.Code)
 	}
 	for key, value := range upgrade.Storage {
