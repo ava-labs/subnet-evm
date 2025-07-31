@@ -457,9 +457,14 @@ func assertRewardsDisabled(
 	caller common.Address) {
 	require.Len(t, logs, 1)
 	log := logs[0]
-	require.Len(t, log.Topics, 2)
-	require.Equal(t, RewardManagerABI.Events["RewardsDisabled"].ID, log.Topics[0])
-	require.Equal(t, common.BytesToHash(caller[:]), log.Topics[1])
+	require.Equal(
+		t,
+		[]common.Hash{
+			RewardManagerABI.Events["RewardsDisabled"].ID,
+			common.BytesToHash(caller[:]),
+		},
+		log.Topics,
+	)
 	require.Len(t, log.Data, 0)
 }
 
