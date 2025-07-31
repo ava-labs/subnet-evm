@@ -15,6 +15,7 @@ import (
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/vm"
+	"github.com/ava-labs/subnet-evm/core/extstate"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/precompile/precompiletest"
 	"github.com/ava-labs/subnet-evm/predicate"
@@ -144,18 +145,16 @@ func TestSendWarpMessage(t *testing.T) {
 				}
 				return bytes
 			}(),
-			AfterHook: func(t testing.TB, state contract.StateDB) {
-				logsTopics, logsData := state.GetLogData()
-				require.Len(t, logsTopics, 1)
-				topics := logsTopics[0]
-				require.Len(t, topics, 3)
-				require.Equal(t, topics[0], WarpABI.Events["SendWarpMessage"].ID)
-				require.Equal(t, topics[1], common.BytesToHash(callerAddr[:]))
-				require.Equal(t, topics[2], common.Hash(unsignedWarpMessage.ID()))
+			AfterHook: func(t testing.TB, state *extstate.StateDB) {
+				logs := state.Logs()
+				require.Len(t, logs, 1)
+				log := logs[0]
+				require.Len(t, log.Topics, 3)
+				require.Equal(t, log.Topics[0], WarpABI.Events["SendWarpMessage"].ID)
+				require.Equal(t, log.Topics[1], common.BytesToHash(callerAddr[:]))
+				require.Equal(t, log.Topics[2], common.Hash(unsignedWarpMessage.ID()))
 
-				require.Len(t, logsData, 1)
-				logData := logsData[0]
-				unsignedWarpMsg, err := UnpackSendWarpEventDataToMessage(logData)
+				unsignedWarpMsg, err := UnpackSendWarpEventDataToMessage(log.Data)
 				require.NoError(t, err)
 				addressedPayload, err := payload.ParseAddressedCall(unsignedWarpMsg.Payload)
 				require.NoError(t, err)

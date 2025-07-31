@@ -41,13 +41,13 @@ type PrecompileTest struct {
 	// If nil, Configure will not be called.
 	Config precompileconfig.Config
 	// BeforeHook is called before the precompile is called.
-	BeforeHook func(t testing.TB, state contract.StateDB)
+	BeforeHook func(t testing.TB, state *extstate.StateDB)
 	// Predicates that the precompile should have access to.
 	Predicates [][]byte
 	// SetupBlockContext sets the expected calls on MockBlockContext for the test execution.
 	SetupBlockContext func(*contract.MockBlockContext)
 	// AfterHook is called after the precompile is called.
-	AfterHook func(t testing.TB, state contract.StateDB)
+	AfterHook func(t testing.TB, state *extstate.StateDB)
 	// ExpectedRes is the expected raw byte result returned by the precompile
 	ExpectedRes []byte
 	// ExpectedErr is the expected error returned by the precompile
@@ -84,7 +84,7 @@ func (test PrecompileTest) Run(t *testing.T, module modules.Module) {
 	}
 
 	if test.AfterHook != nil {
-		test.AfterHook(t, state)
+		test.AfterHook(t, state.StateDB)
 	}
 }
 
@@ -95,7 +95,7 @@ func (test PrecompileTest) setup(t testing.TB, module modules.Module, state *tes
 	ctrl := gomock.NewController(t)
 
 	if test.BeforeHook != nil {
-		test.BeforeHook(t, state)
+		test.BeforeHook(t, state.StateDB)
 	}
 
 	if test.ChainConfigFn == nil {
