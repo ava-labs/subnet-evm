@@ -24,7 +24,7 @@ import (
 	"github.com/ava-labs/firewood-go-ethhash/ffi"
 	"github.com/prometheus/client_golang/prometheus"
 
-	subnetevmprometheus "github.com/ava-labs/avalanchego/vms/evm/metrics/prometheus"
+	avalanchegoprometheus "github.com/ava-labs/avalanchego/vms/evm/metrics/prometheus"
 	"github.com/ava-labs/libevm/core/rawdb"
 	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/libevm/metrics"
@@ -586,7 +586,7 @@ func (vm *VM) initializeMetrics() error {
 	// and must be set to true to enable metrics collection.
 	metrics.Enabled = true
 	vm.sdkMetrics = prometheus.NewRegistry()
-	gatherer := subnetevmprometheus.NewGatherer(metrics.DefaultRegistry)
+	gatherer := avalanchegoprometheus.NewGatherer(metrics.DefaultRegistry)
 	if err := vm.ctx.Metrics.Register(ethMetricsPrefix, gatherer); err != nil {
 		return err
 	}
