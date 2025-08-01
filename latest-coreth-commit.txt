@@ -8,3 +8,4 @@
 - Coreth PR 1071 has already been synced (ahead of schedule) - see https://github.com/ava-labs/subnet-evm/pull/1653
 - Coreth PR 1073 has already been synced (ahead of schedule) - see https://github.com/ava-labs/subnet-evm/pull/1659
 - Coreth PR 1087 has already been synced (ahead of schedule) - see https://github.com/ava-labs/subnet-evm/pull/1672
+- Coreth PR 1088 has already been synced (ahead of schedule) - see https://github.com/ava-labs/subnet-evm/pull/1672
