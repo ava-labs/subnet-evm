@@ -40,7 +40,7 @@ const NumKeys = 5
 func main() {
 	logger := ago_tests.NewDefaultLogger("")
 	tc := ago_tests.NewTestContext(logger)
-	defer tc.Cleanup()
+	defer tc.RecoverAndExit()
 	require := require.New(tc)
 
 	c := antithesis.NewConfigWithSubnets(
@@ -124,7 +124,7 @@ func (w *workload) run(ctx context.Context) {
 	timer := timerpkg.StoppedTimer()
 
 	tc := ago_tests.NewTestContext(w.log)
-	defer tc.Cleanup()
+	defer tc.RecoverAndExit()
 	require := require.New(tc)
 
 	balance, err := w.client.BalanceAt(ctx, crypto.PubkeyToAddress(w.key.PublicKey), nil)
