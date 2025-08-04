@@ -74,6 +74,14 @@ func RegisterAsyncTests() {
 			runDefaultHardhatTests(ctx, blockchainID, "reward_manager")
 		})
 
+		ginkgo.It("hello world", ginkgo.Label("Precompile"), ginkgo.Label("HelloWorld"), func() {
+			ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+			defer cancel()
+
+			blockchainID := subnetsSuite.GetBlockchainID("hello_world")
+			runDefaultHardhatTests(ctx, blockchainID, "hello_world")
+		})
+
 		// ADD YOUR PRECOMPILE HERE
 		/*
 			ginkgo.It("your precompile", ginkgo.Label("Precompile"), ginkgo.Label("YourPrecompile"), func() {
