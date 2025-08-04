@@ -43,7 +43,6 @@ import (
 	"github.com/ava-labs/libevm/triedb"
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/extstate"
-
 	"github.com/ava-labs/subnet-evm/eth/tracers"
 	"github.com/ava-labs/subnet-evm/plugin/evm/customrawdb"
 )
