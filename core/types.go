@@ -31,7 +31,6 @@ import (
 	"github.com/ava-labs/libevm/core/state"
 	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/libevm/core/vm"
-	"github.com/ava-labs/subnet-evm/core/state"
 )
 
 // Validator is an interface which defines the standard for block validation. It

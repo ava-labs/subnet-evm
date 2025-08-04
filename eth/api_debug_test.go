@@ -41,7 +41,7 @@ import (
 	"github.com/ava-labs/libevm/crypto"
 	"github.com/ava-labs/libevm/triedb"
 	"github.com/ava-labs/subnet-evm/core/extstate"
-	"github.com/ava-labs/subnet-evm/core/state"
+
 	"github.com/davecgh/go-spew/spew"
 	"github.com/holiman/uint256"
 	"golang.org/x/exp/slices"
