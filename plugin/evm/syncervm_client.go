@@ -45,12 +45,12 @@ type stateSyncClientConfig struct {
 
 	lastAcceptedHeight uint64
 
-	Chain      *eth.Ethereum
-	State      *chain.State
-	ChainDB    ethdb.Database
-	Acceptor   BlockAcceptor
-	VerDB      *versiondb.Database
-	MetadataDB database.Database
+	Chain           *eth.Ethereum
+	State           *chain.State
+	ChainDB         ethdb.Database
+	AcceptedBlockDB database.Database
+	VerDB           *versiondb.Database
+	MetadataDB      database.Database
 
 	client        syncclient.Client
 	stateSyncDone chan struct{}
