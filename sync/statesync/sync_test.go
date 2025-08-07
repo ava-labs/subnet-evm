@@ -599,3 +599,57 @@ func fillAccountsWithStorage(t *testing.T, serverDB ethdb.Database, serverTrieDB
 	})
 	return newRoot
 }
+
+func TestDifferentWaitContext(t *testing.T) {
+	serverDB := rawdb.NewMemoryDatabase()
+	serverTrieDB := triedb.NewDatabase(serverDB, nil)
+	// Create trie with many accounts to ensure sync takes time
+	root := fillAccountsWithStorage(t, serverDB, serverTrieDB, common.Hash{}, 2000)
+	clientDB := rawdb.NewMemoryDatabase()
+
+	// Track requests to show sync continues after Wait returns
+	var requestCount int64
+
+	leafsRequestHandler := handlers.NewLeafsRequestHandler(serverTrieDB, message.StateTrieKeyLength, nil, message.Codec, handlerstats.NewNoopHandlerStats())
+	codeRequestHandler := handlers.NewCodeRequestHandler(serverDB, message.Codec, handlerstats.NewNoopHandlerStats())
+	mockClient := statesyncclient.NewTestClient(message.Codec, leafsRequestHandler, codeRequestHandler, nil)
+
+	// Intercept to track ongoing requests and add delay
+	mockClient.GetLeafsIntercept = func(req message.LeafsRequest, resp message.LeafsResponse) (message.LeafsResponse, error) {
+		atomic.AddInt64(&requestCount, 1)
+		// Add small delay to ensure sync is ongoing
+		time.Sleep(10 * time.Millisecond)
+		return resp, nil
+	}
+
+	s, err := NewStateSyncer(&StateSyncerConfig{
+		Client:                   mockClient,
+		Root:                     root,
+		DB:                       clientDB,
+		BatchSize:                1000,
+		NumCodeFetchingWorkers:   DefaultNumCodeFetchingWorkers,
+		MaxOutstandingCodeHashes: DefaultMaxOutstandingCodeHashes,
+		RequestSize:              1024,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Create two different contexts
+	startCtx := context.Background() // Never cancelled
+	waitCtx, waitCancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer waitCancel()
+
+	// Start with one context
+	require.NoError(t, s.Start(startCtx), "failed to start state syncer")
+
+	// Wait with different context that will timeout
+	err = s.Wait(waitCtx)
+	require.ErrorIs(t, err, context.DeadlineExceeded, "Wait should return DeadlineExceeded error")
+
+	// Check if more requests were made after Wait returned
+	requestsWhenWaitReturned := atomic.LoadInt64(&requestCount)
+	time.Sleep(100 * time.Millisecond)
+	requestsAfterWait := atomic.LoadInt64(&requestCount)
+	require.Equal(t, requestsWhenWaitReturned, requestsAfterWait, "Sync should not continue after Wait returned with different context")
+}
