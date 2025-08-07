@@ -75,17 +75,21 @@ func (m *messageMetric) UpdateRequestLatency(duration time.Duration) {
 }
 
 type clientSyncerStats struct {
-	stateTrieLeavesMetric,
+	leafMetrics map[message.NodeType]MessageMetric
 	codeRequestMetric,
 	blockRequestMetric MessageMetric
 }
 
 // NewClientSyncerStats returns stats for the client syncer
-func NewClientSyncerStats() ClientSyncerStats {
+func NewClientSyncerStats(leafMetricNames map[message.NodeType]string) *clientSyncerStats {
+	leafMetrics := make(map[message.NodeType]MessageMetric, len(leafMetricNames))
+	for nodeType, name := range leafMetricNames {
+		leafMetrics[nodeType] = NewMessageMetric(name)
+	}
 	return &clientSyncerStats{
-		stateTrieLeavesMetric: NewMessageMetric("sync_state_trie_leaves"),
-		codeRequestMetric:     NewMessageMetric("sync_code"),
-		blockRequestMetric:    NewMessageMetric("sync_blocks"),
+		leafMetrics:        leafMetrics,
+		codeRequestMetric:  NewMessageMetric("sync_code"),
+		blockRequestMetric: NewMessageMetric("sync_blocks"),
 	}
 }
 
@@ -97,7 +101,11 @@ func (c *clientSyncerStats) GetMetric(msgIntf message.Request) (MessageMetric, e
 	case message.CodeRequest:
 		return c.codeRequestMetric, nil
 	case message.LeafsRequest:
-		return c.stateTrieLeavesMetric, nil
+		metric, ok := c.leafMetrics[msg.NodeType]
+		if !ok {
+			return nil, fmt.Errorf("invalid leafs request for node type: %T", msg.NodeType)
+		}
+		return metric, nil
 	default:
 		return nil, fmt.Errorf("attempted to get metric for invalid request with type %T", msg)
 	}
@@ -123,13 +131,4 @@ func NewNoOpStats() ClientSyncerStats {
 
 func (n noopStats) GetMetric(_ message.Request) (MessageMetric, error) {
 	return n.noop, nil
-}
-
-// NewStats returns syncer stats if enabled or a no-op version if disabled.
-func NewStats(enabled bool) ClientSyncerStats {
-	if enabled {
-		return NewClientSyncerStats()
-	} else {
-		return NewNoOpStats()
-	}
 }

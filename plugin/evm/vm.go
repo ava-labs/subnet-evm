@@ -22,6 +22,7 @@ import (
 	"github.com/ava-labs/avalanchego/network/p2p/acp118"
 	"github.com/ava-labs/avalanchego/network/p2p/gossip"
 	"github.com/ava-labs/firewood-go-ethhash/ffi"
+	"github.com/ava-labs/subnet-evm/plugin/evm/extension"
 	"github.com/prometheus/client_golang/prometheus"
 
 	avalanchegoprometheus "github.com/ava-labs/avalanchego/vms/evm/metrics/prometheus"
@@ -46,6 +47,7 @@ import (
 	"github.com/ava-labs/subnet-evm/plugin/evm/customrawdb"
 	subnetevmlog "github.com/ava-labs/subnet-evm/plugin/evm/log"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
+	vmsync "github.com/ava-labs/subnet-evm/plugin/evm/sync"
 	"github.com/ava-labs/subnet-evm/plugin/evm/validators"
 	"github.com/ava-labs/subnet-evm/plugin/evm/validators/interfaces"
 	"github.com/ava-labs/subnet-evm/triedb/hashdb"
@@ -54,6 +56,8 @@ import (
 	"github.com/ava-labs/subnet-evm/rpc"
 	statesyncclient "github.com/ava-labs/subnet-evm/sync/client"
 	"github.com/ava-labs/subnet-evm/sync/client/stats"
+	"github.com/ava-labs/subnet-evm/sync/handlers"
+	handlerstats "github.com/ava-labs/subnet-evm/sync/handlers/stats"
 	"github.com/ava-labs/subnet-evm/warp"
 
 	// Force-load tracer engine to trigger registration
@@ -85,7 +89,6 @@ import (
 	"github.com/ava-labs/avalanchego/utils/profiler"
 	"github.com/ava-labs/avalanchego/utils/timer/mockable"
 	"github.com/ava-labs/avalanchego/utils/units"
-	"github.com/ava-labs/avalanchego/version"
 	"github.com/ava-labs/avalanchego/vms/components/chain"
 
 	commonEng "github.com/ava-labs/avalanchego/snow/engine/common"
@@ -187,6 +190,9 @@ type VM struct {
 	chainConfig *params.ChainConfig
 	ethConfig   ethconfig.Config
 
+	// Extension Points
+	extensionConfig *extension.Config
+
 	// pointers to eth constructs
 	eth        *eth.Ethereum
 	txPool     *txpool.TxPool
@@ -243,8 +249,8 @@ type VM struct {
 
 	logger subnetevmlog.Logger
 	// State sync server and client
-	StateSyncServer
-	StateSyncClient
+	vmsync.Server
+	vmsync.Client
 
 	// Avalanche Warp Messaging backend
 	// Used to serve BLS signatures of warp messages over RPC
@@ -350,6 +356,17 @@ func (vm *VM) Initialize(
 	// The NetworkId here is kept same as ChainID to be compatible with
 	// Ethereum tooling.
 	vm.ethConfig.NetworkId = g.Config.ChainID.Uint64()
+	// create genesisHash after applying upgradeBytes in case
+	// upgradeBytes modifies genesis.
+	vm.genesisHash = vm.ethConfig.Genesis.ToBlock().Hash() // must create genesis hash before [vm.readLastAccepted]
+	lastAcceptedHash, lastAcceptedHeight, err := vm.readLastAccepted()
+	if err != nil {
+		return err
+	}
+	log.Info("read last accepted",
+		"hash", lastAcceptedHash,
+		"height", lastAcceptedHeight,
+	)
 
 	// Set minimum price for mining and default gas price oracle value to the min
 	// gas price to prevent so transactions and blocks all use the correct fees
@@ -381,7 +398,7 @@ func (vm *VM) Initialize(
 	vm.ethConfig.PopulateMissingTries = vm.config.PopulateMissingTries
 	vm.ethConfig.PopulateMissingTriesParallelism = vm.config.PopulateMissingTriesParallelism
 	vm.ethConfig.AllowMissingTries = vm.config.AllowMissingTries
-	vm.ethConfig.SnapshotDelayInit = vm.config.StateSyncEnabled
+	vm.ethConfig.SnapshotDelayInit = vm.stateSyncEnabled(lastAcceptedHeight)
 	vm.ethConfig.SnapshotWait = vm.config.SnapshotWait
 	vm.ethConfig.SnapshotVerify = vm.config.SnapshotVerify
 	vm.ethConfig.HistoricalProofQueryWindow = vm.config.HistoricalProofQueryWindow
@@ -410,7 +427,7 @@ func (vm *VM) Initialize(
 		if vm.config.OfflinePruning {
 			return errors.New("Offline pruning is not supported for Firewood")
 		}
-		if vm.config.StateSyncEnabled {
+		if vm.config.StateSyncEnabled == nil || *vm.config.StateSyncEnabled {
 			return errors.New("State sync is not yet supported for Firewood")
 		}
 	}
@@ -438,18 +455,6 @@ func (vm *VM) Initialize(
 	}
 
 	vm.chainConfig = g.Config
-
-	// create genesisHash after applying upgradeBytes in case
-	// upgradeBytes modifies genesis.
-	vm.genesisHash = vm.ethConfig.Genesis.ToBlock().Hash() // must create genesis hash before [vm.readLastAccepted]
-	lastAcceptedHash, lastAcceptedHeight, err := vm.readLastAccepted()
-	if err != nil {
-		return err
-	}
-	log.Info("read last accepted",
-		"hash", lastAcceptedHash,
-		"height", lastAcceptedHeight,
-	)
 
 	vm.networkCodec = message.Codec
 	vm.Network, err = network.NewNetwork(vm.ctx, appSender, vm.networkCodec, vm.config.MaxOutboundActiveRequests, vm.sdkMetrics)
@@ -505,13 +510,7 @@ func (vm *VM) Initialize(
 	warpHandler := acp118.NewCachedHandler(meteredCache, vm.warpBackend, vm.ctx.WarpSigner)
 	vm.Network.AddHandler(p2p.SignatureRequestHandlerID, warpHandler)
 
-	vm.setAppRequestHandlers()
-
-	vm.StateSyncServer = NewStateSyncServer(&stateSyncServerConfig{
-		Chain:            vm.blockChain,
-		SyncableInterval: vm.config.StateSyncCommitInterval,
-	})
-	return vm.initializeStateSyncClient(lastAcceptedHeight)
+	return vm.initializeStateSync(lastAcceptedHeight)
 }
 
 func parseGenesis(ctx *snow.Context, genesisBytes []byte, upgradeBytes []byte, airdropFile string) (*core.Genesis, error) {
@@ -645,10 +644,49 @@ func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.
 // initializeStateSyncClient initializes the client for performing state sync.
 // If state sync is disabled, this function will wipe any ongoing summary from
 // disk to ensure that we do not continue syncing from an invalid snapshot.
-func (vm *VM) initializeStateSyncClient(lastAcceptedHeight uint64) error {
+func (vm *VM) initializeStateSync(lastAcceptedHeight uint64) error {
+	// Create standalone EVM TrieDB (read only) for serving leafs requests.
+	// We create a standalone TrieDB here, so that it has a standalone cache from the one
+	// used by the node when processing blocks.
+	evmTrieDB := triedb.NewDatabase(
+		vm.chaindb,
+		&triedb.Config{
+			DBOverride: hashdb.Config{
+				CleanCacheSize: vm.config.StateSyncServerTrieCache * units.MiB,
+			}.BackendConstructor,
+		},
+	)
+
+	// register default leaf request handler for state trie
+	syncStats := handlerstats.GetOrRegisterHandlerStats(metrics.Enabled)
+	stateLeafRequestConfig := &extension.LeafRequestConfig{
+		LeafType:   message.StateTrieNode,
+		MetricName: "sync_state_trie_leaves",
+		Handler: handlers.NewLeafsRequestHandler(evmTrieDB,
+			message.StateTrieKeyLength,
+			vm.blockChain, vm.networkCodec,
+			syncStats,
+		),
+	}
+
+	leafHandlers := make(LeafHandlers)
+	leafHandlers[stateLeafRequestConfig.LeafType] = stateLeafRequestConfig.Handler
+
+	networkHandler := newNetworkHandler(
+		vm.blockChain,
+		vm.chaindb,
+		vm.warpBackend,
+		vm.networkCodec,
+		leafHandlers,
+		syncStats,
+	)
+	vm.Network.SetRequestHandler(networkHandler)
+
+	vm.Server = vmsync.NewServer(vm.blockChain, vm.extensionConfig.SyncSummaryProvider, vm.config.StateSyncCommitInterval)
+	stateSyncEnabled := vm.stateSyncEnabled(lastAcceptedHeight)
 	// parse nodeIDs from state sync IDs in vm config
 	var stateSyncIDs []ids.NodeID
-	if vm.config.StateSyncEnabled && len(vm.config.StateSyncIDs) > 0 {
+	if stateSyncEnabled && len(vm.config.StateSyncIDs) > 0 {
 		nodeIDs := strings.Split(vm.config.StateSyncIDs, ",")
 		stateSyncIDs = make([]ids.NodeID, len(nodeIDs))
 		for i, nodeIDString := range nodeIDs {
@@ -660,34 +698,39 @@ func (vm *VM) initializeStateSyncClient(lastAcceptedHeight uint64) error {
 		}
 	}
 
-	vm.StateSyncClient = NewStateSyncClient(&stateSyncClientConfig{
-		chain:         vm.eth,
-		state:         vm.State,
-		stateSyncDone: vm.stateSyncDone,
-		client: statesyncclient.NewClient(
+	// Initialize the state sync client
+	leafMetricsNames := make(map[message.NodeType]string)
+	leafMetricsNames[stateLeafRequestConfig.LeafType] = stateLeafRequestConfig.MetricName
+
+	vm.Client = vmsync.NewClient(&vmsync.ClientConfig{
+		Chain: vm.eth,
+		State: vm.State,
+		Client: statesyncclient.NewClient(
 			&statesyncclient.ClientConfig{
 				NetworkClient:    vm.Network,
 				Codec:            vm.networkCodec,
-				Stats:            stats.NewClientSyncerStats(),
+				Stats:            stats.NewClientSyncerStats(leafMetricsNames),
 				StateSyncNodeIDs: stateSyncIDs,
 				BlockParser:      vm,
 			},
 		),
-		enabled:              vm.config.StateSyncEnabled,
-		skipResume:           vm.config.StateSyncSkipResume,
-		stateSyncMinBlocks:   vm.config.StateSyncMinBlocks,
-		stateSyncRequestSize: vm.config.StateSyncRequestSize,
-		lastAcceptedHeight:   lastAcceptedHeight, // TODO clean up how this is passed around
-		chaindb:              vm.chaindb,
-		metadataDB:           vm.metadataDB,
-		acceptedBlockDB:      vm.acceptedBlockDB,
-		db:                   vm.versiondb,
+		Enabled:            stateSyncEnabled,
+		SkipResume:         vm.config.StateSyncSkipResume,
+		MinBlocks:          vm.config.StateSyncMinBlocks,
+		RequestSize:        vm.config.StateSyncRequestSize,
+		LastAcceptedHeight: lastAcceptedHeight, // TODO clean up how this is passed around
+		ChaindDB:           vm.chaindb,
+		VerDB:              vm.versiondb,
+		MetadataDB:         vm.metadataDB,
+		Acceptor:           vm,
+		Parser:             vm.extensionConfig.SyncableParser,
+		Extender:           nil,
 	})
 
 	// If StateSync is disabled, clear any ongoing summary so that we will not attempt to resume
 	// sync using a snapshot that has been modified by the node running normal operations.
-	if !vm.config.StateSyncEnabled {
-		return vm.StateSyncClient.ClearOngoingSummary()
+	if !stateSyncEnabled {
+		return vm.Client.ClearOngoingSummary()
 	}
 
 	return nil
@@ -742,17 +785,16 @@ func (vm *VM) SetState(_ context.Context, state snow.State) error {
 // onBootstrapStarted marks this VM as bootstrapping
 func (vm *VM) onBootstrapStarted() error {
 	vm.bootstrapped.Set(false)
-	if err := vm.StateSyncClient.Error(); err != nil {
+	if err := vm.Client.Error(); err != nil {
 		return err
 	}
 	// After starting bootstrapping, do not attempt to resume a previous state sync.
-	if err := vm.StateSyncClient.ClearOngoingSummary(); err != nil {
+	if err := vm.Client.ClearOngoingSummary(); err != nil {
 		return err
 	}
 	// Ensure snapshots are initialized before bootstrapping (i.e., if state sync is skipped).
 	// Note calling this function has no effect if snapshots are already initialized.
 	vm.blockChain.InitializeSnapshots()
-
 	return nil
 }
 
@@ -880,25 +922,6 @@ func (vm *VM) onNormalOperationsStarted() error {
 	return nil
 }
 
-// setAppRequestHandlers sets the request handlers for the VM to serve state sync
-// requests.
-func (vm *VM) setAppRequestHandlers() {
-	// Create standalone EVM TrieDB (read only) for serving leafs requests.
-	// We create a standalone TrieDB here, so that it has a standalone cache from the one
-	// used by the node when processing blocks.
-	evmTrieDB := triedb.NewDatabase(
-		vm.chaindb,
-		&triedb.Config{
-			DBOverride: hashdb.Config{
-				CleanCacheSize: vm.config.StateSyncServerTrieCache * units.MiB,
-			}.BackendConstructor,
-		},
-	)
-
-	networkHandler := newNetworkHandler(vm.blockChain, vm.chaindb, evmTrieDB, vm.warpBackend, vm.networkCodec)
-	vm.Network.SetRequestHandler(networkHandler)
-}
-
 func (vm *VM) WaitForEvent(ctx context.Context) (commonEng.Message, error) {
 	vm.builderLock.Lock()
 	builder := vm.builder
@@ -935,7 +958,7 @@ func (vm *VM) Shutdown(context.Context) error {
 		}
 	}
 	vm.Network.Shutdown()
-	if err := vm.StateSyncClient.Shutdown(); err != nil {
+	if err := vm.Client.Shutdown(); err != nil {
 		log.Error("error stopping state syncer", "err", err)
 	}
 	close(vm.shutdownChan)
@@ -1322,23 +1345,16 @@ func attachEthService(handler *rpc.Server, apis []rpc.API, names []string) error
 	return nil
 }
 
-func (vm *VM) Connected(ctx context.Context, nodeID ids.NodeID, version *version.Application) error {
-	vm.vmLock.Lock()
-	defer vm.vmLock.Unlock()
-
-	if err := vm.validatorsManager.Connect(nodeID); err != nil {
-		return fmt.Errorf("uptime manager failed to connect node %s: %w", nodeID, err)
+func (vm *VM) stateSyncEnabled(lastAcceptedHeight uint64) bool {
+	if vm.config.StateSyncEnabled != nil {
+		// if the config is set, use that
+		return *vm.config.StateSyncEnabled
 	}
-	return vm.Network.Connected(ctx, nodeID, version)
+
+	// enable state sync by default if the chain is empty.
+	return lastAcceptedHeight == 0
 }
 
-func (vm *VM) Disconnected(ctx context.Context, nodeID ids.NodeID) error {
-	vm.vmLock.Lock()
-	defer vm.vmLock.Unlock()
-
-	if err := vm.validatorsManager.Disconnect(nodeID); err != nil {
-		return fmt.Errorf("uptime manager failed to disconnect node %s: %w", nodeID, err)
-	}
-
-	return vm.Network.Disconnected(ctx, nodeID)
+func (vm *VM) PutLastAcceptedID(ID ids.ID) error {
+	return vm.acceptedBlockDB.Put(lastAcceptedKey, ID[:])
 }

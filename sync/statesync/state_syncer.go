@@ -254,21 +254,7 @@ func (t *stateSync) Start(ctx context.Context) error {
 	return nil
 }
 
-func (t *stateSync) Wait(ctx context.Context) error {
-	// This should only be called after Start, so we can assume cancelFunc is set.
-	if t.cancelFunc == nil {
-		return errWaitBeforeStart
-	}
-
-	select {
-	case err := <-t.done:
-		return err
-	case <-ctx.Done():
-		t.cancelFunc() // cancel the sync operations if the context is done
-		<-t.done       // wait for the sync operations to finish
-		return ctx.Err()
-	}
-}
+func (t *stateSync) Done() <-chan error { return t.done }
 
 // addTrieInProgress tracks the root as being currently synced.
 func (t *stateSync) addTrieInProgress(root common.Hash, trie *trieToSync) {

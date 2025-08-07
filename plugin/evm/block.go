@@ -19,6 +19,7 @@ import (
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/params/extras"
 	"github.com/ava-labs/subnet-evm/plugin/evm/header"
+	"github.com/ava-labs/subnet-evm/plugin/evm/sync"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/predicate"
 
@@ -30,6 +31,7 @@ import (
 var (
 	_ snowman.Block           = (*Block)(nil)
 	_ block.WithVerifyContext = (*Block)(nil)
+	_ sync.EthBlockWrapper    = (*Block)(nil)
 )
 
 // Block implements the snowman.Block interface
@@ -273,3 +275,7 @@ func (b *Block) Bytes() []byte {
 }
 
 func (b *Block) String() string { return fmt.Sprintf("EVM block, ID = %s", b.ID()) }
+
+func (b *Block) GetEthBlock() *types.Block {
+	return b.ethBlock
+}
