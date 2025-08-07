@@ -34,6 +34,9 @@ type StateSyncerConfig struct {
 	MaxOutstandingCodeHashes int    // Maximum number of code hashes in the code syncer queue
 	NumCodeFetchingWorkers   int    // Number of code syncing threads
 	RequestSize              uint16 // Number of leafs to request from a peer at a time
+
+	// context cancellation management
+	cancelFunc context.CancelFunc
 }
 
 // stateSync keeps the state of the entire state sync operation.
@@ -254,7 +257,21 @@ func (t *stateSync) Start(ctx context.Context) error {
 	return nil
 }
 
-func (t *stateSync) Done() <-chan error { return t.done }
+func (t *stateSync) Wait(ctx context.Context) error {
+	// This should only be called after Start, so we can assume cancelFunc is set.
+	if t.cancelFunc == nil {
+		return errWaitBeforeStart
+	}
+
+	select {
+	case err := <-t.done:
+		return err
+	case <-ctx.Done():
+		t.cancelFunc() // cancel the sync operations if the context is done
+		<-t.done       // wait for the sync operations to finish
+		return ctx.Err()
+	}
+}
 
 // addTrieInProgress tracks the root as being currently synced.
 func (t *stateSync) addTrieInProgress(root common.Hash, trie *trieToSync) {
