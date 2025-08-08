@@ -34,9 +34,6 @@ type StateSyncerConfig struct {
 	MaxOutstandingCodeHashes int    // Maximum number of code hashes in the code syncer queue
 	NumCodeFetchingWorkers   int    // Number of code syncing threads
 	RequestSize              uint16 // Number of leafs to request from a peer at a time
-
-	// context cancellation management
-	cancelFunc context.CancelFunc
 }
 
 // stateSync keeps the state of the entire state sync operation.

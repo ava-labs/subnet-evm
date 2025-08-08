@@ -17,7 +17,7 @@ import (
 
 	"github.com/ava-labs/libevm/core/rawdb"
 	"github.com/ava-labs/libevm/core/types"
-	"github.com/ava-labs/subnet-evm/constants"
+
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/params/extras"
@@ -233,22 +233,6 @@ func (b *wrappedBlock) verify(predicateContext *precompileconfig.PredicateContex
 	return b.vm.blockChain.InsertBlockManual(b.ethBlock, writes)
 }
 
-// semanticVerify verifies that a *Block is internally consistent.
-func (b *wrappedBlock) semanticVerify() error {
-	// Make sure the block isn't too far in the future
-	blockTimestamp := b.ethBlock.Time()
-	if maxBlockTime := uint64(b.vm.clock.Time().Add(maxFutureBlockTime).Unix()); blockTimestamp > maxBlockTime {
-		return fmt.Errorf("block timestamp is too far in the future: %d > allowed %d", blockTimestamp, maxBlockTime)
-	}
-
-	if b.extension != nil {
-		if err := b.extension.SemanticVerify(); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 // syntacticVerify verifies that a *Block is well-formed.
 func (b *wrappedBlock) syntacticVerify() error {
 	if b == nil || b.ethBlock == nil {
@@ -287,7 +271,12 @@ func (b *wrappedBlock) syntacticVerify() error {
 	}
 
 	// Check that the tx hash in the header matches the body
-	txsHash := types.DeriveSha(b.ethBlock.Transactions(), trie.NewStackTrie(nil))
+	txs := b.ethBlock.Transactions()
+	if len(txs) == 0 {
+		// Empty blocks are not allowed on Subnet-EVM
+		return errEmptyBlock
+	}
+	txsHash := types.DeriveSha(txs, trie.NewStackTrie(nil))
 	if txsHash != ethHeader.TxHash {
 		return fmt.Errorf("invalid txs hash %v does not match calculated txs hash %v", ethHeader.TxHash, txsHash)
 	}
@@ -296,10 +285,7 @@ func (b *wrappedBlock) syntacticVerify() error {
 	if uncleHash != ethHeader.UncleHash {
 		return fmt.Errorf("invalid uncle hash %v does not match calculated uncle hash %v", ethHeader.UncleHash, uncleHash)
 	}
-	// Coinbase must match the BlackholeAddr on C-Chain
-	if ethHeader.Coinbase != constants.BlackholeAddr {
-		return fmt.Errorf("invalid coinbase %v does not match required blackhole address %v", ethHeader.Coinbase, constants.BlackholeAddr)
-	}
+
 	// Block must not have any uncles
 	if len(b.ethBlock.Uncles()) > 0 {
 		return errUnclesUnsupported

@@ -1632,7 +1632,7 @@ func testUncleBlock(t *testing.T, scheme string) {
 		nil,
 		trie.NewStackTrie(nil),
 	)
-	uncleBlock, err := wrapBlock(uncleEthBlock, tvm2.vm)
+	uncleBlock, _ := wrapBlock(uncleEthBlock, tvm2.vm)
 
 	if err := uncleBlock.Verify(context.Background()); !errors.Is(err, errUnclesUnsupported) {
 		t.Fatalf("VM2 should have failed with %q but got %q", errUnclesUnsupported, err.Error())

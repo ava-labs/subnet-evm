@@ -13,6 +13,7 @@ import (
 	"github.com/ava-labs/libevm/trie"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/params/extras"
+	"github.com/ava-labs/subnet-evm/plugin/evm/extension"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -25,8 +26,9 @@ func TestHandlePrecompileAccept(t *testing.T) {
 
 	db := rawdb.NewMemoryDatabase()
 	vm := &VM{
-		chaindb:     db,
-		chainConfig: params.TestChainConfig,
+		chaindb:         db,
+		chainConfig:     params.TestChainConfig,
+		extensionConfig: &extension.Config{},
 	}
 
 	precompileAddr := common.Address{0x05}

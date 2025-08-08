@@ -146,8 +146,6 @@ var (
 	errInvalidBlock                  = errors.New("invalid block")
 	errInvalidNonce                  = errors.New("invalid nonce")
 	errUnclesUnsupported             = errors.New("uncles unsupported")
-	errNilBaseFeeSubnetEVM           = errors.New("nil base fee is invalid after subnetEVM")
-	errNilBlockGasCostSubnetEVM      = errors.New("nil blockGasCost is invalid after subnetEVM")
 	errInvalidHeaderPredicateResults = errors.New("invalid header predicate results")
 	errInitializingLogger            = errors.New("failed to initialize logger")
 	errShuttingDownVM                = errors.New("shutting down VM")
@@ -279,7 +277,10 @@ func (vm *VM) Initialize(
 	appSender commonEng.AppSender,
 ) error {
 	vm.stateSyncDone = make(chan struct{})
-	vm.extensionConfig = &extension.Config{}
+	vm.extensionConfig = &extension.Config{
+		SyncSummaryProvider: &message.BlockSyncSummaryProvider{},
+		SyncableParser:      message.NewBlockSyncSummaryParser(),
+	}
 	vm.config.SetDefaults(defaultTxPoolConfig)
 	if len(configBytes) > 0 {
 		if err := json.Unmarshal(configBytes, &vm.config); err != nil {
@@ -702,8 +703,9 @@ func (vm *VM) initializeStateSync(lastAcceptedHeight uint64) error {
 	leafMetricsNames[stateLeafRequestConfig.LeafType] = stateLeafRequestConfig.MetricName
 
 	vm.Client = vmsync.NewClient(&vmsync.ClientConfig{
-		Chain: vm.eth,
-		State: vm.State,
+		StateSyncDone: vm.stateSyncDone,
+		Chain:         vm.eth,
+		State:         vm.State,
 		Client: statesyncclient.NewClient(
 			&statesyncclient.ClientConfig{
 				NetworkClient:    vm.Network,
@@ -737,6 +739,9 @@ func (vm *VM) initializeStateSync(lastAcceptedHeight uint64) error {
 
 func (vm *VM) initChainState(lastAcceptedBlock *types.Block) error {
 	block, err := wrapBlock(lastAcceptedBlock, vm)
+	if err != nil {
+		return fmt.Errorf("failed to wrap last accepted block: %w", err)
+	}
 
 	config := &chain.Config{
 		DecidedCacheSize:      decidedCacheSize,
@@ -1003,6 +1008,9 @@ func (vm *VM) buildBlockWithContext(ctx context.Context, proposerVMBlockCtx *blo
 
 	// Note: the status of block is set by ChainState
 	blk, err := wrapBlock(block, vm)
+	if err != nil {
+		return nil, fmt.Errorf("failed to wrap built block: %w", err)
+	}
 
 	// Verify is called on a non-wrapped block here, such that this
 	// does not add [blk] to the processing blocks map in ChainState.
