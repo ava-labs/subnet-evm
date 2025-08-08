@@ -1701,6 +1701,9 @@ func testEmptyBlock(t *testing.T, scheme string) {
 	)
 
 	emptyBlock, err := wrapBlock(emptyEthBlock, tvm.vm)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	if _, err := tvm.vm.ParseBlock(context.Background(), emptyBlock.Bytes()); !errors.Is(err, errEmptyBlock) {
 		t.Fatalf("VM should have failed with errEmptyBlock but got %s", err.Error())
@@ -1995,6 +1998,9 @@ func testFutureBlock(t *testing.T, scheme string) {
 	)
 
 	futureBlock, err := wrapBlock(modifiedBlock, tvm.vm)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	if err := futureBlock.Verify(context.Background()); err == nil {
 		t.Fatal("Future block should have failed verification due to block timestamp too far in the future")

@@ -277,11 +277,23 @@ func (vm *VM) Initialize(
 	fxs []*commonEng.Fx,
 	appSender commonEng.AppSender,
 ) error {
+	// Initialize extension config if not already set
+	if vm.extensionConfig == nil {
+		// Initialize clock if not already set
+		if vm.clock == nil {
+			vm.clock = &mockable.Clock{}
+		}
+		vm.extensionConfig = &extension.Config{
+			SyncSummaryProvider: &message.BlockSyncSummaryProvider{},
+			SyncableParser:      message.NewBlockSyncSummaryParser(),
+		}
+		// Provide a clock to the extension config before validation
+		vm.extensionConfig.Clock = vm.clock
+	}
+
 	if err := vm.extensionConfig.Validate(); err != nil {
 		return fmt.Errorf("failed to validate extension config: %w", err)
 	}
-
-	vm.clock = vm.extensionConfig.Clock
 
 	vm.config.SetDefaults(defaultTxPoolConfig)
 	if len(configBytes) > 0 {
