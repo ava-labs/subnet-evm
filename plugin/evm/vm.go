@@ -184,6 +184,7 @@ type VM struct {
 
 	config config.Config
 
+	chainID     *big.Int
 	genesisHash common.Hash
 	chainConfig *params.ChainConfig
 	ethConfig   ethconfig.Config
@@ -225,7 +226,7 @@ type VM struct {
 	builderLock sync.Mutex
 	builder     *blockBuilder
 
-	clock mockable.Clock
+	clock *mockable.Clock
 
 	shutdownChan chan struct{}
 	shutdownWg   sync.WaitGroup
@@ -276,18 +277,21 @@ func (vm *VM) Initialize(
 	fxs []*commonEng.Fx,
 	appSender commonEng.AppSender,
 ) error {
-	vm.stateSyncDone = make(chan struct{})
-	vm.extensionConfig = &extension.Config{
-		SyncSummaryProvider: &message.BlockSyncSummaryProvider{},
-		SyncableParser:      message.NewBlockSyncSummaryParser(),
+	if err := vm.extensionConfig.Validate(); err != nil {
+		return fmt.Errorf("failed to validate extension config: %w", err)
 	}
+
+	vm.clock = vm.extensionConfig.Clock
+
 	vm.config.SetDefaults(defaultTxPoolConfig)
 	if len(configBytes) > 0 {
 		if err := json.Unmarshal(configBytes, &vm.config); err != nil {
 			return fmt.Errorf("failed to unmarshal config %s: %w", string(configBytes), err)
 		}
 	}
-	if err := vm.config.Validate(); err != nil {
+	vm.ctx = chainCtx
+
+	if err := vm.config.Validate(vm.ctx.NetworkID); err != nil {
 		return err
 	}
 	// We should deprecate config flags as the first thing, before we do anything else
@@ -346,20 +350,15 @@ func (vm *VM) Initialize(
 		return err
 	}
 
-	// TODO: FIX THIS vm.syntacticBlockValidator = NewBlockValidator(vm)
+	// vm.ChainConfig() should be available for wrapping VMs before vm.initializeChain()
+	vm.chainConfig = g.Config
+	vm.chainID = g.Config.ChainID
 
 	vm.ethConfig = ethconfig.NewDefaultConfig()
 	vm.ethConfig.Genesis = g
-	// NetworkID here is different than Avalanche's NetworkID.
-	// Avalanche's NetworkID represents the Avalanche network is running on
-	// like Fuji, Mainnet, Local, etc.
-	// The NetworkId here is kept same as ChainID to be compatible with
-	// Ethereum tooling.
-	vm.ethConfig.NetworkId = g.Config.ChainID.Uint64()
-	// create genesisHash after applying upgradeBytes in case
-	// upgradeBytes modifies genesis.
-	vm.genesisHash = vm.ethConfig.Genesis.ToBlock().Hash() // must create genesis hash before [vm.readLastAccepted]
-	lastAcceptedHash, lastAcceptedHeight, err := vm.readLastAccepted()
+	vm.ethConfig.NetworkId = vm.chainID.Uint64()
+	vm.genesisHash = vm.ethConfig.Genesis.ToBlock().Hash() // must create genesis hash before [vm.ReadLastAccepted]
+	lastAcceptedHash, lastAcceptedHeight, err := vm.ReadLastAccepted()
 	if err != nil {
 		return err
 	}
@@ -374,7 +373,6 @@ func (vm *VM) Initialize(
 	vm.ethConfig.RPCEVMTimeout = vm.config.APIMaxDuration.Duration
 	vm.ethConfig.RPCTxFeeCap = vm.config.RPCTxFeeCap
 
-	vm.ethConfig.TxPool.Locals = vm.config.PriorityRegossipAddresses
 	vm.ethConfig.TxPool.NoLocals = !vm.config.LocalTxsEnabled
 	vm.ethConfig.TxPool.PriceLimit = vm.config.TxPoolPriceLimit
 	vm.ethConfig.TxPool.PriceBump = vm.config.TxPoolPriceBump
@@ -463,7 +461,7 @@ func (vm *VM) Initialize(
 	}
 	vm.p2pValidators = vm.Network.P2PValidators()
 
-	vm.validatorsManager, err = validators.NewManager(vm.ctx, vm.validatorsDB, &vm.clock)
+	vm.validatorsManager, err = validators.NewManager(vm.ctx, vm.validatorsDB, vm.clock)
 	if err != nil {
 		return fmt.Errorf("failed to initialize validators manager: %w", err)
 	}
@@ -499,7 +497,6 @@ func (vm *VM) Initialize(
 	if err != nil {
 		return err
 	}
-
 	if err := vm.initializeChain(lastAcceptedHash, vm.ethConfig); err != nil {
 		return err
 	}
@@ -509,6 +506,8 @@ func (vm *VM) Initialize(
 	// Add p2p warp message warpHandler
 	warpHandler := acp118.NewCachedHandler(meteredCache, vm.warpBackend, vm.ctx.WarpSigner)
 	vm.Network.AddHandler(p2p.SignatureRequestHandlerID, warpHandler)
+
+	vm.stateSyncDone = make(chan struct{})
 
 	return vm.initializeStateSync(lastAcceptedHeight)
 }
@@ -619,8 +618,8 @@ func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.
 		vm.chaindb,
 		eth.Settings{MaxBlocksPerRequest: vm.config.MaxBlocksPerRequest},
 		lastAcceptedHash,
-		dummy.NewFakerWithClock(&vm.clock),
-		&vm.clock,
+		dummy.NewFakerWithClock(vm.clock),
+		vm.clock,
 	)
 	if err != nil {
 		return err
@@ -1296,7 +1295,7 @@ func (vm *VM) startContinuousProfiler() {
 // last accepted block hash and height by reading directly from [vm.chaindb] instead of relying
 // on [chain].
 // Note: assumes [vm.chaindb] and [vm.genesisHash] have been initialized.
-func (vm *VM) readLastAccepted() (common.Hash, uint64, error) {
+func (vm *VM) ReadLastAccepted() (common.Hash, uint64, error) {
 	// Attempt to load last accepted block to determine if it is necessary to
 	// initialize state with the genesis block.
 	lastAcceptedBytes, lastAcceptedErr := vm.acceptedBlockDB.Get(lastAcceptedKey)
