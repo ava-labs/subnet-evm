@@ -42,7 +42,7 @@ When a new node wants to join the network via state sync, it will need a few pie
 - Number (height) and hash of the latest available syncable block,
 - Root of the account trie,
 
-The above information is called a _state summary_, and each syncable block corresponds to one such summary (see `message.SyncSummary`). The engine and VM interact as follows to find a syncable state summary:
+The above information is called a _state summary_, and each syncable block corresponds to one such summary (see `message.Summary`). The engine and VM interact as follows to find a syncable state summary:
 
 
 1. The engine calls `StateSyncEnabled`. The VM returns `true` to initiate state sync, or `false` to start  bootstrapping. In `subnet-evm`, this is controlled by the `state-sync-enabled` flag.
@@ -60,6 +60,8 @@ The following steps are executed by the VM to sync its state from peers (see `st
 1. Update in-memory and on-disk pointers.
 
 Steps 3 and 4 involve syncing tries. To sync trie data, the VM will send a series of `LeafRequests` to its peers. Each request specifies:
+- Type of trie (`NodeType`):
+  - `statesync.StateTrieNode` (account trie and storage tries share the same database)
 - `Root` of the trie to sync,
 - `Start` and `End` specify a range of keys.
 

@@ -10,16 +10,19 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/log"
 	"github.com/ava-labs/libevm/rlp"
+	"github.com/ava-labs/libevm/trie"
 
 	"github.com/ava-labs/libevm/core/rawdb"
 	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/params/extras"
+	"github.com/ava-labs/subnet-evm/plugin/evm/extension"
 	"github.com/ava-labs/subnet-evm/plugin/evm/header"
-	"github.com/ava-labs/subnet-evm/plugin/evm/sync"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/predicate"
 
@@ -29,32 +32,41 @@ import (
 )
 
 var (
-	_ snowman.Block           = (*Block)(nil)
-	_ block.WithVerifyContext = (*Block)(nil)
-	_ sync.EthBlockWrapper    = (*Block)(nil)
+	_ snowman.Block           = (*wrappedBlock)(nil)
+	_ block.WithVerifyContext = (*wrappedBlock)(nil)
+	_ extension.ExtendedBlock = (*wrappedBlock)(nil)
 )
 
-// Block implements the snowman.Block interface
-type Block struct {
-	id       ids.ID
-	ethBlock *types.Block
-	vm       *VM
+// wrappedBlock implements the snowman.wrappedBlock interface
+type wrappedBlock struct {
+	id        ids.ID
+	ethBlock  *types.Block
+	extension extension.BlockExtension
+	vm        *VM
 }
 
-// newBlock returns a new Block wrapping the ethBlock type and implementing the snowman.Block interface
-func (vm *VM) newBlock(ethBlock *types.Block) *Block {
-	return &Block{
+// wrapBlock returns a new Block wrapping the ethBlock type and implementing the snowman.Block interface
+func wrapBlock(ethBlock *types.Block, vm *VM) (*wrappedBlock, error) {
+	b := &wrappedBlock{
 		id:       ids.ID(ethBlock.Hash()),
 		ethBlock: ethBlock,
 		vm:       vm,
 	}
+	if vm.extensionConfig.BlockExtender != nil {
+		extension, err := vm.extensionConfig.BlockExtender.NewBlockExtension(b)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create block extension: %w", err)
+		}
+		b.extension = extension
+	}
+	return b, nil
 }
 
 // ID implements the snowman.Block interface
-func (b *Block) ID() ids.ID { return b.id }
+func (b *wrappedBlock) ID() ids.ID { return b.id }
 
 // Accept implements the snowman.Block interface
-func (b *Block) Accept(context.Context) error {
+func (b *wrappedBlock) Accept(context.Context) error {
 	vm := b.vm
 
 	// Although returning an error from Accept is considered fatal, it is good
@@ -79,7 +91,7 @@ func (b *Block) Accept(context.Context) error {
 		return fmt.Errorf("chain could not accept %s: %w", blkID, err)
 	}
 
-	if err := vm.acceptedBlockDB.Put(lastAcceptedKey, blkID[:]); err != nil {
+	if err := vm.PutLastAcceptedID(blkID); err != nil {
 		return fmt.Errorf("failed to put %s as the last accepted block: %w", blkID, err)
 	}
 
@@ -88,7 +100,7 @@ func (b *Block) Accept(context.Context) error {
 
 // handlePrecompileAccept calls Accept on any logs generated with an active precompile address that implements
 // contract.Accepter
-func (b *Block) handlePrecompileAccept(rules extras.Rules) error {
+func (b *wrappedBlock) handlePrecompileAccept(rules extras.Rules) error {
 	// Short circuit early if there are no precompile accepters to execute
 	if len(rules.AccepterPrecompiles) == 0 {
 		return nil
@@ -121,7 +133,7 @@ func (b *Block) handlePrecompileAccept(rules extras.Rules) error {
 }
 
 // Reject implements the snowman.Block interface
-func (b *Block) Reject(context.Context) error {
+func (b *wrappedBlock) Reject(context.Context) error {
 	blkID := b.ID()
 	log.Debug("rejecting block",
 		"hash", blkID.Hex(),
@@ -132,33 +144,22 @@ func (b *Block) Reject(context.Context) error {
 }
 
 // Parent implements the snowman.Block interface
-func (b *Block) Parent() ids.ID {
+func (b *wrappedBlock) Parent() ids.ID {
 	return ids.ID(b.ethBlock.ParentHash())
 }
 
 // Height implements the snowman.Block interface
-func (b *Block) Height() uint64 {
+func (b *wrappedBlock) Height() uint64 {
 	return b.ethBlock.NumberU64()
 }
 
 // Timestamp implements the snowman.Block interface
-func (b *Block) Timestamp() time.Time {
+func (b *wrappedBlock) Timestamp() time.Time {
 	return time.Unix(int64(b.ethBlock.Time()), 0)
 }
 
-// syntacticVerify verifies that a *Block is well-formed.
-func (b *Block) syntacticVerify() error {
-	if b == nil || b.ethBlock == nil {
-		return errInvalidBlock
-	}
-
-	header := b.ethBlock.Header()
-	rules := b.vm.chainConfig.Rules(header.Number, params.IsMergeTODO, header.Time)
-	return b.vm.syntacticBlockValidator.SyntacticVerify(b, rules)
-}
-
 // Verify implements the snowman.Block interface
-func (b *Block) Verify(context.Context) error {
+func (b *wrappedBlock) Verify(context.Context) error {
 	return b.verify(&precompileconfig.PredicateContext{
 		SnowCtx:            b.vm.ctx,
 		ProposerVMBlockCtx: nil,
@@ -166,7 +167,7 @@ func (b *Block) Verify(context.Context) error {
 }
 
 // ShouldVerifyWithContext implements the block.WithVerifyContext interface
-func (b *Block) ShouldVerifyWithContext(context.Context) (bool, error) {
+func (b *wrappedBlock) ShouldVerifyWithContext(context.Context) (bool, error) {
 	rules := b.vm.rules(b.ethBlock.Number(), b.ethBlock.Time())
 	predicates := rules.Predicaters
 	// Short circuit early if there are no predicates to verify
@@ -190,7 +191,7 @@ func (b *Block) ShouldVerifyWithContext(context.Context) (bool, error) {
 }
 
 // VerifyWithContext implements the block.WithVerifyContext interface
-func (b *Block) VerifyWithContext(ctx context.Context, proposerVMBlockCtx *block.Context) error {
+func (b *wrappedBlock) VerifyWithContext(ctx context.Context, proposerVMBlockCtx *block.Context) error {
 	return b.verify(&precompileconfig.PredicateContext{
 		SnowCtx:            b.vm.ctx,
 		ProposerVMBlockCtx: proposerVMBlockCtx,
@@ -200,7 +201,7 @@ func (b *Block) VerifyWithContext(ctx context.Context, proposerVMBlockCtx *block
 // Verify the block is valid.
 // Enforces that the predicates are valid within [predicateContext].
 // Writes the block details to disk and the state to the trie manager iff writes=true.
-func (b *Block) verify(predicateContext *precompileconfig.PredicateContext, writes bool) error {
+func (b *wrappedBlock) verify(predicateContext *precompileconfig.PredicateContext, writes bool) error {
 	if predicateContext.ProposerVMBlockCtx != nil {
 		log.Debug("Verifying block with context", "block", b.ID(), "height", b.Height())
 	} else {
@@ -232,8 +233,88 @@ func (b *Block) verify(predicateContext *precompileconfig.PredicateContext, writ
 	return b.vm.blockChain.InsertBlockManual(b.ethBlock, writes)
 }
 
+// semanticVerify verifies that a *Block is internally consistent.
+func (b *wrappedBlock) semanticVerify() error {
+	// Make sure the block isn't too far in the future
+	blockTimestamp := b.ethBlock.Time()
+	if maxBlockTime := uint64(b.vm.clock.Time().Add(maxFutureBlockTime).Unix()); blockTimestamp > maxBlockTime {
+		return fmt.Errorf("block timestamp is too far in the future: %d > allowed %d", blockTimestamp, maxBlockTime)
+	}
+
+	if b.extension != nil {
+		if err := b.extension.SemanticVerify(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// syntacticVerify verifies that a *Block is well-formed.
+func (b *wrappedBlock) syntacticVerify() error {
+	if b == nil || b.ethBlock == nil {
+		return errInvalidBlock
+	}
+
+	// Skip verification of the genesis block since it should already be marked as accepted.
+	if b.ethBlock.Hash() == b.vm.genesisHash {
+		return nil
+	}
+
+	ethHeader := b.ethBlock.Header()
+	rules := b.vm.chainConfig.Rules(ethHeader.Number, params.IsMergeTODO, ethHeader.Time)
+	rulesExtra := params.GetRulesExtra(rules)
+	// Perform block and header sanity checks
+	if !ethHeader.Number.IsUint64() {
+		return fmt.Errorf("invalid block number: %v", ethHeader.Number)
+	}
+	if !ethHeader.Difficulty.IsUint64() || ethHeader.Difficulty.Cmp(common.Big1) != 0 {
+		return fmt.Errorf("invalid difficulty: %d", ethHeader.Difficulty)
+	}
+	if ethHeader.Nonce.Uint64() != 0 {
+		return fmt.Errorf(
+			"expected nonce to be 0 but got %d: %w",
+			ethHeader.Nonce.Uint64(), errInvalidNonce,
+		)
+	}
+
+	if ethHeader.MixDigest != (common.Hash{}) {
+		return fmt.Errorf("invalid mix digest: %v", ethHeader.MixDigest)
+	}
+
+	// Verify the extra data is well-formed.
+	if err := header.VerifyExtra(rulesExtra.AvalancheRules, ethHeader.Extra); err != nil {
+		return err
+	}
+
+	// Check that the tx hash in the header matches the body
+	txsHash := types.DeriveSha(b.ethBlock.Transactions(), trie.NewStackTrie(nil))
+	if txsHash != ethHeader.TxHash {
+		return fmt.Errorf("invalid txs hash %v does not match calculated txs hash %v", ethHeader.TxHash, txsHash)
+	}
+	// Check that the uncle hash in the header matches the body
+	uncleHash := types.CalcUncleHash(b.ethBlock.Uncles())
+	if uncleHash != ethHeader.UncleHash {
+		return fmt.Errorf("invalid uncle hash %v does not match calculated uncle hash %v", ethHeader.UncleHash, uncleHash)
+	}
+	// Coinbase must match the BlackholeAddr on C-Chain
+	if ethHeader.Coinbase != constants.BlackholeAddr {
+		return fmt.Errorf("invalid coinbase %v does not match required blackhole address %v", ethHeader.Coinbase, constants.BlackholeAddr)
+	}
+	// Block must not have any uncles
+	if len(b.ethBlock.Uncles()) > 0 {
+		return errUnclesUnsupported
+	}
+
+	if b.extension != nil {
+		if err := b.extension.SyntacticVerify(*rulesExtra); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // verifyPredicates verifies the predicates in the block are valid according to predicateContext.
-func (b *Block) verifyPredicates(predicateContext *precompileconfig.PredicateContext) error {
+func (b *wrappedBlock) verifyPredicates(predicateContext *precompileconfig.PredicateContext) error {
 	rules := b.vm.chainConfig.Rules(b.ethBlock.Number(), params.IsMergeTODO, b.ethBlock.Time())
 	rulesExtra := params.GetRulesExtra(rules)
 
@@ -266,7 +347,7 @@ func (b *Block) verifyPredicates(predicateContext *precompileconfig.PredicateCon
 }
 
 // Bytes implements the snowman.Block interface
-func (b *Block) Bytes() []byte {
+func (b *wrappedBlock) Bytes() []byte {
 	res, err := rlp.EncodeToBytes(b.ethBlock)
 	if err != nil {
 		panic(err)
@@ -274,8 +355,12 @@ func (b *Block) Bytes() []byte {
 	return res
 }
 
-func (b *Block) String() string { return fmt.Sprintf("EVM block, ID = %s", b.ID()) }
+func (b *wrappedBlock) String() string { return fmt.Sprintf("EVM block, ID = %s", b.ID()) }
 
-func (b *Block) GetEthBlock() *types.Block {
+func (b *wrappedBlock) GetEthBlock() *types.Block {
 	return b.ethBlock
+}
+
+func (b *wrappedBlock) GetBlockExtension() extension.BlockExtension {
+	return b.extension
 }

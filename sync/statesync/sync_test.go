@@ -67,17 +67,18 @@ func testSync(t *testing.T, test syncTest) {
 		MaxOutstandingCodeHashes: DefaultMaxOutstandingCodeHashes,
 		RequestSize:              1024,
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	// begin sync
-	s.Start(ctx)
+	require.NoError(t, err, "failed to create state syncer")
+
+	require.NoError(t, s.Start(ctx), "failed to start state syncer")
+
 	waitFor(t, context.Background(), s.Wait, test.expectedError, testSyncTimeout)
+
+	// Only assert database consistency if the sync was expected to succeed.
 	if test.expectedError != nil {
 		return
 	}
 
-	statesynctest.AssertDBConsistency(t, root, clientDB, serverTrieDB, triedb.NewDatabase(clientDB, nil))
+	assertDBConsistency(t, root, clientDB, serverTrieDB, triedb.NewDatabase(clientDB, nil))
 }
 
 // testSyncResumes tests a series of syncTests work as expected, invoking a callback function after each
@@ -97,7 +98,6 @@ func waitFor(t *testing.T, ctx context.Context, resultFunc func(context.Context)
 	err := resultFunc(ctx)
 	if ctx.Err() != nil {
 		// print a stack trace to assist with debugging
-
 		var stackBuf bytes.Buffer
 		pprof.Lookup("goroutine").WriteTo(&stackBuf, 2)
 		t.Log(stackBuf.String())

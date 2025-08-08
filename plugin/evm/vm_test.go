@@ -49,6 +49,7 @@ import (
 	"github.com/ava-labs/subnet-evm/plugin/evm/config"
 	"github.com/ava-labs/subnet-evm/plugin/evm/customrawdb"
 	"github.com/ava-labs/subnet-evm/plugin/evm/customtypes"
+	"github.com/ava-labs/subnet-evm/plugin/evm/extension"
 	"github.com/ava-labs/subnet-evm/plugin/evm/header"
 	"github.com/ava-labs/subnet-evm/plugin/evm/vmerrors"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
@@ -454,7 +455,7 @@ func testBuildEthTxBlock(t *testing.T, scheme string) {
 		t.Fatalf("Expected last accepted blockID to be the accepted block: %s, but found %s", blk2.ID(), lastAcceptedID)
 	}
 
-	ethBlk1 := blk1.(*chain.BlockWrapper).Block.(*Block).ethBlock
+	ethBlk1 := blk1.(*chain.BlockWrapper).Block.(*wrappedBlock).ethBlock
 	if ethBlk1Root := ethBlk1.Root(); !tvm.vm.blockChain.HasState(ethBlk1Root) {
 		t.Fatalf("Expected blk1 state root to not yet be pruned after blk2 was accepted because of tip buffer")
 	}
@@ -499,7 +500,7 @@ func testBuildEthTxBlock(t *testing.T, scheme string) {
 	}
 
 	// State root should be committed when accepted tip on shutdown
-	ethBlk2 := blk2.(*chain.BlockWrapper).Block.(*Block).ethBlock
+	ethBlk2 := blk2.(*chain.BlockWrapper).Block.(*wrappedBlock).ethBlock
 	if ethBlk2Root := ethBlk2.Root(); !restartedVM.blockChain.HasState(ethBlk2Root) {
 		t.Fatalf("Expected blk2 state root to not be pruned after shutdown (last accepted tip should be committed)")
 	}
@@ -1110,7 +1111,7 @@ func testNonCanonicalAccept(t *testing.T, scheme string) {
 	}
 
 	blkBHeight := vm1BlkB.Height()
-	blkBHash := vm1BlkB.(*chain.BlockWrapper).Block.(*Block).ethBlock.Hash()
+	blkBHash := vm1BlkB.(*chain.BlockWrapper).Block.(*wrappedBlock).ethBlock.Hash()
 	if b := vm1.blockChain.GetBlockByNumber(blkBHeight); b.Hash() != blkBHash {
 		t.Fatalf("expected block at %d to have hash %s but got %s", blkBHeight, blkBHash.Hex(), b.Hash().Hex())
 	}
@@ -1154,7 +1155,7 @@ func testNonCanonicalAccept(t *testing.T, scheme string) {
 		t.Fatalf("Expected accepted block to be indexed by height, but found %s", blkID)
 	}
 
-	blkCHash := vm1BlkC.(*chain.BlockWrapper).Block.(*Block).ethBlock.Hash()
+	blkCHash := vm1BlkC.(*chain.BlockWrapper).Block.(*wrappedBlock).ethBlock.Hash()
 	if b := vm1.blockChain.GetBlockByNumber(blkBHeight); b.Hash() != blkCHash {
 		t.Fatalf("expected block at %d to have hash %s but got %s", blkBHeight, blkCHash.Hex(), b.Hash().Hex())
 	}
@@ -1300,7 +1301,7 @@ func testStickyPreference(t *testing.T, scheme string) {
 	}
 
 	blkBHeight := vm1BlkB.Height()
-	blkBHash := vm1BlkB.(*chain.BlockWrapper).Block.(*Block).ethBlock.Hash()
+	blkBHash := vm1BlkB.(*chain.BlockWrapper).Block.(*wrappedBlock).ethBlock.Hash()
 	if b := vm1.blockChain.GetBlockByNumber(blkBHeight); b.Hash() != blkBHash {
 		t.Fatalf("expected block at %d to have hash %s but got %s", blkBHeight, blkBHash.Hex(), b.Hash().Hex())
 	}
@@ -1355,14 +1356,14 @@ func testStickyPreference(t *testing.T, scheme string) {
 	if err != nil {
 		t.Fatalf("Unexpected error parsing block from vm2: %s", err)
 	}
-	blkCHash := vm1BlkC.(*chain.BlockWrapper).Block.(*Block).ethBlock.Hash()
+	blkCHash := vm1BlkC.(*chain.BlockWrapper).Block.(*wrappedBlock).ethBlock.Hash()
 
 	vm1BlkD, err := vm1.ParseBlock(context.Background(), vm2BlkD.Bytes())
 	if err != nil {
 		t.Fatalf("Unexpected error parsing block from vm2: %s", err)
 	}
 	blkDHeight := vm1BlkD.Height()
-	blkDHash := vm1BlkD.(*chain.BlockWrapper).Block.(*Block).ethBlock.Hash()
+	blkDHash := vm1BlkD.(*chain.BlockWrapper).Block.(*wrappedBlock).ethBlock.Hash()
 
 	// Should be no-ops
 	if err := vm1BlkC.Verify(context.Background()); err != nil {
@@ -1619,8 +1620,8 @@ func testUncleBlock(t *testing.T, scheme string) {
 	}
 
 	// Create uncle block from blkD
-	blkDEthBlock := vm2BlkD.(*chain.BlockWrapper).Block.(*Block).ethBlock
-	uncles := []*types.Header{vm1BlkB.(*chain.BlockWrapper).Block.(*Block).ethBlock.Header()}
+	blkDEthBlock := vm2BlkD.(*chain.BlockWrapper).Block.(*wrappedBlock).ethBlock
+	uncles := []*types.Header{vm1BlkB.(*chain.BlockWrapper).Block.(*wrappedBlock).ethBlock.Header()}
 	uncleBlockHeader := types.CopyHeader(blkDEthBlock.Header())
 	uncleBlockHeader.UncleHash = types.CalcUncleHash(uncles)
 
@@ -1631,7 +1632,7 @@ func testUncleBlock(t *testing.T, scheme string) {
 		nil,
 		trie.NewStackTrie(nil),
 	)
-	uncleBlock := vm2.newBlock(uncleEthBlock)
+	uncleBlock, err := wrapBlock(uncleEthBlock, tvm2.vm)
 
 	if err := uncleBlock.Verify(context.Background()); !errors.Is(err, errUnclesUnsupported) {
 		t.Fatalf("VM2 should have failed with %q but got %q", errUnclesUnsupported, err.Error())
@@ -1689,7 +1690,7 @@ func testEmptyBlock(t *testing.T, scheme string) {
 	}
 
 	// Create empty block from blkA
-	ethBlock := blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
+	ethBlock := blk.(*chain.BlockWrapper).Block.(extension.ExtendedBlock).GetEthBlock()
 
 	emptyEthBlock := types.NewBlock(
 		types.CopyHeader(ethBlock.Header()),
@@ -1699,7 +1700,7 @@ func testEmptyBlock(t *testing.T, scheme string) {
 		new(trie.Trie),
 	)
 
-	emptyBlock := tvm.vm.newBlock(emptyEthBlock)
+	emptyBlock, err := wrapBlock(emptyEthBlock, tvm.vm)
 
 	if _, err := tvm.vm.ParseBlock(context.Background(), emptyBlock.Bytes()); !errors.Is(err, errEmptyBlock) {
 		t.Fatalf("VM should have failed with errEmptyBlock but got %s", err.Error())
@@ -1909,7 +1910,7 @@ func testAcceptReorg(t *testing.T, scheme string) {
 		t.Fatalf("Block failed verification on VM1: %s", err)
 	}
 
-	blkBHash := vm1BlkB.(*chain.BlockWrapper).Block.(*Block).ethBlock.Hash()
+	blkBHash := vm1BlkB.(*chain.BlockWrapper).Block.(extension.ExtendedBlock).GetEthBlock().Hash()
 	if b := vm1.blockChain.CurrentBlock(); b.Hash() != blkBHash {
 		t.Fatalf("expected current block to have hash %s but got %s", blkBHash.Hex(), b.Hash().Hex())
 	}
@@ -1918,7 +1919,7 @@ func testAcceptReorg(t *testing.T, scheme string) {
 		t.Fatal(err)
 	}
 
-	blkCHash := vm1BlkC.(*chain.BlockWrapper).Block.(*Block).ethBlock.Hash()
+	blkCHash := vm1BlkC.(*chain.BlockWrapper).Block.(extension.ExtendedBlock).GetEthBlock().Hash()
 	if b := vm1.blockChain.CurrentBlock(); b.Hash() != blkCHash {
 		t.Fatalf("expected current block to have hash %s but got %s", blkCHash.Hex(), b.Hash().Hex())
 	}
@@ -1929,7 +1930,7 @@ func testAcceptReorg(t *testing.T, scheme string) {
 	if err := vm1BlkD.Accept(context.Background()); err != nil {
 		t.Fatal(err)
 	}
-	blkDHash := vm1BlkD.(*chain.BlockWrapper).Block.(*Block).ethBlock.Hash()
+	blkDHash := vm1BlkD.(*chain.BlockWrapper).Block.(extension.ExtendedBlock).GetEthBlock().Hash()
 	if b := vm1.blockChain.CurrentBlock(); b.Hash() != blkDHash {
 		t.Fatalf("expected current block to have hash %s but got %s", blkDHash.Hex(), b.Hash().Hex())
 	}
@@ -1978,8 +1979,8 @@ func testFutureBlock(t *testing.T, scheme string) {
 	}
 
 	// Create empty block from blkA
-	internalBlkA := blkA.(*chain.BlockWrapper).Block.(*Block)
-	modifiedHeader := types.CopyHeader(internalBlkA.ethBlock.Header())
+	internalBlkA := blkA.(*chain.BlockWrapper).Block.(extension.ExtendedBlock)
+	modifiedHeader := types.CopyHeader(internalBlkA.GetEthBlock().Header())
 	// Set the VM's clock to the time of the produced block
 	tvm.vm.clock.Set(time.Unix(int64(modifiedHeader.Time), 0))
 	// Set the modified time to exceed the allowed future time
@@ -1987,13 +1988,13 @@ func testFutureBlock(t *testing.T, scheme string) {
 	modifiedHeader.Time = modifiedTime
 	modifiedBlock := types.NewBlock(
 		modifiedHeader,
-		internalBlkA.ethBlock.Transactions(),
+		internalBlkA.GetEthBlock().Transactions(),
 		nil,
 		nil,
 		trie.NewStackTrie(nil),
 	)
 
-	futureBlock := tvm.vm.newBlock(modifiedBlock)
+	futureBlock, err := wrapBlock(modifiedBlock, tvm.vm)
 
 	if err := futureBlock.Verify(context.Background()); err == nil {
 		t.Fatal("Future block should have failed verification due to block timestamp too far in the future")
@@ -2053,7 +2054,7 @@ func testLastAcceptedBlockNumberAllow(t *testing.T, scheme string) {
 	}
 
 	blkHeight := blk.Height()
-	blkHash := blk.(*chain.BlockWrapper).Block.(*Block).ethBlock.Hash()
+	blkHash := blk.(*chain.BlockWrapper).Block.(extension.ExtendedBlock).GetEthBlock().Hash()
 
 	tvm.vm.eth.APIBackend.SetAllowUnfinalizedQueries(true)
 
@@ -2143,7 +2144,7 @@ func testBuildSubnetEVMBlock(t *testing.T, scheme string) {
 	}
 
 	blk = issueAndAccept(t, tvm.vm)
-	ethBlk := blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
+	ethBlk := blk.(*chain.BlockWrapper).Block.(extension.ExtendedBlock).GetEthBlock()
 	if customtypes.BlockGasCost(ethBlk) == nil || customtypes.BlockGasCost(ethBlk).Cmp(big.NewInt(100)) < 0 {
 		t.Fatalf("expected blockGasCost to be at least 100 but got %d", customtypes.BlockGasCost(ethBlk))
 	}
@@ -2241,7 +2242,7 @@ func testBuildAllowListActivationBlock(t *testing.T, scheme string) {
 	}
 
 	// Verify that the allow list config activation was handled correctly in the first block.
-	blkState, err := tvm.vm.blockChain.StateAt(blk.(*chain.BlockWrapper).Block.(*Block).ethBlock.Root())
+	blkState, err := tvm.vm.blockChain.StateAt(blk.(*chain.BlockWrapper).Block.(extension.ExtendedBlock).GetEthBlock().Root())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -2355,7 +2356,7 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 	require.Equal(t, newHead.Head.Hash(), common.Hash(blk.ID()))
 
 	// Verify that the constructed block only has the whitelisted tx
-	block := blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
+	block := blk.(*chain.BlockWrapper).Block.(extension.ExtendedBlock).GetEthBlock()
 
 	txs := block.Transactions()
 
@@ -2379,7 +2380,7 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 	blk = issueAndAccept(t, tvm.vm)
 	newHead = <-newTxPoolHeadChan
 	require.Equal(t, newHead.Head.Hash(), common.Hash(blk.ID()))
-	block = blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
+	block = blk.(*chain.BlockWrapper).Block.(extension.ExtendedBlock).GetEthBlock()
 
 	blkState, err := tvm.vm.blockChain.StateAt(block.Root())
 	require.NoError(t, err)
@@ -2405,7 +2406,7 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 	require.Equal(t, newHead.Head.Hash(), common.Hash(blk.ID()))
 
 	// Verify that the constructed block only has the whitelisted tx
-	block = blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
+	block = blk.(*chain.BlockWrapper).Block.(extension.ExtendedBlock).GetEthBlock()
 	txs = block.Transactions()
 
 	require.Len(t, txs, 1)
@@ -2560,7 +2561,7 @@ func TestTxAllowListDisablePrecompile(t *testing.T) {
 	blk := issueAndAccept(t, tvm.vm)
 
 	// Verify that the constructed block only has the whitelisted tx
-	block := blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
+	block := blk.(*chain.BlockWrapper).Block.(extension.ExtendedBlock).GetEthBlock()
 	txs := block.Transactions()
 	if txs.Len() != 1 {
 		t.Fatalf("Expected number of txs to be %d, but found %d", 1, txs.Len())
@@ -2582,7 +2583,7 @@ func TestTxAllowListDisablePrecompile(t *testing.T) {
 	blk = issueAndAccept(t, tvm.vm)
 
 	// Verify that the constructed block only has the previously rejected tx
-	block = blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
+	block = blk.(*chain.BlockWrapper).Block.(extension.ExtendedBlock).GetEthBlock()
 	txs = block.Transactions()
 	if txs.Len() != 1 {
 		t.Fatalf("Expected number of txs to be %d, but found %d", 1, txs.Len())
@@ -2688,7 +2689,7 @@ func TestFeeManagerChangeFee(t *testing.T) {
 		t.Fatalf("Expected new block to match")
 	}
 
-	block := blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
+	block := blk.(*chain.BlockWrapper).Block.(extension.ExtendedBlock).GetEthBlock()
 
 	feeConfig, lastChangedAt, err = tvm.vm.blockChain.GetFeeConfigAt(block.Header())
 	require.NoError(t, err)
@@ -2770,22 +2771,25 @@ func testAllowFeeRecipientDisabled(t *testing.T, scheme string) {
 	blk, err := tvm.vm.BuildBlock(context.Background())
 	require.NoError(t, err) // this won't return an error since miner will set the etherbase to blackhole address
 
-	ethBlock := blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
+	ethBlock := blk.(*chain.BlockWrapper).Block.(extension.ExtendedBlock).GetEthBlock()
 	require.Equal(t, constants.BlackholeAddr, ethBlock.Coinbase())
 
 	// Create empty block from blk
-	internalBlk := blk.(*chain.BlockWrapper).Block.(*Block)
-	modifiedHeader := types.CopyHeader(internalBlk.ethBlock.Header())
+	internalBlk := blk.(*chain.BlockWrapper).Block.(extension.ExtendedBlock)
+	modifiedHeader := types.CopyHeader(internalBlk.GetEthBlock().Header())
 	modifiedHeader.Coinbase = common.HexToAddress("0x0123456789") // set non-blackhole address by force
 	modifiedBlock := types.NewBlock(
 		modifiedHeader,
-		internalBlk.ethBlock.Transactions(),
+		internalBlk.GetEthBlock().Transactions(),
 		nil,
 		nil,
 		trie.NewStackTrie(nil),
 	)
 
-	modifiedBlk := tvm.vm.newBlock(modifiedBlock)
+	modifiedBlk, err := wrapBlock(modifiedBlock, tvm.vm)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	err = modifiedBlk.Verify(context.Background())
 	require.ErrorIs(t, err, vmerrors.ErrInvalidCoinbase)
@@ -2842,7 +2846,7 @@ func TestAllowFeeRecipientEnabled(t *testing.T) {
 	if newHead.Head.Hash() != common.Hash(blk.ID()) {
 		t.Fatalf("Expected new block to match")
 	}
-	ethBlock := blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
+	ethBlock := blk.(*chain.BlockWrapper).Block.(extension.ExtendedBlock).GetEthBlock()
 	require.Equal(t, etherBase, ethBlock.Coinbase())
 	// Verify that etherBase has received fees
 	blkState, err := tvm.vm.blockChain.StateAt(ethBlock.Root())
@@ -2922,7 +2926,7 @@ func TestRewardManagerPrecompileSetRewardAddress(t *testing.T) {
 	blk := issueAndAccept(t, tvm.vm)
 	newHead := <-newTxPoolHeadChan
 	require.Equal(t, newHead.Head.Hash(), common.Hash(blk.ID()))
-	ethBlock := blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
+	ethBlock := blk.(*chain.BlockWrapper).Block.(extension.ExtendedBlock).GetEthBlock()
 	require.Equal(t, etherBase, ethBlock.Coinbase()) // reward address is activated at this block so this is fine
 
 	tx1 := types.NewTransaction(uint64(0), testEthAddrs[0], big.NewInt(2), 21000, big.NewInt(testMinGasPrice*3), nil)
@@ -2937,7 +2941,7 @@ func TestRewardManagerPrecompileSetRewardAddress(t *testing.T) {
 	blk = issueAndAccept(t, tvm.vm)
 	newHead = <-newTxPoolHeadChan
 	require.Equal(t, newHead.Head.Hash(), common.Hash(blk.ID()))
-	ethBlock = blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
+	ethBlock = blk.(*chain.BlockWrapper).Block.(extension.ExtendedBlock).GetEthBlock()
 	require.Equal(t, testAddr, ethBlock.Coinbase()) // reward address was activated at previous block
 	// Verify that etherBase has received fees
 	blkState, err := tvm.vm.blockChain.StateAt(ethBlock.Root())
@@ -2964,7 +2968,7 @@ func TestRewardManagerPrecompileSetRewardAddress(t *testing.T) {
 	blk = issueAndAccept(t, tvm.vm)
 	newHead = <-newTxPoolHeadChan
 	require.Equal(t, newHead.Head.Hash(), common.Hash(blk.ID()))
-	ethBlock = blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
+	ethBlock = blk.(*chain.BlockWrapper).Block.(extension.ExtendedBlock).GetEthBlock()
 	// Reward manager deactivated at this block, so we expect the parent state
 	// to determine the coinbase for this block before full deactivation in the
 	// next block.
@@ -2985,7 +2989,7 @@ func TestRewardManagerPrecompileSetRewardAddress(t *testing.T) {
 	blk = issueAndAccept(t, tvm.vm)
 	newHead = <-newTxPoolHeadChan
 	require.Equal(t, newHead.Head.Hash(), common.Hash(blk.ID()))
-	ethBlock = blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
+	ethBlock = blk.(*chain.BlockWrapper).Block.(extension.ExtendedBlock).GetEthBlock()
 	// reward manager was disabled at previous block
 	// so this block should revert back to enabling fee recipients
 	require.Equal(t, etherBase, ethBlock.Coinbase())
@@ -3064,7 +3068,7 @@ func TestRewardManagerPrecompileAllowFeeRecipients(t *testing.T) {
 	blk := issueAndAccept(t, tvm.vm)
 	newHead := <-newTxPoolHeadChan
 	require.Equal(t, newHead.Head.Hash(), common.Hash(blk.ID()))
-	ethBlock := blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
+	ethBlock := blk.(*chain.BlockWrapper).Block.(extension.ExtendedBlock).GetEthBlock()
 	require.Equal(t, constants.BlackholeAddr, ethBlock.Coinbase()) // reward address is activated at this block so this is fine
 
 	tx1 := types.NewTransaction(uint64(0), testEthAddrs[0], big.NewInt(2), 21000, big.NewInt(testMinGasPrice*3), nil)
@@ -3079,7 +3083,7 @@ func TestRewardManagerPrecompileAllowFeeRecipients(t *testing.T) {
 	blk = issueAndAccept(t, tvm.vm)
 	newHead = <-newTxPoolHeadChan
 	require.Equal(t, newHead.Head.Hash(), common.Hash(blk.ID()))
-	ethBlock = blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
+	ethBlock = blk.(*chain.BlockWrapper).Block.(extension.ExtendedBlock).GetEthBlock()
 	require.Equal(t, etherBase, ethBlock.Coinbase()) // reward address was activated at previous block
 	// Verify that etherBase has received fees
 	blkState, err := tvm.vm.blockChain.StateAt(ethBlock.Root())
@@ -3105,7 +3109,7 @@ func TestRewardManagerPrecompileAllowFeeRecipients(t *testing.T) {
 	blk = issueAndAccept(t, tvm.vm)
 	newHead = <-newTxPoolHeadChan
 	require.Equal(t, newHead.Head.Hash(), common.Hash(blk.ID()))
-	ethBlock = blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
+	ethBlock = blk.(*chain.BlockWrapper).Block.(extension.ExtendedBlock).GetEthBlock()
 	require.Equal(t, etherBase, ethBlock.Coinbase()) // reward address was activated at previous block
 	require.GreaterOrEqual(t, int64(ethBlock.Time()), disableTime.Unix())
 
@@ -3122,7 +3126,7 @@ func TestRewardManagerPrecompileAllowFeeRecipients(t *testing.T) {
 	blk = issueAndAccept(t, tvm.vm)
 	newHead = <-newTxPoolHeadChan
 	require.Equal(t, newHead.Head.Hash(), common.Hash(blk.ID()))
-	ethBlock = blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
+	ethBlock = blk.(*chain.BlockWrapper).Block.(extension.ExtendedBlock).GetEthBlock()
 	require.Equal(t, constants.BlackholeAddr, ethBlock.Coinbase()) // reward address was activated at previous block
 	require.Greater(t, int64(ethBlock.Time()), disableTime.Unix())
 
@@ -3282,12 +3286,15 @@ func TestParentBeaconRootBlock(t *testing.T) {
 			}
 
 			// Modify the block to have a parent beacon root
-			ethBlock := blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
+			ethBlock := blk.(*chain.BlockWrapper).Block.(extension.ExtendedBlock).GetEthBlock()
 			header := types.CopyHeader(ethBlock.Header())
 			header.ParentBeaconRoot = test.beaconRoot
 			parentBeaconEthBlock := ethBlock.WithSeal(header)
 
-			parentBeaconBlock := tvm.vm.newBlock(parentBeaconEthBlock)
+			parentBeaconBlock, err := wrapBlock(parentBeaconEthBlock, tvm.vm)
+			if err != nil {
+				t.Fatal(err)
+			}
 
 			errCheck := func(err error) {
 				if test.expectedError {
@@ -3475,7 +3482,7 @@ func TestFeeManagerRegressionMempoolMinFeeAfterRestart(t *testing.T) {
 	require.Equal(t, newHead.Head.Hash(), common.Hash(blk.ID()))
 
 	// check that the fee config is updated
-	block := blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
+	block := blk.(*chain.BlockWrapper).Block.(extension.ExtendedBlock).GetEthBlock()
 	feeConfig, lastChangedAt, err = restartedVM.blockChain.GetFeeConfigAt(block.Header())
 	require.NoError(t, err)
 	require.EqualValues(t, restartedVM.blockChain.CurrentBlock().Number, lastChangedAt)

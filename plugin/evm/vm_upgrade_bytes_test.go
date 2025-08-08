@@ -140,7 +140,7 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 	blk := issueAndAccept(t, tvm.vm)
 
 	// Verify that the constructed block only has the whitelisted tx
-	block := blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
+	block := blk.(*chain.BlockWrapper).Block.(*wrappedBlock).ethBlock
 	txs := block.Transactions()
 	if txs.Len() != 1 {
 		t.Fatalf("Expected number of txs to be %d, but found %d", 1, txs.Len())
@@ -162,7 +162,7 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 	blk = issueAndAccept(t, tvm.vm)
 
 	// Verify that the constructed block only has the previously rejected tx
-	block = blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
+	block = blk.(*chain.BlockWrapper).Block.(*wrappedBlock).ethBlock
 	txs = block.Transactions()
 	if txs.Len() != 1 {
 		t.Fatalf("Expected number of txs to be %d, but found %d", 1, txs.Len())
