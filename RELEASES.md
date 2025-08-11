@@ -5,6 +5,7 @@
   - `StorageRangeAt` 
   - `GetModifiedAccountsByNumber`
   - `GetModifiedAccountsByHash`
+- Removed deprecated flags `coreth-admin-api-enabled`, `coreth-admin-api-dir`, `tx-regossip-frequency`, `tx-lookup-limit`. Use `admin-api-enabled`, `admin-api-dir`, `regossip-frequency`, `transaction-history` instead.
 - Add pending releases here
 
 
