@@ -966,6 +966,7 @@ func TestNonCanonicalAccept(t *testing.T) {
 		})
 	}
 }
+
 func testNonCanonicalAccept(t *testing.T, scheme string) {
 	tvmConfig := testVMConfig{
 		genesisJSON: genesisJSONSubnetEVM,
@@ -3713,7 +3714,7 @@ func TestWaitForEvent(t *testing.T) {
 func TestGenesisGasLimit(t *testing.T) {
 	ctx, db, genesisBytes, _ := setupGenesis(t, upgradetest.Granite)
 	genesis := &core.Genesis{}
-	require.NoError(t, genesis.UnmarshalJSON([]byte(genesisBytes)))
+	require.NoError(t, genesis.UnmarshalJSON(genesisBytes))
 	// change the gas limit in the genesis to be different from the fee config
 	genesis.GasLimit = params.GetExtra(genesis.Config).FeeConfig.GasLimit.Uint64() - 1
 	genesisBytes, err := genesis.MarshalJSON()
