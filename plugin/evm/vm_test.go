@@ -3732,5 +3732,5 @@ func TestGenesisGasLimit(t *testing.T) {
 	ctx.Metrics = metrics.NewPrefixGatherer()
 
 	require.NoError(t, vm.Initialize(context.Background(), ctx, db, genesisBytes, []byte{}, []byte{}, []*commonEng.Fx{}, &enginetest.Sender{}))
-	vm.Shutdown(context.Background())
+	require.NoError(t, vm.Shutdown(context.Background()))
 }
