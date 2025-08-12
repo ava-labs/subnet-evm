@@ -169,7 +169,7 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 	assert.Equal(t, signedTx1.Hash(), txs[0].Hash())
 }
 
-func TestNetworkUpgradesOverriden(t *testing.T) {
+func TestNetworkUpgradesOverridden(t *testing.T) {
 	fork := upgradetest.Granite
 	chainConfig := forkToChainConfig[fork]
 	genesis := &core.Genesis{}
@@ -229,9 +229,9 @@ func TestNetworkUpgradesOverriden(t *testing.T) {
 	// verify upgrade overrides
 	require.True(t, restartedVM.currentRules().IsDurango)
 
-	// Test Case 2: Set Durango override after Durango activation
+	// Test Case 2: Set Granite override after Granite activation
 	newGraniteTimestamp := graniteTimestamp + 1
-	upgradeBytesJSON = fmt.Sprintf(`{
+	newUpgradeBytesJSON := fmt.Sprintf(`{
 		"networkUpgradeOverrides": {
 			"graniteTimestamp": %d
 		}
@@ -239,7 +239,7 @@ func TestNetworkUpgradesOverriden(t *testing.T) {
 
 	_, err = restartVM(restartedTVM, testVMConfig{
 		fork:        &fork,
-		upgradeJSON: upgradeBytesJSON,
+		upgradeJSON: newUpgradeBytesJSON,
 		genesisJSON: tvm.config.genesisJSON,
 	})
 	require.ErrorContains(t, err, "mismatching Granite fork block timestamp")
