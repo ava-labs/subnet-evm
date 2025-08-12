@@ -237,7 +237,7 @@ func TestNetworkUpgradesOverriden(t *testing.T) {
 		}
 	}`, newGraniteTimestamp)
 
-	restartedTVM, err = restartVM(restartedTVM, testVMConfig{
+	_, err = restartVM(restartedTVM, testVMConfig{
 		fork:        &fork,
 		upgradeJSON: upgradeBytesJSON,
 		genesisJSON: tvm.config.genesisJSON,

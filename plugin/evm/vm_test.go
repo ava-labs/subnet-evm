@@ -3503,6 +3503,7 @@ func TestFeeManagerRegressionMempoolMinFeeAfterRestart(t *testing.T) {
 	restartedTVM, err = restartVM(restartedTVM, testVMConfig{
 		genesisJSON: string(genesisJSON),
 	})
+	restartedVM = restartedTVM.vm
 	require.NoError(t, err)
 	newTxPoolHeadChan = make(chan core.NewTxPoolReorgEvent, 1)
 	restartedVM.txPool.SubscribeNewReorgEvent(newTxPoolHeadChan)
