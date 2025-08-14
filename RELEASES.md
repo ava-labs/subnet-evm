@@ -1,7 +1,10 @@
 # Release Notes
 
 ## Pending Release
-- Disable incompatible APIs for Firewood.
+- Disable incompatible APIs for Firewood
+  - `StorageRangeAt` 
+  - `GetModifiedAccountsByNumber`
+  - `GetModifiedAccountsByHash`
 - Add pending releases here
 
 
