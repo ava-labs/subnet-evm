@@ -74,7 +74,7 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 		}
 	}
 	snapshotProvider := &TestSnapshotProvider{}
-	leafsHandler := NewLeafsRequestHandler(trieDB, snapshotProvider, message.Codec, mockHandlerStats)
+	leafsHandler := NewLeafsRequestHandler(trieDB, message.StateTrieKeyLength, snapshotProvider, message.Codec, mockHandlerStats)
 	snapConfig := snapshot.Config{
 		CacheSize:  64,
 		AsyncBuild: false,

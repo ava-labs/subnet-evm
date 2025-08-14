@@ -40,6 +40,7 @@ import (
 	"github.com/ava-labs/subnet-evm/eth/tracers"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/params/extras"
+	"github.com/ava-labs/subnet-evm/plugin/evm/extension"
 	customheader "github.com/ava-labs/subnet-evm/plugin/evm/header"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	warpcontract "github.com/ava-labs/subnet-evm/precompile/contracts/warp"
@@ -136,7 +137,7 @@ func testSendWarpMessage(t *testing.T, scheme string) {
 	require.NoError(blk.Verify(context.Background()))
 
 	// Verify that the constructed block contains the expected log with an unsigned warp message in the log data
-	ethBlock1 := blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
+	ethBlock1 := blk.(*chain.BlockWrapper).Block.(extension.ExtendedBlock).GetEthBlock()
 	require.Len(ethBlock1.Transactions(), 1)
 	receipts := rawdb.ReadReceipts(tvm.vm.chaindb, ethBlock1.Hash(), ethBlock1.NumberU64(), ethBlock1.Time(), tvm.vm.chainConfig)
 	require.Len(receipts, 1)
@@ -455,7 +456,7 @@ func testWarpVMTransaction(t *testing.T, scheme string, unsignedMessage *avalanc
 	require.NoError(warpBlock.Accept(context.Background()))
 	tvm.vm.blockChain.DrainAcceptorQueue()
 
-	ethBlock := warpBlock.(*chain.BlockWrapper).Block.(*Block).ethBlock
+	ethBlock := warpBlock.(*chain.BlockWrapper).Block.(extension.ExtendedBlock).GetEthBlock()
 	verifiedMessageReceipts := tvm.vm.blockChain.GetReceiptsByHash(ethBlock.Hash())
 	require.Len(verifiedMessageReceipts, 2)
 	for i, receipt := range verifiedMessageReceipts {
@@ -739,7 +740,7 @@ func testReceiveWarpMessage(
 	require.NoError(err)
 
 	// Require the block was built with a successful predicate result
-	ethBlock := block2.(*chain.BlockWrapper).Block.(*Block).ethBlock
+	ethBlock := block2.(*chain.BlockWrapper).Block.(extension.ExtendedBlock).GetEthBlock()
 	headerPredicateResultsBytes := customheader.PredicateBytesFromExtra(ethBlock.Extra())
 	results, err := predicate.ParseResults(headerPredicateResultsBytes)
 	require.NoError(err)
