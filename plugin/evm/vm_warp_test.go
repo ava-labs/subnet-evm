@@ -26,6 +26,7 @@ import (
 	"github.com/ava-labs/avalanchego/utils/crypto/bls/signer/localsigner"
 	"github.com/ava-labs/avalanchego/utils/set"
 	"github.com/ava-labs/avalanchego/vms/components/chain"
+	"github.com/ava-labs/avalanchego/vms/evm/predicate"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/rawdb"
@@ -41,7 +42,6 @@ import (
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/params/extras"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
-	"github.com/ava-labs/subnet-evm/predicate"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ava-labs/subnet-evm/warp"
 
@@ -408,23 +408,20 @@ func testWarpVMTransaction(t *testing.T, scheme string, unsignedMessage *avalanc
 	require.NoError(err)
 	exampleWarpAddress := crypto.CreateAddress(testEthAddrs[0], 0)
 
-	tx, err := types.SignTx(
-		predicate.NewPredicateTx(
-			tvm.vm.chainConfig.ChainID,
-			1,
-			&exampleWarpAddress,
-			1_000_000,
-			big.NewInt(225*utils.GWei),
-			big.NewInt(utils.GWei),
-			common.Big0,
-			txPayload,
-			types.AccessList{},
-			warpcontract.ContractAddress,
-			signedMessage.Bytes(),
-		),
-		types.LatestSignerForChainID(tvm.vm.chainConfig.ChainID),
-		testKeys[0].ToECDSA(),
-	)
+	// Access list predicate
+	accessList := types.AccessList{{Address: warpcontract.ContractAddress, StorageKeys: predicate.New(signedMessage.Bytes())}}
+	txUnsigned := types.NewTx(&types.DynamicFeeTx{
+		ChainID:    tvm.vm.chainConfig.ChainID,
+		Nonce:      1,
+		To:         &exampleWarpAddress,
+		Gas:        1_000_000,
+		GasFeeCap:  big.NewInt(225 * utils.GWei),
+		GasTipCap:  big.NewInt(utils.GWei),
+		Value:      common.Big0,
+		Data:       txPayload,
+		AccessList: accessList,
+	})
+	tx, err := types.SignTx(txUnsigned, types.LatestSignerForChainID(tvm.vm.chainConfig.ChainID), testKeys[0].ToECDSA())
 	require.NoError(err)
 	errs := tvm.vm.txPool.AddRemotesSync([]*types.Transaction{createTx, tx})
 	for i, err := range errs {
@@ -704,23 +701,19 @@ func testReceiveWarpMessage(
 
 	getWarpMsgInput, err := warpcontract.PackGetVerifiedWarpMessage(0)
 	require.NoError(err)
-	getVerifiedWarpMessageTx, err := types.SignTx(
-		predicate.NewPredicateTx(
-			vm.chainConfig.ChainID,
-			vm.txPool.Nonce(testEthAddrs[0]),
-			&warpcontract.Module.Address,
-			1_000_000,
-			big.NewInt(225*utils.GWei),
-			big.NewInt(utils.GWei),
-			common.Big0,
-			getWarpMsgInput,
-			types.AccessList{},
-			warpcontract.ContractAddress,
-			signedMessage.Bytes(),
-		),
-		types.LatestSignerForChainID(vm.chainConfig.ChainID),
-		testKeys[0].ToECDSA(),
-	)
+	accessList := types.AccessList{{Address: warpcontract.ContractAddress, StorageKeys: predicate.New(signedMessage.Bytes())}}
+	getVerifiedWarpMessageTxUnsigned := types.NewTx(&types.DynamicFeeTx{
+		ChainID:    vm.chainConfig.ChainID,
+		Nonce:      vm.txPool.Nonce(testEthAddrs[0]),
+		To:         &warpcontract.Module.Address,
+		Gas:        1_000_000,
+		GasFeeCap:  big.NewInt(225 * utils.GWei),
+		GasTipCap:  big.NewInt(utils.GWei),
+		Value:      common.Big0,
+		Data:       getWarpMsgInput,
+		AccessList: accessList,
+	})
+	getVerifiedWarpMessageTx, err := types.SignTx(getVerifiedWarpMessageTxUnsigned, types.LatestSignerForChainID(vm.chainConfig.ChainID), testKeys[0].ToECDSA())
 	require.NoError(err)
 	errs := vm.txPool.AddRemotesSync([]*types.Transaction{getVerifiedWarpMessageTx})
 	for i, err := range errs {
@@ -741,19 +734,15 @@ func testReceiveWarpMessage(
 	require.NoError(err)
 
 	// Require the block was built with a successful predicate result
-	ethBlock := block2.(*chain.BlockWrapper).Block.(*Block).ethBlock
+	ethBlock := block2.(*chain.BlockWrapper).Block.(*wrappedBlock).ethBlock
 	headerPredicateResultsBytes := customheader.PredicateBytesFromExtra(ethBlock.Extra())
-	results, err := predicate.ParseResults(headerPredicateResultsBytes)
+	blockResults, err := predicate.ParseBlockResults(headerPredicateResultsBytes)
 	require.NoError(err)
 
 	// Predicate results encode the index of invalid warp messages in a bitset.
 	// An empty bitset indicates success.
-	txResultsBytes := results.GetResults(
-		getVerifiedWarpMessageTx.Hash(),
-		warpcontract.ContractAddress,
-	)
-	bitset := set.BitsFromBytes(txResultsBytes)
-	require.Zero(bitset.Len()) // Empty bitset indicates success
+	txBits := blockResults.Get(getVerifiedWarpMessageTx.Hash(), warpcontract.ContractAddress)
+	require.Zero(txBits.Len()) // Empty bitset indicates success
 
 	block2VerifyWithCtx, ok := block2.(block.WithVerifyContext)
 	require.True(ok)

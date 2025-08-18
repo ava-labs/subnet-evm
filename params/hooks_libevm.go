@@ -8,6 +8,7 @@ import (
 	"math/big"
 
 	"github.com/ava-labs/avalanchego/snow"
+	"github.com/ava-labs/avalanchego/vms/evm/predicate"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/vm"
 	"github.com/ava-labs/libevm/libevm"
@@ -18,7 +19,6 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/contracts/deployerallowlist"
 	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
-	"github.com/ava-labs/subnet-evm/predicate"
 
 	ethparams "github.com/ava-labs/libevm/params"
 	customheader "github.com/ava-labs/subnet-evm/plugin/evm/header"
@@ -75,7 +75,7 @@ func makePrecompile(contract contract.StatefulPrecompiledContract) libevm.Precom
 		}
 		var predicateResults *predicate.Results
 		if predicateResultsBytes := customheader.PredicateBytesFromExtra(header.Extra); len(predicateResultsBytes) > 0 {
-			predicateResults, err = predicate.ParseResults(predicateResultsBytes)
+			predicateResults, err = predicate.ParseBlockResults(predicateResultsBytes)
 			if err != nil {
 				panic(err) // Should never happen, as results are already validated in block validation
 			}
@@ -148,7 +148,7 @@ func (a accessibleState) GetPrecompileEnv() vm.PrecompileEnvironment {
 type precompileBlockContext struct {
 	number           *big.Int
 	time             uint64
-	predicateResults *predicate.Results
+	predicateResults predicate.BlockResults
 }
 
 func (p *precompileBlockContext) Number() *big.Int {
@@ -160,8 +160,5 @@ func (p *precompileBlockContext) Timestamp() uint64 {
 }
 
 func (p *precompileBlockContext) GetPredicateResults(txHash common.Hash, precompileAddress common.Address) []byte {
-	if p.predicateResults == nil {
-		return nil
-	}
-	return p.predicateResults.GetPredicateResults(txHash, precompileAddress)
+	return p.predicateResults.Get(txHash, precompileAddress).Bytes()
 }
