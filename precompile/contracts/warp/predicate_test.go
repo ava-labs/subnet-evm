@@ -325,7 +325,7 @@ func TestInvalidPredicatePacking(t *testing.T) {
 		},
 		PredicateBytes: predicateBytes,
 		Gas:            GasCostPerSignatureVerification + paddedLen*GasCostPerWarpMessageBytes + uint64(numKeys)*GasCostPerWarpSigner,
-		GasErr:         errInvalidPredicateBytes,
+		GasErr:         errInvalidWarpMsg,
 	}
 
 	test.Run(t)

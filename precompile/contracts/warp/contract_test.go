@@ -370,15 +370,19 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 			ExpectedErr: vm.ErrOutOfGas.Error(),
 		},
 		"get message invalid predicate packing": {
-			Caller:     callerAddr,
-			InputFn:    func(t testing.TB) []byte { return getVerifiedWarpMsg },
-			Predicates: []predicate.Predicate{warpMessagePredicate},
+			Caller:  callerAddr,
+			InputFn: func(t testing.TB) []byte { return getVerifiedWarpMsg },
+			Predicates: func() []predicate.Predicate {
+				invalidPredicateBytes := warpMessage.Bytes()
+				invalidPredicateBytes = append(invalidPredicateBytes, byte(0x01)) // Invalidate the predicate byte packing
+				return []predicate.Predicate{predicate.New(invalidPredicateBytes)}
+			}(),
 			SetupBlockContext: func(mbc *contract.MockBlockContext) {
 				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(noFailures)
 			},
 			SuppliedGas: GetVerifiedWarpMessageBaseCost + GasCostPerWarpMessageBytes*paddedLen,
 			ReadOnly:    false,
-			ExpectedErr: errInvalidPredicateBytes.Error(),
+			ExpectedErr: errInvalidWarpMsg.Error(),
 		},
 		"get message invalid warp message": {
 			Caller:     callerAddr,
@@ -631,15 +635,19 @@ func TestGetVerifiedWarpBlockHash(t *testing.T) {
 			ExpectedErr: vm.ErrOutOfGas.Error(),
 		},
 		"get message invalid predicate packing": {
-			Caller:     callerAddr,
-			InputFn:    func(t testing.TB) []byte { return getVerifiedWarpBlockHash },
-			Predicates: []predicate.Predicate{warpMessagePredicate},
+			Caller:  callerAddr,
+			InputFn: func(t testing.TB) []byte { return getVerifiedWarpBlockHash },
+			Predicates: func() []predicate.Predicate {
+				invalidPredicateBytes := warpMessage.Bytes()
+				invalidPredicateBytes = append(invalidPredicateBytes, byte(0x01)) // Invalidate the predicate byte packing
+				return []predicate.Predicate{predicate.New(invalidPredicateBytes)}
+			}(),
 			SetupBlockContext: func(mbc *contract.MockBlockContext) {
 				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(noFailures)
 			},
 			SuppliedGas: GetVerifiedWarpMessageBaseCost + GasCostPerWarpMessageBytes*paddedLen,
 			ReadOnly:    false,
-			ExpectedErr: errInvalidPredicateBytes.Error(),
+			ExpectedErr: errInvalidWarpMsg.Error(),
 		},
 		"get message invalid warp message": {
 			Caller:     callerAddr,
