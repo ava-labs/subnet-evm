@@ -440,9 +440,7 @@ func TestInvalidBitSet(t *testing.T) {
 			publicKey: true,
 		},
 	})
-	bytes := msg.Bytes()
-	pred := predicate.New(bytes)
-	paddedLen := uint64(len(pred))
+	pred := predicate.New(msg.Bytes())
 	test := precompiletest.PredicateTest{
 		Config: NewDefaultConfig(utils.NewUint64(0)),
 		PredicateContext: &precompileconfig.PredicateContext{
