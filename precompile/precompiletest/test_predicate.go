@@ -19,10 +19,10 @@ type PredicateTest struct {
 
 	PredicateContext *precompileconfig.PredicateContext
 
-	PredicateBytes []byte
-	Gas            uint64
-	GasErr         error
-	ExpectedErr    error
+	Predicate   predicate.Predicate
+	Gas         uint64
+	GasErr      error
+	ExpectedErr error
 }
 
 func (test PredicateTest) Run(t testing.TB) {
@@ -30,8 +30,7 @@ func (test PredicateTest) Run(t testing.TB) {
 	require := require.New(t)
 	predicater := test.Config.(precompileconfig.Predicater)
 
-	pred := predicate.New(test.PredicateBytes)
-	predicateGas, predicateGasErr := predicater.PredicateGas(pred)
+	predicateGas, predicateGasErr := predicater.PredicateGas(test.Predicate)
 	require.ErrorIs(predicateGasErr, test.GasErr)
 	if test.GasErr != nil {
 		return
@@ -39,7 +38,7 @@ func (test PredicateTest) Run(t testing.TB) {
 
 	require.Equal(test.Gas, predicateGas)
 
-	predicateRes := predicater.VerifyPredicate(test.PredicateContext, pred)
+	predicateRes := predicater.VerifyPredicate(test.PredicateContext, test.Predicate)
 	require.ErrorIs(predicateRes, test.ExpectedErr)
 }
 
