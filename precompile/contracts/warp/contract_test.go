@@ -378,13 +378,7 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 		"get message invalid predicate packing": {
 			Caller:  callerAddr,
 			InputFn: func(t testing.TB) []byte { return getVerifiedWarpMsg },
-			Predicates: func() []predicate.Predicate {
-				validPred := predicate.New(warpMessage.Bytes())
-				corruptedPred := make(predicate.Predicate, len(validPred))
-				copy(corruptedPred, validPred)
-				corruptedPred[len(corruptedPred)-1][31] = byte(0x01) // Invalidate predicate packing after delimiter
-				return []predicate.Predicate{corruptedPred}
-			}(),
+			Predicates: []predicate.Predicate{{{}}},
 			SetupBlockContext: func(mbc *contract.MockBlockContext) {
 				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(noFailures)
 			},
