@@ -477,6 +477,10 @@ func TestGetVerifiedWarpBlockHash(t *testing.T) {
 	require.NoError(t, err)
 	invalidHashPredicate := predicate.New(invalidHashWarpMsg.Bytes())
 
+	// Invalid predicate packing by corrupting a valid predicate
+	invalidPackedPredicate := predicate.New(warpMessage.Bytes())
+	invalidPackedPredicate = append(invalidPackedPredicate, common.Hash{1})
+
 	noFailures := set.NewBits()
 	require.Empty(t, noFailures.Bytes())
 
@@ -648,15 +652,9 @@ func TestGetVerifiedWarpBlockHash(t *testing.T) {
 			ExpectedErr: vm.ErrOutOfGas.Error(),
 		},
 		"get message invalid predicate packing": {
-			Caller:  callerAddr,
-			InputFn: func(t testing.TB) []byte { return getVerifiedWarpBlockHash },
-			Predicates: func() []predicate.Predicate {
-				validPred := predicate.New(warpMessage.Bytes())
-				corruptedPred := make(predicate.Predicate, len(validPred))
-				copy(corruptedPred, validPred)
-				corruptedPred[len(corruptedPred)-1][31] = byte(0x01) // Invalidate predicate packing after delimiter
-				return []predicate.Predicate{corruptedPred}
-			}(),
+			Caller:     callerAddr,
+			InputFn:    func(t testing.TB) []byte { return getVerifiedWarpBlockHash },
+			Predicates: []predicate.Predicate{invalidPackedPredicate},
 			SetupBlockContext: func(mbc *contract.MockBlockContext) {
 				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(noFailures)
 			},
