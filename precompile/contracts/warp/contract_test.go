@@ -380,16 +380,18 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 			Caller:  callerAddr,
 			InputFn: func(t testing.TB) []byte { return getVerifiedWarpMsg },
 			Predicates: func() []predicate.Predicate {
-				invalidPredicateBytes := warpMessage.Bytes()
-				invalidPredicateBytes = append(invalidPredicateBytes, byte(0x01)) // Invalidate the predicate byte packing
-				return []predicate.Predicate{predicate.New(invalidPredicateBytes)}
+				validPred := predicate.New(warpMessage.Bytes())
+				corruptedPred := make(predicate.Predicate, len(validPred))
+				copy(corruptedPred, validPred)
+				corruptedPred[len(corruptedPred)-1][31] = byte(0x01) // Invalidate predicate packing after delimiter
+				return []predicate.Predicate{corruptedPred}
 			}(),
 			SetupBlockContext: func(mbc *contract.MockBlockContext) {
 				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(noFailures)
 			},
 			SuppliedGas: GetVerifiedWarpMessageBaseCost + GasCostPerWarpMessageChunk*paddedLen,
 			ReadOnly:    false,
-			ExpectedErr: errInvalidWarpMsg.Error(),
+			ExpectedErr: errInvalidPredicateBytes.Error(),
 		},
 		"get message invalid warp message": {
 			Caller:     callerAddr,
@@ -652,16 +654,18 @@ func TestGetVerifiedWarpBlockHash(t *testing.T) {
 			Caller:  callerAddr,
 			InputFn: func(t testing.TB) []byte { return getVerifiedWarpBlockHash },
 			Predicates: func() []predicate.Predicate {
-				invalidPredicateBytes := warpMessage.Bytes()
-				invalidPredicateBytes = append(invalidPredicateBytes, byte(0x01)) // Invalidate the predicate byte packing
-				return []predicate.Predicate{predicate.New(invalidPredicateBytes)}
+				validPred := predicate.New(warpMessage.Bytes())
+				corruptedPred := make(predicate.Predicate, len(validPred))
+				copy(corruptedPred, validPred)
+				corruptedPred[len(corruptedPred)-1][31] = byte(0x01) // Invalidate predicate packing after delimiter
+				return []predicate.Predicate{corruptedPred}
 			}(),
 			SetupBlockContext: func(mbc *contract.MockBlockContext) {
 				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(noFailures)
 			},
 			SuppliedGas: GetVerifiedWarpMessageBaseCost + GasCostPerWarpMessageChunk*paddedLen,
 			ReadOnly:    false,
-			ExpectedErr: errInvalidWarpMsg.Error(),
+			ExpectedErr: errInvalidPredicateBytes.Error(),
 		},
 		"get message invalid warp message": {
 			Caller:     callerAddr,

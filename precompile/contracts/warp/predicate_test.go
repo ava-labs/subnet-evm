@@ -309,11 +309,15 @@ func TestInvalidPredicatePacking(t *testing.T) {
 			publicKey: true,
 		},
 	})
-	pred := createPredicate(numKeys)
-	predicateBytes, err := pred.Bytes()
-	require.NoError(t, err)
-	predicateBytes = append(predicateBytes, byte(0x01)) // Invalidate the predicate byte packing
-	paddedLen := uint64(len(predicate.New(predicateBytes)))
+	// Create a valid predicate and then corrupt its packed bytes by setting a
+	// non-zero byte after the delimiter, which invalidates the predicate
+	// packing and should cause Predicate.Bytes() to fail with
+	// errInvalidPredicateBytes.
+	validPred := createPredicate(numKeys)
+	corruptedPred := make(predicate.Predicate, len(validPred))
+	copy(corruptedPred, validPred)
+	corruptedPred[len(corruptedPred)-1][31] = byte(0x01)
+	paddedLen := uint64(len(corruptedPred))
 
 	test := precompiletest.PredicateTest{
 		Config: NewDefaultConfig(utils.NewUint64(0)),
@@ -323,9 +327,9 @@ func TestInvalidPredicatePacking(t *testing.T) {
 				PChainHeight: 1,
 			},
 		},
-		Predicate: predicate.New(predicateBytes),
+		Predicate: corruptedPred,
 		Gas:       GasCostPerSignatureVerification + paddedLen*GasCostPerWarpMessageChunk + uint64(numKeys)*GasCostPerWarpSigner,
-		GasErr:    errInvalidWarpMsg,
+		GasErr:    errInvalidPredicateBytes,
 	}
 
 	test.Run(t)
