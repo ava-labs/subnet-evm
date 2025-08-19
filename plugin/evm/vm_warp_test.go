@@ -408,20 +408,24 @@ func testWarpVMTransaction(t *testing.T, scheme string, unsignedMessage *avalanc
 	require.NoError(err)
 	exampleWarpAddress := crypto.CreateAddress(testEthAddrs[0], 0)
 
-	// Access list predicate
-	accessList := types.AccessList{{Address: warpcontract.ContractAddress, StorageKeys: predicate.New(signedMessage.Bytes())}}
-	txUnsigned := types.NewTx(&types.DynamicFeeTx{
-		ChainID:    tvm.vm.chainConfig.ChainID,
-		Nonce:      1,
-		To:         &exampleWarpAddress,
-		Gas:        1_000_000,
-		GasFeeCap:  big.NewInt(225 * utils.GWei),
-		GasTipCap:  big.NewInt(utils.GWei),
-		Value:      common.Big0,
-		Data:       txPayload,
-		AccessList: accessList,
-	})
-	tx, err := types.SignTx(txUnsigned, types.LatestSignerForChainID(tvm.vm.chainConfig.ChainID), testKeys[0].ToECDSA())
+	tx, err := types.SignTx(
+		types.NewTx(&types.DynamicFeeTx{
+			ChainID:   tvm.vm.chainConfig.ChainID,
+			Nonce:     1,
+			To:        &exampleWarpAddress,
+			Gas:       1_000_000,
+			GasFeeCap: big.NewInt(225 * utils.GWei),
+			GasTipCap: big.NewInt(utils.GWei),
+			Value:     common.Big0,
+			Data:      txPayload,
+			AccessList: types.AccessList{{ // Access list predicate
+				Address:     warpcontract.ContractAddress,
+				StorageKeys: predicate.New(signedMessage.Bytes()),
+			}},
+		}),
+		types.LatestSignerForChainID(tvm.vm.chainConfig.ChainID),
+		testKeys[0].ToECDSA(),
+	)
 	require.NoError(err)
 	errs := tvm.vm.txPool.AddRemotesSync([]*types.Transaction{createTx, tx})
 	for i, err := range errs {
@@ -734,7 +738,7 @@ func testReceiveWarpMessage(
 	require.NoError(err)
 
 	// Require the block was built with a successful predicate result
-	ethBlock := block2.(*chain.BlockWrapper).Block.(*wrappedBlock).ethBlock
+	ethBlock := block2.(*chain.BlockWrapper).Block.(*Block).ethBlock
 	headerPredicateResultsBytes := customheader.PredicateBytesFromExtra(ethBlock.Extra())
 	blockResults, err := predicate.ParseBlockResults(headerPredicateResultsBytes)
 	require.NoError(err)
