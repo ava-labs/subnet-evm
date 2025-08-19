@@ -44,7 +44,7 @@ type StateDB interface {
 
 	AddLog(*ethtypes.Log)
 	Logs() []*ethtypes.Log
-	GetPredicateStorageSlots(address common.Address, index int) (predicate.Predicate, bool)
+	GetPredicate(address common.Address, index int) (predicate.Predicate, bool)
 
 	TxHash() common.Hash
 

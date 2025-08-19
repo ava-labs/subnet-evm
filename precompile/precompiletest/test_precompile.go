@@ -173,7 +173,7 @@ func newTestStateDB(t testing.TB, predicateStorageSlots map[common.Address][]pre
 	}
 }
 
-func (s *testStateDB) GetPredicateStorageSlots(address common.Address, index int) (predicate.Predicate, bool) {
+func (s *testStateDB) GetPredicate(address common.Address, index int) (predicate.Predicate, bool) {
 	preds := s.predicateStorageSlots[address]
 	if index < 0 || index >= len(preds) {
 		return nil, false
