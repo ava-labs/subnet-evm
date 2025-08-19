@@ -9,8 +9,9 @@ import (
 
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/common/hexutil"
-	ethtypes "github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/libevm/rlp"
+
+	ethtypes "github.com/ava-labs/libevm/core/types"
 )
 
 // GetHeaderExtra returns the [HeaderExtra] from the given [Header].
