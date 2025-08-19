@@ -163,18 +163,18 @@ type testStateDB struct {
 	predicates map[common.Address][]predicate.Predicate
 }
 
-func newTestStateDB(t testing.TB, predicateStorageSlots map[common.Address][]predicate.Predicate) *testStateDB {
+func newTestStateDB(t testing.TB, predicates map[common.Address][]predicate.Predicate) *testStateDB {
 	db := rawdb.NewMemoryDatabase()
 	statedb, err := state.New(common.Hash{}, state.NewDatabase(db), nil)
 	require.NoError(t, err)
 	return &testStateDB{
-		StateDB:               extstate.New(statedb),
-		predicateStorageSlots: predicateStorageSlots,
+		StateDB:    extstate.New(statedb),
+		predicates: predicates,
 	}
 }
 
 func (s *testStateDB) GetPredicate(address common.Address, index int) (predicate.Predicate, bool) {
-	preds := s.predicateStorageSlots[address]
+	preds := s.predicates[address]
 	if index < 0 || index >= len(preds) {
 		return nil, false
 	}

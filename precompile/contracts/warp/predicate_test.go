@@ -201,7 +201,6 @@ func createSnowCtx(tb testing.TB, validatorRanges []validatorRange) *snow.Contex
 }
 
 func createValidPredicateTest(snowCtx *snow.Context, numKeys uint64, predicate predicate.Predicate) precompiletest.PredicateTest {
-	paddedLen := uint64(len(predicate))
 	return precompiletest.PredicateTest{
 		Config: NewDefaultConfig(utils.NewUint64(0)),
 		PredicateContext: &precompileconfig.PredicateContext{
@@ -211,7 +210,7 @@ func createValidPredicateTest(snowCtx *snow.Context, numKeys uint64, predicate p
 			},
 		},
 		Predicate:   predicate,
-		Gas:         GasCostPerSignatureVerification + paddedLen*GasCostPerWarpMessageChunk + numKeys*GasCostPerWarpSigner,
+		Gas:         GasCostPerSignatureVerification + uint64(len(predicate))*GasCostPerWarpMessageChunk + numKeys*GasCostPerWarpSigner,
 		GasErr:      nil,
 		ExpectedErr: nil,
 	}
@@ -259,9 +258,7 @@ func testWarpMessageFromPrimaryNetwork(t *testing.T, requirePrimaryNetworkSigner
 	warpMsg, err := avalancheWarp.NewMessage(unsignedMsg, warpSignature)
 	require.NoError(err)
 
-	bytes := warpMsg.Bytes()
-	pred := predicate.New(bytes)
-	paddedLen := uint64(len(pred))
+	pred := predicate.New(warpMsg.Bytes())
 
 	snowCtx := utilstest.NewTestSnowContext(t)
 	snowCtx.SubnetID = ids.GenerateTestID()
@@ -291,7 +288,7 @@ func testWarpMessageFromPrimaryNetwork(t *testing.T, requirePrimaryNetworkSigner
 			},
 		},
 		Predicate:   pred,
-		Gas:         GasCostPerSignatureVerification + paddedLen*GasCostPerWarpMessageChunk + uint64(numKeys)*GasCostPerWarpSigner,
+		Gas:         GasCostPerSignatureVerification + uint64(len(pred))*GasCostPerWarpMessageChunk + uint64(numKeys)*GasCostPerWarpSigner,
 		GasErr:      nil,
 		ExpectedErr: nil,
 	}
@@ -317,7 +314,6 @@ func TestInvalidPredicatePacking(t *testing.T) {
 	corruptedPred := make(predicate.Predicate, len(validPred))
 	copy(corruptedPred, validPred)
 	corruptedPred[len(corruptedPred)-1][31] = byte(0x01)
-	paddedLen := uint64(len(corruptedPred))
 
 	test := precompiletest.PredicateTest{
 		Config: NewDefaultConfig(utils.NewUint64(0)),
@@ -328,7 +324,7 @@ func TestInvalidPredicatePacking(t *testing.T) {
 			},
 		},
 		Predicate: corruptedPred,
-		Gas:       GasCostPerSignatureVerification + paddedLen*GasCostPerWarpMessageChunk + uint64(numKeys)*GasCostPerWarpSigner,
+		Gas:       GasCostPerSignatureVerification + uint64(len(corruptedPred))*GasCostPerWarpMessageChunk + uint64(numKeys)*GasCostPerWarpSigner,
 		GasErr:    errInvalidPredicateBytes,
 	}
 
@@ -349,7 +345,6 @@ func TestInvalidWarpMessage(t *testing.T) {
 	warpMsgBytes := warpMsg.Bytes()
 	warpMsgBytes = append(warpMsgBytes, byte(0x01)) // Invalidate warp message packing
 	pred := predicate.New(warpMsgBytes)
-	paddedLen := uint64(len(pred))
 
 	test := precompiletest.PredicateTest{
 		Config: NewDefaultConfig(utils.NewUint64(0)),
@@ -360,7 +355,7 @@ func TestInvalidWarpMessage(t *testing.T) {
 			},
 		},
 		Predicate: pred,
-		Gas:       GasCostPerSignatureVerification + paddedLen*GasCostPerWarpMessageChunk + uint64(numKeys)*GasCostPerWarpSigner,
+		Gas:       GasCostPerSignatureVerification + uint64(len(pred))*GasCostPerWarpMessageChunk + uint64(numKeys)*GasCostPerWarpSigner,
 		GasErr:    errInvalidWarpMsg,
 	}
 
@@ -394,7 +389,6 @@ func TestInvalidAddressedPayload(t *testing.T) {
 	require.NoError(t, err)
 	warpMsgBytes := warpMsg.Bytes()
 	pred := predicate.New(warpMsgBytes)
-	paddedLen := uint64(len(pred))
 
 	test := precompiletest.PredicateTest{
 		Config: NewDefaultConfig(utils.NewUint64(0)),
@@ -405,7 +399,7 @@ func TestInvalidAddressedPayload(t *testing.T) {
 			},
 		},
 		Predicate: pred,
-		Gas:       GasCostPerSignatureVerification + paddedLen*GasCostPerWarpMessageChunk + uint64(numKeys)*GasCostPerWarpSigner,
+		Gas:       GasCostPerSignatureVerification + uint64(len(pred))*GasCostPerWarpMessageChunk + uint64(numKeys)*GasCostPerWarpSigner,
 		GasErr:    errInvalidWarpMsgPayload,
 	}
 
@@ -450,7 +444,7 @@ func TestInvalidBitSet(t *testing.T) {
 			},
 		},
 		Predicate: pred,
-		Gas:       GasCostPerSignatureVerification + paddedLen*GasCostPerWarpMessageChunk + uint64(numKeys)*GasCostPerWarpSigner,
+		Gas:       GasCostPerSignatureVerification + uint64(len(pred))*GasCostPerWarpMessageChunk + uint64(numKeys)*GasCostPerWarpSigner,
 		GasErr:    errCannotGetNumSigners,
 	}
 
