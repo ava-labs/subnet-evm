@@ -149,11 +149,11 @@ func (c *Config) PredicateGas(pred predicate.Predicate) (uint64, error) {
 	// Charge for padded predicate bytes
 	bytesGasCost, overflow := math.SafeMul(GasCostPerWarpMessageChunk, uint64(len(pred)))
 	if overflow {
-		return 0, fmt.Errorf("overflow calculating gas cost for warp message bytes of size %d", len(pred))
+		return 0, fmt.Errorf("overflow calculating gas cost for %d warp message chunks", len(pred))
 	}
 	totalGas, overflow = math.SafeAdd(totalGas, bytesGasCost)
 	if overflow {
-		return 0, fmt.Errorf("overflow adding bytes gas cost of size %d", len(pred))
+		return 0, fmt.Errorf("overflow adding gas cost for %d warp message chunks", len(pred))
 	}
 
 	unpackedPredicateBytes, err := pred.Bytes()
