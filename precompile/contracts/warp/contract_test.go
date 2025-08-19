@@ -207,8 +207,7 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 	invalidAddressedPredicate := predicate.New(invalidAddrWarpMsg.Bytes())
 
 	// Invalid predicate packing by corrupting a valid predicate
-	invalidPackedPredicate := predicate.New(warpMessage.Bytes())
-	invalidPackedPredicate = append(invalidPackedPredicate, common.Hash{1})
+	invalidPackedPredicate := predicate.Predicate{{}}
 
 	noFailures := set.NewBits()
 	require.Empty(t, noFailures.Bytes())
@@ -478,8 +477,7 @@ func TestGetVerifiedWarpBlockHash(t *testing.T) {
 	invalidHashPredicate := predicate.New(invalidHashWarpMsg.Bytes())
 
 	// Invalid predicate packing by corrupting a valid predicate
-	invalidPackedPredicate := predicate.New(warpMessage.Bytes())
-	invalidPackedPredicate = append(invalidPackedPredicate, common.Hash{1})
+	invalidPackedPredicate := predicate.Predicate{{}}
 
 	noFailures := set.NewBits()
 	require.Empty(t, noFailures.Bytes())
@@ -658,7 +656,7 @@ func TestGetVerifiedWarpBlockHash(t *testing.T) {
 			SetupBlockContext: func(mbc *contract.MockBlockContext) {
 				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(noFailures)
 			},
-			SuppliedGas: GetVerifiedWarpMessageBaseCost + GasCostPerWarpMessageChunk*uint64(len(warpMessagePredicate)),
+			SuppliedGas: GetVerifiedWarpMessageBaseCost + GasCostPerWarpMessageChunk*uint64(len(invalidPackedPredicate)),
 			ReadOnly:    false,
 			ExpectedErr: errInvalidPredicateBytes.Error(),
 		},
