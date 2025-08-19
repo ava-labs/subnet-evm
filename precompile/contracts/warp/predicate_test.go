@@ -465,7 +465,7 @@ func TestWarpSignatureWeightsDefaultQuorumNumerator(t *testing.T) {
 		int(WarpQuorumDenominator),
 		int(WarpQuorumDenominator) + 1,
 	} {
-		predicate := createPredicate(numSigners)
+		pred := createPredicate(numSigners)
 		// The predicate is valid iff the number of signers is >= the required numerator and does not exceed the denominator.
 		var expectedErr error
 		if numSigners >= int(WarpDefaultQuorumNumerator) && numSigners <= int(WarpQuorumDenominator) {
