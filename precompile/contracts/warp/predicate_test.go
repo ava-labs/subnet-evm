@@ -20,6 +20,7 @@ import (
 	"github.com/ava-labs/avalanchego/utils/set"
 	"github.com/ava-labs/avalanchego/vms/evm/predicate"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
+	"github.com/ava-labs/libevm/common"
 	"github.com/stretchr/testify/require"
 
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
@@ -317,8 +318,8 @@ func TestInvalidPredicatePacking(t *testing.T) {
 				PChainHeight: 1,
 			},
 		},
-		Predicate: corruptedPred,
-		Gas:       GasCostPerSignatureVerification + uint64(len(corruptedPred))*GasCostPerWarpMessageChunk + uint64(numKeys)*GasCostPerWarpSigner,
+		Predicate: pred,
+		Gas:       GasCostPerSignatureVerification + uint64(len(pred))*GasCostPerWarpMessageChunk + uint64(numKeys)*GasCostPerWarpSigner,
 		GasErr:    errInvalidPredicateBytes,
 	}
 
@@ -482,8 +483,8 @@ func TestWarpSignatureWeightsDefaultQuorumNumerator(t *testing.T) {
 					PChainHeight: 1,
 				},
 			},
-			Predicate:   predicate,
-			Gas:         GasCostPerSignatureVerification + uint64(len(predicate))*GasCostPerWarpMessageChunk + uint64(numSigners)*GasCostPerWarpSigner,
+			Predicate:   pred,
+			Gas:         GasCostPerSignatureVerification + uint64(len(pred))*GasCostPerWarpMessageChunk + uint64(numSigners)*GasCostPerWarpSigner,
 			GasErr:      nil,
 			ExpectedErr: expectedErr,
 		}
@@ -584,8 +585,8 @@ func TestWarpSignatureWeightsNonDefaultQuorumNumerator(t *testing.T) {
 					PChainHeight: 1,
 				},
 			},
-			Predicate:   predicate,
-			Gas:         GasCostPerSignatureVerification + uint64(len(predicate))*GasCostPerWarpMessageChunk + uint64(numSigners)*GasCostPerWarpSigner,
+			Predicate:   pred,
+			Gas:         GasCostPerSignatureVerification + uint64(len(pred))*GasCostPerWarpMessageChunk + uint64(numSigners)*GasCostPerWarpSigner,
 			GasErr:      nil,
 			ExpectedErr: expectedErr,
 		}
@@ -608,7 +609,7 @@ func makeWarpPredicateTests(tb testing.TB) map[string]precompiletest.PredicateTe
 				publicKey: true,
 			},
 		})
-		predicateTests[testName] = createValidPredicateTest(snowCtx, uint64(totalNodes), predicate)
+		predicateTests[testName] = createValidPredicateTest(snowCtx, uint64(totalNodes), pred)
 	}
 
 	numSigners := 10
@@ -630,7 +631,7 @@ func makeWarpPredicateTests(tb testing.TB) map[string]precompiletest.PredicateTe
 				publicKey: true,
 			},
 		})
-		predicateTests[testName] = createValidPredicateTest(snowCtx, uint64(numSigners), predicate)
+		predicateTests[testName] = createValidPredicateTest(snowCtx, uint64(numSigners), pred)
 	}
 
 	for _, totalNodes := range []int{100, 1_000, 10_000} {
@@ -651,7 +652,7 @@ func makeWarpPredicateTests(tb testing.TB) map[string]precompiletest.PredicateTe
 				publicKey: false,
 			},
 		})
-		predicateTests[testName] = createValidPredicateTest(snowCtx, uint64(numSigners), predicate)
+		predicateTests[testName] = createValidPredicateTest(snowCtx, uint64(numSigners), pred)
 	}
 
 	for _, totalNodes := range []int{100, 1_000, 10_000} {
@@ -679,7 +680,7 @@ func makeWarpPredicateTests(tb testing.TB) map[string]precompiletest.PredicateTe
 		}
 		snowCtx.ValidatorState = state
 
-		predicateTests[testName] = createValidPredicateTest(snowCtx, uint64(numSigners), predicate)
+		predicateTests[testName] = createValidPredicateTest(snowCtx, uint64(numSigners), pred)
 	}
 	return predicateTests
 }
