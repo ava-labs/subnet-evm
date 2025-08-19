@@ -146,7 +146,6 @@ func (c *Config) Accept(acceptCtx *precompileconfig.AcceptContext, blockHash com
 // If the payload of the warp message fails parsing, return a non-nil error invalidating the transaction.
 func (c *Config) PredicateGas(pred predicate.Predicate) (uint64, error) {
 	totalGas := GasCostPerSignatureVerification
-	// Charge for padded predicate bytes
 	bytesGasCost, overflow := math.SafeMul(GasCostPerWarpMessageChunk, uint64(len(pred)))
 	if overflow {
 		return 0, fmt.Errorf("overflow calculating gas cost for %d warp message chunks", len(pred))
