@@ -306,14 +306,8 @@ func TestInvalidPredicatePacking(t *testing.T) {
 			publicKey: true,
 		},
 	})
-	// Create a valid predicate and then corrupt its packed bytes by setting a
-	// non-zero byte after the delimiter, which invalidates the predicate
-	// packing and should cause Predicate.Bytes() to fail with
-	// errInvalidPredicateBytes.
-	validPred := createPredicate(numKeys)
-	corruptedPred := make(predicate.Predicate, len(validPred))
-	copy(corruptedPred, validPred)
-	corruptedPred[len(corruptedPred)-1][31] = byte(0x01)
+	pred := createPredicate(numKeys)
+	pred = append(pred, common.Hash{1}) // Invalidate the predicate byte packing
 
 	test := precompiletest.PredicateTest{
 		Config: NewDefaultConfig(utils.NewUint64(0)),
