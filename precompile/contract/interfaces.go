@@ -14,8 +14,8 @@ import (
 
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 
-	set "github.com/ava-labs/avalanchego/utils/set"
-	predicate "github.com/ava-labs/avalanchego/vms/evm/predicate"
+	"github.com/ava-labs/avalanchego/utils/set"
+	"github.com/ava-labs/avalanchego/vms/evm/predicate"
 	ethtypes "github.com/ava-labs/libevm/core/types"
 )
 
