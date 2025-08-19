@@ -599,7 +599,7 @@ func makeWarpPredicateTests(tb testing.TB) map[string]precompiletest.PredicateTe
 	for _, totalNodes := range []int{10, 100, 1_000, 10_000} {
 		testName := fmt.Sprintf("%d signers/%d validators", totalNodes, totalNodes)
 
-		predicate := createPredicate(totalNodes)
+		pred := createPredicate(totalNodes)
 		snowCtx := createSnowCtx(tb, []validatorRange{
 			{
 				start:     0,
