@@ -705,21 +705,24 @@ func testReceiveWarpMessage(
 
 	getWarpMsgInput, err := warpcontract.PackGetVerifiedWarpMessage(0)
 	require.NoError(err)
-	getVerifiedWarpMessageTxUnsigned := types.NewTx(&types.DynamicFeeTx{
-		ChainID:   vm.chainConfig.ChainID,
-		Nonce:     vm.txPool.Nonce(testEthAddrs[0]),
-		To:        &warpcontract.Module.Address,
-		Gas:       1_000_000,
-		GasFeeCap: big.NewInt(225 * utils.GWei),
-		GasTipCap: big.NewInt(utils.GWei),
-		Value:     common.Big0,
-		Data:      getWarpMsgInput,
-		AccessList: types.AccessList{{
-			Address:     warpcontract.ContractAddress,
-			StorageKeys: predicate.New(signedMessage.Bytes()),
-		}},
-	})
-	getVerifiedWarpMessageTx, err := types.SignTx(getVerifiedWarpMessageTxUnsigned, types.LatestSignerForChainID(vm.chainConfig.ChainID), testKeys[0].ToECDSA())
+	getVerifiedWarpMessageTx, err := types.SignTx(
+		types.NewTx(&types.DynamicFeeTx{
+			ChainID:   vm.chainConfig.ChainID,
+			Nonce:     vm.txPool.Nonce(testEthAddrs[0]),
+			To:        &warpcontract.Module.Address,
+			Gas:       1_000_000,
+			GasFeeCap: big.NewInt(225 * utils.GWei),
+			GasTipCap: big.NewInt(utils.GWei),
+			Value:     common.Big0,
+			Data:      getWarpMsgInput,
+			AccessList: types.AccessList{{
+				Address:     warpcontract.ContractAddress,
+				StorageKeys: predicate.New(signedMessage.Bytes()),
+			}},
+		}),
+		types.LatestSignerForChainID(vm.chainConfig.ChainID),
+		testKeys[0].ToECDSA(),
+	)
 	require.NoError(err)
 	errs := vm.txPool.AddRemotesSync([]*types.Transaction{getVerifiedWarpMessageTx})
 	for i, err := range errs {
