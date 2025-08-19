@@ -751,12 +751,18 @@ func TestPackEvents(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	_, data, err := PackSendWarpMessageEvent(
+	topics, data, err := PackSendWarpMessageEvent(
 		sourceAddress,
 		common.Hash(unsignedWarpMessage.ID()),
 		unsignedWarpMessage.Bytes(),
 	)
 	require.NoError(t, err)
+
+	// Validate topics: event ID, source address, message ID
+	require.Len(t, topics, 3)
+	require.Equal(t, WarpABI.Events["SendWarpMessage"].ID, topics[0])
+	require.Equal(t, common.BytesToHash(sourceAddress[:]), topics[1])
+	require.Equal(t, common.Hash(unsignedWarpMessage.ID()), topics[2])
 
 	unpacked, err := UnpackSendWarpEventDataToMessage(data)
 	require.NoError(t, err)
