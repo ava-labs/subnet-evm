@@ -537,7 +537,6 @@ func (w *warpTest) deliverBlockHashPayload() {
 
 	packedInput, err := warp.PackGetVerifiedWarpBlockHash(0)
 	require.NoError(err)
-
 	tx := types.NewTx(&types.DynamicFeeTx{
 		ChainID:   w.receivingSubnetChainID,
 		Nonce:     nonce,
