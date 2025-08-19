@@ -160,7 +160,7 @@ func RunPrecompileTests(t *testing.T, module modules.Module, contractTests map[s
 type testStateDB struct {
 	*extstate.StateDB
 
-	predicateStorageSlots map[common.Address][]predicate.Predicate
+	predicates map[common.Address][]predicate.Predicate
 }
 
 func newTestStateDB(t testing.TB, predicateStorageSlots map[common.Address][]predicate.Predicate) *testStateDB {
