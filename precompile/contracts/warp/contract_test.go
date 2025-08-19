@@ -203,7 +203,7 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 	require.NoError(t, err)
 	invalidAddressedChunks := uint64(len(predicate.New(invalidAddrWarpMsg.Bytes())))
 	noFailures := set.NewBits()
-	require.Len(t, noFailures.Bytes(), 0)
+	require.Empty(t, noFailures.Bytes())
 
 	tests := map[string]precompiletest.PrecompileTest{
 		"get message success": {
