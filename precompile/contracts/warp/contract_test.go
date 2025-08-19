@@ -195,12 +195,21 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 	warpMessagePredicate := predicate.New(warpMessage.Bytes())
 	getVerifiedWarpMsg, err := PackGetVerifiedWarpMessage(0)
 	require.NoError(t, err)
-	// Pre-compute chunk lengths for error-case predicates to ensure gas matches implementation
+
+	// Invalid warp message predicate
+	invalidWarpMsgPredicate := predicate.New([]byte{1, 2, 3})
+
+	// Invalid addressed payload predicate and chunk length
 	invalidAddrUnsigned, err := avalancheWarp.NewUnsignedMessage(networkID, sourceChainID, []byte{1, 2, 3})
 	require.NoError(t, err)
 	invalidAddrWarpMsg, err := avalancheWarp.NewMessage(invalidAddrUnsigned, &avalancheWarp.BitSetSignature{})
 	require.NoError(t, err)
-	invalidAddressedChunks := uint64(len(predicate.New(invalidAddrWarpMsg.Bytes())))
+	invalidAddressedPredicate := predicate.New(invalidAddrWarpMsg.Bytes())
+
+	// Invalid predicate packing by corrupting a valid predicate
+	invalidPackedPredicate := predicate.New(warpMessage.Bytes())
+	invalidPackedPredicate = append(invalidPackedPredicate, common.Hash{1})
+
 	noFailures := set.NewBits()
 	require.Empty(t, noFailures.Bytes())
 
@@ -377,40 +386,33 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 		"get message invalid predicate packing": {
 			Caller:     callerAddr,
 			InputFn:    func(t testing.TB) []byte { return getVerifiedWarpMsg },
-			Predicates: []predicate.Predicate{{{}}},
+			Predicates: []predicate.Predicate{invalidPackedPredicate},
 			SetupBlockContext: func(mbc *contract.MockBlockContext) {
 				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(noFailures)
 			},
-			SuppliedGas: GetVerifiedWarpMessageBaseCost + GasCostPerWarpMessageChunk*uint64(len(warpMessagePredicate)),
+			SuppliedGas: GetVerifiedWarpMessageBaseCost + GasCostPerWarpMessageChunk*uint64(len(invalidPackedPredicate)),
 			ReadOnly:    false,
 			ExpectedErr: errInvalidPredicateBytes.Error(),
 		},
 		"get message invalid warp message": {
 			Caller:     callerAddr,
 			InputFn:    func(t testing.TB) []byte { return getVerifiedWarpMsg },
-			Predicates: []predicate.Predicate{predicate.New([]byte{1, 2, 3})},
+			Predicates: []predicate.Predicate{invalidWarpMsgPredicate},
 			SetupBlockContext: func(mbc *contract.MockBlockContext) {
 				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(noFailures)
 			},
-			SuppliedGas: GetVerifiedWarpMessageBaseCost + GasCostPerWarpMessageChunk,
+			SuppliedGas: GetVerifiedWarpMessageBaseCost + GasCostPerWarpMessageChunk*uint64(len(invalidWarpMsgPredicate)),
 			ReadOnly:    false,
 			ExpectedErr: errInvalidWarpMsg.Error(),
 		},
 		"get message invalid addressed payload": {
-			Caller:  callerAddr,
-			InputFn: func(t testing.TB) []byte { return getVerifiedWarpMsg },
-			Predicates: func() []predicate.Predicate {
-				unsignedMessage, err := avalancheWarp.NewUnsignedMessage(networkID, sourceChainID, []byte{1, 2, 3}) // Invalid addressed payload
-				require.NoError(t, err)
-				warpMessage, err := avalancheWarp.NewMessage(unsignedMessage, &avalancheWarp.BitSetSignature{})
-				require.NoError(t, err)
-
-				return []predicate.Predicate{predicate.New(warpMessage.Bytes())}
-			}(),
+			Caller:     callerAddr,
+			InputFn:    func(t testing.TB) []byte { return getVerifiedWarpMsg },
+			Predicates: []predicate.Predicate{invalidAddressedPredicate},
 			SetupBlockContext: func(mbc *contract.MockBlockContext) {
 				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(noFailures)
 			},
-			SuppliedGas: GetVerifiedWarpMessageBaseCost + GasCostPerWarpMessageChunk*invalidAddressedChunks,
+			SuppliedGas: GetVerifiedWarpMessageBaseCost + GasCostPerWarpMessageChunk*uint64(len(invalidAddressedPredicate)),
 			ReadOnly:    false,
 			ExpectedErr: errInvalidAddressedPayload.Error(),
 		},
@@ -464,15 +466,19 @@ func TestGetVerifiedWarpBlockHash(t *testing.T) {
 	warpMessagePredicate := predicate.New(warpMessage.Bytes())
 	getVerifiedWarpBlockHash, err := PackGetVerifiedWarpBlockHash(0)
 	require.NoError(t, err)
-	// Pre-compute chunk lengths for error-case predicates to ensure gas matches implementation
-	invalidWarpMsgChunks := uint64(len(predicate.New([]byte{1, 2, 3})))
+
+	// Invalid warp message predicate
+	invalidWarpMsgPredicate := predicate.New([]byte{1, 2, 3})
+
+	// Invalid block hash payload predicate
 	invalidHashUnsigned, err := avalancheWarp.NewUnsignedMessage(networkID, sourceChainID, []byte{1, 2, 3})
 	require.NoError(t, err)
 	invalidHashWarpMsg, err := avalancheWarp.NewMessage(invalidHashUnsigned, &avalancheWarp.BitSetSignature{})
 	require.NoError(t, err)
-	invalidHashChunks := uint64(len(predicate.New(invalidHashWarpMsg.Bytes())))
+	invalidHashPredicate := predicate.New(invalidHashWarpMsg.Bytes())
+
 	noFailures := set.NewBits()
-	require.Len(t, noFailures.Bytes(), 0)
+	require.Empty(t, noFailures.Bytes())
 
 	tests := map[string]precompiletest.PrecompileTest{
 		"get message success": {
@@ -661,29 +667,22 @@ func TestGetVerifiedWarpBlockHash(t *testing.T) {
 		"get message invalid warp message": {
 			Caller:     callerAddr,
 			InputFn:    func(t testing.TB) []byte { return getVerifiedWarpBlockHash },
-			Predicates: []predicate.Predicate{predicate.New([]byte{1, 2, 3})},
+			Predicates: []predicate.Predicate{invalidWarpMsgPredicate},
 			SetupBlockContext: func(mbc *contract.MockBlockContext) {
 				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(noFailures)
 			},
-			SuppliedGas: GetVerifiedWarpMessageBaseCost + GasCostPerWarpMessageChunk,
+			SuppliedGas: GetVerifiedWarpMessageBaseCost + GasCostPerWarpMessageChunk*uint64(len(invalidWarpMsgPredicate)),
 			ReadOnly:    false,
 			ExpectedErr: errInvalidWarpMsg.Error(),
 		},
 		"get message invalid block hash payload": {
-			Caller:  callerAddr,
-			InputFn: func(t testing.TB) []byte { return getVerifiedWarpBlockHash },
-			Predicates: func() []predicate.Predicate {
-				unsignedMessage, err := avalancheWarp.NewUnsignedMessage(networkID, sourceChainID, []byte{1, 2, 3}) // Invalid block hash payload
-				require.NoError(t, err)
-				warpMessage, err := avalancheWarp.NewMessage(unsignedMessage, &avalancheWarp.BitSetSignature{})
-				require.NoError(t, err)
-
-				return []predicate.Predicate{predicate.New(warpMessage.Bytes())}
-			}(),
+			Caller:     callerAddr,
+			InputFn:    func(t testing.TB) []byte { return getVerifiedWarpBlockHash },
+			Predicates: []predicate.Predicate{invalidHashPredicate},
 			SetupBlockContext: func(mbc *contract.MockBlockContext) {
 				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(noFailures)
 			},
-			SuppliedGas: GetVerifiedWarpMessageBaseCost + GasCostPerWarpMessageChunk*invalidHashChunks,
+			SuppliedGas: GetVerifiedWarpMessageBaseCost + GasCostPerWarpMessageChunk*uint64(len(invalidHashPredicate)),
 			ReadOnly:    false,
 			ExpectedErr: errInvalidBlockHashPayload.Error(),
 		},
