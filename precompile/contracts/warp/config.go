@@ -147,8 +147,8 @@ func (c *Config) Accept(acceptCtx *precompileconfig.AcceptContext, blockHash com
 func (c *Config) PredicateGas(pred predicate.Predicate) (uint64, error) {
 	totalGas := GasCostPerSignatureVerification
 	// Charge for padded predicate bytes
-	paddedLen := uint64(len(pred)) * uint64(common.HashLength)
-	bytesGasCost, overflow := math.SafeMul(GasCostPerWarpMessageBytes, paddedLen)
+	paddedLen := uint64(len(pred))
+	bytesGasCost, overflow := math.SafeMul(GasCostPerWarpMessageChunk, paddedLen)
 	if overflow {
 		return 0, fmt.Errorf("overflow calculating gas cost for warp message bytes of size %d", paddedLen)
 	}
