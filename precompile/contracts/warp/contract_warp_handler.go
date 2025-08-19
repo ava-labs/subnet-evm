@@ -77,7 +77,8 @@ func handleWarpMessage(accessibleState contract.AccessibleState, input []byte, s
 	if remainingGas, err = contract.DeductGas(remainingGas, msgBytesGas); err != nil {
 		return nil, 0, err
 	}
-	// Inline decode using AvalancheGo predicate API
+	// Note: since the predicate is verified in advance of execution, the precompile should not
+	// hit an error during execution.
 	unpackedPredicateBytes, err := pred.Bytes()
 	if err != nil {
 		return nil, remainingGas, fmt.Errorf("%w: %w", errInvalidPredicateBytes, err)
