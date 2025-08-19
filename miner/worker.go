@@ -300,7 +300,7 @@ func (w *worker) createCurrentEnvironment(predicateContext *precompileconfig.Pre
 		gasPool:          new(core.GasPool).AddGas(capacity),
 		rules:            w.chainConfig.Rules(header.Number, params.IsMergeTODO, header.Time),
 		predicateContext: predicateContext,
-		predicateResults: make(predicate.BlockResults),
+		predicateResults: predicate.BlockResults{},
 		start:            tstart,
 	}, nil
 }

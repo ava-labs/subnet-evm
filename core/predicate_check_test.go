@@ -24,7 +24,7 @@ type predicateCheckTest struct {
 	gas              uint64
 	predicateContext *precompileconfig.PredicateContext
 	createPredicates func(t testing.TB) map[common.Address]precompileconfig.Predicater
-	expectedRes      map[common.Address]set.Bits
+	expectedRes      predicate.PrecompileResults
 	expectedErr      error
 }
 
@@ -43,13 +43,13 @@ func TestCheckPredicate(t *testing.T) {
 		"no predicates, no access list, no context passes": {
 			gas:              53000,
 			predicateContext: nil,
-			expectedRes:      make(map[common.Address]set.Bits),
+			expectedRes:      make(predicate.PrecompileResults),
 			expectedErr:      nil,
 		},
 		"no predicates, no access list, with context passes": {
 			gas:              53000,
 			predicateContext: predicateContext,
-			expectedRes:      make(map[common.Address]set.Bits),
+			expectedRes:      make(predicate.PrecompileResults),
 			expectedErr:      nil,
 		},
 		"no predicates, with access list, no context passes": {
@@ -63,7 +63,7 @@ func TestCheckPredicate(t *testing.T) {
 					},
 				},
 			}),
-			expectedRes: make(map[common.Address]set.Bits),
+			expectedRes: make(predicate.PrecompileResults),
 			expectedErr: nil,
 		},
 		"predicate, no access list, no context passes": {
@@ -75,7 +75,7 @@ func TestCheckPredicate(t *testing.T) {
 					addr1: predicater,
 				}
 			},
-			expectedRes: make(map[common.Address]set.Bits),
+			expectedRes: make(predicate.PrecompileResults),
 			expectedErr: nil,
 		},
 		"predicate, no access list, no block context passes": {
@@ -89,7 +89,7 @@ func TestCheckPredicate(t *testing.T) {
 					addr1: predicater,
 				}
 			},
-			expectedRes: make(map[common.Address]set.Bits),
+			expectedRes: make(predicate.PrecompileResults),
 			expectedErr: nil,
 		},
 		"predicate named by access list, without context errors": {
@@ -97,8 +97,8 @@ func TestCheckPredicate(t *testing.T) {
 			predicateContext: nil,
 			createPredicates: func(t testing.TB) map[common.Address]precompileconfig.Predicater {
 				predicater := precompileconfig.NewMockPredicater(gomock.NewController(t))
-				arg := common.Hash{1}
-				predicater.EXPECT().PredicateGas(predicate.Predicate{arg}).Return(uint64(0), nil).Times(1)
+				arg := predicate.Predicate{{1}}
+				predicater.EXPECT().PredicateGas(arg).Return(uint64(0), nil).Times(1)
 				return map[common.Address]precompileconfig.Predicater{
 					addr1: predicater,
 				}
@@ -120,7 +120,7 @@ func TestCheckPredicate(t *testing.T) {
 			},
 			createPredicates: func(t testing.TB) map[common.Address]precompileconfig.Predicater {
 				predicater := precompileconfig.NewMockPredicater(gomock.NewController(t))
-				arg := predicate.Predicate{common.Hash{1}}
+				arg := predicate.Predicate{{1}}
 				predicater.EXPECT().PredicateGas(arg).Return(uint64(0), nil).Times(1)
 				return map[common.Address]precompileconfig.Predicater{
 					addr1: predicater,
@@ -141,7 +141,7 @@ func TestCheckPredicate(t *testing.T) {
 			predicateContext: predicateContext,
 			createPredicates: func(t testing.TB) map[common.Address]precompileconfig.Predicater {
 				predicater := precompileconfig.NewMockPredicater(gomock.NewController(t))
-				arg := predicate.Predicate{common.Hash{1}}
+				arg := predicate.Predicate{{1}}
 				predicater.EXPECT().PredicateGas(arg).Return(uint64(0), nil).Times(2)
 				predicater.EXPECT().VerifyPredicate(gomock.Any(), arg).Return(nil)
 				return map[common.Address]precompileconfig.Predicater{
@@ -156,7 +156,7 @@ func TestCheckPredicate(t *testing.T) {
 					},
 				},
 			}),
-			expectedRes: map[common.Address]set.Bits{
+			expectedRes: predicate.PrecompileResults{
 				addr1: set.NewBits(), // valid bytes
 			},
 			expectedErr: nil,
@@ -166,7 +166,7 @@ func TestCheckPredicate(t *testing.T) {
 			predicateContext: predicateContext,
 			createPredicates: func(t testing.TB) map[common.Address]precompileconfig.Predicater {
 				predicater := precompileconfig.NewMockPredicater(gomock.NewController(t))
-				arg := predicate.Predicate{common.Hash{1}}
+				arg := predicate.Predicate{{1}}
 				predicater.EXPECT().PredicateGas(arg).Return(uint64(0), testErr)
 				return map[common.Address]precompileconfig.Predicater{
 					addr1: predicater,
@@ -187,7 +187,7 @@ func TestCheckPredicate(t *testing.T) {
 			predicateContext: predicateContext,
 			createPredicates: func(t testing.TB) map[common.Address]precompileconfig.Predicater {
 				predicater := precompileconfig.NewMockPredicater(gomock.NewController(t))
-				arg := predicate.Predicate{common.Hash{1}}
+				arg := predicate.Predicate{{1}}
 				predicater.EXPECT().PredicateGas(arg).Return(uint64(0), nil).Times(2)
 				predicater.EXPECT().VerifyPredicate(gomock.Any(), arg).Return(nil)
 				return map[common.Address]precompileconfig.Predicater{
@@ -203,7 +203,7 @@ func TestCheckPredicate(t *testing.T) {
 					},
 				},
 			}),
-			expectedRes: map[common.Address]set.Bits{
+			expectedRes: predicate.PrecompileResults{
 				addr1: set.NewBits(), // valid bytes
 			},
 			expectedErr: nil,
@@ -214,7 +214,7 @@ func TestCheckPredicate(t *testing.T) {
 			createPredicates: func(t testing.TB) map[common.Address]precompileconfig.Predicater {
 				ctrl := gomock.NewController(t)
 				predicate1 := precompileconfig.NewMockPredicater(ctrl)
-				arg1 := predicate.Predicate{common.Hash{1}}
+				arg1 := predicate.Predicate{{1}}
 				predicate1.EXPECT().PredicateGas(arg1).Return(uint64(0), nil).Times(2)
 				predicate1.EXPECT().VerifyPredicate(gomock.Any(), arg1).Return(nil)
 				predicate2 := precompileconfig.NewMockPredicater(ctrl)
@@ -240,7 +240,7 @@ func TestCheckPredicate(t *testing.T) {
 					},
 				},
 			}),
-			expectedRes: map[common.Address]set.Bits{
+			expectedRes: predicate.PrecompileResults{
 				addr1: set.NewBits(),  // valid bytes
 				addr2: set.NewBits(0), // invalid bytes
 			},
@@ -270,7 +270,7 @@ func TestCheckPredicate(t *testing.T) {
 					},
 				},
 			}),
-			expectedRes: make(map[common.Address]set.Bits),
+			expectedRes: make(predicate.PrecompileResults),
 			expectedErr: nil,
 		},
 		"insufficient gas": {
@@ -278,7 +278,7 @@ func TestCheckPredicate(t *testing.T) {
 			predicateContext: predicateContext,
 			createPredicates: func(t testing.TB) map[common.Address]precompileconfig.Predicater {
 				predicater := precompileconfig.NewMockPredicater(gomock.NewController(t))
-				arg := predicate.Predicate{common.Hash{1}}
+				arg := predicate.Predicate{{1}}
 				predicater.EXPECT().PredicateGas(arg).Return(uint64(1), nil)
 				return map[common.Address]precompileconfig.Predicater{
 					addr1: predicater,
@@ -341,24 +341,24 @@ func TestCheckPredicatesOutput(t *testing.T) {
 	}
 	type resultTest struct {
 		name        string
-		expectedRes map[common.Address]set.Bits
+		expectedRes predicate.PrecompileResults
 		testTuple   []testTuple
 	}
 	tests := []resultTest{
-		{name: "no predicates", expectedRes: map[common.Address]set.Bits{}},
+		{name: "no predicates", expectedRes: predicate.PrecompileResults{}},
 		{
 			name: "one address one predicate",
 			testTuple: []testTuple{
 				{address: addr1, isValidPredicate: true},
 			},
-			expectedRes: map[common.Address]set.Bits{addr1: set.NewBits()},
+			expectedRes: predicate.PrecompileResults{addr1: set.NewBits()},
 		},
 		{
 			name: "one address one invalid predicate",
 			testTuple: []testTuple{
 				{address: addr1, isValidPredicate: false},
 			},
-			expectedRes: map[common.Address]set.Bits{addr1: set.NewBits(0)},
+			expectedRes: predicate.PrecompileResults{addr1: set.NewBits(0)},
 		},
 		{
 			name: "one address two invalid predicates",
@@ -366,7 +366,7 @@ func TestCheckPredicatesOutput(t *testing.T) {
 				{address: addr1, isValidPredicate: false},
 				{address: addr1, isValidPredicate: false},
 			},
-			expectedRes: map[common.Address]set.Bits{addr1: set.NewBits(0, 1)},
+			expectedRes: predicate.PrecompileResults{addr1: set.NewBits(0, 1)},
 		},
 		{
 			name: "one address two mixed predicates",
@@ -374,7 +374,7 @@ func TestCheckPredicatesOutput(t *testing.T) {
 				{address: addr1, isValidPredicate: true},
 				{address: addr1, isValidPredicate: false},
 			},
-			expectedRes: map[common.Address]set.Bits{addr1: set.NewBits(1)},
+			expectedRes: predicate.PrecompileResults{addr1: set.NewBits(1)},
 		},
 		{
 			name: "one address mixed predicates",
@@ -384,7 +384,7 @@ func TestCheckPredicatesOutput(t *testing.T) {
 				{address: addr1, isValidPredicate: false},
 				{address: addr1, isValidPredicate: true},
 			},
-			expectedRes: map[common.Address]set.Bits{addr1: set.NewBits(1, 2)},
+			expectedRes: predicate.PrecompileResults{addr1: set.NewBits(1, 2)},
 		},
 		{
 			name: "two addresses mixed predicates",
@@ -398,7 +398,7 @@ func TestCheckPredicatesOutput(t *testing.T) {
 				{address: addr2, isValidPredicate: false},
 				{address: addr2, isValidPredicate: true},
 			},
-			expectedRes: map[common.Address]set.Bits{addr1: set.NewBits(1, 2), addr2: set.NewBits(0, 3)},
+			expectedRes: predicate.PrecompileResults{addr1: set.NewBits(1, 2), addr2: set.NewBits(0, 3)},
 		},
 		{
 			name: "two addresses all valid predicates",
@@ -408,7 +408,7 @@ func TestCheckPredicatesOutput(t *testing.T) {
 				{address: addr1, isValidPredicate: true},
 				{address: addr1, isValidPredicate: true},
 			},
-			expectedRes: map[common.Address]set.Bits{addr1: set.NewBits(), addr2: set.NewBits()},
+			expectedRes: predicate.PrecompileResults{addr1: set.NewBits(), addr2: set.NewBits()},
 		},
 		{
 			name: "two addresses all invalid predicates",
@@ -418,7 +418,7 @@ func TestCheckPredicatesOutput(t *testing.T) {
 				{address: addr1, isValidPredicate: false},
 				{address: addr1, isValidPredicate: false},
 			},
-			expectedRes: map[common.Address]set.Bits{addr1: set.NewBits(0, 1, 2), addr2: set.NewBits(0)},
+			expectedRes: predicate.PrecompileResults{addr1: set.NewBits(0, 1, 2), addr2: set.NewBits(0)},
 		},
 	}
 	for _, test := range tests {

@@ -6,7 +6,6 @@ package warp
 import (
 	"fmt"
 
-	"github.com/ava-labs/avalanchego/utils/set"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
 	"github.com/ava-labs/libevm/common"
@@ -62,7 +61,7 @@ func handleWarpMessage(accessibleState contract.AccessibleState, input []byte, s
 	state := accessibleState.GetStateDB()
 	pred, exists := state.GetPredicate(ContractAddress, warpIndex)
 	predicateResults := accessibleState.GetBlockContext().GetPredicateResults(state.TxHash(), ContractAddress)
-	valid := exists && !set.BitsFromBytes(predicateResults).Contains(warpIndex)
+	valid := exists && !predicateResults.Contains(warpIndex)
 	if !valid {
 		return handler.packFailed(), remainingGas, nil
 	}
