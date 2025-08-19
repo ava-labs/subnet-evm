@@ -14,6 +14,7 @@ import (
 	reflect "reflect"
 
 	snow "github.com/ava-labs/avalanchego/snow"
+	"github.com/ava-labs/avalanchego/utils/set"
 	common "github.com/ava-labs/libevm/common"
 	types "github.com/ava-labs/libevm/core/types"
 	stateconf "github.com/ava-labs/libevm/libevm/stateconf"
@@ -47,10 +48,10 @@ func (m *MockBlockContext) EXPECT() *MockBlockContextMockRecorder {
 }
 
 // GetPredicateResults mocks base method.
-func (m *MockBlockContext) GetPredicateResults(txHash common.Hash, precompileAddress common.Address) []byte {
+func (m *MockBlockContext) GetPredicateResults(txHash common.Hash, precompileAddress common.Address) set.Bits {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetPredicateResults", txHash, precompileAddress)
-	ret0, _ := ret[0].([]byte)
+	ret0, _ := ret[0].(set.Bits)
 	return ret0
 }
 

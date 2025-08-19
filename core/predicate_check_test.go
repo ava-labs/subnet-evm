@@ -218,7 +218,7 @@ func TestCheckPredicate(t *testing.T) {
 				predicate1.EXPECT().PredicateGas(arg1).Return(uint64(0), nil).Times(2)
 				predicate1.EXPECT().VerifyPredicate(gomock.Any(), arg1).Return(nil)
 				predicate2 := precompileconfig.NewMockPredicater(ctrl)
-				arg2 := predicate.Predicate{common.Hash{2}}
+				arg2 := predicate.Predicate{{2}}
 				predicate2.EXPECT().PredicateGas(arg2).Return(uint64(0), nil).Times(2)
 				predicate2.EXPECT().VerifyPredicate(gomock.Any(), arg2).Return(testErr)
 				return map[common.Address]precompileconfig.Predicater{
