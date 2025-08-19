@@ -657,7 +657,7 @@ func makeWarpPredicateTests(tb testing.TB) map[string]precompiletest.PredicateTe
 	for _, totalNodes := range []int{100, 1_000, 10_000} {
 		testName := fmt.Sprintf("%d validators w/ %d signers/repeated PublicKeys", totalNodes, numSigners)
 
-		predicate := createPredicate(numSigners)
+		pred := createPredicate(numSigners)
 		getValidatorsOutput := make(map[ids.NodeID]*validators.GetValidatorOutput, totalNodes)
 		for i := 0; i < totalNodes; i++ {
 			getValidatorsOutput[testVdrs[i].nodeID] = &validators.GetValidatorOutput{
