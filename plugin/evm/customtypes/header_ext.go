@@ -154,6 +154,8 @@ func (h *HeaderSerializable) updateToExtras(extras *HeaderExtra) {
 // HeaderSerializable defines the header of a block in the Ethereum blockchain,
 // as it is to be serialized into RLP and JSON. Note it must be exported so that
 // rlpgen can generate the serialization code from it.
+//
+//nolint:tagalign
 type HeaderSerializable struct {
 	ParentHash  common.Hash         `json:"parentHash"       gencodec:"required"`
 	UncleHash   common.Hash         `json:"sha3Uncles"       gencodec:"required"`
