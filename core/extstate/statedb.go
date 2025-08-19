@@ -17,7 +17,7 @@ type StateDB struct {
 
 	// Ordered storage slots to be used in predicate verification as set in the tx access list.
 	// Only set in [StateDB.Prepare], and un-modified through execution.
-	predicateStorageSlots map[common.Address][]predicate.Predicate
+	predicates map[common.Address][]predicate.Predicate
 }
 
 // New creates a new [StateDB] with the given [state.StateDB], wrapping it with
