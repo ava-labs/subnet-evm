@@ -636,7 +636,7 @@ func makeWarpPredicateTests(tb testing.TB) map[string]precompiletest.PredicateTe
 	for _, totalNodes := range []int{100, 1_000, 10_000} {
 		testName := fmt.Sprintf("%d signers (heavily weighted)/%d validators (non-signers without registered PublicKey)", numSigners, totalNodes)
 
-		predicate := createPredicate(numSigners)
+		pred := createPredicate(numSigners)
 		snowCtx := createSnowCtx(tb, []validatorRange{
 			{
 				start:     0,
