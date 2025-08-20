@@ -11,7 +11,6 @@ import (
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/common/math"
 	"github.com/ava-labs/libevm/core/vm"
-
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 )
 

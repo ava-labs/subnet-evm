@@ -23,17 +23,16 @@ import (
 	"github.com/ava-labs/avalanchego/tests/fixture/e2e"
 	"github.com/ava-labs/avalanchego/tests/fixture/tmpnet"
 	"github.com/ava-labs/avalanchego/utils/constants"
+	"github.com/ava-labs/avalanchego/vms/evm/predicate"
 	"github.com/ava-labs/avalanchego/vms/platformvm"
 	"github.com/ava-labs/avalanchego/vms/platformvm/api"
+	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
+	ethereum "github.com/ava-labs/libevm"
 	"github.com/ava-labs/libevm/common"
-
-	"github.com/ava-labs/avalanchego/vms/evm/predicate"
 	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/libevm/crypto"
 	"github.com/ava-labs/libevm/log"
-	"github.com/stretchr/testify/require"
-
 	"github.com/ava-labs/subnet-evm/cmd/simulator/key"
 	"github.com/ava-labs/subnet-evm/cmd/simulator/load"
 	"github.com/ava-labs/subnet-evm/cmd/simulator/metrics"
@@ -44,11 +43,9 @@ import (
 	"github.com/ava-labs/subnet-evm/tests"
 	"github.com/ava-labs/subnet-evm/tests/utils"
 	"github.com/ava-labs/subnet-evm/tests/warp/aggregator"
-
-	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
-	ethereum "github.com/ava-labs/libevm"
 	warpBackend "github.com/ava-labs/subnet-evm/warp"
 	ginkgo "github.com/onsi/ginkgo/v2"
+	"github.com/stretchr/testify/require"
 )
 
 const (

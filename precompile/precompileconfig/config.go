@@ -10,7 +10,6 @@ import (
 	"github.com/ava-labs/avalanchego/vms/evm/predicate"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/libevm/common"
-
 	"github.com/ava-labs/subnet-evm/commontype"
 )
 

@@ -14,15 +14,13 @@ import (
 	"github.com/ava-labs/libevm/core/vm"
 	"github.com/ava-labs/libevm/libevm"
 	"github.com/ava-labs/libevm/libevm/legacy"
-
+	ethparams "github.com/ava-labs/libevm/params"
 	"github.com/ava-labs/subnet-evm/params/extras"
+	customheader "github.com/ava-labs/subnet-evm/plugin/evm/header"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/deployerallowlist"
 	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
-
-	ethparams "github.com/ava-labs/libevm/params"
-	customheader "github.com/ava-labs/subnet-evm/plugin/evm/header"
 )
 
 type RulesExtra extras.Rules

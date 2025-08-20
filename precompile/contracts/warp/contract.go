@@ -4,6 +4,7 @@
 package warp
 
 import (
+	_ "embed"
 	"errors"
 	"fmt"
 
@@ -13,9 +14,6 @@ import (
 	"github.com/ava-labs/libevm/common/math"
 	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/libevm/core/vm"
-
-	_ "embed"
-
 	"github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 )
