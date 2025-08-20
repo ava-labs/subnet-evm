@@ -35,6 +35,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 
+	_ "embed"
+
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/eth/tracers"
 	"github.com/ava-labs/subnet-evm/params"
@@ -42,8 +44,6 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ava-labs/subnet-evm/warp"
-
-	_ "embed"
 
 	commonEng "github.com/ava-labs/avalanchego/snow/engine/common"
 	avagoUtils "github.com/ava-labs/avalanchego/utils"
