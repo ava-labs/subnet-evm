@@ -26,6 +26,8 @@ github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5 h1:0CwZNZbxp69SHPd
 github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5/go.mod h1:wHh0iHkYZB8zMSxRWpUBQtwG5a7fFgvEO+odwuTv2gs=
 github.com/ava-labs/avalanchego v1.13.5-rc.0 h1:73nIYhUoiwtjzlxWugvPlNkfCtsozRTwnhIxz3kO5og=
 github.com/ava-labs/avalanchego v1.13.5-rc.0/go.mod h1:I4AHk5hn0sbzF0rEbi/C9ql+u9sttiVIHSgDcVvMtPg=
+github.com/ava-labs/coreth v0.15.3-rc.5 h1:zGk1LaFeZOEkA6uPF1g9BNCjbZOrONx9fm5WtiH5NWg=
+github.com/ava-labs/coreth v0.15.3-rc.5/go.mod h1:sEqzSu2f4FJEGFL7CP3zNOQtQ0MupWJdzTp7W65EDf8=
 github.com/ava-labs/firewood-go-ethhash/ffi v0.0.9 h1:zw0g+cUbZDsGdWx1PKmBChkpy+ixL3QgiI86DUOuXvo=
 github.com/ava-labs/firewood-go-ethhash/ffi v0.0.9/go.mod h1:cq89ua3iiZ5wPBALTEQS5eG8DIZcs7ov6OiL4YR1BVY=
 github.com/ava-labs/libevm v1.13.14-0.3.0.rc.6 h1:tyM659nDOknwTeU4A0fUVsGNIU7k0v738wYN92nqs/Y=
