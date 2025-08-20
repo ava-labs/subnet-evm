@@ -5,6 +5,7 @@ package header
 
 import (
 	"errors"
+	"fmt"
 	"math/big"
 
 	"github.com/ava-labs/libevm/core/types"
@@ -24,7 +25,15 @@ func BaseFee(
 	parent *types.Header,
 	timestamp uint64,
 ) (*big.Int, error) {
+	// TODO: XXX Handle feeConfig with Fortuna here
 	switch {
+	case config.IsFortuna(timestamp):
+		state, err := feeStateBeforeBlock(config, parent, timestamp)
+		if err != nil {
+			return nil, fmt.Errorf("calculating initial fee state: %w", err)
+		}
+		price := state.GasPrice()
+		return new(big.Int).SetUint64(uint64(price)), nil
 	case config.IsSubnetEVM(timestamp):
 		return baseFeeFromWindow(config, feeConfig, parent, timestamp)
 	default:

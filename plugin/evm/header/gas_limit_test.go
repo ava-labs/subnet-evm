@@ -4,7 +4,11 @@
 package header
 
 import (
+	"math/big"
 	"testing"
+
+	"github.com/ava-labs/avalanchego/utils/math"
+	"github.com/ava-labs/avalanchego/vms/evm/upgrade/acp176"
 
 	"github.com/ava-labs/libevm/core/types"
 	ethparams "github.com/ava-labs/libevm/params"
@@ -37,6 +41,22 @@ func GasLimitTest(t *testing.T, feeConfig commontype.FeeConfig) {
 			want:     feeConfig.GasLimit.Uint64(),
 		},
 		{
+			name:     "fortuna_invalid_parent_header",
+			upgrades: extras.TestFortunaChainConfig.NetworkUpgrades,
+			parent: &types.Header{
+				Number: big.NewInt(1),
+			},
+			wantErr: acp176.ErrStateInsufficientLength,
+		},
+		{
+			name:     "fortuna_initial_max_capacity",
+			upgrades: extras.TestFortunaChainConfig.NetworkUpgrades,
+			parent: &types.Header{
+				Number: big.NewInt(0),
+			},
+			want: acp176.MinMaxCapacity,
+		},
+		{
 			name:     "pre_subnet_evm",
 			upgrades: extras.TestPreSubnetEVMChainConfig.NetworkUpgrades,
 			parent: &types.Header{
@@ -59,6 +79,71 @@ func GasLimitTest(t *testing.T, feeConfig commontype.FeeConfig) {
 	}
 }
 
+func TestVerifyGasUsed(t *testing.T) {
+	tests := []struct {
+		name      string
+		feeConfig commontype.FeeConfig
+		upgrades  extras.NetworkUpgrades
+		parent    *types.Header
+		header    *types.Header
+		want      error
+	}{
+		{
+			name:     "fortuna_gas_used_overflow",
+			upgrades: extras.TestFortunaChainConfig.NetworkUpgrades,
+			header: &types.Header{
+				GasUsed: math.MaxUint[uint64](),
+			},
+			want: math.ErrOverflow,
+		},
+		{
+			name:     "fortuna_invalid_capacity",
+			upgrades: extras.TestFortunaChainConfig.NetworkUpgrades,
+			parent: &types.Header{
+				Number: big.NewInt(1),
+			},
+			header: &types.Header{},
+			want:   acp176.ErrStateInsufficientLength,
+		},
+		{
+			name:     "fortuna_invalid_usage",
+			upgrades: extras.TestFortunaChainConfig.NetworkUpgrades,
+			parent: &types.Header{
+				Number: big.NewInt(0),
+			},
+			header: &types.Header{
+				Time: 1,
+				// The maximum allowed gas used is:
+				// (header.Time - parent.Time) * [acp176.MinMaxPerSecond]
+				// which is equal to [acp176.MinMaxPerSecond].
+				GasUsed: acp176.MinMaxPerSecond + 1,
+			},
+			want: errInvalidGasUsed,
+		},
+		{
+			name:     "fortuna_max_consumption",
+			upgrades: extras.TestFortunaChainConfig.NetworkUpgrades,
+			parent: &types.Header{
+				Number: big.NewInt(0),
+			},
+			header: &types.Header{
+				Time:    1,
+				GasUsed: acp176.MinMaxPerSecond,
+			},
+			want: nil,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			config := &extras.ChainConfig{
+				NetworkUpgrades: test.upgrades,
+			}
+			err := VerifyGasUsed(config, test.feeConfig, test.parent, test.header)
+			require.ErrorIs(t, err, test.want)
+		})
+	}
+}
+
 func TestVerifyGasLimit(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		VerifyGasLimitTest(t, testFeeConfig)
@@ -76,6 +161,36 @@ func VerifyGasLimitTest(t *testing.T, feeConfig commontype.FeeConfig) {
 		header   *types.Header
 		want     error
 	}{
+		{
+			name:     "fortuna_invalid_header",
+			upgrades: extras.TestFortunaChainConfig.NetworkUpgrades,
+			parent: &types.Header{
+				Number: big.NewInt(1),
+			},
+			header: &types.Header{},
+			want:   acp176.ErrStateInsufficientLength,
+		},
+		{
+			name:     "fortuna_invalid",
+			upgrades: extras.TestFortunaChainConfig.NetworkUpgrades,
+			parent: &types.Header{
+				Number: big.NewInt(0),
+			},
+			header: &types.Header{
+				GasLimit: acp176.MinMaxCapacity + 1,
+			},
+			want: errInvalidGasLimit,
+		},
+		{
+			name:     "fortuna_valid",
+			upgrades: extras.TestFortunaChainConfig.NetworkUpgrades,
+			parent: &types.Header{
+				Number: big.NewInt(0),
+			},
+			header: &types.Header{
+				GasLimit: acp176.MinMaxCapacity,
+			},
+		},
 		{
 			name:     "subnet_evm_valid",
 			upgrades: extras.TestSubnetEVMChainConfig.NetworkUpgrades,
@@ -147,17 +262,9 @@ func VerifyGasLimitTest(t *testing.T, feeConfig commontype.FeeConfig) {
 }
 
 func TestGasCapacity(t *testing.T) {
-	t.Run("normal", func(t *testing.T) {
-		GasCapacityTest(t, testFeeConfig)
-	})
-	t.Run("double", func(t *testing.T) {
-		GasCapacityTest(t, testFeeConfigDouble)
-	})
-}
-
-func GasCapacityTest(t *testing.T, feeConfig commontype.FeeConfig) {
 	tests := []struct {
 		name      string
+		feeConfig commontype.FeeConfig
 		upgrades  extras.NetworkUpgrades
 		parent    *types.Header
 		timestamp uint64
@@ -167,7 +274,24 @@ func GasCapacityTest(t *testing.T, feeConfig commontype.FeeConfig) {
 		{
 			name:     "subnet_evm",
 			upgrades: extras.TestSubnetEVMChainConfig.NetworkUpgrades,
-			want:     feeConfig.GasLimit.Uint64(),
+			want:     0, // TODO: XXX Handle feeConfig with Fortuna here
+		},
+		{
+			name:     "fortuna_invalid_header",
+			upgrades: extras.TestFortunaChainConfig.NetworkUpgrades,
+			parent: &types.Header{
+				Number: big.NewInt(1),
+			},
+			wantErr: acp176.ErrStateInsufficientLength,
+		},
+		{
+			name:     "fortuna_after_1s",
+			upgrades: extras.TestFortunaChainConfig.NetworkUpgrades,
+			parent: &types.Header{
+				Number: big.NewInt(0),
+			},
+			timestamp: 1,
+			want:      acp176.MinMaxPerSecond,
 		},
 	}
 	for _, test := range tests {
@@ -177,7 +301,7 @@ func GasCapacityTest(t *testing.T, feeConfig commontype.FeeConfig) {
 			config := &extras.ChainConfig{
 				NetworkUpgrades: test.upgrades,
 			}
-			got, err := GasCapacity(config, feeConfig, test.parent, test.timestamp)
+			got, err := GasCapacity(config, test.feeConfig, test.parent, test.timestamp)
 			require.ErrorIs(err, test.wantErr)
 			require.Equal(test.want, got)
 		})

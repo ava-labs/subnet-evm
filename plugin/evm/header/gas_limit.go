@@ -15,11 +15,10 @@ import (
 )
 
 var (
-	errInvalidGasUsed  = errors.New("invalid gas used")
-	errInvalidGasLimit = errors.New("invalid gas limit")
+	errInvalidExtraDataGasUsed = errors.New("invalid extra data gas used")
+	errInvalidGasUsed          = errors.New("invalid gas used")
+	errInvalidGasLimit         = errors.New("invalid gas limit")
 )
-
-type CalculateGasLimitFunc func(parentGasUsed, parentGasLimit, gasFloor, gasCeil uint64) uint64
 
 // GasLimit takes the previous header and the timestamp of its child block and
 // calculates the gas limit for the child block.
@@ -29,7 +28,18 @@ func GasLimit(
 	parent *types.Header,
 	timestamp uint64,
 ) (uint64, error) {
+	// TODO: XXX Handle feeConfig with Fortuna here
 	switch {
+	case config.IsFortuna(timestamp):
+		state, err := feeStateBeforeBlock(config, parent, timestamp)
+		if err != nil {
+			return 0, fmt.Errorf("calculating initial fee state: %w", err)
+		}
+		// The gas limit is set to the maximum capacity, rather than the current
+		// capacity, to minimize the differences with upstream geth. During
+		// block building and gas usage calculations, the gas limit is checked
+		// against the current capacity.
+		return uint64(state.MaxCapacity()), nil
 	case config.IsSubnetEVM(timestamp):
 		return feeConfig.GasLimit.Uint64(), nil
 	default:
@@ -72,6 +82,19 @@ func VerifyGasLimit(
 	header *types.Header,
 ) error {
 	switch {
+	case config.IsFortuna(header.Time):
+		state, err := feeStateBeforeBlock(config, parent, header.Time)
+		if err != nil {
+			return fmt.Errorf("calculating initial fee state: %w", err)
+		}
+		maxCapacity := state.MaxCapacity()
+		if header.GasLimit != uint64(maxCapacity) {
+			return fmt.Errorf("%w: have %d, want %d",
+				errInvalidGasLimit,
+				header.GasLimit,
+				maxCapacity,
+			)
+		}
 	case config.IsSubnetEVM(header.Time):
 		expectedGasLimit := feeConfig.GasLimit.Uint64()
 		if header.GasLimit != expectedGasLimit {
@@ -114,5 +137,14 @@ func GasCapacity(
 	parent *types.Header,
 	timestamp uint64,
 ) (uint64, error) {
-	return GasLimit(config, feeConfig, parent, timestamp)
+	// Prior to the F upgrade, the gas capacity is equal to the gas limit.
+	if !config.IsFortuna(timestamp) {
+		return GasLimit(config, feeConfig, parent, timestamp)
+	}
+
+	state, err := feeStateBeforeBlock(config, parent, timestamp)
+	if err != nil {
+		return 0, fmt.Errorf("calculating initial fee state: %w", err)
+	}
+	return uint64(state.Gas.Capacity), nil
 }

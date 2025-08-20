@@ -110,8 +110,9 @@ func (b *BlockGen) Difficulty() *big.Int {
 // block.
 func (b *BlockGen) SetParentBeaconRoot(root common.Hash) {
 	b.header.ParentBeaconRoot = &root
+	rulesExtra := params.GetRulesExtra(b.cm.config.Rules(b.header.Number, params.IsMergeTODO, b.header.Time))
 	var (
-		blockContext = NewEVMBlockContext(b.header, b.cm, &b.header.Coinbase)
+		blockContext = NewEVMBlockContext(rulesExtra.AvalancheRules, b.header, b.cm, &b.header.Coinbase)
 		vmenv        = vm.NewEVM(blockContext, vm.TxContext{}, b.statedb, b.cm.config, vm.Config{})
 	)
 	ProcessBeaconBlockRoot(root, vmenv, b.statedb)
@@ -129,7 +130,8 @@ func (b *BlockGen) addTx(bc *BlockChain, vmConfig vm.Config, tx *types.Transacti
 		b.SetCoinbase(common.Address{})
 	}
 	b.statedb.SetTxContext(tx.Hash(), len(b.txs))
-	blockContext := NewEVMBlockContext(b.header, bc, &b.header.Coinbase)
+	rulesExtra := params.GetRulesExtra(b.cm.config.Rules(b.header.Number, params.IsMergeTODO, b.header.Time))
+	blockContext := NewEVMBlockContext(rulesExtra.AvalancheRules, b.header, bc, &b.header.Coinbase)
 	receipt, err := ApplyTransaction(b.cm.config, bc, blockContext, b.gasPool, b.statedb, b.header, tx, &b.header.GasUsed, vmConfig)
 	if err != nil {
 		panic(err)

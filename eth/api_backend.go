@@ -313,7 +313,8 @@ func (b *EthAPIBackend) GetEVM(ctx context.Context, msg *core.Message, state *st
 	if blockCtx != nil {
 		context = *blockCtx
 	} else {
-		context = core.NewEVMBlockContext(header, b.eth.BlockChain(), nil)
+		rulesExtra := params.GetRulesExtra(b.ChainConfig().Rules(header.Number, params.IsMergeTODO, header.Time))
+		context = core.NewEVMBlockContext(rulesExtra.AvalancheRules, header, b.eth.BlockChain(), nil)
 	}
 	return vm.NewEVM(context, txContext, state, b.ChainConfig(), *vmConfig)
 }

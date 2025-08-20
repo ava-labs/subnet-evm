@@ -7,6 +7,8 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ava-labs/avalanchego/vms/components/gas"
+	"github.com/ava-labs/avalanchego/vms/evm/upgrade/acp176"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/subnet-evm/commontype"
@@ -177,6 +179,74 @@ func BaseFeeTest(t *testing.T, feeConfig commontype.FeeConfig) {
 			},
 			timestamp: 2 * subnetevm.WindowLen,
 			want:      big.NewInt(feeConfig.MinBaseFee.Int64()),
+		},
+		{
+			name:     "fortuna_invalid_timestamp",
+			upgrades: extras.TestFortunaChainConfig.NetworkUpgrades,
+			parent: &types.Header{
+				Number: big.NewInt(1),
+				Time:   1,
+				Extra:  (&acp176.State{}).Bytes(),
+			},
+			timestamp: 0,
+			wantErr:   errInvalidTimestamp,
+		},
+		{
+			name: "fortuna_first_block",
+			upgrades: extras.NetworkUpgrades{
+				FortunaTimestamp: utils.NewUint64(1),
+			},
+			parent: &types.Header{
+				Number: big.NewInt(1),
+			},
+			timestamp: 1,
+			want:      big.NewInt(acp176.MinGasPrice),
+		},
+		{
+			name:     "fortuna_genesis_block",
+			upgrades: extras.TestFortunaChainConfig.NetworkUpgrades,
+			parent: &types.Header{
+				Number: big.NewInt(0),
+			},
+			want: big.NewInt(acp176.MinGasPrice),
+		},
+		{
+			name:     "fortuna_invalid_fee_state",
+			upgrades: extras.TestFortunaChainConfig.NetworkUpgrades,
+			parent: &types.Header{
+				Number: big.NewInt(1),
+				Extra:  make([]byte, acp176.StateSize-1),
+			},
+			wantErr: acp176.ErrStateInsufficientLength,
+		},
+		{
+			name:     "fortuna_current",
+			upgrades: extras.TestFortunaChainConfig.NetworkUpgrades,
+			parent: &types.Header{
+				Number: big.NewInt(1),
+				Extra: (&acp176.State{
+					Gas: gas.State{
+						Excess: 2_704_386_192, // 1_500_000 * ln(nAVAX) * [acp176.TargetToPriceUpdateConversion]
+					},
+					TargetExcess: 13_605_152, // 2^25 * ln(1.5)
+				}).Bytes(),
+			},
+			want: big.NewInt(1_000_000_002), // nAVAX + 2 due to rounding
+		},
+		{
+			name:     "fortuna_decrease",
+			upgrades: extras.TestFortunaChainConfig.NetworkUpgrades,
+			parent: &types.Header{
+				Number: big.NewInt(1),
+				Extra: (&acp176.State{
+					Gas: gas.State{
+						Excess: 2_704_386_192, // 1_500_000 * ln(nAVAX) * [acp176.TargetToPriceUpdateConversion]
+					},
+					TargetExcess: 13_605_152, // 2^25 * ln(1.5)
+				}).Bytes(),
+			},
+			timestamp: 1,
+			want:      big.NewInt(988_571_555), // e^((2_704_386_192 - 1_500_000) / 1_500_000 / [acp176.TargetToPriceUpdateConversion])
 		},
 	}
 	for _, test := range tests {

@@ -21,6 +21,7 @@ import (
 	"github.com/ava-labs/avalanchego/network/p2p"
 	"github.com/ava-labs/avalanchego/network/p2p/acp118"
 	"github.com/ava-labs/avalanchego/network/p2p/gossip"
+	"github.com/ava-labs/avalanchego/vms/evm/upgrade/acp176"
 	"github.com/ava-labs/firewood-go-ethhash/ffi"
 	"github.com/prometheus/client_golang/prometheus"
 
@@ -87,6 +88,7 @@ import (
 	"github.com/ava-labs/avalanchego/utils/units"
 	"github.com/ava-labs/avalanchego/version"
 	"github.com/ava-labs/avalanchego/vms/components/chain"
+	"github.com/ava-labs/avalanchego/vms/components/gas"
 
 	commonEng "github.com/ava-labs/avalanchego/snow/engine/common"
 
@@ -116,6 +118,14 @@ const (
 	ethMetricsPrefix        = "eth"
 	sdkMetricsPrefix        = "sdk"
 	chainStateMetricsPrefix = "chain_state"
+
+	// gossip constants
+	pushGossipDiscardedElements = 16_384
+	txGossipTargetMessageSize   = 20 * units.KiB
+	maxValidatorSetStaleness    = time.Minute
+	txGossipThrottlingPeriod    = 10 * time.Second
+	txGossipThrottlingLimit     = 2
+	txGossipPollSize            = 1
 )
 
 // Define the API endpoints for the VM
@@ -613,6 +623,15 @@ func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.
 	if err != nil {
 		return err
 	}
+
+	// If the gas target is specified, calculate the desired target excess and
+	// use it during block creation.
+	var desiredTargetExcess *gas.Gas
+	if vm.config.GasTarget != nil {
+		desiredTargetExcess = new(gas.Gas)
+		*desiredTargetExcess = acp176.DesiredTargetExcess(*vm.config.GasTarget)
+	}
+
 	vm.eth, err = eth.New(
 		node,
 		&vm.ethConfig,
@@ -620,7 +639,11 @@ func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.
 		vm.chaindb,
 		eth.Settings{MaxBlocksPerRequest: vm.config.MaxBlocksPerRequest},
 		lastAcceptedHash,
-		dummy.NewFakerWithClock(&vm.clock),
+		dummy.NewDummyEngine(
+			dummy.Mode{},
+			&vm.clock,
+			desiredTargetExcess,
+		),
 		&vm.clock,
 	)
 	if err != nil {
@@ -637,6 +660,7 @@ func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.
 	}
 	vm.txPool.SetMinFee(feeConfig.MinBaseFee)
 	vm.txPool.SetGasTip(big.NewInt(0))
+	vm.txPool.SetMinFee(big.NewInt(acp176.MinGasPrice))
 
 	vm.eth.Start()
 	return vm.initChainState(lastAccepted)

@@ -214,7 +214,8 @@ func (w *worker) commitNewWork(predicateContext *precompileconfig.PredicateConte
 		return nil, fmt.Errorf("failed to create new current environment: %w", err)
 	}
 	if header.ParentBeaconRoot != nil {
-		context := core.NewEVMBlockContext(header, w.chain, nil)
+		rulesExtra := params.GetRulesExtra(env.rules)
+		context := core.NewEVMBlockContext(rulesExtra.AvalancheRules, header, w.chain, nil)
 		vmenv := vm.NewEVM(context, vm.TxContext{}, env.state, w.chainConfig, vm.Config{})
 		core.ProcessBeaconBlockRoot(*header.ParentBeaconRoot, vmenv, env.state)
 	}
@@ -351,7 +352,8 @@ func (w *worker) applyTransaction(env *environment, tx *types.Transaction, coinb
 		blockContext vm.BlockContext
 	)
 
-	if params.GetRulesExtra(env.rules).IsDurango {
+	rulesExtra := params.GetRulesExtra(env.rules)
+	if rulesExtra.IsDurango {
 		results, err := core.CheckPredicates(env.rules, env.predicateContext, tx)
 		if err != nil {
 			log.Debug("Transaction predicate failed verification in miner", "tx", tx.Hash(), "err", err)
@@ -363,9 +365,9 @@ func (w *worker) applyTransaction(env *environment, tx *types.Transaction, coinb
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshal predicate results: %w", err)
 		}
-		blockContext = core.NewEVMBlockContextWithPredicateResults(env.header, w.chain, &coinbase, predicateResultsBytes)
+		blockContext = core.NewEVMBlockContextWithPredicateResults(rulesExtra.AvalancheRules, env.header, w.chain, &coinbase, predicateResultsBytes)
 	} else {
-		blockContext = core.NewEVMBlockContext(env.header, w.chain, &coinbase)
+		blockContext = core.NewEVMBlockContext(rulesExtra.AvalancheRules, env.header, w.chain, &coinbase)
 	}
 
 	receipt, err := core.ApplyTransaction(w.chainConfig, w.chain, blockContext, env.gasPool, env.state, env.header, tx, &env.header.GasUsed, *w.chain.GetVMConfig())

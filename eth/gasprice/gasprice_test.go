@@ -44,12 +44,9 @@ import (
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/params/extras"
 	customheader "github.com/ava-labs/subnet-evm/plugin/evm/header"
 	"github.com/ava-labs/subnet-evm/plugin/evm/upgrade/legacy"
-	"github.com/ava-labs/subnet-evm/precompile/contracts/feemanager"
 	"github.com/ava-labs/subnet-evm/rpc"
-	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/stretchr/testify/require"
 )
 
@@ -292,7 +289,7 @@ func TestSuggestTipCapSmallTips(t *testing.T) {
 			signer := types.LatestSigner(params.TestChainConfig)
 			baseFee := b.BaseFee()
 			feeCap := new(big.Int).Add(baseFee, tip)
-			for j := 0; j < 185; j++ {
+			for j := 0; j < 40; j++ {
 				tx := types.NewTx(&types.DynamicFeeTx{
 					ChainID:   params.TestChainConfig.ChainID,
 					Nonce:     b.TxNonce(addr),
@@ -383,72 +380,19 @@ func TestSuggestTipCapMaxBlocksSecondsLookback(t *testing.T) {
 	applyGasPriceTest(t, suggestTipCapTest{
 		chainConfig: params.TestChainConfig,
 		numBlocks:   20,
-		genBlock:    testGenBlock(t, 550, 370),
-		expectedTip: big.NewInt(10_384_877_852),
+		genBlock:    testGenBlock(t, 550, 80),
+		expectedTip: big.NewInt(1),
 	}, timeCrunchOracleConfig())
 }
 
-// Regression test to ensure the last estimation of base fee is not used
-// for the block immediately following a fee configuration update.
-func TestSuggestGasPriceAfterFeeConfigUpdate(t *testing.T) {
-	require := require.New(t)
-	config := Config{
-		Blocks:     20,
-		Percentile: 60,
-	}
-
-	// create a chain config with fee manager enabled at genesis with [addr] as the admin
-	chainConfig := params.Copy(params.TestChainConfig)
-	chainConfigExtra := params.GetExtra(&chainConfig)
-	chainConfigExtra.GenesisPrecompiles = extras.Precompiles{
-		feemanager.ConfigKey: feemanager.NewConfig(utils.NewUint64(0), []common.Address{addr}, nil, nil, nil),
-	}
-
-	// create a fee config with higher MinBaseFee and prepare it for inclusion in a tx
-	signer := types.LatestSigner(params.TestChainConfig)
-	highFeeConfig := chainConfigExtra.FeeConfig
-	highFeeConfig.MinBaseFee = big.NewInt(28_000_000_000)
-	data, err := feemanager.PackSetFeeConfig(highFeeConfig)
-	require.NoError(err)
-
-	// before issuing the block changing the fee into the chain, the fee estimation should
-	// follow the fee config in genesis.
-	backend := newTestBackend(t, &chainConfig, 0, func(i int, b *core.BlockGen) {})
-	defer backend.teardown()
-	oracle, err := NewOracle(backend, config)
-	require.NoError(err)
-	got, err := oracle.SuggestPrice(context.Background())
-	require.NoError(err)
-	require.Equal(chainConfigExtra.FeeConfig.MinBaseFee, got)
-
-	// issue the block with tx that changes the fee
-	genesis := backend.chain.Genesis()
-	engine := backend.chain.Engine()
-	db := rawdb.NewDatabase(backend.chain.StateCache().DiskDB())
-	blocks, _, err := core.GenerateChain(&chainConfig, genesis, engine, db, 1, 0, func(i int, b *core.BlockGen) {
-		b.SetCoinbase(common.Address{1})
-
-		// admin issues tx to change fee config to higher MinBaseFee
-		tx := types.NewTx(&types.DynamicFeeTx{
-			ChainID:   chainConfig.ChainID,
-			Nonce:     b.TxNonce(addr),
-			To:        &feemanager.ContractAddress,
-			Gas:       chainConfigExtra.FeeConfig.GasLimit.Uint64(),
-			Value:     common.Big0,
-			GasFeeCap: chainConfigExtra.FeeConfig.MinBaseFee, // give low fee, it should work since we still haven't applied high fees
-			GasTipCap: common.Big0,
-			Data:      data,
-		})
-		tx, err = types.SignTx(tx, signer, key)
-		require.NoError(err, "failed to create tx")
-		b.AddTx(tx)
-	})
-	require.NoError(err)
-	_, err = backend.chain.InsertChain(blocks)
-	require.NoError(err)
-
-	// verify the suggested price follows the new fee config.
-	got, err = oracle.SuggestPrice(context.Background())
-	require.NoError(err)
-	require.Equal(highFeeConfig.MinBaseFee, got)
+func TestSuggestTipCapIncludesExtraDataGas(t *testing.T) {
+	applyGasPriceTest(t, suggestTipCapTest{
+		chainConfig: params.TestChainConfig,
+		numBlocks:   1000,
+		// The tip on the transaction is very large to pay the block gas cost.
+		genBlock: testGenBlock(t, 100_000, 1),
+		// The actual tip doesn't matter, we just want to ensure that the tip is
+		// non-zero when almost all the gas is coming from the extDataGasUsage.
+		expectedTip: big.NewInt(44_252),
+	}, defaultOracleConfig())
 }

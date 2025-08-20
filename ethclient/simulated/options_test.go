@@ -33,6 +33,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ava-labs/avalanchego/vms/evm/upgrade/acp176"
 	ethereum "github.com/ava-labs/libevm"
 	"github.com/ava-labs/libevm/core/types"
 	ethparams "github.com/ava-labs/libevm/params"
@@ -60,8 +61,8 @@ func TestWithBlockGasLimitOption(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to retrieve head block: %v", err)
 	}
-	if head.GasLimit() != 12_345_678 {
-		t.Errorf("head gas limit mismatch: have %v, want %v", head.GasLimit(), 12_345_678)
+	if head.GasLimit() != acp176.MinMaxCapacity {
+		t.Errorf("head gas limit mismatch: have %v, want %v", head.GasLimit(), acp176.MinMaxCapacity)
 	}
 }
 

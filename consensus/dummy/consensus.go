@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ava-labs/avalanchego/utils/timer/mockable"
+	"github.com/ava-labs/avalanchego/vms/components/gas"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/state"
 	"github.com/ava-labs/libevm/core/types"
@@ -42,18 +43,21 @@ type Mode struct {
 
 type (
 	DummyEngine struct {
-		clock         *mockable.Clock
-		consensusMode Mode
+		clock               *mockable.Clock
+		consensusMode       Mode
+		desiredTargetExcess *gas.Gas
 	}
 )
 
 func NewDummyEngine(
 	mode Mode,
 	clock *mockable.Clock,
+	desiredTargetExcess *gas.Gas,
 ) *DummyEngine {
 	return &DummyEngine{
-		clock:         clock,
-		consensusMode: mode,
+		clock:               clock,
+		consensusMode:       mode,
+		desiredTargetExcess: desiredTargetExcess,
 	}
 }
 
@@ -127,7 +131,12 @@ func (eng *DummyEngine) verifyCoinbase(header *types.Header, parent *types.Heade
 	return nil
 }
 
-func verifyHeaderGasFields(config *extras.ChainConfig, header *types.Header, parent *types.Header, chain consensus.ChainHeaderReader) error {
+func verifyHeaderGasFields(
+	config *extras.ChainConfig,
+	header *types.Header,
+	parent *types.Header,
+	chain consensus.ChainHeaderReader,
+) error {
 	// We verify the current block by checking the parent fee config
 	// this is because the current block cannot set the fee config for itself
 	// Fee config might depend on the state when precompile is activated
@@ -395,7 +404,7 @@ func (eng *DummyEngine) FinalizeAndAssemble(chain consensus.ChainHeaderReader, h
 	}
 
 	// finalize the header.Extra
-	extraPrefix, err := customheader.ExtraPrefix(config, parent, header)
+	extraPrefix, err := customheader.ExtraPrefix(config, parent, header, eng.desiredTargetExcess)
 	if err != nil {
 		return nil, fmt.Errorf("failed to calculate new header.Extra: %w", err)
 	}
