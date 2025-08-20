@@ -5,7 +5,6 @@ package evm
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/ava-labs/avalanchego/database"
