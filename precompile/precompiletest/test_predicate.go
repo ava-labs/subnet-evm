@@ -8,8 +8,9 @@ import (
 	"time"
 
 	"github.com/ava-labs/avalanchego/vms/evm/predicate"
-	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/stretchr/testify/require"
+
+	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 )
 
 // PredicateTest defines a unit test/benchmark for verifying a precompile predicate.

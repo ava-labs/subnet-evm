@@ -11,10 +11,12 @@ import (
 	"github.com/ava-labs/avalanchego/utils/set"
 	"github.com/ava-labs/avalanchego/vms/evm/predicate"
 	"github.com/ava-labs/libevm/common"
-	ethtypes "github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/libevm/libevm/stateconf"
-	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/holiman/uint256"
+
+	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
+
+	ethtypes "github.com/ava-labs/libevm/core/types"
 )
 
 // StatefulPrecompiledContract is the interface for executing a precompiled contract
