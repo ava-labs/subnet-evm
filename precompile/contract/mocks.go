@@ -14,7 +14,8 @@ import (
 	reflect "reflect"
 
 	snow "github.com/ava-labs/avalanchego/snow"
-	"github.com/ava-labs/avalanchego/utils/set"
+	set "github.com/ava-labs/avalanchego/utils/set"
+	predicate "github.com/ava-labs/avalanchego/vms/evm/predicate"
 	common "github.com/ava-labs/libevm/common"
 	types "github.com/ava-labs/libevm/core/types"
 	stateconf "github.com/ava-labs/libevm/libevm/stateconf"
@@ -271,19 +272,19 @@ func (mr *MockStateDBMockRecorder) GetNonce(arg0 any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNonce", reflect.TypeOf((*MockStateDB)(nil).GetNonce), arg0)
 }
 
-// GetPredicateStorageSlots mocks base method.
-func (m *MockStateDB) GetPredicateStorageSlots(address common.Address, index int) ([]byte, bool) {
+// GetPredicate mocks base method.
+func (m *MockStateDB) GetPredicate(address common.Address, index int) (predicate.Predicate, bool) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetPredicateStorageSlots", address, index)
-	ret0, _ := ret[0].([]byte)
+	ret := m.ctrl.Call(m, "GetPredicate", address, index)
+	ret0, _ := ret[0].(predicate.Predicate)
 	ret1, _ := ret[1].(bool)
 	return ret0, ret1
 }
 
-// GetPredicateStorageSlots indicates an expected call of GetPredicateStorageSlots.
-func (mr *MockStateDBMockRecorder) GetPredicateStorageSlots(address, index any) *gomock.Call {
+// GetPredicate indicates an expected call of GetPredicate.
+func (mr *MockStateDBMockRecorder) GetPredicate(address, index any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPredicateStorageSlots", reflect.TypeOf((*MockStateDB)(nil).GetPredicateStorageSlots), address, index)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPredicate", reflect.TypeOf((*MockStateDB)(nil).GetPredicate), address, index)
 }
 
 // GetState mocks base method.
@@ -303,6 +304,20 @@ func (mr *MockStateDBMockRecorder) GetState(arg0, arg1 any, arg2 ...any) *gomock
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]any{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetState", reflect.TypeOf((*MockStateDB)(nil).GetState), varargs...)
+}
+
+// Logs mocks base method.
+func (m *MockStateDB) Logs() []*types.Log {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Logs")
+	ret0, _ := ret[0].([]*types.Log)
+	return ret0
+}
+
+// Logs indicates an expected call of Logs.
+func (mr *MockStateDBMockRecorder) Logs() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Logs", reflect.TypeOf((*MockStateDB)(nil).Logs))
 }
 
 // RevertToSnapshot mocks base method.
