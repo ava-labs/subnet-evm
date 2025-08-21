@@ -12,10 +12,10 @@ import (
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/network/p2p"
 	"github.com/ava-labs/avalanchego/snow/consensus/snowman"
-	avalanchecommon "github.com/ava-labs/avalanchego/snow/engine/common"
-	"github.com/ava-labs/avalanchego/utils/timer/mockable"
-
 	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
+	"github.com/ava-labs/avalanchego/utils/timer/mockable"
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/core/types"
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
@@ -27,8 +27,7 @@ import (
 	"github.com/ava-labs/subnet-evm/plugin/evm/sync"
 	"github.com/ava-labs/subnet-evm/sync/handlers"
 
-	"github.com/ava-labs/libevm/common"
-	"github.com/ava-labs/libevm/core/types"
+	avalanchecommon "github.com/ava-labs/avalanchego/snow/engine/common"
 )
 
 var (

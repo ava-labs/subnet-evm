@@ -40,6 +40,7 @@ import (
 	"github.com/ava-labs/subnet-evm/eth/tracers"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/params/extras"
+	"github.com/ava-labs/subnet-evm/plugin/evm/extension"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/predicate"
 	"github.com/ava-labs/subnet-evm/utils"
@@ -48,7 +49,6 @@ import (
 	commonEng "github.com/ava-labs/avalanchego/snow/engine/common"
 	avagoUtils "github.com/ava-labs/avalanchego/utils"
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
-	"github.com/ava-labs/subnet-evm/plugin/evm/extension"
 	customheader "github.com/ava-labs/subnet-evm/plugin/evm/header"
 	warpcontract "github.com/ava-labs/subnet-evm/precompile/contracts/warp"
 )

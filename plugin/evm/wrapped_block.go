@@ -322,7 +322,7 @@ func (b *wrappedBlock) syntacticVerify() error {
 			return fmt.Errorf("invalid parentBeaconRoot: have %x, expected empty hash", ethHeader.ParentBeaconRoot)
 		}
 		if ethHeader.BlobGasUsed == nil {
-			return fmt.Errorf("blob gas used must not be nil in Cancun")
+			return errors.New("blob gas used must not be nil in Cancun")
 		} else if *ethHeader.BlobGasUsed > 0 {
 			return fmt.Errorf("blobs not enabled on avalanche networks: used %d blob gas, expected 0", *ethHeader.BlobGasUsed)
 		}

@@ -5,18 +5,18 @@ package sync
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
+	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/libevm/log"
 
 	"github.com/ava-labs/subnet-evm/core"
-
-	"github.com/ava-labs/libevm/core/types"
 )
 
-var errProviderNotSet = fmt.Errorf("provider not set")
+var errProviderNotSet = errors.New("provider not set")
 
 type SummaryProvider interface {
 	StateSummaryAtBlock(ethBlock *types.Block) (block.StateSummary, error)
