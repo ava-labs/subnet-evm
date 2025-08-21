@@ -8,8 +8,6 @@ import (
 	"fmt"
 	"sync"
 
-	syncclient "github.com/ava-labs/subnet-evm/sync/client"
-
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/database/versiondb"
 	"github.com/ava-labs/avalanchego/ids"
