@@ -268,7 +268,7 @@ func (vm *VM) Initialize(
 	appSender commonEng.AppSender,
 ) error {
 	vm.ctx = chainCtx
-
+	vm.stateSyncDone = make(chan struct{})
 	cfg, deprecateMsg, err := config.GetConfig(configBytes, vm.ctx.NetworkID)
 	if err != nil {
 		return fmt.Errorf("failed to get config: %w", err)
