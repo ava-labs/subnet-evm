@@ -1,22 +1,15 @@
 # Latest Commits 
 
-This is the hash of the latest coreth commit that is synced with the subnet-evm
+The last coreth PR has been checked up until PR [#958](https://github.com/ava-labs/coreth/pull/958). Check the commit order in chronological order, rather than PRs in numeric order, as merge order is very frequently unaligned with PR open order. 
 
-6d5d72233bcfc1f3315628f2788f073148c78b46
+
+This is the hash of the latest coreth commit synced: `6d5d72233bcfc1f3315628f2788f073148c78b46`
 
 # Notes: 
-- Last PR done in chronological order is currently #1071
-- The following PRs have already been synced 
-  - coreth PR 1073 (https://github.com/ava-labs/subnet-evm/pull/1659)
-  - coreth PR 1077 (https://github.com/ava-labs/subnet-evm/pull/1677)
-  - coreth PR 1086 (https://github.com/ava-labs/subnet-evm/pull/1671)
-  - coreth PR 1087 (https://github.com/ava-labs/subnet-evm/pull/1672)
-  - coreth PR 1088 (https://github.com/ava-labs/subnet-evm/pull/1672)
-  - coreth PR 1091 (https://github.com/ava-labs/subnet-evm/pull/1676)
-  - coreth PR 1117 (https://github.com/ava-labs/subnet-evm/1691)
-  - coreth PR 1122 (https://github.com/ava-labs/subnet-evm/1690)
-  - coreth PR 1123 (https://github.com/ava-labs/subnet-evm/1690)
-  - coreth PR 1134 (https://github.com/ava-labs/subnet-evm/1692)
-- The following `sync` package PRs have purposely been skipped to be done at a later date 
-  - coreth PR 1068
-  - 
+- The following `sync` package refactor PRs have purposely been skipped to be done at a later date 
+  - coreth PR [1068](https://github.com/ava-labs/coreth/pull/1074)
+  - coreth PR [1074](https://github.com/ava-labs/coreth/pull/1074)
+  - coreth PR [1078](https://github.com/ava-labs/coreth/pull/1078)
+  - coreth PR [1085](https://github.com/ava-labs/coreth/pull/1085)
+  - coreth PR [1094](https://github.com/ava-labs/coreth/pull/1093)
+  - coreth PR [1096](https://github.com/ava-labs/coreth/pull/1096)
