@@ -9,10 +9,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ava-labs/avalanchego/utils/constants"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/common/hexutil"
 	"github.com/spf13/cast"
+
+	"github.com/ava-labs/avalanchego/utils/constants"
 )
 
 type PBool bool
