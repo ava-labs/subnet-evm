@@ -306,20 +306,6 @@ func (mr *MockStateDBMockRecorder) GetState(arg0, arg1 any, arg2 ...any) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetState", reflect.TypeOf((*MockStateDB)(nil).GetState), varargs...)
 }
 
-// Logs mocks base method.
-func (m *MockStateDB) Logs() []*types.Log {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Logs")
-	ret0, _ := ret[0].([]*types.Log)
-	return ret0
-}
-
-// Logs indicates an expected call of Logs.
-func (mr *MockStateDBMockRecorder) Logs() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Logs", reflect.TypeOf((*MockStateDB)(nil).Logs))
-}
-
 // RevertToSnapshot mocks base method.
 func (m *MockStateDB) RevertToSnapshot(arg0 int) {
 	m.ctrl.T.Helper()
