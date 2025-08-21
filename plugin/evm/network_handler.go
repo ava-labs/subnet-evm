@@ -11,10 +11,12 @@ import (
 	"github.com/ava-labs/libevm/ethdb"
 	"github.com/ava-labs/libevm/log"
 	"github.com/ava-labs/libevm/triedb"
+
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
-	syncHandlers "github.com/ava-labs/subnet-evm/sync/handlers"
-	"github.com/ava-labs/subnet-evm/sync/handlers/stats"
 	"github.com/ava-labs/subnet-evm/warp"
+
+	syncHandlers "github.com/ava-labs/subnet-evm/sync/handlers"
+	syncStats "github.com/ava-labs/subnet-evm/sync/handlers/stats"
 )
 
 var _ message.RequestHandler = (*networkHandler)(nil)
@@ -42,7 +44,7 @@ func newNetworkHandler(
 	warpBackend warp.Backend,
 	networkCodec codec.Manager,
 	leafRequestHandlers LeafHandlers,
-	syncStats stats.HandlerStats,
+	syncStats syncStats.HandlerStats,
 ) *networkHandler {
 	return &networkHandler{
 		leafRequestHandlers: leafRequestHandlers,
