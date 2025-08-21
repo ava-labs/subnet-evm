@@ -6,8 +6,8 @@ package config
 import (
 	"time"
 
-	"github.com/ava-labs/coreth/utils"
 	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/subnet-evm/utils"
 )
 
 const defaultCommitInterval = 4096
