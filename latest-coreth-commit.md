@@ -1,4 +1,6 @@
-# This is the latest commit of coreth that is synced with the subnet-evm
+# Latest Commits 
+
+This is the hash of the latest coreth commit that is synced with the subnet-evm
 
 6d5d72233bcfc1f3315628f2788f073148c78b46
 
@@ -15,3 +17,6 @@
   - coreth PR 1122 (https://github.com/ava-labs/subnet-evm/1690)
   - coreth PR 1123 (https://github.com/ava-labs/subnet-evm/1690)
   - coreth PR 1134 (https://github.com/ava-labs/subnet-evm/1692)
+- The following `sync` package PRs have purposely been skipped to be done at a later date 
+  - coreth PR 1068
+  - 
