@@ -44,7 +44,6 @@ type StateDB interface {
 	Exist(common.Address) bool
 
 	AddLog(*ethtypes.Log)
-	Logs() []*ethtypes.Log
 	GetPredicate(address common.Address, index int) (predicate.Predicate, bool)
 
 	TxHash() common.Hash
