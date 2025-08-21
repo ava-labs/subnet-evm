@@ -15,6 +15,7 @@ import (
 	"github.com/spf13/cast"
 )
 
+type PBool bool
 type Duration struct {
 	time.Duration
 }

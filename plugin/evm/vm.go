@@ -268,7 +268,6 @@ func (vm *VM) Initialize(
 	appSender commonEng.AppSender,
 ) error {
 	vm.ctx = chainCtx
-	vm.clock = vm.extensionConfig.Clock
 
 	cfg, deprecateMsg, err := config.GetConfig(configBytes, vm.ctx.NetworkID)
 	if err != nil {
@@ -344,7 +343,6 @@ func (vm *VM) Initialize(
 	vm.ethConfig.RPCEVMTimeout = vm.config.APIMaxDuration.Duration
 	vm.ethConfig.RPCTxFeeCap = vm.config.RPCTxFeeCap
 
-	vm.ethConfig.TxPool.Locals = vm.config.PriorityRegossipAddresses
 	vm.ethConfig.TxPool.NoLocals = !vm.config.LocalTxsEnabled
 	vm.ethConfig.TxPool.PriceLimit = vm.config.TxPoolPriceLimit
 	vm.ethConfig.TxPool.PriceBump = vm.config.TxPoolPriceBump

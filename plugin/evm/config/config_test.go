@@ -146,8 +146,6 @@ func TestGetConfig(t *testing.T) {
 			configJSON: []byte(`{"rpc-tx-fee-cap": 11,"eth-apis": ["debug"], "tx-pool-price-limit": 100}`),
 			networkID:  constants.TestnetID,
 			expected: func(t *testing.T, config Config) {
-				defaultConfig := NewDefaultConfig()
-				require.Equal(t, defaultConfig.PriceOptionMaxTip, config.PriceOptionMaxTip)
 				require.Equal(t, float64(11), config.RPCTxFeeCap)
 				require.Equal(t, []string{"debug"}, config.EthAPIs())
 				require.Equal(t, uint64(100), config.TxPoolPriceLimit)

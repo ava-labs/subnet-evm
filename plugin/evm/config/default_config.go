@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/ava-labs/libevm/common"
-	"github.com/ava-labs/subnet-evm/utils"
 )
 
 const defaultCommitInterval = 4096
@@ -79,10 +78,6 @@ func NewDefaultConfig() Config {
 		StateHistory:         uint64(32),
 		// Estimated block count in 24 hours with 2s block accept period
 		HistoricalProofQueryWindow: uint64(24 * time.Hour / (2 * time.Second)),
-		// Price Option Defaults
-		PriceOptionSlowFeePercentage: uint64(95),
-		PriceOptionFastFeePercentage: uint64(105),
-		PriceOptionMaxTip:            uint64(20 * utils.GWei),
 		// Mempool settings
 		TxPoolPriceLimit:   1,
 		TxPoolPriceBump:    10,
@@ -91,6 +86,12 @@ func NewDefaultConfig() Config {
 		TxPoolAccountQueue: 64,
 		TxPoolGlobalQueue:  1024,
 		TxPoolLifetime:     timeToDuration(10 * time.Minute),
+		// Subnet EVM API settings
+		ValidatorsAPIEnabled: true,
+		// Database settings
+		DatabaseType: "leveldb",
+		// Additional settings with sensible defaults
+		AllowUnprotectedTxs: false,
 	}
 }
 
