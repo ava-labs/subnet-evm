@@ -492,7 +492,7 @@ func (vm *VM) Initialize(
 		return err
 	}
 
-	go vm.ctx.Log.RecoverAndPanic(vm.startContinuousProfiler)
+	go chainCtx.Log.RecoverAndPanic(vm.startContinuousProfiler)
 
 	// Add p2p warp message warpHandler
 	warpHandler := acp118.NewCachedHandler(meteredCache, vm.warpBackend, vm.ctx.WarpSigner)
