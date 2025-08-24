@@ -24,6 +24,7 @@ import (
 	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/libevm/crypto"
 	"github.com/ava-labs/subnet-evm/core"
+	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/params/extras"
 	"github.com/ava-labs/subnet-evm/plugin/evm/vmerrors"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/txallowlist"
@@ -32,8 +33,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-var DefaultEtnaTime = uint64(upgrade.GetConfig(testNetworkID).EtnaTime.Unix())
 
 func TestVMUpgradeBytesPrecompile(t *testing.T) {
 	// Make a TxAllowListConfig upgrade at genesis and convert it to JSON to apply as upgradeBytes.
@@ -171,10 +170,12 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 
 func TestNetworkUpgradesOverridden(t *testing.T) {
 	fork := upgradetest.Granite
-	chainConfig := forkToChainConfig[fork]
+	chainConfig := params.ForkToChainConfig[fork]
+	extraConfig := params.GetExtra(chainConfig)
+	extraConfig.NetworkUpgrades.GraniteTimestamp = utils.NewUint64(uint64(upgrade.InitiallyActiveTime.Unix()))
 	genesis := &core.Genesis{}
 	require.NoError(t, json.Unmarshal([]byte(toGenesisJSON(chainConfig)), genesis))
-	// Set the genesis timestamp to before the Durango activation time
+	// Set the genesis timestamp to before the Granite activation time
 	genesis.Timestamp = uint64(upgrade.InitiallyActiveTime.Unix() - 1)
 	genesisJSON, err := genesis.MarshalJSON()
 	require.NoError(t, err)
@@ -361,26 +362,28 @@ func TestVMStateUpgrade(t *testing.T) {
 }
 
 func TestVMEtnaActivatesCancun(t *testing.T) {
+	defaultEtnaTime := uint64(upgrade.InitiallyActiveTime.Unix())
+
 	tests := []struct {
 		name        string
-		genesisJSON string
+		fork        upgradetest.Fork
 		upgradeJSON string
 		check       func(*testing.T, *VM) // function to check the VM state
 	}{
 		{
-			name:        "Etna activates Cancun",
-			genesisJSON: toGenesisJSON(forkToChainConfig[upgradetest.Etna]),
+			name: "Etna activates Cancun",
+			fork: upgradetest.Etna,
 			check: func(t *testing.T, vm *VM) {
-				require.True(t, vm.chainConfig.IsCancun(common.Big0, DefaultEtnaTime))
+				require.True(t, vm.chainConfig.IsCancun(common.Big0, defaultEtnaTime))
 			},
 		},
 		{
-			name:        "Later Etna activates Cancun",
-			genesisJSON: toGenesisJSON(forkToChainConfig[upgradetest.Durango]),
+			name: "Changed Etna changes Cancun",
+			fork: upgradetest.Etna,
 			upgradeJSON: func() string {
 				upgrade := &extras.UpgradeConfig{
 					NetworkUpgradeOverrides: &extras.NetworkUpgrades{
-						EtnaTimestamp: utils.NewUint64(DefaultEtnaTime + 2),
+						EtnaTimestamp: utils.NewUint64(defaultEtnaTime + 2),
 					},
 				}
 				b, err := json.Marshal(upgrade)
@@ -388,33 +391,15 @@ func TestVMEtnaActivatesCancun(t *testing.T) {
 				return string(b)
 			}(),
 			check: func(t *testing.T, vm *VM) {
-				require.False(t, vm.chainConfig.IsCancun(common.Big0, DefaultEtnaTime))
-				require.True(t, vm.chainConfig.IsCancun(common.Big0, DefaultEtnaTime+2))
-			},
-		},
-		{
-			name:        "Changed Etna changes Cancun",
-			genesisJSON: toGenesisJSON(forkToChainConfig[upgradetest.Etna]),
-			upgradeJSON: func() string {
-				upgrade := &extras.UpgradeConfig{
-					NetworkUpgradeOverrides: &extras.NetworkUpgrades{
-						EtnaTimestamp: utils.NewUint64(DefaultEtnaTime + 2),
-					},
-				}
-				b, err := json.Marshal(upgrade)
-				require.NoError(t, err)
-				return string(b)
-			}(),
-			check: func(t *testing.T, vm *VM) {
-				require.False(t, vm.chainConfig.IsCancun(common.Big0, DefaultEtnaTime))
-				require.True(t, vm.chainConfig.IsCancun(common.Big0, DefaultEtnaTime+2))
+				require.False(t, vm.chainConfig.IsCancun(common.Big0, defaultEtnaTime))
+				require.True(t, vm.chainConfig.IsCancun(common.Big0, defaultEtnaTime+2))
 			},
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			tvm := newVM(t, testVMConfig{
-				genesisJSON: test.genesisJSON,
+				fork:        &test.fork,
 				upgradeJSON: test.upgradeJSON,
 			})
 

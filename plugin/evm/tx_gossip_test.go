@@ -29,6 +29,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/plugin/evm/config"
 	"github.com/ava-labs/subnet-evm/utils/utilstest"
 )
@@ -49,7 +50,7 @@ func TestEthTxGossip(t *testing.T) {
 		ctx,
 		snowCtx,
 		memdb.New(),
-		[]byte(toGenesisJSON(forkToChainConfig[upgradetest.Latest])),
+		[]byte(toGenesisJSON(params.ForkToChainConfig[upgradetest.Latest])),
 		nil,
 		nil,
 		nil,
@@ -164,7 +165,7 @@ func TestEthTxPushGossipOutbound(t *testing.T) {
 		ctx,
 		snowCtx,
 		memdb.New(),
-		[]byte(toGenesisJSON(forkToChainConfig[upgradetest.Latest])),
+		[]byte(toGenesisJSON(params.ForkToChainConfig[upgradetest.Latest])),
 		nil,
 		nil,
 		nil,
@@ -215,7 +216,7 @@ func TestEthTxPushGossipInbound(t *testing.T) {
 		ctx,
 		snowCtx,
 		memdb.New(),
-		[]byte(toGenesisJSON(forkToChainConfig[upgradetest.Latest])),
+		[]byte(toGenesisJSON(params.ForkToChainConfig[upgradetest.Latest])),
 		nil,
 		nil,
 		nil,

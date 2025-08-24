@@ -83,7 +83,7 @@ func testSendWarpMessage(t *testing.T, scheme string) {
 	require := require.New(t)
 	genesis := &core.Genesis{}
 
-	require.NoError(genesis.UnmarshalJSON([]byte(toGenesisJSON(forkToChainConfig[upgradetest.Durango]))))
+	require.NoError(genesis.UnmarshalJSON([]byte(toGenesisJSON(params.ForkToChainConfig[upgradetest.Durango]))))
 	params.GetExtra(genesis.Config).GenesisPrecompiles = extras.Precompiles{
 		warpcontract.ConfigKey: warpcontract.NewDefaultConfig(utils.TimeToNewUint64(upgrade.InitiallyActiveTime)),
 	}
@@ -318,7 +318,7 @@ func testValidateInvalidWarpBlockHash(t *testing.T, scheme string) {
 func testWarpVMTransaction(t *testing.T, scheme string, unsignedMessage *avalancheWarp.UnsignedMessage, validSignature bool, txPayload []byte) {
 	require := require.New(t)
 	genesis := &core.Genesis{}
-	require.NoError(genesis.UnmarshalJSON([]byte(toGenesisJSON(forkToChainConfig[upgradetest.Durango]))))
+	require.NoError(genesis.UnmarshalJSON([]byte(toGenesisJSON(params.ForkToChainConfig[upgradetest.Durango]))))
 	params.GetExtra(genesis.Config).GenesisPrecompiles = extras.Precompiles{
 		warpcontract.ConfigKey: warpcontract.NewDefaultConfig(utils.TimeToNewUint64(upgrade.InitiallyActiveTime)),
 	}
