@@ -268,7 +268,7 @@ func TestSuggestTipCapSimple(t *testing.T) {
 		chainConfig: params.TestChainConfig,
 		numBlocks:   3,
 		genBlock:    testGenBlock(t, 55, 370),
-		expectedTip: big.NewInt(643_500_644),
+		expectedTip: big.NewInt(1_287_001_288),
 	}, defaultOracleConfig())
 }
 
@@ -277,7 +277,7 @@ func TestSuggestTipCapSimpleFloor(t *testing.T) {
 		chainConfig: params.TestChainConfig,
 		numBlocks:   1,
 		genBlock:    testGenBlock(t, 55, 370),
-		expectedTip: common.Big0,
+		expectedTip: big.NewInt(643_500_644),
 	}, defaultOracleConfig())
 }
 
@@ -321,7 +321,7 @@ func TestSuggestTipCapSmallTips(t *testing.T) {
 				b.AddTx(tx)
 			}
 		},
-		expectedTip: big.NewInt(643_500_644),
+		expectedTip: big.NewInt(1_287_001_288),
 	}, defaultOracleConfig())
 }
 
