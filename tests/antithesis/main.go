@@ -14,18 +14,16 @@ import (
 
 	"github.com/antithesishq/antithesis-sdk-go/assert"
 	"github.com/antithesishq/antithesis-sdk-go/lifecycle"
-	"github.com/ava-labs/libevm/common"
-	"github.com/ava-labs/libevm/crypto"
-	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
-
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/tests/antithesis"
 	"github.com/ava-labs/avalanchego/tests/fixture/tmpnet"
 	"github.com/ava-labs/avalanchego/utils/logging"
-
+	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/types"
-	ethparams "github.com/ava-labs/libevm/params"
+	"github.com/ava-labs/libevm/crypto"
+	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
+
 	"github.com/ava-labs/subnet-evm/accounts/abi/bind"
 	"github.com/ava-labs/subnet-evm/ethclient"
 	"github.com/ava-labs/subnet-evm/tests"
@@ -33,6 +31,7 @@ import (
 
 	ago_tests "github.com/ava-labs/avalanchego/tests"
 	timerpkg "github.com/ava-labs/avalanchego/utils/timer"
+	ethparams "github.com/ava-labs/libevm/params"
 )
 
 const NumKeys = 5
@@ -79,7 +78,6 @@ func main() {
 		log:    ago_tests.NewDefaultLogger(fmt.Sprintf("worker %d", 0)),
 		client: genesisClient,
 		key:    genesisKey,
-		uris:   c.URIs,
 	}
 
 	workloads := make([]*workload, NumKeys)
@@ -100,7 +98,6 @@ func main() {
 			log:    ago_tests.NewDefaultLogger(fmt.Sprintf("worker %d", i)),
 			client: client,
 			key:    key,
-			uris:   c.URIs,
 		}
 	}
 
@@ -120,7 +117,6 @@ type workload struct {
 	client ethclient.Client
 	log    logging.Logger
 	key    *ecdsa.PrivateKey
-	uris   []string
 }
 
 // newTestContext returns a test context that ensures that log output and assertions are
@@ -226,7 +222,7 @@ func transferFunds(ctx context.Context, client ethclient.Client, key *ecdsa.Priv
 
 	log.Info("waiting for acceptance of transaction", zap.Stringer("txID", tx.Hash()))
 	if _, err := bind.WaitMined(ctx, client, tx); err != nil {
-		return fmt.Errorf("failed to wait for receipt: %v", err)
+		return fmt.Errorf("failed to wait for receipt: %w", err)
 	}
 	log.Info("confirmed acceptance of transaction", zap.Stringer("txID", tx.Hash()))
 

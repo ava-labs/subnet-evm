@@ -12,17 +12,10 @@ import (
 	"math/big"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
-
-	ginkgo "github.com/onsi/ginkgo/v2"
-
-	"github.com/stretchr/testify/require"
-
-	"github.com/ava-labs/libevm/common"
-	"github.com/ava-labs/libevm/crypto"
-	"github.com/ava-labs/libevm/log"
 
 	"github.com/ava-labs/avalanchego/api/info"
 	"github.com/ava-labs/avalanchego/ids"
@@ -32,11 +25,13 @@ import (
 	"github.com/ava-labs/avalanchego/utils/constants"
 	"github.com/ava-labs/avalanchego/vms/platformvm"
 	"github.com/ava-labs/avalanchego/vms/platformvm/api"
-	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
-
-	ethereum "github.com/ava-labs/libevm"
+	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/crypto"
+	"github.com/ava-labs/libevm/log"
+	"github.com/stretchr/testify/require"
+
 	"github.com/ava-labs/subnet-evm/cmd/simulator/key"
 	"github.com/ava-labs/subnet-evm/cmd/simulator/load"
 	"github.com/ava-labs/subnet-evm/cmd/simulator/metrics"
@@ -48,7 +43,11 @@ import (
 	"github.com/ava-labs/subnet-evm/tests"
 	"github.com/ava-labs/subnet-evm/tests/utils"
 	"github.com/ava-labs/subnet-evm/tests/warp/aggregator"
+
+	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
+	ethereum "github.com/ava-labs/libevm"
 	warpBackend "github.com/ava-labs/subnet-evm/warp"
+	ginkgo "github.com/onsi/ginkgo/v2"
 )
 
 const (
@@ -205,7 +204,6 @@ type warpTest struct {
 
 	// receivingSubnet fields set in the constructor
 	receivingSubnet              *Subnet
-	receivingSubnetURIs          []string
 	receivingSubnetClients       []ethclient.Client
 	receivingSubnetFundedKey     *ecdsa.PrivateKey
 	receivingSubnetFundedAddress common.Address
@@ -232,7 +230,6 @@ func newWarpTest(ctx context.Context, sendingSubnet *Subnet, receivingSubnet *Su
 		sendingSubnet:                sendingSubnet,
 		sendingSubnetURIs:            sendingSubnet.ValidatorURIs,
 		receivingSubnet:              receivingSubnet,
-		receivingSubnetURIs:          receivingSubnet.ValidatorURIs,
 		sendingSubnetFundedKey:       sendingSubnetFundedKey,
 		sendingSubnetFundedAddress:   crypto.PubkeyToAddress(sendingSubnetFundedKey.PublicKey),
 		receivingSubnetFundedKey:     receivingSubnetFundedKey,
@@ -592,7 +589,7 @@ func (w *warpTest) executeHardHatTest() {
 	os.Setenv("SOURCE_CHAIN_ID", "0x"+w.sendingSubnet.BlockchainID.Hex())
 	os.Setenv("PAYLOAD", "0x"+common.Bytes2Hex(testPayload))
 	os.Setenv("EXPECTED_UNSIGNED_MESSAGE", "0x"+hex.EncodeToString(w.addressedCallUnsignedMessage.Bytes()))
-	os.Setenv("CHAIN_ID", fmt.Sprintf("%d", chainID.Uint64()))
+	os.Setenv("CHAIN_ID", strconv.FormatUint(chainID.Uint64(), 10))
 
 	cmdPath := filepath.Join(repoRootPath, "contracts")
 	// test path is relative to the cmd path

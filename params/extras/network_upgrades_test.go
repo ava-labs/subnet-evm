@@ -9,8 +9,9 @@ import (
 	"github.com/ava-labs/avalanchego/upgrade"
 	"github.com/ava-labs/avalanchego/upgrade/upgradetest"
 	"github.com/ava-labs/avalanchego/utils/constants"
-	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/stretchr/testify/require"
+
+	"github.com/ava-labs/subnet-evm/utils"
 )
 
 func TestNetworkUpgradesEqual(t *testing.T) {
@@ -331,7 +332,7 @@ func TestForkOrder(t *testing.T) {
 	}
 	for _, test := range testcases {
 		t.Run(test.name, func(t *testing.T) {
-			err := checkForks(test.upgrades.forkOrder(), false)
+			err := checkForks(test.upgrades.forkOrder())
 			if test.expectedErr {
 				require.NotNil(t, err)
 			} else {

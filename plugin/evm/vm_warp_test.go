@@ -11,43 +11,45 @@ import (
 	"testing"
 	"time"
 
-	_ "embed"
-
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/network/p2p"
 	"github.com/ava-labs/avalanchego/network/p2p/acp118"
 	"github.com/ava-labs/avalanchego/proto/pb/sdk"
-	commonEng "github.com/ava-labs/avalanchego/snow/engine/common"
 	"github.com/ava-labs/avalanchego/snow/engine/enginetest"
 	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
 	"github.com/ava-labs/avalanchego/snow/validators"
 	"github.com/ava-labs/avalanchego/snow/validators/validatorstest"
 	"github.com/ava-labs/avalanchego/upgrade"
 	"github.com/ava-labs/avalanchego/upgrade/upgradetest"
-	avagoUtils "github.com/ava-labs/avalanchego/utils"
 	"github.com/ava-labs/avalanchego/utils/constants"
 	"github.com/ava-labs/avalanchego/utils/crypto/bls"
 	"github.com/ava-labs/avalanchego/utils/crypto/bls/signer/localsigner"
 	"github.com/ava-labs/avalanchego/utils/set"
 	"github.com/ava-labs/avalanchego/vms/components/chain"
-	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/rawdb"
 	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/libevm/crypto"
+	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/proto"
+
+	_ "embed"
+
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/eth/tracers"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/params/extras"
-	customheader "github.com/ava-labs/subnet-evm/plugin/evm/header"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
-	warpcontract "github.com/ava-labs/subnet-evm/precompile/contracts/warp"
 	"github.com/ava-labs/subnet-evm/predicate"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ava-labs/subnet-evm/warp"
-	"github.com/stretchr/testify/require"
-	"google.golang.org/protobuf/proto"
+
+	commonEng "github.com/ava-labs/avalanchego/snow/engine/common"
+	avagoUtils "github.com/ava-labs/avalanchego/utils"
+	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
+	customheader "github.com/ava-labs/subnet-evm/plugin/evm/header"
+	warpcontract "github.com/ava-labs/subnet-evm/precompile/contracts/warp"
 )
 
 var (
@@ -617,7 +619,8 @@ func testReceiveWarpMessage(
 		signature *bls.Signature
 		weight    uint64
 	}
-	newSigner := func(weight uint64) signer {
+	weight := uint64(50)
+	newSigner := func() signer {
 		secret, err := localsigner.New()
 		require.NoError(err)
 		sig, err := secret.Sign(unsignedMessage.Bytes())
@@ -632,12 +635,12 @@ func testReceiveWarpMessage(
 	}
 
 	primarySigners := []signer{
-		newSigner(50),
-		newSigner(50),
+		newSigner(),
+		newSigner(),
 	}
 	subnetSigners := []signer{
-		newSigner(50),
-		newSigner(50),
+		newSigner(),
+		newSigner(),
 	}
 	signers := subnetSigners
 	if useSigners == signersPrimary {
@@ -932,7 +935,7 @@ func testSignatureRequestsToVM(t *testing.T, scheme string) {
 }
 
 func TestClearWarpDB(t *testing.T) {
-	ctx, db, genesisBytes, _ := setupGenesis(t, upgradetest.Latest)
+	ctx, db, genesisBytes := setupGenesis(t, upgradetest.Latest)
 	vm := &VM{}
 	require.NoError(t, vm.Initialize(context.Background(), ctx, db, genesisBytes, []byte{}, []byte{}, []*commonEng.Fx{}, &enginetest.Sender{}))
 
@@ -956,7 +959,7 @@ func TestClearWarpDB(t *testing.T) {
 	// Restart VM with the same database default should not prune the warp db
 	vm = &VM{}
 	// we need new context since the previous one has registered metrics.
-	ctx, _, _, _ = setupGenesis(t, upgradetest.Latest)
+	ctx, _, _ = setupGenesis(t, upgradetest.Latest)
 	require.NoError(t, vm.Initialize(context.Background(), ctx, db, genesisBytes, []byte{}, []byte{}, []*commonEng.Fx{}, &enginetest.Sender{}))
 
 	// check messages are still present
@@ -971,7 +974,7 @@ func TestClearWarpDB(t *testing.T) {
 	// restart the VM with pruning enabled
 	vm = &VM{}
 	config := `{"prune-warp-db-enabled": true}`
-	ctx, _, _, _ = setupGenesis(t, upgradetest.Latest)
+	ctx, _, _ = setupGenesis(t, upgradetest.Latest)
 	require.NoError(t, vm.Initialize(context.Background(), ctx, db, genesisBytes, []byte{}, []byte(config), []*commonEng.Fx{}, &enginetest.Sender{}))
 
 	it := vm.warpDB.NewIterator()

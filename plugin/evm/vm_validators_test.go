@@ -11,20 +11,22 @@ import (
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow"
-	commonEng "github.com/ava-labs/avalanchego/snow/engine/common"
 	"github.com/ava-labs/avalanchego/snow/engine/enginetest"
-	avagovalidators "github.com/ava-labs/avalanchego/snow/validators"
 	"github.com/ava-labs/avalanchego/snow/validators/validatorstest"
 	"github.com/ava-labs/avalanchego/upgrade/upgradetest"
-	"github.com/ava-labs/subnet-evm/plugin/evm/validators"
-	"github.com/ava-labs/subnet-evm/utils/utilstest"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/ava-labs/subnet-evm/plugin/evm/validators"
+	"github.com/ava-labs/subnet-evm/utils/utilstest"
+
+	commonEng "github.com/ava-labs/avalanchego/snow/engine/common"
+	avagovalidators "github.com/ava-labs/avalanchego/snow/validators"
 )
 
 func TestValidatorState(t *testing.T) {
 	require := require.New(t)
-	ctx, dbManager, genesisBytes, _ := setupGenesis(t, upgradetest.Latest)
+	ctx, dbManager, genesisBytes := setupGenesis(t, upgradetest.Latest)
 
 	vm := &VM{}
 

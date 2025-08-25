@@ -16,15 +16,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ava-labs/libevm/common"
-	"github.com/ava-labs/libevm/core/rawdb"
-	"github.com/ava-labs/libevm/core/types"
-	"github.com/ava-labs/libevm/log"
-	"github.com/ava-labs/libevm/trie"
-
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-
 	"github.com/ava-labs/avalanchego/api/metrics"
 	"github.com/ava-labs/avalanchego/chains/atomic"
 	"github.com/ava-labs/avalanchego/database"
@@ -33,12 +24,19 @@ import (
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/avalanchego/snow/consensus/snowman"
-	commonEng "github.com/ava-labs/avalanchego/snow/engine/common"
 	"github.com/ava-labs/avalanchego/snow/engine/enginetest"
 	"github.com/ava-labs/avalanchego/upgrade"
 	"github.com/ava-labs/avalanchego/upgrade/upgradetest"
 	"github.com/ava-labs/avalanchego/utils/crypto/secp256k1"
 	"github.com/ava-labs/avalanchego/vms/components/chain"
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/core/rawdb"
+	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/log"
+	"github.com/ava-labs/libevm/trie"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/core"
@@ -60,6 +58,7 @@ import (
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ava-labs/subnet-evm/utils/utilstest"
 
+	commonEng "github.com/ava-labs/avalanchego/snow/engine/common"
 	avagoconstants "github.com/ava-labs/avalanchego/utils/constants"
 )
 
@@ -218,7 +217,6 @@ func setupGenesis(
 ) (*snow.Context,
 	*prefixdb.Database,
 	[]byte,
-	*atomic.Memory,
 ) {
 	ctx := utilstest.NewTestSnowContext(t)
 
@@ -237,7 +235,7 @@ func setupGenesis(
 
 	prefixedDB := prefixdb.New([]byte{1}, baseDB)
 
-	return ctx, prefixedDB, []byte(genesisJSON), atomicMemory
+	return ctx, prefixedDB, []byte(genesisJSON)
 }
 
 func TestVMConfig(t *testing.T) {
@@ -2417,7 +2415,7 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 
 func TestVerifyManagerConfig(t *testing.T) {
 	genesis := &core.Genesis{}
-	ctx, dbManager, genesisBytes, _ := setupGenesis(t, upgradetest.Durango)
+	ctx, dbManager, genesisBytes := setupGenesis(t, upgradetest.Durango)
 	require.NoError(t, genesis.UnmarshalJSON(genesisBytes))
 
 	durangoTimestamp := time.Now().Add(10 * time.Hour)
@@ -2460,7 +2458,7 @@ func TestVerifyManagerConfig(t *testing.T) {
 	require.NoError(t, err)
 
 	vm = &VM{}
-	ctx, dbManager, _, _ = setupGenesis(t, upgradetest.Latest)
+	ctx, dbManager, _ = setupGenesis(t, upgradetest.Latest)
 	err = vm.Initialize(
 		context.Background(),
 		ctx,
@@ -3728,7 +3726,7 @@ func TestWaitForEvent(t *testing.T) {
 }
 
 func TestGenesisGasLimit(t *testing.T) {
-	ctx, db, genesisBytes, _ := setupGenesis(t, upgradetest.Granite)
+	ctx, db, genesisBytes := setupGenesis(t, upgradetest.Granite)
 	genesis := &core.Genesis{}
 	require.NoError(t, genesis.UnmarshalJSON(genesisBytes))
 	// change the gas limit in the genesis to be different from the fee config

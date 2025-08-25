@@ -12,9 +12,11 @@ import (
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/ethdb"
 	"github.com/ava-labs/libevm/triedb"
-	"github.com/ava-labs/subnet-evm/core/state/snapshot"
-	syncclient "github.com/ava-labs/subnet-evm/sync/client"
 	"golang.org/x/sync/errgroup"
+
+	"github.com/ava-labs/subnet-evm/core/state/snapshot"
+
+	syncclient "github.com/ava-labs/subnet-evm/sync/client"
 )
 
 const (
@@ -43,7 +45,6 @@ type stateSync struct {
 	trieDB    *triedb.Database          // trieDB on top of db we are syncing. used to restore any existing tries.
 	snapshot  snapshot.SnapshotIterable // used to access the database we are syncing as a snapshot.
 	batchSize int                       // write batches when they reach this size
-	client    syncclient.Client         // used to contact peers over the network
 
 	segments   chan syncclient.LeafSyncTask   // channel of tasks to sync
 	syncer     *syncclient.CallbackLeafSyncer // performs the sync, looping over each task's range and invoking specified callbacks
@@ -72,7 +73,6 @@ func NewStateSyncer(config *StateSyncerConfig) (*stateSync, error) {
 	ss := &stateSync{
 		batchSize:       config.BatchSize,
 		db:              config.DB,
-		client:          config.Client,
 		root:            config.Root,
 		trieDB:          triedb.NewDatabase(config.DB, nil),
 		snapshot:        snapshot.NewDiskLayer(config.DB),
