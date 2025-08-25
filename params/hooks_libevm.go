@@ -50,7 +50,7 @@ func (r RulesExtra) CanCreateContract(ac *libevm.AddressContext, gas uint64, sta
 	return gas, nil
 }
 
-func (r RulesExtra) CanExecuteTransaction(_ common.Address, _ *common.Address, _ libevm.StateReader) error {
+func (RulesExtra) CanExecuteTransaction(_ common.Address, _ *common.Address, _ libevm.StateReader) error {
 	// TODO: Migrate call for txallowlist precompile to here from core/state_transition.go
 	// when that is used from libevm.
 	return nil
@@ -61,7 +61,7 @@ func (r RulesExtra) ActivePrecompiles(existing []common.Address) []common.Addres
 }
 
 // MinimumGasConsumption is a no-op.
-func (r RulesExtra) MinimumGasConsumption(x uint64) uint64 {
+func (RulesExtra) MinimumGasConsumption(x uint64) uint64 {
 	return (ethparams.NOOPHooks{}).MinimumGasConsumption(x)
 }
 
