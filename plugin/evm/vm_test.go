@@ -218,7 +218,6 @@ func setupGenesis(
 ) (*snow.Context,
 	*prefixdb.Database,
 	[]byte,
-	*atomic.Memory,
 ) {
 	ctx := utilstest.NewTestSnowContext(t)
 
@@ -237,7 +236,7 @@ func setupGenesis(
 
 	prefixedDB := prefixdb.New([]byte{1}, baseDB)
 
-	return ctx, prefixedDB, []byte(genesisJSON), atomicMemory
+	return ctx, prefixedDB, []byte(genesisJSON)
 }
 
 func TestVMConfig(t *testing.T) {
@@ -2423,7 +2422,7 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 
 func TestVerifyManagerConfig(t *testing.T) {
 	genesis := &core.Genesis{}
-	ctx, dbManager, genesisBytes, _ := setupGenesis(t, upgradetest.Durango)
+	ctx, dbManager, genesisBytes := setupGenesis(t, upgradetest.Durango)
 	require.NoError(t, genesis.UnmarshalJSON(genesisBytes))
 
 	durangoTimestamp := time.Now().Add(10 * time.Hour)
@@ -2466,7 +2465,7 @@ func TestVerifyManagerConfig(t *testing.T) {
 	require.NoError(t, err)
 
 	vm = &VM{}
-	ctx, dbManager, _, _ = setupGenesis(t, upgradetest.Latest)
+	ctx, dbManager, _ = setupGenesis(t, upgradetest.Latest)
 	err = vm.Initialize(
 		context.Background(),
 		ctx,
@@ -3740,7 +3739,7 @@ func TestWaitForEvent(t *testing.T) {
 }
 
 func TestGenesisGasLimit(t *testing.T) {
-	ctx, db, genesisBytes, _ := setupGenesis(t, upgradetest.Granite)
+	ctx, db, genesisBytes := setupGenesis(t, upgradetest.Granite)
 	genesis := &core.Genesis{}
 	require.NoError(t, genesis.UnmarshalJSON(genesisBytes))
 	// change the gas limit in the genesis to be different from the fee config
