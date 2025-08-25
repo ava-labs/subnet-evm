@@ -13,7 +13,6 @@ import (
 	"github.com/ava-labs/libevm/triedb"
 
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
-	"github.com/ava-labs/subnet-evm/warp"
 
 	syncHandlers "github.com/ava-labs/subnet-evm/sync/handlers"
 	syncStats "github.com/ava-labs/subnet-evm/sync/handlers/stats"
@@ -41,7 +40,6 @@ type LeafRequestTypeConfig struct {
 func newNetworkHandler(
 	provider syncHandlers.SyncDataProvider,
 	diskDB ethdb.KeyValueReader,
-	warpBackend warp.Backend,
 	networkCodec codec.Manager,
 	leafRequestHandlers LeafHandlers,
 	syncStats syncStats.HandlerStats,
