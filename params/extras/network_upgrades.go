@@ -4,6 +4,7 @@
 package extras
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -16,7 +17,7 @@ import (
 )
 
 var (
-	errCannotBeNil = fmt.Errorf("timestamp cannot be nil")
+	errCannotBeNil = errors.New("timestamp cannot be nil")
 
 	unscheduledActivation = uint64(upgrade.UnscheduledActivationTime.Unix())
 	initiallyActiveTime   = uint64(upgrade.InitiallyActiveTime.Unix())
