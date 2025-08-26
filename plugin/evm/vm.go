@@ -77,6 +77,7 @@ import (
 	"github.com/ava-labs/subnet-evm/triedb/hashdb"
 	"github.com/ava-labs/subnet-evm/warp"
 
+	avalanchegossip "github.com/ava-labs/avalanchego/network/p2p/gossip"
 	commonEng "github.com/ava-labs/avalanchego/snow/engine/common"
 	avalancheUtils "github.com/ava-labs/avalanchego/utils"
 	avajson "github.com/ava-labs/avalanchego/utils/json"
@@ -244,9 +245,9 @@ type VM struct {
 	warpBackend warp.Backend
 
 	// Initialize only sets these if nil so they can be overridden in tests
-	ethTxGossipHandler p2p.Handler
-	ethTxPushGossiper  avalancheUtils.Atomic[*gossip.PushGossiper[*GossipEthTx]]
+	ethTxGossipHandler txGossipHandler
 	ethTxPullGossiper  gossip.Gossiper
+	ethTxPushGossiper  avalancheUtils.Atomic[*avalanchegossip.PushGossiper[*GossipEthTx]]
 
 	validatorsManager interfaces.Manager
 
@@ -819,7 +820,7 @@ func (vm *VM) onNormalOperationsStarted() error {
 	vm.builder.awaitSubmittedTxs()
 	vm.builderLock.Unlock()
 
-	if vm.ethTxGossipHandler == nil {
+	if vm.ethTxGossipHandler == (txGossipHandler{}) {
 		vm.ethTxGossipHandler = newTxGossipHandler[*GossipEthTx](
 			vm.ctx.Log,
 			ethTxGossipMarshaller,
@@ -846,24 +847,23 @@ func (vm *VM) onNormalOperationsStarted() error {
 			config.TxGossipPollSize,
 		)
 
-		vm.ethTxPullGossiper = gossip.ValidatorGossiper{
+		ethTxPullGossiperWhenValidator := avalanchegossip.ValidatorGossiper{
 			Gossiper:   ethTxPullGossiper,
 			NodeID:     vm.ctx.NodeID,
 			Validators: vm.P2PValidators(),
 		}
+
+		vm.shutdownWg.Add(1)
+		go func() {
+			gossip.Every(ctx, vm.ctx.Log, ethTxPushGossiper, vm.config.PushGossipFrequency.Duration)
+			vm.shutdownWg.Done()
+		}()
+		vm.shutdownWg.Add(1)
+		go func() {
+			avalanchegossip.Every(ctx, vm.ctx.Log, ethTxPullGossiperWhenValidator, vm.config.PullGossipFrequency.Duration)
+			vm.shutdownWg.Done()
+		}()
 	}
-
-	vm.shutdownWg.Add(1)
-	go func() {
-		gossip.Every(ctx, vm.ctx.Log, ethTxPushGossiper, vm.config.PushGossipFrequency.Duration)
-		vm.shutdownWg.Done()
-	}()
-	vm.shutdownWg.Add(1)
-	go func() {
-		gossip.Every(ctx, vm.ctx.Log, vm.ethTxPullGossiper, vm.config.PullGossipFrequency.Duration)
-		vm.shutdownWg.Done()
-	}()
-
 	return nil
 }
 
