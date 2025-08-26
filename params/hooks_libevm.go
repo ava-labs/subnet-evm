@@ -94,9 +94,9 @@ func makePrecompile(contract contract.StatefulPrecompiledContract) libevm.Precom
 		}
 
 		callType := env.IncomingCallType()
-		isDissallowedCallType := callType == vm.DelegateCall || callType == vm.CallCode
+		isDisallowedCallType := callType == vm.DelegateCall || callType == vm.CallCode
 		if env.BlockTime() >= invalidateDelegateUnix {
-			if isDissallowedCallType {
+			if isDisallowedCallType {
 				env.InvalidateExecution(fmt.Errorf("precompile cannot be called with %s", callType))
 			}
 		}
