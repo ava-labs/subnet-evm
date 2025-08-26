@@ -51,7 +51,7 @@ func (RulesExtra) CanExecuteTransaction(_ common.Address, _ *common.Address, _ l
 	return nil
 }
 
-func (r RulesExtra) ActivePrecompiles(existing []common.Address) []common.Address {
+func (RulesExtra) ActivePrecompiles(existing []common.Address) []common.Address {
 	return existing
 }
 
@@ -63,7 +63,7 @@ func (RulesExtra) MinimumGasConsumption(x uint64) uint64 {
 // precompileOverrideBuiltin specifies precompiles that were activated prior to the
 // dynamic precompile activation registry.
 // These were only active historically and are not active in the current network.
-func (r RulesExtra) precompileOverrideBuiltin(addr common.Address) (libevm.PrecompiledContract, bool) {
+func (RulesExtra) precompileOverrideBuiltin(_ common.Address) (libevm.PrecompiledContract, bool) {
 	return nil, false
 }
 

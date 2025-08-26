@@ -682,11 +682,11 @@ type HelloGreetingRequestHandler struct {
 	codec codec.Manager
 }
 
-func (h *HelloGreetingRequestHandler) HandleHelloRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, request *HelloRequest) ([]byte, error) {
+func (h *HelloGreetingRequestHandler) HandleHelloRequest(_ context.Context, _ ids.NodeID, _ uint32, _ *HelloRequest) ([]byte, error) {
 	return h.codec.Marshal(message.Version, HelloResponse{Response: "Hi"})
 }
 
-func (h *HelloGreetingRequestHandler) HandleGreetingRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, request *GreetingRequest) ([]byte, error) {
+func (h *HelloGreetingRequestHandler) HandleGreetingRequest(_ context.Context, _ ids.NodeID, _ uint32, _ *GreetingRequest) ([]byte, error) {
 	return h.codec.Marshal(message.Version, GreetingResponse{Greet: "Hey there"})
 }
 
