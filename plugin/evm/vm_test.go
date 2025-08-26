@@ -25,6 +25,7 @@ import (
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/avalanchego/snow/consensus/snowman"
 	"github.com/ava-labs/avalanchego/snow/engine/enginetest"
+	"github.com/ava-labs/avalanchego/snow/snowtest"
 	"github.com/ava-labs/avalanchego/upgrade"
 	"github.com/ava-labs/avalanchego/upgrade/upgradetest"
 	"github.com/ava-labs/avalanchego/utils/crypto/secp256k1"
@@ -357,31 +358,30 @@ func TestBuildEthTxBlock(t *testing.T) {
 }
 
 func testBuildEthTxBlock(t *testing.T, scheme string) {
-	fork := upgradetest.ApricotPhase6
+	fork := upgradetest.Latest
 	tvm := newVM(t, testVMConfig{
 		fork:        &fork,
 		genesisJSON: genesisJSONSubnetEVM,
-		configJSON:  getConfig(scheme, `"pruning-enabled":true`),
+		configJSON:  getConfig(scheme, ""),
 	})
 
+	vm := tvm.vm
 	newTxPoolHeadChan := make(chan core.NewTxPoolReorgEvent, 1)
-	tvm.vm.txPool.SubscribeNewReorgEvent(newTxPoolHeadChan)
+	vm.txPool.SubscribeNewReorgEvent(newTxPoolHeadChan)
 
-	key := utilstest.NewKey(t)
-
-	tx := types.NewTransaction(uint64(0), key.Address, firstTxAmount, 21000, big.NewInt(testMinGasPrice), nil)
-	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(tvm.vm.chainConfig.ChainID), testKeys[0].ToECDSA())
+	tx := types.NewTransaction(uint64(0), testEthAddrs[1], big.NewInt(1), 21000, big.NewInt(225_000_000_000), nil)
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0].ToECDSA())
 	if err != nil {
 		t.Fatal(err)
 	}
-	errs := tvm.vm.txPool.AddRemotesSync([]*types.Transaction{signedTx})
-	for i, err := range errs {
-		if err != nil {
-			t.Fatalf("Failed to add tx at index %d: %s", i, err)
-		}
+
+	txErrors := vm.txPool.AddRemotesSync([]*types.Transaction{signedTx})
+	if err := txErrors[0]; err != nil {
+		t.Fatalf("Failed to add transaction to mempool: %s", err)
 	}
 
-	blk1 := issueAndAccept(t, tvm.vm)
+	blk1 := issueAndAccept(t, vm)
+
 	newHead := <-newTxPoolHeadChan
 	if newHead.Head.Hash() != common.Hash(blk1.ID()) {
 		t.Fatalf("Expected new block to match")
@@ -389,28 +389,29 @@ func testBuildEthTxBlock(t *testing.T, scheme string) {
 
 	txs := make([]*types.Transaction, 10)
 	for i := 0; i < 10; i++ {
-		tx := types.NewTransaction(uint64(i), key.Address, big.NewInt(10), 21000, big.NewInt(testMinGasPrice), nil)
-		signedTx, err := types.SignTx(tx, types.NewEIP155Signer(tvm.vm.chainConfig.ChainID), key.PrivateKey)
+		tx := types.NewTransaction(uint64(i), testEthAddrs[0], big.NewInt(10), 21000, big.NewInt(testMinGasPrice), nil)
+		signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[1].ToECDSA())
 		if err != nil {
 			t.Fatal(err)
 		}
 		txs[i] = signedTx
 	}
-	errs = tvm.vm.txPool.AddRemotesSync(txs)
-	for i, err := range errs {
+
+	txErrors = vm.txPool.AddRemotesSync(txs)
+	for i, err := range txErrors {
 		if err != nil {
-			t.Fatalf("Failed to add tx at index %d: %s", i, err)
+			t.Fatalf("Failed to add transaction %d to mempool: %s", i, err)
 		}
 	}
 
-	tvm.vm.clock.Set(tvm.vm.clock.Time().Add(2 * time.Second))
-	blk2 := issueAndAccept(t, tvm.vm)
+	blk2 := issueAndAccept(t, vm)
+
 	newHead = <-newTxPoolHeadChan
 	if newHead.Head.Hash() != common.Hash(blk2.ID()) {
 		t.Fatalf("Expected new block to match")
 	}
 
-	lastAcceptedID, err := tvm.vm.LastAccepted(context.Background())
+	lastAcceptedID, err := vm.LastAccepted(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -419,19 +420,19 @@ func testBuildEthTxBlock(t *testing.T, scheme string) {
 	}
 
 	ethBlk1 := blk1.(*chain.BlockWrapper).Block.(*Block).ethBlock
-	if ethBlk1Root := ethBlk1.Root(); !tvm.vm.blockChain.HasState(ethBlk1Root) {
+	if ethBlk1Root := ethBlk1.Root(); !vm.blockChain.HasState(ethBlk1Root) {
 		t.Fatalf("Expected blk1 state root to not yet be pruned after blk2 was accepted because of tip buffer")
 	}
 
 	// Clear the cache and ensure that GetBlock returns internal blocks with the correct status
-	tvm.vm.State.Flush()
-	blk2Refreshed, err := tvm.vm.GetBlockInternal(context.Background(), blk2.ID())
+	vm.State.Flush()
+	blk2Refreshed, err := vm.GetBlockInternal(context.Background(), blk2.ID())
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	blk1RefreshedID := blk2Refreshed.Parent()
-	blk1Refreshed, err := tvm.vm.GetBlockInternal(context.Background(), blk1RefreshedID)
+	blk1Refreshed, err := vm.GetBlockInternal(context.Background(), blk1RefreshedID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -440,9 +441,28 @@ func testBuildEthTxBlock(t *testing.T, scheme string) {
 		t.Fatalf("Found unexpected blkID for parent of blk2")
 	}
 
-	restartedTVM, err := restartVM(tvm, tvm.config)
-	require.NoError(t, err)
-	restartedVM := restartedTVM.vm
+	// Close the vm and all databases
+	if err := vm.Shutdown(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+
+	restartedVM := &VM{}
+	newCTX := snowtest.Context(t, snowtest.CChainID)
+	newCTX.NetworkUpgrades = upgradetest.GetConfig(fork)
+	newCTX.ChainDataDir = tvm.vm.ctx.ChainDataDir
+	conf := getConfig(scheme, "")
+	if err := restartedVM.Initialize(
+		context.Background(),
+		newCTX,
+		tvm.db,
+		[]byte(toGenesisJSON(paramstest.ForkToChainConfig[fork])),
+		[]byte(""),
+		[]byte(conf),
+		[]*commonEng.Fx{},
+		nil,
+	); err != nil {
+		t.Fatal(err)
+	}
 
 	// State root should not have been committed and discarded on restart
 	if ethBlk1Root := ethBlk1.Root(); restartedVM.blockChain.HasState(ethBlk1Root) {
@@ -453,6 +473,11 @@ func testBuildEthTxBlock(t *testing.T, scheme string) {
 	ethBlk2 := blk2.(*chain.BlockWrapper).Block.(*Block).ethBlock
 	if ethBlk2Root := ethBlk2.Root(); !restartedVM.blockChain.HasState(ethBlk2Root) {
 		t.Fatalf("Expected blk2 state root to not be pruned after shutdown (last accepted tip should be committed)")
+	}
+
+	// Shutdown the newest VM
+	if err := restartedVM.Shutdown(context.Background()); err != nil {
+		t.Fatal(err)
 	}
 }
 
