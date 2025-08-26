@@ -1692,7 +1692,7 @@ func StatefulPrecompiles(t *testing.T, create createFunc) {
 
 	// Generate chain of blocks using [genDB] instead of [chainDB] to avoid writing
 	// to the BlockChain's database while generating blocks.
-	_, chain, _, err := GenerateChainWithGenesis(gspec, blockchain.engine, 1, 0, func(i int, gen *BlockGen) {
+	_, chain, _, err := GenerateChainWithGenesis(gspec, blockchain.engine, 1, 0, func(_ int, gen *BlockGen) {
 		for _, test := range tests {
 			test.addTx(gen)
 		}

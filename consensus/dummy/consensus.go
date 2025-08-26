@@ -329,7 +329,7 @@ func (eng *DummyEngine) verifyBlockFee(
 	return nil
 }
 
-func (eng *DummyEngine) Finalize(chain consensus.ChainHeaderReader, block *types.Block, parent *types.Header, state *state.StateDB, receipts []*types.Receipt) error {
+func (eng *DummyEngine) Finalize(chain consensus.ChainHeaderReader, block *types.Block, parent *types.Header, _ *state.StateDB, receipts []*types.Receipt) error {
 	config := params.GetExtra(chain.Config())
 	timestamp := block.Time()
 	// we use the parent to determine the fee config
