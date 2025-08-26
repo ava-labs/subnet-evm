@@ -35,7 +35,7 @@ import (
 	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/coretest"
-	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/params/paramstest"
 	"github.com/ava-labs/subnet-evm/plugin/evm/customrawdb"
 	"github.com/ava-labs/subnet-evm/plugin/evm/database"
 	"github.com/ava-labs/subnet-evm/predicate"
@@ -143,7 +143,7 @@ func TestStateSyncToggleEnabledToDisabled(t *testing.T) {
 		context.Background(),
 		vmSetup.syncerVM.ctx,
 		vmSetup.syncerDB,
-		[]byte(toGenesisJSON(params.ForkToChainConfig[upgradetest.Latest])),
+		[]byte(toGenesisJSON(paramstest.ForkToChainConfig[upgradetest.Latest])),
 		nil,
 		[]byte(stateSyncDisabledConfigJSON),
 		[]*commonEng.Fx{},
@@ -207,7 +207,7 @@ func TestStateSyncToggleEnabledToDisabled(t *testing.T) {
 		context.Background(),
 		vmSetup.syncerVM.ctx,
 		vmSetup.syncerDB,
-		[]byte(toGenesisJSON(params.ForkToChainConfig[upgradetest.Latest])),
+		[]byte(toGenesisJSON(paramstest.ForkToChainConfig[upgradetest.Latest])),
 		nil,
 		[]byte(configJSON),
 		[]*commonEng.Fx{},
@@ -276,7 +276,7 @@ func createSyncServerAndClientVMs(t *testing.T, test syncTest, numBlocks int) *s
 	require := require.New(t)
 	// configure [serverVM]
 	serverVM := newVM(t, testVMConfig{
-		genesisJSON: toGenesisJSON(params.ForkToChainConfig[upgradetest.Latest]),
+		genesisJSON: toGenesisJSON(paramstest.ForkToChainConfig[upgradetest.Latest]),
 	})
 
 	t.Cleanup(func() {
@@ -317,7 +317,7 @@ func createSyncServerAndClientVMs(t *testing.T, test syncTest, numBlocks int) *s
 	// initialise [syncerVM] with blank genesis state
 	stateSyncEnabledJSON := fmt.Sprintf(`{"state-sync-enabled":true, "state-sync-min-blocks": %d, "tx-lookup-limit": %d}`, test.stateSyncMinBlocks, 4)
 	syncerVM := newVM(t, testVMConfig{
-		genesisJSON: toGenesisJSON(params.ForkToChainConfig[upgradetest.Latest]),
+		genesisJSON: toGenesisJSON(paramstest.ForkToChainConfig[upgradetest.Latest]),
 		configJSON:  stateSyncEnabledJSON,
 		isSyncing:   true,
 	})

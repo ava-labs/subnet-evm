@@ -30,7 +30,6 @@ package params
 import (
 	"math/big"
 
-	"github.com/ava-labs/avalanchego/upgrade/upgradetest"
 	ethparams "github.com/ava-labs/libevm/params"
 	"github.com/ava-labs/subnet-evm/params/extras"
 	"github.com/ava-labs/subnet-evm/utils"
@@ -195,16 +194,6 @@ var (
 		},
 		extras.TestGraniteChainConfig,
 	)
-
-	// ForkToChainConfig maps a fork to a chain config
-	ForkToChainConfig = map[upgradetest.Fork]*ChainConfig{
-		upgradetest.ApricotPhase5: TestPreSubnetEVMChainConfig,
-		upgradetest.ApricotPhase6: TestSubnetEVMChainConfig,
-		upgradetest.Durango:       TestDurangoChainConfig,
-		upgradetest.Etna:          TestEtnaChainConfig,
-		upgradetest.Fortuna:       TestFortunaChainConfig,
-		upgradetest.Granite:       TestGraniteChainConfig,
-	}
 
 	TestRules = TestChainConfig.Rules(new(big.Int), IsMergeTODO, 0)
 )

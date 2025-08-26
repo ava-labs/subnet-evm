@@ -29,6 +29,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/params/extras"
+	"github.com/ava-labs/subnet-evm/params/paramstest"
 	"github.com/ava-labs/subnet-evm/plugin/evm/vmerrors"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/txallowlist"
 	"github.com/ava-labs/subnet-evm/utils"
@@ -172,7 +173,7 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 
 func TestNetworkUpgradesOverridden(t *testing.T) {
 	fork := upgradetest.Granite
-	chainConfig := params.ForkToChainConfig[fork]
+	chainConfig := paramstest.ForkToChainConfig[fork]
 	extraConfig := params.GetExtra(chainConfig)
 	extraConfig.NetworkUpgrades.GraniteTimestamp = utils.NewUint64(uint64(upgrade.InitiallyActiveTime.Unix()))
 	genesis := &core.Genesis{}

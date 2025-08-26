@@ -44,6 +44,7 @@ import (
 	"github.com/ava-labs/subnet-evm/eth"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/params/extras"
+	"github.com/ava-labs/subnet-evm/params/paramstest"
 	"github.com/ava-labs/subnet-evm/plugin/evm/config"
 	"github.com/ava-labs/subnet-evm/plugin/evm/customrawdb"
 	"github.com/ava-labs/subnet-evm/plugin/evm/customtypes"
@@ -143,7 +144,7 @@ func newVM(t *testing.T, config testVMConfig) *testVM {
 	ctx.NetworkUpgrades = upgradetest.GetConfig(fork)
 
 	if len(config.genesisJSON) == 0 {
-		config.genesisJSON = toGenesisJSON(params.ForkToChainConfig[fork])
+		config.genesisJSON = toGenesisJSON(paramstest.ForkToChainConfig[fork])
 	}
 
 	baseDB := memdb.New()
@@ -212,7 +213,7 @@ func setupGenesis(
 ) {
 	ctx := utilstest.NewTestSnowContext(t)
 
-	genesisJSON := toGenesisJSON(params.ForkToChainConfig[fork])
+	genesisJSON := toGenesisJSON(paramstest.ForkToChainConfig[fork])
 	ctx.NetworkUpgrades = upgradetest.GetConfig(fork)
 
 	baseDB := memdb.New()
@@ -2232,7 +2233,7 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 	managerKey := testKeys[1]
 	managerAddress := testEthAddrs[1]
 	genesis := &core.Genesis{}
-	if err := genesis.UnmarshalJSON([]byte(toGenesisJSON(params.ForkToChainConfig[upgradetest.Durango]))); err != nil {
+	if err := genesis.UnmarshalJSON([]byte(toGenesisJSON(paramstest.ForkToChainConfig[upgradetest.Durango]))); err != nil {
 		t.Fatal(err)
 	}
 	// this manager role should not be activated because DurangoTimestamp is in the future
@@ -2418,7 +2419,7 @@ func TestVerifyManagerConfig(t *testing.T) {
 	require.ErrorIs(t, err, allowlist.ErrCannotAddManagersBeforeDurango)
 
 	genesis = &core.Genesis{}
-	require.NoError(t, genesis.UnmarshalJSON([]byte(toGenesisJSON(params.ForkToChainConfig[upgradetest.Durango]))))
+	require.NoError(t, genesis.UnmarshalJSON([]byte(toGenesisJSON(paramstest.ForkToChainConfig[upgradetest.Durango]))))
 	params.GetExtra(genesis.Config).DurangoTimestamp = utils.TimeToNewUint64(durangoTimestamp)
 	genesisJSON, err = genesis.MarshalJSON()
 	require.NoError(t, err)
@@ -2453,7 +2454,7 @@ func TestVerifyManagerConfig(t *testing.T) {
 func TestTxAllowListDisablePrecompile(t *testing.T) {
 	// Setup chain params
 	genesis := &core.Genesis{}
-	if err := genesis.UnmarshalJSON([]byte(toGenesisJSON(params.ForkToChainConfig[upgradetest.Latest]))); err != nil {
+	if err := genesis.UnmarshalJSON([]byte(toGenesisJSON(paramstest.ForkToChainConfig[upgradetest.Latest]))); err != nil {
 		t.Fatal(err)
 	}
 	enableAllowListTimestamp := upgrade.InitiallyActiveTime // enable at initially active time
@@ -3155,7 +3156,7 @@ func TestSkipChainConfigCheckCompatible(t *testing.T) {
 	// use the block's timestamp instead of 0 since rewind to genesis
 	// is hardcoded to be allowed in core/genesis.go.
 	genesisWithUpgrade := &core.Genesis{}
-	require.NoError(t, json.Unmarshal([]byte(toGenesisJSON(params.ForkToChainConfig[upgradetest.Durango])), genesisWithUpgrade))
+	require.NoError(t, json.Unmarshal([]byte(toGenesisJSON(paramstest.ForkToChainConfig[upgradetest.Durango])), genesisWithUpgrade))
 	params.GetExtra(genesisWithUpgrade.Config).EtnaTimestamp = utils.TimeToNewUint64(blk.Timestamp())
 	genesisWithUpgradeBytes, err := json.Marshal(genesisWithUpgrade)
 	require.NoError(t, err)
@@ -3312,7 +3313,7 @@ func TestStandaloneDB(t *testing.T) {
 		context.Background(),
 		ctx,
 		sharedDB,
-		[]byte(toGenesisJSON(params.ForkToChainConfig[upgradetest.Latest])),
+		[]byte(toGenesisJSON(paramstest.ForkToChainConfig[upgradetest.Latest])),
 		nil,
 		[]byte(configJSON),
 		[]*commonEng.Fx{},

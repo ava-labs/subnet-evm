@@ -18,6 +18,7 @@ import (
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/params/extras"
+	"github.com/ava-labs/subnet-evm/params/paramstest"
 	"github.com/ava-labs/subnet-evm/utils"
 )
 
@@ -88,7 +89,7 @@ func TestGenesisToBlockDecoding(t *testing.T) {
 		upgradetest.Fortuna:       common.HexToHash("0xa5de01cb7e5c6d721be62ab4b37878e863d65e0c1fe308e5df1f4c5b148650f9"),
 		upgradetest.Granite:       common.HexToHash("0xa5de01cb7e5c6d721be62ab4b37878e863d65e0c1fe308e5df1f4c5b148650f9"),
 	}
-	for fork, chainConfig := range params.ForkToChainConfig {
+	for fork, chainConfig := range paramstest.ForkToChainConfig {
 		t.Run(fork.String(), func(t *testing.T) {
 			db := rawdb.NewMemoryDatabase()
 			tdb := triedb.NewDatabase(db, triedb.HashDefaults)
