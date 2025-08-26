@@ -5,8 +5,7 @@
   - `StorageRangeAt` 
   - `GetModifiedAccountsByNumber`
   - `GetModifiedAccountsByHash`
-- Add pending releases here
-
+- Enabled RPC batch limits by default, and configurable with `batch-request-limit` and `batch-max-response-size`.
 
 ## [v0.7.8](https://github.com/ava-labs/subnet-evm/releases/tag/v0.7.8)
 
