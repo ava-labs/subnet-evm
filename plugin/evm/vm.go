@@ -768,8 +768,8 @@ func (vm *VM) onNormalOperationsStarted() error {
 	// Initialize goroutines related to block building
 	// once we enter normal operation as there is no need to handle mempool gossip before this point.
 	ethTxGossipMarshaller := GossipEthTxMarshaller{}
-	ethTxGossipClient := vm.Network.NewClient(p2p.TxGossipHandlerID, p2p.WithValidatorSampling(vm.P2PValidators()))
-	ethTxGossipMetrics, err := gossip.NewMetrics(vm.sdkMetrics, ethTxGossipNamespace)
+	ethTxGossipClient := vm.Network.NewClient(p2p.TxGossipHandlerID)
+	ethTxGossipMetrics, err := avalanchegossip.NewMetrics(vm.sdkMetrics, ethTxGossipNamespace)
 	if err != nil {
 		return fmt.Errorf("failed to initialize eth tx gossip metrics: %w", err)
 	}
@@ -819,17 +819,20 @@ func (vm *VM) onNormalOperationsStarted() error {
 	vm.builder.awaitSubmittedTxs()
 	vm.builderLock.Unlock()
 
-	if vm.ethTxGossipHandler == nil {
-		vm.ethTxGossipHandler = newTxGossipHandler[*GossipEthTx](
-			vm.ctx.Log,
-			ethTxGossipMarshaller,
-			ethTxPool,
-			ethTxGossipMetrics,
-			config.TxGossipTargetMessageSize,
-			config.TxGossipThrottlingPeriod,
-			config.TxGossipThrottlingLimit,
-			vm.P2PValidators(),
-		)
+	vm.ethTxGossipHandler, err = gossip.NewTxGossipHandler[*GossipEthTx](
+		vm.ctx.Log,
+		ethTxGossipMarshaller,
+		ethTxPool,
+		ethTxGossipMetrics,
+		config.TxGossipTargetMessageSize,
+		config.TxGossipThrottlingPeriod,
+		config.TxGossipRequestsPerPeer,
+		vm.P2PValidators(),
+		vm.sdkMetrics,
+		"eth_tx_gossip",
+	)
+	if err != nil {
+		return fmt.Errorf("failed to initialize eth tx gossip handler: %w", err)
 	}
 
 	if err := vm.Network.AddHandler(p2p.TxGossipHandlerID, vm.ethTxGossipHandler); err != nil {
