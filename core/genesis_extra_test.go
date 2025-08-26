@@ -80,14 +80,21 @@ func TestGenesisEthUpgrades(t *testing.T) {
 
 func TestGenesisToBlockDecoding(t *testing.T) {
 	previousHashes := map[upgradetest.Fork]common.Hash{
-		upgradetest.ApricotPhase5: common.HexToHash("0x6116de25352c93149542e950162c7305f207bbc17b0eb725136b78c80aed79cc"),
-		upgradetest.ApricotPhase6: common.HexToHash("0x74dd5d404823f342fb3d372ea289565e5b1ff25d07e48a59db8130c5f61e941a"),
-		upgradetest.Banff:         common.HexToHash("0x74dd5d404823f342fb3d372ea289565e5b1ff25d07e48a59db8130c5f61e941a"),
-		upgradetest.Cortina:       common.HexToHash("0x74dd5d404823f342fb3d372ea289565e5b1ff25d07e48a59db8130c5f61e941a"),
-		upgradetest.Durango:       common.HexToHash("0x74dd5d404823f342fb3d372ea289565e5b1ff25d07e48a59db8130c5f61e941a"),
-		upgradetest.Etna:          common.HexToHash("0xa5de01cb7e5c6d721be62ab4b37878e863d65e0c1fe308e5df1f4c5b148650f9"),
-		upgradetest.Fortuna:       common.HexToHash("0xa5de01cb7e5c6d721be62ab4b37878e863d65e0c1fe308e5df1f4c5b148650f9"),
-		upgradetest.Granite:       common.HexToHash("0xa5de01cb7e5c6d721be62ab4b37878e863d65e0c1fe308e5df1f4c5b148650f9"),
+		upgradetest.NoUpgrades:        common.HexToHash("0x52e9daa2557502146c10c206edc95239d578a6a99ad19553e359e32af1df2eb2"),
+		upgradetest.ApricotPhase1:     common.HexToHash("0x52e9daa2557502146c10c206edc95239d578a6a99ad19553e359e32af1df2eb2"),
+		upgradetest.ApricotPhase2:     common.HexToHash("0x52e9daa2557502146c10c206edc95239d578a6a99ad19553e359e32af1df2eb2"),
+		upgradetest.ApricotPhase3:     common.HexToHash("0xab4ce08ac987c618e1d12642338da6b2308e7f3886fb6a671e9560212d508d2a"),
+		upgradetest.ApricotPhase4:     common.HexToHash("0xab4ce08ac987c618e1d12642338da6b2308e7f3886fb6a671e9560212d508d2a"),
+		upgradetest.ApricotPhase5:     common.HexToHash("0xab4ce08ac987c618e1d12642338da6b2308e7f3886fb6a671e9560212d508d2a"),
+		upgradetest.ApricotPhasePre6:  common.HexToHash("0xab4ce08ac987c618e1d12642338da6b2308e7f3886fb6a671e9560212d508d2a"),
+		upgradetest.ApricotPhase6:     common.HexToHash("0xab4ce08ac987c618e1d12642338da6b2308e7f3886fb6a671e9560212d508d2a"),
+		upgradetest.ApricotPhasePost6: common.HexToHash("0xab4ce08ac987c618e1d12642338da6b2308e7f3886fb6a671e9560212d508d2a"),
+		upgradetest.Banff:             common.HexToHash("0xab4ce08ac987c618e1d12642338da6b2308e7f3886fb6a671e9560212d508d2a"),
+		upgradetest.Cortina:           common.HexToHash("0xab4ce08ac987c618e1d12642338da6b2308e7f3886fb6a671e9560212d508d2a"),
+		upgradetest.Durango:           common.HexToHash("0xab4ce08ac987c618e1d12642338da6b2308e7f3886fb6a671e9560212d508d2a"),
+		upgradetest.Etna:              common.HexToHash("0x1094f685d39b737cf599fd599744b9849923a11ea3314826f170b443a87cb0e0"),
+		upgradetest.Fortuna:           common.HexToHash("0x1094f685d39b737cf599fd599744b9849923a11ea3314826f170b443a87cb0e0"),
+		upgradetest.Granite:           common.HexToHash("0x1094f685d39b737cf599fd599744b9849923a11ea3314826f170b443a87cb0e0"),
 	}
 	for fork, chainConfig := range paramstest.ForkToChainConfig {
 		t.Run(fork.String(), func(t *testing.T) {

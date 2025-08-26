@@ -38,6 +38,7 @@ var (
 		NetworkUpgrades:    GetNetworkUpgrades(upgrade.GetConfig(constants.MainnetID)),
 		GenesisPrecompiles: Precompiles{},
 	}
+	TestLaunchConfig = &ChainConfig{}
 
 	TestPreSubnetEVMChainConfig = &ChainConfig{
 		FeeConfig:          DefaultFeeConfig,
