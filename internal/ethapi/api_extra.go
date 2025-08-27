@@ -21,10 +21,6 @@ import (
 	"github.com/ava-labs/subnet-evm/rpc"
 )
 
-func (s *BlockChainAPI) GetChainConfig(ctx context.Context) *params.ChainConfigWithUpgradesJSON {
-	return params.ToWithUpgradesJSON(s.b.ChainConfig())
-}
-
 type DetailedExecutionResult struct {
 	UsedGas    uint64        `json:"gas"`        // Total used gas but include the refunded gas
 	ErrCode    int           `json:"errCode"`    // EVM error code
@@ -72,7 +68,7 @@ type BadBlockArgs struct {
 
 // GetBadBlocks returns a list of the last 'bad blocks' that the client has seen on the network
 // and returns them as a JSON list of block hashes.
-func (s *BlockChainAPI) GetBadBlocks(ctx context.Context) ([]*BadBlockArgs, error) {
+func (s *BlockChainAPI) GetBadBlocks() ([]*BadBlockArgs, error) {
 	var (
 		badBlocks, reasons = s.b.BadBlocks()
 		results            = make([]*BadBlockArgs, 0, len(badBlocks))
@@ -126,7 +122,7 @@ func (s *BlockChainAPI) FeeConfig(ctx context.Context, blockNrOrHash *rpc.BlockN
 
 // GetActivePrecompilesAt returns the active precompile configs at the given block timestamp.
 // DEPRECATED: Use GetActiveRulesAt instead.
-func (s *BlockChainAPI) GetActivePrecompilesAt(ctx context.Context, blockTimestamp *uint64) extras.Precompiles {
+func (s *BlockChainAPI) GetActivePrecompilesAt(_ context.Context, blockTimestamp *uint64) extras.Precompiles {
 	var timestamp uint64
 	if blockTimestamp == nil {
 		timestamp = s.b.CurrentHeader().Time
@@ -148,7 +144,7 @@ type ActiveRulesResult struct {
 }
 
 // GetActiveRulesAt returns the active rules at the given block timestamp.
-func (s *BlockChainAPI) GetActiveRulesAt(ctx context.Context, blockTimestamp *uint64) ActiveRulesResult {
+func (s *BlockChainAPI) GetActiveRulesAt(_ context.Context, blockTimestamp *uint64) ActiveRulesResult {
 	var timestamp uint64
 	if blockTimestamp == nil {
 		timestamp = s.b.CurrentHeader().Time

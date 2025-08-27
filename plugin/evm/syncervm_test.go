@@ -283,7 +283,7 @@ func createSyncServerAndClientVMs(t *testing.T, test syncTest, numBlocks int) *s
 		log.Info("Shutting down server VM")
 		require.NoError(serverVM.vm.Shutdown(context.Background()))
 	})
-	generateAndAcceptBlocks(t, serverVM.vm, numBlocks, func(i int, gen *core.BlockGen) {
+	generateAndAcceptBlocks(t, serverVM.vm, numBlocks, func(_ int, gen *core.BlockGen) {
 		b, err := predicate.NewResults().Bytes()
 		if err != nil {
 			t.Fatal(err)

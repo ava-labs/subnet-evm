@@ -953,7 +953,7 @@ func (vm *VM) buildBlock(ctx context.Context) (snowman.Block, error) {
 	return vm.buildBlockWithContext(ctx, nil)
 }
 
-func (vm *VM) buildBlockWithContext(ctx context.Context, proposerVMBlockCtx *block.Context) (snowman.Block, error) {
+func (vm *VM) buildBlockWithContext(_ context.Context, proposerVMBlockCtx *block.Context) (snowman.Block, error) {
 	if proposerVMBlockCtx != nil {
 		log.Debug("Building block with context", "pChainBlockHeight", proposerVMBlockCtx.PChainHeight)
 	} else {
@@ -1087,7 +1087,7 @@ func (vm *VM) GetBlockIDAtHeight(_ context.Context, height uint64) (ids.ID, erro
 	return ids.ID(hash), nil
 }
 
-func (vm *VM) Version(context.Context) (string, error) {
+func (*VM) Version(context.Context) (string, error) {
 	return Version, nil
 }
 
@@ -1171,12 +1171,12 @@ func (vm *VM) NewHTTPHandler(ctx context.Context) (http.Handler, error) {
 	}
 
 	// Fallback to a default handler if no RPC handler exists
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		http.Error(w, "No HTTP handler available", http.StatusNotFound)
 	}), nil
 }
 
-func (vm *VM) CreateHTTP2Handler(context.Context) (http.Handler, error) {
+func (*VM) CreateHTTP2Handler(context.Context) (http.Handler, error) {
 	return nil, nil
 }
 
