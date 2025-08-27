@@ -217,7 +217,7 @@ func verifyWithDefault(configTimestamp *uint64, defaultTimestamp *uint64) error 
 	}
 
 	// handle avalanche edge-cases:
-	// nil -> error unless default is unscheduled 
+	// nil -> error unless default is unscheduled
 	// 0  -> allowed for initially-active defaults
 	// non-zero -> must be >= default.
 	if configTimestamp == nil {
