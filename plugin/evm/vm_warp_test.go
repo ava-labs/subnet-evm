@@ -749,7 +749,6 @@ func testReceiveWarpMessage(
 	require.NoError(err)
 
 	// Predicate results encode the index of invalid warp messages in a bitset.
-	// An empty bitset indicates success.
 	txBits := blockResults.Get(getVerifiedWarpMessageTx.Hash(), warpcontract.ContractAddress)
 	require.Zero(txBits.Len()) // Empty bitset indicates success
 
