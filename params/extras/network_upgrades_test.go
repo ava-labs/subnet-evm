@@ -325,10 +325,30 @@ func TestForkOrder(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			err := checkForks(test.upgrades.forkOrder())
 			if test.expectedErr {
-				require.NotNil(t, err)
+				require.Error(t, err)
 			} else {
-				require.Nil(t, err)
+				require.NoError(t, err)
 			}
 		})
 	}
+}
+
+func TestSetDefaultsTreatsZeroAsUnset(t *testing.T) {
+	upgrades := &NetworkUpgrades{
+		SubnetEVMTimestamp: utils.NewUint64(0),
+		DurangoTimestamp:   utils.NewUint64(0),
+		EtnaTimestamp:      nil,
+		FortunaTimestamp:   utils.NewUint64(0),
+		GraniteTimestamp:   utils.NewUint64(0),
+	}
+	agoUpgrades := upgradetest.GetConfig(upgradetest.Granite)
+	upgrades.SetDefaults(agoUpgrades)
+
+	defaults := GetNetworkUpgrades(agoUpgrades)
+
+	require.EqualValues(t, defaults.SubnetEVMTimestamp, upgrades.SubnetEVMTimestamp)
+	require.EqualValues(t, defaults.DurangoTimestamp, upgrades.DurangoTimestamp)
+	require.EqualValues(t, defaults.EtnaTimestamp, upgrades.EtnaTimestamp)
+	require.EqualValues(t, defaults.FortunaTimestamp, upgrades.FortunaTimestamp)
+	require.EqualValues(t, defaults.GraniteTimestamp, upgrades.GraniteTimestamp)
 }
