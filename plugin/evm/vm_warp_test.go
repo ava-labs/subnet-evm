@@ -41,6 +41,7 @@ import (
 	"github.com/ava-labs/subnet-evm/eth/tracers"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/params/extras"
+	"github.com/ava-labs/subnet-evm/params/paramstest"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ava-labs/subnet-evm/warp"
@@ -85,7 +86,7 @@ func testSendWarpMessage(t *testing.T, scheme string) {
 	require := require.New(t)
 	genesis := &core.Genesis{}
 
-	require.NoError(genesis.UnmarshalJSON([]byte(toGenesisJSON(forkToChainConfig[upgradetest.Durango]))))
+	require.NoError(genesis.UnmarshalJSON([]byte(toGenesisJSON(paramstest.ForkToChainConfig[upgradetest.Durango]))))
 	params.GetExtra(genesis.Config).GenesisPrecompiles = extras.Precompiles{
 		warpcontract.ConfigKey: warpcontract.NewDefaultConfig(utils.TimeToNewUint64(upgrade.InitiallyActiveTime)),
 	}
@@ -320,7 +321,7 @@ func testValidateInvalidWarpBlockHash(t *testing.T, scheme string) {
 func testWarpVMTransaction(t *testing.T, scheme string, unsignedMessage *avalancheWarp.UnsignedMessage, validSignature bool, txPayload []byte) {
 	require := require.New(t)
 	genesis := &core.Genesis{}
-	require.NoError(genesis.UnmarshalJSON([]byte(toGenesisJSON(forkToChainConfig[upgradetest.Durango]))))
+	require.NoError(genesis.UnmarshalJSON([]byte(toGenesisJSON(paramstest.ForkToChainConfig[upgradetest.Durango]))))
 	params.GetExtra(genesis.Config).GenesisPrecompiles = extras.Precompiles{
 		warpcontract.ConfigKey: warpcontract.NewDefaultConfig(utils.TimeToNewUint64(upgrade.InitiallyActiveTime)),
 	}
@@ -620,7 +621,8 @@ func testReceiveWarpMessage(
 		signature *bls.Signature
 		weight    uint64
 	}
-	newSigner := func(weight uint64) signer {
+	weight := uint64(50)
+	newSigner := func() signer {
 		secret, err := localsigner.New()
 		require.NoError(err)
 		sig, err := secret.Sign(unsignedMessage.Bytes())
@@ -635,12 +637,12 @@ func testReceiveWarpMessage(
 	}
 
 	primarySigners := []signer{
-		newSigner(50),
-		newSigner(50),
+		newSigner(),
+		newSigner(),
 	}
 	subnetSigners := []signer{
-		newSigner(50),
-		newSigner(50),
+		newSigner(),
+		newSigner(),
 	}
 	signers := subnetSigners
 	if useSigners == signersPrimary {
@@ -931,7 +933,7 @@ func testSignatureRequestsToVM(t *testing.T, scheme string) {
 }
 
 func TestClearWarpDB(t *testing.T) {
-	ctx, db, genesisBytes, _ := setupGenesis(t, upgradetest.Latest)
+	ctx, db, genesisBytes := setupGenesis(t, upgradetest.Latest)
 	vm := &VM{}
 	require.NoError(t, vm.Initialize(context.Background(), ctx, db, genesisBytes, []byte{}, []byte{}, []*commonEng.Fx{}, &enginetest.Sender{}))
 
@@ -955,7 +957,7 @@ func TestClearWarpDB(t *testing.T) {
 	// Restart VM with the same database default should not prune the warp db
 	vm = &VM{}
 	// we need new context since the previous one has registered metrics.
-	ctx, _, _, _ = setupGenesis(t, upgradetest.Latest)
+	ctx, _, _ = setupGenesis(t, upgradetest.Latest)
 	require.NoError(t, vm.Initialize(context.Background(), ctx, db, genesisBytes, []byte{}, []byte{}, []*commonEng.Fx{}, &enginetest.Sender{}))
 
 	// check messages are still present
@@ -970,7 +972,7 @@ func TestClearWarpDB(t *testing.T) {
 	// restart the VM with pruning enabled
 	vm = &VM{}
 	config := `{"prune-warp-db-enabled": true}`
-	ctx, _, _, _ = setupGenesis(t, upgradetest.Latest)
+	ctx, _, _ = setupGenesis(t, upgradetest.Latest)
 	require.NoError(t, vm.Initialize(context.Background(), ctx, db, genesisBytes, []byte{}, []byte(config), []*commonEng.Fx{}, &enginetest.Sender{}))
 
 	it := vm.warpDB.NewIterator()

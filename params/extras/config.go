@@ -39,67 +39,39 @@ var (
 		GenesisPrecompiles: Precompiles{},
 	}
 
-	TestChainConfig = &ChainConfig{
+	TestPreSubnetEVMChainConfig = &ChainConfig{
 		FeeConfig:          DefaultFeeConfig,
-		NetworkUpgrades:    GetNetworkUpgrades(upgrade.GetConfig(constants.UnitTestID)), // This can be changed to correct network (local, test) via VM.
+		NetworkUpgrades:    NetworkUpgrades{},
 		GenesisPrecompiles: Precompiles{},
 	}
 
-	TestPreSubnetEVMChainConfig = copyAndSet(TestChainConfig, func(c *ChainConfig) {
-		c.NetworkUpgrades = NetworkUpgrades{
-			SubnetEVMTimestamp: utils.TimeToNewUint64(upgrade.UnscheduledActivationTime),
-			DurangoTimestamp:   utils.TimeToNewUint64(upgrade.UnscheduledActivationTime),
-			EtnaTimestamp:      utils.TimeToNewUint64(upgrade.UnscheduledActivationTime),
-			FortunaTimestamp:   utils.TimeToNewUint64(upgrade.UnscheduledActivationTime),
-		}
+	TestSubnetEVMChainConfig = copyAndSet(TestPreSubnetEVMChainConfig, func(c *ChainConfig) {
+		c.NetworkUpgrades.SubnetEVMTimestamp = utils.NewUint64(0)
 	})
 
-	TestSubnetEVMChainConfig = copyAndSet(TestChainConfig, func(c *ChainConfig) {
-		c.NetworkUpgrades = NetworkUpgrades{
-			SubnetEVMTimestamp: utils.NewUint64(0),
-			DurangoTimestamp:   utils.TimeToNewUint64(upgrade.UnscheduledActivationTime),
-			EtnaTimestamp:      utils.TimeToNewUint64(upgrade.UnscheduledActivationTime),
-			FortunaTimestamp:   utils.TimeToNewUint64(upgrade.UnscheduledActivationTime),
-		}
+	TestDurangoChainConfig = copyAndSet(TestSubnetEVMChainConfig, func(c *ChainConfig) {
+		c.NetworkUpgrades.DurangoTimestamp = utils.NewUint64(0)
 	})
 
-	TestDurangoChainConfig = copyAndSet(TestChainConfig, func(c *ChainConfig) {
-		c.NetworkUpgrades = NetworkUpgrades{
-			SubnetEVMTimestamp: utils.NewUint64(0),
-			DurangoTimestamp:   utils.TimeToNewUint64(upgrade.InitiallyActiveTime),
-			EtnaTimestamp:      utils.TimeToNewUint64(upgrade.UnscheduledActivationTime),
-			FortunaTimestamp:   utils.TimeToNewUint64(upgrade.UnscheduledActivationTime),
-		}
+	TestEtnaChainConfig = copyAndSet(TestDurangoChainConfig, func(c *ChainConfig) {
+		c.NetworkUpgrades.EtnaTimestamp = utils.NewUint64(0)
 	})
 
-	TestEtnaChainConfig = copyAndSet(TestChainConfig, func(c *ChainConfig) {
-		c.NetworkUpgrades = NetworkUpgrades{
-			SubnetEVMTimestamp: utils.NewUint64(0),
-			DurangoTimestamp:   utils.TimeToNewUint64(upgrade.InitiallyActiveTime),
-			EtnaTimestamp:      utils.TimeToNewUint64(upgrade.InitiallyActiveTime),
-			FortunaTimestamp:   utils.TimeToNewUint64(upgrade.UnscheduledActivationTime),
-		}
+	TestFortunaChainConfig = copyAndSet(TestEtnaChainConfig, func(c *ChainConfig) {
+		c.NetworkUpgrades.FortunaTimestamp = utils.NewUint64(0)
 	})
 
-	TestFortunaChainConfig = copyAndSet(TestChainConfig, func(c *ChainConfig) {
-		c.NetworkUpgrades = NetworkUpgrades{
-			SubnetEVMTimestamp: utils.NewUint64(0),
-			DurangoTimestamp:   utils.TimeToNewUint64(upgrade.InitiallyActiveTime),
-			EtnaTimestamp:      utils.TimeToNewUint64(upgrade.InitiallyActiveTime),
-			FortunaTimestamp:   utils.TimeToNewUint64(upgrade.InitiallyActiveTime),
-		}
+	TestGraniteChainConfig = copyAndSet(TestFortunaChainConfig, func(c *ChainConfig) {
+		c.NetworkUpgrades.GraniteTimestamp = utils.NewUint64(0)
 	})
 
-	TestGraniteChainConfig = copyAndSet(TestChainConfig, func(c *ChainConfig) {
-		c.NetworkUpgrades = NetworkUpgrades{
-			SubnetEVMTimestamp: utils.NewUint64(0),
-			DurangoTimestamp:   utils.TimeToNewUint64(upgrade.InitiallyActiveTime),
-			EtnaTimestamp:      utils.TimeToNewUint64(upgrade.InitiallyActiveTime),
-			FortunaTimestamp:   utils.TimeToNewUint64(upgrade.InitiallyActiveTime),
-			GraniteTimestamp:   utils.TimeToNewUint64(upgrade.InitiallyActiveTime),
-		}
-	})
+	TestChainConfig = copyConfig(TestGraniteChainConfig)
 )
+
+func copyConfig(c *ChainConfig) *ChainConfig {
+	newConfig := *c
+	return &newConfig
+}
 
 func copyAndSet(c *ChainConfig, set func(*ChainConfig)) *ChainConfig {
 	newConfig := *c
@@ -154,7 +126,7 @@ func (c *ChainConfig) CheckConfigCompatible(newConfig *ethparams.ChainConfig, he
 	return c.checkConfigCompatible(newcfg, headNumber, headTimestamp)
 }
 
-func (c *ChainConfig) checkConfigCompatible(newcfg *ChainConfig, headNumber *big.Int, headTimestamp uint64) *ethparams.ConfigCompatError {
+func (c *ChainConfig) checkConfigCompatible(newcfg *ChainConfig, _ *big.Int, headTimestamp uint64) *ethparams.ConfigCompatError {
 	if err := c.checkNetworkUpgradesCompatible(&newcfg.NetworkUpgrades, headTimestamp); err != nil {
 		return err
 	}
@@ -291,12 +263,12 @@ func (c *ChainConfig) CheckConfigForkOrder() error {
 	// Note: we do not add the precompile configs here because they are optional
 	// and independent, i.e. the order in which they are enabled does not impact
 	// the correctness of the chain config.
-	return checkForks(c.forkOrder(), false)
+	return checkForks(c.forkOrder())
 }
 
 // checkForks checks that forks are enabled in order and returns an error if not.
 // `blockFork` is true if the fork is a block number fork, false if it is a timestamp fork
-func checkForks(forks []fork, blockFork bool) error {
+func checkForks(forks []fork) error {
 	lastFork := fork{}
 	for _, cur := range forks {
 		if lastFork.name != "" {
