@@ -5,7 +5,7 @@ go 1.23.9
 require (
 	github.com/VictoriaMetrics/fastcache v1.12.1
 	github.com/antithesishq/antithesis-sdk-go v0.3.8
-	github.com/ava-labs/avalanchego v1.13.4
+	github.com/ava-labs/avalanchego v1.13.4-rc.2.0.20250820204950-f5e3cc7eb474
 	github.com/ava-labs/firewood-go-ethhash/ffi v0.0.9
 	github.com/ava-labs/libevm v1.13.14-0.3.0.rc.6
 	github.com/davecgh/go-spew v1.1.1
@@ -177,5 +177,3 @@ require (
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.1 // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect
 )
-
-replace github.com/ava-labs/avalanchego => ../avalanchego
