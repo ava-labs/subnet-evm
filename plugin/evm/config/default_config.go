@@ -6,6 +6,7 @@ package config
 import (
 	"time"
 
+	"github.com/ava-labs/avalanchego/database/pebbledb"
 	"github.com/ava-labs/libevm/common"
 )
 
@@ -89,7 +90,7 @@ func NewDefaultConfig() Config {
 		// Subnet EVM API settings
 		ValidatorsAPIEnabled: true,
 		// Database settings
-		DatabaseType: "leveldb",
+		DatabaseType: pebbledb.Name,
 		// Additional settings with sensible defaults
 		AllowUnprotectedTxs: false,
 	}
