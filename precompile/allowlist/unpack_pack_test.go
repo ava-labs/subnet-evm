@@ -1,4 +1,4 @@
-// (c) 2019-2020, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package allowlist
@@ -7,10 +7,11 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/precompile/contract"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/crypto"
 	"github.com/stretchr/testify/require"
+
+	"github.com/ava-labs/subnet-evm/precompile/contract"
 )
 
 var (

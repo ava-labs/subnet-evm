@@ -1,4 +1,5 @@
-// (c) 2019-2020, Ava Labs, Inc.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -35,24 +36,29 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/interfaces"
+	ethereum "github.com/ava-labs/libevm"
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/common/hexutil"
+	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/event"
 	"github.com/ava-labs/subnet-evm/internal/ethapi"
 	"github.com/ava-labs/subnet-evm/rpc"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/event"
 )
 
 var (
-	errInvalidTopic      = errors.New("invalid topic(s)")
-	errFilterNotFound    = errors.New("filter not found")
-	errInvalidBlockRange = errors.New("invalid block range params")
-	errExceedMaxTopics   = errors.New("exceed max topics")
+	errInvalidTopic       = errors.New("invalid topic(s)")
+	errFilterNotFound     = errors.New("filter not found")
+	errInvalidBlockRange  = errors.New("invalid block range params")
+	errExceedMaxTopics    = errors.New("exceed max topics")
+	errExceedMaxAddresses = errors.New("exceed max addresses")
 )
 
-// The maximum number of topic criteria allowed, vm.LOG4 - vm.LOG0
-const maxTopics = 4
+const (
+	// The maximum number of addresses allowed in a filter criteria
+	maxAddresses = 1000
+	// The maximum number of topic criteria allowed, vm.LOG4 - vm.LOG0
+	maxTopics = 4
+)
 
 // filter is a helper struct that holds meta information over the filter type
 // and associated subscription in the event system.
@@ -333,12 +339,12 @@ func (api *FilterAPI) Logs(ctx context.Context, crit FilterCriteria) (*rpc.Subsc
 	)
 
 	if api.sys.backend.IsAllowUnfinalizedQueries() {
-		logsSub, err = api.events.SubscribeLogs(interfaces.FilterQuery(crit), matchedLogs)
+		logsSub, err = api.events.SubscribeLogs(ethereum.FilterQuery(crit), matchedLogs)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		logsSub, err = api.events.SubscribeAcceptedLogs(interfaces.FilterQuery(crit), matchedLogs)
+		logsSub, err = api.events.SubscribeAcceptedLogs(ethereum.FilterQuery(crit), matchedLogs)
 		if err != nil {
 			return nil, err
 		}
@@ -364,8 +370,8 @@ func (api *FilterAPI) Logs(ctx context.Context, crit FilterCriteria) (*rpc.Subsc
 }
 
 // FilterCriteria represents a request to create a new filter.
-// Same as interfaces.FilterQuery but with UnmarshalJSON() method.
-type FilterCriteria interfaces.FilterQuery
+// Same as [ethereum.FilterQuery] with the method [FilterCriteria.UnmarshalJSON].
+type FilterCriteria ethereum.FilterQuery
 
 // NewFilter creates a new filter and returns the filter id. It can be
 // used to retrieve logs when the state changes. This method cannot be
@@ -386,12 +392,12 @@ func (api *FilterAPI) NewFilter(crit FilterCriteria) (rpc.ID, error) {
 	)
 
 	if api.sys.backend.IsAllowUnfinalizedQueries() {
-		logsSub, err = api.events.SubscribeLogs(interfaces.FilterQuery(crit), logs)
+		logsSub, err = api.events.SubscribeLogs(ethereum.FilterQuery(crit), logs)
 		if err != nil {
 			return "", err
 		}
 	} else {
-		logsSub, err = api.events.SubscribeAcceptedLogs(interfaces.FilterQuery(crit), logs)
+		logsSub, err = api.events.SubscribeAcceptedLogs(ethereum.FilterQuery(crit), logs)
 		if err != nil {
 			return "", err
 		}
@@ -426,6 +432,9 @@ func (api *FilterAPI) NewFilter(crit FilterCriteria) (rpc.ID, error) {
 func (api *FilterAPI) GetLogs(ctx context.Context, crit FilterCriteria) ([]*types.Log, error) {
 	if len(crit.Topics) > maxTopics {
 		return nil, errExceedMaxTopics
+	}
+	if len(crit.Addresses) > maxAddresses {
+		return nil, errExceedMaxAddresses
 	}
 	var filter *Filter
 	if crit.BlockHash != nil {
@@ -622,6 +631,9 @@ func (args *FilterCriteria) UnmarshalJSON(data []byte) error {
 		// raw.Address can contain a single address or an array of addresses
 		switch rawAddr := raw.Addresses.(type) {
 		case []interface{}:
+			if len(rawAddr) > maxAddresses {
+				return errExceedMaxAddresses
+			}
 			for i, addr := range rawAddr {
 				if strAddr, ok := addr.(string); ok {
 					addr, err := decodeAddress(strAddr)

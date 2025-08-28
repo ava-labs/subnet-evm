@@ -1,4 +1,5 @@
-// (c) 2023, Ava Labs, Inc.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -34,12 +35,12 @@ import (
 	"math/big"
 	"os"
 
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/common/math"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/common/hexutil"
+	"github.com/ava-labs/libevm/common/math"
+	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/crypto"
+	"github.com/ava-labs/libevm/rlp"
 	"github.com/urfave/cli/v2"
 )
 
@@ -166,7 +167,10 @@ func (i *bbInput) ToBlock() *types.Block {
 	if i.Header.Difficulty != nil {
 		header.Difficulty = i.Header.Difficulty
 	}
-	return types.NewBlockWithHeader(header).WithBody(i.Txs, i.Ommers)
+	return types.NewBlockWithHeader(header).WithBody(types.Body{
+		Transactions: i.Txs,
+		Uncles:       i.Ommers,
+	})
 }
 
 // SealBlock seals the given block using the configured engine.

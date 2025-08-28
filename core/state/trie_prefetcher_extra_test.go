@@ -1,4 +1,4 @@
-// (c) 2024, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package state
@@ -13,18 +13,28 @@ import (
 	"testing"
 
 	"github.com/ava-labs/avalanchego/database"
-	"github.com/ava-labs/subnet-evm/core/rawdb"
-	"github.com/ava-labs/subnet-evm/core/state/snapshot"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/metrics"
-	"github.com/ava-labs/subnet-evm/triedb"
-	"github.com/ava-labs/subnet-evm/triedb/hashdb"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/ethdb"
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/core/rawdb"
+	"github.com/ava-labs/libevm/core/state"
+	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/ethdb"
+	"github.com/ava-labs/libevm/libevm/stateconf"
+	"github.com/ava-labs/libevm/metrics"
+	"github.com/ava-labs/libevm/triedb"
 	"github.com/stretchr/testify/require"
+
+	"github.com/ava-labs/subnet-evm/core/extstate"
+	"github.com/ava-labs/subnet-evm/core/state/snapshot"
+	"github.com/ava-labs/subnet-evm/triedb/hashdb"
 )
 
-const namespace = "chain"
+const (
+	namespace = "chain"
+
+	// triePrefetchMetricsPrefix is the prefix for trie prefetcher metrics
+	// and MUST match upstream for the benchmark to work.
+	triePrefetchMetricsPrefix = "trie/prefetch/"
+)
 
 // BenchmarkPrefetcherDatabase benchmarks the performance of the trie
 // prefetcher. By default, a state with 100k storage keys is created and stored
@@ -74,7 +84,7 @@ func BenchmarkPrefetcherDatabase(b *testing.B) {
 	// Make a trie on the levelDB
 	address1 := common.Address{42}
 	address2 := common.Address{43}
-	addBlock := func(db Database, snaps *snapshot.Tree, kvsPerBlock int, prefetchers int) {
+	addBlock := func(db state.Database, snaps *snapshot.Tree, kvsPerBlock int, prefetchers int) {
 		_, root, err = addKVs(db, snaps, address1, address2, root, block, kvsPerBlock, prefetchers)
 		require.NoError(err)
 		count += uint64(kvsPerBlock)
@@ -82,7 +92,7 @@ func BenchmarkPrefetcherDatabase(b *testing.B) {
 	}
 
 	lastCommit := block
-	commit := func(levelDB ethdb.Database, snaps *snapshot.Tree, db Database) {
+	commit := func(levelDB ethdb.Database, snaps *snapshot.Tree, db state.Database) {
 		require.NoError(db.TrieDB().Commit(root, false))
 
 		for i := lastCommit + 1; i <= block; i++ {
@@ -97,11 +107,11 @@ func BenchmarkPrefetcherDatabase(b *testing.B) {
 	}
 
 	tdbConfig := &triedb.Config{
-		HashDB: &hashdb.Config{
+		DBOverride: hashdb.Config{
 			CleanCacheSize: 3 * 1024 * 1024 * 1024,
-		},
+		}.BackendConstructor,
 	}
-	db := NewDatabaseWithConfig(levelDB, tdbConfig)
+	db := state.NewDatabaseWithConfig(levelDB, tdbConfig)
 	snaps := snapshot.NewTestTree(levelDB, fakeHash(block), root)
 	for count < uint64(wantKVs) {
 		previous := root
@@ -131,7 +141,7 @@ func BenchmarkPrefetcherDatabase(b *testing.B) {
 				levelDB, err := rawdb.NewLevelDBDatabase(path.Join(dir, "level.db"), 0, 0, "", false)
 				require.NoError(err)
 				snaps := snapshot.NewTestTree(levelDB, fakeHash(block), root)
-				db := NewDatabaseWithConfig(levelDB, tdbConfig)
+				db := state.NewDatabaseWithConfig(levelDB, tdbConfig)
 				getMetric := func(metric string) int64 {
 					meter := metrics.GetOrRegisterMeter(triePrefetchMetricsPrefix+namespace+"/storage/"+metric, nil)
 					return meter.Snapshot().Count()
@@ -154,20 +164,16 @@ func fakeHash(block uint64) common.Hash {
 // addKVs adds count random key-value pairs to the state trie of address1 and
 // address2 (each count/2) and returns the new state db and root.
 func addKVs(
-	db Database, snaps *snapshot.Tree,
+	db state.Database, snaps *snapshot.Tree,
 	address1, address2 common.Address, root common.Hash, block uint64,
 	count int, prefetchers int,
-) (*StateDB, common.Hash, error) {
-	snap := snaps.Snapshot(root)
-	if snap == nil {
-		return nil, common.Hash{}, fmt.Errorf("snapshot not found")
-	}
-	statedb, err := NewWithSnapshot(root, db, snap)
+) (*state.StateDB, common.Hash, error) {
+	statedb, err := state.New(root, db, snaps)
 	if err != nil {
 		return nil, common.Hash{}, fmt.Errorf("creating state with snapshot: %w", err)
 	}
 	if prefetchers > 0 {
-		statedb.StartPrefetcher(namespace, WithConcurrentWorkers(prefetchers))
+		statedb.StartPrefetcher(namespace, extstate.WithConcurrentWorkers(prefetchers))
 		defer statedb.StopPrefetcher()
 	}
 	for _, address := range []common.Address{address1, address2} {
@@ -181,7 +187,8 @@ func addKVs(
 			statedb.SetState(address, common.BytesToHash(key), common.BytesToHash(value))
 		}
 	}
-	root, err = statedb.CommitWithSnap(block+1, true, snaps, fakeHash(block+1), fakeHash(block))
+	snapshotOpt := snapshot.WithBlockHashes(fakeHash(block+1), fakeHash(block))
+	root, err = statedb.Commit(block+1, true, stateconf.WithSnapshotUpdateOpts(snapshotOpt))
 	if err != nil {
 		return nil, common.Hash{}, fmt.Errorf("committing with snap: %w", err)
 	}

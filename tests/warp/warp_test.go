@@ -1,4 +1,4 @@
-// Copyright (C) 2023, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 // Implements solidity tests.
@@ -12,17 +12,10 @@ import (
 	"math/big"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
-
-	ginkgo "github.com/onsi/ginkgo/v2"
-
-	"github.com/stretchr/testify/require"
-
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/log"
 
 	"github.com/ava-labs/avalanchego/api/info"
 	"github.com/ava-labs/avalanchego/ids"
@@ -30,25 +23,31 @@ import (
 	"github.com/ava-labs/avalanchego/tests/fixture/e2e"
 	"github.com/ava-labs/avalanchego/tests/fixture/tmpnet"
 	"github.com/ava-labs/avalanchego/utils/constants"
+	"github.com/ava-labs/avalanchego/vms/evm/predicate"
 	"github.com/ava-labs/avalanchego/vms/platformvm"
 	"github.com/ava-labs/avalanchego/vms/platformvm/api"
-	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/crypto"
+	"github.com/ava-labs/libevm/log"
+	"github.com/stretchr/testify/require"
 
 	"github.com/ava-labs/subnet-evm/cmd/simulator/key"
 	"github.com/ava-labs/subnet-evm/cmd/simulator/load"
 	"github.com/ava-labs/subnet-evm/cmd/simulator/metrics"
 	"github.com/ava-labs/subnet-evm/cmd/simulator/txs"
-	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/ethclient"
-	"github.com/ava-labs/subnet-evm/interfaces"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/warp"
-	"github.com/ava-labs/subnet-evm/predicate"
 	"github.com/ava-labs/subnet-evm/tests"
 	"github.com/ava-labs/subnet-evm/tests/utils"
+	"github.com/ava-labs/subnet-evm/tests/warp/aggregator"
+
+	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
+	ethereum "github.com/ava-labs/libevm"
 	warpBackend "github.com/ava-labs/subnet-evm/warp"
-	"github.com/ava-labs/subnet-evm/warp/aggregator"
+	ginkgo "github.com/onsi/ginkgo/v2"
 )
 
 const (
@@ -116,7 +115,7 @@ var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
 
 	// Initialize the local test environment from the global state
 	if len(envBytes) > 0 {
-		e2e.InitSharedTestEnvironment(ginkgo.GinkgoT(), envBytes)
+		e2e.InitSharedTestEnvironment(tc, envBytes)
 	}
 
 	network := e2e.GetEnv(tc).GetNetwork()
@@ -205,7 +204,6 @@ type warpTest struct {
 
 	// receivingSubnet fields set in the constructor
 	receivingSubnet              *Subnet
-	receivingSubnetURIs          []string
 	receivingSubnetClients       []ethclient.Client
 	receivingSubnetFundedKey     *ecdsa.PrivateKey
 	receivingSubnetFundedAddress common.Address
@@ -232,7 +230,6 @@ func newWarpTest(ctx context.Context, sendingSubnet *Subnet, receivingSubnet *Su
 		sendingSubnet:                sendingSubnet,
 		sendingSubnetURIs:            sendingSubnet.ValidatorURIs,
 		receivingSubnet:              receivingSubnet,
-		receivingSubnetURIs:          receivingSubnet.ValidatorURIs,
 		sendingSubnetFundedKey:       sendingSubnetFundedKey,
 		sendingSubnetFundedAddress:   crypto.PubkeyToAddress(sendingSubnetFundedKey.PublicKey),
 		receivingSubnetFundedKey:     receivingSubnetFundedKey,
@@ -328,8 +325,7 @@ func (w *warpTest) sendMessageFromSendingSubnet() {
 	signedTx, err := types.SignTx(tx, w.sendingSubnetSigner, w.sendingSubnetFundedKey)
 	require.NoError(err)
 	log.Info("Sending sendWarpMessage transaction", "txHash", signedTx.Hash())
-	err = client.SendTransaction(ctx, signedTx)
-	require.NoError(err)
+	require.NoError(client.SendTransaction(ctx, signedTx))
 
 	log.Info("Waiting for new block confirmation")
 	<-newHeads
@@ -345,7 +341,7 @@ func (w *warpTest) sendMessageFromSendingSubnet() {
 	require.NoError(err)
 
 	log.Info("Fetching relevant warp logs from the newly produced block")
-	logs, err := client.FilterLogs(ctx, interfaces.FilterQuery{
+	logs, err := client.FilterLogs(ctx, ethereum.FilterQuery{
 		BlockHash: &blockHash,
 		Addresses: []common.Address{warp.Module.Address},
 	})
@@ -421,8 +417,8 @@ func (w *warpTest) aggregateSignaturesViaAPI() {
 		totalWeight += validator.Weight
 	}
 
-	log.Info("Aggregating signatures from validator set", "numValidators", len(warpValidators), "totalWeight", totalWeight)
-	apiSignatureGetter := warpBackend.NewAPIFetcher(warpAPIs)
+	ginkgo.GinkgoLogr.Info("Aggregating signatures from validator set", "numValidators", len(warpValidators), "totalWeight", totalWeight)
+	apiSignatureGetter := NewAPIFetcher(warpAPIs)
 	signatureResult, err := aggregator.New(apiSignatureGetter, warpValidators, totalWeight).AggregateSignatures(ctx, w.addressedCallUnsignedMessage, 100)
 	require.NoError(err)
 	require.Equal(signatureResult.SignatureWeight, signatureResult.TotalWeight)
@@ -480,19 +476,22 @@ func (w *warpTest) deliverAddressedCallToReceivingSubnet() {
 
 	packedInput, err := warp.PackGetVerifiedWarpMessage(0)
 	require.NoError(err)
-	tx := predicate.NewPredicateTx(
-		w.receivingSubnetChainID,
-		nonce,
-		&warp.Module.Address,
-		5_000_000,
-		big.NewInt(225*params.GWei),
-		big.NewInt(params.GWei),
-		common.Big0,
-		packedInput,
-		types.AccessList{},
-		warp.ContractAddress,
-		w.addressedCallSignedMessage.Bytes(),
-	)
+	tx := types.NewTx(&types.DynamicFeeTx{
+		ChainID:   w.receivingSubnetChainID,
+		Nonce:     nonce,
+		To:        &warp.Module.Address,
+		Gas:       5_000_000,
+		GasFeeCap: big.NewInt(225 * params.GWei),
+		GasTipCap: big.NewInt(params.GWei),
+		Value:     common.Big0,
+		Data:      packedInput,
+		AccessList: types.AccessList{
+			{
+				Address:     warp.ContractAddress,
+				StorageKeys: predicate.New(w.addressedCallSignedMessage.Bytes()),
+			},
+		},
+	})
 	signedTx, err := types.SignTx(tx, w.receivingSubnetSigner, w.receivingSubnetFundedKey)
 	require.NoError(err)
 	txBytes, err := signedTx.MarshalBinary()
@@ -507,7 +506,7 @@ func (w *warpTest) deliverAddressedCallToReceivingSubnet() {
 	blockHash, _ := w.getBlockHashAndNumberFromTxReceipt(receiptCtx, client, signedTx)
 
 	log.Info("Fetching relevant warp logs and receipts from new block")
-	logs, err := client.FilterLogs(ctx, interfaces.FilterQuery{
+	logs, err := client.FilterLogs(ctx, ethereum.FilterQuery{
 		BlockHash: &blockHash,
 		Addresses: []common.Address{warp.Module.Address},
 	})
@@ -535,26 +534,28 @@ func (w *warpTest) deliverBlockHashPayload() {
 
 	packedInput, err := warp.PackGetVerifiedWarpBlockHash(0)
 	require.NoError(err)
-	tx := predicate.NewPredicateTx(
-		w.receivingSubnetChainID,
-		nonce,
-		&warp.Module.Address,
-		5_000_000,
-		big.NewInt(225*params.GWei),
-		big.NewInt(params.GWei),
-		common.Big0,
-		packedInput,
-		types.AccessList{},
-		warp.ContractAddress,
-		w.blockPayloadSignedMessage.Bytes(),
-	)
+	tx := types.NewTx(&types.DynamicFeeTx{
+		ChainID:   w.receivingSubnetChainID,
+		Nonce:     nonce,
+		To:        &warp.Module.Address,
+		Gas:       5_000_000,
+		GasFeeCap: big.NewInt(225 * params.GWei),
+		GasTipCap: big.NewInt(params.GWei),
+		Value:     common.Big0,
+		Data:      packedInput,
+		AccessList: types.AccessList{
+			{
+				Address:     warp.ContractAddress,
+				StorageKeys: predicate.New(w.blockPayloadSignedMessage.Bytes()),
+			},
+		},
+	})
 	signedTx, err := types.SignTx(tx, w.receivingSubnetSigner, w.receivingSubnetFundedKey)
 	require.NoError(err)
 	txBytes, err := signedTx.MarshalBinary()
 	require.NoError(err)
 	log.Info("Sending getVerifiedWarpBlockHash transaction", "txHash", signedTx.Hash(), "txBytes", common.Bytes2Hex(txBytes))
-	err = client.SendTransaction(ctx, signedTx)
-	require.NoError(err)
+	require.NoError(client.SendTransaction(ctx, signedTx))
 
 	log.Info("Waiting for new block confirmation")
 	<-newHeads
@@ -562,7 +563,7 @@ func (w *warpTest) deliverBlockHashPayload() {
 	defer cancel()
 	blockHash, _ := w.getBlockHashAndNumberFromTxReceipt(receiptCtx, client, signedTx)
 	log.Info("Fetching relevant warp logs and receipts from new block")
-	logs, err := client.FilterLogs(ctx, interfaces.FilterQuery{
+	logs, err := client.FilterLogs(ctx, ethereum.FilterQuery{
 		BlockHash: &blockHash,
 		Addresses: []common.Address{warp.Module.Address},
 	})
@@ -594,7 +595,7 @@ func (w *warpTest) executeHardHatTest() {
 	os.Setenv("SOURCE_CHAIN_ID", "0x"+w.sendingSubnet.BlockchainID.Hex())
 	os.Setenv("PAYLOAD", "0x"+common.Bytes2Hex(testPayload))
 	os.Setenv("EXPECTED_UNSIGNED_MESSAGE", "0x"+hex.EncodeToString(w.addressedCallUnsignedMessage.Bytes()))
-	os.Setenv("CHAIN_ID", fmt.Sprintf("%d", chainID.Uint64()))
+	os.Setenv("CHAIN_ID", strconv.FormatUint(chainID.Uint64(), 10))
 
 	cmdPath := filepath.Join(repoRootPath, "contracts")
 	// test path is relative to the cmd path
@@ -639,14 +640,13 @@ func (w *warpTest) warpLoad() {
 
 	log.Info("Subscribing to warp send events on sending subnet")
 	logs := make(chan types.Log, numWorkers*int(txsPerWorker))
-	sub, err := sendingClient.SubscribeFilterLogs(ctx, interfaces.FilterQuery{
+	sub, err := sendingClient.SubscribeFilterLogs(ctx, ethereum.FilterQuery{
 		Addresses: []common.Address{warp.Module.Address},
 	}, logs)
 	require.NoError(err)
 	defer func() {
 		sub.Unsubscribe()
-		err := <-sub.Err()
-		require.NoError(err)
+		require.NoError(<-sub.Err())
 	}()
 
 	log.Info("Generating tx sequence to send warp messages...")
@@ -701,19 +701,22 @@ func (w *warpTest) warpLoad() {
 		if err != nil {
 			return nil, err
 		}
-		tx := predicate.NewPredicateTx(
-			w.receivingSubnetChainID,
-			nonce,
-			&warp.Module.Address,
-			5_000_000,
-			big.NewInt(225*params.GWei),
-			big.NewInt(params.GWei),
-			common.Big0,
-			packedInput,
-			types.AccessList{},
-			warp.ContractAddress,
-			signedWarpMessageBytes,
-		)
+		tx := types.NewTx(&types.DynamicFeeTx{
+			ChainID:   w.receivingSubnetChainID,
+			Nonce:     nonce,
+			To:        &warp.Module.Address,
+			Gas:       5_000_000,
+			GasFeeCap: big.NewInt(225 * params.GWei),
+			GasTipCap: big.NewInt(params.GWei),
+			Value:     common.Big0,
+			Data:      packedInput,
+			AccessList: types.AccessList{
+				{
+					Address:     warp.ContractAddress,
+					StorageKeys: predicate.New(signedWarpMessageBytes),
+				},
+			},
+		})
 		return types.SignTx(tx, w.receivingSubnetSigner, key)
 	}, w.receivingSubnetClients[0], chainBPrivateKeys, txsPerWorker, true)
 	require.NoError(err)

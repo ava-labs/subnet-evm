@@ -1,17 +1,18 @@
-// (c) 2021-2022, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package syncutils
 
 import (
+	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/ethdb"
+
 	"github.com/ava-labs/subnet-evm/core/state/snapshot"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ethereum/go-ethereum/ethdb"
 )
 
 var (
-	_ ethdb.Iterator = &AccountIterator{}
-	_ ethdb.Iterator = &StorageIterator{}
+	_ ethdb.Iterator = (*AccountIterator)(nil)
+	_ ethdb.Iterator = (*StorageIterator)(nil)
 )
 
 // AccountIterator wraps a [snapshot.AccountIterator] to conform to [ethdb.Iterator]

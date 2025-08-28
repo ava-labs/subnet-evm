@@ -1,4 +1,4 @@
-// (c) 2023, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package warp
@@ -7,14 +7,15 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
-	"github.com/ava-labs/subnet-evm/precompile/testutils"
-	"github.com/ava-labs/subnet-evm/utils"
 	"go.uber.org/mock/gomock"
+
+	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
+	"github.com/ava-labs/subnet-evm/precompile/precompiletest"
+	"github.com/ava-labs/subnet-evm/utils"
 )
 
 func TestVerify(t *testing.T) {
-	tests := map[string]testutils.ConfigVerifyTest{
+	tests := map[string]precompiletest.ConfigVerifyTest{
 		"quorum numerator less than minimum": {
 			Config:        NewConfig(utils.NewUint64(3), WarpQuorumNumeratorMinimum-1, false),
 			ExpectedError: fmt.Sprintf("cannot specify quorum numerator (%d) < min quorum numerator (%d)", WarpQuorumNumeratorMinimum-1, WarpQuorumNumeratorMinimum),
@@ -42,11 +43,11 @@ func TestVerify(t *testing.T) {
 			ExpectedError: errWarpCannotBeActivated.Error(),
 		},
 	}
-	testutils.RunVerifyTests(t, tests)
+	precompiletest.RunVerifyTests(t, tests)
 }
 
 func TestEqualWarpConfig(t *testing.T) {
-	tests := map[string]testutils.ConfigEqualTest{
+	tests := map[string]precompiletest.ConfigEqualTest{
 		"non-nil config and nil other": {
 			Config:   NewDefaultConfig(utils.NewUint64(3)),
 			Other:    nil,
@@ -83,5 +84,5 @@ func TestEqualWarpConfig(t *testing.T) {
 			Expected: true,
 		},
 	}
-	testutils.RunEqualTests(t, tests)
+	precompiletest.RunEqualTests(t, tests)
 }

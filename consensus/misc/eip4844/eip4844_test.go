@@ -1,3 +1,14 @@
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
+//
+// This file is a derived work, based on the go-ethereum library whose original
+// notices appear below.
+//
+// It is distributed under a license compatible with the licensing terms of the
+// original code from which it is derived.
+//
+// Much love to the original authors for their work.
+// **********
 // Copyright 2023 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
@@ -21,7 +32,7 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/params"
+	ethparams "github.com/ava-labs/libevm/params"
 )
 
 func TestCalcExcessBlobGas(t *testing.T) {
@@ -34,23 +45,23 @@ func TestCalcExcessBlobGas(t *testing.T) {
 		// slots are below - or equal - to the target.
 		{0, 0, 0},
 		{0, 1, 0},
-		{0, params.BlobTxTargetBlobGasPerBlock / params.BlobTxBlobGasPerBlob, 0},
+		{0, ethparams.BlobTxTargetBlobGasPerBlock / ethparams.BlobTxBlobGasPerBlob, 0},
 
 		// If the target blob gas is exceeded, the excessBlobGas should increase
 		// by however much it was overshot
-		{0, (params.BlobTxTargetBlobGasPerBlock / params.BlobTxBlobGasPerBlob) + 1, params.BlobTxBlobGasPerBlob},
-		{1, (params.BlobTxTargetBlobGasPerBlock / params.BlobTxBlobGasPerBlob) + 1, params.BlobTxBlobGasPerBlob + 1},
-		{1, (params.BlobTxTargetBlobGasPerBlock / params.BlobTxBlobGasPerBlob) + 2, 2*params.BlobTxBlobGasPerBlob + 1},
+		{0, (ethparams.BlobTxTargetBlobGasPerBlock / ethparams.BlobTxBlobGasPerBlob) + 1, ethparams.BlobTxBlobGasPerBlob},
+		{1, (ethparams.BlobTxTargetBlobGasPerBlock / ethparams.BlobTxBlobGasPerBlob) + 1, ethparams.BlobTxBlobGasPerBlob + 1},
+		{1, (ethparams.BlobTxTargetBlobGasPerBlock / ethparams.BlobTxBlobGasPerBlob) + 2, 2*ethparams.BlobTxBlobGasPerBlob + 1},
 
 		// The excess blob gas should decrease by however much the target was
 		// under-shot, capped at zero.
-		{params.BlobTxTargetBlobGasPerBlock, params.BlobTxTargetBlobGasPerBlock / params.BlobTxBlobGasPerBlob, params.BlobTxTargetBlobGasPerBlock},
-		{params.BlobTxTargetBlobGasPerBlock, (params.BlobTxTargetBlobGasPerBlock / params.BlobTxBlobGasPerBlob) - 1, params.BlobTxTargetBlobGasPerBlock - params.BlobTxBlobGasPerBlob},
-		{params.BlobTxTargetBlobGasPerBlock, (params.BlobTxTargetBlobGasPerBlock / params.BlobTxBlobGasPerBlob) - 2, params.BlobTxTargetBlobGasPerBlock - (2 * params.BlobTxBlobGasPerBlob)},
-		{params.BlobTxBlobGasPerBlob - 1, (params.BlobTxTargetBlobGasPerBlock / params.BlobTxBlobGasPerBlob) - 1, 0},
+		{ethparams.BlobTxTargetBlobGasPerBlock, ethparams.BlobTxTargetBlobGasPerBlock / ethparams.BlobTxBlobGasPerBlob, ethparams.BlobTxTargetBlobGasPerBlock},
+		{ethparams.BlobTxTargetBlobGasPerBlock, (ethparams.BlobTxTargetBlobGasPerBlock / ethparams.BlobTxBlobGasPerBlob) - 1, ethparams.BlobTxTargetBlobGasPerBlock - ethparams.BlobTxBlobGasPerBlob},
+		{ethparams.BlobTxTargetBlobGasPerBlock, (ethparams.BlobTxTargetBlobGasPerBlock / ethparams.BlobTxBlobGasPerBlob) - 2, ethparams.BlobTxTargetBlobGasPerBlock - (2 * ethparams.BlobTxBlobGasPerBlob)},
+		{ethparams.BlobTxBlobGasPerBlob - 1, (ethparams.BlobTxTargetBlobGasPerBlock / ethparams.BlobTxBlobGasPerBlob) - 1, 0},
 	}
 	for i, tt := range tests {
-		result := CalcExcessBlobGas(tt.excess, tt.blobs*params.BlobTxBlobGasPerBlob)
+		result := CalcExcessBlobGas(tt.excess, tt.blobs*ethparams.BlobTxBlobGasPerBlob)
 		if result != tt.want {
 			t.Errorf("test %d: excess blob gas mismatch: have %v, want %v", i, result, tt.want)
 		}

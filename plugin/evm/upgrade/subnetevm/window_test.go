@@ -1,4 +1,4 @@
-// (c) 2025, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package subnetevm
@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/common/math"
+	"github.com/ava-labs/libevm/common/math"
 	"github.com/stretchr/testify/require"
 )
 

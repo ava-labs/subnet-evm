@@ -1,4 +1,4 @@
-// (c) 2025, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package header
@@ -6,10 +6,13 @@ package header
 import (
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/commontype"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/libevm/core/types"
 	"github.com/stretchr/testify/require"
+
+	"github.com/ava-labs/subnet-evm/commontype"
+	"github.com/ava-labs/subnet-evm/params/extras"
+
+	ethparams "github.com/ava-labs/libevm/params"
 )
 
 func TestGasLimit(t *testing.T) {
@@ -24,7 +27,7 @@ func TestGasLimit(t *testing.T) {
 func GasLimitTest(t *testing.T, feeConfig commontype.FeeConfig) {
 	tests := []struct {
 		name      string
-		upgrades  params.NetworkUpgrades
+		upgrades  extras.NetworkUpgrades
 		parent    *types.Header
 		timestamp uint64
 		want      uint64
@@ -32,12 +35,12 @@ func GasLimitTest(t *testing.T, feeConfig commontype.FeeConfig) {
 	}{
 		{
 			name:     "subnet_evm",
-			upgrades: params.TestSubnetEVMChainConfig.NetworkUpgrades,
+			upgrades: extras.TestSubnetEVMChainConfig.NetworkUpgrades,
 			want:     feeConfig.GasLimit.Uint64(),
 		},
 		{
 			name:     "pre_subnet_evm",
-			upgrades: params.TestPreSubnetEVMChainConfig.NetworkUpgrades,
+			upgrades: extras.TestPreSubnetEVMChainConfig.NetworkUpgrades,
 			parent: &types.Header{
 				GasLimit: 1,
 			},
@@ -48,7 +51,7 @@ func GasLimitTest(t *testing.T, feeConfig commontype.FeeConfig) {
 		t.Run(test.name, func(t *testing.T) {
 			require := require.New(t)
 
-			config := &params.ChainConfig{
+			config := &extras.ChainConfig{
 				NetworkUpgrades: test.upgrades,
 			}
 			got, err := GasLimit(config, feeConfig, test.parent, test.timestamp)
@@ -70,21 +73,21 @@ func TestVerifyGasLimit(t *testing.T) {
 func VerifyGasLimitTest(t *testing.T, feeConfig commontype.FeeConfig) {
 	tests := []struct {
 		name     string
-		upgrades params.NetworkUpgrades
+		upgrades extras.NetworkUpgrades
 		parent   *types.Header
 		header   *types.Header
 		want     error
 	}{
 		{
 			name:     "subnet_evm_valid",
-			upgrades: params.TestSubnetEVMChainConfig.NetworkUpgrades,
+			upgrades: extras.TestSubnetEVMChainConfig.NetworkUpgrades,
 			header: &types.Header{
 				GasLimit: feeConfig.GasLimit.Uint64(),
 			},
 		},
 		{
 			name:     "subnet_evm_invalid",
-			upgrades: params.TestSubnetEVMChainConfig.NetworkUpgrades,
+			upgrades: extras.TestSubnetEVMChainConfig.NetworkUpgrades,
 			header: &types.Header{
 				GasLimit: feeConfig.GasLimit.Uint64() + 1,
 			},
@@ -92,7 +95,7 @@ func VerifyGasLimitTest(t *testing.T, feeConfig commontype.FeeConfig) {
 		},
 		{
 			name:     "pre_subnet_evm_valid",
-			upgrades: params.TestPreSubnetEVMChainConfig.NetworkUpgrades,
+			upgrades: extras.TestPreSubnetEVMChainConfig.NetworkUpgrades,
 			parent: &types.Header{
 				GasLimit: 50_000,
 			},
@@ -102,41 +105,41 @@ func VerifyGasLimitTest(t *testing.T, feeConfig commontype.FeeConfig) {
 		},
 		{
 			name:     "pre_subnet_evm_too_low",
-			upgrades: params.TestPreSubnetEVMChainConfig.NetworkUpgrades,
+			upgrades: extras.TestPreSubnetEVMChainConfig.NetworkUpgrades,
 			parent: &types.Header{
-				GasLimit: params.MinGasLimit,
+				GasLimit: ethparams.MinGasLimit,
 			},
 			header: &types.Header{
-				GasLimit: params.MinGasLimit - 1,
+				GasLimit: ethparams.MinGasLimit - 1,
 			},
 			want: errInvalidGasLimit,
 		},
 		{
 			name:     "pre_subnet_evm_too_high",
-			upgrades: params.TestPreSubnetEVMChainConfig.NetworkUpgrades,
+			upgrades: extras.TestPreSubnetEVMChainConfig.NetworkUpgrades,
 			parent: &types.Header{
-				GasLimit: params.MaxGasLimit,
+				GasLimit: ethparams.MaxGasLimit,
 			},
 			header: &types.Header{
-				GasLimit: params.MaxGasLimit + 1,
+				GasLimit: ethparams.MaxGasLimit + 1,
 			},
 			want: errInvalidGasLimit,
 		},
 		{
 			name:     "pre_subnet_evm_too_large",
-			upgrades: params.TestPreSubnetEVMChainConfig.NetworkUpgrades,
+			upgrades: extras.TestPreSubnetEVMChainConfig.NetworkUpgrades,
 			parent: &types.Header{
-				GasLimit: params.MinGasLimit,
+				GasLimit: ethparams.MinGasLimit,
 			},
 			header: &types.Header{
-				GasLimit: params.MaxGasLimit,
+				GasLimit: ethparams.MaxGasLimit,
 			},
 			want: errInvalidGasLimit,
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			config := &params.ChainConfig{
+			config := &extras.ChainConfig{
 				NetworkUpgrades: test.upgrades,
 			}
 			err := VerifyGasLimit(config, feeConfig, test.parent, test.header)
@@ -157,7 +160,7 @@ func TestGasCapacity(t *testing.T) {
 func GasCapacityTest(t *testing.T, feeConfig commontype.FeeConfig) {
 	tests := []struct {
 		name      string
-		upgrades  params.NetworkUpgrades
+		upgrades  extras.NetworkUpgrades
 		parent    *types.Header
 		timestamp uint64
 		want      uint64
@@ -165,7 +168,7 @@ func GasCapacityTest(t *testing.T, feeConfig commontype.FeeConfig) {
 	}{
 		{
 			name:     "subnet_evm",
-			upgrades: params.TestSubnetEVMChainConfig.NetworkUpgrades,
+			upgrades: extras.TestSubnetEVMChainConfig.NetworkUpgrades,
 			want:     feeConfig.GasLimit.Uint64(),
 		},
 	}
@@ -173,7 +176,7 @@ func GasCapacityTest(t *testing.T, feeConfig commontype.FeeConfig) {
 		t.Run(test.name, func(t *testing.T) {
 			require := require.New(t)
 
-			config := &params.ChainConfig{
+			config := &extras.ChainConfig{
 				NetworkUpgrades: test.upgrades,
 			}
 			got, err := GasCapacity(config, feeConfig, test.parent, test.timestamp)

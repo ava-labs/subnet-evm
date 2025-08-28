@@ -1,4 +1,4 @@
-// (c) 2019-2023, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package feemanager
@@ -8,12 +8,13 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/common/math"
+	"github.com/stretchr/testify/require"
+
 	"github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/math"
-	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -55,6 +56,7 @@ func FuzzPackGetFeeConfigOutputEqualTest(f *testing.F) {
 func TestOldPackGetFeeConfigOutputEqual(t *testing.T) {
 	testOldPackGetFeeConfigOutputEqual(t, testFeeConfig, true)
 }
+
 func TestPackGetFeeConfigOutputPanic(t *testing.T) {
 	require.Panics(t, func() {
 		_, _ = OldPackFeeConfig(commontype.FeeConfig{})

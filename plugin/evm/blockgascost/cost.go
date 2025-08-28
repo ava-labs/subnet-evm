@@ -1,4 +1,4 @@
-// (c) 2025, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 // blockgascost implements the block gas cost logic
@@ -7,8 +7,9 @@ package blockgascost
 import (
 	"math"
 
-	safemath "github.com/ava-labs/avalanchego/utils/math"
 	"github.com/ava-labs/subnet-evm/commontype"
+
+	safemath "github.com/ava-labs/avalanchego/utils/math"
 )
 
 // BlockGasCost calculates the required block gas cost.

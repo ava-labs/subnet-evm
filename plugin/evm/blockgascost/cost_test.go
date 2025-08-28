@@ -1,4 +1,4 @@
-// (c) 2025, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package blockgascost
@@ -8,8 +8,9 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/stretchr/testify/require"
+
+	"github.com/ava-labs/subnet-evm/commontype"
 )
 
 func TestBlockGasCost(t *testing.T) {

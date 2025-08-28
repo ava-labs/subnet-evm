@@ -1,4 +1,4 @@
-// (c) 2022, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package key
@@ -10,8 +10,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/ethereum/go-ethereum/common"
-	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+	"github.com/ava-labs/libevm/common"
+
+	ethcrypto "github.com/ava-labs/libevm/crypto"
 )
 
 type Key struct {
@@ -35,7 +36,7 @@ func Load(file string) (*Key, error) {
 // LoadAll loads all keys in [dir].
 func LoadAll(ctx context.Context, dir string) ([]*Key, error) {
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		if err := os.MkdirAll(dir, 0755); err != nil {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
 			return nil, fmt.Errorf("unable to create %s: %w", dir, err)
 		}
 

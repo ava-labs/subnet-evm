@@ -1,4 +1,4 @@
-// (c) 2019-2025, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package header
@@ -8,12 +8,13 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/common/math"
+	"github.com/ava-labs/libevm/core/types"
+
 	"github.com/ava-labs/subnet-evm/commontype"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/params/extras"
 	"github.com/ava-labs/subnet-evm/plugin/evm/upgrade/subnetevm"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/math"
 )
 
 var (
@@ -24,7 +25,7 @@ var (
 )
 
 // baseFeeFromWindow should only be called if `timestamp` >= `config.SubnetEVMTimestamp`
-func baseFeeFromWindow(config *params.ChainConfig, feeConfig commontype.FeeConfig, parent *types.Header, timestamp uint64) (*big.Int, error) {
+func baseFeeFromWindow(config *extras.ChainConfig, feeConfig commontype.FeeConfig, parent *types.Header, timestamp uint64) (*big.Int, error) {
 	// If the current block is the first EIP-1559 block, or it is the genesis block
 	// return the initial slice and initial base fee.
 	if !config.IsSubnetEVM(parent.Time) || parent.Number.Cmp(common.Big0) == 0 {
@@ -115,7 +116,7 @@ func baseFeeFromWindow(config *params.ChainConfig, feeConfig commontype.FeeConfi
 //
 // feeWindow should only be called if timestamp >= config.SubnetEVMTimestamp
 func feeWindow(
-	config *params.ChainConfig,
+	config *extras.ChainConfig,
 	parent *types.Header,
 	timestamp uint64,
 ) (subnetevm.Window, error) {

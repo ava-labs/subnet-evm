@@ -1,4 +1,4 @@
-// (c) 2019-2020, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package core
@@ -7,11 +7,13 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/core/types"
-
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/core/types"
 	"github.com/stretchr/testify/assert"
 )
+
+// Default state history size
+const tipBufferSize = 32
 
 type MockTrieDB struct {
 	LastDereference common.Hash
@@ -22,20 +24,23 @@ func (t *MockTrieDB) Dereference(root common.Hash) error {
 	t.LastDereference = root
 	return nil
 }
+
 func (t *MockTrieDB) Commit(root common.Hash, report bool) error {
 	t.LastCommit = root
 	return nil
 }
+
 func (t *MockTrieDB) Size() (common.StorageSize, common.StorageSize, common.StorageSize) {
 	return 0, 0, 0
 }
+
 func (t *MockTrieDB) Cap(limit common.StorageSize) error {
 	return nil
 }
 
 func TestCappedMemoryTrieWriter(t *testing.T) {
 	m := &MockTrieDB{}
-	cacheConfig := &CacheConfig{Pruning: true, CommitInterval: 4096}
+	cacheConfig := &CacheConfig{Pruning: true, CommitInterval: 4096, StateHistory: uint64(tipBufferSize)}
 	w := NewTrieWriter(m, cacheConfig)
 	assert := assert.New(t)
 	for i := 0; i < int(cacheConfig.CommitInterval)+1; i++ {
@@ -53,10 +58,10 @@ func TestCappedMemoryTrieWriter(t *testing.T) {
 		assert.Equal(common.Hash{}, m.LastCommit, "should not have committed block on insert")
 
 		w.AcceptTrie(block)
-		if i <= TipBufferSize {
+		if i <= tipBufferSize {
 			assert.Equal(common.Hash{}, m.LastDereference, "should not have dereferenced block on accept")
 		} else {
-			assert.Equal(common.BigToHash(big.NewInt(int64(i-TipBufferSize))), m.LastDereference, "should have dereferenced old block on last accept")
+			assert.Equal(common.BigToHash(big.NewInt(int64(i-tipBufferSize))), m.LastDereference, "should have dereferenced old block on last accept")
 			m.LastDereference = common.Hash{}
 		}
 		if i < int(cacheConfig.CommitInterval) {
@@ -77,7 +82,7 @@ func TestNoPruningTrieWriter(t *testing.T) {
 	m := &MockTrieDB{}
 	w := NewTrieWriter(m, &CacheConfig{})
 	assert := assert.New(t)
-	for i := 0; i < TipBufferSize+1; i++ {
+	for i := 0; i < tipBufferSize+1; i++ {
 		bigI := big.NewInt(int64(i))
 		block := types.NewBlock(
 			&types.Header{

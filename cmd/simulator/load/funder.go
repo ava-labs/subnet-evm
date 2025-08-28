@@ -1,4 +1,4 @@
-// Copyright (C) 2023, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package load
@@ -9,14 +9,16 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/log"
+
 	"github.com/ava-labs/subnet-evm/cmd/simulator/key"
 	"github.com/ava-labs/subnet-evm/cmd/simulator/metrics"
 	"github.com/ava-labs/subnet-evm/cmd/simulator/txs"
-	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/ethclient"
-	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/log"
+
+	ethparams "github.com/ava-labs/libevm/params"
 )
 
 // DistributeFunds ensures that each address in keys has at least [minFundsPerAddr] by sending funds
@@ -90,7 +92,7 @@ func DistributeFunds(ctx context.Context, client ethclient.Client, keys []*key.K
 			Nonce:     nonce,
 			GasTipCap: gasTipCap,
 			GasFeeCap: gasFeeCap,
-			Gas:       params.TxGas,
+			Gas:       ethparams.TxGas,
 			To:        &needFundsAddrs[i],
 			Data:      nil,
 			Value:     requiredFunds,

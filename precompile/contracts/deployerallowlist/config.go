@@ -1,15 +1,16 @@
-// (c) 2019-2020, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package deployerallowlist
 
 import (
+	"github.com/ava-labs/libevm/common"
+
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
-	"github.com/ethereum/go-ethereum/common"
 )
 
-var _ precompileconfig.Config = &Config{}
+var _ precompileconfig.Config = (*Config)(nil)
 
 // Config contains the configuration for the ContractDeployerAllowList precompile,
 // consisting of the initial allowlist and the timestamp for the network upgrade.

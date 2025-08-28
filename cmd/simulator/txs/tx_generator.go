@@ -1,4 +1,4 @@
-// Copyright (C) 2023, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package txs
@@ -8,9 +8,11 @@ import (
 	"crypto/ecdsa"
 	"fmt"
 
-	"github.com/ava-labs/subnet-evm/core/types"
+	"github.com/ava-labs/libevm/core/types"
+
 	"github.com/ava-labs/subnet-evm/ethclient"
-	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+
+	ethcrypto "github.com/ava-labs/libevm/crypto"
 )
 
 var _ TxSequence[*types.Transaction] = (*txSequence)(nil)

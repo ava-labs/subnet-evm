@@ -1,4 +1,4 @@
-// (c) 2023, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package warp
@@ -9,18 +9,21 @@ import (
 	"fmt"
 
 	"github.com/ava-labs/avalanchego/cache"
+	"github.com/ava-labs/avalanchego/cache/lru"
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/network/p2p/acp118"
 	"github.com/ava-labs/avalanchego/snow/consensus/snowman"
-	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
+	"github.com/ava-labs/libevm/log"
+
 	"github.com/ava-labs/subnet-evm/plugin/evm/validators/interfaces"
-	"github.com/ethereum/go-ethereum/log"
+
+	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
 )
 
 var (
-	_                         Backend = &backend{}
+	_                         Backend = (*backend)(nil)
 	errParsingOffChainMessage         = errors.New("failed to parse off-chain message")
 
 	messageCacheSize = 500
@@ -43,8 +46,6 @@ type Backend interface {
 	GetBlockSignature(ctx context.Context, blockID ids.ID) ([]byte, error)
 
 	// GetMessage retrieves the [unsignedMessage] from the warp backend database if available
-	// TODO: After Etna, the backend no longer needs to store the mapping from messageHash
-	// to unsignedMessage (and this method can be removed).
 	GetMessage(messageHash ids.ID) (*avalancheWarp.UnsignedMessage, error)
 
 	acp118.Verifier
@@ -59,7 +60,7 @@ type backend struct {
 	blockClient               BlockClient
 	validatorReader           interfaces.ValidatorReader
 	signatureCache            cache.Cacher[ids.ID, []byte]
-	messageCache              *cache.LRU[ids.ID, *avalancheWarp.UnsignedMessage]
+	messageCache              *lru.Cache[ids.ID, *avalancheWarp.UnsignedMessage]
 	offchainAddressedCallMsgs map[ids.ID]*avalancheWarp.UnsignedMessage
 	stats                     *verifierStats
 }
@@ -83,7 +84,7 @@ func NewBackend(
 		blockClient:               blockClient,
 		signatureCache:            signatureCache,
 		validatorReader:           validatorReader,
-		messageCache:              &cache.LRU[ids.ID, *avalancheWarp.UnsignedMessage]{Size: messageCacheSize},
+		messageCache:              lru.NewCache[ids.ID, *avalancheWarp.UnsignedMessage](messageCacheSize),
 		stats:                     newVerifierStats(),
 		offchainAddressedCallMsgs: make(map[ids.ID]*avalancheWarp.UnsignedMessage),
 	}

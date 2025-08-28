@@ -1,4 +1,5 @@
-// (c) 2019-2021, Ava Labs, Inc.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -31,15 +32,17 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/common/math"
+	"github.com/ava-labs/libevm/core/rawdb"
+	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/core/vm"
+	"github.com/ava-labs/libevm/crypto"
+	"github.com/ava-labs/libevm/ethdb"
+	ethparams "github.com/ava-labs/libevm/params"
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
-	"github.com/ava-labs/subnet-evm/core/rawdb"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/core/vm"
 	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/math"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/ethdb"
+	"github.com/ava-labs/subnet-evm/plugin/evm/customrawdb"
 )
 
 func BenchmarkInsertChain_empty_memdb(b *testing.B) {
@@ -125,26 +128,26 @@ func init() {
 // and fills the blocks with many small transactions.
 func genTxRing(naccounts int) func(int, *BlockGen) {
 	from := 0
-	fee := big.NewInt(0).SetUint64(params.TxGas * 225000000000)
+	fee := big.NewInt(0).SetUint64(ethparams.TxGas * 225000000000)
 	amount := big.NewInt(0).Set(benchRootFunds)
 	return func(i int, gen *BlockGen) {
 		block := gen.PrevBlock(i - 1)
 		gas := block.GasLimit()
 		signer := gen.Signer()
 		for {
-			gas -= params.TxGas
-			if gas < params.TxGas {
+			gas -= ethparams.TxGas
+			if gas < ethparams.TxGas {
 				break
 			}
 			to := (from + 1) % naccounts
-			burn := new(big.Int).SetUint64(params.TxGas)
+			burn := new(big.Int).SetUint64(ethparams.TxGas)
 			burn.Mul(burn, gen.header.BaseFee)
 			tx, err := types.SignNewTx(ringKeys[from], signer,
 				&types.LegacyTx{
 					Nonce:    gen.TxNonce(ringAddrs[from]),
 					To:       &ringAddrs[to],
 					Value:    amount.Sub(amount, fee),
-					Gas:      params.TxGas,
+					Gas:      ethparams.TxGas,
 					GasPrice: big.NewInt(225000000000),
 				})
 			if err != nil {
@@ -250,7 +253,7 @@ func makeChainForBench(db ethdb.Database, genesis *Genesis, full bool, count uin
 		rawdb.WriteCanonicalHash(db, hash, n)
 
 		if n == 0 {
-			rawdb.WriteChainConfig(db, hash, genesis.Config)
+			customrawdb.WriteChainConfig(db, hash, genesis.Config)
 		}
 		rawdb.WriteHeadHeaderHash(db, hash)
 

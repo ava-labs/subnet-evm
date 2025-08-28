@@ -1,4 +1,4 @@
-// Copyright (C) 2023, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package utils
@@ -14,7 +14,7 @@ import (
 	"github.com/ava-labs/subnet-evm/plugin/evm"
 )
 
-var DefaultChainConfig = tmpnet.FlagsMap{
+var DefaultChainConfig = map[string]any{
 	"log-level":         "debug",
 	"warp-api-enabled":  true,
 	"local-txs-enabled": true,
@@ -23,7 +23,7 @@ var DefaultChainConfig = tmpnet.FlagsMap{
 func NewTmpnetNodes(count int) []*tmpnet.Node {
 	nodes := make([]*tmpnet.Node, count)
 	for i := range nodes {
-		node := tmpnet.NewNode("")
+		node := tmpnet.NewNode()
 		node.EnsureKeys()
 		nodes[i] = node
 	}
@@ -34,7 +34,7 @@ func NewTmpnetNetwork(owner string, nodes []*tmpnet.Node, flags tmpnet.FlagsMap,
 	defaultFlags := tmpnet.FlagsMap{}
 	defaultFlags.SetDefaults(flags)
 	defaultFlags.SetDefaults(tmpnet.FlagsMap{
-		config.ProposerVMUseCurrentHeightKey: true,
+		config.ProposerVMUseCurrentHeightKey: "true",
 	})
 	return &tmpnet.Network{
 		Owner:        owner,
@@ -46,7 +46,7 @@ func NewTmpnetNetwork(owner string, nodes []*tmpnet.Node, flags tmpnet.FlagsMap,
 
 // Create the configuration that will enable creation and access to a
 // subnet created on a temporary network.
-func NewTmpnetSubnet(name string, genesisPath string, chainConfig tmpnet.FlagsMap, nodes ...*tmpnet.Node) *tmpnet.Subnet {
+func NewTmpnetSubnet(name string, genesisPath string, chainConfig map[string]any, nodes ...*tmpnet.Node) *tmpnet.Subnet {
 	if len(nodes) == 0 {
 		panic("a subnet must be validated by at least one node")
 	}

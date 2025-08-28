@@ -1,4 +1,4 @@
-// (c) 2023, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 // Defines the interface for the configuration and execution of a precompile contract
@@ -8,9 +8,15 @@ import (
 	"math/big"
 
 	"github.com/ava-labs/avalanchego/snow"
-	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/ava-labs/avalanchego/utils/set"
+	"github.com/ava-labs/avalanchego/vms/evm/predicate"
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/libevm/stateconf"
 	"github.com/holiman/uint256"
+
+	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
+
+	ethtypes "github.com/ava-labs/libevm/core/types"
 )
 
 // StatefulPrecompiledContract is the interface for executing a precompiled contract
@@ -19,10 +25,14 @@ type StatefulPrecompiledContract interface {
 	Run(accessibleState AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error)
 }
 
+type StateReader interface {
+	GetState(common.Address, common.Hash, ...stateconf.StateDBStateOption) common.Hash
+}
+
 // StateDB is the interface for accessing EVM state
 type StateDB interface {
-	GetState(common.Address, common.Hash) common.Hash
-	SetState(common.Address, common.Hash, common.Hash)
+	GetState(common.Address, common.Hash, ...stateconf.StateDBStateOption) common.Hash
+	SetState(common.Address, common.Hash, common.Hash, ...stateconf.StateDBStateOption)
 
 	SetNonce(common.Address, uint64)
 	GetNonce(common.Address) uint64
@@ -33,12 +43,10 @@ type StateDB interface {
 	CreateAccount(common.Address)
 	Exist(common.Address) bool
 
-	AddLog(addr common.Address, topics []common.Hash, data []byte, blockNumber uint64)
-	GetLogData() (topics [][]common.Hash, data [][]byte)
-	GetPredicateStorageSlots(address common.Address, index int) ([]byte, bool)
-	SetPredicateStorageSlots(address common.Address, predicates [][]byte)
+	AddLog(*ethtypes.Log)
+	GetPredicate(address common.Address, index int) (predicate.Predicate, bool)
 
-	GetTxHash() common.Hash
+	TxHash() common.Hash
 
 	Snapshot() int
 	RevertToSnapshot(int)
@@ -60,9 +68,9 @@ type ConfigurationBlockContext interface {
 
 type BlockContext interface {
 	ConfigurationBlockContext
-	// GetPredicateResults returns an arbitrary byte array result of verifying the predicates
-	// of the given transaction, precompile address pair.
-	GetPredicateResults(txHash common.Hash, precompileAddress common.Address) []byte
+	// GetPredicateResults returns the result of verifying the predicates of the
+	// given transaction, precompile address pair.
+	GetPredicateResults(txHash common.Hash, precompileAddress common.Address) set.Bits
 }
 
 type Configurator interface {

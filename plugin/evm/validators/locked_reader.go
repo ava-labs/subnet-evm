@@ -1,4 +1,4 @@
-// Copyright (C) 2025, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package validators
@@ -8,7 +8,9 @@ import (
 	"time"
 
 	"github.com/ava-labs/avalanchego/ids"
+
 	"github.com/ava-labs/subnet-evm/plugin/evm/validators/interfaces"
+
 	stateinterfaces "github.com/ava-labs/subnet-evm/plugin/evm/validators/state/interfaces"
 )
 

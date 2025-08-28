@@ -1,4 +1,5 @@
-// (c) 2024, Ava Labs, Inc.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -39,18 +40,19 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/core/state"
+	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/event"
+	"github.com/ava-labs/libevm/log"
+	"github.com/ava-labs/libevm/metrics"
+	ethparams "github.com/ava-labs/libevm/params"
+	"github.com/ava-labs/libevm/rlp"
 	"github.com/ava-labs/subnet-evm/consensus/misc/eip4844"
 	"github.com/ava-labs/subnet-evm/core"
-	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/core/txpool"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/metrics"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/plugin/evm/header"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/event"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/holiman/billy"
 	"github.com/holiman/uint256"
 )
@@ -58,12 +60,12 @@ import (
 const (
 	// blobSize is the protocol constrained byte size of a single blob in a
 	// transaction. There can be multiple of these embedded into a single tx.
-	blobSize = params.BlobTxFieldElementsPerBlob * params.BlobTxBytesPerFieldElement
+	blobSize = ethparams.BlobTxFieldElementsPerBlob * ethparams.BlobTxBytesPerFieldElement
 
 	// maxBlobsPerTransaction is the maximum number of blobs a single transaction
 	// is allowed to contain. Whilst the spec states it's unlimited, the block
 	// data slots are protocol bound, which implicitly also limit this.
-	maxBlobsPerTransaction = params.MaxBlobGasPerBlock / params.BlobTxBlobGasPerBlob
+	maxBlobsPerTransaction = ethparams.MaxBlobGasPerBlock / ethparams.BlobTxBlobGasPerBlob
 
 	// txAvgSize is an approximate byte size of a transaction metadata to avoid
 	// tiny overflows causing all txs to move a shelf higher, wasting disk space.
@@ -416,7 +418,7 @@ func (p *BlobPool) Init(gasTip uint64, head *types.Header, reserve txpool.Addres
 		return err
 	}
 	baseFee, err := header.EstimateNextBaseFee(
-		p.chain.Config(),
+		params.GetExtra(p.chain.Config()),
 		feeConfig,
 		p.head,
 		uint64(time.Now().Unix()),
@@ -428,7 +430,7 @@ func (p *BlobPool) Init(gasTip uint64, head *types.Header, reserve txpool.Addres
 	var (
 		// basefee = uint256.MustFromBig(eip1559.CalcBaseFee(p.chain.Config(), p.head))
 		basefee = uint256.MustFromBig(baseFee)
-		blobfee = uint256.NewInt(params.BlobTxMinBlobGasprice)
+		blobfee = uint256.NewInt(ethparams.BlobTxMinBlobGasprice)
 	)
 	if p.head.ExcessBlobGas != nil {
 		blobfee = uint256.MustFromBig(eip4844.CalcBlobFee(*p.head.ExcessBlobGas))
@@ -852,7 +854,7 @@ func (p *BlobPool) Reset(oldHead, newHead *types.Header) {
 		return
 	}
 	baseFeeBig, err := header.EstimateNextBaseFee(
-		p.chain.Config(),
+		params.GetExtra(p.chain.Config()),
 		feeConfig,
 		p.head,
 		uint64(time.Now().Unix()),
@@ -865,7 +867,7 @@ func (p *BlobPool) Reset(oldHead, newHead *types.Header) {
 	var (
 		// basefee = uint256.MustFromBig(eip1559.CalcBaseFee(p.chain.Config(), newHead))
 		basefee = uint256.MustFromBig(baseFeeBig)
-		blobfee = uint256.MustFromBig(big.NewInt(params.BlobTxMinBlobGasprice))
+		blobfee = uint256.MustFromBig(big.NewInt(ethparams.BlobTxMinBlobGasprice))
 	)
 	if newHead.ExcessBlobGas != nil {
 		blobfee = uint256.MustFromBig(eip4844.CalcBlobFee(*newHead.ExcessBlobGas))

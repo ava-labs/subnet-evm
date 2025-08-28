@@ -1,4 +1,4 @@
-// (c) 2019-2021, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package message
@@ -9,9 +9,7 @@ import (
 	"github.com/ava-labs/avalanchego/ids"
 )
 
-var (
-	_ RequestHandler = NoopRequestHandler{}
-)
+var _ RequestHandler = NoopRequestHandler{}
 
 // RequestHandler interface handles incoming requests from peers
 // Must have methods in format of handleType(context.Context, ids.NodeID, uint32, request Type) error
@@ -22,8 +20,6 @@ type RequestHandler interface {
 	HandleStateTrieLeafsRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, leafsRequest LeafsRequest) ([]byte, error)
 	HandleBlockRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, request BlockRequest) ([]byte, error)
 	HandleCodeRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, codeRequest CodeRequest) ([]byte, error)
-	HandleMessageSignatureRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, signatureRequest MessageSignatureRequest) ([]byte, error)
-	HandleBlockSignatureRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, signatureRequest BlockSignatureRequest) ([]byte, error)
 }
 
 // ResponseHandler handles response for a sent request
@@ -46,13 +42,5 @@ func (NoopRequestHandler) HandleBlockRequest(ctx context.Context, nodeID ids.Nod
 }
 
 func (NoopRequestHandler) HandleCodeRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, codeRequest CodeRequest) ([]byte, error) {
-	return nil, nil
-}
-
-func (NoopRequestHandler) HandleMessageSignatureRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, signatureRequest MessageSignatureRequest) ([]byte, error) {
-	return nil, nil
-}
-
-func (NoopRequestHandler) HandleBlockSignatureRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, signatureRequest BlockSignatureRequest) ([]byte, error) {
 	return nil, nil
 }

@@ -1,4 +1,4 @@
-// (c) 2019-2020, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package evm
@@ -12,34 +12,36 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ava-labs/avalanchego/api/metrics"
 	"github.com/ava-labs/avalanchego/snow"
-	commonEng "github.com/ava-labs/avalanchego/snow/engine/common"
-	"github.com/ava-labs/avalanchego/snow/engine/enginetest"
 	"github.com/ava-labs/avalanchego/upgrade"
+	"github.com/ava-labs/avalanchego/upgrade/upgradetest"
 	"github.com/ava-labs/avalanchego/vms/components/chain"
-	"github.com/ava-labs/subnet-evm/core"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/metrics"
-	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/precompile/contracts/txallowlist"
-	"github.com/ava-labs/subnet-evm/utils"
-	"github.com/ava-labs/subnet-evm/vmerrs"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/common/math"
-	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/common/hexutil"
+	"github.com/ava-labs/libevm/common/math"
+	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/crypto"
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-)
 
-var DefaultEtnaTime = uint64(upgrade.GetConfig(testNetworkID).EtnaTime.Unix())
+	"github.com/ava-labs/subnet-evm/core"
+	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/params/extras"
+	"github.com/ava-labs/subnet-evm/params/paramstest"
+	"github.com/ava-labs/subnet-evm/plugin/evm/vmerrors"
+	"github.com/ava-labs/subnet-evm/precompile/contracts/txallowlist"
+	"github.com/ava-labs/subnet-evm/utils"
+
+	commonEng "github.com/ava-labs/avalanchego/snow/engine/common"
+)
 
 func TestVMUpgradeBytesPrecompile(t *testing.T) {
 	// Make a TxAllowListConfig upgrade at genesis and convert it to JSON to apply as upgradeBytes.
 	enableAllowListTimestamp := upgrade.InitiallyActiveTime // enable at initial time
-	upgradeConfig := &params.UpgradeConfig{
-		PrecompileUpgrades: []params.PrecompileUpgrade{
+	upgradeConfig := &extras.UpgradeConfig{
+		PrecompileUpgrades: []extras.PrecompileUpgrade{
 			{
 				Config: txallowlist.NewConfig(utils.TimeToNewUint64(enableAllowListTimestamp), testEthAddrs[0:1], nil, nil),
 			},
@@ -51,40 +53,44 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 	}
 
 	// initialize the VM with these upgrade bytes
-	issuer, vm, dbManager, appSender := GenesisVM(t, true, genesisJSONSubnetEVM, "", string(upgradeBytesJSON))
-	vm.clock.Set(enableAllowListTimestamp)
+	tvm := newVM(t, testVMConfig{
+		genesisJSON: genesisJSONSubnetEVM,
+		upgradeJSON: string(upgradeBytesJSON),
+	})
+	defer func() {
+		if err := tvm.vm.Shutdown(context.Background()); err != nil {
+			t.Fatal(err)
+		}
+	}()
+
+	tvm.vm.clock.Set(enableAllowListTimestamp)
 
 	// Submit a successful transaction
 	tx0 := types.NewTransaction(uint64(0), testEthAddrs[0], big.NewInt(1), 21000, big.NewInt(testMinGasPrice), nil)
-	signedTx0, err := types.SignTx(tx0, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0])
+	signedTx0, err := types.SignTx(tx0, types.NewEIP155Signer(tvm.vm.chainConfig.ChainID), testKeys[0].ToECDSA())
 	assert.NoError(t, err)
 
-	errs := vm.txPool.AddRemotesSync([]*types.Transaction{signedTx0})
+	errs := tvm.vm.txPool.AddRemotesSync([]*types.Transaction{signedTx0})
 	if err := errs[0]; err != nil {
 		t.Fatalf("Failed to add tx at index: %s", err)
 	}
 
 	// Submit a rejected transaction, should throw an error
 	tx1 := types.NewTransaction(uint64(0), testEthAddrs[1], big.NewInt(2), 21000, big.NewInt(testMinGasPrice), nil)
-	signedTx1, err := types.SignTx(tx1, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[1])
+	signedTx1, err := types.SignTx(tx1, types.NewEIP155Signer(tvm.vm.chainConfig.ChainID), testKeys[1].ToECDSA())
 	if err != nil {
 		t.Fatal(err)
 	}
-	errs = vm.txPool.AddRemotesSync([]*types.Transaction{signedTx1})
-	if err := errs[0]; !errors.Is(err, vmerrs.ErrSenderAddressNotAllowListed) {
+	errs = tvm.vm.txPool.AddRemotesSync([]*types.Transaction{signedTx1})
+	if err := errs[0]; !errors.Is(err, vmerrors.ErrSenderAddressNotAllowListed) {
 		t.Fatalf("expected ErrSenderAddressNotAllowListed, got: %s", err)
 	}
 
-	// shutdown the vm
-	if err := vm.Shutdown(context.Background()); err != nil {
-		t.Fatal(err)
-	}
-
 	// prepare the new upgrade bytes to disable the TxAllowList
-	disableAllowListTimestamp := vm.clock.Time().Add(10 * time.Hour) // arbitrary choice
+	disableAllowListTimestamp := tvm.vm.clock.Time().Add(10 * time.Hour) // arbitrary choice
 	upgradeConfig.PrecompileUpgrades = append(
 		upgradeConfig.PrecompileUpgrades,
-		params.PrecompileUpgrade{
+		extras.PrecompileUpgrade{
 			Config: txallowlist.NewDisableConfig(utils.TimeToNewUint64(disableAllowListTimestamp)),
 		},
 	)
@@ -93,48 +99,46 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 		t.Fatalf("could not marshal upgradeConfig to json: %s", err)
 	}
 
-	// restart the vm
-	// Hack: registering metrics uses global variables, so we need to disable metrics here so that we
-	// can initialize the VM twice.
-	metrics.Enabled = false
-	defer func() {
-		metrics.Enabled = true
-	}()
-	if err := vm.Initialize(
-		context.Background(), vm.ctx, dbManager, []byte(genesisJSONSubnetEVM), upgradeBytesJSON, []byte{}, issuer, []*commonEng.Fx{}, appSender,
+	// Reset metrics to allow re-initialization
+	tvm.vm.ctx.Metrics = metrics.NewPrefixGatherer()
+
+	// restart the vm with the same stateful params
+	newVM := &VM{}
+	if err := newVM.Initialize(
+		context.Background(), tvm.vm.ctx, tvm.db, []byte(genesisJSONSubnetEVM), upgradeBytesJSON, []byte{}, []*commonEng.Fx{}, tvm.appSender,
 	); err != nil {
 		t.Fatal(err)
 	}
 	defer func() {
-		if err := vm.Shutdown(context.Background()); err != nil {
+		if err := newVM.Shutdown(context.Background()); err != nil {
 			t.Fatal(err)
 		}
 	}()
 	// Set the VM's state to NormalOp to initialize the tx pool.
-	if err := vm.SetState(context.Background(), snow.Bootstrapping); err != nil {
+	if err := newVM.SetState(context.Background(), snow.Bootstrapping); err != nil {
 		t.Fatal(err)
 	}
-	if err := vm.SetState(context.Background(), snow.NormalOp); err != nil {
+	if err := newVM.SetState(context.Background(), snow.NormalOp); err != nil {
 		t.Fatal(err)
 	}
 	newTxPoolHeadChan := make(chan core.NewTxPoolReorgEvent, 1)
-	vm.txPool.SubscribeNewReorgEvent(newTxPoolHeadChan)
-	vm.clock.Set(disableAllowListTimestamp)
+	newVM.txPool.SubscribeNewReorgEvent(newTxPoolHeadChan)
+	newVM.clock.Set(disableAllowListTimestamp)
 
 	// Make a block, previous rules still apply (TxAllowList is active)
 	// Submit a successful transaction
-	errs = vm.txPool.AddRemotesSync([]*types.Transaction{signedTx0})
+	errs = newVM.txPool.AddRemotesSync([]*types.Transaction{signedTx0})
 	if err := errs[0]; err != nil {
 		t.Fatalf("Failed to add tx at index: %s", err)
 	}
 
 	// Submit a rejected transaction, should throw an error
-	errs = vm.txPool.AddRemotesSync([]*types.Transaction{signedTx1})
-	if err := errs[0]; !errors.Is(err, vmerrs.ErrSenderAddressNotAllowListed) {
+	errs = newVM.txPool.AddRemotesSync([]*types.Transaction{signedTx1})
+	if err := errs[0]; !errors.Is(err, vmerrors.ErrSenderAddressNotAllowListed) {
 		t.Fatalf("expected ErrSenderAddressNotAllowListed, got: %s", err)
 	}
 
-	blk := issueAndAccept(t, issuer, vm)
+	blk := issueAndAccept(t, newVM)
 
 	// Verify that the constructed block only has the whitelisted tx
 	block := blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
@@ -145,18 +149,18 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 	assert.Equal(t, signedTx0.Hash(), txs[0].Hash())
 
 	// verify the issued block is after the network upgrade
-	assert.GreaterOrEqual(t, int64(block.Timestamp()), disableAllowListTimestamp.Unix())
+	assert.GreaterOrEqual(t, int64(block.Time()), disableAllowListTimestamp.Unix())
 
 	<-newTxPoolHeadChan // wait for new head in tx pool
 
 	// retry the rejected Tx, which should now succeed
-	errs = vm.txPool.AddRemotesSync([]*types.Transaction{signedTx1})
+	errs = newVM.txPool.AddRemotesSync([]*types.Transaction{signedTx1})
 	if err := errs[0]; err != nil {
 		t.Fatalf("Failed to add tx at index: %s", err)
 	}
 
-	vm.clock.Set(vm.clock.Time().Add(2 * time.Second)) // add 2 seconds for gas fee to adjust
-	blk = issueAndAccept(t, issuer, vm)
+	newVM.clock.Set(newVM.clock.Time().Add(2 * time.Second)) // add 2 seconds for gas fee to adjust
+	blk = issueAndAccept(t, newVM)
 
 	// Verify that the constructed block only has the previously rejected tx
 	block = blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
@@ -167,56 +171,82 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 	assert.Equal(t, signedTx1.Hash(), txs[0].Hash())
 }
 
-func TestNetworkUpgradesOverriden(t *testing.T) {
-	var genesis core.Genesis
-	if err := json.Unmarshal([]byte(genesisJSONPreSubnetEVM), &genesis); err != nil {
-		t.Fatalf("could not unmarshal genesis bytes: %s", err)
-	}
-	genesisBytes, err := json.Marshal(&genesis)
-	if err != nil {
-		t.Fatalf("could not unmarshal genesis bytes: %s", err)
-	}
+func TestNetworkUpgradesOverridden(t *testing.T) {
+	fork := upgradetest.Granite
+	chainConfig := paramstest.ForkToChainConfig[fork]
+	extraConfig := params.GetExtra(chainConfig)
+	extraConfig.NetworkUpgrades.GraniteTimestamp = utils.NewUint64(uint64(upgrade.InitiallyActiveTime.Unix()))
+	genesis := &core.Genesis{}
+	require.NoError(t, json.Unmarshal([]byte(toGenesisJSON(chainConfig)), genesis))
+	// Set the genesis timestamp to before the Granite activation time
+	genesis.Timestamp = uint64(upgrade.InitiallyActiveTime.Unix() - 1)
+	genesisJSON, err := genesis.MarshalJSON()
+	require.NoError(t, err)
+	tvm := newVM(t, testVMConfig{
+		fork:        &fork,
+		genesisJSON: string(genesisJSON),
+	})
 
-	upgradeBytesJSON := `{
-			"networkUpgradeOverrides": {
-				"subnetEVMTimestamp": 2,
-				"durangoTimestamp": 1607144402
-			}
-		}`
+	// verify initial state
+	require.True(t, tvm.vm.chainConfigExtra().IsGranite(uint64(upgrade.InitiallyActiveTime.Unix())))
+	require.True(t, tvm.vm.currentRules().IsSubnetEVM)
+	require.False(t, tvm.vm.currentRules().IsGranite)
 
-	vm := &VM{}
-	ctx, dbManager, genesisBytes, issuer, _ := setupGenesis(t, string(genesisBytes))
-	appSender := &enginetest.Sender{T: t}
-	appSender.CantSendAppGossip = true
-	appSender.SendAppGossipF = func(context.Context, commonEng.SendConfig, []byte) error { return nil }
-	err = vm.Initialize(
-		context.Background(),
-		ctx,
-		dbManager,
-		genesisBytes,
-		[]byte(upgradeBytesJSON),
-		nil,
-		issuer,
-		[]*commonEng.Fx{},
-		appSender,
-	)
-	require.NoError(t, err, "error initializing GenesisVM")
-
-	require.NoError(t, vm.SetState(context.Background(), snow.Bootstrapping))
-	require.NoError(t, vm.SetState(context.Background(), snow.NormalOp))
-
-	defer func() {
-		if err := vm.Shutdown(context.Background()); err != nil {
-			t.Fatal(err)
+	// restart the vm with overrides
+	graniteTimestamp := uint64(upgrade.InitiallyActiveTime.Unix()) + 1
+	upgradeBytesJSON := fmt.Sprintf(`{
+		"networkUpgradeOverrides": {
+			"graniteTimestamp": %d
 		}
-	}()
+	}`, graniteTimestamp)
+
+	restartedTVM, err := restartVM(tvm, testVMConfig{
+		fork:        &fork,
+		upgradeJSON: upgradeBytesJSON,
+		genesisJSON: tvm.config.genesisJSON,
+	})
+	require.NoError(t, err)
+	restartedVM := restartedTVM.vm
+	// verify upgrade overrides
+	require.False(t, restartedVM.chainConfigExtra().IsGranite(uint64(upgrade.InitiallyActiveTime.Unix())))
+	require.True(t, restartedVM.chainConfigExtra().IsGranite(graniteTimestamp))
+	require.False(t, restartedVM.currentRules().IsGranite)
+
+	// Activate Durango
+	restartedVM.clock.Set(time.Unix(int64(graniteTimestamp), 0))
+	newTxPoolHeadChan := make(chan core.NewTxPoolReorgEvent, 1)
+	restartedVM.txPool.SubscribeNewReorgEvent(newTxPoolHeadChan)
+
+	// Submit a successful transaction
+	tx0 := types.NewTransaction(uint64(0), testEthAddrs[0], big.NewInt(1), 21000, big.NewInt(testMinGasPrice), nil)
+	signedTx0, err := types.SignTx(tx0, types.NewEIP155Signer(restartedVM.chainConfig.ChainID), testKeys[0].ToECDSA())
+	assert.NoError(t, err)
+	errs := restartedVM.txPool.AddRemotesSync([]*types.Transaction{signedTx0})
+	if err := errs[0]; err != nil {
+		t.Fatalf("Failed to add tx at index: %s", err)
+	}
+
+	blk := issueAndAccept(t, restartedVM)
+	require.NotNil(t, blk)
+	require.EqualValues(t, 1, blk.Height())
 
 	// verify upgrade overrides
-	require.False(t, vm.chainConfig.IsSubnetEVM(0))
-	require.True(t, vm.chainConfig.IsSubnetEVM(2))
-	require.False(t, vm.chainConfig.IsDurango(0))
-	require.False(t, vm.chainConfig.IsDurango(uint64(upgrade.InitiallyActiveTime.Unix())))
-	require.True(t, vm.chainConfig.IsDurango(1607144402))
+	require.True(t, restartedVM.currentRules().IsDurango)
+
+	// Test Case 2: Set Granite override after Granite activation
+	newGraniteTimestamp := graniteTimestamp + 1
+	newUpgradeBytesJSON := fmt.Sprintf(`{
+		"networkUpgradeOverrides": {
+			"graniteTimestamp": %d
+		}
+	}`, newGraniteTimestamp)
+
+	_, err = restartVM(restartedTVM, testVMConfig{
+		fork:        &fork,
+		upgradeJSON: newUpgradeBytesJSON,
+		genesisJSON: tvm.config.genesisJSON,
+	})
+	require.ErrorContains(t, err, "mismatching Granite fork block timestamp")
 }
 
 func mustMarshal(t *testing.T, v interface{}) string {
@@ -228,8 +258,7 @@ func mustMarshal(t *testing.T, v interface{}) string {
 func TestVMStateUpgrade(t *testing.T) {
 	// modify genesis to add a key to the state
 	genesis := &core.Genesis{}
-	err := json.Unmarshal([]byte(genesisJSONSubnetEVM), genesis)
-	require.NoError(t, err)
+	require.NoError(t, json.Unmarshal([]byte(genesisJSONSubnetEVM), genesis))
 	genesisAccount, ok := genesis.Alloc[testEthAddrs[0]]
 	require.True(t, ok)
 	storageKey := common.HexToHash("0x1234")
@@ -244,7 +273,7 @@ func TestVMStateUpgrade(t *testing.T) {
 	upgradedCodeStr := "0xdeadbeef" // this code will be applied during the upgrade
 	upgradedCode, err := hexutil.Decode(upgradedCodeStr)
 	// This modification will be applied to an existing account
-	genesisAccountUpgrade := &params.StateUpgradeAccount{
+	genesisAccountUpgrade := &extras.StateUpgradeAccount{
 		BalanceChange: (*math.HexOrDecimal256)(big.NewInt(100)),
 		Storage:       map[common.Hash]common.Hash{storageKey: {}},
 		Code:          upgradedCode,
@@ -253,7 +282,7 @@ func TestVMStateUpgrade(t *testing.T) {
 	// This modification will be applied to a new account
 	newAccount := common.Address{42}
 	require.NoError(t, err)
-	newAccountUpgrade := &params.StateUpgradeAccount{
+	newAccountUpgrade := &extras.StateUpgradeAccount{
 		BalanceChange: (*math.HexOrDecimal256)(big.NewInt(100)),
 		Storage:       map[common.Hash]common.Hash{storageKey: common.HexToHash("0x6666")},
 		Code:          upgradedCode,
@@ -281,32 +310,36 @@ func TestVMStateUpgrade(t *testing.T) {
 	require.Contains(t, upgradeBytesJSON, upgradedCodeStr)
 
 	// initialize the VM with these upgrade bytes
-	issuer, vm, _, _ := GenesisVM(t, true, genesisStr, "", upgradeBytesJSON)
-	defer func() { require.NoError(t, vm.Shutdown(context.Background())) }()
+	tvm := newVM(t, testVMConfig{
+		genesisJSON: genesisStr,
+		upgradeJSON: upgradeBytesJSON,
+	})
+
+	defer func() { require.NoError(t, tvm.vm.Shutdown(context.Background())) }()
 
 	// Verify the new account doesn't exist yet
-	genesisState, err := vm.blockChain.State()
+	genesisState, err := tvm.vm.blockChain.State()
 	require.NoError(t, err)
 	require.Equal(t, common.U2560, genesisState.GetBalance(newAccount))
 
 	// Advance the chain to the upgrade time
-	vm.clock.Set(upgradeTimestamp)
+	tvm.vm.clock.Set(upgradeTimestamp)
 
 	// Submit a successful (unrelated) transaction, so we can build a block
 	// in this tx, testEthAddrs[1] sends 1 wei to itself.
 	tx0 := types.NewTransaction(uint64(0), testEthAddrs[1], big.NewInt(1), 21000, big.NewInt(testMinGasPrice), nil)
-	signedTx0, err := types.SignTx(tx0, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[1])
+	signedTx0, err := types.SignTx(tx0, types.NewEIP155Signer(tvm.vm.chainConfig.ChainID), testKeys[1].ToECDSA())
 	require.NoError(t, err)
 
-	errs := vm.txPool.AddRemotesSync([]*types.Transaction{signedTx0})
+	errs := tvm.vm.txPool.AddRemotesSync([]*types.Transaction{signedTx0})
 	require.NoError(t, errs[0], "Failed to add tx")
 
-	blk := issueAndAccept(t, issuer, vm)
+	blk := issueAndAccept(t, tvm.vm)
 	require.NotNil(t, blk)
 	require.EqualValues(t, 1, blk.Height())
 
 	// Verify the state upgrade was applied
-	state, err := vm.blockChain.State()
+	state, err := tvm.vm.blockChain.State()
 	require.NoError(t, err)
 
 	// Existing account
@@ -331,27 +364,29 @@ func TestVMStateUpgrade(t *testing.T) {
 	require.Equal(t, state.GetState(newAccount, storageKey), newAccountUpgrade.Storage[storageKey])
 }
 
-func TestVMEupgradeActivatesCancun(t *testing.T) {
+func TestVMEtnaActivatesCancun(t *testing.T) {
+	defaultEtnaTime := uint64(upgrade.InitiallyActiveTime.Unix())
+
 	tests := []struct {
 		name        string
-		genesisJSON string
+		fork        upgradetest.Fork
 		upgradeJSON string
 		check       func(*testing.T, *VM) // function to check the VM state
 	}{
 		{
-			name:        "Etna activates Cancun",
-			genesisJSON: genesisJSONEtna,
+			name: "Etna activates Cancun",
+			fork: upgradetest.Etna,
 			check: func(t *testing.T, vm *VM) {
-				require.True(t, vm.chainConfig.IsCancun(common.Big0, DefaultEtnaTime))
+				require.True(t, vm.chainConfig.IsCancun(common.Big0, defaultEtnaTime))
 			},
 		},
 		{
-			name:        "Later Etna activates Cancun",
-			genesisJSON: genesisJSONDurango,
+			name: "Changed Etna changes Cancun",
+			fork: upgradetest.Etna,
 			upgradeJSON: func() string {
-				upgrade := &params.UpgradeConfig{
-					NetworkUpgradeOverrides: &params.NetworkUpgrades{
-						EtnaTimestamp: utils.NewUint64(DefaultEtnaTime + 2),
+				upgrade := &extras.UpgradeConfig{
+					NetworkUpgradeOverrides: &extras.NetworkUpgrades{
+						EtnaTimestamp: utils.NewUint64(defaultEtnaTime + 2),
 					},
 				}
 				b, err := json.Marshal(upgrade)
@@ -359,34 +394,20 @@ func TestVMEupgradeActivatesCancun(t *testing.T) {
 				return string(b)
 			}(),
 			check: func(t *testing.T, vm *VM) {
-				require.False(t, vm.chainConfig.IsCancun(common.Big0, DefaultEtnaTime))
-				require.True(t, vm.chainConfig.IsCancun(common.Big0, DefaultEtnaTime+2))
-			},
-		},
-		{
-			name:        "Changed Etna changes Cancun",
-			genesisJSON: genesisJSONEtna,
-			upgradeJSON: func() string {
-				upgrade := &params.UpgradeConfig{
-					NetworkUpgradeOverrides: &params.NetworkUpgrades{
-						EtnaTimestamp: utils.NewUint64(DefaultEtnaTime + 2),
-					},
-				}
-				b, err := json.Marshal(upgrade)
-				require.NoError(t, err)
-				return string(b)
-			}(),
-			check: func(t *testing.T, vm *VM) {
-				require.False(t, vm.chainConfig.IsCancun(common.Big0, DefaultEtnaTime))
-				require.True(t, vm.chainConfig.IsCancun(common.Big0, DefaultEtnaTime+2))
+				require.False(t, vm.chainConfig.IsCancun(common.Big0, defaultEtnaTime))
+				require.True(t, vm.chainConfig.IsCancun(common.Big0, defaultEtnaTime+2))
 			},
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			_, vm, _, _ := GenesisVM(t, true, test.genesisJSON, "", test.upgradeJSON)
-			defer func() { require.NoError(t, vm.Shutdown(context.Background())) }()
-			test.check(t, vm)
+			tvm := newVM(t, testVMConfig{
+				fork:        &test.fork,
+				upgradeJSON: test.upgradeJSON,
+			})
+
+			defer func() { require.NoError(t, tvm.vm.Shutdown(context.Background())) }()
+			test.check(t, tvm.vm)
 		})
 	}
 }

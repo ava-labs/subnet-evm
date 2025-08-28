@@ -1,4 +1,4 @@
-// (c) 2023, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package warp
@@ -7,16 +7,18 @@ import (
 	"context"
 	"testing"
 
-	"github.com/ava-labs/avalanchego/cache"
+	"github.com/ava-labs/avalanchego/cache/lru"
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/database/memdb"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils"
 	"github.com/ava-labs/avalanchego/utils/crypto/bls/signer/localsigner"
-	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
-	"github.com/ava-labs/subnet-evm/warp/warptest"
 	"github.com/stretchr/testify/require"
+
+	"github.com/ava-labs/subnet-evm/warp/warptest"
+
+	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
 )
 
 var (
@@ -44,13 +46,12 @@ func TestAddAndGetValidMessage(t *testing.T) {
 	sk, err := localsigner.New()
 	require.NoError(t, err)
 	warpSigner := avalancheWarp.NewSigner(sk, networkID, sourceChainID)
-	messageSignatureCache := &cache.LRU[ids.ID, []byte]{Size: 500}
+	messageSignatureCache := lru.NewCache[ids.ID, []byte](500)
 	backend, err := NewBackend(networkID, sourceChainID, warpSigner, nil, warptest.NoOpValidatorReader{}, db, messageSignatureCache, nil)
 	require.NoError(t, err)
 
 	// Add testUnsignedMessage to the warp backend
-	err = backend.AddMessage(testUnsignedMessage)
-	require.NoError(t, err)
+	require.NoError(t, backend.AddMessage(testUnsignedMessage))
 
 	// Verify that a signature is returned successfully, and compare to expected signature.
 	signature, err := backend.GetMessageSignature(context.TODO(), testUnsignedMessage)
@@ -67,7 +68,7 @@ func TestAddAndGetUnknownMessage(t *testing.T) {
 	sk, err := localsigner.New()
 	require.NoError(t, err)
 	warpSigner := avalancheWarp.NewSigner(sk, networkID, sourceChainID)
-	messageSignatureCache := &cache.LRU[ids.ID, []byte]{Size: 500}
+	messageSignatureCache := lru.NewCache[ids.ID, []byte](500)
 	backend, err := NewBackend(networkID, sourceChainID, warpSigner, nil, warptest.NoOpValidatorReader{}, db, messageSignatureCache, nil)
 	require.NoError(t, err)
 
@@ -86,7 +87,7 @@ func TestGetBlockSignature(t *testing.T) {
 	sk, err := localsigner.New()
 	require.NoError(err)
 	warpSigner := avalancheWarp.NewSigner(sk, networkID, sourceChainID)
-	messageSignatureCache := &cache.LRU[ids.ID, []byte]{Size: 500}
+	messageSignatureCache := lru.NewCache[ids.ID, []byte](500)
 	backend, err := NewBackend(networkID, sourceChainID, warpSigner, blockClient, warptest.NoOpValidatorReader{}, db, messageSignatureCache, nil)
 	require.NoError(err)
 
@@ -113,13 +114,12 @@ func TestZeroSizedCache(t *testing.T) {
 	warpSigner := avalancheWarp.NewSigner(sk, networkID, sourceChainID)
 
 	// Verify zero sized cache works normally, because the lru cache will be initialized to size 1 for any size parameter <= 0.
-	messageSignatureCache := &cache.LRU[ids.ID, []byte]{Size: 0}
+	messageSignatureCache := lru.NewCache[ids.ID, []byte](0)
 	backend, err := NewBackend(networkID, sourceChainID, warpSigner, nil, warptest.NoOpValidatorReader{}, db, messageSignatureCache, nil)
 	require.NoError(t, err)
 
 	// Add testUnsignedMessage to the warp backend
-	err = backend.AddMessage(testUnsignedMessage)
-	require.NoError(t, err)
+	require.NoError(t, backend.AddMessage(testUnsignedMessage))
 
 	// Verify that a signature is returned successfully, and compare to expected signature.
 	signature, err := backend.GetMessageSignature(context.TODO(), testUnsignedMessage)
@@ -173,7 +173,7 @@ func TestOffChainMessages(t *testing.T) {
 			require := require.New(t)
 			db := memdb.New()
 
-			messageSignatureCache := &cache.LRU[ids.ID, []byte]{Size: 0}
+			messageSignatureCache := lru.NewCache[ids.ID, []byte](0)
 			backend, err := NewBackend(networkID, sourceChainID, warpSigner, nil, warptest.NoOpValidatorReader{}, db, messageSignatureCache, test.offchainMessages)
 			require.ErrorIs(err, test.err)
 			if test.check != nil {

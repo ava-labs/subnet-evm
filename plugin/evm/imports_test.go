@@ -1,4 +1,4 @@
-// (c) 2025, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package evm
@@ -15,10 +15,10 @@ import (
 // its recursive package imports (including itself) in the same format.
 func getDependencies(packageName string) (map[string]struct{}, error) {
 	// Configure the load mode to include dependencies
-	cfg := &packages.Config{Mode: packages.NeedDeps | packages.NeedImports | packages.NeedName | packages.NeedModule}
+	cfg := &packages.Config{Mode: packages.NeedImports | packages.NeedName}
 	pkgs, err := packages.Load(cfg, packageName)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load package: %v", err)
+		return nil, fmt.Errorf("failed to load package: %w", err)
 	}
 
 	if len(pkgs) == 0 || pkgs[0].Errors != nil {
@@ -38,7 +38,9 @@ func getDependencies(packageName string) (map[string]struct{}, error) {
 	}
 
 	// Start collecting dependencies
-	collectDeps(pkgs[0])
+	for _, pkg := range pkgs {
+		collectDeps(pkg)
+	}
 	return deps, nil
 }
 
@@ -54,8 +56,12 @@ func TestMustNotImport(t *testing.T) {
 		// Importing these packages configures libevm globally and it is not
 		// possible to do so for both coreth and subnet-evm, where the client may
 		// wish to connect to multiple chains.
-		"plugin/evm/client": {"core", "core/vm"},
-		"plugin/evm/config": {"core", "core/vm"},
+		"plugin/evm/client": {"core", "plugin/evm/customtypes", "core/extstate", "params"},
+		"plugin/evm/config": {"core", "plugin/evm/customtypes", "core/extstate", "params"},
+		"plugin/evm/header": {"core", "core/extstate", "core/vm", "params"},
+		// TODO: ethclient has a dependency on params, see the ethclient.go for more info.
+		// "ethclient":         {"plugin/evm/customtypes", "core/extstate", "params"},
+		"warp": {"plugin/evm/customtypes", "core/extstate", "params"},
 	}
 
 	for packageName, forbiddenImports := range mustNotImport {

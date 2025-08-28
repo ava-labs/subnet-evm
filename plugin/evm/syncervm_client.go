@@ -1,4 +1,4 @@
-// (c) 2021-2022, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package evm
@@ -11,19 +11,20 @@ import (
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/database/versiondb"
 	"github.com/ava-labs/avalanchego/ids"
-	commonEng "github.com/ava-labs/avalanchego/snow/engine/common"
 	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
 	"github.com/ava-labs/avalanchego/vms/components/chain"
-	"github.com/ava-labs/subnet-evm/core/rawdb"
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/core/rawdb"
+	"github.com/ava-labs/libevm/ethdb"
+	"github.com/ava-labs/libevm/log"
+
 	"github.com/ava-labs/subnet-evm/core/state/snapshot"
 	"github.com/ava-labs/subnet-evm/eth"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
-	syncclient "github.com/ava-labs/subnet-evm/sync/client"
 	"github.com/ava-labs/subnet-evm/sync/statesync"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/ethdb"
-	"github.com/ethereum/go-ethereum/log"
+
+	syncclient "github.com/ava-labs/subnet-evm/sync/client"
 )
 
 const (
@@ -53,9 +54,8 @@ type stateSyncClientConfig struct {
 	acceptedBlockDB database.Database
 	db              *versiondb.Database
 
-	client syncclient.Client
-
-	toEngine chan<- commonEng.Message
+	client        syncclient.Client
+	stateSyncDone chan struct{}
 }
 
 type stateSyncerClient struct {
@@ -67,12 +67,14 @@ type stateSyncerClient struct {
 	wg     sync.WaitGroup
 
 	// State Sync results
-	syncSummary  message.SyncSummary
-	stateSyncErr error
+	syncSummary   message.SyncSummary
+	stateSyncErr  error
+	stateSyncDone chan struct{}
 }
 
 func NewStateSyncClient(config *stateSyncClientConfig) StateSyncClient {
 	return &stateSyncerClient{
+		stateSyncDone:         config.stateSyncDone,
 		stateSyncClientConfig: config,
 	}
 }
@@ -95,7 +97,7 @@ type StateSyncClient interface {
 // Error returns an error if any was encountered.
 type Syncer interface {
 	Start(ctx context.Context) error
-	Done() <-chan error
+	Wait(ctx context.Context) error
 }
 
 // StateSyncEnabled returns [client.enabled], which is set in the chain's config file.
@@ -212,7 +214,7 @@ func (client *stateSyncerClient) acceptSyncSummary(proposedSummary message.SyncS
 		// this error will be propagated to the engine when it calls
 		// vm.SetState(snow.Bootstrapping)
 		log.Info("stateSync completed, notifying engine", "err", client.stateSyncErr)
-		client.toEngine <- commonEng.StateSyncDone
+		close(client.stateSyncDone)
 	}()
 	return block.StateSyncStatic, nil
 }
@@ -285,7 +287,7 @@ func (client *stateSyncerClient) syncStateTrie(ctx context.Context) error {
 	if err := evmSyncer.Start(ctx); err != nil {
 		return err
 	}
-	err = <-evmSyncer.Done()
+	err = evmSyncer.Wait(ctx)
 	log.Info("state sync: sync finished", "root", client.syncSummary.BlockRoot, "err", err)
 	return err
 }

@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2024, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package uptime
@@ -10,8 +10,9 @@ import (
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow/uptime"
 	"github.com/ava-labs/avalanchego/utils/timer/mockable"
-	"github.com/ava-labs/subnet-evm/plugin/evm/validators/uptime/interfaces"
 	"github.com/stretchr/testify/require"
+
+	"github.com/ava-labs/subnet-evm/plugin/evm/validators/uptime/interfaces"
 )
 
 func TestPausableManager(t *testing.T) {

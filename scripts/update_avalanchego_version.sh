@@ -7,6 +7,11 @@ if ! [[ "$0" =~ scripts/update_avalanchego_version.sh ]]; then
   exit 255
 fi
 
+SUBNET_EVM_PATH=$(
+  cd "$(dirname "${BASH_SOURCE[0]}")"
+  cd .. && pwd
+)
+
 # If version is not provided, the existing version in go.mod is assumed
 VERSION="${1:-}"
 
@@ -17,16 +22,19 @@ if [[ -n "${VERSION}" ]]; then
 fi
 
 # Discover AVALANCHE_VERSION
-. scripts/versions.sh
+. "$SUBNET_EVM_PATH"/scripts/constants.sh
 
 # The full SHA is required for versioning custom actions.
 CURL_ARGS=(curl -s)
 if [[ -n "${GITHUB_TOKEN:-}" ]]; then
   # Using an auth token avoids being rate limited when run in CI
   CURL_ARGS+=(-H "Authorization: token ${GITHUB_TOKEN}")
+else
+  echo "No GITHUB_TOKEN found, using unauthenticated requests"
 fi
-CURL_URL="https://api.github.com/repos/ava-labs/avalanchego/commits/${AVALANCHE_VERSION}"
-FULL_AVALANCHE_VERSION="$("${CURL_ARGS[@]}" "${CURL_URL}" | grep '"sha":' | head -n1 | cut -d'"' -f4)"
+
+GIT_COMMIT=$("${CURL_ARGS[@]}" "https://api.github.com/repos/ava-labs/avalanchego/commits/${AVALANCHE_VERSION}")
+FULL_AVALANCHE_VERSION="$(grep -m1 '"sha":' <<< "${GIT_COMMIT}" | cut -d'"' -f4)"
 
 # Ensure the custom action version matches the avalanche version
 WORKFLOW_PATH=".github/workflows/tests.yml"

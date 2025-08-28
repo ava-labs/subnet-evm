@@ -1,4 +1,4 @@
-// (c) 2019-2020, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package evm
@@ -10,20 +10,20 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/rlp"
-
-	"github.com/ava-labs/subnet-evm/core"
-	"github.com/ava-labs/subnet-evm/core/rawdb"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/plugin/evm/header"
-	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
-	"github.com/ava-labs/subnet-evm/predicate"
-
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow/consensus/snowman"
 	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
+	"github.com/ava-labs/avalanchego/vms/evm/predicate"
+	"github.com/ava-labs/libevm/core/rawdb"
+	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/log"
+	"github.com/ava-labs/libevm/rlp"
+
+	"github.com/ava-labs/subnet-evm/core"
+	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/params/extras"
+	"github.com/ava-labs/subnet-evm/plugin/evm/header"
+	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 )
 
 var (
@@ -58,21 +58,26 @@ func (b *Block) Accept(context.Context) error {
 	// practice to cleanup the batch we were modifying in the case of an error.
 	defer vm.versiondb.Abort()
 
-	log.Debug(fmt.Sprintf("Accepting block %s (%s) at height %d", b.ID().Hex(), b.ID(), b.Height()))
+	blkID := b.ID()
+	log.Debug("accepting block",
+		"hash", blkID.Hex(),
+		"id", blkID,
+		"height", b.Height(),
+	)
 
 	// Call Accept for relevant precompile logs. Note we do this prior to
 	// calling Accept on the blockChain so any side effects (eg warp signatures)
 	// take place before the accepted log is emitted to subscribers.
-	rules := b.vm.chainConfig.Rules(b.ethBlock.Number(), b.ethBlock.Timestamp())
+	rules := b.vm.rules(b.ethBlock.Number(), b.ethBlock.Time())
 	if err := b.handlePrecompileAccept(rules); err != nil {
 		return err
 	}
 	if err := vm.blockChain.Accept(b.ethBlock); err != nil {
-		return fmt.Errorf("chain could not accept %s: %w", b.ID(), err)
+		return fmt.Errorf("chain could not accept %s: %w", blkID, err)
 	}
 
-	if err := vm.acceptedBlockDB.Put(lastAcceptedKey, b.id[:]); err != nil {
-		return fmt.Errorf("failed to put %s as the last accepted block: %w", b.ID(), err)
+	if err := vm.acceptedBlockDB.Put(lastAcceptedKey, blkID[:]); err != nil {
+		return fmt.Errorf("failed to put %s as the last accepted block: %w", blkID, err)
 	}
 
 	return b.vm.versiondb.Commit()
@@ -80,7 +85,7 @@ func (b *Block) Accept(context.Context) error {
 
 // handlePrecompileAccept calls Accept on any logs generated with an active precompile address that implements
 // contract.Accepter
-func (b *Block) handlePrecompileAccept(rules params.Rules) error {
+func (b *Block) handlePrecompileAccept(rules extras.Rules) error {
 	// Short circuit early if there are no precompile accepters to execute
 	if len(rules.AccepterPrecompiles) == 0 {
 		return nil
@@ -114,7 +119,12 @@ func (b *Block) handlePrecompileAccept(rules params.Rules) error {
 
 // Reject implements the snowman.Block interface
 func (b *Block) Reject(context.Context) error {
-	log.Debug(fmt.Sprintf("Rejecting block %s (%s) at height %d", b.ID().Hex(), b.ID(), b.Height()))
+	blkID := b.ID()
+	log.Debug("rejecting block",
+		"hash", blkID.Hex(),
+		"id", blkID,
+		"height", b.Height(),
+	)
 	return b.vm.blockChain.Reject(b.ethBlock)
 }
 
@@ -140,7 +150,7 @@ func (b *Block) syntacticVerify() error {
 	}
 
 	header := b.ethBlock.Header()
-	rules := b.vm.chainConfig.Rules(header.Number, header.Time)
+	rules := b.vm.chainConfig.Rules(header.Number, params.IsMergeTODO, header.Time)
 	return b.vm.syntacticBlockValidator.SyntacticVerify(b, rules)
 }
 
@@ -154,7 +164,8 @@ func (b *Block) Verify(context.Context) error {
 
 // ShouldVerifyWithContext implements the block.WithVerifyContext interface
 func (b *Block) ShouldVerifyWithContext(context.Context) (bool, error) {
-	predicates := b.vm.chainConfig.Rules(b.ethBlock.Number(), b.ethBlock.Timestamp()).Predicaters
+	rules := b.vm.rules(b.ethBlock.Number(), b.ethBlock.Time())
+	predicates := rules.Predicaters
 	// Short circuit early if there are no predicates to verify
 	if len(predicates) == 0 {
 		return false, nil
@@ -220,22 +231,23 @@ func (b *Block) verify(predicateContext *precompileconfig.PredicateContext, writ
 
 // verifyPredicates verifies the predicates in the block are valid according to predicateContext.
 func (b *Block) verifyPredicates(predicateContext *precompileconfig.PredicateContext) error {
-	rules := b.vm.chainConfig.Rules(b.ethBlock.Number(), b.ethBlock.Timestamp())
+	rules := b.vm.chainConfig.Rules(b.ethBlock.Number(), params.IsMergeTODO, b.ethBlock.Time())
+	rulesExtra := params.GetRulesExtra(rules)
 
 	switch {
-	case !rules.IsDurango && rules.PredicatersExist():
+	case !rulesExtra.IsDurango && rulesExtra.PredicatersExist():
 		return errors.New("cannot enable predicates before Durango activation")
-	case !rules.IsDurango:
+	case !rulesExtra.IsDurango:
 		return nil
 	}
 
-	predicateResults := predicate.NewResults()
+	predicateResults := predicate.BlockResults{}
 	for _, tx := range b.ethBlock.Transactions() {
 		results, err := core.CheckPredicates(rules, predicateContext, tx)
 		if err != nil {
 			return err
 		}
-		predicateResults.SetTxResults(tx.Hash(), results)
+		predicateResults.Set(tx.Hash(), results)
 	}
 	// TODO: document required gas constraints to ensure marshalling predicate results does not error
 	predicateResultsBytes, err := predicateResults.Bytes()
@@ -243,7 +255,7 @@ func (b *Block) verifyPredicates(predicateContext *precompileconfig.PredicateCon
 		return fmt.Errorf("failed to marshal predicate results: %w", err)
 	}
 	extraData := b.ethBlock.Extra()
-	headerPredicateResultsBytes := header.PredicateBytesFromExtra(rules.AvalancheRules, extraData)
+	headerPredicateResultsBytes := header.PredicateBytesFromExtra(extraData)
 	if !bytes.Equal(headerPredicateResultsBytes, predicateResultsBytes) {
 		return fmt.Errorf("%w (remote: %x local: %x)", errInvalidHeaderPredicateResults, headerPredicateResultsBytes, predicateResultsBytes)
 	}

@@ -1,16 +1,17 @@
-// (c) 2019-2020, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package config
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/ava-labs/avalanchego/database/pebbledb"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/common/hexutil"
 	"github.com/spf13/cast"
 )
 
@@ -64,6 +65,7 @@ const (
 
 	estimatedBlockAcceptPeriod        = 2 * time.Second
 	defaultHistoricalProofQueryWindow = uint64(24 * time.Hour / estimatedBlockAcceptPeriod)
+	defaultStateHistory               = uint64(32)
 )
 
 type PBool bool
@@ -93,7 +95,6 @@ type Config struct {
 	AirdropFile string `json:"airdrop"`
 
 	// Subnet EVM APIs
-	SnowmanAPIEnabled    bool   `json:"snowman-api-enabled"`
 	ValidatorsAPIEnabled bool   `json:"validators-api-enabled"`
 	AdminAPIEnabled      bool   `json:"admin-api-enabled"`
 	AdminAPIDir          string `json:"admin-api-dir"`
@@ -220,6 +221,8 @@ type Config struct {
 	//  * 0:   means no limit
 	//  * N:   means N block limit [HEAD-N+1, HEAD] and delete extra indexes
 	TransactionHistory uint64 `json:"transaction-history"`
+	// The maximum number of blocks from head whose state histories are reserved for pruning blockchains.
+	StateHistory uint64 `json:"state-history"`
 	// Deprecated, use 'TransactionHistory' instead.
 	TxLookupLimit uint64 `json:"tx-lookup-limit"`
 
@@ -244,6 +247,9 @@ type Config struct {
 	DatabaseType          string `json:"database-type"`
 	DatabasePath          string `json:"database-path"`
 	DatabaseReadOnly      bool   `json:"database-read-only"`
+
+	// Database Scheme
+	StateScheme string `json:"state-scheme"`
 }
 
 // TxPoolConfig contains the transaction pool config to be passed
@@ -315,6 +321,7 @@ func (c *Config) SetDefaults(txPoolConfig TxPoolConfig) {
 	c.DatabaseType = defaultDBType
 	c.ValidatorsAPIEnabled = defaultValidatorAPIEnabled
 	c.HistoricalProofQueryWindow = defaultHistoricalProofQueryWindow
+	c.StateHistory = defaultStateHistory
 }
 
 func (d *Duration) UnmarshalJSON(data []byte) (err error) {
@@ -346,11 +353,14 @@ func (c *Config) Validate() error {
 	}
 
 	if !c.Pruning && c.OfflinePruning {
-		return fmt.Errorf("cannot run offline pruning while pruning is disabled")
+		return errors.New("cannot run offline pruning while pruning is disabled")
 	}
 	// If pruning is enabled, the commit interval must be non-zero so the node commits state tries every CommitInterval blocks.
 	if c.Pruning && c.CommitInterval == 0 {
-		return fmt.Errorf("cannot use commit interval of 0 with pruning enabled")
+		return errors.New("cannot use commit interval of 0 with pruning enabled")
+	}
+	if c.Pruning && c.StateHistory == 0 {
+		return errors.New("cannot use state history of 0 with pruning enabled")
 	}
 
 	if c.PushGossipPercentStake < 0 || c.PushGossipPercentStake > 1 {

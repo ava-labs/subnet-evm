@@ -1,5 +1,6 @@
-// (c) 2019-2023, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
+
 package precompilebind
 
 const tmplSourcePrecompileEventGo = `
@@ -13,7 +14,7 @@ import (
 	"math/big"
 
 	"github.com/ava-labs/subnet-evm/precompile/contract"
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/ava-labs/libevm/common"
 )
 
 // CUSTOM CODE STARTS HERE

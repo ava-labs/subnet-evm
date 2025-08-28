@@ -1,4 +1,5 @@
-// (c) 2019-2020, Ava Labs, Inc.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -32,26 +33,32 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/common/hexutil"
+	"github.com/ava-labs/libevm/common/math"
+	"github.com/ava-labs/libevm/core/rawdb"
+	"github.com/ava-labs/libevm/core/state"
+	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/core/vm"
+	"github.com/ava-labs/libevm/crypto"
+	"github.com/ava-labs/libevm/ethdb"
+	ethparams "github.com/ava-labs/libevm/params"
+	"github.com/ava-labs/libevm/rlp"
+	"github.com/ava-labs/libevm/triedb"
 	"github.com/ava-labs/subnet-evm/consensus/misc/eip4844"
 	"github.com/ava-labs/subnet-evm/core"
-	"github.com/ava-labs/subnet-evm/core/rawdb"
-	"github.com/ava-labs/subnet-evm/core/state"
+	"github.com/ava-labs/subnet-evm/core/extstate"
 	"github.com/ava-labs/subnet-evm/core/state/snapshot"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/core/vm"
 	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/triedb"
+	"github.com/ava-labs/subnet-evm/plugin/evm/customrawdb"
+	"github.com/ava-labs/subnet-evm/triedb/firewood"
 	"github.com/ava-labs/subnet-evm/triedb/hashdb"
 	"github.com/ava-labs/subnet-evm/triedb/pathdb"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/common/math"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/ethdb"
-	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/holiman/uint256"
 	"golang.org/x/crypto/sha3"
 )
@@ -95,7 +102,7 @@ type stPostState struct {
 //go:generate go run github.com/fjl/gencodec -type stEnv -field-override stEnvMarshaling -out gen_stenv.go
 type stEnv struct {
 	Coinbase      common.Address `json:"currentCoinbase"   gencodec:"required"`
-	Difficulty    *big.Int       `json:"currentDifficulty" gencodec:"required"`
+	Difficulty    *big.Int       `json:"currentDifficulty" gencodec:"optional"`
 	Random        *big.Int       `json:"currentRandom"     gencodec:"optional"`
 	GasLimit      uint64         `json:"currentGasLimit"   gencodec:"required"`
 	Number        uint64         `json:"currentNumber"     gencodec:"required"`
@@ -261,7 +268,7 @@ func (t *StateTest) RunNoVerify(subtest StateSubtest, vmconfig vm.Config, snapsh
 	state = MakePreState(rawdb.NewMemoryDatabase(), t.json.Pre, snapshotter, scheme)
 
 	var baseFee *big.Int
-	if config.IsSubnetEVM(0) {
+	if params.GetExtra(config).IsSubnetEVM(0) {
 		baseFee = t.json.Env.BaseFee
 		if baseFee == nil {
 			// Retesteth uses `0x10` for genesis baseFee. Therefore, it defaults to
@@ -281,7 +288,7 @@ func (t *StateTest) RunNoVerify(subtest StateSubtest, vmconfig vm.Config, snapsh
 		// - the block body is verified against the header in block_validator.go:ValidateBody
 		// Here, we just do this shortcut smaller fix, since state tests do not
 		// utilize those codepaths
-		if len(msg.BlobHashes)*params.BlobTxBlobGasPerBlob > params.MaxBlobGasPerBlock {
+		if len(msg.BlobHashes)*ethparams.BlobTxBlobGasPerBlob > ethparams.MaxBlobGasPerBlock {
 			return state, common.Hash{}, errors.New("blob gas exceeds maximum")
 		}
 	}
@@ -303,7 +310,10 @@ func (t *StateTest) RunNoVerify(subtest StateSubtest, vmconfig vm.Config, snapsh
 	context := core.NewEVMBlockContext(block.Header(), nil, &t.json.Env.Coinbase)
 	context.GetHash = vmTestBlockHash
 	context.BaseFee = baseFee
-	if config.IsSubnetEVM(0) && t.json.Env.Random != nil {
+	context.Random = nil
+	if config.IsLondon(new(big.Int)) && t.json.Env.Random != nil {
+		rnd := common.BigToHash(t.json.Env.Random)
+		context.Random = &rnd
 		context.Difficulty = big.NewInt(0)
 	}
 	if config.IsCancun(new(big.Int), block.Time()) && t.json.Env.ExcessBlobGas != nil {
@@ -453,18 +463,33 @@ type StateTestState struct {
 	StateDB   *state.StateDB
 	TrieDB    *triedb.Database
 	Snapshots *snapshot.Tree
+	TempDir   string
 }
 
 // MakePreState creates a state containing the given allocation.
 func MakePreState(db ethdb.Database, accounts types.GenesisAlloc, snapshotter bool, scheme string) StateTestState {
-	tconf := &triedb.Config{Preimages: true}
-	if scheme == rawdb.HashScheme {
-		tconf.HashDB = hashdb.Defaults
-	} else {
-		tconf.PathDB = pathdb.Defaults
+	// Set database path
+	tempdir, err := os.MkdirTemp("", "coreth-state-test-*")
+	if err != nil {
+		panic("failed to create temporary directory: " + err.Error())
 	}
+
+	tconf := &triedb.Config{Preimages: true}
+	switch scheme {
+	case rawdb.HashScheme:
+		tconf.DBOverride = hashdb.Defaults.BackendConstructor
+	case rawdb.PathScheme:
+		tconf.DBOverride = pathdb.Defaults.BackendConstructor
+	case customrawdb.FirewoodScheme:
+		cfg := firewood.Defaults
+		cfg.FilePath = filepath.Join(tempdir, "firewood")
+		tconf.DBOverride = cfg.BackendConstructor
+	default:
+		panic("unknown trie database scheme" + scheme)
+	}
+
 	triedb := triedb.NewDatabase(db, tconf)
-	sdb := state.NewDatabaseWithNodeDB(db, triedb)
+	sdb := extstate.NewDatabaseWithNodeDB(db, triedb)
 	statedb, _ := state.New(types.EmptyRootHash, sdb, nil)
 	for addr, a := range accounts {
 		statedb.SetCode(addr, a.Code)
@@ -475,7 +500,10 @@ func MakePreState(db ethdb.Database, accounts types.GenesisAlloc, snapshotter bo
 		}
 	}
 	// Commit and re-open to start with a clean state.
-	root, _ := statedb.Commit(0, false)
+	root, err := statedb.Commit(0, false)
+	if err != nil {
+		panic("failed to commit state: " + err.Error())
+	}
 
 	// If snapshot is requested, initialize the snapshotter and use it in state.
 	var snaps *snapshot.Tree
@@ -489,7 +517,7 @@ func MakePreState(db ethdb.Database, accounts types.GenesisAlloc, snapshotter bo
 		snaps, _ = snapshot.New(snapconfig, db, triedb, common.Hash{}, root)
 	}
 	statedb, _ = state.New(root, sdb, snaps)
-	return StateTestState{statedb, triedb, snaps}
+	return StateTestState{statedb, triedb, snaps, tempdir}
 }
 
 // Close should be called when the state is no longer needed, ie. after running the test.
@@ -503,5 +531,12 @@ func (st *StateTestState) Close() {
 		st.Snapshots.AbortGeneration()
 		st.Snapshots.Release()
 		st.Snapshots = nil
+	}
+
+	if st.TempDir != "" {
+		if err := os.RemoveAll(st.TempDir); err != nil {
+			panic("failed to remove temporary directory: " + err.Error())
+		}
+		st.TempDir = ""
 	}
 }

@@ -1,4 +1,4 @@
-// (c) 2019-2023, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package nativeminter
@@ -8,17 +8,16 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/crypto"
+	"github.com/stretchr/testify/require"
+
 	"github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/stretchr/testify/require"
 )
 
-var (
-	mintSignature = contract.CalculateFunctionSelector("mintNativeCoin(address,uint256)") // address, amount
-)
+var mintSignature = contract.CalculateFunctionSelector("mintNativeCoin(address,uint256)") // address, amount
 
 func FuzzPackMintNativeCoinEqualTest(f *testing.F) {
 	key, err := crypto.GenerateKey()

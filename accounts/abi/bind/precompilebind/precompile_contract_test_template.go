@@ -1,5 +1,7 @@
-// (c) 2019-2022, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
+
+// #skiplint: import_testing_only_in_tests
 package precompilebind
 
 // tmplSourcePrecompileConfigGo is the Go precompiled config source template.
@@ -14,18 +16,17 @@ import (
 	"testing"
 	"math/big"
 
-	"github.com/ava-labs/subnet-evm/core/state"
 	{{- if .Contract.AllowList}}
-	"github.com/ava-labs/subnet-evm/precompile/allowlist"
+	"github.com/ava-labs/subnet-evm/precompile/allowlist/allowlisttest"
 	{{- end}}
-	"github.com/ava-labs/subnet-evm/precompile/testutils"
-	"github.com/ava-labs/subnet-evm/vmerrs"
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/ava-labs/subnet-evm/precompile/precompiletest"
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/core/vm"
 	"github.com/stretchr/testify/require"
 )
 
 var (
-	_ = vmerrs.ErrOutOfGas
+	_ = vm.ErrOutOfGas
 	_ = big.NewInt
 	_ = common.Big0
 	_ = require.New
@@ -37,7 +38,7 @@ var (
 // allowlist, readOnly behaviour, and gas cost. You should write your own
 // tests for specific cases.
 var(
-	tests = map[string]testutils.PrecompileTest{
+	tests = map[string]precompiletest.PrecompileTest{
 		{{- $contract := .Contract}}
 		{{- $structs := .Structs}}
 		{{- range .Contract.Funcs}}
@@ -47,8 +48,8 @@ var(
 		{{- range $role := $roles}}
 		{{- $fail := and (not $func.Original.IsConstant) (eq $role "NoRole")}}
 		"calling {{decapitalise $func.Normalized.Name}} from {{$role}} should {{- if $fail}} fail {{- else}} succeed{{- end}}":  {
-			Caller:     allowlist.Test{{$role}}Addr,
-			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
+			Caller:     allowlisttest.Test{{$role}}Addr,
+			BeforeHook: allowlisttest.SetDefaultRoles(Module.Address),
 			InputFn: func(t testing.TB) []byte {
 				{{- if len $func.Normalized.Inputs | lt 1}}
 				// CUSTOM CODE STARTS HERE
@@ -121,7 +122,7 @@ var(
 			},
 			SuppliedGas:  {{$func.Normalized.Name}}GasCost,
 			ReadOnly:    true,
-			ExpectedErr: vmerrs.ErrWriteProtection.Error(),
+			ExpectedErr: vm.ErrWriteProtection.Error(),
 		},
 		{{- end}}
 		"insufficient gas for {{decapitalise $func.Normalized.Name}} should fail": {
@@ -147,7 +148,7 @@ var(
 			},
 			SuppliedGas: {{$func.Normalized.Name}}GasCost - 1,
 			ReadOnly:    false,
-			ExpectedErr: vmerrs.ErrOutOfGas.Error(),
+			ExpectedErr: vm.ErrOutOfGas.Error(),
 		},
 		{{- end}}
 		{{- if .Contract.Fallback}}
@@ -156,14 +157,14 @@ var(
 			Input: []byte{},
 			SuppliedGas: {{.Contract.Type}}FallbackGasCost - 1,
 			ReadOnly:    false,
-			ExpectedErr: vmerrs.ErrOutOfGas.Error(),
+			ExpectedErr: vm.ErrOutOfGas.Error(),
 		},
 		"readOnly fallback should fail": {
 			Caller:	common.Address{1},
 			Input: []byte{},
 			SuppliedGas: {{.Contract.Type}}FallbackGasCost,
 			ReadOnly:    true,
-			ExpectedErr: vmerrs.ErrWriteProtection.Error(),
+			ExpectedErr: vm.ErrWriteProtection.Error(),
 		},
 		"fallback should succeed": {
 			Caller:	common.Address{1},
@@ -187,12 +188,12 @@ func Test{{.Contract.Type}}Run(t *testing.T) {
 	// and runs them all together.
 	// Even if you don't add any custom tests, keep this. This will still
 	// run the default allowlist tests.
-	allowlist.RunPrecompileWithAllowListTests(t, Module, state.NewTestStateDB, tests)
+			allowlisttest.RunPrecompileWithAllowListTests(t, Module, tests)
 	{{- else}}
 	// Run tests.
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			test.Run(t, Module, state.NewTestStateDB(t))
+			test.Run(t, Module)
 		})
 	}
 	{{- end}}
@@ -239,23 +240,4 @@ func TestPackUnpack{{.Normalized.Name}}EventData(t *testing.T) {
 }
 {{end}}
 {{end}}
-
-func Benchmark{{.Contract.Type}}(b *testing.B) {
-	{{- if .Contract.AllowList}}
-	// Benchmark tests with allowlist tests.
-	// This adds allowlist tests to your custom tests
-	// and benchmarks them all together.
-	// Even if you don't add any custom tests, keep this. This will still
-	// run the default allowlist tests.
-	allowlist.BenchPrecompileWithAllowList(b, Module, state.NewTestStateDB, tests)
-	{{- else}}
-	// Benchmark tests.
-	for name, test := range tests {
-		b.Run(name, func(b *testing.B) {
-			test.Bench(b, Module, state.NewTestStateDB(b))
-		})
-	}
-	{{- end}}
-}
-
 `

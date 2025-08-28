@@ -1,4 +1,5 @@
-// (c) 2019-2020, Ava Labs, Inc.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -37,21 +38,23 @@ import (
 	"sync/atomic"
 	"testing"
 
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/common/hexutil"
+	"github.com/ava-labs/libevm/core/rawdb"
+	"github.com/ava-labs/libevm/core/state"
+	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/core/vm"
+	"github.com/ava-labs/libevm/crypto"
+	"github.com/ava-labs/libevm/eth/tracers/logger"
+	"github.com/ava-labs/libevm/ethdb"
+	ethparams "github.com/ava-labs/libevm/params"
 	"github.com/ava-labs/subnet-evm/consensus"
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
 	"github.com/ava-labs/subnet-evm/core"
-	"github.com/ava-labs/subnet-evm/core/rawdb"
-	"github.com/ava-labs/subnet-evm/core/state"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/core/vm"
-	"github.com/ava-labs/subnet-evm/eth/tracers/logger"
 	"github.com/ava-labs/subnet-evm/internal/ethapi"
 	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/plugin/evm/customrawdb"
 	"github.com/ava-labs/subnet-evm/rpc"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/ethdb"
 	"golang.org/x/exp/slices"
 )
 
@@ -72,7 +75,7 @@ type testBackend struct {
 
 // testBackend creates a new test backend. OBS: After test is done, teardown must be
 // invoked in order to release associated resources.
-func newTestBackend(t *testing.T, n int, gspec *core.Genesis, generator func(i int, b *core.BlockGen)) *testBackend {
+func newTestBackend(t *testing.T, n int, gspec *core.Genesis, scheme string, generator func(i int, b *core.BlockGen)) *testBackend {
 	backend := &testBackend{
 		chainConfig: gspec.Config,
 		engine:      dummy.NewFakerWithMode(dummy.Mode{ModeSkipBlockFee: true, ModeSkipCoinbase: true}),
@@ -90,8 +93,16 @@ func newTestBackend(t *testing.T, n int, gspec *core.Genesis, generator func(i i
 		TrieDirtyLimit:            256,
 		TriePrefetcherParallelism: 4,
 		SnapshotLimit:             128,
-		Pruning:                   false, // Archive mode
+		Pruning:                   true,
+		CommitInterval:            4096,
+		StateScheme:               scheme,
+		StateHistory:              100, // Sufficient history for testing
+		ChainDataDir:              t.TempDir(),
 	}
+	if scheme == customrawdb.FirewoodScheme {
+		cacheConfig.SnapshotLimit = 0 // Firewood does not support snapshots
+	}
+
 	chain, err := core.NewBlockChain(backend.chaindb, cacheConfig, gspec, backend.engine, vm.Config{}, common.Hash{}, false)
 	if err != nil {
 		t.Fatalf("failed to create tester chain: %v", err)
@@ -181,7 +192,8 @@ func (b *testBackend) StateAtNextBlock(ctx context.Context, parent, nextBlock *t
 		return nil, nil, err
 	}
 	// Apply upgrades to the parent state
-	err = core.ApplyUpgrades(b.chainConfig, &parent.Header().Time, nextBlock, statedb)
+	blockContext := core.NewBlockContext(nextBlock.Number(), nextBlock.Time())
+	err = core.ApplyUpgrades(b.chainConfig, &parent.Header().Time, blockContext, statedb)
 	if err != nil {
 		release()
 		return nil, nil, err
@@ -221,8 +233,15 @@ func (b *testBackend) StateAtTransaction(ctx context.Context, block *types.Block
 }
 
 func TestTraceCall(t *testing.T) {
-	t.Parallel()
+	for _, scheme := range schemes {
+		t.Run(scheme, func(t *testing.T) {
+			t.Parallel()
+			testTraceCall(t, scheme)
+		})
+	}
+}
 
+func testTraceCall(t *testing.T, scheme string) {
 	// Initialize test accounts
 	accounts := newAccounts(3)
 	genesis := &core.Genesis{
@@ -236,7 +255,7 @@ func TestTraceCall(t *testing.T) {
 	genBlocks := 10
 	signer := types.HomesteadSigner{}
 	nonce := uint64(0)
-	backend := newTestBackend(t, genBlocks, genesis, func(i int, b *core.BlockGen) {
+	backend := newTestBackend(t, genBlocks, genesis, scheme, func(i int, b *core.BlockGen) {
 		// Transfer from account[0] to account[1]
 		//    value: 1000 wei
 		//    fee:   0 wei
@@ -244,7 +263,7 @@ func TestTraceCall(t *testing.T) {
 			Nonce:    nonce,
 			To:       &accounts[1].addr,
 			Value:    big.NewInt(1000),
-			Gas:      params.TxGas,
+			Gas:      ethparams.TxGas,
 			GasPrice: b.BaseFee(),
 			Data:     nil}),
 			signer, accounts[0].key)
@@ -257,7 +276,7 @@ func TestTraceCall(t *testing.T) {
 				Nonce:    nonce,
 				To:       &accounts[2].addr,
 				Value:    big.NewInt(1000),
-				Gas:      params.TxGas,
+				Gas:      ethparams.TxGas,
 				GasPrice: b.BaseFee(),
 				Data:     nil}),
 				signer, accounts[0].key)
@@ -269,7 +288,7 @@ func TestTraceCall(t *testing.T) {
 				Nonce:    nonce,
 				To:       &accounts[1].addr,
 				Value:    big.NewInt(1000),
-				Gas:      params.TxGas,
+				Gas:      ethparams.TxGas,
 				GasPrice: b.BaseFee(),
 				Data:     nil}),
 				signer, accounts[0].key)
@@ -403,9 +422,9 @@ func TestTraceCall(t *testing.T) {
 				BlockOverrides: &ethapi.BlockOverrides{Number: (*hexutil.Big)(big.NewInt(0x1337))},
 			},
 			expectErr: nil,
-			expect: ` {"gas":53018,"failed":false,"returnValue":"","structLogs":[
-		{"pc":0,"op":"NUMBER","gas":24946984,"gasCost":2,"depth":1,"stack":[]},
-		{"pc":1,"op":"STOP","gas":24946982,"gasCost":0,"depth":1,"stack":["0x1337"]}]}`,
+			expect: ` {"gas":53020,"failed":false,"returnValue":"","structLogs":[
+		{"pc":0,"op":"NUMBER","gas":24946982,"gasCost":2,"depth":1,"stack":[]},
+		{"pc":1,"op":"STOP","gas":24946980,"gasCost":0,"depth":1,"stack":["0x1337"]}]}`,
 		},
 	}
 	for i, testspec := range testSuite {
@@ -439,8 +458,15 @@ func TestTraceCall(t *testing.T) {
 }
 
 func TestTraceTransaction(t *testing.T) {
-	t.Parallel()
+	for _, scheme := range schemes {
+		t.Run(scheme, func(t *testing.T) {
+			t.Parallel()
+			testTraceTransaction(t, scheme)
+		})
+	}
+}
 
+func testTraceTransaction(t *testing.T, scheme string) {
 	// Initialize test accounts
 	accounts := newAccounts(2)
 	genesis := &core.Genesis{
@@ -452,7 +478,7 @@ func TestTraceTransaction(t *testing.T) {
 	}
 	target := common.Hash{}
 	signer := types.HomesteadSigner{}
-	backend := newTestBackend(t, 1, genesis, func(i int, b *core.BlockGen) {
+	backend := newTestBackend(t, 1, genesis, scheme, func(i int, b *core.BlockGen) {
 		// Transfer from account[0] to account[1]
 		//    value: 1000 wei
 		//    fee:   0 wei
@@ -460,7 +486,7 @@ func TestTraceTransaction(t *testing.T) {
 			Nonce:    uint64(i),
 			To:       &accounts[1].addr,
 			Value:    big.NewInt(1000),
-			Gas:      params.TxGas,
+			Gas:      ethparams.TxGas,
 			GasPrice: new(big.Int).Add(b.BaseFee(), big.NewInt(int64(500*params.GWei))),
 			Data:     nil}),
 			signer, accounts[0].key)
@@ -478,7 +504,7 @@ func TestTraceTransaction(t *testing.T) {
 		t.Errorf("failed to unmarshal result %v", err)
 	}
 	expected := &logger.ExecutionResult{
-		Gas:         params.TxGas,
+		Gas:         ethparams.TxGas,
 		Failed:      false,
 		ReturnValue: "",
 		StructLogs:  []logger.StructLogRes{},
@@ -495,8 +521,15 @@ func TestTraceTransaction(t *testing.T) {
 }
 
 func TestTraceBlock(t *testing.T) {
-	t.Parallel()
+	for _, scheme := range schemes {
+		t.Run(scheme, func(t *testing.T) {
+			t.Parallel()
+			testTraceBlock(t, scheme)
+		})
+	}
+}
 
+func testTraceBlock(t *testing.T, scheme string) {
 	// Initialize test accounts
 	accounts := newAccounts(3)
 	genesis := &core.Genesis{
@@ -510,7 +543,7 @@ func TestTraceBlock(t *testing.T) {
 	genBlocks := 10
 	signer := types.HomesteadSigner{}
 	var txHash common.Hash
-	backend := newTestBackend(t, genBlocks, genesis, func(i int, b *core.BlockGen) {
+	backend := newTestBackend(t, genBlocks, genesis, scheme, func(i int, b *core.BlockGen) {
 		// Transfer from account[0] to account[1]
 		//    value: 1000 wei
 		//    fee:   0 wei
@@ -518,7 +551,7 @@ func TestTraceBlock(t *testing.T) {
 			Nonce:    uint64(i),
 			To:       &accounts[1].addr,
 			Value:    big.NewInt(1000),
-			Gas:      params.TxGas,
+			Gas:      ethparams.TxGas,
 			GasPrice: b.BaseFee(),
 			Data:     nil}),
 			signer, accounts[0].key)
@@ -585,7 +618,15 @@ func TestTraceBlock(t *testing.T) {
 }
 
 func TestTracingWithOverrides(t *testing.T) {
-	t.Parallel()
+	for _, scheme := range schemes {
+		t.Run(scheme, func(t *testing.T) {
+			t.Parallel()
+			testTracingWithOverrides(t, scheme)
+		})
+	}
+}
+
+func testTracingWithOverrides(t *testing.T, scheme string) {
 	// Initialize test accounts
 	accounts := newAccounts(3)
 	storageAccount := common.Address{0x13, 37}
@@ -607,7 +648,7 @@ func TestTracingWithOverrides(t *testing.T) {
 	}
 	genBlocks := 10
 	signer := types.HomesteadSigner{}
-	backend := newTestBackend(t, genBlocks, genesis, func(i int, b *core.BlockGen) {
+	backend := newTestBackend(t, genBlocks, genesis, scheme, func(i int, b *core.BlockGen) {
 		// Transfer from account[0] to account[1]
 		//    value: 1000 wei
 		//    fee:   0 wei
@@ -615,7 +656,7 @@ func TestTracingWithOverrides(t *testing.T) {
 			Nonce:    uint64(i),
 			To:       &accounts[1].addr,
 			Value:    big.NewInt(1000),
-			Gas:      params.TxGas,
+			Gas:      ethparams.TxGas,
 			GasPrice: b.BaseFee(),
 			Data:     nil}),
 			signer, accounts[0].key)
@@ -707,7 +748,7 @@ func TestTracingWithOverrides(t *testing.T) {
 			config: &TraceCallConfig{
 				BlockOverrides: &ethapi.BlockOverrides{Number: (*hexutil.Big)(big.NewInt(0x1337))},
 			},
-			want: `{"gas":59537,"failed":false,"returnValue":"0000000000000000000000000000000000000000000000000000000000001337"}`,
+			want: `{"gas":59539,"failed":false,"returnValue":"0000000000000000000000000000000000000000000000000000000000001337"}`,
 		},
 		{ // Override blocknumber, and query a blockhash
 			blockNumber: rpc.LatestBlockNumber,
@@ -727,7 +768,7 @@ func TestTracingWithOverrides(t *testing.T) {
 			config: &TraceCallConfig{
 				BlockOverrides: &ethapi.BlockOverrides{Number: (*hexutil.Big)(big.NewInt(0x1337))},
 			},
-			want: `{"gas":72666,"failed":false,"returnValue":"000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}`,
+			want: `{"gas":72668,"failed":false,"returnValue":"000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}`,
 		},
 		/*
 			pragma solidity =0.8.12;
@@ -956,6 +997,15 @@ func newStates(keys []common.Hash, vals []common.Hash) *map[common.Hash]common.H
 }
 
 func TestTraceChain(t *testing.T) {
+	for _, scheme := range schemes {
+		t.Run(scheme, func(t *testing.T) {
+			t.Parallel()
+			testTraceChain(t, scheme)
+		})
+	}
+}
+
+func testTraceChain(t *testing.T, scheme string) {
 	// Initialize test accounts
 	// Note: the balances in this test have been increased compared to go-ethereum.
 	accounts := newAccounts(3)
@@ -975,12 +1025,12 @@ func TestTraceChain(t *testing.T) {
 		rel   atomic.Uint32 // total rels has made
 		nonce uint64
 	)
-	backend := newTestBackend(t, genBlocks, genesis, func(i int, b *core.BlockGen) {
+	backend := newTestBackend(t, genBlocks, genesis, scheme, func(i int, b *core.BlockGen) {
 		// Transfer from account[0] to account[1]
 		//    value: 1000 wei
 		//    fee:   0 wei
 		for j := 0; j < i+1; j++ {
-			tx, _ := types.SignTx(types.NewTransaction(nonce, accounts[1].addr, big.NewInt(1000), params.TxGas, b.BaseFee(), nil), signer, accounts[0].key)
+			tx, _ := types.SignTx(types.NewTransaction(nonce, accounts[1].addr, big.NewInt(1000), ethparams.TxGas, b.BaseFee(), nil), signer, accounts[0].key)
 			b.AddTx(tx)
 			nonce += 1
 		}

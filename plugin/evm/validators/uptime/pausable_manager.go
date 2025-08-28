@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2024, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package uptime
@@ -6,12 +6,12 @@ package uptime
 import (
 	"errors"
 
-	"github.com/ava-labs/subnet-evm/plugin/evm/validators/uptime/interfaces"
-	"github.com/ethereum/go-ethereum/log"
-
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow/uptime"
 	"github.com/ava-labs/avalanchego/utils/set"
+	"github.com/ava-labs/libevm/log"
+
+	"github.com/ava-labs/subnet-evm/plugin/evm/validators/uptime/interfaces"
 )
 
 var errPausedDisconnect = errors.New("paused node cannot be disconnected")

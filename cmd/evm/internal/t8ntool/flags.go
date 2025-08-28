@@ -1,4 +1,5 @@
-// (c) 2023, Ava Labs, Inc.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -30,7 +31,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ava-labs/subnet-evm/core/vm"
+	"github.com/ava-labs/libevm/core/vm"
 	"github.com/ava-labs/subnet-evm/tests"
 	"github.com/urfave/cli/v2"
 )

@@ -1,9 +1,10 @@
-// Copyright (C) 2019-2024, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package state
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -11,16 +12,17 @@ import (
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow/uptime"
 	"github.com/ava-labs/avalanchego/utils/set"
+
 	"github.com/ava-labs/subnet-evm/plugin/evm/validators/state/interfaces"
 )
 
-var _ uptime.State = &state{}
+var _ uptime.State = (*state)(nil)
 
 type dbUpdateStatus bool
 
 var (
-	ErrAlreadyExists  = fmt.Errorf("validator already exists")
-	ErrImmutableField = fmt.Errorf("immutable field cannot be updated")
+	ErrAlreadyExists  = errors.New("validator already exists")
+	ErrImmutableField = errors.New("immutable field cannot be updated")
 )
 
 const (

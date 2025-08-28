@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2022, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package utils
@@ -18,13 +18,15 @@ import (
 	"github.com/ava-labs/avalanchego/genesis"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/vms/secp256k1fx"
-	wallet "github.com/ava-labs/avalanchego/wallet/subnet/primary"
-	"github.com/ava-labs/subnet-evm/core"
-	"github.com/ava-labs/subnet-evm/plugin/evm"
-	"github.com/ethereum/go-ethereum/log"
+	"github.com/ava-labs/libevm/log"
 	"github.com/go-cmd/cmd"
 	"github.com/onsi/ginkgo/v2"
 	"github.com/stretchr/testify/require"
+
+	"github.com/ava-labs/subnet-evm/core"
+	"github.com/ava-labs/subnet-evm/plugin/evm"
+
+	wallet "github.com/ava-labs/avalanchego/wallet/subnet/primary"
 )
 
 type SubnetSuite struct {
@@ -92,8 +94,7 @@ func CreateSubnetsSuite(genesisFiles map[string]string) *SubnetSuite {
 		return blockchainIDsBytes
 	}, func(ctx ginkgo.SpecContext, data []byte) {
 		blockchainIDs := make(map[string]string)
-		err := json.Unmarshal(data, &blockchainIDs)
-		require.NoError(err)
+		require.NoError(json.Unmarshal(data, &blockchainIDs))
 
 		globalSuite.SetBlockchainIDs(blockchainIDs)
 	})
@@ -141,8 +142,7 @@ func CreateNewSubnet(ctx context.Context, genesisFilePath string) string {
 	require.NoError(err)
 
 	genesis := &core.Genesis{}
-	err = json.Unmarshal(genesisBytes, genesis)
-	require.NoError(err)
+	require.NoError(json.Unmarshal(genesisBytes, genesis))
 
 	log.Info("Creating new Subnet-EVM blockchain", "genesis", genesis)
 	createChainTx, err := pWallet.IssueCreateChainTx(

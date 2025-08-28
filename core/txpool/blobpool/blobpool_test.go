@@ -1,4 +1,5 @@
-// (c) 2024, Ava Labs, Inc.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -39,31 +40,32 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/core/rawdb"
+	"github.com/ava-labs/libevm/core/state"
+	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/crypto"
+	"github.com/ava-labs/libevm/crypto/kzg4844"
+	"github.com/ava-labs/libevm/ethdb/memorydb"
+	"github.com/ava-labs/libevm/log"
+	ethparams "github.com/ava-labs/libevm/params"
+	"github.com/ava-labs/libevm/rlp"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/consensus/misc/eip4844"
 	"github.com/ava-labs/subnet-evm/core"
-	"github.com/ava-labs/subnet-evm/core/rawdb"
-	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/core/txpool"
-	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/plugin/evm/header"
 	"github.com/ava-labs/subnet-evm/plugin/evm/upgrade/legacy"
 	"github.com/ava-labs/subnet-evm/plugin/evm/upgrade/subnetevm"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/crypto/kzg4844"
-	"github.com/ethereum/go-ethereum/ethdb/memorydb"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/holiman/billy"
 	"github.com/holiman/uint256"
 )
 
 var (
 	emptyBlob          = kzg4844.Blob{}
-	emptyBlobCommit, _ = kzg4844.BlobToCommitment(emptyBlob)
-	emptyBlobProof, _  = kzg4844.ComputeBlobProof(emptyBlob, emptyBlobCommit)
+	emptyBlobCommit, _ = kzg4844.BlobToCommitment(&emptyBlob)
+	emptyBlobProof, _  = kzg4844.ComputeBlobProof(&emptyBlob, emptyBlobCommit)
 	emptyBlobVHash     = kzg4844.CalcBlobHashV1(sha256.New(), &emptyBlobCommit)
 )
 
@@ -74,8 +76,8 @@ var testChainConfig *params.ChainConfig
 
 func init() {
 	testChainConfig = new(params.ChainConfig)
-	*testChainConfig = *params.TestChainConfig
-	testChainConfig.FeeConfig.MinBaseFee = new(big.Int).SetUint64(1)
+	*testChainConfig = params.Copy(params.TestChainConfig)
+	params.GetExtra(testChainConfig).FeeConfig.MinBaseFee = new(big.Int).SetUint64(1)
 
 	testChainConfig.CancunTime = new(uint64)
 	*testChainConfig.CancunTime = uint64(time.Now().Unix())
@@ -118,8 +120,9 @@ func (bc *testBlockChain) CurrentBlock() *types.Header {
 			BaseFee:  mid,
 			Extra:    make([]byte, subnetevm.WindowSize),
 		}
+		config := params.GetExtra(bc.config)
 		baseFee, err := header.BaseFee(
-			bc.config, bc.config.FeeConfig, parent, blockTime,
+			config, config.FeeConfig, parent, blockTime,
 		)
 		if err != nil {
 			panic(err)
@@ -174,7 +177,7 @@ func (bc *testBlockChain) StateAt(common.Hash) (*state.StateDB, error) {
 }
 
 func (bc *testBlockChain) GetFeeConfigAt(header *types.Header) (commontype.FeeConfig, *big.Int, error) {
-	return bc.config.FeeConfig, nil, nil
+	return params.GetExtra(bc.config).FeeConfig, nil, nil
 }
 
 // makeAddressReserver is a utility method to sanity check that accounts are
@@ -590,7 +593,7 @@ func TestOpenDrops(t *testing.T) {
 	chain := &testBlockChain{
 		config:  testChainConfig,
 		basefee: uint256.NewInt(uint64(legacy.BaseFee)),
-		blobfee: uint256.NewInt(params.BlobTxMinBlobGasprice),
+		blobfee: uint256.NewInt(ethparams.BlobTxMinBlobGasprice),
 		statedb: statedb,
 	}
 	pool := New(Config{Datadir: storage}, chain)
@@ -709,7 +712,7 @@ func TestOpenIndex(t *testing.T) {
 	chain := &testBlockChain{
 		config:  testChainConfig,
 		basefee: uint256.NewInt(uint64(legacy.BaseFee)),
-		blobfee: uint256.NewInt(params.BlobTxMinBlobGasprice),
+		blobfee: uint256.NewInt(ethparams.BlobTxMinBlobGasprice),
 		statedb: statedb,
 	}
 	pool := New(Config{Datadir: storage}, chain)
@@ -1268,7 +1271,7 @@ func TestAdd(t *testing.T) {
 				},
 				{ // Same as above but blob fee cap equals minimum, should be accepted
 					from: "alice",
-					tx:   makeUnsignedTx(0, 1, 1, params.BlobTxMinBlobGasprice),
+					tx:   makeUnsignedTx(0, 1, 1, ethparams.BlobTxMinBlobGasprice),
 					err:  nil,
 				},
 			},
@@ -1343,7 +1346,7 @@ func BenchmarkPoolPending10GB(b *testing.B)  { benchmarkPoolPending(b, 10_000_00
 func benchmarkPoolPending(b *testing.B, datacap uint64) {
 	// Calculate the maximum number of transaction that would fit into the pool
 	// and generate a set of random accounts to seed them with.
-	capacity := datacap / params.BlobTxBlobGasPerBlob
+	capacity := datacap / ethparams.BlobTxBlobGasPerBlob
 
 	var (
 		basefee    = uint64(1050)

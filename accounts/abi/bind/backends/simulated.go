@@ -1,4 +1,5 @@
-// (c) 2019-2020, Ava Labs, Inc.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -29,11 +30,12 @@ package backends
 import (
 	"context"
 
+	ethereum "github.com/ava-labs/libevm"
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/subnet-evm/accounts/abi/bind"
-	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/ethclient/simulated"
 	"github.com/ava-labs/subnet-evm/interfaces"
-	"github.com/ethereum/go-ethereum/common"
 )
 
 // Verify that SimulatedBackend implements required interfaces
@@ -42,14 +44,14 @@ var (
 	_ bind.ContractBackend        = (*SimulatedBackend)(nil)
 	_ bind.DeployBackend          = (*SimulatedBackend)(nil)
 
-	_ interfaces.ChainReader            = (*SimulatedBackend)(nil)
-	_ interfaces.ChainStateReader       = (*SimulatedBackend)(nil)
-	_ interfaces.TransactionReader      = (*SimulatedBackend)(nil)
-	_ interfaces.TransactionSender      = (*SimulatedBackend)(nil)
-	_ interfaces.ContractCaller         = (*SimulatedBackend)(nil)
-	_ interfaces.GasEstimator           = (*SimulatedBackend)(nil)
-	_ interfaces.GasPricer              = (*SimulatedBackend)(nil)
-	_ interfaces.LogFilterer            = (*SimulatedBackend)(nil)
+	_ ethereum.ChainReader              = (*SimulatedBackend)(nil)
+	_ ethereum.ChainStateReader         = (*SimulatedBackend)(nil)
+	_ ethereum.TransactionReader        = (*SimulatedBackend)(nil)
+	_ ethereum.TransactionSender        = (*SimulatedBackend)(nil)
+	_ ethereum.ContractCaller           = (*SimulatedBackend)(nil)
+	_ ethereum.GasEstimator             = (*SimulatedBackend)(nil)
+	_ ethereum.GasPricer                = (*SimulatedBackend)(nil)
+	_ ethereum.LogFilterer              = (*SimulatedBackend)(nil)
 	_ interfaces.AcceptedStateReader    = (*SimulatedBackend)(nil)
 	_ interfaces.AcceptedContractCaller = (*SimulatedBackend)(nil)
 )

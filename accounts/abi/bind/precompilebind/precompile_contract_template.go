@@ -1,5 +1,6 @@
-// (c) 2019-2022, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
+
 package precompilebind
 
 import "github.com/ava-labs/subnet-evm/accounts/abi/bind"
@@ -37,11 +38,11 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	{{- end}}
 	"github.com/ava-labs/subnet-evm/precompile/contract"
-	"github.com/ava-labs/subnet-evm/vmerrs"
 
 	_ "embed"
 
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/core/vm"
 )
 {{$contract := .Contract}}
 const (
@@ -67,7 +68,7 @@ var (
 	_ = abi.JSON
 	_ = errors.New
 	_ = big.NewInt
-	_ = vmerrs.ErrOutOfGas
+	_ = vm.ErrOutOfGas
 	_ = common.Big0
 )
 
@@ -230,7 +231,7 @@ func {{decapitalise .Normalized.Name}}(accessibleState contract.AccessibleState,
 
 	{{- if not .Original.IsConstant}}
 	if readOnly {
-		return nil, remainingGas, vmerrs.ErrWriteProtection
+		return nil, remainingGas, vm.ErrWriteProtection
 	}
  	{{- end}}
 
@@ -294,7 +295,7 @@ func {{decapitalise $contract.Type}}Fallback (accessibleState contract.Accessibl
 	}
 
 	if readOnly {
-		return nil, remainingGas, vmerrs.ErrWriteProtection
+		return nil, remainingGas, vm.ErrWriteProtection
 	}
 
 	{{- if $contract.AllowList}}

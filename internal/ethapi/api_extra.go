@@ -1,4 +1,4 @@
-// (c) 2019-2024, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package ethapi
@@ -9,18 +9,20 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/common/hexutil"
+	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/rlp"
+
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/core"
-	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/params/extras"
 	"github.com/ava-labs/subnet-evm/rpc"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/rlp"
 )
 
 func (s *BlockChainAPI) GetChainConfig(ctx context.Context) *params.ChainConfigWithUpgradesJSON {
-	return s.b.ChainConfig().ToWithUpgradesJSON()
+	return params.ToWithUpgradesJSON(s.b.ChainConfig())
 }
 
 type DetailedExecutionResult struct {
@@ -124,7 +126,7 @@ func (s *BlockChainAPI) FeeConfig(ctx context.Context, blockNrOrHash *rpc.BlockN
 
 // GetActivePrecompilesAt returns the active precompile configs at the given block timestamp.
 // DEPRECATED: Use GetActiveRulesAt instead.
-func (s *BlockChainAPI) GetActivePrecompilesAt(ctx context.Context, blockTimestamp *uint64) params.Precompiles {
+func (s *BlockChainAPI) GetActivePrecompilesAt(ctx context.Context, blockTimestamp *uint64) extras.Precompiles {
 	var timestamp uint64
 	if blockTimestamp == nil {
 		timestamp = s.b.CurrentHeader().Time
@@ -132,7 +134,7 @@ func (s *BlockChainAPI) GetActivePrecompilesAt(ctx context.Context, blockTimesta
 		timestamp = *blockTimestamp
 	}
 
-	return s.b.ChainConfig().EnabledStatefulPrecompiles(timestamp)
+	return params.GetExtra(s.b.ChainConfig()).EnabledStatefulPrecompiles(timestamp)
 }
 
 type ActivePrecompilesResult struct {
@@ -140,8 +142,8 @@ type ActivePrecompilesResult struct {
 }
 
 type ActiveRulesResult struct {
-	EthRules          params.EthRules                    `json:"ethRules"`
-	AvalancheRules    params.AvalancheRules              `json:"avalancheRules"`
+	EthRules          params.Rules                       `json:"ethRules"`
+	AvalancheRules    extras.AvalancheRules              `json:"avalancheRules"`
 	ActivePrecompiles map[string]ActivePrecompilesResult `json:"precompiles"`
 }
 
@@ -153,13 +155,13 @@ func (s *BlockChainAPI) GetActiveRulesAt(ctx context.Context, blockTimestamp *ui
 	} else {
 		timestamp = *blockTimestamp
 	}
-	rules := s.b.ChainConfig().Rules(common.Big0, timestamp)
+	rules := s.b.ChainConfig().Rules(common.Big0, params.IsMergeTODO, timestamp)
 	res := ActiveRulesResult{
-		EthRules:       rules.EthRules,
-		AvalancheRules: rules.AvalancheRules,
+		EthRules:       rules,
+		AvalancheRules: params.GetRulesExtra(rules).AvalancheRules,
 	}
 	res.ActivePrecompiles = make(map[string]ActivePrecompilesResult)
-	for _, precompileConfig := range rules.ActivePrecompiles {
+	for _, precompileConfig := range params.GetRulesExtra(rules).Precompiles {
 		if precompileConfig.Timestamp() == nil {
 			continue
 		}
@@ -177,12 +179,9 @@ func (s *BlockChainAPI) GetActiveRulesAt(ctx context.Context, blockTimestamp *ui
 //
 // Otherwise, it returns a non-nil error containing block number information.
 func (s *BlockChainAPI) stateQueryBlockNumberAllowed(blockNumOrHash rpc.BlockNumberOrHash) (err error) {
-	queryWindow := uint64(core.TipBufferSize)
-	if s.b.IsArchive() {
-		queryWindow = s.b.HistoricalProofQueryWindow()
-		if queryWindow == 0 {
-			return nil
-		}
+	queryWindow := s.b.HistoricalProofQueryWindow()
+	if s.b.IsArchive() && queryWindow == 0 {
+		return nil
 	}
 
 	lastAcceptedNumber := s.b.LastAcceptedBlock().NumberU64()
@@ -193,7 +192,7 @@ func (s *BlockChainAPI) stateQueryBlockNumberAllowed(blockNumOrHash rpc.BlockNum
 	} else if blockHash, ok := blockNumOrHash.Hash(); ok {
 		block, err := s.b.BlockByHash(context.Background(), blockHash)
 		if err != nil {
-			return fmt.Errorf("failed to get block from hash: %s", err)
+			return fmt.Errorf("failed to get block from hash: %w", err)
 		} else if block == nil {
 			return fmt.Errorf("block from hash %s doesn't exist", blockHash)
 		}

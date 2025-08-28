@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2024, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package main
@@ -14,33 +14,32 @@ import (
 
 	"github.com/antithesishq/antithesis-sdk-go/assert"
 	"github.com/antithesishq/antithesis-sdk-go/lifecycle"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
-
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/tests/antithesis"
 	"github.com/ava-labs/avalanchego/tests/fixture/tmpnet"
+	"github.com/ava-labs/avalanchego/utils/logging"
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/crypto"
+	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 
 	"github.com/ava-labs/subnet-evm/accounts/abi/bind"
-	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/ethclient"
-	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/tests"
 	"github.com/ava-labs/subnet-evm/tests/utils"
 
 	ago_tests "github.com/ava-labs/avalanchego/tests"
-	"github.com/ava-labs/avalanchego/utils/logging"
 	timerpkg "github.com/ava-labs/avalanchego/utils/timer"
+	ethparams "github.com/ava-labs/libevm/params"
 )
 
 const NumKeys = 5
 
 func main() {
 	logger := ago_tests.NewDefaultLogger("")
-	tc := ago_tests.NewTestContext(logger)
-	defer tc.Cleanup()
+	tc := antithesis.NewInstrumentedTestContext(logger)
+	defer tc.RecoverAndExit()
 	require := require.New(tc)
 
 	c := antithesis.NewConfigWithSubnets(
@@ -61,6 +60,9 @@ func main() {
 	)
 	ctx := ago_tests.DefaultNotifyContext(c.Duration, tc.DeferCleanup)
 
+	// Ensure contexts sourced from the test context use the notify context as their parent
+	tc.SetDefaultContextParent(ctx)
+
 	require.Len(c.ChainIDs, 1)
 	logger.Info("Starting testing",
 		zap.Strings("chainIDs", c.ChainIDs),
@@ -76,7 +78,6 @@ func main() {
 		log:    ago_tests.NewDefaultLogger(fmt.Sprintf("worker %d", 0)),
 		client: genesisClient,
 		key:    genesisKey,
-		uris:   c.URIs,
 	}
 
 	workloads := make([]*workload, NumKeys)
@@ -97,7 +98,6 @@ func main() {
 			log:    ago_tests.NewDefaultLogger(fmt.Sprintf("worker %d", i)),
 			client: client,
 			key:    key,
-			uris:   c.URIs,
 		}
 	}
 
@@ -117,14 +117,27 @@ type workload struct {
 	client ethclient.Client
 	log    logging.Logger
 	key    *ecdsa.PrivateKey
-	uris   []string
+}
+
+// newTestContext returns a test context that ensures that log output and assertions are
+// associated with this worker.
+func (w *workload) newTestContext(ctx context.Context) *ago_tests.SimpleTestContext {
+	return antithesis.NewInstrumentedTestContextWithArgs(
+		ctx,
+		w.log,
+		map[string]any{
+			"worker": w.id,
+		},
+	)
 }
 
 func (w *workload) run(ctx context.Context) {
 	timer := timerpkg.StoppedTimer()
 
-	tc := ago_tests.NewTestContext(w.log)
-	defer tc.Cleanup()
+	tc := w.newTestContext(ctx)
+	// Any assertion failure from this test context will result in process exit due to the
+	// panic being rethrown. This ensures that failures in test setup are fatal.
+	defer tc.RecoverAndRethrow()
 	require := require.New(tc)
 
 	balance, err := w.client.BalanceAt(ctx, crypto.PubkeyToAddress(w.key.PublicKey), nil)
@@ -134,20 +147,8 @@ func (w *workload) run(ctx context.Context) {
 		"balance": balance,
 	})
 
-	// TODO(marun) What should this value be?
-	txAmount := uint64(10000)
 	for {
-		// TODO(marun) Exercise a wider variety of transactions
-		recipientEthAddress := crypto.PubkeyToAddress(w.key.PublicKey)
-		err := transferFunds(ctx, w.client, w.key, recipientEthAddress, txAmount, w.log)
-		if err != nil {
-			// Log the error and continue since the problem may be
-			// transient. require.NoError is only for errors that should stop
-			// execution.
-			w.log.Info("failed to transfer funds",
-				zap.Error(err),
-			)
-		}
+		w.executeTest(ctx)
 
 		val, err := rand.Int(rand.Reader, big.NewInt(int64(time.Second)))
 		require.NoError(err, "failed to read randomness")
@@ -158,6 +159,22 @@ func (w *workload) run(ctx context.Context) {
 			return
 		case <-timer.C:
 		}
+	}
+}
+
+func (w *workload) executeTest(ctx context.Context) {
+	// TODO(marun) What should this value be?
+	txAmount := uint64(10000)
+	// TODO(marun) Exercise a wider variety of transactions
+	recipientEthAddress := crypto.PubkeyToAddress(w.key.PublicKey)
+	err := transferFunds(ctx, w.client, w.key, recipientEthAddress, txAmount, w.log)
+	if err != nil {
+		// Log the error and continue since the problem may be
+		// transient. require.NoError is only for errors that should stop
+		// execution.
+		w.log.Info("failed to transfer funds",
+			zap.Error(err),
+		)
 	}
 }
 
@@ -189,7 +206,7 @@ func transferFunds(ctx context.Context, client ethclient.Client, key *ecdsa.Priv
 		Nonce:     acceptedNonce,
 		GasTipCap: gasTipCap,
 		GasFeeCap: gasFeeCap,
-		Gas:       params.TxGas,
+		Gas:       ethparams.TxGas,
 		To:        &recipientAddress,
 		Value:     big.NewInt(int64(txAmount)),
 	})
@@ -205,7 +222,7 @@ func transferFunds(ctx context.Context, client ethclient.Client, key *ecdsa.Priv
 
 	log.Info("waiting for acceptance of transaction", zap.Stringer("txID", tx.Hash()))
 	if _, err := bind.WaitMined(ctx, client, tx); err != nil {
-		return fmt.Errorf("failed to wait for receipt: %v", err)
+		return fmt.Errorf("failed to wait for receipt: %w", err)
 	}
 	log.Info("confirmed acceptance of transaction", zap.Stringer("txID", tx.Hash()))
 

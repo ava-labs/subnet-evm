@@ -1,4 +1,4 @@
-// (c) 2019-2025, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package header
@@ -7,9 +7,10 @@ import (
 	"errors"
 	"math/big"
 
+	"github.com/ava-labs/libevm/core/types"
+
 	"github.com/ava-labs/subnet-evm/commontype"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/params/extras"
 )
 
 var errEstimateBaseFeeWithoutActivation = errors.New("cannot estimate base fee for chain without activation scheduled")
@@ -19,7 +20,7 @@ var errEstimateBaseFeeWithoutActivation = errors.New("cannot estimate base fee f
 //
 // Prior to SubnetEVM, the returned base fee will be nil.
 func BaseFee(
-	config *params.ChainConfig,
+	config *extras.ChainConfig,
 	feeConfig commontype.FeeConfig,
 	parent *types.Header,
 	timestamp uint64,
@@ -42,7 +43,7 @@ func BaseFee(
 // Warning: This function should only be used in estimation and should not be
 // used when calculating the canonical base fee for a block.
 func EstimateNextBaseFee(
-	config *params.ChainConfig,
+	config *extras.ChainConfig,
 	feeConfig commontype.FeeConfig,
 	parent *types.Header,
 	timestamp uint64,

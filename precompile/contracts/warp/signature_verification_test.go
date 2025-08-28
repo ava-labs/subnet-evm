@@ -1,4 +1,4 @@
-// (c) 2023, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package warp
@@ -11,11 +11,13 @@ import (
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow/validators"
 	"github.com/ava-labs/avalanchego/snow/validators/validatorsmock"
+	"github.com/ava-labs/avalanchego/utils/constants"
 	"github.com/ava-labs/avalanchego/utils/crypto/bls"
 	"github.com/ava-labs/avalanchego/utils/set"
-	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
+
+	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
 )
 
 type signatureTest struct {
@@ -43,7 +45,7 @@ func TestSignatureVerification(t *testing.T) {
 			quorumDen: 2,
 			msgF: func(require *require.Assertions) *avalancheWarp.Message {
 				unsignedMsg, err := avalancheWarp.NewUnsignedMessage(
-					networkID,
+					constants.UnitTestID,
 					sourceChainID,
 					addressedPayloadBytes,
 				)
@@ -70,7 +72,7 @@ func TestSignatureVerification(t *testing.T) {
 			quorumDen: 2,
 			msgF: func(require *require.Assertions) *avalancheWarp.Message {
 				unsignedMsg, err := avalancheWarp.NewUnsignedMessage(
-					networkID,
+					constants.UnitTestID,
 					sourceChainID,
 					addressedPayloadBytes,
 				)
@@ -108,7 +110,7 @@ func TestSignatureVerification(t *testing.T) {
 			quorumDen: 2,
 			msgF: func(require *require.Assertions) *avalancheWarp.Message {
 				unsignedMsg, err := avalancheWarp.NewUnsignedMessage(
-					networkID,
+					constants.UnitTestID,
 					sourceChainID,
 					addressedPayloadBytes,
 				)
@@ -137,7 +139,7 @@ func TestSignatureVerification(t *testing.T) {
 			quorumDen: 2,
 			msgF: func(require *require.Assertions) *avalancheWarp.Message {
 				unsignedMsg, err := avalancheWarp.NewUnsignedMessage(
-					networkID,
+					constants.UnitTestID,
 					sourceChainID,
 					addressedPayloadBytes,
 				)
@@ -167,7 +169,7 @@ func TestSignatureVerification(t *testing.T) {
 			quorumDen: 2,
 			msgF: func(require *require.Assertions) *avalancheWarp.Message {
 				unsignedMsg, err := avalancheWarp.NewUnsignedMessage(
-					networkID,
+					constants.UnitTestID,
 					sourceChainID,
 					addressedPayloadBytes,
 				)
@@ -200,7 +202,7 @@ func TestSignatureVerification(t *testing.T) {
 			quorumDen: 1,
 			msgF: func(require *require.Assertions) *avalancheWarp.Message {
 				unsignedMsg, err := avalancheWarp.NewUnsignedMessage(
-					networkID,
+					constants.UnitTestID,
 					sourceChainID,
 					addressedPayloadBytes,
 				)
@@ -246,7 +248,7 @@ func TestSignatureVerification(t *testing.T) {
 			quorumDen: 2,
 			msgF: func(require *require.Assertions) *avalancheWarp.Message {
 				unsignedMsg, err := avalancheWarp.NewUnsignedMessage(
-					networkID,
+					constants.UnitTestID,
 					sourceChainID,
 					addressedPayloadBytes,
 				)
@@ -280,7 +282,7 @@ func TestSignatureVerification(t *testing.T) {
 			quorumDen: 2,
 			msgF: func(require *require.Assertions) *avalancheWarp.Message {
 				unsignedMsg, err := avalancheWarp.NewUnsignedMessage(
-					networkID,
+					constants.UnitTestID,
 					sourceChainID,
 					addressedPayloadBytes,
 				)
@@ -316,7 +318,7 @@ func TestSignatureVerification(t *testing.T) {
 			quorumDen: 5,
 			msgF: func(require *require.Assertions) *avalancheWarp.Message {
 				unsignedMsg, err := avalancheWarp.NewUnsignedMessage(
-					networkID,
+					constants.UnitTestID,
 					sourceChainID,
 					addressedPayloadBytes,
 				)
@@ -362,7 +364,7 @@ func TestSignatureVerification(t *testing.T) {
 			quorumDen: 5,
 			msgF: func(require *require.Assertions) *avalancheWarp.Message {
 				unsignedMsg, err := avalancheWarp.NewUnsignedMessage(
-					networkID,
+					constants.UnitTestID,
 					sourceChainID,
 					addressedPayloadBytes,
 				)
@@ -403,7 +405,7 @@ func TestSignatureVerification(t *testing.T) {
 			quorumDen: 5,
 			msgF: func(require *require.Assertions) *avalancheWarp.Message {
 				unsignedMsg, err := avalancheWarp.NewUnsignedMessage(
-					networkID,
+					constants.UnitTestID,
 					sourceChainID,
 					addressedPayloadBytes,
 				)
@@ -451,7 +453,7 @@ func TestSignatureVerification(t *testing.T) {
 			quorumDen: 2,
 			msgF: func(require *require.Assertions) *avalancheWarp.Message {
 				unsignedMsg, err := avalancheWarp.NewUnsignedMessage(
-					networkID,
+					constants.UnitTestID,
 					sourceChainID,
 					addressedPayloadBytes,
 				)
@@ -497,7 +499,7 @@ func TestSignatureVerification(t *testing.T) {
 			quorumDen: 3,
 			msgF: func(require *require.Assertions) *avalancheWarp.Message {
 				unsignedMsg, err := avalancheWarp.NewUnsignedMessage(
-					networkID,
+					constants.UnitTestID,
 					sourceChainID,
 					addressedPayloadBytes,
 				)
@@ -559,7 +561,7 @@ func TestSignatureVerification(t *testing.T) {
 			quorumDen: 3,
 			msgF: func(require *require.Assertions) *avalancheWarp.Message {
 				unsignedMsg, err := avalancheWarp.NewUnsignedMessage(
-					networkID,
+					constants.UnitTestID,
 					sourceChainID,
 					addressedPayloadBytes,
 				)
@@ -622,7 +624,7 @@ func TestSignatureVerification(t *testing.T) {
 			quorumDen: 3,
 			msgF: func(require *require.Assertions) *avalancheWarp.Message {
 				unsignedMsg, err := avalancheWarp.NewUnsignedMessage(
-					networkID,
+					constants.UnitTestID,
 					sourceChainID,
 					addressedPayloadBytes,
 				)
@@ -677,7 +679,7 @@ func TestSignatureVerification(t *testing.T) {
 			}
 			err = msg.Signature.Verify(
 				&msg.UnsignedMessage,
-				networkID,
+				constants.UnitTestID,
 				validatorSet,
 				tt.quorumNum,
 				tt.quorumDen,

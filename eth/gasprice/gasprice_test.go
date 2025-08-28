@@ -1,4 +1,5 @@
-// (c) 2019-2020, Ava Labs, Inc.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -32,21 +33,23 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/core/rawdb"
+	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/core/vm"
+	"github.com/ava-labs/libevm/crypto"
+	"github.com/ava-labs/libevm/event"
+	ethparams "github.com/ava-labs/libevm/params"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
 	"github.com/ava-labs/subnet-evm/core"
-	"github.com/ava-labs/subnet-evm/core/rawdb"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/core/vm"
 	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/params/extras"
 	customheader "github.com/ava-labs/subnet-evm/plugin/evm/header"
 	"github.com/ava-labs/subnet-evm/plugin/evm/upgrade/legacy"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/feemanager"
 	"github.com/ava-labs/subnet-evm/rpc"
 	"github.com/ava-labs/subnet-evm/utils"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/event"
 	"github.com/stretchr/testify/require"
 )
 
@@ -101,7 +104,7 @@ func (b *testBackend) teardown() {
 }
 
 func newTestBackendFakerEngine(t *testing.T, config *params.ChainConfig, numBlocks int, genBlocks func(i int, b *core.BlockGen)) *testBackend {
-	var gspec = &core.Genesis{
+	gspec := &core.Genesis{
 		Config: config,
 		Alloc:  types.GenesisAlloc{addr: {Balance: bal}},
 	}
@@ -109,7 +112,8 @@ func newTestBackendFakerEngine(t *testing.T, config *params.ChainConfig, numBloc
 	engine := dummy.NewETHFaker()
 
 	// Generate testing blocks
-	_, blocks, _, err := core.GenerateChainWithGenesis(gspec, engine, numBlocks, config.FeeConfig.TargetBlockRate-1, genBlocks)
+	targetBlockRate := params.GetExtra(config).FeeConfig.TargetBlockRate
+	_, blocks, _, err := core.GenerateChainWithGenesis(gspec, engine, numBlocks, targetBlockRate-1, genBlocks)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -128,7 +132,7 @@ func newTestBackendFakerEngine(t *testing.T, config *params.ChainConfig, numBloc
 // newTestBackend creates a test backend. OBS: don't forget to invoke tearDown
 // after use, otherwise the blockchain instance will mem-leak via goroutines.
 func newTestBackend(t *testing.T, config *params.ChainConfig, numBlocks int, genBlocks func(i int, b *core.BlockGen)) *testBackend {
-	var gspec = &core.Genesis{
+	gspec := &core.Genesis{
 		Config: config,
 		Alloc:  types.GenesisAlloc{addr: {Balance: bal}},
 	}
@@ -136,7 +140,8 @@ func newTestBackend(t *testing.T, config *params.ChainConfig, numBlocks int, gen
 	engine := dummy.NewFaker()
 
 	// Generate testing blocks
-	_, blocks, _, err := core.GenerateChainWithGenesis(gspec, engine, numBlocks, config.FeeConfig.TargetBlockRate-1, genBlocks)
+	targetBlockRate := params.GetExtra(config).FeeConfig.TargetBlockRate
+	_, blocks, _, err := core.GenerateChainWithGenesis(gspec, engine, numBlocks, targetBlockRate-1, genBlocks)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -152,7 +157,8 @@ func newTestBackend(t *testing.T, config *params.ChainConfig, numBlocks int, gen
 }
 
 func (b *testBackend) MinRequiredTip(ctx context.Context, header *types.Header) (*big.Int, error) {
-	return customheader.EstimateRequiredTip(b.chain.Config(), header)
+	config := params.GetExtra(b.chain.Config())
+	return customheader.EstimateRequiredTip(config, header)
 }
 
 func (b *testBackend) CurrentHeader() *types.Header {
@@ -230,7 +236,7 @@ func testGenBlock(t *testing.T, tip int64, numTx int) func(int, *core.BlockGen) 
 				ChainID:   params.TestChainConfig.ChainID,
 				Nonce:     b.TxNonce(addr),
 				To:        &common.Address{},
-				Gas:       params.TxGas,
+				Gas:       ethparams.TxGas,
 				GasFeeCap: feeCap,
 				GasTipCap: txTip,
 				Data:      []byte{},
@@ -262,7 +268,7 @@ func TestSuggestTipCapSimple(t *testing.T) {
 		chainConfig: params.TestChainConfig,
 		numBlocks:   3,
 		genBlock:    testGenBlock(t, 55, 370),
-		expectedTip: big.NewInt(643_500_644),
+		expectedTip: big.NewInt(1_287_001_288),
 	}, defaultOracleConfig())
 }
 
@@ -271,7 +277,7 @@ func TestSuggestTipCapSimpleFloor(t *testing.T) {
 		chainConfig: params.TestChainConfig,
 		numBlocks:   1,
 		genBlock:    testGenBlock(t, 55, 370),
-		expectedTip: common.Big0,
+		expectedTip: big.NewInt(643_500_644),
 	}, defaultOracleConfig())
 }
 
@@ -291,7 +297,7 @@ func TestSuggestTipCapSmallTips(t *testing.T) {
 					ChainID:   params.TestChainConfig.ChainID,
 					Nonce:     b.TxNonce(addr),
 					To:        &common.Address{},
-					Gas:       params.TxGas,
+					Gas:       ethparams.TxGas,
 					GasFeeCap: feeCap,
 					GasTipCap: tip,
 					Data:      []byte{},
@@ -305,7 +311,7 @@ func TestSuggestTipCapSmallTips(t *testing.T) {
 					ChainID:   params.TestChainConfig.ChainID,
 					Nonce:     b.TxNonce(addr),
 					To:        &common.Address{},
-					Gas:       params.TxGas,
+					Gas:       ethparams.TxGas,
 					GasFeeCap: feeCap,
 					GasTipCap: common.Big1,
 					Data:      []byte{},
@@ -315,7 +321,7 @@ func TestSuggestTipCapSmallTips(t *testing.T) {
 				b.AddTx(tx)
 			}
 		},
-		expectedTip: big.NewInt(643_500_644),
+		expectedTip: big.NewInt(1_287_001_288),
 	}, defaultOracleConfig())
 }
 
@@ -346,7 +352,7 @@ func TestSuggestGasPriceSubnetEVM(t *testing.T) {
 			tx := types.NewTx(&types.LegacyTx{
 				Nonce:    b.TxNonce(addr),
 				To:       &common.Address{},
-				Gas:      params.TxGas,
+				Gas:      ethparams.TxGas,
 				GasPrice: gasPrice,
 				Data:     []byte{},
 			})
@@ -392,14 +398,15 @@ func TestSuggestGasPriceAfterFeeConfigUpdate(t *testing.T) {
 	}
 
 	// create a chain config with fee manager enabled at genesis with [addr] as the admin
-	chainConfig := *params.TestChainConfig
-	chainConfig.GenesisPrecompiles = params.Precompiles{
+	chainConfig := params.Copy(params.TestChainConfig)
+	chainConfigExtra := params.GetExtra(&chainConfig)
+	chainConfigExtra.GenesisPrecompiles = extras.Precompiles{
 		feemanager.ConfigKey: feemanager.NewConfig(utils.NewUint64(0), []common.Address{addr}, nil, nil, nil),
 	}
 
 	// create a fee config with higher MinBaseFee and prepare it for inclusion in a tx
 	signer := types.LatestSigner(params.TestChainConfig)
-	highFeeConfig := chainConfig.FeeConfig
+	highFeeConfig := chainConfigExtra.FeeConfig
 	highFeeConfig.MinBaseFee = big.NewInt(28_000_000_000)
 	data, err := feemanager.PackSetFeeConfig(highFeeConfig)
 	require.NoError(err)
@@ -412,13 +419,13 @@ func TestSuggestGasPriceAfterFeeConfigUpdate(t *testing.T) {
 	require.NoError(err)
 	got, err := oracle.SuggestPrice(context.Background())
 	require.NoError(err)
-	require.Equal(chainConfig.FeeConfig.MinBaseFee, got)
+	require.Equal(chainConfigExtra.FeeConfig.MinBaseFee, got)
 
 	// issue the block with tx that changes the fee
 	genesis := backend.chain.Genesis()
 	engine := backend.chain.Engine()
 	db := rawdb.NewDatabase(backend.chain.StateCache().DiskDB())
-	blocks, _, err := core.GenerateChain(&chainConfig, genesis, engine, db, 1, 0, func(i int, b *core.BlockGen) {
+	blocks, _, err := core.GenerateChain(&chainConfig, genesis, engine, db, 1, chainConfigExtra.FeeConfig.TargetBlockRate, func(i int, b *core.BlockGen) {
 		b.SetCoinbase(common.Address{1})
 
 		// admin issues tx to change fee config to higher MinBaseFee
@@ -426,9 +433,9 @@ func TestSuggestGasPriceAfterFeeConfigUpdate(t *testing.T) {
 			ChainID:   chainConfig.ChainID,
 			Nonce:     b.TxNonce(addr),
 			To:        &feemanager.ContractAddress,
-			Gas:       chainConfig.FeeConfig.GasLimit.Uint64(),
+			Gas:       chainConfigExtra.FeeConfig.GasLimit.Uint64(),
 			Value:     common.Big0,
-			GasFeeCap: chainConfig.FeeConfig.MinBaseFee, // give low fee, it should work since we still haven't applied high fees
+			GasFeeCap: chainConfigExtra.FeeConfig.MinBaseFee, // give low fee, it should work since we still haven't applied high fees
 			GasTipCap: common.Big0,
 			Data:      data,
 		})

@@ -1,4 +1,4 @@
-// (c) 2023, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package validators
@@ -11,9 +11,10 @@ import (
 	"github.com/ava-labs/avalanchego/snow/validators"
 	"github.com/ava-labs/avalanchego/snow/validators/validatorsmock"
 	"github.com/ava-labs/avalanchego/utils/constants"
-	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
+
+	"github.com/ava-labs/subnet-evm/utils/utilstest"
 )
 
 func TestGetValidatorSetPrimaryNetwork(t *testing.T) {
@@ -24,7 +25,7 @@ func TestGetValidatorSetPrimaryNetwork(t *testing.T) {
 	otherSubnetID := ids.GenerateTestID()
 
 	mockState := validatorsmock.NewState(ctrl)
-	snowCtx := utils.TestSnowContext()
+	snowCtx := utilstest.NewTestSnowContext(t)
 	snowCtx.SubnetID = mySubnetID
 	snowCtx.ValidatorState = mockState
 	state := NewState(snowCtx.ValidatorState, snowCtx.SubnetID, snowCtx.ChainID, false)

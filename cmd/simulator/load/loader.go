@@ -1,4 +1,4 @@
-// Copyright (C) 2023, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package load
@@ -14,17 +14,20 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/log"
+	"golang.org/x/sync/errgroup"
+
 	"github.com/ava-labs/subnet-evm/cmd/simulator/config"
 	"github.com/ava-labs/subnet-evm/cmd/simulator/key"
 	"github.com/ava-labs/subnet-evm/cmd/simulator/metrics"
 	"github.com/ava-labs/subnet-evm/cmd/simulator/txs"
-	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/ethclient"
 	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ethereum/go-ethereum/common"
-	ethcrypto "github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/log"
-	"golang.org/x/sync/errgroup"
+
+	ethcrypto "github.com/ava-labs/libevm/crypto"
+	ethparams "github.com/ava-labs/libevm/params"
 )
 
 const (
@@ -180,10 +183,10 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 		}
 	}
 
-	// Each address needs: params.GWei * MaxFeeCap * params.TxGas * TxsPerWorker total wei
+	// Each address needs: params.GWei * MaxFeeCap * ethparams.TxGas * TxsPerWorker total wei
 	// to fund gas for all of their transactions.
 	maxFeeCap := new(big.Int).Mul(big.NewInt(params.GWei), big.NewInt(config.MaxFeeCap))
-	minFundsPerAddr := new(big.Int).Mul(maxFeeCap, big.NewInt(int64(config.TxsPerWorker*params.TxGas)))
+	minFundsPerAddr := new(big.Int).Mul(maxFeeCap, big.NewInt(int64(config.TxsPerWorker*ethparams.TxGas)))
 	fundStart := time.Now()
 	log.Info("Distributing funds", "numTxsPerWorker", config.TxsPerWorker, "minFunds", minFundsPerAddr)
 	keys, err = DistributeFunds(ctx, clients[0], keys, config.Workers, minFundsPerAddr, m)
@@ -217,7 +220,7 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 			Nonce:     nonce,
 			GasTipCap: gasTipCap,
 			GasFeeCap: gasFeeCap,
-			Gas:       params.TxGas,
+			Gas:       ethparams.TxGas,
 			To:        &addr,
 			Data:      nil,
 			Value:     common.Big0,

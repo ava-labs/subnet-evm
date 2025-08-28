@@ -1,4 +1,5 @@
-// (c) 2019-2021, Ava Labs, Inc.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -34,14 +35,16 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/core/rawdb"
+	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/core/vm"
+	"github.com/ava-labs/libevm/crypto"
+	ethparams "github.com/ava-labs/libevm/params"
+	"github.com/ava-labs/libevm/triedb"
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
-	"github.com/ava-labs/subnet-evm/core/rawdb"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/core/vm"
 	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/triedb"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ava-labs/subnet-evm/plugin/evm/customrawdb"
 	"github.com/stretchr/testify/require"
 )
 
@@ -504,8 +507,10 @@ func testLongReorgedDeepRepair(t *testing.T, snapshots bool) {
 }
 
 func testRepair(t *testing.T, tt *rewindTest, snapshots bool) {
-	for _, scheme := range []string{rawdb.HashScheme, rawdb.PathScheme} {
-		testRepairWithScheme(t, tt, snapshots, scheme)
+	for _, scheme := range []string{rawdb.HashScheme, rawdb.PathScheme, customrawdb.FirewoodScheme} {
+		t.Run(scheme, func(t *testing.T) {
+			testRepairWithScheme(t, tt, snapshots, scheme)
+		})
 	}
 }
 
@@ -513,6 +518,10 @@ func testRepairWithScheme(t *testing.T, tt *rewindTest, snapshots bool, scheme s
 	// It's hard to follow the test case, visualize the input
 	//log.Root().SetHandler(log.LvlFilterHandler(log.LvlTrace, log.StreamHandler(os.Stderr, log.TerminalFormat(true))))
 	// fmt.Println(tt.dump(true))
+
+	if scheme == customrawdb.FirewoodScheme && snapshots {
+		t.Skip("Firewood scheme does not support snapshots")
+	}
 
 	// Create a temporary persistent database
 	datadir := t.TempDir()
@@ -527,14 +536,15 @@ func testRepairWithScheme(t *testing.T, tt *rewindTest, snapshots bool, scheme s
 	defer db.Close() // Might double close, should be fine
 
 	// Initialize a fresh chain
-	chainConfig := *params.TestChainConfig
-	chainConfig.FeeConfig.MinBaseFee = big.NewInt(1)
+	chainConfig := params.Copy(params.TestChainConfig)
+	feeConfig := &params.GetExtra(&chainConfig).FeeConfig
+	feeConfig.MinBaseFee = big.NewInt(1)
 	var (
 		require = require.New(t)
 		key1, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 		addr1   = crypto.PubkeyToAddress(key1.PublicKey)
 		gspec   = &Genesis{
-			BaseFee: chainConfig.FeeConfig.MinBaseFee,
+			BaseFee: feeConfig.MinBaseFee,
 			Config:  &chainConfig,
 			Alloc:   GenesisAlloc{addr1: {Balance: big.NewInt(params.Ether)}},
 		}
@@ -545,7 +555,9 @@ func testRepairWithScheme(t *testing.T, tt *rewindTest, snapshots bool, scheme s
 			TrieDirtyLimit:            256,
 			TriePrefetcherParallelism: 4,
 			SnapshotLimit:             0, // Disable snapshot by default
+			StateHistory:              32,
 			StateScheme:               scheme,
+			ChainDataDir:              datadir,
 		}
 	)
 	defer engine.Close()
@@ -567,7 +579,7 @@ func testRepairWithScheme(t *testing.T, tt *rewindTest, snapshots bool, scheme s
 		gspec.MustCommit(genDb, triedb.NewDatabase(genDb, nil))
 		sideblocks, _, err = GenerateChain(gspec.Config, gspec.ToBlock(), engine, genDb, tt.sidechainBlocks, 10, func(i int, b *BlockGen) {
 			b.SetCoinbase(common.Address{0x01})
-			tx, err := types.SignTx(types.NewTransaction(b.TxNonce(addr1), common.Address{0x01}, big.NewInt(10000), params.TxGas, chainConfig.FeeConfig.MinBaseFee, nil), signer, key1)
+			tx, err := types.SignTx(types.NewTransaction(b.TxNonce(addr1), common.Address{0x01}, big.NewInt(10000), ethparams.TxGas, feeConfig.MinBaseFee, nil), signer, key1)
 			require.NoError(err)
 			b.AddTx(tx)
 		})
@@ -581,7 +593,7 @@ func testRepairWithScheme(t *testing.T, tt *rewindTest, snapshots bool, scheme s
 	canonblocks, _, err := GenerateChain(gspec.Config, gspec.ToBlock(), engine, genDb, tt.canonicalBlocks, 10, func(i int, b *BlockGen) {
 		b.SetCoinbase(common.Address{0x02})
 		b.SetDifficulty(big.NewInt(1000000))
-		tx, err := types.SignTx(types.NewTransaction(b.TxNonce(addr1), common.Address{0x02}, big.NewInt(10000), params.TxGas, chainConfig.FeeConfig.MinBaseFee, nil), signer, key1)
+		tx, err := types.SignTx(types.NewTransaction(b.TxNonce(addr1), common.Address{0x02}, big.NewInt(10000), ethparams.TxGas, feeConfig.MinBaseFee, nil), signer, key1)
 		require.NoError(err)
 		b.AddTx(tx)
 	})
