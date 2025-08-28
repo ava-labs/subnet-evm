@@ -99,14 +99,15 @@ type Config struct {
 	KeystoreInsecureUnlockAllowed bool   `json:"keystore-insecure-unlock-allowed"`
 
 	// Gossip Settings
-	PushGossipPercentStake    float64  `json:"push-gossip-percent-stake"`
-	PushGossipNumValidators   int      `json:"push-gossip-num-validators"`
-	PushGossipNumPeers        int      `json:"push-gossip-num-peers"`
-	PushRegossipNumValidators int      `json:"push-regossip-num-validators"`
-	PushRegossipNumPeers      int      `json:"push-regossip-num-peers"`
-	PushGossipFrequency       Duration `json:"push-gossip-frequency"`
-	PullGossipFrequency       Duration `json:"pull-gossip-frequency"`
-	RegossipFrequency         Duration `json:"regossip-frequency"`
+	PushGossipPercentStake    float64          `json:"push-gossip-percent-stake"`
+	PushGossipNumValidators   int              `json:"push-gossip-num-validators"`
+	PushGossipNumPeers        int              `json:"push-gossip-num-peers"`
+	PushRegossipNumValidators int              `json:"push-regossip-num-validators"`
+	PushRegossipNumPeers      int              `json:"push-regossip-num-peers"`
+	PushGossipFrequency       Duration         `json:"push-gossip-frequency"`
+	PullGossipFrequency       Duration         `json:"pull-gossip-frequency"`
+	RegossipFrequency         Duration         `json:"regossip-frequency"`
+	PriorityRegossipAddresses []common.Address `json:"priority-regossip-addresses"`
 
 	// Log
 	LogLevel      string `json:"log-level"`

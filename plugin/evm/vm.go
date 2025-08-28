@@ -342,6 +342,7 @@ func (vm *VM) Initialize(
 	vm.ethConfig.RPCEVMTimeout = vm.config.APIMaxDuration.Duration
 	vm.ethConfig.RPCTxFeeCap = vm.config.RPCTxFeeCap
 
+	vm.ethConfig.TxPool.Locals = vm.config.PriorityRegossipAddresses
 	vm.ethConfig.TxPool.NoLocals = !vm.config.LocalTxsEnabled
 	vm.ethConfig.TxPool.PriceLimit = vm.config.TxPoolPriceLimit
 	vm.ethConfig.TxPool.PriceBump = vm.config.TxPoolPriceBump
