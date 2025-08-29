@@ -90,7 +90,7 @@ func TestGetCode(t *testing.T) {
 		Codec:            message.Codec,
 		Stats:            clientstats.NewNoOpStats(),
 		StateSyncNodeIDs: nil,
-		BlockParser:      mockBlockParser,
+		BlockParser:      newTestBlockParser(),
 	})
 
 	for name, test := range tests {
@@ -161,7 +161,7 @@ func TestGetBlocks(t *testing.T) {
 		Codec:            message.Codec,
 		Stats:            clientstats.NewNoOpStats(),
 		StateSyncNodeIDs: nil,
-		BlockParser:      mockBlockParser,
+		BlockParser:      newTestBlockParser(),
 	})
 
 	blocksRequestHandler := handlers.NewBlockRequestHandler(buildGetter(blocks), message.Codec, handlerstats.NewNoopHandlerStats())
@@ -416,13 +416,13 @@ func TestGetLeafs(t *testing.T) {
 	largeTrieRoot, largeTrieKeys, _ := statesynctest.GenerateTrie(t, trieDB, 100_000, common.HashLength)
 	smallTrieRoot, _, _ := statesynctest.GenerateTrie(t, trieDB, leafsLimit, common.HashLength)
 
-	handler := handlers.NewLeafsRequestHandler(trieDB, nil, message.Codec, handlerstats.NewNoopHandlerStats())
+	handler := handlers.NewLeafsRequestHandler(trieDB, message.StateTrieKeyLength, nil, message.Codec, handlerstats.NewNoopHandlerStats())
 	client := NewClient(&ClientConfig{
 		NetworkClient:    &mockNetwork{},
 		Codec:            message.Codec,
 		Stats:            clientstats.NewNoOpStats(),
 		StateSyncNodeIDs: nil,
-		BlockParser:      mockBlockParser,
+		BlockParser:      newTestBlockParser(),
 	})
 
 	tests := map[string]struct {
@@ -786,7 +786,7 @@ func TestGetLeafsRetries(t *testing.T) {
 	trieDB := triedb.NewDatabase(rawdb.NewMemoryDatabase(), nil)
 	root, _, _ := statesynctest.GenerateTrie(t, trieDB, 100_000, common.HashLength)
 
-	handler := handlers.NewLeafsRequestHandler(trieDB, nil, message.Codec, handlerstats.NewNoopHandlerStats())
+	handler := handlers.NewLeafsRequestHandler(trieDB, message.StateTrieKeyLength, nil, message.Codec, handlerstats.NewNoopHandlerStats())
 	mockNetClient := &mockNetwork{}
 
 	const maxAttempts = 8
@@ -795,7 +795,7 @@ func TestGetLeafsRetries(t *testing.T) {
 		Codec:            message.Codec,
 		Stats:            clientstats.NewNoOpStats(),
 		StateSyncNodeIDs: nil,
-		BlockParser:      mockBlockParser,
+		BlockParser:      newTestBlockParser(),
 	})
 
 	request := message.LeafsRequest{
@@ -856,7 +856,7 @@ func TestStateSyncNodes(t *testing.T) {
 		Codec:            message.Codec,
 		Stats:            clientstats.NewNoOpStats(),
 		StateSyncNodeIDs: stateSyncNodes,
-		BlockParser:      mockBlockParser,
+		BlockParser:      newTestBlockParser(),
 	})
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
