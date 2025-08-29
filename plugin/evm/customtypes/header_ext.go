@@ -36,7 +36,8 @@ func WithHeaderExtra(h *ethtypes.Header, extra *HeaderExtra) *ethtypes.Header {
 // This type uses [HeaderSerializable] to encode and decode the extra fields
 // along with the upstream type for compatibility with existing network blocks.
 type HeaderExtra struct {
-	BlockGasCost *big.Int
+	ExtDataGasUsed *big.Int
+	BlockGasCost   *big.Int
 }
 
 // EncodeRLP RLP encodes the given [ethtypes.Header] and [HeaderExtra] together
