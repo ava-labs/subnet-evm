@@ -8,6 +8,8 @@ import (
 	"math/big"
 
 	"github.com/ava-labs/avalanchego/snow"
+	"github.com/ava-labs/avalanchego/utils/set"
+	"github.com/ava-labs/avalanchego/vms/evm/predicate"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/vm"
 	"github.com/ava-labs/libevm/libevm"
@@ -18,11 +20,14 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/contracts/deployerallowlist"
 	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
-	"github.com/ava-labs/subnet-evm/predicate"
 
 	ethparams "github.com/ava-labs/libevm/params"
 	customheader "github.com/ava-labs/subnet-evm/plugin/evm/header"
 )
+
+// invalidateDelegateTime is the Unix timestamp for August 2nd, 2025, midnight Eastern Time
+// (August 2nd, 2025, 04:00 UTC)
+const invalidateDelegateUnix = 1754107200
 
 type RulesExtra extras.Rules
 
@@ -73,9 +78,9 @@ func makePrecompile(contract contract.StatefulPrecompiledContract) libevm.Precom
 		if err != nil {
 			panic(err) // Should never happen
 		}
-		var predicateResults *predicate.Results
+		var predicateResults predicate.BlockResults
 		if predicateResultsBytes := customheader.PredicateBytesFromExtra(header.Extra); len(predicateResultsBytes) > 0 {
-			predicateResults, err = predicate.ParseResults(predicateResultsBytes)
+			predicateResults, err = predicate.ParseBlockResults(predicateResultsBytes)
 			if err != nil {
 				panic(err) // Should never happen, as results are already validated in block validation
 			}
@@ -89,9 +94,12 @@ func makePrecompile(contract contract.StatefulPrecompiledContract) libevm.Precom
 			},
 		}
 
-		if callType := env.IncomingCallType(); callType == vm.DelegateCall || callType == vm.CallCode {
+		callType := env.IncomingCallType()
+		isDisallowedCallType := callType == vm.DelegateCall || callType == vm.CallCode
+		if env.BlockTime() >= invalidateDelegateUnix && isDisallowedCallType {
 			env.InvalidateExecution(fmt.Errorf("precompile cannot be called with %s", callType))
 		}
+
 		return contract.Run(accessibleState, env.Addresses().Caller, env.Addresses().Self, input, suppliedGas, env.ReadOnly())
 	}
 	return vm.NewStatefulPrecompile(legacy.PrecompiledStatefulContract(run).Upgrade())
@@ -148,7 +156,7 @@ func (a accessibleState) GetPrecompileEnv() vm.PrecompileEnvironment {
 type precompileBlockContext struct {
 	number           *big.Int
 	time             uint64
-	predicateResults *predicate.Results
+	predicateResults predicate.BlockResults
 }
 
 func (p *precompileBlockContext) Number() *big.Int {
@@ -159,9 +167,6 @@ func (p *precompileBlockContext) Timestamp() uint64 {
 	return p.time
 }
 
-func (p *precompileBlockContext) GetPredicateResults(txHash common.Hash, precompileAddress common.Address) []byte {
-	if p.predicateResults == nil {
-		return nil
-	}
-	return p.predicateResults.GetPredicateResults(txHash, precompileAddress)
+func (p *precompileBlockContext) GetPredicateResults(txHash common.Hash, precompileAddress common.Address) set.Bits {
+	return p.predicateResults.Get(txHash, precompileAddress)
 }
