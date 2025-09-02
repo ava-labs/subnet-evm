@@ -3720,7 +3720,7 @@ func TestCreateHandlers(t *testing.T) {
 	var (
 		ctx = context.Background()
 		vm  = newVM(t, testVMConfig{
-			genesisJSON: string(genesisJSONSubnetEVM),
+			genesisJSON: genesisJSONSubnetEVM,
 		}).vm
 	)
 	defer func() {
