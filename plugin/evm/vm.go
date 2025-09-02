@@ -820,7 +820,7 @@ func (vm *VM) onNormalOperationsStarted() error {
 	vm.builder.awaitSubmittedTxs()
 	vm.builderLock.Unlock()
 
-	if vm.ethTxGossipHandler == (txGossipHandler{}) {
+	if vm.ethTxGossipHandler == nil {
 		vm.ethTxGossipHandler = newTxGossipHandler[*GossipEthTx](
 			vm.ctx.Log,
 			ethTxGossipMarshaller,
