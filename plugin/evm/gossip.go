@@ -14,7 +14,6 @@ import (
 	"github.com/ava-labs/avalanchego/network/p2p"
 	"github.com/ava-labs/avalanchego/network/p2p/gossip"
 	"github.com/ava-labs/avalanchego/snow/engine/common"
-	"github.com/ava-labs/avalanchego/utils/logging"
 	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/libevm/log"
 	"github.com/prometheus/client_golang/prometheus"
@@ -38,43 +37,6 @@ var (
 
 	_ eth.PushGossiper = (*EthPushGossiper)(nil)
 )
-
-func newTxGossipHandler[T gossip.Gossipable](
-	log logging.Logger,
-	marshaller gossip.Marshaller[T],
-	mempool gossip.Set[T],
-	metrics gossip.Metrics,
-	maxMessageSize int,
-	throttlingPeriod time.Duration,
-	throttlingLimit int,
-	validators p2p.ValidatorSet,
-) txGossipHandler {
-	// push gossip messages can be handled from any peer
-	handler := gossip.NewHandler(
-		log,
-		marshaller,
-		mempool,
-		metrics,
-		maxMessageSize,
-	)
-
-	// pull gossip requests are filtered by validators and are throttled
-	// to prevent spamming
-	validatorHandler := p2p.NewValidatorHandler(
-		p2p.NewThrottlerHandler(
-			handler,
-			p2p.NewSlidingWindowThrottler(throttlingPeriod, throttlingLimit),
-			log,
-		),
-		validators,
-		log,
-	)
-
-	return txGossipHandler{
-		appGossipHandler:  handler,
-		appRequestHandler: validatorHandler,
-	}
-}
 
 type txGossipHandler struct {
 	appGossipHandler  p2p.Handler

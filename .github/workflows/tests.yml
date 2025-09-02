@@ -118,7 +118,7 @@ jobs:
         with:
           go-version-file: "go.mod"
       - name: Run E2E Load Tests
-        uses: ava-labs/avalanchego/.github/actions/run-monitored-tmpnet-cmd@4f5acfc0485a8203bc4fedd76c73889fd12d43ca
+        uses: ava-labs/avalanchego/.github/actions/run-monitored-tmpnet-cmd@cc3242f48a6262c52057e98a85d6cf8184dfaca3
         with:
           run: ./scripts/run_task.sh test-e2e-load-ci
           artifact_prefix: load
