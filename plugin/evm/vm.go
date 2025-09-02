@@ -245,9 +245,9 @@ type VM struct {
 	warpBackend warp.Backend
 
 	// Initialize only sets these if nil so they can be overridden in tests
-	ethTxGossipHandler txGossipHandler
-	ethTxPullGossiper  gossip.Gossiper
+	ethTxGossipHandler p2p.Handler
 	ethTxPushGossiper  avalancheUtils.Atomic[*avalanchegossip.PushGossiper[*GossipEthTx]]
+	ethTxPullGossiper  avalanchegossip.Gossiper
 
 	validatorsManager interfaces.Manager
 
