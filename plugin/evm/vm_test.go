@@ -441,18 +441,7 @@ func testBuildEthTxBlock(t *testing.T, scheme string) {
 
 	restartedTVM, err := restartVM(tvm, tvm.config)
 	require.NoError(t, err)
-	if err := restartedVM.Initialize(
-		context.Background(),
-		newCTX,
-		tvm.DB,
-		[]byte(vmtest.GenesisJSON(paramstest.ForkToChainConfig[fork])),
-		[]byte(""),
-		[]byte(conf),
-		[]*commonEng.Fx{},
-		nil,
-	); err != nil {
-		t.Fatal(err)
-	}
+	restartedVM := restartedTVM.vm
 
 	// State root should not have been committed and discarded on restart
 	if ethBlk1Root := ethBlk1.Root(); restartedVM.blockChain.HasState(ethBlk1Root) {
