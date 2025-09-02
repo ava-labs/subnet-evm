@@ -5,7 +5,7 @@
   - `StorageRangeAt` 
   - `GetModifiedAccountsByNumber`
   - `GetModifiedAccountsByHash`
-- Removed deprecated flags `tx-regossip-frequency` and `tx-lookup-limit`. Use `regossip-frequency` and `transaction-history` instead.
+- Removed deprecated flag `tx-lookup-limit`. Use `transaction-history` instead.
 - Add pending releases here
 
 
