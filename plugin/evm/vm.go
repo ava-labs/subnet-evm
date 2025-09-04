@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"math/big"
 	"net/http"
 	"os"
@@ -144,6 +145,8 @@ var (
 	errShuttingDownVM                = errors.New("shutting down VM")
 )
 
+var originalStderr *os.File
+
 // legacyApiNames maps pre geth v1.10.20 api names to their updated counterparts.
 // used in attachEthService for backward configuration compatibility.
 var legacyApiNames = map[string]string{
@@ -234,6 +237,7 @@ type VM struct {
 	sdkMetrics *prometheus.Registry
 
 	bootstrapped avalancheUtils.Atomic[bool]
+	IsPlugin     bool
 
 	stateSyncDone chan struct{}
 
@@ -269,41 +273,14 @@ func (vm *VM) Initialize(
 	fxs []*commonEng.Fx,
 	appSender commonEng.AppSender,
 ) error {
-	// Initialize extension config if not already set
-	if vm.extensionConfig == nil {
-		// Initialize clock if not already set
-		if vm.clock == nil {
-			vm.clock = &mockable.Clock{}
-		}
-		vm.extensionConfig = &extension.Config{
-			SyncSummaryProvider: &message.BlockSyncSummaryProvider{},
-			SyncableParser:      message.NewBlockSyncSummaryParser(),
-		}
-		// Provide a clock to the extension config before validation
-		vm.extensionConfig.Clock = vm.clock
-	}
-
-	if err := vm.extensionConfig.Validate(); err != nil {
-		return fmt.Errorf("failed to validate extension config: %w", err)
-	}
-
-	vm.config.SetDefaults(defaultTxPoolConfig)
-	if len(configBytes) > 0 {
-		if err := json.Unmarshal(configBytes, &vm.config); err != nil {
-			return fmt.Errorf("failed to unmarshal config %s: %w", string(configBytes), err)
-		}
-	}
 	vm.ctx = chainCtx
+	vm.clock = vm.extensionConfig.Clock
 
-	if err := vm.config.Validate(vm.ctx.NetworkID); err != nil {
-		return err
+	cfg, deprecateMsg, err := config.GetConfig(configBytes, vm.ctx.NetworkID)
+	if err != nil {
+		return fmt.Errorf("failed to get config: %w", err)
 	}
-	// We should deprecate config flags as the first thing, before we do anything else
-	// because this can set old flags to new flags. log the message after we have
-	// initialized the logger.
-	deprecateMsg := vm.config.Deprecate()
-
-	vm.ctx = chainCtx
+	vm.config = cfg
 
 	// Create logger
 	alias, err := vm.ctx.BCLookup.PrimaryAlias(vm.ctx.ChainID)
@@ -313,7 +290,12 @@ func (vm *VM) Initialize(
 	}
 	vm.chainAlias = alias
 
-	subnetEVMLogger, err := subnetevmlog.InitLogger(vm.chainAlias, vm.config.LogLevel, vm.config.LogJSONFormat, vm.ctx.Log)
+	var writer io.Writer = vm.ctx.Log
+	if vm.IsPlugin {
+		writer = originalStderr
+	}
+
+	subnetEVMLogger, err := subnetevmlog.InitLogger(vm.chainAlias, vm.config.LogLevel, vm.config.LogJSONFormat, writer)
 	if err != nil {
 		return fmt.Errorf("%w: %w ", errInitializingLogger, err)
 	}

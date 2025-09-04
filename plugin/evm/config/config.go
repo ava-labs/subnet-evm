@@ -231,15 +231,16 @@ func (d Duration) MarshalJSON() ([]byte, error) {
 	return json.Marshal(d.Duration.String())
 }
 
-// Validate returns an error if this is an invalid config.
-func (c *Config) Validate(networkID uint32) error {
+// validate returns an error if this is an invalid config.
+func (c *Config) validate(networkID uint32) error {
 	// Ensure that non-standard commit interval is not allowed for production networks
 	if constants.ProductionNetworkIDs.Contains(networkID) {
-		if c.CommitInterval != defaultCommitInterval {
-			return fmt.Errorf("cannot start non-local network with commit interval %d different than %d", c.CommitInterval, defaultCommitInterval)
+		defaultConfig := NewDefaultConfig()
+		if c.CommitInterval != defaultConfig.CommitInterval {
+			return fmt.Errorf("cannot start non-local network with commit interval %d different than %d", c.CommitInterval, defaultConfig.CommitInterval)
 		}
-		if c.StateSyncCommitInterval != defaultSyncableCommitInterval {
-			return fmt.Errorf("cannot start non-local network with syncable interval %d different than %d", c.StateSyncCommitInterval, defaultSyncableCommitInterval)
+		if c.StateSyncCommitInterval != defaultConfig.StateSyncCommitInterval {
+			return fmt.Errorf("cannot start non-local network with syncable interval %d different than %d", c.StateSyncCommitInterval, defaultConfig.StateSyncCommitInterval)
 		}
 	}
 
