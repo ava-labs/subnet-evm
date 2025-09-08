@@ -879,7 +879,7 @@ func EmptyBlocks(t *testing.T, create createFunc) {
 	}
 	defer blockchain.Stop()
 
-	_, chain, _, err := GenerateChainWithGenesis(gspec, blockchain.engine, 3, 10, func(_ int, _ *BlockGen) {})
+	_, chain, _, err := GenerateChainWithGenesis(gspec, blockchain.engine, 3, 10, func(int, *BlockGen) {})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -896,7 +896,7 @@ func EmptyBlocks(t *testing.T, create createFunc) {
 	blockchain.DrainAcceptorQueue()
 
 	// Nothing to assert about the state
-	checkState := func(_ *state.StateDB) error {
+	checkState := func(*state.StateDB) error {
 		return nil
 	}
 

@@ -165,7 +165,7 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 		clients = append(clients, client)
 	}
 
-	keys, err := key.LoadAll(ctx, config.KeyDir)
+	keys, err := key.LoadAll(config.KeyDir)
 	if err != nil {
 		return err
 	}

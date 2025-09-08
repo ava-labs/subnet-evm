@@ -299,7 +299,7 @@ func TestGetBlocks(t *testing.T) {
 				Height:  100,
 				Parents: 16,
 			},
-			getResponse: func(_ *testing.T, _ message.BlockRequest) []byte {
+			getResponse: func(t *testing.T, _ message.BlockRequest) []byte {
 				// Encode blocks with a missing link
 				blks := make([]*types.Block, 0)
 				blks = append(blks, blocks[84:89]...)
@@ -324,7 +324,7 @@ func TestGetBlocks(t *testing.T) {
 				Height:  100,
 				Parents: 16,
 			},
-			getResponse: func(_ *testing.T, _ message.BlockRequest) []byte {
+			getResponse: func(t *testing.T, _ message.BlockRequest) []byte {
 				blockResponse := message.BlockResponse{
 					Blocks: nil,
 				}
@@ -343,7 +343,7 @@ func TestGetBlocks(t *testing.T) {
 				Height:  100,
 				Parents: 16,
 			},
-			getResponse: func(_ *testing.T, _ message.BlockRequest) []byte {
+			getResponse: func(t *testing.T, _ message.BlockRequest) []byte {
 				blockBytes := encodeBlockSlice(blocks[80:100])
 
 				blockResponse := message.BlockResponse{

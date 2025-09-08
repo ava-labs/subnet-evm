@@ -78,7 +78,7 @@ func (s *stubDatabase) NewIterator(_, _ []byte) ethdb.Iterator {
 }
 
 // AncientSize is used in [InspectDatabase] to determine the ancient sizes.
-func (*stubDatabase) AncientSize(_ string) (uint64, error) {
+func (*stubDatabase) AncientSize(string) (uint64, error) {
 	return 0, nil
 }
 
@@ -95,7 +95,7 @@ func (s *stubDatabase) Put(key, value []byte) error {
 	return nil
 }
 
-func (*stubDatabase) Get(_ []byte) ([]byte, error) {
+func (*stubDatabase) Get([]byte) ([]byte, error) {
 	return nil, nil
 }
 

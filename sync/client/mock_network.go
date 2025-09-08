@@ -27,7 +27,7 @@ type mockNetwork struct {
 	nodesRequested []ids.NodeID
 }
 
-func (t *mockNetwork) SendSyncedAppRequestAny(_ context.Context, _ *version.Application, _ []byte) ([]byte, ids.NodeID, error) {
+func (t *mockNetwork) SendSyncedAppRequestAny(context.Context, *version.Application, []byte) ([]byte, ids.NodeID, error) {
 	if len(t.response) == 0 {
 		return nil, ids.EmptyNodeID, errors.New("no mocked response to return in mockNetwork")
 	}

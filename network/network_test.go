@@ -131,10 +131,10 @@ func TestRequestAnyRequestsRoutingAndResponse(t *testing.T) {
 func TestAppRequestOnCtxCancellation(t *testing.T) {
 	codecManager := buildCodec(t, HelloRequest{}, HelloResponse{})
 	sender := testAppSender{
-		sendAppRequestFn: func(_ context.Context, _ set.Set[ids.NodeID], _ uint32, _ []byte) error {
+		sendAppRequestFn: func(context.Context, set.Set[ids.NodeID], uint32, []byte) error {
 			return nil
 		},
-		sendAppResponseFn: func(_ ids.NodeID, _ uint32, _ []byte) error {
+		sendAppResponseFn: func(ids.NodeID, uint32, []byte) error {
 			return nil
 		},
 	}
@@ -260,7 +260,7 @@ func TestAppRequestOnShutdown(t *testing.T) {
 		called bool
 	)
 	sender := testAppSender{
-		sendAppRequestFn: func(_ context.Context, _ set.Set[ids.NodeID], _ uint32, _ []byte) error {
+		sendAppRequestFn: func(context.Context, set.Set[ids.NodeID], uint32, []byte) error {
 			wg.Add(1)
 			go func() {
 				called = true
@@ -316,7 +316,7 @@ func TestSyncedAppRequestAnyOnCtxCancellation(t *testing.T) {
 			}
 			return nil
 		},
-		sendAppResponseFn: func(_ ids.NodeID, _ uint32, _ []byte) error {
+		sendAppResponseFn: func(ids.NodeID, uint32, []byte) error {
 			return nil
 		},
 	}
@@ -444,10 +444,10 @@ func TestOnRequestHonoursDeadline(t *testing.T) {
 	var net Network
 	responded := false
 	sender := testAppSender{
-		sendAppRequestFn: func(_ context.Context, _ set.Set[ids.NodeID], _ uint32, _ []byte) error {
+		sendAppRequestFn: func(context.Context, set.Set[ids.NodeID], uint32, []byte) error {
 			return nil
 		},
-		sendAppResponseFn: func(_ ids.NodeID, _ uint32, _ []byte) error {
+		sendAppResponseFn: func(ids.NodeID, uint32, []byte) error {
 			responded = true
 			return nil
 		},
@@ -570,10 +570,10 @@ func TestNetworkAppRequestAfterShutdown(t *testing.T) {
 func TestNetworkRouting(t *testing.T) {
 	require := require.New(t)
 	sender := &testAppSender{
-		sendAppRequestFn: func(_ context.Context, _ set.Set[ids.NodeID], _ uint32, _ []byte) error {
+		sendAppRequestFn: func(context.Context, set.Set[ids.NodeID], uint32, []byte) error {
 			return nil
 		},
-		sendAppResponseFn: func(_ ids.NodeID, _ uint32, _ []byte) error {
+		sendAppResponseFn: func(ids.NodeID, uint32, []byte) error {
 			return nil
 		},
 	}

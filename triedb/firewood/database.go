@@ -354,7 +354,7 @@ func (*Database) Size() (common.StorageSize, common.StorageSize) {
 }
 
 // This isn't called anywhere in subnet-evm
-func (*Database) Reference(_ common.Hash, _ common.Hash) {
+func (*Database) Reference(common.Hash, common.Hash) {
 	log.Error("firewood: Reference not implemented")
 }
 
@@ -366,11 +366,11 @@ func (*Database) Reference(_ common.Hash, _ common.Hash) {
 // We commit root A, and immediately dereference root B and its child.
 // Root C is Rejected, (which is intended to be 2C) but there's now only one record of root C in the proposal map.
 // Thus, we recognize the single root C as the only proposal, and dereference it.
-func (*Database) Dereference(_ common.Hash) {
+func (*Database) Dereference(common.Hash) {
 }
 
 // Firewood does not support this.
-func (*Database) Cap(_ common.StorageSize) error {
+func (*Database) Cap(common.StorageSize) error {
 	return nil
 }
 

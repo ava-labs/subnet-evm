@@ -534,11 +534,11 @@ func testCanonicalHashMarker(t *testing.T, scheme string) {
 			}
 			engine = dummy.NewCoinbaseFaker()
 		)
-		_, forkA, _, err := GenerateChainWithGenesis(gspec, engine, c.forkA, 10, func(_ int, _ *BlockGen) {})
+		_, forkA, _, err := GenerateChainWithGenesis(gspec, engine, c.forkA, 10, func(int, *BlockGen) {})
 		if err != nil {
 			t.Fatal(err)
 		}
-		_, forkB, _, err := GenerateChainWithGenesis(gspec, engine, c.forkB, 10, func(_ int, _ *BlockGen) {})
+		_, forkB, _, err := GenerateChainWithGenesis(gspec, engine, c.forkB, 10, func(int, *BlockGen) {})
 		if err != nil {
 			t.Fatal(err)
 		}

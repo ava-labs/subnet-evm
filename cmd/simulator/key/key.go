@@ -4,7 +4,6 @@
 package key
 
 import (
-	"context"
 	"crypto/ecdsa"
 	"fmt"
 	"os"
@@ -34,7 +33,7 @@ func Load(file string) (*Key, error) {
 }
 
 // LoadAll loads all keys in [dir].
-func LoadAll(ctx context.Context, dir string) ([]*Key, error) {
+func LoadAll(dir string) ([]*Key, error) {
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
 		if err := os.MkdirAll(dir, 0o755); err != nil {
 			return nil, fmt.Errorf("unable to create %s: %w", dir, err)
@@ -59,9 +58,6 @@ func LoadAll(ctx context.Context, dir string) ([]*Key, error) {
 
 	ks := make([]*Key, len(files))
 	for i, file := range files {
-		if ctx.Err() != nil {
-			return nil, ctx.Err()
-		}
 		k, err := Load(file)
 		if err != nil {
 			return nil, fmt.Errorf("could not load key at %s: %w", file, err)
