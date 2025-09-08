@@ -22,13 +22,11 @@ func init() {
 	c := linearcodec.NewDefault()
 
 	// Skip registration to keep registeredTypes unchanged after legacy gossip deprecation
-	c.SkipRegistrations(1)
+	// Gossip types and sync summary type removed from codec
+	c.SkipRegistrations(2)
 
 	errs := wrappers.Errs{}
-	// Gossip types and sync summary type removed from codec
-	c.SkipRegistrations(3)
 	errs.Add(
-
 		// state sync types
 		c.RegisterType(BlockRequest{}),
 		c.RegisterType(BlockResponse{}),
