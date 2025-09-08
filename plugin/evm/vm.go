@@ -820,18 +820,20 @@ func (vm *VM) onNormalOperationsStarted() error {
 	vm.builder.awaitSubmittedTxs()
 	vm.builderLock.Unlock()
 
-	vm.ethTxGossipHandler, err = gossip.NewTxGossipHandler[*GossipEthTx](
-		vm.ctx.Log,
-		ethTxGossipMarshaller,
-		ethTxPool,
-		ethTxGossipMetrics,
-		config.TxGossipTargetMessageSize,
-		config.TxGossipThrottlingPeriod,
-		config.TxGossipRequestsPerPeer,
-		vm.P2PValidators(),
-		vm.sdkMetrics,
-		"eth_tx_gossip",
-	)
+	if vm.ethTxGossipHandler == nil {
+		vm.ethTxGossipHandler, err = gossip.NewTxGossipHandler[*GossipEthTx](
+			vm.ctx.Log,
+			ethTxGossipMarshaller,
+			ethTxPool,
+			ethTxGossipMetrics,
+			config.TxGossipTargetMessageSize,
+			config.TxGossipThrottlingPeriod,
+			config.TxGossipRequestsPerPeer,
+			vm.P2PValidators(),
+			vm.sdkMetrics,
+			"eth_tx_gossip",
+		)
+	}
 	if err != nil {
 		return fmt.Errorf("failed to initialize eth tx gossip handler: %w", err)
 	}
