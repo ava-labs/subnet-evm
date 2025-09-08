@@ -39,7 +39,7 @@ func TestBlockchainAPI_GetChainConfig(t *testing.T) {
 	api := NewBlockChainAPI(backend)
 
 	gotConfig := api.GetChainConfig(context.Background())
-	assert.Equal(t, wantConfig, gotConfig)
+	assert.Equal(t, params.ToWithUpgradesJSON(wantConfig), gotConfig)
 }
 
 // Copy one test case from TestCall
