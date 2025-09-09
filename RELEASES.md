@@ -1,6 +1,6 @@
 # Release Notes
 
-## [v0.8.0](https://github.com/ava-labs/subnet-evm/releases/tag/v0.8.0)
+## [v07.10](https://github.com/ava-labs/subnet-evm/releases/tag/v07.10)
 
 - Add pending releases here
 
