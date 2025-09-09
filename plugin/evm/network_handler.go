@@ -11,10 +11,11 @@ import (
 	"github.com/ava-labs/libevm/ethdb"
 	"github.com/ava-labs/libevm/metrics"
 	"github.com/ava-labs/libevm/triedb"
+
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
+
 	syncHandlers "github.com/ava-labs/subnet-evm/sync/handlers"
 	syncStats "github.com/ava-labs/subnet-evm/sync/handlers/stats"
-	"github.com/ava-labs/subnet-evm/warp"
 )
 
 var _ message.RequestHandler = (*networkHandler)(nil)
@@ -30,7 +31,6 @@ func newNetworkHandler(
 	provider syncHandlers.SyncDataProvider,
 	diskDB ethdb.KeyValueReader,
 	evmTrieDB *triedb.Database,
-	warpBackend warp.Backend,
 	networkCodec codec.Manager,
 ) message.RequestHandler {
 	syncStats := syncStats.NewHandlerStats(metrics.Enabled)

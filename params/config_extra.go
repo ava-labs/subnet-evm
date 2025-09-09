@@ -9,6 +9,7 @@ import (
 	"math/big"
 
 	"github.com/ava-labs/avalanchego/upgrade"
+
 	"github.com/ava-labs/subnet-evm/params/extras"
 	"github.com/ava-labs/subnet-evm/utils"
 )
@@ -22,8 +23,9 @@ const (
 )
 
 var (
-	DefaultChainID   = big.NewInt(43214)
-	DefaultFeeConfig = extras.DefaultFeeConfig
+	DefaultChainID         = big.NewInt(43214)
+	DefaultFeeConfig       = extras.DefaultFeeConfig
+	DefaultACP224FeeConfig = extras.DefaultACP224FeeConfig
 
 	initiallyActive       = uint64(upgrade.InitiallyActiveTime.Unix())
 	unscheduledActivation = uint64(upgrade.UnscheduledActivationTime.Unix())

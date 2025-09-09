@@ -20,17 +20,18 @@ import (
 	"github.com/ava-labs/avalanchego/snow/engine/enginetest"
 	"github.com/ava-labs/avalanchego/snow/validators"
 	"github.com/ava-labs/avalanchego/upgrade/upgradetest"
-	agoUtils "github.com/ava-labs/avalanchego/utils"
 	"github.com/ava-labs/avalanchego/utils/logging"
 	"github.com/ava-labs/avalanchego/utils/set"
+	"github.com/ava-labs/libevm/core/types"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
-
 	"google.golang.org/protobuf/proto"
 
-	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/subnet-evm/params/paramstest"
 	"github.com/ava-labs/subnet-evm/plugin/evm/config"
 	"github.com/ava-labs/subnet-evm/utils/utilstest"
+
+	agoUtils "github.com/ava-labs/avalanchego/utils"
 )
 
 func TestEthTxGossip(t *testing.T) {
@@ -49,7 +50,7 @@ func TestEthTxGossip(t *testing.T) {
 		ctx,
 		snowCtx,
 		memdb.New(),
-		[]byte(toGenesisJSON(forkToChainConfig[upgradetest.Latest])),
+		[]byte(toGenesisJSON(paramstest.ForkToChainConfig[upgradetest.Latest])),
 		nil,
 		nil,
 		nil,
@@ -164,7 +165,7 @@ func TestEthTxPushGossipOutbound(t *testing.T) {
 		ctx,
 		snowCtx,
 		memdb.New(),
-		[]byte(toGenesisJSON(forkToChainConfig[upgradetest.Latest])),
+		[]byte(toGenesisJSON(paramstest.ForkToChainConfig[upgradetest.Latest])),
 		nil,
 		nil,
 		nil,
@@ -215,7 +216,7 @@ func TestEthTxPushGossipInbound(t *testing.T) {
 		ctx,
 		snowCtx,
 		memdb.New(),
-		[]byte(toGenesisJSON(forkToChainConfig[upgradetest.Latest])),
+		[]byte(toGenesisJSON(paramstest.ForkToChainConfig[upgradetest.Latest])),
 		nil,
 		nil,
 		nil,

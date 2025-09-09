@@ -7,8 +7,10 @@ package precompileconfig
 import (
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
+	"github.com/ava-labs/avalanchego/vms/evm/predicate"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/libevm/common"
+
 	"github.com/ava-labs/subnet-evm/commontype"
 )
 
@@ -48,8 +50,8 @@ type PredicateContext struct {
 // The bitset is stored in the block, so that historical blocks can be re-verified
 // without calling VerifyPredicate.
 type Predicater interface {
-	PredicateGas(predicateBytes []byte) (uint64, error)
-	VerifyPredicate(predicateContext *PredicateContext, predicateBytes []byte) error
+	PredicateGas(pred predicate.Predicate) (uint64, error)
+	VerifyPredicate(predicateContext *PredicateContext, pred predicate.Predicate) error
 }
 
 type WarpMessageWriter interface {
@@ -75,6 +77,8 @@ type Accepter interface {
 // about the chain configuration. The precompile can access this information to initialize
 // its state.
 type ChainConfig interface {
+	// GetACP224FeeConfig returns the original ACP224FeeConfig that was set in the genesis.
+	GetACP224FeeConfig() commontype.ACP224FeeConfig
 	// GetFeeConfig returns the original FeeConfig that was set in the genesis.
 	GetFeeConfig() commontype.FeeConfig
 	// AllowedFeeRecipients returns true if fee recipients are allowed in the genesis.

@@ -12,17 +12,10 @@ import (
 	"math/big"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
-
-	ginkgo "github.com/onsi/ginkgo/v2"
-
-	"github.com/stretchr/testify/require"
-
-	"github.com/ava-labs/libevm/common"
-	"github.com/ava-labs/libevm/crypto"
-	"github.com/ava-labs/libevm/log"
 
 	"github.com/ava-labs/avalanchego/api/info"
 	"github.com/ava-labs/avalanchego/ids"
@@ -30,13 +23,16 @@ import (
 	"github.com/ava-labs/avalanchego/tests/fixture/e2e"
 	"github.com/ava-labs/avalanchego/tests/fixture/tmpnet"
 	"github.com/ava-labs/avalanchego/utils/constants"
+	"github.com/ava-labs/avalanchego/vms/evm/predicate"
 	"github.com/ava-labs/avalanchego/vms/platformvm"
 	"github.com/ava-labs/avalanchego/vms/platformvm/api"
-	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
-
-	ethereum "github.com/ava-labs/libevm"
+	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/crypto"
+	"github.com/ava-labs/libevm/log"
+	"github.com/stretchr/testify/require"
+
 	"github.com/ava-labs/subnet-evm/cmd/simulator/key"
 	"github.com/ava-labs/subnet-evm/cmd/simulator/load"
 	"github.com/ava-labs/subnet-evm/cmd/simulator/metrics"
@@ -44,11 +40,14 @@ import (
 	"github.com/ava-labs/subnet-evm/ethclient"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/warp"
-	"github.com/ava-labs/subnet-evm/predicate"
 	"github.com/ava-labs/subnet-evm/tests"
 	"github.com/ava-labs/subnet-evm/tests/utils"
 	"github.com/ava-labs/subnet-evm/tests/warp/aggregator"
+
+	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
+	ethereum "github.com/ava-labs/libevm"
 	warpBackend "github.com/ava-labs/subnet-evm/warp"
+	ginkgo "github.com/onsi/ginkgo/v2"
 )
 
 const (
@@ -205,7 +204,6 @@ type warpTest struct {
 
 	// receivingSubnet fields set in the constructor
 	receivingSubnet              *Subnet
-	receivingSubnetURIs          []string
 	receivingSubnetClients       []ethclient.Client
 	receivingSubnetFundedKey     *ecdsa.PrivateKey
 	receivingSubnetFundedAddress common.Address
@@ -232,7 +230,6 @@ func newWarpTest(ctx context.Context, sendingSubnet *Subnet, receivingSubnet *Su
 		sendingSubnet:                sendingSubnet,
 		sendingSubnetURIs:            sendingSubnet.ValidatorURIs,
 		receivingSubnet:              receivingSubnet,
-		receivingSubnetURIs:          receivingSubnet.ValidatorURIs,
 		sendingSubnetFundedKey:       sendingSubnetFundedKey,
 		sendingSubnetFundedAddress:   crypto.PubkeyToAddress(sendingSubnetFundedKey.PublicKey),
 		receivingSubnetFundedKey:     receivingSubnetFundedKey,
@@ -479,19 +476,22 @@ func (w *warpTest) deliverAddressedCallToReceivingSubnet() {
 
 	packedInput, err := warp.PackGetVerifiedWarpMessage(0)
 	require.NoError(err)
-	tx := predicate.NewPredicateTx(
-		w.receivingSubnetChainID,
-		nonce,
-		&warp.Module.Address,
-		5_000_000,
-		big.NewInt(225*params.GWei),
-		big.NewInt(params.GWei),
-		common.Big0,
-		packedInput,
-		types.AccessList{},
-		warp.ContractAddress,
-		w.addressedCallSignedMessage.Bytes(),
-	)
+	tx := types.NewTx(&types.DynamicFeeTx{
+		ChainID:   w.receivingSubnetChainID,
+		Nonce:     nonce,
+		To:        &warp.Module.Address,
+		Gas:       5_000_000,
+		GasFeeCap: big.NewInt(225 * params.GWei),
+		GasTipCap: big.NewInt(params.GWei),
+		Value:     common.Big0,
+		Data:      packedInput,
+		AccessList: types.AccessList{
+			{
+				Address:     warp.ContractAddress,
+				StorageKeys: predicate.New(w.addressedCallSignedMessage.Bytes()),
+			},
+		},
+	})
 	signedTx, err := types.SignTx(tx, w.receivingSubnetSigner, w.receivingSubnetFundedKey)
 	require.NoError(err)
 	txBytes, err := signedTx.MarshalBinary()
@@ -534,19 +534,22 @@ func (w *warpTest) deliverBlockHashPayload() {
 
 	packedInput, err := warp.PackGetVerifiedWarpBlockHash(0)
 	require.NoError(err)
-	tx := predicate.NewPredicateTx(
-		w.receivingSubnetChainID,
-		nonce,
-		&warp.Module.Address,
-		5_000_000,
-		big.NewInt(225*params.GWei),
-		big.NewInt(params.GWei),
-		common.Big0,
-		packedInput,
-		types.AccessList{},
-		warp.ContractAddress,
-		w.blockPayloadSignedMessage.Bytes(),
-	)
+	tx := types.NewTx(&types.DynamicFeeTx{
+		ChainID:   w.receivingSubnetChainID,
+		Nonce:     nonce,
+		To:        &warp.Module.Address,
+		Gas:       5_000_000,
+		GasFeeCap: big.NewInt(225 * params.GWei),
+		GasTipCap: big.NewInt(params.GWei),
+		Value:     common.Big0,
+		Data:      packedInput,
+		AccessList: types.AccessList{
+			{
+				Address:     warp.ContractAddress,
+				StorageKeys: predicate.New(w.blockPayloadSignedMessage.Bytes()),
+			},
+		},
+	})
 	signedTx, err := types.SignTx(tx, w.receivingSubnetSigner, w.receivingSubnetFundedKey)
 	require.NoError(err)
 	txBytes, err := signedTx.MarshalBinary()
@@ -592,7 +595,7 @@ func (w *warpTest) executeHardHatTest() {
 	os.Setenv("SOURCE_CHAIN_ID", "0x"+w.sendingSubnet.BlockchainID.Hex())
 	os.Setenv("PAYLOAD", "0x"+common.Bytes2Hex(testPayload))
 	os.Setenv("EXPECTED_UNSIGNED_MESSAGE", "0x"+hex.EncodeToString(w.addressedCallUnsignedMessage.Bytes()))
-	os.Setenv("CHAIN_ID", fmt.Sprintf("%d", chainID.Uint64()))
+	os.Setenv("CHAIN_ID", strconv.FormatUint(chainID.Uint64(), 10))
 
 	cmdPath := filepath.Join(repoRootPath, "contracts")
 	// test path is relative to the cmd path
@@ -698,19 +701,22 @@ func (w *warpTest) warpLoad() {
 		if err != nil {
 			return nil, err
 		}
-		tx := predicate.NewPredicateTx(
-			w.receivingSubnetChainID,
-			nonce,
-			&warp.Module.Address,
-			5_000_000,
-			big.NewInt(225*params.GWei),
-			big.NewInt(params.GWei),
-			common.Big0,
-			packedInput,
-			types.AccessList{},
-			warp.ContractAddress,
-			signedWarpMessageBytes,
-		)
+		tx := types.NewTx(&types.DynamicFeeTx{
+			ChainID:   w.receivingSubnetChainID,
+			Nonce:     nonce,
+			To:        &warp.Module.Address,
+			Gas:       5_000_000,
+			GasFeeCap: big.NewInt(225 * params.GWei),
+			GasTipCap: big.NewInt(params.GWei),
+			Value:     common.Big0,
+			Data:      packedInput,
+			AccessList: types.AccessList{
+				{
+					Address:     warp.ContractAddress,
+					StorageKeys: predicate.New(signedWarpMessageBytes),
+				},
+			},
+		})
 		return types.SignTx(tx, w.receivingSubnetSigner, key)
 	}, w.receivingSubnetClients[0], chainBPrivateKeys, txsPerWorker, true)
 	require.NoError(err)

@@ -8,17 +8,19 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ava-labs/avalanchego/vms/evm/predicate"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/rawdb"
 	"github.com/ava-labs/libevm/core/state"
+	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
+
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/core/extstate"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/utils/utilstest"
-	"github.com/stretchr/testify/require"
-	"go.uber.org/mock/gomock"
 )
 
 // PrecompileTest is a test case for a precompile
@@ -43,7 +45,7 @@ type PrecompileTest struct {
 	// BeforeHook is called before the precompile is called.
 	BeforeHook func(t testing.TB, state *extstate.StateDB)
 	// Predicates that the precompile should have access to.
-	Predicates [][]byte
+	Predicates []predicate.Predicate
 	// SetupBlockContext sets the expected calls on MockBlockContext for the test execution.
 	SetupBlockContext func(*contract.MockBlockContext)
 	// AfterHook is called after the precompile is called.
@@ -67,7 +69,7 @@ type PrecompileRunparams struct {
 }
 
 func (test PrecompileTest) Run(t *testing.T, module modules.Module) {
-	state := newTestStateDB(t, map[common.Address][][]byte{
+	state := newTestStateDB(t, map[common.Address][]predicate.Predicate{
 		module.Address: test.Predicates,
 	})
 	runParams := test.setup(t, module, state)
@@ -158,25 +160,23 @@ func RunPrecompileTests(t *testing.T, module modules.Module, contractTests map[s
 type testStateDB struct {
 	*extstate.StateDB
 
-	predicateStorageSlots map[common.Address][][]byte
+	predicates map[common.Address][]predicate.Predicate
 }
 
-// GetPredicateStorageSlots returns the storage slots associated with the address, index pair.
-// This method overrides the embedded StateDB's method to use the test predicates.
-func (s *testStateDB) GetPredicateStorageSlots(address common.Address, index int) ([]byte, bool) {
-	predicates, exists := s.predicateStorageSlots[address]
-	if !exists || index >= len(predicates) {
-		return nil, false
-	}
-	return predicates[index], true
-}
-
-func newTestStateDB(t testing.TB, predicateStorageSlots map[common.Address][][]byte) *testStateDB {
+func newTestStateDB(t testing.TB, predicates map[common.Address][]predicate.Predicate) *testStateDB {
 	db := rawdb.NewMemoryDatabase()
 	statedb, err := state.New(common.Hash{}, state.NewDatabase(db), nil)
 	require.NoError(t, err)
 	return &testStateDB{
-		StateDB:               extstate.New(statedb),
-		predicateStorageSlots: predicateStorageSlots,
+		StateDB:    extstate.New(statedb),
+		predicates: predicates,
 	}
+}
+
+func (s *testStateDB) GetPredicate(address common.Address, index int) (predicate.Predicate, bool) {
+	preds := s.predicates[address]
+	if index < 0 || index >= len(preds) {
+		return nil, false
+	}
+	return preds[index], true
 }

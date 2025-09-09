@@ -4,15 +4,24 @@
 package extras
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
+	"strconv"
 
 	"github.com/ava-labs/avalanchego/upgrade"
-	ethparams "github.com/ava-labs/libevm/params"
+
 	"github.com/ava-labs/subnet-evm/utils"
+
+	ethparams "github.com/ava-labs/libevm/params"
 )
 
-var errCannotBeNil = fmt.Errorf("timestamp cannot be nil")
+var (
+	errCannotBeNil = errors.New("timestamp cannot be nil")
+
+	unscheduledActivation = uint64(upgrade.UnscheduledActivationTime.Unix())
+	initiallyActiveTime   = uint64(upgrade.InitiallyActiveTime.Unix())
+)
 
 // NetworkUpgrades contains timestamps that enable network upgrades.
 // Avalanche specific network upgrades are also included here.
@@ -72,7 +81,7 @@ func (n *NetworkUpgrades) SetDefaults(agoUpgrades upgrade.Config) {
 	defaults := GetNetworkUpgrades(agoUpgrades)
 	// If the network upgrade is not set, set it to the default value.
 	// If the network upgrade is set to 0, we also treat it as nil and set it default.
-	// This is because in prior versions, upgrades were not modifiable and were directly set to their default values.
+	// Invariant: This is because in prior versions, upgrades were not modifiable and were directly set to their default values.
 	// Most of the tools and configurations just provide these as 0, so it is safer to treat 0 as nil and set to default
 	// to prevent premature activations of the network upgrades for live networks.
 	if n.SubnetEVMTimestamp == nil || *n.SubnetEVMTimestamp == 0 {
@@ -86,6 +95,9 @@ func (n *NetworkUpgrades) SetDefaults(agoUpgrades upgrade.Config) {
 	}
 	if n.FortunaTimestamp == nil || *n.FortunaTimestamp == 0 {
 		n.FortunaTimestamp = defaults.FortunaTimestamp
+	}
+	if n.GraniteTimestamp == nil || *n.GraniteTimestamp == 0 {
+		n.GraniteTimestamp = defaults.GraniteTimestamp
 	}
 }
 
@@ -193,8 +205,11 @@ func GetNetworkUpgrades(agoUpgrade upgrade.Config) NetworkUpgrades {
 		SubnetEVMTimestamp: utils.NewUint64(0),
 		DurangoTimestamp:   utils.TimeToNewUint64(agoUpgrade.DurangoTime),
 		EtnaTimestamp:      utils.TimeToNewUint64(agoUpgrade.EtnaTime),
-		FortunaTimestamp:   nil, // Fortuna is optional and has no effect on Subnet-EVM
-		GraniteTimestamp:   nil, // Granite is optional and has no effect on Subnet-EVM
+		// Fortuna was initially an optional upgrade upon its release, but it is required as of the Granite upgrade.
+		// Chains can still opt to not activate Fortuna, but they will not be able to activate the Granite upgrade.
+		// Chains can also override this timestamp with a custom upgrade configuration.
+		FortunaTimestamp: utils.TimeToNewUint64(agoUpgrade.GraniteTime),
+		GraniteTimestamp: utils.TimeToNewUint64(agoUpgrade.GraniteTime),
 	}
 }
 
@@ -204,8 +219,19 @@ func verifyWithDefault(configTimestamp *uint64, defaultTimestamp *uint64) error 
 		return nil
 	}
 
+	// handle avalanche edge-cases:
+	// nil -> error unless default is unscheduled
+	// 0  -> allowed for initially-active defaults
+	// non-zero -> must be >= default.
 	if configTimestamp == nil {
+		if *defaultTimestamp >= unscheduledActivation {
+			return nil
+		}
 		return errCannotBeNil
+	}
+
+	if *configTimestamp == 0 && *defaultTimestamp <= initiallyActiveTime {
+		return nil
 	}
 
 	if *configTimestamp < *defaultTimestamp {
@@ -218,5 +244,5 @@ func ptrToString(val *uint64) string {
 	if val == nil {
 		return "nil"
 	}
-	return fmt.Sprintf("%d", *val)
+	return strconv.FormatUint(*val, 10)
 }

@@ -11,43 +11,46 @@ import (
 	"testing"
 	"time"
 
-	_ "embed"
-
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/network/p2p"
 	"github.com/ava-labs/avalanchego/network/p2p/acp118"
 	"github.com/ava-labs/avalanchego/proto/pb/sdk"
-	commonEng "github.com/ava-labs/avalanchego/snow/engine/common"
 	"github.com/ava-labs/avalanchego/snow/engine/enginetest"
 	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
 	"github.com/ava-labs/avalanchego/snow/validators"
 	"github.com/ava-labs/avalanchego/snow/validators/validatorstest"
 	"github.com/ava-labs/avalanchego/upgrade"
 	"github.com/ava-labs/avalanchego/upgrade/upgradetest"
-	avagoUtils "github.com/ava-labs/avalanchego/utils"
 	"github.com/ava-labs/avalanchego/utils/constants"
 	"github.com/ava-labs/avalanchego/utils/crypto/bls"
 	"github.com/ava-labs/avalanchego/utils/crypto/bls/signer/localsigner"
 	"github.com/ava-labs/avalanchego/utils/set"
 	"github.com/ava-labs/avalanchego/vms/components/chain"
-	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
+	"github.com/ava-labs/avalanchego/vms/evm/predicate"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/rawdb"
 	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/libevm/crypto"
+	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/proto"
+
+	_ "embed"
+
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/eth/tracers"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/params/extras"
-	customheader "github.com/ava-labs/subnet-evm/plugin/evm/header"
+	"github.com/ava-labs/subnet-evm/params/paramstest"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
-	warpcontract "github.com/ava-labs/subnet-evm/precompile/contracts/warp"
-	"github.com/ava-labs/subnet-evm/predicate"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ava-labs/subnet-evm/warp"
-	"github.com/stretchr/testify/require"
-	"google.golang.org/protobuf/proto"
+
+	commonEng "github.com/ava-labs/avalanchego/snow/engine/common"
+	avagoUtils "github.com/ava-labs/avalanchego/utils"
+	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
+	customheader "github.com/ava-labs/subnet-evm/plugin/evm/header"
+	warpcontract "github.com/ava-labs/subnet-evm/precompile/contracts/warp"
 )
 
 var (
@@ -83,7 +86,7 @@ func testSendWarpMessage(t *testing.T, scheme string) {
 	require := require.New(t)
 	genesis := &core.Genesis{}
 
-	require.NoError(genesis.UnmarshalJSON([]byte(toGenesisJSON(forkToChainConfig[upgradetest.Durango]))))
+	require.NoError(genesis.UnmarshalJSON([]byte(toGenesisJSON(paramstest.ForkToChainConfig[upgradetest.Durango]))))
 	params.GetExtra(genesis.Config).GenesisPrecompiles = extras.Precompiles{
 		warpcontract.ConfigKey: warpcontract.NewDefaultConfig(utils.TimeToNewUint64(upgrade.InitiallyActiveTime)),
 	}
@@ -318,7 +321,7 @@ func testValidateInvalidWarpBlockHash(t *testing.T, scheme string) {
 func testWarpVMTransaction(t *testing.T, scheme string, unsignedMessage *avalancheWarp.UnsignedMessage, validSignature bool, txPayload []byte) {
 	require := require.New(t)
 	genesis := &core.Genesis{}
-	require.NoError(genesis.UnmarshalJSON([]byte(toGenesisJSON(forkToChainConfig[upgradetest.Durango]))))
+	require.NoError(genesis.UnmarshalJSON([]byte(toGenesisJSON(paramstest.ForkToChainConfig[upgradetest.Durango]))))
 	params.GetExtra(genesis.Config).GenesisPrecompiles = extras.Precompiles{
 		warpcontract.ConfigKey: warpcontract.NewDefaultConfig(utils.TimeToNewUint64(upgrade.InitiallyActiveTime)),
 	}
@@ -407,19 +410,20 @@ func testWarpVMTransaction(t *testing.T, scheme string, unsignedMessage *avalanc
 	exampleWarpAddress := crypto.CreateAddress(testEthAddrs[0], 0)
 
 	tx, err := types.SignTx(
-		predicate.NewPredicateTx(
-			tvm.vm.chainConfig.ChainID,
-			1,
-			&exampleWarpAddress,
-			1_000_000,
-			big.NewInt(225*utils.GWei),
-			big.NewInt(utils.GWei),
-			common.Big0,
-			txPayload,
-			types.AccessList{},
-			warpcontract.ContractAddress,
-			signedMessage.Bytes(),
-		),
+		types.NewTx(&types.DynamicFeeTx{
+			ChainID:   tvm.vm.chainConfig.ChainID,
+			Nonce:     1,
+			To:        &exampleWarpAddress,
+			Gas:       1_000_000,
+			GasFeeCap: big.NewInt(225 * utils.GWei),
+			GasTipCap: big.NewInt(utils.GWei),
+			Value:     common.Big0,
+			Data:      txPayload,
+			AccessList: types.AccessList{{ // Access list predicate
+				Address:     warpcontract.ContractAddress,
+				StorageKeys: predicate.New(signedMessage.Bytes()),
+			}},
+		}),
 		types.LatestSignerForChainID(tvm.vm.chainConfig.ChainID),
 		testKeys[0].ToECDSA(),
 	)
@@ -617,7 +621,8 @@ func testReceiveWarpMessage(
 		signature *bls.Signature
 		weight    uint64
 	}
-	newSigner := func(weight uint64) signer {
+	weight := uint64(50)
+	newSigner := func() signer {
 		secret, err := localsigner.New()
 		require.NoError(err)
 		sig, err := secret.Sign(unsignedMessage.Bytes())
@@ -632,12 +637,12 @@ func testReceiveWarpMessage(
 	}
 
 	primarySigners := []signer{
-		newSigner(50),
-		newSigner(50),
+		newSigner(),
+		newSigner(),
 	}
 	subnetSigners := []signer{
-		newSigner(50),
-		newSigner(50),
+		newSigner(),
+		newSigner(),
 	}
 	signers := subnetSigners
 	if useSigners == signersPrimary {
@@ -703,19 +708,20 @@ func testReceiveWarpMessage(
 	getWarpMsgInput, err := warpcontract.PackGetVerifiedWarpMessage(0)
 	require.NoError(err)
 	getVerifiedWarpMessageTx, err := types.SignTx(
-		predicate.NewPredicateTx(
-			vm.chainConfig.ChainID,
-			vm.txPool.Nonce(testEthAddrs[0]),
-			&warpcontract.Module.Address,
-			1_000_000,
-			big.NewInt(225*utils.GWei),
-			big.NewInt(utils.GWei),
-			common.Big0,
-			getWarpMsgInput,
-			types.AccessList{},
-			warpcontract.ContractAddress,
-			signedMessage.Bytes(),
-		),
+		types.NewTx(&types.DynamicFeeTx{
+			ChainID:   vm.chainConfig.ChainID,
+			Nonce:     vm.txPool.Nonce(testEthAddrs[0]),
+			To:        &warpcontract.Module.Address,
+			Gas:       1_000_000,
+			GasFeeCap: big.NewInt(225 * utils.GWei),
+			GasTipCap: big.NewInt(utils.GWei),
+			Value:     common.Big0,
+			Data:      getWarpMsgInput,
+			AccessList: types.AccessList{{
+				Address:     warpcontract.ContractAddress,
+				StorageKeys: predicate.New(signedMessage.Bytes()),
+			}},
+		}),
 		types.LatestSignerForChainID(vm.chainConfig.ChainID),
 		testKeys[0].ToECDSA(),
 	)
@@ -742,17 +748,12 @@ func testReceiveWarpMessage(
 	ethBlock := block2.(*chain.BlockWrapper).Block.(*Block).ethBlock
 	rules := params.GetExtra(vm.chainConfig).GetAvalancheRules(ethBlock.Time())
 	headerPredicateResultsBytes := customheader.PredicateBytesFromExtra(rules, ethBlock.Extra())
-	results, err := predicate.ParseResults(headerPredicateResultsBytes)
+	blockResults, err := predicate.ParseBlockResults(headerPredicateResultsBytes)
 	require.NoError(err)
 
 	// Predicate results encode the index of invalid warp messages in a bitset.
-	// An empty bitset indicates success.
-	txResultsBytes := results.GetResults(
-		getVerifiedWarpMessageTx.Hash(),
-		warpcontract.ContractAddress,
-	)
-	bitset := set.BitsFromBytes(txResultsBytes)
-	require.Zero(bitset.Len()) // Empty bitset indicates success
+	txBits := blockResults.Get(getVerifiedWarpMessageTx.Hash(), warpcontract.ContractAddress)
+	require.Zero(txBits.Len()) // Empty bitset indicates success
 
 	block2VerifyWithCtx, ok := block2.(block.WithVerifyContext)
 	require.True(ok)
@@ -933,7 +934,7 @@ func testSignatureRequestsToVM(t *testing.T, scheme string) {
 }
 
 func TestClearWarpDB(t *testing.T) {
-	ctx, db, genesisBytes, _ := setupGenesis(t, upgradetest.Latest)
+	ctx, db, genesisBytes := setupGenesis(t, upgradetest.Latest)
 	vm := &VM{}
 	require.NoError(t, vm.Initialize(context.Background(), ctx, db, genesisBytes, []byte{}, []byte{}, []*commonEng.Fx{}, &enginetest.Sender{}))
 
@@ -957,7 +958,7 @@ func TestClearWarpDB(t *testing.T) {
 	// Restart VM with the same database default should not prune the warp db
 	vm = &VM{}
 	// we need new context since the previous one has registered metrics.
-	ctx, _, _, _ = setupGenesis(t, upgradetest.Latest)
+	ctx, _, _ = setupGenesis(t, upgradetest.Latest)
 	require.NoError(t, vm.Initialize(context.Background(), ctx, db, genesisBytes, []byte{}, []byte{}, []*commonEng.Fx{}, &enginetest.Sender{}))
 
 	// check messages are still present
@@ -972,7 +973,7 @@ func TestClearWarpDB(t *testing.T) {
 	// restart the VM with pruning enabled
 	vm = &VM{}
 	config := `{"prune-warp-db-enabled": true}`
-	ctx, _, _, _ = setupGenesis(t, upgradetest.Latest)
+	ctx, _, _ = setupGenesis(t, upgradetest.Latest)
 	require.NoError(t, vm.Initialize(context.Background(), ctx, db, genesisBytes, []byte{}, []byte(config), []*commonEng.Fx{}, &enginetest.Sender{}))
 
 	it := vm.warpDB.NewIterator()

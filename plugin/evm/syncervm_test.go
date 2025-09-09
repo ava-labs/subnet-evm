@@ -12,39 +12,40 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-
 	"github.com/ava-labs/avalanchego/api/metrics"
-	avalanchedatabase "github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/database/prefixdb"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow"
-	commonEng "github.com/ava-labs/avalanchego/snow/engine/common"
 	"github.com/ava-labs/avalanchego/snow/engine/enginetest"
 	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
 	"github.com/ava-labs/avalanchego/upgrade/upgradetest"
 	"github.com/ava-labs/avalanchego/utils/set"
-
+	"github.com/ava-labs/avalanchego/vms/evm/predicate"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/rawdb"
 	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/libevm/ethdb"
 	"github.com/ava-labs/libevm/log"
-	ethparams "github.com/ava-labs/libevm/params"
 	"github.com/ava-labs/libevm/rlp"
 	"github.com/ava-labs/libevm/trie"
 	"github.com/ava-labs/libevm/triedb"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
 	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/coretest"
+	"github.com/ava-labs/subnet-evm/params/paramstest"
 	"github.com/ava-labs/subnet-evm/plugin/evm/customrawdb"
 	"github.com/ava-labs/subnet-evm/plugin/evm/database"
-	"github.com/ava-labs/subnet-evm/predicate"
-	statesyncclient "github.com/ava-labs/subnet-evm/sync/client"
 	"github.com/ava-labs/subnet-evm/sync/statesync/statesynctest"
 	"github.com/ava-labs/subnet-evm/utils/utilstest"
+
+	avalanchedatabase "github.com/ava-labs/avalanchego/database"
+	commonEng "github.com/ava-labs/avalanchego/snow/engine/common"
+	ethparams "github.com/ava-labs/libevm/params"
+	statesyncclient "github.com/ava-labs/subnet-evm/sync/client"
 )
 
 func TestSkipStateSync(t *testing.T) {
@@ -142,7 +143,7 @@ func TestStateSyncToggleEnabledToDisabled(t *testing.T) {
 		context.Background(),
 		vmSetup.syncerVM.ctx,
 		vmSetup.syncerDB,
-		[]byte(toGenesisJSON(forkToChainConfig[upgradetest.Latest])),
+		[]byte(toGenesisJSON(paramstest.ForkToChainConfig[upgradetest.Latest])),
 		nil,
 		[]byte(stateSyncDisabledConfigJSON),
 		[]*commonEng.Fx{},
@@ -206,7 +207,7 @@ func TestStateSyncToggleEnabledToDisabled(t *testing.T) {
 		context.Background(),
 		vmSetup.syncerVM.ctx,
 		vmSetup.syncerDB,
-		[]byte(toGenesisJSON(forkToChainConfig[upgradetest.Latest])),
+		[]byte(toGenesisJSON(paramstest.ForkToChainConfig[upgradetest.Latest])),
 		nil,
 		[]byte(configJSON),
 		[]*commonEng.Fx{},
@@ -275,7 +276,7 @@ func createSyncServerAndClientVMs(t *testing.T, test syncTest, numBlocks int) *s
 	require := require.New(t)
 	// configure [serverVM]
 	serverVM := newVM(t, testVMConfig{
-		genesisJSON: toGenesisJSON(forkToChainConfig[upgradetest.Latest]),
+		genesisJSON: toGenesisJSON(paramstest.ForkToChainConfig[upgradetest.Latest]),
 	})
 
 	t.Cleanup(func() {
@@ -283,7 +284,8 @@ func createSyncServerAndClientVMs(t *testing.T, test syncTest, numBlocks int) *s
 		require.NoError(serverVM.vm.Shutdown(context.Background()))
 	})
 	generateAndAcceptBlocks(t, serverVM.vm, numBlocks, func(i int, gen *core.BlockGen) {
-		b, err := predicate.NewResults().Bytes()
+		br := predicate.BlockResults{}
+		b, err := br.Bytes()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -316,7 +318,7 @@ func createSyncServerAndClientVMs(t *testing.T, test syncTest, numBlocks int) *s
 	// initialise [syncerVM] with blank genesis state
 	stateSyncEnabledJSON := fmt.Sprintf(`{"state-sync-enabled":true, "state-sync-min-blocks": %d, "tx-lookup-limit": %d}`, test.stateSyncMinBlocks, 4)
 	syncerVM := newVM(t, testVMConfig{
-		genesisJSON: toGenesisJSON(forkToChainConfig[upgradetest.Latest]),
+		genesisJSON: toGenesisJSON(paramstest.ForkToChainConfig[upgradetest.Latest]),
 		configJSON:  stateSyncEnabledJSON,
 		isSyncing:   true,
 	})
@@ -467,7 +469,8 @@ func testSyncerVM(t *testing.T, vmSetup *syncVMSetup, test syncTest) {
 	txsPerBlock := 10
 	toAddress := testEthAddrs[1] // arbitrary choice
 	generateAndAcceptBlocks(t, syncerVM, blocksToBuild, func(_ int, gen *core.BlockGen) {
-		b, err := predicate.NewResults().Bytes()
+		br := predicate.BlockResults{}
+		b, err := br.Bytes()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -502,7 +505,8 @@ func testSyncerVM(t *testing.T, vmSetup *syncVMSetup, test syncTest) {
 
 	// Generate blocks after we have entered normal consensus as well
 	generateAndAcceptBlocks(t, syncerVM, blocksToBuild, func(_ int, gen *core.BlockGen) {
-		b, err := predicate.NewResults().Bytes()
+		br := predicate.BlockResults{}
+		b, err := br.Bytes()
 		require.NoError(err)
 		gen.AppendExtra(b)
 		i := 0

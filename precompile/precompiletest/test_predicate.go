@@ -7,8 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
+	"github.com/ava-labs/avalanchego/vms/evm/predicate"
 	"github.com/stretchr/testify/require"
+
+	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 )
 
 // PredicateTest defines a unit test/benchmark for verifying a precompile predicate.
@@ -17,18 +19,18 @@ type PredicateTest struct {
 
 	PredicateContext *precompileconfig.PredicateContext
 
-	PredicateBytes []byte
-	Gas            uint64
-	GasErr         error
-	ExpectedErr    error
+	Predicate   predicate.Predicate
+	Gas         uint64
+	GasErr      error
+	ExpectedErr error
 }
 
 func (test PredicateTest) Run(t testing.TB) {
 	t.Helper()
 	require := require.New(t)
-	predicate := test.Config.(precompileconfig.Predicater)
+	predicater := test.Config.(precompileconfig.Predicater)
 
-	predicateGas, predicateGasErr := predicate.PredicateGas(test.PredicateBytes)
+	predicateGas, predicateGasErr := predicater.PredicateGas(test.Predicate)
 	require.ErrorIs(predicateGasErr, test.GasErr)
 	if test.GasErr != nil {
 		return
@@ -36,7 +38,7 @@ func (test PredicateTest) Run(t testing.TB) {
 
 	require.Equal(test.Gas, predicateGas)
 
-	predicateRes := predicate.VerifyPredicate(test.PredicateContext, test.PredicateBytes)
+	predicateRes := predicater.VerifyPredicate(test.PredicateContext, test.Predicate)
 	require.ErrorIs(predicateRes, test.ExpectedErr)
 }
 

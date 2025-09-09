@@ -15,6 +15,7 @@ import (
 	"github.com/ava-labs/libevm/core/state"
 	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/libevm/trie"
+
 	"github.com/ava-labs/subnet-evm/consensus"
 	"github.com/ava-labs/subnet-evm/consensus/misc/eip4844"
 	"github.com/ava-labs/subnet-evm/params"
@@ -143,21 +144,22 @@ func verifyHeaderGasFields(
 	// but we don't know the final state while forming the block.
 	// See worker package for more details.
 	feeConfig, _, err := chain.GetFeeConfigAt(parent)
+	acp224FeeConfig, _, err := chain.GetACP224FeeConfigAt(parent)
 	if err != nil {
 		return err
 	}
-	if err := customheader.VerifyGasUsed(config, feeConfig, parent, header); err != nil {
+	if err := customheader.VerifyGasUsed(config, feeConfig, acp224FeeConfig, parent, header); err != nil {
 		return err
 	}
-	if err := customheader.VerifyGasLimit(config, feeConfig, parent, header); err != nil {
+	if err := customheader.VerifyGasLimit(config, feeConfig, acp224FeeConfig, parent, header); err != nil {
 		return err
 	}
-	if err := customheader.VerifyExtraPrefix(config, parent, header); err != nil {
+	if err := customheader.VerifyExtraPrefix(config, parent, acp224FeeConfig, header); err != nil {
 		return err
 	}
 
 	// Verify header.BaseFee matches the expected value.
-	expectedBaseFee, err := customheader.BaseFee(config, feeConfig, parent, header.Time)
+	expectedBaseFee, err := customheader.BaseFee(config, feeConfig, acp224FeeConfig, parent, header.Time)
 	if err != nil {
 		return fmt.Errorf("failed to calculate base fee: %w", err)
 	}
@@ -169,6 +171,7 @@ func verifyHeaderGasFields(
 	expectedBlockGasCost := customheader.BlockGasCost(
 		config,
 		feeConfig,
+		acp224FeeConfig,
 		parent,
 		header.Time,
 	)
@@ -402,6 +405,9 @@ func (eng *DummyEngine) FinalizeAndAssemble(chain consensus.ChainHeaderReader, h
 			return nil, err
 		}
 	}
+
+	// TODO: XXX Determine the proper target excess based on whether or not the ACP224 precompile is active
+	// prior to the block being finalized.
 
 	// finalize the header.Extra
 	extraPrefix, err := customheader.ExtraPrefix(config, parent, header, eng.desiredTargetExcess)

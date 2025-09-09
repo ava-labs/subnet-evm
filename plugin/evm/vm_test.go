@@ -16,15 +16,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ava-labs/libevm/common"
-	"github.com/ava-labs/libevm/core/rawdb"
-	"github.com/ava-labs/libevm/core/types"
-	"github.com/ava-labs/libevm/log"
-	"github.com/ava-labs/libevm/trie"
-
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-
 	"github.com/ava-labs/avalanchego/api/metrics"
 	"github.com/ava-labs/avalanchego/chains/atomic"
 	"github.com/ava-labs/avalanchego/database"
@@ -33,12 +24,19 @@ import (
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/avalanchego/snow/consensus/snowman"
-	commonEng "github.com/ava-labs/avalanchego/snow/engine/common"
 	"github.com/ava-labs/avalanchego/snow/engine/enginetest"
 	"github.com/ava-labs/avalanchego/upgrade"
 	"github.com/ava-labs/avalanchego/upgrade/upgradetest"
 	"github.com/ava-labs/avalanchego/utils/crypto/secp256k1"
 	"github.com/ava-labs/avalanchego/vms/components/chain"
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/core/rawdb"
+	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/log"
+	"github.com/ava-labs/libevm/trie"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/core"
@@ -46,6 +44,7 @@ import (
 	"github.com/ava-labs/subnet-evm/eth"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/params/extras"
+	"github.com/ava-labs/subnet-evm/params/paramstest"
 	"github.com/ava-labs/subnet-evm/plugin/evm/config"
 	"github.com/ava-labs/subnet-evm/plugin/evm/customrawdb"
 	"github.com/ava-labs/subnet-evm/plugin/evm/customtypes"
@@ -60,6 +59,7 @@ import (
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ava-labs/subnet-evm/utils/utilstest"
 
+	commonEng "github.com/ava-labs/avalanchego/snow/engine/common"
 	avagoconstants "github.com/ava-labs/avalanchego/utils/constants"
 )
 
@@ -103,14 +103,6 @@ var (
 		return string(b)
 	}
 
-	// forkToChainConfig maps a fork to a chain config
-	forkToChainConfig = map[upgradetest.Fork]*params.ChainConfig{
-		upgradetest.Durango: params.TestDurangoChainConfig,
-		upgradetest.Etna:    params.TestEtnaChainConfig,
-		// upgradetest.Fortuna: params.TestFortunaChainConfig,
-		upgradetest.Granite: params.TestGraniteChainConfig,
-	}
-
 	// These will be initialized after init() runs
 	genesisJSONPreSubnetEVM string
 	genesisJSONSubnetEVM    string
@@ -152,7 +144,7 @@ func newVM(t *testing.T, config testVMConfig) *testVM {
 	ctx.NetworkUpgrades = upgradetest.GetConfig(fork)
 
 	if len(config.genesisJSON) == 0 {
-		config.genesisJSON = toGenesisJSON(forkToChainConfig[fork])
+		config.genesisJSON = toGenesisJSON(paramstest.ForkToChainConfig[fork])
 	}
 
 	baseDB := memdb.New()
@@ -218,11 +210,10 @@ func setupGenesis(
 ) (*snow.Context,
 	*prefixdb.Database,
 	[]byte,
-	*atomic.Memory,
 ) {
 	ctx := utilstest.NewTestSnowContext(t)
 
-	genesisJSON := toGenesisJSON(forkToChainConfig[fork])
+	genesisJSON := toGenesisJSON(paramstest.ForkToChainConfig[fork])
 	ctx.NetworkUpgrades = upgradetest.GetConfig(fork)
 
 	baseDB := memdb.New()
@@ -237,7 +228,7 @@ func setupGenesis(
 
 	prefixedDB := prefixdb.New([]byte{1}, baseDB)
 
-	return ctx, prefixedDB, []byte(genesisJSON), atomicMemory
+	return ctx, prefixedDB, []byte(genesisJSON)
 }
 
 func TestVMConfig(t *testing.T) {
@@ -298,15 +289,15 @@ func TestVMContinuousProfiler(t *testing.T) {
 	require.NoError(t, err, "Expected continuous profiler to generate the first CPU profile at %s", expectedFileName)
 }
 
-func TestVMUpgrades(t *testing.T) {
+func TestExpectedGasPrice(t *testing.T) {
 	for _, scheme := range schemes {
 		t.Run(scheme, func(t *testing.T) {
-			testVMUpgrades(t, scheme)
+			testExpectedGasPrice(t, scheme)
 		})
 	}
 }
 
-func testVMUpgrades(t *testing.T, scheme string) {
+func testExpectedGasPrice(t *testing.T, scheme string) {
 	genesisTests := []struct {
 		name             string
 		genesisJSON      string
@@ -390,17 +381,12 @@ func TestBuildEthTxBlock(t *testing.T) {
 }
 
 func testBuildEthTxBlock(t *testing.T, scheme string) {
-	fork := upgradetest.ApricotPhase2
+	fork := upgradetest.ApricotPhase6
 	tvm := newVM(t, testVMConfig{
+		fork:        &fork,
 		genesisJSON: genesisJSONSubnetEVM,
 		configJSON:  getConfig(scheme, `"pruning-enabled":true`),
 	})
-
-	defer func() {
-		if err := tvm.vm.Shutdown(context.Background()); err != nil {
-			t.Fatal(err)
-		}
-	}()
 
 	newTxPoolHeadChan := make(chan core.NewTxPoolReorgEvent, 1)
 	tvm.vm.txPool.SubscribeNewReorgEvent(newTxPoolHeadChan)
@@ -478,22 +464,9 @@ func testBuildEthTxBlock(t *testing.T, scheme string) {
 		t.Fatalf("Found unexpected blkID for parent of blk2")
 	}
 
-	restartedVM := &VM{}
-	newCTX := utilstest.NewTestSnowContext(t)
-	newCTX.NetworkUpgrades = upgradetest.GetConfig(fork)
-	newCTX.ChainDataDir = tvm.vm.ctx.ChainDataDir
-	if err := restartedVM.Initialize(
-		context.Background(),
-		newCTX,
-		tvm.db,
-		[]byte(genesisJSONSubnetEVM),
-		[]byte(""),
-		[]byte(getConfig(scheme, `"pruning-enabled":true`)),
-		[]*commonEng.Fx{},
-		nil,
-	); err != nil {
-		t.Fatal(err)
-	}
+	restartedTVM, err := restartVM(tvm, tvm.config)
+	require.NoError(t, err)
+	restartedVM := restartedTVM.vm
 
 	// State root should not have been committed and discarded on restart
 	if ethBlk1Root := ethBlk1.Root(); restartedVM.blockChain.HasState(ethBlk1Root) {
@@ -2260,7 +2233,7 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 	managerKey := testKeys[1]
 	managerAddress := testEthAddrs[1]
 	genesis := &core.Genesis{}
-	if err := genesis.UnmarshalJSON([]byte(toGenesisJSON(forkToChainConfig[upgradetest.Durango]))); err != nil {
+	if err := genesis.UnmarshalJSON([]byte(toGenesisJSON(paramstest.ForkToChainConfig[upgradetest.Durango]))); err != nil {
 		t.Fatal(err)
 	}
 	// this manager role should not be activated because DurangoTimestamp is in the future
@@ -2291,7 +2264,9 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 	upgradeBytesJSON, err := json.Marshal(upgradeConfig)
 	require.NoError(t, err)
 
+	fork := upgradetest.Durango
 	tvm := newVM(t, testVMConfig{
+		fork:        &fork,
 		genesisJSON: string(genesisJSON),
 		upgradeJSON: string(upgradeBytesJSON),
 	})
@@ -2417,7 +2392,7 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 
 func TestVerifyManagerConfig(t *testing.T) {
 	genesis := &core.Genesis{}
-	ctx, dbManager, genesisBytes, _ := setupGenesis(t, upgradetest.Durango)
+	ctx, dbManager, genesisBytes := setupGenesis(t, upgradetest.Durango)
 	require.NoError(t, genesis.UnmarshalJSON(genesisBytes))
 
 	durangoTimestamp := time.Now().Add(10 * time.Hour)
@@ -2444,7 +2419,7 @@ func TestVerifyManagerConfig(t *testing.T) {
 	require.ErrorIs(t, err, allowlist.ErrCannotAddManagersBeforeDurango)
 
 	genesis = &core.Genesis{}
-	require.NoError(t, genesis.UnmarshalJSON([]byte(toGenesisJSON(forkToChainConfig[upgradetest.Durango]))))
+	require.NoError(t, genesis.UnmarshalJSON([]byte(toGenesisJSON(paramstest.ForkToChainConfig[upgradetest.Durango]))))
 	params.GetExtra(genesis.Config).DurangoTimestamp = utils.TimeToNewUint64(durangoTimestamp)
 	genesisJSON, err = genesis.MarshalJSON()
 	require.NoError(t, err)
@@ -2460,7 +2435,7 @@ func TestVerifyManagerConfig(t *testing.T) {
 	require.NoError(t, err)
 
 	vm = &VM{}
-	ctx, dbManager, _, _ = setupGenesis(t, upgradetest.Latest)
+	ctx, dbManager, _ = setupGenesis(t, upgradetest.Latest)
 	err = vm.Initialize(
 		context.Background(),
 		ctx,
@@ -2479,7 +2454,7 @@ func TestVerifyManagerConfig(t *testing.T) {
 func TestTxAllowListDisablePrecompile(t *testing.T) {
 	// Setup chain params
 	genesis := &core.Genesis{}
-	if err := genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)); err != nil {
+	if err := genesis.UnmarshalJSON([]byte(toGenesisJSON(paramstest.ForkToChainConfig[upgradetest.Latest]))); err != nil {
 		t.Fatal(err)
 	}
 	enableAllowListTimestamp := upgrade.InitiallyActiveTime // enable at initially active time
@@ -3181,7 +3156,7 @@ func TestSkipChainConfigCheckCompatible(t *testing.T) {
 	// use the block's timestamp instead of 0 since rewind to genesis
 	// is hardcoded to be allowed in core/genesis.go.
 	genesisWithUpgrade := &core.Genesis{}
-	require.NoError(t, json.Unmarshal([]byte(toGenesisJSON(forkToChainConfig[upgradetest.Durango])), genesisWithUpgrade))
+	require.NoError(t, json.Unmarshal([]byte(toGenesisJSON(paramstest.ForkToChainConfig[upgradetest.Durango])), genesisWithUpgrade))
 	params.GetExtra(genesisWithUpgrade.Config).EtnaTimestamp = utils.TimeToNewUint64(blk.Timestamp())
 	genesisWithUpgradeBytes, err := json.Marshal(genesisWithUpgrade)
 	require.NoError(t, err)
@@ -3204,46 +3179,46 @@ func TestSkipChainConfigCheckCompatible(t *testing.T) {
 func TestParentBeaconRootBlock(t *testing.T) {
 	tests := []struct {
 		name          string
-		genesisJSON   string
+		fork          upgradetest.Fork
 		beaconRoot    *common.Hash
 		expectedError bool
 		errString     string
 	}{
 		{
 			name:          "non-empty parent beacon root in Durango",
-			genesisJSON:   toGenesisJSON(forkToChainConfig[upgradetest.Durango]),
+			fork:          upgradetest.Durango,
 			beaconRoot:    &common.Hash{0x01},
 			expectedError: true,
 			// err string wont work because it will also fail with blob gas is non-empty (zeroed)
 		},
 		{
 			name:          "empty parent beacon root in Durango",
-			genesisJSON:   toGenesisJSON(forkToChainConfig[upgradetest.Durango]),
+			fork:          upgradetest.Durango,
 			beaconRoot:    &common.Hash{},
 			expectedError: true,
 		},
 		{
 			name:          "nil parent beacon root in Durango",
-			genesisJSON:   toGenesisJSON(forkToChainConfig[upgradetest.Durango]),
+			fork:          upgradetest.Durango,
 			beaconRoot:    nil,
 			expectedError: false,
 		},
 		{
 			name:          "non-empty parent beacon root in E-Upgrade (Cancun)",
-			genesisJSON:   toGenesisJSON(forkToChainConfig[upgradetest.Etna]),
+			fork:          upgradetest.Etna,
 			beaconRoot:    &common.Hash{0x01},
 			expectedError: true,
 			errString:     "expected empty hash",
 		},
 		{
 			name:          "empty parent beacon root in E-Upgrade (Cancun)",
-			genesisJSON:   toGenesisJSON(forkToChainConfig[upgradetest.Etna]),
+			fork:          upgradetest.Etna,
 			beaconRoot:    &common.Hash{},
 			expectedError: false,
 		},
 		{
 			name:          "nil parent beacon root in E-Upgrade (Cancun)",
-			genesisJSON:   toGenesisJSON(forkToChainConfig[upgradetest.Etna]),
+			fork:          upgradetest.Etna,
 			beaconRoot:    nil,
 			expectedError: true,
 			errString:     "header is missing parentBeaconRoot",
@@ -3253,7 +3228,7 @@ func TestParentBeaconRootBlock(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			tvm := newVM(t, testVMConfig{
-				genesisJSON: test.genesisJSON,
+				fork: &test.fork,
 			})
 
 			defer func() {
@@ -3338,7 +3313,7 @@ func TestStandaloneDB(t *testing.T) {
 		context.Background(),
 		ctx,
 		sharedDB,
-		[]byte(toGenesisJSON(forkToChainConfig[upgradetest.Latest])),
+		[]byte(toGenesisJSON(paramstest.ForkToChainConfig[upgradetest.Latest])),
 		nil,
 		[]byte(configJSON),
 		[]*commonEng.Fx{},
@@ -3728,7 +3703,7 @@ func TestWaitForEvent(t *testing.T) {
 }
 
 func TestGenesisGasLimit(t *testing.T) {
-	ctx, db, genesisBytes, _ := setupGenesis(t, upgradetest.Granite)
+	ctx, db, genesisBytes := setupGenesis(t, upgradetest.Granite)
 	genesis := &core.Genesis{}
 	require.NoError(t, genesis.UnmarshalJSON(genesisBytes))
 	// change the gas limit in the genesis to be different from the fee config

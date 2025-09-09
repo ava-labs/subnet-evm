@@ -4,12 +4,38 @@
 package commontype
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
 
 	"github.com/ava-labs/libevm/common"
+
 	"github.com/ava-labs/subnet-evm/utils"
 )
+
+type ACP224FeeConfig struct {
+	TargetGas         *big.Int `json:"targetGas,omitempty"`
+	MinGasPrice       *big.Int `json:"minGasPrice,omitempty"`
+	MaxCapacityFactor *big.Int `json:"maxCapacityFactor,omitempty"`
+	TimeToDouble      *big.Int `json:"timeToDouble,omitempty"`
+}
+
+// represents an empty ACP-224 fee config without any field
+var EmptyACP224FeeConfig = ACP224FeeConfig{}
+
+func (f *ACP224FeeConfig) Verify() error {
+	// TODO: XXX Add the verification for the ACP224FeeManager
+	return nil
+}
+
+func (f *ACP224FeeConfig) Equal(other *ACP224FeeConfig) bool {
+	// TODO: XXX Add the equality check for the ACP224FeeManager
+	if other == nil {
+		return false
+	}
+
+	return true
+}
 
 // FeeConfig specifies the parameters for the dynamic fee algorithm, which determines the gas limit, base fee, and block gas cost of blocks
 // on the network.
@@ -63,19 +89,19 @@ var EmptyFeeConfig = FeeConfig{}
 func (f *FeeConfig) Verify() error {
 	switch {
 	case f.GasLimit == nil:
-		return fmt.Errorf("gasLimit cannot be nil")
+		return errors.New("gasLimit cannot be nil")
 	case f.MinBaseFee == nil:
-		return fmt.Errorf("minBaseFee cannot be nil")
+		return errors.New("minBaseFee cannot be nil")
 	case f.TargetGas == nil:
-		return fmt.Errorf("targetGas cannot be nil")
+		return errors.New("targetGas cannot be nil")
 	case f.BaseFeeChangeDenominator == nil:
-		return fmt.Errorf("baseFeeChangeDenominator cannot be nil")
+		return errors.New("baseFeeChangeDenominator cannot be nil")
 	case f.MinBlockGasCost == nil:
-		return fmt.Errorf("minBlockGasCost cannot be nil")
+		return errors.New("minBlockGasCost cannot be nil")
 	case f.MaxBlockGasCost == nil:
-		return fmt.Errorf("maxBlockGasCost cannot be nil")
+		return errors.New("maxBlockGasCost cannot be nil")
 	case f.BlockGasCostStep == nil:
-		return fmt.Errorf("blockGasCostStep cannot be nil")
+		return errors.New("blockGasCostStep cannot be nil")
 	}
 
 	switch {

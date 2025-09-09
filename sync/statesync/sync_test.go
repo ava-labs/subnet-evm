@@ -21,13 +21,15 @@ import (
 	"github.com/ava-labs/libevm/rlp"
 	"github.com/ava-labs/libevm/trie"
 	"github.com/ava-labs/libevm/triedb"
+	"github.com/stretchr/testify/require"
+
 	"github.com/ava-labs/subnet-evm/core/state/snapshot"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
-	statesyncclient "github.com/ava-labs/subnet-evm/sync/client"
 	"github.com/ava-labs/subnet-evm/sync/handlers"
-	handlerstats "github.com/ava-labs/subnet-evm/sync/handlers/stats"
 	"github.com/ava-labs/subnet-evm/sync/statesync/statesynctest"
-	"github.com/stretchr/testify/require"
+
+	statesyncclient "github.com/ava-labs/subnet-evm/sync/client"
+	handlerstats "github.com/ava-labs/subnet-evm/sync/handlers/stats"
 )
 
 const testSyncTimeout = 30 * time.Second
@@ -88,7 +90,7 @@ func testSyncResumes(t *testing.T, steps []syncTest, stepCallback func()) {
 // waitFor waits for a result on the [result] channel to match [expected], or a timeout.
 func waitFor(t *testing.T, ctx context.Context, resultFunc func(context.Context) error, expected error, timeout time.Duration) {
 	t.Helper()
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	err := resultFunc(ctx)
 	if ctx.Err() != nil {

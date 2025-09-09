@@ -41,8 +41,9 @@ import (
 	"github.com/ava-labs/subnet-evm/core/extstate"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/params/extras"
+
+	"github.com/ava-labs/avalanchego/vms/evm/predicate"
 	customheader "github.com/ava-labs/subnet-evm/plugin/evm/header"
-	"github.com/ava-labs/subnet-evm/predicate"
 	"github.com/holiman/uint256"
 )
 
@@ -101,7 +102,7 @@ func NewEVMBlockContext(rules extras.AvalancheRules, header *types.Header, chain
 	// Prior to Durango, the VM enforces the extra data is smaller than or
 	// equal to this size. After Durango, the VM pre-verifies the extra
 	// data past the dynamic fee rollup window is valid.
-	_, err := predicate.ParseResults(predicateBytes)
+	_, err := predicate.ParseBlockResults(predicateBytes)
 	if err != nil {
 		log.Error("failed to parse predicate results creating new block context", "err", err, "extra", header.Extra)
 		// As mentioned above, we pre-verify the extra data to ensure this never happens.
