@@ -42,7 +42,7 @@ type ExtensibleVM interface {
 	// Should be called before any other method and only once
 	SetExtensionConfig(config *Config) error
 	// NewClient returns a client to send messages with for the given protocol
-	NewClient(protocol uint64, options ...p2p.ClientOption) *p2p.Client
+	NewClient(protocol uint64) *p2p.Client
 	// AddHandler registers a server handler for an application protocol
 	AddHandler(protocol uint64, handler p2p.Handler) error
 	// GetExtendedBlock returns the VMBlock for the given ID or an error if the block is not found
