@@ -44,9 +44,12 @@ import (
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/params/extras"
 	customheader "github.com/ava-labs/subnet-evm/plugin/evm/header"
 	"github.com/ava-labs/subnet-evm/plugin/evm/upgrade/legacy"
+	"github.com/ava-labs/subnet-evm/precompile/contracts/feemanager"
 	"github.com/ava-labs/subnet-evm/rpc"
+	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/stretchr/testify/require"
 )
 
@@ -96,6 +99,9 @@ func (b *testBackend) GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig
 	return b.chain.GetFeeConfigAt(parent)
 }
 
+func (b *testBackend) GetACP224FeeConfigAt(parent *types.Header) (commontype.ACP224FeeConfig, *big.Int, error) {
+	return b.chain.GetACP224FeeConfigAt(parent)
+}
 func (b *testBackend) teardown() {
 	b.chain.Stop()
 }

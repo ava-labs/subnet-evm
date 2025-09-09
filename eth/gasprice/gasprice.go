@@ -104,6 +104,7 @@ type OracleBackend interface {
 	MinRequiredTip(ctx context.Context, header *types.Header) (*big.Int, error)
 	LastAcceptedBlock() *types.Block
 	GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig, *big.Int, error)
+	GetACP224FeeConfigAt(parent *types.Header) (commontype.ACP224FeeConfig, *big.Int, error)
 }
 
 // Oracle recommends gas prices based on the content of recent
@@ -232,6 +233,10 @@ func (oracle *Oracle) estimateNextBaseFee(ctx context.Context) (*big.Int, error)
 	if err != nil {
 		return nil, err
 	}
+	acp224FeeConfig, _, err := oracle.backend.GetACP224FeeConfigAt(header)
+	if err != nil {
+		return nil, err
+	}
 	// If the fetched block does not have a base fee, return nil as the base fee
 	if header.BaseFee == nil {
 		return nil, nil
@@ -241,7 +246,7 @@ func (oracle *Oracle) estimateNextBaseFee(ctx context.Context) (*big.Int, error)
 	// based on the current time and add it to the tip to estimate the
 	// total gas price estimate.
 	chainConfig := params.GetExtra(oracle.backend.ChainConfig())
-	return customheader.EstimateNextBaseFee(chainConfig, feeConfig, header, oracle.clock.Unix())
+	return customheader.EstimateNextBaseFee(chainConfig, feeConfig, acp224FeeConfig, header, oracle.clock.Unix())
 }
 
 // SuggestPrice returns an estimated price for legacy transactions.

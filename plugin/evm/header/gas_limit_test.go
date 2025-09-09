@@ -83,12 +83,13 @@ func GasLimitTest(t *testing.T, feeConfig commontype.FeeConfig) {
 
 func TestVerifyGasUsed(t *testing.T) {
 	tests := []struct {
-		name      string
-		feeConfig commontype.FeeConfig
-		upgrades  extras.NetworkUpgrades
-		parent    *types.Header
-		header    *types.Header
-		want      error
+		name            string
+		feeConfig       commontype.FeeConfig
+		acp224FeeConfig commontype.ACP224FeeConfig
+		upgrades        extras.NetworkUpgrades
+		parent          *types.Header
+		header          *types.Header
+		want            error
 	}{
 		{
 			name:     "fortuna_gas_used_overflow",
@@ -140,7 +141,7 @@ func TestVerifyGasUsed(t *testing.T) {
 			config := &extras.ChainConfig{
 				NetworkUpgrades: test.upgrades,
 			}
-			err := VerifyGasUsed(config, test.feeConfig, test.parent, test.header)
+			err := VerifyGasUsed(config, test.feeConfig, test.acp224FeeConfig, test.parent, test.header)
 			require.ErrorIs(t, err, test.want)
 		})
 	}
@@ -148,14 +149,14 @@ func TestVerifyGasUsed(t *testing.T) {
 
 func TestVerifyGasLimit(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
-		VerifyGasLimitTest(t, testFeeConfig)
+		VerifyGasLimitTest(t, testFeeConfig, testACP224FeeConfig)
 	})
 	t.Run("double", func(t *testing.T) {
-		VerifyGasLimitTest(t, testFeeConfigDouble)
+		VerifyGasLimitTest(t, testFeeConfigDouble, testACP224FeeConfigDouble)
 	})
 }
 
-func VerifyGasLimitTest(t *testing.T, feeConfig commontype.FeeConfig) {
+func VerifyGasLimitTest(t *testing.T, feeConfig commontype.FeeConfig, acp224FeeConfig commontype.ACP224FeeConfig) {
 	tests := []struct {
 		name     string
 		upgrades extras.NetworkUpgrades
@@ -257,7 +258,7 @@ func VerifyGasLimitTest(t *testing.T, feeConfig commontype.FeeConfig) {
 			config := &extras.ChainConfig{
 				NetworkUpgrades: test.upgrades,
 			}
-			err := VerifyGasLimit(config, feeConfig, test.parent, test.header)
+			err := VerifyGasLimit(config, feeConfig, acp224FeeConfig, test.parent, test.header)
 			require.ErrorIs(t, err, test.want)
 		})
 	}

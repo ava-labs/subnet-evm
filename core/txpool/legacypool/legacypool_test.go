@@ -74,6 +74,13 @@ var (
 		MaxBlockGasCost:  big.NewInt(1_000_000),
 		BlockGasCostStep: big.NewInt(200_000),
 	}
+
+	testACP224FeeConfig = commontype.ACP224FeeConfig{
+		TargetGas:         big.NewInt(1_000_000),
+		MinGasPrice:       big.NewInt(1),
+		MaxCapacityFactor: big.NewInt(5),
+		TimeToDouble:      big.NewInt(60),
+	}
 )
 
 func init() {
@@ -131,6 +138,10 @@ func (bc *testBlockChain) SubscribeChainHeadEvent(ch chan<- core.ChainHeadEvent)
 
 func (bc *testBlockChain) GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig, *big.Int, error) {
 	return testFeeConfig, common.Big0, nil
+}
+
+func (bc *testBlockChain) GetACP224FeeConfigAt(parent *types.Header) (commontype.ACP224FeeConfig, *big.Int, error) {
+	return testACP224FeeConfig, common.Big0, nil
 }
 
 func (bc *testBlockChain) SenderCacher() *core.TxSenderCacher {

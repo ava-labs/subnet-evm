@@ -365,9 +365,13 @@ func GenerateBadBlock(parent *types.Block, engine consensus.Engine, txs types.Tr
 	if err != nil {
 		panic(err)
 	}
+	acp224FeeConfig, _, err := fakeChainReader.GetACP224FeeConfigAt(parent.Header())
+	if err != nil {
+		panic(err)
+	}
 	configExtra := params.GetExtra(config)
 	gasLimit, _ := customheader.GasLimit(configExtra, feeConfig, parent.Header(), time)
-	baseFee, _ := customheader.BaseFee(configExtra, feeConfig, parent.Header(), time)
+	baseFee, _ := customheader.BaseFee(configExtra, feeConfig, acp224FeeConfig, parent.Header(), time)
 	header := &types.Header{
 		ParentHash: parent.Hash(),
 		Coinbase:   parent.Coinbase(),

@@ -127,6 +127,10 @@ func (b *EthAPIBackend) GetFeeConfigAt(parent *types.Header) (commontype.FeeConf
 	return b.eth.blockchain.GetFeeConfigAt(parent)
 }
 
+func (b *EthAPIBackend) GetACP224FeeConfigAt(parent *types.Header) (commontype.ACP224FeeConfig, *big.Int, error) {
+	return b.eth.blockchain.GetACP224FeeConfigAt(parent)
+}
+
 func (b *EthAPIBackend) HeaderByHash(ctx context.Context, hash common.Hash) (*types.Header, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err

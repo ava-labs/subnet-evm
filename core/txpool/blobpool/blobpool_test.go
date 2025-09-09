@@ -122,7 +122,7 @@ func (bc *testBlockChain) CurrentBlock() *types.Header {
 		}
 		config := params.GetExtra(bc.config)
 		baseFee, err := header.BaseFee(
-			config, config.FeeConfig, parent, blockTime,
+			config, config.FeeConfig, config.ACP224FeeConfig, parent, blockTime,
 		)
 		if err != nil {
 			panic(err)
@@ -178,6 +178,10 @@ func (bc *testBlockChain) StateAt(common.Hash) (*state.StateDB, error) {
 
 func (bc *testBlockChain) GetFeeConfigAt(header *types.Header) (commontype.FeeConfig, *big.Int, error) {
 	return params.GetExtra(bc.config).FeeConfig, nil, nil
+}
+
+func (bc *testBlockChain) GetACP224FeeConfigAt(header *types.Header) (commontype.ACP224FeeConfig, *big.Int, error) {
+	return params.GetExtra(bc.config).ACP224FeeConfig, nil, nil
 }
 
 // makeAddressReserver is a utility method to sanity check that accounts are
