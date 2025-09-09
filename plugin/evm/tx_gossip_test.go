@@ -67,9 +67,21 @@ func TestEthTxGossip(t *testing.T) {
 		SentAppRequest: make(chan []byte, 1),
 	}
 
-	network, err := p2p.NewNetwork(logging.NoLog{}, peerSender, prometheus.NewRegistry(), "")
+	validatorSet := p2p.NewValidators(
+		logging.NoLog{},
+		snowCtx.SubnetID,
+		validatorState,
+		0,
+	)
+	network, err := p2p.NewNetwork(
+		logging.NoLog{},
+		peerSender,
+		prometheus.NewRegistry(),
+		"",
+		validatorSet,
+	)
 	require.NoError(err)
-	client := network.NewClient(p2p.TxGossipHandlerID)
+	client := network.NewClient(p2p.TxGossipHandlerID, validatorSet)
 
 	// we only accept gossip requests from validators
 	requestingNodeID := ids.GenerateTestNodeID()
@@ -100,7 +112,7 @@ func TestEthTxGossip(t *testing.T) {
 
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
-	onResponse := func(_ context.Context, nodeID ids.NodeID, responseBytes []byte, err error) {
+	onResponse := func(_ context.Context, _ ids.NodeID, responseBytes []byte, err error) {
 		require.NoError(err)
 
 		response := &sdk.PullGossipResponse{}
@@ -129,7 +141,7 @@ func TestEthTxGossip(t *testing.T) {
 	marshaller := GossipEthTxMarshaller{}
 	// Ask the VM for new transactions. We should get the newly issued tx.
 	wg.Add(1)
-	onResponse = func(_ context.Context, nodeID ids.NodeID, responseBytes []byte, err error) {
+	onResponse = func(_ context.Context, _ ids.NodeID, responseBytes []byte, err error) {
 		require.NoError(err)
 
 		response := &sdk.PullGossipResponse{}
