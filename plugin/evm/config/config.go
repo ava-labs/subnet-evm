@@ -168,7 +168,9 @@ type Config struct {
 	WarpOffChainMessages []hexutil.Bytes `json:"warp-off-chain-messages"`
 
 	// RPC settings
-	HttpBodyLimit uint64 `json:"http-body-limit"`
+	HttpBodyLimit        uint64 `json:"http-body-limit"`
+	BatchRequestLimit    uint64 `json:"batch-request-limit"`
+	BatchResponseMaxSize uint64 `json:"batch-response-max-size"`
 
 	// Database settings
 	UseStandaloneDatabase *PBool `json:"use-standalone-database"`
@@ -257,7 +259,7 @@ func (c *Config) validate(_ uint32) error {
 // deprecate returns a string of deprecation messages for the config.
 // This is used to log a message when the config is loaded and contains deprecated flags.
 // This function should be kept as a placeholder even if it is empty.
-func (c *Config) deprecate() string {
+func (*Config) deprecate() string {
 	msg := ""
 
 	return msg
