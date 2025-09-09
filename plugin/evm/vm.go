@@ -25,7 +25,6 @@ import (
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/network/p2p"
 	"github.com/ava-labs/avalanchego/network/p2p/acp118"
-	"github.com/ava-labs/avalanchego/network/p2p/gossip"
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/avalanchego/snow/consensus/snowman"
 	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
@@ -69,6 +68,7 @@ import (
 	"github.com/ava-labs/subnet-evm/plugin/evm/config"
 	"github.com/ava-labs/subnet-evm/plugin/evm/customrawdb"
 	"github.com/ava-labs/subnet-evm/plugin/evm/extension"
+	"github.com/ava-labs/subnet-evm/plugin/evm/gossip"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
 	"github.com/ava-labs/subnet-evm/plugin/evm/validators"
 	"github.com/ava-labs/subnet-evm/plugin/evm/validators/interfaces"
@@ -79,6 +79,7 @@ import (
 	"github.com/ava-labs/subnet-evm/triedb/hashdb"
 	"github.com/ava-labs/subnet-evm/warp"
 
+	avalanchegossip "github.com/ava-labs/avalanchego/network/p2p/gossip"
 	commonEng "github.com/ava-labs/avalanchego/snow/engine/common"
 	avalancheUtils "github.com/ava-labs/avalanchego/utils"
 	avajson "github.com/ava-labs/avalanchego/utils/json"
@@ -252,8 +253,8 @@ type VM struct {
 
 	// Initialize only sets these if nil so they can be overridden in tests
 	ethTxGossipHandler p2p.Handler
-	ethTxPushGossiper  avalancheUtils.Atomic[*gossip.PushGossiper[*GossipEthTx]]
-	ethTxPullGossiper  gossip.Gossiper
+	ethTxPushGossiper  avalancheUtils.Atomic[*avalanchegossip.PushGossiper[*GossipEthTx]]
+	ethTxPullGossiper  avalanchegossip.Gossiper
 
 	validatorsManager interfaces.Manager
 
@@ -826,8 +827,8 @@ func (vm *VM) onNormalOperationsStarted() error {
 	// Initialize goroutines related to block building
 	// once we enter normal operation as there is no need to handle mempool gossip before this point.
 	ethTxGossipMarshaller := GossipEthTxMarshaller{}
-	ethTxGossipClient := vm.Network.NewClient(p2p.TxGossipHandlerID, p2p.WithValidatorSampling(vm.P2PValidators()))
-	ethTxGossipMetrics, err := gossip.NewMetrics(vm.sdkMetrics, ethTxGossipNamespace)
+	ethTxGossipClient := vm.Network.NewClient(p2p.TxGossipHandlerID)
+	ethTxGossipMetrics, err := avalanchegossip.NewMetrics(vm.sdkMetrics, ethTxGossipNamespace)
 	if err != nil {
 		return fmt.Errorf("failed to initialize eth tx gossip metrics: %w", err)
 	}
@@ -841,19 +842,19 @@ func (vm *VM) onNormalOperationsStarted() error {
 		vm.shutdownWg.Done()
 	}()
 
-	pushGossipParams := gossip.BranchingFactor{
+	pushGossipParams := avalanchegossip.BranchingFactor{
 		StakePercentage: vm.config.PushGossipPercentStake,
 		Validators:      vm.config.PushGossipNumValidators,
 		Peers:           vm.config.PushGossipNumPeers,
 	}
-	pushRegossipParams := gossip.BranchingFactor{
+	pushRegossipParams := avalanchegossip.BranchingFactor{
 		Validators: vm.config.PushRegossipNumValidators,
 		Peers:      vm.config.PushRegossipNumPeers,
 	}
 
 	ethTxPushGossiper := vm.ethTxPushGossiper.Get()
 	if ethTxPushGossiper == nil {
-		ethTxPushGossiper, err = gossip.NewPushGossiper[*GossipEthTx](
+		ethTxPushGossiper, err = avalanchegossip.NewPushGossiper[*GossipEthTx](
 			ethTxGossipMarshaller,
 			ethTxPool,
 			vm.P2PValidators(),
@@ -878,16 +879,21 @@ func (vm *VM) onNormalOperationsStarted() error {
 	vm.builderLock.Unlock()
 
 	if vm.ethTxGossipHandler == nil {
-		vm.ethTxGossipHandler = newTxGossipHandler[*GossipEthTx](
+		vm.ethTxGossipHandler, err = gossip.NewTxGossipHandler[*GossipEthTx](
 			vm.ctx.Log,
 			ethTxGossipMarshaller,
 			ethTxPool,
 			ethTxGossipMetrics,
 			config.TxGossipTargetMessageSize,
 			config.TxGossipThrottlingPeriod,
-			config.TxGossipThrottlingLimit,
+			config.TxGossipRequestsPerPeer,
 			vm.P2PValidators(),
+			vm.sdkMetrics,
+			"eth_tx_gossip",
 		)
+	}
+	if err != nil {
+		return fmt.Errorf("failed to initialize eth tx gossip handler: %w", err)
 	}
 
 	if err := vm.Network.AddHandler(p2p.TxGossipHandlerID, vm.ethTxGossipHandler); err != nil {
@@ -895,7 +901,7 @@ func (vm *VM) onNormalOperationsStarted() error {
 	}
 
 	if vm.ethTxPullGossiper == nil {
-		ethTxPullGossiper := gossip.NewPullGossiper[*GossipEthTx](
+		ethTxPullGossiper := avalanchegossip.NewPullGossiper[*GossipEthTx](
 			vm.ctx.Log,
 			ethTxGossipMarshaller,
 			ethTxPool,
@@ -904,7 +910,7 @@ func (vm *VM) onNormalOperationsStarted() error {
 			config.TxGossipPollSize,
 		)
 
-		vm.ethTxPullGossiper = gossip.ValidatorGossiper{
+		vm.ethTxPullGossiper = avalanchegossip.ValidatorGossiper{
 			Gossiper:   ethTxPullGossiper,
 			NodeID:     vm.ctx.NodeID,
 			Validators: vm.P2PValidators(),
@@ -913,12 +919,12 @@ func (vm *VM) onNormalOperationsStarted() error {
 
 	vm.shutdownWg.Add(1)
 	go func() {
-		gossip.Every(ctx, vm.ctx.Log, ethTxPushGossiper, vm.config.PushGossipFrequency.Duration)
+		avalanchegossip.Every(ctx, vm.ctx.Log, ethTxPushGossiper, vm.config.PushGossipFrequency.Duration)
 		vm.shutdownWg.Done()
 	}()
 	vm.shutdownWg.Add(1)
 	go func() {
-		gossip.Every(ctx, vm.ctx.Log, vm.ethTxPullGossiper, vm.config.PullGossipFrequency.Duration)
+		avalanchegossip.Every(ctx, vm.ctx.Log, vm.ethTxPullGossiper, vm.config.PullGossipFrequency.Duration)
 		vm.shutdownWg.Done()
 	}()
 
@@ -988,7 +994,7 @@ func (vm *VM) buildBlock(ctx context.Context) (snowman.Block, error) {
 	return vm.buildBlockWithContext(ctx, nil)
 }
 
-func (vm *VM) buildBlockWithContext(ctx context.Context, proposerVMBlockCtx *block.Context) (snowman.Block, error) {
+func (vm *VM) buildBlockWithContext(_ context.Context, proposerVMBlockCtx *block.Context) (snowman.Block, error) {
 	if proposerVMBlockCtx != nil {
 		log.Debug("Building block with context", "pChainBlockHeight", proposerVMBlockCtx.PChainHeight)
 	} else {
@@ -1128,7 +1134,7 @@ func (vm *VM) GetBlockIDAtHeight(_ context.Context, height uint64) (ids.ID, erro
 	return ids.ID(hash), nil
 }
 
-func (vm *VM) Version(context.Context) (string, error) {
+func (*VM) Version(context.Context) (string, error) {
 	return Version, nil
 }
 
@@ -1215,12 +1221,12 @@ func (vm *VM) NewHTTPHandler(ctx context.Context) (http.Handler, error) {
 	}
 
 	// Fallback to a default handler if no RPC handler exists
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		http.Error(w, "No HTTP handler available", http.StatusNotFound)
 	}), nil
 }
 
-func (vm *VM) CreateHTTP2Handler(context.Context) (http.Handler, error) {
+func (*VM) CreateHTTP2Handler(context.Context) (http.Handler, error) {
 	return nil, nil
 }
 
