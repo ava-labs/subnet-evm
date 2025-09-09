@@ -23,6 +23,7 @@ var errEstimateBaseFeeWithoutActivation = errors.New("cannot estimate base fee f
 func BaseFee(
 	config *extras.ChainConfig,
 	feeConfig commontype.FeeConfig,
+	acp224FeeConfig commontype.ACP224FeeConfig,
 	parent *types.Header,
 	timestamp uint64,
 ) (*big.Int, error) {
@@ -54,6 +55,7 @@ func BaseFee(
 func EstimateNextBaseFee(
 	config *extras.ChainConfig,
 	feeConfig commontype.FeeConfig,
+	acp224FeeConfig commontype.ACP224FeeConfig,
 	parent *types.Header,
 	timestamp uint64,
 ) (*big.Int, error) {
@@ -62,5 +64,5 @@ func EstimateNextBaseFee(
 	}
 
 	timestamp = max(timestamp, parent.Time, *config.SubnetEVMTimestamp)
-	return BaseFee(config, feeConfig, parent, timestamp)
+	return BaseFee(config, feeConfig, acp224FeeConfig, parent, timestamp)
 }

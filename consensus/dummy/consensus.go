@@ -154,7 +154,7 @@ func verifyHeaderGasFields(
 	if err := customheader.VerifyGasLimit(config, feeConfig, acp224FeeConfig, parent, header); err != nil {
 		return err
 	}
-	if err := customheader.VerifyExtraPrefix(config, parent, acp224FeeConfig, header); err != nil {
+	if err := customheader.VerifyExtraPrefix(config, parent, header); err != nil {
 		return err
 	}
 
@@ -349,11 +349,16 @@ func (eng *DummyEngine) Finalize(chain consensus.ChainHeaderReader, block *types
 	if err != nil {
 		return err
 	}
+	acp224FeeConfig, _, err := chain.GetACP224FeeConfigAt(parent)
+	if err != nil {
+		return err
+	}
 	// Verify the BlockGasCost set in the header matches the expected value.
 	blockGasCost := customtypes.BlockGasCost(block)
 	expectedBlockGasCost := customheader.BlockGasCost(
 		config,
 		feeConfig,
+		acp224FeeConfig,
 		parent,
 		timestamp,
 	)
@@ -384,6 +389,10 @@ func (eng *DummyEngine) FinalizeAndAssemble(chain consensus.ChainHeaderReader, h
 	if err != nil {
 		return nil, err
 	}
+	acp224FeeConfig, _, err := chain.GetACP224FeeConfigAt(parent)
+	if err != nil {
+		return nil, err
+	}
 	config := params.GetExtra(chain.Config())
 
 	// Calculate the required block gas cost for this block.
@@ -391,6 +400,7 @@ func (eng *DummyEngine) FinalizeAndAssemble(chain consensus.ChainHeaderReader, h
 	headerExtra.BlockGasCost = customheader.BlockGasCost(
 		config,
 		feeConfig,
+		acp224FeeConfig,
 		parent,
 		header.Time,
 	)

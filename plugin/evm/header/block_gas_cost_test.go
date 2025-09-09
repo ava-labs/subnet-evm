@@ -28,6 +28,12 @@ var (
 		MinBaseFee:               big.NewInt(25 * utils.GWei),
 		GasLimit:                 big.NewInt(12_000_000),
 	}
+	testACP224FeeConfig = commontype.ACP224FeeConfig{
+		TargetGas:         big.NewInt(1_000_000),
+		MinGasPrice:       big.NewInt(1),
+		MaxCapacityFactor: big.NewInt(5),
+		TimeToDouble:      big.NewInt(60),
+	}
 
 	testFeeConfigDouble = commontype.FeeConfig{
 		MinBlockGasCost:          big.NewInt(2),
@@ -39,18 +45,24 @@ var (
 		MinBaseFee:               big.NewInt(50 * utils.GWei),
 		GasLimit:                 big.NewInt(24_000_000),
 	}
+	testACP224FeeConfigDouble = commontype.ACP224FeeConfig{
+		TargetGas:         big.NewInt(2_000_000),
+		MinGasPrice:       big.NewInt(2),
+		MaxCapacityFactor: big.NewInt(10),
+		TimeToDouble:      big.NewInt(120),
+	}
 )
 
 func TestBlockGasCost(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
-		BlockGasCostTest(t, testFeeConfig)
+		BlockGasCostTest(t, testFeeConfig, testACP224FeeConfig)
 	})
 	t.Run("double", func(t *testing.T) {
-		BlockGasCostTest(t, testFeeConfigDouble)
+		BlockGasCostTest(t, testFeeConfigDouble, testACP224FeeConfigDouble)
 	})
 }
 
-func BlockGasCostTest(t *testing.T, feeConfig commontype.FeeConfig) {
+func BlockGasCostTest(t *testing.T, feeConfig commontype.FeeConfig, acp224FeeConfig commontype.ACP224FeeConfig) {
 	maxBlockGasCostBig := feeConfig.MaxBlockGasCost
 	maxBlockGasCost := feeConfig.MaxBlockGasCost.Uint64()
 	blockGasCostStep := feeConfig.BlockGasCostStep.Uint64()
@@ -108,6 +120,7 @@ func BlockGasCostTest(t *testing.T, feeConfig commontype.FeeConfig) {
 			assert.Equal(t, test.expected, BlockGasCost(
 				config,
 				feeConfig,
+				acp224FeeConfig,
 				parent,
 				test.timestamp,
 			))

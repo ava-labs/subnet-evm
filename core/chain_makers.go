@@ -383,12 +383,16 @@ func (cm *chainMaker) makeHeader(parent *types.Block, gap uint64, state *state.S
 	if err != nil {
 		panic(err)
 	}
+	acp224FeeConfig, _, err := cm.GetACP224FeeConfigAt(parent.Header())
+	if err != nil {
+		panic(err)
+	}
 	config := params.GetExtra(cm.config)
 	gasLimit, err := header.GasLimit(config, feeConfig, parent.Header(), time)
 	if err != nil {
 		panic(err)
 	}
-	baseFee, err := header.BaseFee(config, feeConfig, parent.Header(), time)
+	baseFee, err := header.BaseFee(config, feeConfig, acp224FeeConfig, parent.Header(), time)
 	if err != nil {
 		panic(err)
 	}
@@ -503,6 +507,10 @@ func (cm *chainMaker) GetBlock(hash common.Hash, number uint64) *types.Block {
 
 func (cm *chainMaker) GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig, *big.Int, error) {
 	return params.GetExtra(cm.config).FeeConfig, nil, nil
+}
+
+func (cm *chainMaker) GetACP224FeeConfigAt(parent *types.Header) (commontype.ACP224FeeConfig, *big.Int, error) {
+	return params.GetExtra(cm.config).ACP224FeeConfig, nil, nil
 }
 
 func (cm *chainMaker) GetCoinbaseAt(parent *types.Header) (common.Address, bool, error) {
