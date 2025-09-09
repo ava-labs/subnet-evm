@@ -358,7 +358,7 @@ func TestBuildEthTxBlock(t *testing.T) {
 }
 
 func testBuildEthTxBlock(t *testing.T, scheme string) {
-	fork := upgradetest.Latest
+	fork := upgradetest.ApricotPhase6
 	tvm := newVM(t, testVMConfig{
 		fork:        &fork,
 		genesisJSON: genesisJSONSubnetEVM,
@@ -369,15 +369,17 @@ func testBuildEthTxBlock(t *testing.T, scheme string) {
 	newTxPoolHeadChan := make(chan core.NewTxPoolReorgEvent, 1)
 	vm.txPool.SubscribeNewReorgEvent(newTxPoolHeadChan)
 
-	tx := types.NewTransaction(uint64(0), testEthAddrs[1], big.NewInt(1), 21000, big.NewInt(225_000_000_000), nil)
+	tx := types.NewTransaction(uint64(0), testEthAddrs[1], big.NewInt(1), 21000, big.NewInt(testMinGasPrice), nil)
 	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0].ToECDSA())
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	txErrors := vm.txPool.AddRemotesSync([]*types.Transaction{signedTx})
-	if err := txErrors[0]; err != nil {
-		t.Fatalf("Failed to add transaction to mempool: %s", err)
+	errs := vm.txPool.AddRemotesSync([]*types.Transaction{signedTx})
+	for i, err := range errs {
+		if err != nil {
+			t.Fatalf("Failed to add tx at index %d: %s", i, err)
+		}
 	}
 
 	blk1 := issueAndAccept(t, vm)
@@ -397,10 +399,10 @@ func testBuildEthTxBlock(t *testing.T, scheme string) {
 		txs[i] = signedTx
 	}
 
-	txErrors = vm.txPool.AddRemotesSync(txs)
-	for i, err := range txErrors {
+	errs = tvm.vm.txPool.AddRemotesSync(txs)
+	for i, err := range errs {
 		if err != nil {
-			t.Fatalf("Failed to add transaction %d to mempool: %s", i, err)
+			t.Fatalf("Failed to add tx at index %d: %s", i, err)
 		}
 	}
 
