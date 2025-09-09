@@ -141,7 +141,7 @@ func TestVerifyGasUsed(t *testing.T) {
 			config := &extras.ChainConfig{
 				NetworkUpgrades: test.upgrades,
 			}
-			err := VerifyGasUsed(config, test.feeConfig, test.acp224FeeConfig, test.parent, test.header)
+			err := VerifyGasUsed(config, test.feeConfig, test.parent, test.header)
 			require.ErrorIs(t, err, test.want)
 		})
 	}
@@ -149,14 +149,14 @@ func TestVerifyGasUsed(t *testing.T) {
 
 func TestVerifyGasLimit(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
-		VerifyGasLimitTest(t, testFeeConfig, testACP224FeeConfig)
+		VerifyGasLimitTest(t, testFeeConfig)
 	})
 	t.Run("double", func(t *testing.T) {
-		VerifyGasLimitTest(t, testFeeConfigDouble, testACP224FeeConfigDouble)
+		VerifyGasLimitTest(t, testFeeConfigDouble)
 	})
 }
 
-func VerifyGasLimitTest(t *testing.T, feeConfig commontype.FeeConfig, acp224FeeConfig commontype.ACP224FeeConfig) {
+func VerifyGasLimitTest(t *testing.T, feeConfig commontype.FeeConfig) {
 	tests := []struct {
 		name     string
 		upgrades extras.NetworkUpgrades
@@ -258,7 +258,7 @@ func VerifyGasLimitTest(t *testing.T, feeConfig commontype.FeeConfig, acp224FeeC
 			config := &extras.ChainConfig{
 				NetworkUpgrades: test.upgrades,
 			}
-			err := VerifyGasLimit(config, feeConfig, acp224FeeConfig, test.parent, test.header)
+			err := VerifyGasLimit(config, feeConfig, test.parent, test.header)
 			require.ErrorIs(t, err, test.want)
 		})
 	}

@@ -58,7 +58,6 @@ func GasLimit(
 func VerifyGasUsed(
 	config *extras.ChainConfig,
 	feeConfig commontype.FeeConfig,
-	acp224FeeConfig commontype.ACP224FeeConfig,
 	parent *types.Header,
 	header *types.Header,
 ) error {
@@ -81,7 +80,6 @@ func VerifyGasUsed(
 func VerifyGasLimit(
 	config *extras.ChainConfig,
 	feeConfig commontype.FeeConfig,
-	acp224FeeConfig commontype.ACP224FeeConfig,
 	parent *types.Header,
 	header *types.Header,
 ) error {

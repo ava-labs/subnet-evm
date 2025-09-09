@@ -365,13 +365,9 @@ func GenerateBadBlock(parent *types.Block, engine consensus.Engine, txs types.Tr
 	if err != nil {
 		panic(err)
 	}
-	acp224FeeConfig, _, err := fakeChainReader.GetACP224FeeConfigAt(parent.Header())
-	if err != nil {
-		panic(err)
-	}
 	configExtra := params.GetExtra(config)
 	gasLimit, _ := customheader.GasLimit(configExtra, feeConfig, parent.Header(), time)
-	baseFee, _ := customheader.BaseFee(configExtra, feeConfig, acp224FeeConfig, parent.Header(), time)
+	baseFee, _ := customheader.BaseFee(configExtra, feeConfig, parent.Header(), time)
 	header := &types.Header{
 		ParentHash: parent.Hash(),
 		Coinbase:   parent.Coinbase(),
@@ -409,7 +405,11 @@ func GenerateBadBlock(parent *types.Block, engine consensus.Engine, txs types.Tr
 		cumulativeGas += tx.Gas()
 		nBlobs += len(tx.BlobHashes())
 	}
-	header.Extra, _ = customheader.ExtraPrefix(configExtra, parent.Header(), header, nil)
+	acp224FeeConfig, _, err := fakeChainReader.GetACP224FeeConfigAt(parent.Header())
+	if err != nil {
+		panic(err)
+	}
+	header.Extra, _ = customheader.ExtraPrefix(configExtra, acp224FeeConfig, parent.Header(), header, nil)
 	header.Root = common.BytesToHash(hasher.Sum(nil))
 	if config.IsCancun(header.Number, header.Time) {
 		var pExcess, pUsed = uint64(0), uint64(0)

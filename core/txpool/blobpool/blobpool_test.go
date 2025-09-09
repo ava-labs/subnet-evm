@@ -122,7 +122,7 @@ func (bc *testBlockChain) CurrentBlock() *types.Header {
 		}
 		config := params.GetExtra(bc.config)
 		baseFee, err := header.BaseFee(
-			config, config.FeeConfig, config.ACP224FeeConfig, parent, blockTime,
+			config, config.FeeConfig, parent, blockTime,
 		)
 		if err != nil {
 			panic(err)

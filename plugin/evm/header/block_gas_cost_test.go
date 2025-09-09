@@ -120,7 +120,6 @@ func BlockGasCostTest(t *testing.T, feeConfig commontype.FeeConfig, acp224FeeCon
 			assert.Equal(t, test.expected, BlockGasCost(
 				config,
 				feeConfig,
-				acp224FeeConfig,
 				parent,
 				test.timestamp,
 			))

@@ -12,8 +12,10 @@ import (
 	"github.com/ava-labs/avalanchego/vms/evm/upgrade/acp176"
 	"github.com/ava-labs/libevm/core/types"
 
+	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/params/extras"
 	"github.com/ava-labs/subnet-evm/plugin/evm/upgrade/subnetevm"
+	"github.com/ava-labs/subnet-evm/precompile/contracts/acp224feemanager"
 )
 
 const (
@@ -32,6 +34,7 @@ var (
 // If the `desiredTargetExcess` is nil, the parent's target excess is used.
 func ExtraPrefix(
 	config *extras.ChainConfig,
+	acp224FeeConfig commontype.ACP224FeeConfig,
 	parent *types.Header,
 	header *types.Header,
 	desiredTargetExcess *gas.Gas,
@@ -40,6 +43,7 @@ func ExtraPrefix(
 	case config.IsFortuna(header.Time):
 		state, err := feeStateAfterBlock(
 			config,
+			acp224FeeConfig,
 			parent,
 			header,
 			desiredTargetExcess,
@@ -47,6 +51,11 @@ func ExtraPrefix(
 		if err != nil {
 			return nil, fmt.Errorf("calculating fee state: %w", err)
 		}
+
+		// If the ACP224 fee manager precompile is activated, override the target excess with the
+		// latest value set in the precompile state.
+		config.IsPrecompileEnabled(acp224feemanager.ContractAddress, header.Time)
+
 		return state.Bytes(), nil
 	case config.IsSubnetEVM(header.Time):
 		window, err := feeWindow(config, parent, header.Time)
@@ -64,6 +73,7 @@ func ExtraPrefix(
 // formatted.
 func VerifyExtraPrefix(
 	config *extras.ChainConfig,
+	acp224FeeConfig commontype.ACP224FeeConfig,
 	parent *types.Header,
 	header *types.Header,
 ) error {
@@ -81,6 +91,7 @@ func VerifyExtraPrefix(
 		// not be equal.
 		expectedState, err := feeStateAfterBlock(
 			config,
+			acp224FeeConfig,
 			parent,
 			header,
 			&remoteState.TargetExcess,

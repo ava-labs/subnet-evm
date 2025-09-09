@@ -226,15 +226,13 @@ func applyLondonChecks(env *stEnv, chainConfig *params.ChainConfig) error {
 		Extra:    make([]byte, subnetevm.WindowSize), // TODO: consider passing extra through env
 	}
 	feeConfig := params.DefaultFeeConfig
-	acp224FeeConfig := params.DefaultACP224FeeConfig
 	if env.MinBaseFee != nil {
 		// Override the default min base fee if it's set in the env
 		feeConfig.MinBaseFee = env.MinBaseFee
-		acp224FeeConfig.MinGasPrice = env.MinBaseFee
 	}
 	configExtra := params.GetExtra(chainConfig)
 	var err error
-	env.BaseFee, err = customheader.BaseFee(configExtra, feeConfig, acp224FeeConfig, parent, env.Timestamp)
+	env.BaseFee, err = customheader.BaseFee(configExtra, feeConfig, parent, env.Timestamp)
 	if err != nil {
 		return NewError(ErrorConfig, fmt.Errorf("failed calculating base fee: %v", err))
 	}

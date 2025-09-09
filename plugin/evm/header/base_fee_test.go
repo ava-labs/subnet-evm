@@ -25,14 +25,14 @@ const (
 
 func TestBaseFee(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
-		BaseFeeTest(t, testFeeConfig, testACP224FeeConfig)
+		BaseFeeTest(t, testFeeConfig)
 	})
 	t.Run("double", func(t *testing.T) {
-		BaseFeeTest(t, testFeeConfigDouble, testACP224FeeConfigDouble)
+		BaseFeeTest(t, testFeeConfigDouble)
 	})
 }
 
-func BaseFeeTest(t *testing.T, feeConfig commontype.FeeConfig, acp224FeeConfig commontype.ACP224FeeConfig) {
+func BaseFeeTest(t *testing.T, feeConfig commontype.FeeConfig) {
 	tests := []struct {
 		name      string
 		upgrades  extras.NetworkUpgrades
@@ -257,7 +257,7 @@ func BaseFeeTest(t *testing.T, feeConfig commontype.FeeConfig, acp224FeeConfig c
 			config := &extras.ChainConfig{
 				NetworkUpgrades: test.upgrades,
 			}
-			got, err := BaseFee(config, feeConfig, acp224FeeConfig, test.parent, test.timestamp)
+			got, err := BaseFee(config, feeConfig, test.parent, test.timestamp)
 			require.ErrorIs(err, test.wantErr)
 			require.Equal(test.want, got)
 
@@ -269,14 +269,14 @@ func BaseFeeTest(t *testing.T, feeConfig commontype.FeeConfig, acp224FeeConfig c
 
 func TestEstimateNextBaseFee(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
-		EstimateNextBaseFeeTest(t, testFeeConfig, testACP224FeeConfig)
+		EstimateNextBaseFeeTest(t, testFeeConfig)
 	})
 	t.Run("double", func(t *testing.T) {
-		EstimateNextBaseFeeTest(t, testFeeConfigDouble, testACP224FeeConfigDouble)
+		EstimateNextBaseFeeTest(t, testFeeConfigDouble)
 	})
 }
 
-func EstimateNextBaseFeeTest(t *testing.T, feeConfig commontype.FeeConfig, acp224FeeConfig commontype.ACP224FeeConfig) {
+func EstimateNextBaseFeeTest(t *testing.T, feeConfig commontype.FeeConfig) {
 	testBaseFee := uint64(225 * utils.GWei)
 	nilUpgrade := extras.NetworkUpgrades{}
 	tests := []struct {
@@ -323,7 +323,7 @@ func EstimateNextBaseFeeTest(t *testing.T, feeConfig commontype.FeeConfig, acp22
 			config := &extras.ChainConfig{
 				NetworkUpgrades: test.upgrades,
 			}
-			got, err := EstimateNextBaseFee(config, feeConfig, acp224FeeConfig, test.parent, test.timestamp)
+			got, err := EstimateNextBaseFee(config, feeConfig, test.parent, test.timestamp)
 			require.ErrorIs(err, test.wantErr)
 			require.Equal(test.want, got)
 		})

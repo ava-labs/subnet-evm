@@ -154,16 +154,12 @@ func (w *worker) commitNewWork(predicateContext *precompileconfig.PredicateConte
 	if err != nil {
 		return nil, err
 	}
-	acp224FeeConfig, _, err := w.chain.GetACP224FeeConfigAt(parent)
-	if err != nil {
-		return nil, err
-	}
 	chainConfig := params.GetExtra(w.chainConfig)
 	gasLimit, err := customheader.GasLimit(chainConfig, feeConfig, parent, timestamp)
 	if err != nil {
 		return nil, fmt.Errorf("calculating new gas limit: %w", err)
 	}
-	baseFee, err := customheader.BaseFee(chainConfig, feeConfig, acp224FeeConfig, parent, timestamp)
+	baseFee, err := customheader.BaseFee(chainConfig, feeConfig, parent, timestamp)
 	if err != nil {
 		return nil, fmt.Errorf("failed to calculate new base fee: %w", err)
 	}

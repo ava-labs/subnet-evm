@@ -417,15 +417,9 @@ func (p *BlobPool) Init(gasTip uint64, head *types.Header, reserve txpool.Addres
 		p.Close()
 		return err
 	}
-	acp224FeeConfig, _, err := p.chain.GetACP224FeeConfigAt(p.head)
-	if err != nil {
-		p.Close()
-		return err
-	}
 	baseFee, err := header.EstimateNextBaseFee(
 		params.GetExtra(p.chain.Config()),
 		feeConfig,
-		acp224FeeConfig,
 		p.head,
 		uint64(time.Now().Unix()),
 	)
@@ -859,15 +853,9 @@ func (p *BlobPool) Reset(oldHead, newHead *types.Header) {
 		log.Error("Failed to get fee config to reset blobpool fees", "err", err)
 		return
 	}
-	acp224FeeConfig, _, err := p.chain.GetACP224FeeConfigAt(p.head)
-	if err != nil {
-		log.Error("Failed to get ACP224 fee config to reset blobpool fees", "err", err)
-		return
-	}
 	baseFeeBig, err := header.EstimateNextBaseFee(
 		params.GetExtra(p.chain.Config()),
 		feeConfig,
-		acp224FeeConfig,
 		p.head,
 		uint64(time.Now().Unix()),
 	)

@@ -10,7 +10,9 @@ import (
 	"github.com/ava-labs/avalanchego/vms/evm/upgrade/acp176"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/params/extras"
+	"github.com/ava-labs/subnet-evm/precompile/contracts/acp224feemanager"
 )
 
 // feeStateBeforeBlock takes the previous header and the timestamp of its child
@@ -49,6 +51,7 @@ func feeStateBeforeBlock(
 // the execution of the provided child.
 func feeStateAfterBlock(
 	config *extras.ChainConfig,
+	acp224FeeConfig commontype.ACP224FeeConfig,
 	parent *types.Header,
 	header *types.Header,
 	desiredTargetExcess *gas.Gas,
@@ -65,9 +68,17 @@ func feeStateAfterBlock(
 		return acp176.State{}, fmt.Errorf("advancing the fee state: %w", err)
 	}
 
-	// If the desired target excess is specified, move the target excess as much
+	// If the ACP224 fee manager precompile is activated, override the target excess with the
+	// latest value set in the precompile state.
+	// Otherwise, if the desired target excess is specified, move the target excess as much
 	// as possible toward that desired value.
-	if desiredTargetExcess != nil {
+	if config.IsPrecompileEnabled(acp224feemanager.ContractAddress, header.Time) {
+		if acp224FeeConfig.TargetGas == nil || acp224FeeConfig.TargetGas.Cmp(common.Big0) == 0 || !acp224FeeConfig.TargetGas.IsInt64() {
+			return acp176.State{}, fmt.Errorf("invalid target gas: %s", acp224FeeConfig.TargetGas.String())
+		}
+		newTargetExcess := acp176.DesiredTargetExcess(gas.Gas(acp224FeeConfig.TargetGas.Uint64()))
+		state.UpdateTargetExcessUnbounded(newTargetExcess)
+	} else if desiredTargetExcess != nil {
 		state.UpdateTargetExcess(*desiredTargetExcess)
 	}
 	return state, nil

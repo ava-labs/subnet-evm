@@ -24,17 +24,56 @@ type ACP224FeeConfig struct {
 var EmptyACP224FeeConfig = ACP224FeeConfig{}
 
 func (f *ACP224FeeConfig) Verify() error {
-	// TODO: XXX Add the verification for the ACP224FeeManager
-	return nil
+	switch {
+	case f.TargetGas == nil:
+		return errors.New("targetGas cannot be nil")
+	case f.MinGasPrice == nil:
+		return errors.New("minGasPrice cannot be nil")
+	case f.MaxCapacityFactor == nil:
+		return errors.New("maxCapacityFactor cannot be nil")
+	case f.TimeToDouble == nil:
+		return errors.New("timeToDouble cannot be nil")
+	}
+
+	switch {
+	case f.TargetGas.Cmp(common.Big0) != 1:
+		return fmt.Errorf("targetGas = %d cannot be less than or equal to 0", f.TargetGas)
+	case f.MinGasPrice.Cmp(common.Big0) != 1:
+		return fmt.Errorf("minGasPrice = %d cannot be less than or equal to 0", f.MinGasPrice)
+	case f.MaxCapacityFactor.Cmp(common.Big0) == -1:
+		return fmt.Errorf("maxCapacityFactor = %d cannot be less than 0", f.MaxCapacityFactor)
+	case f.TimeToDouble.Cmp(common.Big0) == -1:
+		return fmt.Errorf("timeToDouble = %d cannot be less than 0", f.TimeToDouble)
+	}
+	return f.checkByteLens()
 }
 
 func (f *ACP224FeeConfig) Equal(other *ACP224FeeConfig) bool {
-	// TODO: XXX Add the equality check for the ACP224FeeManager
 	if other == nil {
 		return false
 	}
 
-	return true
+	return utils.BigNumEqual(f.TargetGas, other.TargetGas) &&
+		utils.BigNumEqual(f.MinGasPrice, other.MinGasPrice) &&
+		utils.BigNumEqual(f.MaxCapacityFactor, other.MaxCapacityFactor) &&
+		utils.BigNumEqual(f.TimeToDouble, other.TimeToDouble)
+}
+
+// checkByteLens checks byte lengths against common.HashLen (32 bytes) and returns error
+func (f *ACP224FeeConfig) checkByteLens() error {
+	if isBiggerThanHashLen(f.TargetGas) {
+		return fmt.Errorf("targetGas exceeds %d bytes", common.HashLength)
+	}
+	if isBiggerThanHashLen(f.MinGasPrice) {
+		return fmt.Errorf("minGasPrice exceeds %d bytes", common.HashLength)
+	}
+	if isBiggerThanHashLen(f.MaxCapacityFactor) {
+		return fmt.Errorf("maxCapacityFactor exceeds %d bytes", common.HashLength)
+	}
+	if isBiggerThanHashLen(f.TimeToDouble) {
+		return fmt.Errorf("timeToDouble exceeds %d bytes", common.HashLength)
+	}
+	return nil
 }
 
 // FeeConfig specifies the parameters for the dynamic fee algorithm, which determines the gas limit, base fee, and block gas cost of blocks

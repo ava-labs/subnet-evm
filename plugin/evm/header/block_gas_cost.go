@@ -28,7 +28,6 @@ var (
 func BlockGasCost(
 	config *extras.ChainConfig,
 	feeConfig commontype.FeeConfig,
-	acp224FeeConfig commontype.ACP224FeeConfig,
 	parent *types.Header,
 	timestamp uint64,
 ) *big.Int {
