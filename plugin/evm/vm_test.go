@@ -362,14 +362,14 @@ func testBuildEthTxBlock(t *testing.T, scheme string) {
 	tvm := newVM(t, testVMConfig{
 		fork:        &fork,
 		genesisJSON: genesisJSONSubnetEVM,
-		configJSON:  getConfig(scheme, ""),
+		configJSON:  getConfig(scheme, `"pruning-enabled":true`),
 	})
 
 	vm := tvm.vm
 	newTxPoolHeadChan := make(chan core.NewTxPoolReorgEvent, 1)
 	vm.txPool.SubscribeNewReorgEvent(newTxPoolHeadChan)
 
-	tx := types.NewTransaction(uint64(0), testEthAddrs[1], big.NewInt(1), 21000, big.NewInt(testMinGasPrice), nil)
+	tx := types.NewTransaction(uint64(0), testEthAddrs[1], firstTxAmount, 21000, big.NewInt(testMinGasPrice), nil)
 	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0].ToECDSA())
 	if err != nil {
 		t.Fatal(err)
