@@ -25,14 +25,14 @@ const (
 
 func TestBaseFee(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
-		BaseFeeTest(t, testFeeConfig)
+		BaseFeeTest(t, testFeeConfig, testACP176Config)
 	})
 	t.Run("double", func(t *testing.T) {
-		BaseFeeTest(t, testFeeConfigDouble)
+		BaseFeeTest(t, testFeeConfigDouble, testACP176ConfigDouble)
 	})
 }
 
-func BaseFeeTest(t *testing.T, feeConfig commontype.FeeConfig) {
+func BaseFeeTest(t *testing.T, feeConfig commontype.FeeConfig, acp176Config acp176.Config) {
 	tests := []struct {
 		name      string
 		upgrades  extras.NetworkUpgrades
@@ -201,7 +201,7 @@ func BaseFeeTest(t *testing.T, feeConfig commontype.FeeConfig) {
 				Number: big.NewInt(1),
 			},
 			timestamp: 1,
-			want:      big.NewInt(acp176.MinGasPrice),
+			want:      big.NewInt(int64(acp176.DefaultACP176Config.MinGasPrice)),
 		},
 		{
 			name:     "fortuna_genesis_block",
@@ -209,7 +209,7 @@ func BaseFeeTest(t *testing.T, feeConfig commontype.FeeConfig) {
 			parent: &types.Header{
 				Number: big.NewInt(0),
 			},
-			want: big.NewInt(acp176.MinGasPrice),
+			want: big.NewInt(int64(acp176.DefaultACP176Config.MinGasPrice)),
 		},
 		{
 			name:     "fortuna_invalid_fee_state",
@@ -257,7 +257,7 @@ func BaseFeeTest(t *testing.T, feeConfig commontype.FeeConfig) {
 			config := &extras.ChainConfig{
 				NetworkUpgrades: test.upgrades,
 			}
-			got, err := BaseFee(config, feeConfig, test.parent, test.timestamp)
+			got, err := BaseFee(config, feeConfig, acp176Config, test.parent, test.timestamp)
 			require.ErrorIs(err, test.wantErr)
 			require.Equal(test.want, got)
 
@@ -269,14 +269,14 @@ func BaseFeeTest(t *testing.T, feeConfig commontype.FeeConfig) {
 
 func TestEstimateNextBaseFee(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
-		EstimateNextBaseFeeTest(t, testFeeConfig)
+		EstimateNextBaseFeeTest(t, testFeeConfig, testACP176Config)
 	})
 	t.Run("double", func(t *testing.T) {
-		EstimateNextBaseFeeTest(t, testFeeConfigDouble)
+		EstimateNextBaseFeeTest(t, testFeeConfigDouble, testACP176ConfigDouble)
 	})
 }
 
-func EstimateNextBaseFeeTest(t *testing.T, feeConfig commontype.FeeConfig) {
+func EstimateNextBaseFeeTest(t *testing.T, feeConfig commontype.FeeConfig, acp176Config acp176.Config) {
 	testBaseFee := uint64(225 * utils.GWei)
 	nilUpgrade := extras.NetworkUpgrades{}
 	tests := []struct {
@@ -323,7 +323,7 @@ func EstimateNextBaseFeeTest(t *testing.T, feeConfig commontype.FeeConfig) {
 			config := &extras.ChainConfig{
 				NetworkUpgrades: test.upgrades,
 			}
-			got, err := EstimateNextBaseFee(config, feeConfig, test.parent, test.timestamp)
+			got, err := EstimateNextBaseFee(config, feeConfig, acp176Config, test.parent, test.timestamp)
 			require.ErrorIs(err, test.wantErr)
 			require.Equal(test.want, got)
 		})

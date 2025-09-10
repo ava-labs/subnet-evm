@@ -1852,8 +1852,16 @@ func (pool *LegacyPool) updateBaseFeeAt(head *types.Header) error {
 	if err != nil {
 		return err
 	}
+	acp224FeeConfig, _, err := pool.chain.GetACP224FeeConfigAt(head)
+	if err != nil {
+		return err
+	}
+	acp176Config, err := acp224FeeConfig.ToACP176Config()
+	if err != nil {
+		return err
+	}
 	chainConfig := params.GetExtra(pool.chainconfig)
-	baseFeeEstimate, err := header.EstimateNextBaseFee(chainConfig, feeConfig, head, uint64(time.Now().Unix()))
+	baseFeeEstimate, err := header.EstimateNextBaseFee(chainConfig, feeConfig, acp176Config, head, uint64(time.Now().Unix()))
 	if err != nil {
 		return err
 	}

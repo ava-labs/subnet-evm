@@ -27,7 +27,7 @@ package acp224feemanager
 // 			Config: NewConfig(utils.NewUint64(3), admins, enableds, managers, &commontype.ACP224FeeConfig{
 // 				TargetGas:         utils.NewUint64(1000000),
 // 				MinGasPrice:       utils.NewUint64(1000000),
-// 				MaxCapacityFactor: utils.NewUint64(1000000),
+// 				TimeToFillCapacity: utils.NewUint64(1000000),
 // 				TimeToDouble:      utils.NewUint64(1000000),
 // 			}),
 // 			ChainConfig: func() precompileconfig.ChainConfig {

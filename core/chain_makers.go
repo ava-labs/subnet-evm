@@ -383,12 +383,20 @@ func (cm *chainMaker) makeHeader(parent *types.Block, gap uint64, state *state.S
 	if err != nil {
 		panic(err)
 	}
-	config := params.GetExtra(cm.config)
-	gasLimit, err := header.GasLimit(config, feeConfig, parent.Header(), time)
+	acp224FeeConfig, _, err := cm.GetACP224FeeConfigAt(parent.Header())
 	if err != nil {
 		panic(err)
 	}
-	baseFee, err := header.BaseFee(config, feeConfig, parent.Header(), time)
+	acp176Config, err := acp224FeeConfig.ToACP176Config()
+	if err != nil {
+		panic(err)
+	}
+	config := params.GetExtra(cm.config)
+	gasLimit, err := header.GasLimit(config, feeConfig, acp176Config, parent.Header(), time)
+	if err != nil {
+		panic(err)
+	}
+	baseFee, err := header.BaseFee(config, feeConfig, acp176Config, parent.Header(), time)
 	if err != nil {
 		panic(err)
 	}

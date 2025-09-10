@@ -35,6 +35,7 @@ import (
 	"os"
 	"path"
 
+	"github.com/ava-labs/avalanchego/vms/evm/upgrade/acp176"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/common/hexutil"
 	"github.com/ava-labs/libevm/core/state"
@@ -232,7 +233,7 @@ func applyLondonChecks(env *stEnv, chainConfig *params.ChainConfig) error {
 	}
 	configExtra := params.GetExtra(chainConfig)
 	var err error
-	env.BaseFee, err = customheader.BaseFee(configExtra, feeConfig, parent, env.Timestamp)
+	env.BaseFee, err = customheader.BaseFee(configExtra, feeConfig, acp176.DefaultACP176Config, parent, env.Timestamp)
 	if err != nil {
 		return NewError(ErrorConfig, fmt.Errorf("failed calculating base fee: %v", err))
 	}

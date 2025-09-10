@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"github.com/ava-labs/avalanchego/utils/math"
+	"github.com/ava-labs/avalanchego/vms/evm/upgrade/acp176"
 	"github.com/ava-labs/libevm/core/types"
 
 	"github.com/ava-labs/subnet-evm/commontype"
@@ -17,9 +18,8 @@ import (
 )
 
 var (
-	errInvalidExtraDataGasUsed = errors.New("invalid extra data gas used")
-	errInvalidGasUsed          = errors.New("invalid gas used")
-	errInvalidGasLimit         = errors.New("invalid gas limit")
+	errInvalidGasUsed  = errors.New("invalid gas used")
+	errInvalidGasLimit = errors.New("invalid gas limit")
 )
 
 // GasLimit takes the previous header and the timestamp of its child block and
@@ -27,13 +27,13 @@ var (
 func GasLimit(
 	config *extras.ChainConfig,
 	feeConfig commontype.FeeConfig,
+	acp176Config acp176.Config,
 	parent *types.Header,
 	timestamp uint64,
 ) (uint64, error) {
-	// TODO: XXX Handle feeConfig with Fortuna here
 	switch {
 	case config.IsFortuna(timestamp):
-		state, err := feeStateBeforeBlock(config, parent, timestamp)
+		state, err := feeStateBeforeBlock(config, acp176Config, parent, timestamp)
 		if err != nil {
 			return 0, fmt.Errorf("calculating initial fee state: %w", err)
 		}
@@ -41,7 +41,7 @@ func GasLimit(
 		// capacity, to minimize the differences with upstream geth. During
 		// block building and gas usage calculations, the gas limit is checked
 		// against the current capacity.
-		return uint64(state.MaxCapacity()), nil
+		return uint64(state.MaxCapacity(acp176Config)), nil
 	case config.IsSubnetEVM(timestamp):
 		return feeConfig.GasLimit.Uint64(), nil
 	default:
@@ -58,11 +58,12 @@ func GasLimit(
 func VerifyGasUsed(
 	config *extras.ChainConfig,
 	feeConfig commontype.FeeConfig,
+	acp176Config acp176.Config,
 	parent *types.Header,
 	header *types.Header,
 ) error {
 	gasUsed := header.GasUsed
-	capacity, err := GasCapacity(config, feeConfig, parent, header.Time)
+	capacity, err := GasCapacity(config, feeConfig, acp176Config, parent, header.Time)
 	if err != nil {
 		return fmt.Errorf("calculating gas capacity: %w", err)
 	}
@@ -80,16 +81,17 @@ func VerifyGasUsed(
 func VerifyGasLimit(
 	config *extras.ChainConfig,
 	feeConfig commontype.FeeConfig,
+	acp176Config acp176.Config,
 	parent *types.Header,
 	header *types.Header,
 ) error {
 	switch {
 	case config.IsFortuna(header.Time):
-		state, err := feeStateBeforeBlock(config, parent, header.Time)
+		state, err := feeStateBeforeBlock(config, acp176Config, parent, header.Time)
 		if err != nil {
 			return fmt.Errorf("calculating initial fee state: %w", err)
 		}
-		maxCapacity := state.MaxCapacity()
+		maxCapacity := state.MaxCapacity(acp176Config)
 		if header.GasLimit != uint64(maxCapacity) {
 			return fmt.Errorf("%w: have %d, want %d",
 				errInvalidGasLimit,
@@ -136,15 +138,16 @@ func VerifyGasLimit(
 func GasCapacity(
 	config *extras.ChainConfig,
 	feeConfig commontype.FeeConfig,
+	acp176Config acp176.Config,
 	parent *types.Header,
 	timestamp uint64,
 ) (uint64, error) {
 	// Prior to the F upgrade, the gas capacity is equal to the gas limit.
 	if !config.IsFortuna(timestamp) {
-		return GasLimit(config, feeConfig, parent, timestamp)
+		return GasLimit(config, feeConfig, acp176Config, parent, timestamp)
 	}
 
-	state, err := feeStateBeforeBlock(config, parent, timestamp)
+	state, err := feeStateBeforeBlock(config, acp176Config, parent, timestamp)
 	if err != nil {
 		return 0, fmt.Errorf("calculating initial fee state: %w", err)
 	}

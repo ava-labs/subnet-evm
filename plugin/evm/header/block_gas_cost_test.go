@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ava-labs/avalanchego/vms/evm/upgrade/acp176"
 	"github.com/ava-labs/libevm/core/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -29,11 +30,12 @@ var (
 		GasLimit:                 big.NewInt(12_000_000),
 	}
 	testACP224FeeConfig = commontype.ACP224FeeConfig{
-		TargetGas:         big.NewInt(1_000_000),
-		MinGasPrice:       big.NewInt(1),
-		MaxCapacityFactor: big.NewInt(5),
-		TimeToDouble:      big.NewInt(60),
+		TargetGas:          big.NewInt(1_000_000),
+		MinGasPrice:        big.NewInt(1),
+		TimeToFillCapacity: big.NewInt(5),
+		TimeToDouble:       big.NewInt(60),
 	}
+	testACP176Config = acp176.DefaultACP176Config
 
 	testFeeConfigDouble = commontype.FeeConfig{
 		MinBlockGasCost:          big.NewInt(2),
@@ -46,10 +48,15 @@ var (
 		GasLimit:                 big.NewInt(24_000_000),
 	}
 	testACP224FeeConfigDouble = commontype.ACP224FeeConfig{
-		TargetGas:         big.NewInt(2_000_000),
-		MinGasPrice:       big.NewInt(2),
-		MaxCapacityFactor: big.NewInt(10),
-		TimeToDouble:      big.NewInt(120),
+		TargetGas:          big.NewInt(2_000_000),
+		MinGasPrice:        big.NewInt(2),
+		TimeToFillCapacity: big.NewInt(10),
+		TimeToDouble:       big.NewInt(120),
+	}
+	testACP176ConfigDouble = acp176.Config{
+		MinGasPrice:        testACP176Config.MinGasPrice * 2,
+		TimeToFillCapacity: testACP176Config.TimeToFillCapacity * 2,
+		TimeToDouble:       testACP176Config.TimeToDouble * 2,
 	}
 )
 

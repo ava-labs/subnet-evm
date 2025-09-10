@@ -61,6 +61,7 @@ func (*configurator) Configure(chainConfig precompileconfig.ChainConfig, cfg pre
 			return fmt.Errorf("cannot configure given initial fee config: %w", err)
 		}
 	} else {
+		// TODO: XXX - If the initial fee config is not set, we should use the latest fee config rather than the one set in genesis.
 		if err := StoreFeeConfig(state, chainConfig.GetACP224FeeConfig(), blockContext); err != nil {
 			// This should not happen since we already checked the chain config in the genesis creation.
 			return fmt.Errorf("cannot configure fee config in chain config: %w", err)

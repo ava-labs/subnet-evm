@@ -121,8 +121,12 @@ func (bc *testBlockChain) CurrentBlock() *types.Header {
 			Extra:    make([]byte, subnetevm.WindowSize),
 		}
 		config := params.GetExtra(bc.config)
+		acp176Config, err := config.ACP224FeeConfig.ToACP176Config()
+		if err != nil {
+			panic(err)
+		}
 		baseFee, err := header.BaseFee(
-			config, config.FeeConfig, parent, blockTime,
+			config, config.FeeConfig, acp176Config, parent, blockTime,
 		)
 		if err != nil {
 			panic(err)

@@ -156,7 +156,7 @@ func TestStateProcessorErrors(t *testing.T) {
 			{ // ErrGasLimitReached
 				txs: []*types.Transaction{
 					// This test was modified to account for ACP-176 gas limits
-					makeTx(key1, 0, common.Address{}, big.NewInt(0), acp176.MinMaxCapacity+1, big.NewInt(acp176.MinGasPrice), nil),
+					makeTx(key1, 0, common.Address{}, big.NewInt(0), uint64(acp176.DefaultACP176Config.MinMaxCapacity()+1), big.NewInt(int64(acp176.DefaultACP176Config.MinGasPrice)), nil),
 				},
 				want: "could not apply tx 0 [0x6c95e59678246e8b44a1d9382a9cc6589684298b32b7aaf640e8b6fc75ce3dfc]: gas limit reached",
 			},
@@ -185,7 +185,7 @@ func TestStateProcessorErrors(t *testing.T) {
 			{ // ErrGasLimitReached
 				txs: []*types.Transaction{
 					// This test was modified to account for ACP-176 gas limits
-					makeTx(key1, 0, common.Address{}, big.NewInt(0), ethparams.TxGas*953, big.NewInt(acp176.MinGasPrice), nil),
+					makeTx(key1, 0, common.Address{}, big.NewInt(0), ethparams.TxGas*953, big.NewInt(int64(acp176.DefaultACP176Config.MinGasPrice)), nil),
 				},
 				want: "could not apply tx 0 [0xcd46718c1af6fd074deb6b036d34c1cb499517bf90d93df74dcfaba25fdf34af]: gas limit reached",
 			},
@@ -365,9 +365,17 @@ func GenerateBadBlock(parent *types.Block, engine consensus.Engine, txs types.Tr
 	if err != nil {
 		panic(err)
 	}
+	acp224FeeConfig, _, err := fakeChainReader.GetACP224FeeConfigAt(parent.Header())
+	if err != nil {
+		panic(err)
+	}
+	acp176Config, err := acp224FeeConfig.ToACP176Config()
+	if err != nil {
+		panic(err)
+	}
 	configExtra := params.GetExtra(config)
-	gasLimit, _ := customheader.GasLimit(configExtra, feeConfig, parent.Header(), time)
-	baseFee, _ := customheader.BaseFee(configExtra, feeConfig, parent.Header(), time)
+	gasLimit, _ := customheader.GasLimit(configExtra, feeConfig, acp176Config, parent.Header(), time)
+	baseFee, _ := customheader.BaseFee(configExtra, feeConfig, acp176Config, parent.Header(), time)
 	header := &types.Header{
 		ParentHash: parent.Hash(),
 		Coinbase:   parent.Coinbase(),
@@ -404,10 +412,6 @@ func GenerateBadBlock(parent *types.Block, engine consensus.Engine, txs types.Tr
 		receipts = append(receipts, receipt)
 		cumulativeGas += tx.Gas()
 		nBlobs += len(tx.BlobHashes())
-	}
-	acp224FeeConfig, _, err := fakeChainReader.GetACP224FeeConfigAt(parent.Header())
-	if err != nil {
-		panic(err)
 	}
 	header.Extra, _ = customheader.ExtraPrefix(configExtra, acp224FeeConfig, parent.Header(), header, nil)
 	header.Root = common.BytesToHash(hasher.Sum(nil))

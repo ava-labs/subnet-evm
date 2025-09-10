@@ -21,14 +21,14 @@ import (
 
 func TestGasLimit(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
-		GasLimitTest(t, testFeeConfig)
+		GasLimitTest(t, testFeeConfig, testACP176Config)
 	})
 	t.Run("double", func(t *testing.T) {
-		GasLimitTest(t, testFeeConfigDouble)
+		GasLimitTest(t, testFeeConfigDouble, testACP176ConfigDouble)
 	})
 }
 
-func GasLimitTest(t *testing.T, feeConfig commontype.FeeConfig) {
+func GasLimitTest(t *testing.T, feeConfig commontype.FeeConfig, acp176Config acp176.Config) {
 	tests := []struct {
 		name      string
 		upgrades  extras.NetworkUpgrades
@@ -56,7 +56,7 @@ func GasLimitTest(t *testing.T, feeConfig commontype.FeeConfig) {
 			parent: &types.Header{
 				Number: big.NewInt(0),
 			},
-			want: acp176.MinMaxCapacity,
+			want: uint64(acp176.DefaultACP176Config.MinMaxCapacity()),
 		},
 		{
 			name:     "pre_subnet_evm",
@@ -74,7 +74,7 @@ func GasLimitTest(t *testing.T, feeConfig commontype.FeeConfig) {
 			config := &extras.ChainConfig{
 				NetworkUpgrades: test.upgrades,
 			}
-			got, err := GasLimit(config, feeConfig, test.parent, test.timestamp)
+			got, err := GasLimit(config, feeConfig, acp176Config, test.parent, test.timestamp)
 			require.ErrorIs(err, test.wantErr)
 			require.Equal(test.want, got)
 		})
@@ -83,13 +83,13 @@ func GasLimitTest(t *testing.T, feeConfig commontype.FeeConfig) {
 
 func TestVerifyGasUsed(t *testing.T) {
 	tests := []struct {
-		name            string
-		feeConfig       commontype.FeeConfig
-		acp224FeeConfig commontype.ACP224FeeConfig
-		upgrades        extras.NetworkUpgrades
-		parent          *types.Header
-		header          *types.Header
-		want            error
+		name         string
+		feeConfig    commontype.FeeConfig
+		acp176Config acp176.Config
+		upgrades     extras.NetworkUpgrades
+		parent       *types.Header
+		header       *types.Header
+		want         error
 	}{
 		{
 			name:     "fortuna_gas_used_overflow",
@@ -141,7 +141,7 @@ func TestVerifyGasUsed(t *testing.T) {
 			config := &extras.ChainConfig{
 				NetworkUpgrades: test.upgrades,
 			}
-			err := VerifyGasUsed(config, test.feeConfig, test.parent, test.header)
+			err := VerifyGasUsed(config, test.feeConfig, test.acp176Config, test.parent, test.header)
 			require.ErrorIs(t, err, test.want)
 		})
 	}
@@ -149,14 +149,14 @@ func TestVerifyGasUsed(t *testing.T) {
 
 func TestVerifyGasLimit(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
-		VerifyGasLimitTest(t, testFeeConfig)
+		VerifyGasLimitTest(t, testFeeConfig, testACP176Config)
 	})
 	t.Run("double", func(t *testing.T) {
-		VerifyGasLimitTest(t, testFeeConfigDouble)
+		VerifyGasLimitTest(t, testFeeConfigDouble, testACP176ConfigDouble)
 	})
 }
 
-func VerifyGasLimitTest(t *testing.T, feeConfig commontype.FeeConfig) {
+func VerifyGasLimitTest(t *testing.T, feeConfig commontype.FeeConfig, acp176Config acp176.Config) {
 	tests := []struct {
 		name     string
 		upgrades extras.NetworkUpgrades
@@ -180,7 +180,7 @@ func VerifyGasLimitTest(t *testing.T, feeConfig commontype.FeeConfig) {
 				Number: big.NewInt(0),
 			},
 			header: &types.Header{
-				GasLimit: acp176.MinMaxCapacity + 1,
+				GasLimit: uint64(acp176.DefaultACP176Config.MinMaxCapacity()) + 1,
 			},
 			want: errInvalidGasLimit,
 		},
@@ -191,7 +191,7 @@ func VerifyGasLimitTest(t *testing.T, feeConfig commontype.FeeConfig) {
 				Number: big.NewInt(0),
 			},
 			header: &types.Header{
-				GasLimit: acp176.MinMaxCapacity,
+				GasLimit: uint64(acp176.DefaultACP176Config.MinMaxCapacity()),
 			},
 		},
 		{
@@ -258,7 +258,7 @@ func VerifyGasLimitTest(t *testing.T, feeConfig commontype.FeeConfig) {
 			config := &extras.ChainConfig{
 				NetworkUpgrades: test.upgrades,
 			}
-			err := VerifyGasLimit(config, feeConfig, test.parent, test.header)
+			err := VerifyGasLimit(config, feeConfig, acp176Config, test.parent, test.header)
 			require.ErrorIs(t, err, test.want)
 		})
 	}
@@ -266,13 +266,14 @@ func VerifyGasLimitTest(t *testing.T, feeConfig commontype.FeeConfig) {
 
 func TestGasCapacity(t *testing.T) {
 	tests := []struct {
-		name      string
-		feeConfig commontype.FeeConfig
-		upgrades  extras.NetworkUpgrades
-		parent    *types.Header
-		timestamp uint64
-		want      uint64
-		wantErr   error
+		name         string
+		feeConfig    commontype.FeeConfig
+		acp176Config acp176.Config
+		upgrades     extras.NetworkUpgrades
+		parent       *types.Header
+		timestamp    uint64
+		want         uint64
+		wantErr      error
 	}{
 		{
 			name:     "subnet_evm",
@@ -304,7 +305,7 @@ func TestGasCapacity(t *testing.T) {
 			config := &extras.ChainConfig{
 				NetworkUpgrades: test.upgrades,
 			}
-			got, err := GasCapacity(config, test.feeConfig, test.parent, test.timestamp)
+			got, err := GasCapacity(config, test.feeConfig, test.acp176Config, test.parent, test.timestamp)
 			require.ErrorIs(err, test.wantErr)
 			require.Equal(test.want, got)
 		})

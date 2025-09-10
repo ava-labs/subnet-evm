@@ -40,6 +40,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ava-labs/avalanchego/vms/evm/upgrade/acp176"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/rawdb"
 	"github.com/ava-labs/libevm/core/state"
@@ -76,11 +77,12 @@ var (
 	}
 
 	testACP224FeeConfig = commontype.ACP224FeeConfig{
-		TargetGas:         big.NewInt(1_000_000),
-		MinGasPrice:       big.NewInt(1),
-		MaxCapacityFactor: big.NewInt(5),
-		TimeToDouble:      big.NewInt(60),
+		TargetGas:          big.NewInt(1_000_000),
+		MinGasPrice:        big.NewInt(1),
+		TimeToFillCapacity: big.NewInt(5),
+		TimeToDouble:       big.NewInt(60),
 	}
+	testACP176Config = acp176.DefaultACP176Config
 )
 
 func init() {

@@ -642,13 +642,20 @@ func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.
 	vm.blockChain = vm.eth.BlockChain()
 	vm.miner = vm.eth.Miner()
 	lastAccepted := vm.blockChain.LastAcceptedBlock()
-	feeConfig, _, err := vm.blockChain.GetFeeConfigAt(lastAccepted.Header())
-	if err != nil {
-		return err
+	if vm.chainConfigExtra().IsFortuna(lastAccepted.Header().Time) {
+		acp224FeeConfig, _, err := vm.blockChain.GetACP224FeeConfigAt(lastAccepted.Header())
+		if err != nil {
+			return err
+		}
+		vm.txPool.SetMinFee(acp224FeeConfig.MinGasPrice)
+	} else {
+		feeConfig, _, err := vm.blockChain.GetFeeConfigAt(lastAccepted.Header())
+		if err != nil {
+			return err
+		}
+		vm.txPool.SetMinFee(feeConfig.MinBaseFee)
 	}
-	vm.txPool.SetMinFee(feeConfig.MinBaseFee)
 	vm.txPool.SetGasTip(big.NewInt(0))
-	vm.txPool.SetMinFee(big.NewInt(acp176.MinGasPrice))
 
 	vm.eth.Start()
 	return vm.initChainState(lastAccepted)

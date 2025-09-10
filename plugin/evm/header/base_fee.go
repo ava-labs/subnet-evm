@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ava-labs/avalanchego/vms/evm/upgrade/acp176"
 	"github.com/ava-labs/libevm/core/types"
 
 	"github.com/ava-labs/subnet-evm/commontype"
@@ -23,17 +24,18 @@ var errEstimateBaseFeeWithoutActivation = errors.New("cannot estimate base fee f
 func BaseFee(
 	config *extras.ChainConfig,
 	feeConfig commontype.FeeConfig,
+	acp176Config acp176.Config,
 	parent *types.Header,
 	timestamp uint64,
 ) (*big.Int, error) {
 	// TODO: XXX Handle feeConfig with Fortuna here
 	switch {
 	case config.IsFortuna(timestamp):
-		state, err := feeStateBeforeBlock(config, parent, timestamp)
+		state, err := feeStateBeforeBlock(config, acp176Config, parent, timestamp)
 		if err != nil {
 			return nil, fmt.Errorf("calculating initial fee state: %w", err)
 		}
-		price := state.GasPrice()
+		price := state.GasPrice(acp176Config)
 		return new(big.Int).SetUint64(uint64(price)), nil
 	case config.IsSubnetEVM(timestamp):
 		return baseFeeFromWindow(config, feeConfig, parent, timestamp)
@@ -54,6 +56,7 @@ func BaseFee(
 func EstimateNextBaseFee(
 	config *extras.ChainConfig,
 	feeConfig commontype.FeeConfig,
+	acp176Config acp176.Config,
 	parent *types.Header,
 	timestamp uint64,
 ) (*big.Int, error) {
@@ -62,5 +65,5 @@ func EstimateNextBaseFee(
 	}
 
 	timestamp = max(timestamp, parent.Time, *config.SubnetEVMTimestamp)
-	return BaseFee(config, feeConfig, parent, timestamp)
+	return BaseFee(config, feeConfig, acp176Config, parent, timestamp)
 }

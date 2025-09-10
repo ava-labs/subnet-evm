@@ -204,7 +204,7 @@ func TestExtraPrefix(t *testing.T) {
 			config := &extras.ChainConfig{
 				NetworkUpgrades: test.upgrades,
 			}
-			got, err := ExtraPrefix(config, test.parent, test.header, test.desiredTargetExcess)
+			got, err := ExtraPrefix(config, testACP224FeeConfig, test.parent, test.header, test.desiredTargetExcess)
 			require.ErrorIs(err, test.wantErr)
 			require.Equal(test.want, got)
 		})
@@ -316,7 +316,7 @@ func TestVerifyExtraPrefix(t *testing.T) {
 			config := &extras.ChainConfig{
 				NetworkUpgrades: test.upgrades,
 			}
-			err := VerifyExtraPrefix(config, test.parent, test.header)
+			err := VerifyExtraPrefix(config, testACP224FeeConfig, test.parent, test.header)
 			require.ErrorIs(t, err, test.wantErr)
 		})
 	}

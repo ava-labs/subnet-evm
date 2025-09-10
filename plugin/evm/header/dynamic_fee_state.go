@@ -19,6 +19,7 @@ import (
 // block and calculates the fee state before the child block is executed.
 func feeStateBeforeBlock(
 	config *extras.ChainConfig,
+	acp176Config acp176.Config,
 	parent *types.Header,
 	timestamp uint64,
 ) (acp176.State, error) {
@@ -43,7 +44,7 @@ func feeStateBeforeBlock(
 		}
 	}
 
-	state.AdvanceTime(timestamp - parent.Time)
+	state.AdvanceTime(timestamp-parent.Time, acp176Config)
 	return state, nil
 }
 
@@ -56,8 +57,13 @@ func feeStateAfterBlock(
 	header *types.Header,
 	desiredTargetExcess *gas.Gas,
 ) (acp176.State, error) {
+	acp176Config, err := acp224FeeConfig.ToACP176Config()
+	if err != nil {
+		return acp176.State{}, fmt.Errorf("converting ACP224 fee config to ACP176 config: %w", err)
+	}
+
 	// Calculate the gas state after the parent block
-	state, err := feeStateBeforeBlock(config, parent, header.Time)
+	state, err := feeStateBeforeBlock(config, acp176Config, parent, header.Time)
 	if err != nil {
 		return acp176.State{}, fmt.Errorf("calculating initial fee state: %w", err)
 	}
@@ -73,13 +79,13 @@ func feeStateAfterBlock(
 	// Otherwise, if the desired target excess is specified, move the target excess as much
 	// as possible toward that desired value.
 	if config.IsPrecompileEnabled(acp224feemanager.ContractAddress, header.Time) {
-		if acp224FeeConfig.TargetGas == nil || acp224FeeConfig.TargetGas.Cmp(common.Big0) == 0 || !acp224FeeConfig.TargetGas.IsInt64() {
+		if acp224FeeConfig.TargetGas == nil || acp224FeeConfig.TargetGas.Cmp(common.Big0) == 0 || !acp224FeeConfig.TargetGas.IsUint64() {
 			return acp176.State{}, fmt.Errorf("invalid target gas: %s", acp224FeeConfig.TargetGas.String())
 		}
 		newTargetExcess := acp176.DesiredTargetExcess(gas.Gas(acp224FeeConfig.TargetGas.Uint64()))
-		state.UpdateTargetExcessUnbounded(newTargetExcess)
+		state.UpdateTargetExcessUnbounded(newTargetExcess, acp176Config)
 	} else if desiredTargetExcess != nil {
-		state.UpdateTargetExcess(*desiredTargetExcess)
+		state.UpdateTargetExcess(*desiredTargetExcess, acp176Config)
 	}
 	return state, nil
 }

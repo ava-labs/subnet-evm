@@ -28,7 +28,7 @@ const (
 	// must preserve order of these fields
 	targetGasKey = iota
 	minGasPriceKey
-	maxCapacityFactorKey
+	timeToFillCapacityKey
 	timeToDoubleKey
 	// add new fields above this
 	numFeeConfigField = iota - 1
@@ -84,8 +84,8 @@ func GetStoredFeeConfig(stateDB contract.StateReader) commontype.ACP224FeeConfig
 			feeConfig.TargetGas = new(big.Int).Set(val.Big())
 		case minGasPriceKey:
 			feeConfig.MinGasPrice = new(big.Int).Set(val.Big())
-		case maxCapacityFactorKey:
-			feeConfig.MaxCapacityFactor = new(big.Int).Set(val.Big())
+		case timeToFillCapacityKey:
+			feeConfig.TimeToFillCapacity = new(big.Int).Set(val.Big())
 		case timeToDoubleKey:
 			feeConfig.TimeToDouble = new(big.Int).Set(val.Big())
 		default:
@@ -115,8 +115,8 @@ func StoreFeeConfig(stateDB contract.StateDB, feeConfig commontype.ACP224FeeConf
 			input = common.BigToHash(feeConfig.TargetGas)
 		case minGasPriceKey:
 			input = common.BigToHash(feeConfig.MinGasPrice)
-		case maxCapacityFactorKey:
-			input = common.BigToHash(feeConfig.MaxCapacityFactor)
+		case timeToFillCapacityKey:
+			input = common.BigToHash(feeConfig.TimeToFillCapacity)
 		case timeToDoubleKey:
 			input = common.BigToHash(feeConfig.TimeToDouble)
 		default:

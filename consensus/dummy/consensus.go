@@ -148,15 +148,19 @@ func verifyHeaderGasFields(
 		return err
 	}
 
-	if err := customheader.VerifyGasUsed(config, feeConfig, parent, header); err != nil {
+	acp224FeeConfig, _, err := chain.GetACP224FeeConfigAt(parent)
+	if err != nil {
 		return err
 	}
-	if err := customheader.VerifyGasLimit(config, feeConfig, parent, header); err != nil {
+	acp176Config, err := acp224FeeConfig.ToACP176Config()
+	if err != nil {
 		return err
 	}
 
-	acp224FeeConfig, _, err := chain.GetACP224FeeConfigAt(parent)
-	if err != nil {
+	if err := customheader.VerifyGasUsed(config, feeConfig, acp176Config, parent, header); err != nil {
+		return err
+	}
+	if err := customheader.VerifyGasLimit(config, feeConfig, acp176Config, parent, header); err != nil {
 		return err
 	}
 
@@ -165,7 +169,7 @@ func verifyHeaderGasFields(
 	}
 
 	// Verify header.BaseFee matches the expected value.
-	expectedBaseFee, err := customheader.BaseFee(config, feeConfig, parent, header.Time)
+	expectedBaseFee, err := customheader.BaseFee(config, feeConfig, acp176Config, parent, header.Time)
 	if err != nil {
 		return fmt.Errorf("failed to calculate base fee: %w", err)
 	}

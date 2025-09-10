@@ -15,7 +15,6 @@ import (
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/params/extras"
 	"github.com/ava-labs/subnet-evm/plugin/evm/upgrade/subnetevm"
-	"github.com/ava-labs/subnet-evm/precompile/contracts/acp224feemanager"
 )
 
 const (
@@ -51,10 +50,6 @@ func ExtraPrefix(
 		if err != nil {
 			return nil, fmt.Errorf("calculating fee state: %w", err)
 		}
-
-		// If the ACP224 fee manager precompile is activated, override the target excess with the
-		// latest value set in the precompile state.
-		config.IsPrecompileEnabled(acp224feemanager.ContractAddress, header.Time)
 
 		return state.Bytes(), nil
 	case config.IsSubnetEVM(header.Time):

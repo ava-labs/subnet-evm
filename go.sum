@@ -24,8 +24,10 @@ github.com/antithesishq/antithesis-sdk-go v0.3.8/go.mod h1:IUpT2DPAKh6i/YhSbt6Gl
 github.com/armon/consul-api v0.0.0-20180202201655-eb2c6b5be1b6/go.mod h1:grANhF5doyWs3UAsr3K4I6qtAmlQcZDesFNEHPZAzj8=
 github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5 h1:0CwZNZbxp69SHPdPJAN/hZIm0C4OItdklCFmMRWYpio=
 github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5/go.mod h1:wHh0iHkYZB8zMSxRWpUBQtwG5a7fFgvEO+odwuTv2gs=
-github.com/ava-labs/avalanchego v1.13.6-0.20250909214751-efec0dce8364 h1:5X5HCLEZM1tceK13bUYymVcKGsV44FTvye7E9nOPHrM=
-github.com/ava-labs/avalanchego v1.13.6-0.20250909214751-efec0dce8364/go.mod h1:/eugkYcDQfCt9czHr/Jlw3MW/1DIoI7Cm0maqNkuWMs=
+github.com/ava-labs/avalanchego v1.13.6-0.20250910212054-5218d21143f6 h1:XgNP58BY2FmaQGiPMzE2YxgqimCJljQuvkGoZtUgjoY=
+github.com/ava-labs/avalanchego v1.13.6-0.20250910212054-5218d21143f6/go.mod h1:/eugkYcDQfCt9czHr/Jlw3MW/1DIoI7Cm0maqNkuWMs=
+github.com/ava-labs/avalanchego v1.13.6-0.20250910213146-23a113adc559 h1:dB4T5OC3uOteDnsHRheNXsS/U+QuTn/vDDYiEfuGsOg=
+github.com/ava-labs/avalanchego v1.13.6-0.20250910213146-23a113adc559/go.mod h1:/eugkYcDQfCt9czHr/Jlw3MW/1DIoI7Cm0maqNkuWMs=
 github.com/ava-labs/coreth v0.15.4-rc.3 h1:v33OOerxpGIKa1MpljXMBB3Yljy23xzsez3E/dn7TzY=
 github.com/ava-labs/coreth v0.15.4-rc.3/go.mod h1:Esb0FK+KJr6co7rrhtBWsmSMXEL5JWelEsijlqAHdq0=
 github.com/ava-labs/firewood-go-ethhash/ffi v0.0.12 h1:aMcrLbpJ/dyu2kZDf/Di/4JIWsUcYPyTDKymiHpejt0=
@@ -151,6 +153,8 @@ github.com/ethereum/c-kzg-4844 v1.0.0 h1:0X1LBXxaEtYD9xsyj9B9ctQEZIpnvVDeoBx8aHE
 github.com/ethereum/c-kzg-4844 v1.0.0/go.mod h1:VewdlzQmpT5QSrVhbBuGoCdFJkpaJlO1aQputP83wc0=
 github.com/fasthttp-contrib/websocket v0.0.0-20160511215533-1f3b11f56072/go.mod h1:duJ4Jxv5lDcvg4QuQr0oowTf7dz4/CR8NtyCooz9HL8=
 github.com/fatih/structs v1.1.0/go.mod h1:9NiDSp5zOcgEDl+j00MP/WkGVPOlPRLejGD8Ga6PJ7M=
+github.com/fatih/structtag v1.2.0 h1:/OdNE99OxoI/PqaW/SuSK9uxxT3f/tcSZgon/ssNSx4=
+github.com/fatih/structtag v1.2.0/go.mod h1:mBJUNpUnHmRKrKlQQlmCrh5PuhftFbNv8Ys4/aAZl94=
 github.com/fjl/gencodec v0.1.1 h1:DhQY29Q6JLXB/GgMqE86NbOEuvckiYcJCbXFu02toms=
 github.com/fjl/gencodec v0.1.1/go.mod h1:chDHL3wKXuBgauP8x3XNZkl5EIAR5SoCTmmmDTZRzmw=
 github.com/frankban/quicktest v1.14.6 h1:7Xjx+VpznH+oBnejlPUj8oUpdxnVs4f8XU8WnHkI4W8=

@@ -34,10 +34,10 @@ var (
 	}
 
 	DefaultACP224FeeConfig = commontype.ACP224FeeConfig{
-		TargetGas:         big.NewInt(1_000_000),
-		MinGasPrice:       big.NewInt(1),
-		MaxCapacityFactor: big.NewInt(5),
-		TimeToDouble:      big.NewInt(60),
+		TargetGas:          big.NewInt(1_000_000),
+		MinGasPrice:        big.NewInt(1),
+		TimeToFillCapacity: big.NewInt(5),
+		TimeToDouble:       big.NewInt(60),
 	}
 
 	SubnetEVMDefaultChainConfig = &ChainConfig{
