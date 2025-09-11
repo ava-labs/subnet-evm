@@ -365,25 +365,24 @@ func testBuildEthTxBlock(t *testing.T, scheme string) {
 		configJSON:  getConfig(scheme, `"pruning-enabled":true`),
 	})
 
-	vm := tvm.vm
 	newTxPoolHeadChan := make(chan core.NewTxPoolReorgEvent, 1)
-	vm.txPool.SubscribeNewReorgEvent(newTxPoolHeadChan)
+	tvm.vm.txPool.SubscribeNewReorgEvent(newTxPoolHeadChan)
 
-	tx := types.NewTransaction(uint64(0), testEthAddrs[1], firstTxAmount, 21000, big.NewInt(testMinGasPrice), nil)
-	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0].ToECDSA())
+	key := utilstest.NewKey(t)
+
+	tx := types.NewTransaction(uint64(0), key.Address, firstTxAmount, 21000, big.NewInt(testMinGasPrice), nil)
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(tvm.vm.chainConfig.ChainID), testKeys[0].ToECDSA())
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	errs := vm.txPool.AddRemotesSync([]*types.Transaction{signedTx})
+	errs := tvm.vm.txPool.AddRemotesSync([]*types.Transaction{signedTx})
 	for i, err := range errs {
 		if err != nil {
 			t.Fatalf("Failed to add tx at index %d: %s", i, err)
 		}
 	}
 
-	blk1 := issueAndAccept(t, vm)
-
+	blk1 := issueAndAccept(t, tvm.vm)
 	newHead := <-newTxPoolHeadChan
 	if newHead.Head.Hash() != common.Hash(blk1.ID()) {
 		t.Fatalf("Expected new block to match")
@@ -391,14 +390,13 @@ func testBuildEthTxBlock(t *testing.T, scheme string) {
 
 	txs := make([]*types.Transaction, 10)
 	for i := 0; i < 10; i++ {
-		tx := types.NewTransaction(uint64(i), testEthAddrs[0], big.NewInt(10), 21000, big.NewInt(testMinGasPrice), nil)
-		signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[1].ToECDSA())
+		tx := types.NewTransaction(uint64(i), key.Address, big.NewInt(10), 21000, big.NewInt(testMinGasPrice), nil)
+		signedTx, err := types.SignTx(tx, types.NewEIP155Signer(tvm.vm.chainConfig.ChainID), key.PrivateKey)
 		if err != nil {
 			t.Fatal(err)
 		}
 		txs[i] = signedTx
 	}
-
 	errs = tvm.vm.txPool.AddRemotesSync(txs)
 	for i, err := range errs {
 		if err != nil {
@@ -406,14 +404,14 @@ func testBuildEthTxBlock(t *testing.T, scheme string) {
 		}
 	}
 
-	blk2 := issueAndAccept(t, vm)
-
+	tvm.vm.clock.Set(tvm.vm.clock.Time().Add(2 * time.Second))
+	blk2 := issueAndAccept(t, tvm.vm)
 	newHead = <-newTxPoolHeadChan
 	if newHead.Head.Hash() != common.Hash(blk2.ID()) {
 		t.Fatalf("Expected new block to match")
 	}
 
-	lastAcceptedID, err := vm.LastAccepted(context.Background())
+	lastAcceptedID, err := tvm.vm.LastAccepted(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -422,19 +420,19 @@ func testBuildEthTxBlock(t *testing.T, scheme string) {
 	}
 
 	ethBlk1 := blk1.(*chain.BlockWrapper).Block.(*Block).ethBlock
-	if ethBlk1Root := ethBlk1.Root(); !vm.blockChain.HasState(ethBlk1Root) {
+	if ethBlk1Root := ethBlk1.Root(); !tvm.vm.blockChain.HasState(ethBlk1Root) {
 		t.Fatalf("Expected blk1 state root to not yet be pruned after blk2 was accepted because of tip buffer")
 	}
 
 	// Clear the cache and ensure that GetBlock returns internal blocks with the correct status
-	vm.State.Flush()
-	blk2Refreshed, err := vm.GetBlockInternal(context.Background(), blk2.ID())
+	tvm.vm.State.Flush()
+	blk2Refreshed, err := tvm.vm.GetBlockInternal(context.Background(), blk2.ID())
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	blk1RefreshedID := blk2Refreshed.Parent()
-	blk1Refreshed, err := vm.GetBlockInternal(context.Background(), blk1RefreshedID)
+	blk1Refreshed, err := tvm.vm.GetBlockInternal(context.Background(), blk1RefreshedID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -444,7 +442,7 @@ func testBuildEthTxBlock(t *testing.T, scheme string) {
 	}
 
 	// Close the vm and all databases
-	if err := vm.Shutdown(context.Background()); err != nil {
+	if err := tvm.vm.Shutdown(context.Background()); err != nil {
 		t.Fatal(err)
 	}
 
