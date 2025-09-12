@@ -1373,6 +1373,6 @@ func (vm *VM) stateSyncEnabled(lastAcceptedHeight uint64) bool {
 	return lastAcceptedHeight == 0
 }
 
-func (vm *VM) PutLastAcceptedID(ID ids.ID) error {
-	return vm.acceptedBlockDB.Put(lastAcceptedKey, ID[:])
+func (vm *VM) PutLastAcceptedID(id ids.ID) error {
+	return vm.acceptedBlockDB.Put(lastAcceptedKey, id[:])
 }
