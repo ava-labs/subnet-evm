@@ -91,6 +91,14 @@ func BlockGasCostTest(t *testing.T, feeConfig commontype.FeeConfig) {
 			timestamp:  9,
 			expected:   new(big.Int).SetUint64(minBlockGasCost + blockGasCostStep*targetBlockRate),
 		},
+		{
+			name:       "granite_returns_zero",
+			upgrades:   extras.TestGraniteChainConfig.NetworkUpgrades,
+			parentTime: 10,
+			parentCost: big.NewInt(ap4.MaxBlockGasCost),
+			timestamp:  10 + ap4.TargetBlockRate + 1,
+			expected:   big.NewInt(0),
+		},
 	}
 
 	for _, test := range tests {

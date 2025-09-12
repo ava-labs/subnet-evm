@@ -8,6 +8,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ava-labs/coreth/plugin/evm/upgrade/ap4"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/rawdb"
 	"github.com/ava-labs/libevm/core/state"
@@ -1395,8 +1396,8 @@ func GenerateChainInvalidBlockFee(t *testing.T, create createFunc) {
 	// Ensure that key1 has some funds in the genesis block.
 	genesisBalance := new(big.Int).Mul(big.NewInt(1000000), big.NewInt(params.Ether))
 	gspec := &Genesis{
-		Config: params.TestChainConfig,
-		Alloc:  GenesisAlloc{addr1: {Balance: genesisBalance}},
+		Config: params.TestFortunaChainConfig,
+		Alloc:  types.GenesisAlloc{addr1: {Balance: genesisBalance}},
 	}
 
 	blockchain, err := create(chainDB, gspec, common.Hash{}, t.TempDir())
@@ -1404,10 +1405,10 @@ func GenerateChainInvalidBlockFee(t *testing.T, create createFunc) {
 	t.Cleanup(blockchain.Stop)
 
 	// This call generates a chain of 3 blocks.
-	signer := types.LatestSigner(params.TestChainConfig)
+	signer := types.LatestSigner(params.TestFortunaChainConfig)
 	_, _, _, err = GenerateChainWithGenesis(gspec, blockchain.engine, 3, extras.TestChainConfig.FeeConfig.TargetBlockRate-1, func(_ int, gen *BlockGen) {
 		tx := types.NewTx(&types.DynamicFeeTx{
-			ChainID:   params.TestChainConfig.ChainID,
+			ChainID:   params.TestFortunaChainConfig.ChainID,
 			Nonce:     gen.TxNonce(addr1),
 			To:        &addr2,
 			Gas:       ethparams.TxGas,
@@ -1436,8 +1437,8 @@ func InsertChainInvalidBlockFee(t *testing.T, create createFunc) {
 	// Ensure that key1 has some funds in the genesis block.
 	genesisBalance := new(big.Int).Mul(big.NewInt(1000000), big.NewInt(params.Ether))
 	gspec := &Genesis{
-		Config: params.TestChainConfig,
-		Alloc:  GenesisAlloc{addr1: {Balance: genesisBalance}},
+		Config: params.TestFortunaChainConfig,
+		Alloc:  types.GenesisAlloc{addr1: {Balance: genesisBalance}},
 	}
 
 	blockchain, err := create(chainDB, gspec, common.Hash{}, t.TempDir())
@@ -1445,11 +1446,11 @@ func InsertChainInvalidBlockFee(t *testing.T, create createFunc) {
 	t.Cleanup(blockchain.Stop)
 
 	// This call generates a chain of 3 blocks.
-	signer := types.LatestSigner(params.TestChainConfig)
+	signer := types.LatestSigner(params.TestFortunaChainConfig)
 	eng := dummy.NewFakerWithMode(dummy.Mode{ModeSkipBlockFee: true, ModeSkipCoinbase: true})
-	_, chain, _, err := GenerateChainWithGenesis(gspec, eng, 3, extras.TestChainConfig.FeeConfig.TargetBlockRate-1, func(_ int, gen *BlockGen) {
+	_, chain, _, err := GenerateChainWithGenesis(gspec, eng, 3, ap4.TargetBlockRate-1, func(_ int, gen *BlockGen) {
 		tx := types.NewTx(&types.DynamicFeeTx{
-			ChainID:   params.TestChainConfig.ChainID,
+			ChainID:   params.TestFortunaChainConfig.ChainID,
 			Nonce:     gen.TxNonce(addr1),
 			To:        &addr2,
 			Gas:       ethparams.TxGas,
