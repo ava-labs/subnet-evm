@@ -464,6 +464,14 @@ func TestVerifyBlockFee(t *testing.T) {
 			receipts:               nil,
 			extraStateContribution: nil,
 		},
+		"zero block gas cost": {
+			baseFee:                big.NewInt(100),
+			parentBlockGasCost:     big.NewInt(0),
+			timeElapsed:            ap4.TargetBlockRate + 1,
+			txs:                    nil,
+			receipts:               nil,
+			extraStateContribution: nil,
+		},
 	}
 
 	for name, test := range tests {

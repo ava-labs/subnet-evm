@@ -138,6 +138,10 @@ func VerifyBlockFee(
 	if requiredBlockGasCost.Sign() == 0 {
 		return nil
 	}
+	// If the required block gas cost is 0, we don't need to verify the block fee
+	if requiredBlockGasCost.Sign() == 0 {
+		return nil
+	}
 
 	var (
 		gasUsed              = new(big.Int)
