@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/ava-labs/avalanchego/utils/timer/mockable"
-	"github.com/ava-labs/avalanchego/vms/components/gas"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/consensus/misc/eip4844"
 	"github.com/ava-labs/libevm/core/state"
@@ -66,10 +65,9 @@ type (
 		OnExtraStateChange    OnExtraStateChangeType
 	}
 	DummyEngine struct {
-		cb                  ConsensusCallbacks
-		clock               *mockable.Clock
-		consensusMode       Mode
-		desiredTargetExcess *gas.Gas
+		cb            ConsensusCallbacks
+		clock         *mockable.Clock
+		consensusMode Mode
 	}
 )
 
