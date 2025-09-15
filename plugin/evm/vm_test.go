@@ -5,6 +5,7 @@ package evm
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -25,19 +26,27 @@ import (
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/avalanchego/snow/consensus/snowman"
 	"github.com/ava-labs/avalanchego/snow/engine/enginetest"
+	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
 	"github.com/ava-labs/avalanchego/snow/snowtest"
 	"github.com/ava-labs/avalanchego/upgrade"
 	"github.com/ava-labs/avalanchego/upgrade/upgradetest"
 	"github.com/ava-labs/avalanchego/utils/crypto/secp256k1"
+	"github.com/ava-labs/avalanchego/utils/set"
 	"github.com/ava-labs/avalanchego/vms/components/chain"
+	"github.com/ava-labs/avalanchego/vms/evm/acp176"
+	"github.com/ava-labs/avalanchego/vms/evm/predicate"
+	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
+	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
+	"github.com/ava-labs/coreth-internal/plugin/evm/vmtest"
+	"github.com/ava-labs/coreth/plugin/evm/upgrade/ap0"
 	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/common/math"
 	"github.com/ava-labs/libevm/core/rawdb"
 	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/crypto"
 	"github.com/ava-labs/libevm/log"
+	"github.com/ava-labs/libevm/rlp"
 	"github.com/ava-labs/libevm/trie"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/core"
@@ -57,9 +66,12 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/contracts/feemanager"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/rewardmanager"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/txallowlist"
+	warpcontract "github.com/ava-labs/subnet-evm/precompile/contracts/warp"
 	"github.com/ava-labs/subnet-evm/rpc"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ava-labs/subnet-evm/utils/utilstest"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	commonEng "github.com/ava-labs/avalanchego/snow/engine/common"
 	avagoconstants "github.com/ava-labs/avalanchego/utils/constants"
@@ -3811,4 +3823,328 @@ func TestCreateHandlers(t *testing.T) {
 	for _, elem := range batch[1:] {
 		require.ErrorIs(t, elem.Error, rpc.ErrMissingBatchResponse)
 	}
+}
+
+// deployContract deploys the provided EVM bytecode using a prefunded test account
+// and returns the created contract address. It is reusable for any contract code.
+func deployContract(ctx context.Context, t *testing.T, vm *VM, gasPrice *big.Int, code []byte) common.Address {
+	callerAddr := vmtest.TestEthAddrs[0]
+	callerKey := vmtest.TestKeys[0]
+
+	nonce := vm.txPool.Nonce(callerAddr)
+	signedTx := newSignedLegacyTx(t, vm.chainConfig, callerKey.ToECDSA(), nonce, nil, big.NewInt(0), 1000000, gasPrice, code)
+
+	for _, err := range vm.txPool.AddRemotesSync([]*types.Transaction{signedTx}) {
+		require.NoError(t, err)
+	}
+
+	blk, err := vm.BuildBlock(ctx)
+	require.NoError(t, err)
+	require.NoError(t, blk.Verify(ctx))
+	require.NoError(t, vm.SetPreference(ctx, blk.ID()))
+	require.NoError(t, blk.Accept(ctx))
+
+	ethBlock := blk.(*chain.BlockWrapper).Block.(*wrappedBlock).ethBlock
+	receipts := vm.blockChain.GetReceiptsByHash(ethBlock.Hash())
+	require.Len(t, receipts, len(ethBlock.Transactions()))
+
+	found := false
+	for i, btx := range ethBlock.Transactions() {
+		if btx.Hash() == signedTx.Hash() {
+			found = true
+			require.Equal(t, types.ReceiptStatusSuccessful, receipts[i].Status)
+			break
+		}
+	}
+	require.True(t, found, "deployContract: expected deploy tx %s to be included in block %s (caller=%s, nonce=%d)",
+		signedTx.Hash().Hex(),
+		ethBlock.Hash().Hex(),
+		callerAddr.Hex(),
+		nonce,
+	)
+
+	return crypto.CreateAddress(callerAddr, nonce)
+}
+
+func TestDelegatePrecompile_BehaviorAcrossUpgrades(t *testing.T) {
+	ctx := context.Background()
+	tests := []struct {
+		name                  string
+		fork                  upgradetest.Fork
+		deployGasPrice        *big.Int
+		txGasPrice            *big.Int
+		preDeployTime         int64
+		setTime               int64
+		refillCapacityFortuna bool
+		wantIncluded          bool
+		wantReceiptStatus     uint64
+	}{
+		{
+			name:           "granite_should_revert",
+			fork:           upgradetest.Granite,
+			deployGasPrice: vmtest.InitialBaseFee,
+			txGasPrice:     vmtest.InitialBaseFee,
+			// Time is irrelevant as only the fork dictates the logic
+			refillCapacityFortuna: false,
+			wantIncluded:          true,
+			wantReceiptStatus:     types.ReceiptStatusFailed,
+		},
+		{
+			name:                  "fortuna_post_cutoff_should_invalidate",
+			fork:                  upgradetest.Fortuna,
+			deployGasPrice:        big.NewInt(ap0.MinGasPrice),
+			txGasPrice:            big.NewInt(ap0.MinGasPrice),
+			setTime:               params.InvalidateDelegateUnix + 1,
+			refillCapacityFortuna: true,
+			wantIncluded:          false,
+		},
+		{
+			name:                  "fortuna_pre_cutoff_should_succeed",
+			fork:                  upgradetest.Fortuna,
+			deployGasPrice:        big.NewInt(ap0.MinGasPrice),
+			txGasPrice:            big.NewInt(ap0.MinGasPrice),
+			preDeployTime:         params.InvalidateDelegateUnix - acp176.TimeToFillCapacity - 1,
+			refillCapacityFortuna: true,
+			wantIncluded:          true,
+			wantReceiptStatus:     types.ReceiptStatusSuccessful,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			vm := newDefaultTestVM()
+			vmtest.SetupTestVM(t, vm, vmtest.TestVMConfig{
+				Fork: &tt.fork,
+			})
+			defer vm.Shutdown(ctx)
+
+			if tt.preDeployTime != 0 {
+				vm.clock.Set(time.Unix(tt.preDeployTime, 0))
+			}
+
+			contractAddr := deployContract(ctx, t, vm, tt.deployGasPrice, common.FromHex(delegateCallPrecompileCode))
+
+			if tt.setTime != 0 {
+				vm.clock.Set(time.Unix(tt.setTime, 0))
+			}
+
+			if tt.refillCapacityFortuna {
+				// Ensure gas capacity is refilled relative to the parent block's timestamp
+				parent := vm.blockChain.CurrentBlock()
+				parentTime := time.Unix(int64(parent.Time), 0)
+				minRefillTime := parentTime.Add(acp176.TimeToFillCapacity * time.Second)
+				if vm.clock.Time().Before(minRefillTime) {
+					vm.clock.Set(minRefillTime)
+				}
+			}
+
+			data := crypto.Keccak256([]byte("delegateSendHello()"))[:4]
+			nonce := vm.txPool.Nonce(vmtest.TestEthAddrs[0])
+			signedTx := newSignedLegacyTx(t, vm.chainConfig, vmtest.TestKeys[0].ToECDSA(), nonce, &contractAddr, big.NewInt(0), 100000, tt.txGasPrice, data)
+			for _, err := range vm.txPool.AddRemotesSync([]*types.Transaction{signedTx}) {
+				require.NoError(t, err)
+			}
+
+			blk, err := vm.BuildBlock(ctx)
+			require.NoError(t, err)
+			require.NoError(t, blk.Verify(ctx))
+			require.NoError(t, vm.SetPreference(ctx, blk.ID()))
+			require.NoError(t, blk.Accept(ctx))
+
+			ethBlock := blk.(*chain.BlockWrapper).Block.(*wrappedBlock).ethBlock
+
+			if !tt.wantIncluded {
+				require.Empty(t, ethBlock.Transactions())
+				return
+			}
+
+			require.Len(t, ethBlock.Transactions(), 1)
+			receipts := vm.blockChain.GetReceiptsByHash(ethBlock.Hash())
+			require.Len(t, receipts, 1)
+			require.Equal(t, tt.wantReceiptStatus, receipts[0].Status)
+		})
+	}
+}
+
+// TestBlockGasValidation tests the two validation checks:
+// 1. invalid gas used relative to capacity
+// 2. total intrinsic gas cost is greater than claimed gas used
+func TestBlockGasValidation(t *testing.T) {
+	newBlock := func(
+		t *testing.T,
+		vm *VM,
+		claimedGasUsed uint64,
+	) *types.Block {
+		require := require.New(t)
+
+		chainExtra := params.GetExtra(vm.chainConfig)
+		parent := vm.eth.APIBackend.CurrentBlock()
+		const timeDelta = acp176.TimeToFillCapacity
+		timestamp := parent.Time + timeDelta
+		gasLimit, err := customheader.GasLimit(chainExtra, parent, timestamp)
+		require.NoError(err)
+		baseFee, err := customheader.BaseFee(chainExtra, parent, timestamp)
+		require.NoError(err)
+
+		callPayload, err := payload.NewAddressedCall(nil, nil)
+		require.NoError(err)
+		unsignedMessage, err := avalancheWarp.NewUnsignedMessage(
+			1,
+			ids.Empty,
+			callPayload.Bytes(),
+		)
+		require.NoError(err)
+		signersBitSet := set.NewBits()
+		warpSignature := &avalancheWarp.BitSetSignature{
+			Signers: signersBitSet.Bytes(),
+		}
+		signedMessage, err := avalancheWarp.NewMessage(
+			unsignedMessage,
+			warpSignature,
+		)
+		require.NoError(err)
+
+		// 9401 is the maximum number of predicates so that the block is less
+		// than 2 MiB.
+		const numPredicates = 9401
+		accessList := make(types.AccessList, 0, numPredicates)
+		predicate := predicate.New(signedMessage.Bytes())
+		for range numPredicates {
+			accessList = append(accessList, types.AccessTuple{
+				Address:     warpcontract.ContractAddress,
+				StorageKeys: predicate,
+			})
+		}
+
+		tx, err := types.SignTx(
+			types.NewTx(&types.DynamicFeeTx{
+				ChainID:    vm.chainConfig.ChainID,
+				Nonce:      1,
+				To:         &vmtest.TestEthAddrs[0],
+				Gas:        acp176.MinMaxCapacity,
+				GasFeeCap:  baseFee,
+				GasTipCap:  baseFee,
+				Value:      common.Big0,
+				AccessList: accessList,
+			}),
+			types.LatestSigner(vm.chainConfig),
+			vmtest.TestKeys[0].ToECDSA(),
+		)
+		require.NoError(err)
+
+		header := &types.Header{
+			ParentHash:       parent.Hash(),
+			Coinbase:         constants.BlackholeAddr,
+			Difficulty:       new(big.Int).Add(parent.Difficulty, common.Big1),
+			Number:           new(big.Int).Add(parent.Number, common.Big1),
+			GasLimit:         gasLimit,
+			GasUsed:          0,
+			Time:             timestamp,
+			BaseFee:          baseFee,
+			BlobGasUsed:      new(uint64),
+			ExcessBlobGas:    new(uint64),
+			ParentBeaconRoot: &common.Hash{},
+		}
+
+		configExtra := params.GetExtra(vm.chainConfig)
+		header.Extra, err = customheader.ExtraPrefix(configExtra, parent, header, nil)
+		require.NoError(err)
+
+		// Set TimeMilliseconds for Granite blocks
+		if configExtra.IsGranite(timestamp) {
+			headerExtra := customtypes.GetHeaderExtra(header)
+			timeMilliseconds := timestamp * 1000
+			headerExtra.TimeMilliseconds = &timeMilliseconds
+		}
+
+		// Set the gasUsed after calculating the extra prefix to support large
+		// claimed gas used values.
+		header.GasUsed = claimedGasUsed
+		return customtypes.NewBlockWithExtData(
+			header,
+			[]*types.Transaction{tx},
+			nil,
+			nil,
+			trie.NewStackTrie(nil),
+			nil,
+			true,
+		)
+	}
+
+	tests := []struct {
+		name    string
+		gasUsed uint64
+		want    error
+	}{
+		{
+			name:    "gas_used_over_capacity",
+			gasUsed: math.MaxUint64,
+			want:    errInvalidGasUsedRelativeToCapacity,
+		},
+		{
+			name:    "intrinsic_gas_over_gas_used",
+			gasUsed: 0,
+			want:    errTotalIntrinsicGasCostExceedsClaimed,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			require := require.New(t)
+			ctx := context.Background()
+
+			vm := newDefaultTestVM()
+			vmtest.SetupTestVM(t, vm, vmtest.TestVMConfig{})
+			defer func() {
+				require.NoError(vm.Shutdown(ctx))
+			}()
+
+			blk := newBlock(t, vm, test.gasUsed)
+			blkBytes, err := rlp.EncodeToBytes(blk)
+			require.NoError(err)
+
+			parsedBlk, err := vm.ParseBlock(ctx, blkBytes)
+			require.NoError(err)
+
+			parsedBlkWithContext, ok := parsedBlk.(block.WithVerifyContext)
+			require.True(ok)
+
+			shouldVerify, err := parsedBlkWithContext.ShouldVerifyWithContext(ctx)
+			require.NoError(err)
+			require.True(shouldVerify)
+
+			err = parsedBlkWithContext.VerifyWithContext(
+				ctx,
+				&block.Context{},
+			)
+			require.ErrorIs(err, test.want)
+		})
+	}
+}
+
+// newSignedLegacyTx builds a legacy transaction and signs it using the
+// LatestSigner derived from the provided chain config.
+func newSignedLegacyTx(
+	t *testing.T,
+	cfg *params.ChainConfig,
+	key *ecdsa.PrivateKey,
+	nonce uint64,
+	to *common.Address,
+	value *big.Int,
+	gas uint64,
+	gasPrice *big.Int,
+	data []byte,
+) *types.Transaction {
+	t.Helper()
+
+	tx := types.NewTx(&types.LegacyTx{
+		Nonce:    nonce,
+		To:       to,
+		Value:    value,
+		Gas:      gas,
+		GasPrice: gasPrice,
+		Data:     data,
+	})
+	signedTx, err := types.SignTx(tx, types.LatestSigner(cfg), key)
+	require.NoError(t, err)
+	return signedTx
 }
