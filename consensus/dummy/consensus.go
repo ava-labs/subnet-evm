@@ -30,12 +30,9 @@ import (
 var (
 	allowedFutureBlockTime = 10 * time.Second // Max time from current time allowed for blocks, before they're considered future blocks
 
-	errInvalidBlockTime       = errors.New("timestamp less than parent's")
-	errUnclesUnsupported      = errors.New("uncles unsupported")
-	errExtDataGasUsedNil      = errors.New("extDataGasUsed is nil")
-	errExtDataGasUsedTooLarge = errors.New("extDataGasUsed is not uint64")
-	ErrInvalidBlockGasCost    = errors.New("invalid blockGasCost")
-	errInvalidExtDataGasUsed  = errors.New("invalid extDataGasUsed")
+	errInvalidBlockTime    = errors.New("timestamp less than parent's")
+	errUnclesUnsupported   = errors.New("uncles unsupported")
+	errInvalidBlockGasCost = errors.New("invalid blockGasCost")
 )
 
 type Mode struct {
@@ -53,7 +50,6 @@ type (
 	) (
 		extraData []byte,
 		blockFeeContribution *big.Int,
-		extDataGasUsed *big.Int,
 		err error,
 	)
 
@@ -63,7 +59,6 @@ type (
 		statedb *state.StateDB,
 	) (
 		blockFeeContribution *big.Int,
-		extDataGasUsed *big.Int,
 		err error,
 	)
 	ConsensusCallbacks struct {
@@ -302,11 +297,11 @@ func (*DummyEngine) Prepare(_ consensus.ChainHeaderReader, header *types.Header)
 func (eng *DummyEngine) Finalize(chain consensus.ChainHeaderReader, block *types.Block, parent *types.Header, state *state.StateDB, receipts []*types.Receipt) error {
 	// Perform extra state change while finalizing the block
 	var (
-		contribution, extDataGasUsed *big.Int
-		err                          error
+		contribution *big.Int
+		err          error
 	)
 	if eng.cb.OnExtraStateChange != nil {
-		contribution, extDataGasUsed, err = eng.cb.OnExtraStateChange(block, parent, state)
+		contribution, err = eng.cb.OnExtraStateChange(block, parent, state)
 		if err != nil {
 			return err
 		}
@@ -329,20 +324,9 @@ func (eng *DummyEngine) Finalize(chain consensus.ChainHeaderReader, block *types
 		timestamp,
 	)
 	if !utils.BigEqual(blockGasCost, expectedBlockGasCost) {
-		return fmt.Errorf("%w: have %d, want %d", ErrInvalidBlockGasCost, blockGasCost, expectedBlockGasCost)
+		return fmt.Errorf("%w: have %d, want %d", errInvalidBlockGasCost, blockGasCost, expectedBlockGasCost)
 	}
 	if config.IsSubnetEVM(timestamp) {
-		// Validate extDataGasUsed and BlockGasCost match expectations
-		//
-		// NOTE: This is a duplicate check of what is already performed in
-		// blockValidator but is done here for symmetry with FinalizeAndAssemble.
-		if extDataGasUsed == nil {
-			extDataGasUsed = new(big.Int).Set(common.Big0)
-		}
-		if blockExtDataGasUsed := customtypes.BlockExtDataGasUsed(block); blockExtDataGasUsed == nil || !blockExtDataGasUsed.IsUint64() || blockExtDataGasUsed.Cmp(extDataGasUsed) != 0 {
-			return fmt.Errorf("%w: have %d, want %d", errInvalidExtDataGasUsed, blockExtDataGasUsed, extDataGasUsed)
-		}
-
 		// Verify the block fee was paid.
 		if !eng.consensusMode.ModeSkipBlockFee {
 			if err := customheader.VerifyBlockFee(
