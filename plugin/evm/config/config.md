@@ -1,5 +1,3 @@
-# Subnet-EVM Configuration
-
 > **Note**: These are the configuration options available in the Subnet-EVM codebase. To set these values, you need to create a configuration file at `~/.avalanchego/configs/chains/<blockchainID>/config.json`.
 >
 > For the AvalancheGo node configuration options, see the AvalancheGo Configuration page.
