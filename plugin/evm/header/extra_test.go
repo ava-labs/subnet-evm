@@ -125,8 +125,8 @@ func TestExtraPrefix(t *testing.T) {
 			},
 			want: (&acp176.State{
 				Gas: gas.State{
-					Capacity: acp176.MinMaxPerSecond - 6,
-					Excess:   6,
+					Capacity: acp176.MinMaxPerSecond - 1,
+					Excess:   1,
 				},
 				TargetExcess: 0,
 			}).Bytes(),
@@ -144,8 +144,8 @@ func TestExtraPrefix(t *testing.T) {
 			desiredTargetExcess: (*gas.Gas)(utils.NewUint64(3)),
 			want: (&acp176.State{
 				Gas: gas.State{
-					Capacity: acp176.MinMaxPerSecond - 3,
-					Excess:   3,
+					Capacity: acp176.MinMaxPerSecond - 2,
+					Excess:   2,
 				},
 				TargetExcess: 3,
 			}).Bytes(),
@@ -178,7 +178,7 @@ func TestExtraPrefix(t *testing.T) {
 				Number: big.NewInt(1),
 				Extra: (&acp176.State{
 					Gas: gas.State{
-						Capacity: 20_039_100, // [acp176.MinTargetPerSecond] * e^(2*[acp176.MaxTargetExcessDiff] / [acp176.TargetConversion])
+						Capacity: 10_019_550, // [acp176.MinMaxCapacity] * e^(2*[acp176.MaxTargetExcessDiff] / [acp176.TargetConversion])
 						Excess:   2_000_000_000 - 3,
 					},
 					TargetExcess: 2 * acp176.MaxTargetExcessDiff,
@@ -190,8 +190,8 @@ func TestExtraPrefix(t *testing.T) {
 			desiredTargetExcess: (*gas.Gas)(utils.NewUint64(0)),
 			want: (&acp176.State{
 				Gas: gas.State{
-					Capacity: 20_019_540,    // [acp176.MinTargetPerSecond] * e^([acp176.MaxTargetExcessDiff] / [acp176.TargetConversion])
-					Excess:   1_998_047_816, // 2M * NewTarget / OldTarget
+					Capacity: 10_009_770,    // [acp176.MinTargetPerSecond] * e^([acp176.MaxTargetExcessDiff] / [acp176.TargetConversion])
+					Excess:   1_998_047_815, // 2M * NewTarget / OldTarget
 				},
 				TargetExcess: acp176.MaxTargetExcessDiff,
 			}).Bytes(),

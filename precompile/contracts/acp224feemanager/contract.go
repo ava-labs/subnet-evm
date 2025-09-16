@@ -41,7 +41,11 @@ const (
 	// You should also increase gas costs of functions that read from AllowList storage.
 	GetFeeConfigGasCost              uint64 = contract.ReadGasCostPerSlot * numFeeConfigField
 	GetFeeConfigLastChangedAtGasCost uint64 = contract.ReadGasCostPerSlot
-	SetFeeConfigGasCost              uint64 = contract.WriteGasCostPerSlot*(numFeeConfigField+1) + allowlist.ReadAllowListGasCost // plus one for setting last changed at
+	FeeConfigUpdatedEventGasCost     uint64 = (contract.LogGas) + (contract.LogTopicGas * 2) + (contract.LogDataGas * numFeeConfigField * common.HashLength * 2)
+	SetFeeConfigGasCost              uint64 = allowlist.ReadAllowListGasCost +
+		contract.WriteGasCostPerSlot*(numFeeConfigField+1) + // plus one for setting last changed at
+		GetFeeConfigGasCost + // for reading existing fee config to be emitted in event
+		FeeConfigUpdatedEventGasCost
 )
 
 var (
@@ -253,10 +257,6 @@ func setFeeConfig(accessibleState contract.AccessibleState, caller common.Addres
 	eventData := FeeConfigUpdatedEventData{
 		OldFeeConfig: oldConfig,
 		NewFeeConfig: feeConfig,
-	}
-	gas := GetFeeConfigUpdatedEventGasCost(eventData)
-	if remainingGas, err = contract.DeductGas(remainingGas, gas); err != nil {
-		return nil, 0, err
 	}
 	topics, data, err := PackFeeConfigUpdatedEvent(
 		caller,

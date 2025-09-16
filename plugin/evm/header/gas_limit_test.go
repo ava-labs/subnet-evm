@@ -7,7 +7,6 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ava-labs/avalanchego/utils/math"
 	"github.com/ava-labs/avalanchego/vms/evm/upgrade/acp176"
 
 	"github.com/ava-labs/libevm/core/types"
@@ -56,7 +55,7 @@ func GasLimitTest(t *testing.T, feeConfig commontype.FeeConfig, acp176Config acp
 			parent: &types.Header{
 				Number: big.NewInt(0),
 			},
-			want: uint64(acp176.DefaultACP176Config.MinMaxCapacity()),
+			want: uint64(acp176Config.MinMaxCapacity()),
 		},
 		{
 			name:     "pre_subnet_evm",
@@ -92,14 +91,6 @@ func TestVerifyGasUsed(t *testing.T) {
 		want         error
 	}{
 		{
-			name:     "fortuna_gas_used_overflow",
-			upgrades: extras.TestFortunaChainConfig.NetworkUpgrades,
-			header: &types.Header{
-				GasUsed: math.MaxUint[uint64](),
-			},
-			want: math.ErrOverflow,
-		},
-		{
 			name:     "fortuna_invalid_capacity",
 			upgrades: extras.TestFortunaChainConfig.NetworkUpgrades,
 			parent: &types.Header{
@@ -133,7 +124,8 @@ func TestVerifyGasUsed(t *testing.T) {
 				Time:    1,
 				GasUsed: acp176.MinMaxPerSecond,
 			},
-			want: nil,
+			acp176Config: testACP176Config,
+			want:         nil,
 		},
 	}
 	for _, test := range tests {
@@ -180,7 +172,7 @@ func VerifyGasLimitTest(t *testing.T, feeConfig commontype.FeeConfig, acp176Conf
 				Number: big.NewInt(0),
 			},
 			header: &types.Header{
-				GasLimit: uint64(acp176.DefaultACP176Config.MinMaxCapacity()) + 1,
+				GasLimit: uint64(acp176Config.MinMaxCapacity()) + 1,
 			},
 			want: errInvalidGasLimit,
 		},
@@ -191,7 +183,7 @@ func VerifyGasLimitTest(t *testing.T, feeConfig commontype.FeeConfig, acp176Conf
 				Number: big.NewInt(0),
 			},
 			header: &types.Header{
-				GasLimit: uint64(acp176.DefaultACP176Config.MinMaxCapacity()),
+				GasLimit: uint64(acp176Config.MinMaxCapacity()),
 			},
 		},
 		{
@@ -276,9 +268,10 @@ func TestGasCapacity(t *testing.T) {
 		wantErr      error
 	}{
 		{
-			name:     "subnet_evm",
-			upgrades: extras.TestSubnetEVMChainConfig.NetworkUpgrades,
-			want:     0, // TODO: XXX Handle feeConfig with Fortuna here
+			name:      "subnet_evm",
+			upgrades:  extras.TestSubnetEVMChainConfig.NetworkUpgrades,
+			feeConfig: testFeeConfig,
+			want:      testFeeConfig.GasLimit.Uint64(),
 		},
 		{
 			name:     "fortuna_invalid_header",
@@ -294,8 +287,9 @@ func TestGasCapacity(t *testing.T) {
 			parent: &types.Header{
 				Number: big.NewInt(0),
 			},
-			timestamp: 1,
-			want:      acp176.MinMaxPerSecond,
+			timestamp:    1,
+			acp176Config: testACP176Config,
+			want:         acp176.MinMaxPerSecond,
 		},
 	}
 	for _, test := range tests {

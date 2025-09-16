@@ -41,6 +41,7 @@ import (
 	"github.com/ava-labs/libevm/crypto"
 	ethparams "github.com/ava-labs/libevm/params"
 	"github.com/ava-labs/libevm/trie"
+	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/consensus"
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
 	"github.com/ava-labs/subnet-evm/consensus/misc/eip4844"
@@ -52,6 +53,12 @@ import (
 	"github.com/holiman/uint256"
 	"golang.org/x/crypto/sha3"
 )
+
+var testACP176Config = acp176.Config{
+	MinGasPrice:        1,
+	TimeToFillCapacity: 5,
+	TimeToDouble:       60,
+}
 
 func u64(val uint64) *uint64 { return &val }
 
@@ -156,9 +163,9 @@ func TestStateProcessorErrors(t *testing.T) {
 			{ // ErrGasLimitReached
 				txs: []*types.Transaction{
 					// This test was modified to account for ACP-176 gas limits
-					makeTx(key1, 0, common.Address{}, big.NewInt(0), uint64(acp176.DefaultACP176Config.MinMaxCapacity()+1), big.NewInt(int64(acp176.DefaultACP176Config.MinGasPrice)), nil),
+					makeTx(key1, 0, common.Address{}, big.NewInt(0), uint64(testACP176Config.MinMaxCapacity()+1), big.NewInt(int64(testACP176Config.MinGasPrice)), nil),
 				},
-				want: "could not apply tx 0 [0x6c95e59678246e8b44a1d9382a9cc6589684298b32b7aaf640e8b6fc75ce3dfc]: gas limit reached",
+				want: "could not apply tx 0 [0xb709565c056a68a4b4dc7714ae901a0f03663bb98f9fa58a10b88ec614362caf]: gas limit reached",
 			},
 			{ // ErrInsufficientFundsForTransfer
 				txs: []*types.Transaction{
@@ -185,7 +192,7 @@ func TestStateProcessorErrors(t *testing.T) {
 			{ // ErrGasLimitReached
 				txs: []*types.Transaction{
 					// This test was modified to account for ACP-176 gas limits
-					makeTx(key1, 0, common.Address{}, big.NewInt(0), ethparams.TxGas*953, big.NewInt(int64(acp176.DefaultACP176Config.MinGasPrice)), nil),
+					makeTx(key1, 0, common.Address{}, big.NewInt(0), ethparams.TxGas*953, big.NewInt(int64(testACP176Config.MinGasPrice)), nil),
 				},
 				want: "could not apply tx 0 [0xcd46718c1af6fd074deb6b036d34c1cb499517bf90d93df74dcfaba25fdf34af]: gas limit reached",
 			},
@@ -365,15 +372,19 @@ func GenerateBadBlock(parent *types.Block, engine consensus.Engine, txs types.Tr
 	if err != nil {
 		panic(err)
 	}
-	acp224FeeConfig, _, err := fakeChainReader.GetACP224FeeConfigAt(parent.Header())
-	if err != nil {
-		panic(err)
-	}
-	acp176Config, err := acp224FeeConfig.ToACP176Config()
-	if err != nil {
-		panic(err)
-	}
 	configExtra := params.GetExtra(config)
+	var acp224FeeConfig commontype.ACP224FeeConfig
+	var acp176Config acp176.Config
+	if configExtra.IsFortuna(time) {
+		acp224FeeConfig, _, err = fakeChainReader.GetACP224FeeConfigAt(parent.Header())
+		if err != nil {
+			panic(err)
+		}
+		acp176Config, err = acp224FeeConfig.ToACP176Config()
+		if err != nil {
+			panic(err)
+		}
+	}
 	gasLimit, _ := customheader.GasLimit(configExtra, feeConfig, acp176Config, parent.Header(), time)
 	baseFee, _ := customheader.BaseFee(configExtra, feeConfig, acp176Config, parent.Header(), time)
 	header := &types.Header{

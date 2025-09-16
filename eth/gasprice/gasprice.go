@@ -67,7 +67,7 @@ const (
 
 var (
 	DefaultMaxPrice           = big.NewInt(150 * params.GWei)
-	DefaultMinPrice           = big.NewInt(0 * params.GWei)
+	DefaultMinPrice           = big.NewInt(1)
 	DefaultMinBaseFee         = big.NewInt(legacy.BaseFee)
 	DefaultMinGasUsed         = big.NewInt(acp176.MinTargetPerSecond)
 	DefaultMaxLookbackSeconds = uint64(80)

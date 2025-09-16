@@ -31,6 +31,7 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ava-labs/avalanchego/vms/evm/upgrade/acp176"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/rawdb"
 	"github.com/ava-labs/libevm/core/state"
@@ -383,15 +384,18 @@ func (cm *chainMaker) makeHeader(parent *types.Block, gap uint64, state *state.S
 	if err != nil {
 		panic(err)
 	}
-	acp224FeeConfig, _, err := cm.GetACP224FeeConfigAt(parent.Header())
-	if err != nil {
-		panic(err)
-	}
-	acp176Config, err := acp224FeeConfig.ToACP176Config()
-	if err != nil {
-		panic(err)
-	}
 	config := params.GetExtra(cm.config)
+	var acp176Config acp176.Config
+	if config.IsFortuna(time) {
+		acp224FeeConfig, _, err := cm.GetACP224FeeConfigAt(parent.Header())
+		if err != nil {
+			panic(err)
+		}
+		acp176Config, err = acp224FeeConfig.ToACP176Config()
+		if err != nil {
+			panic(err)
+		}
+	}
 	gasLimit, err := header.GasLimit(config, feeConfig, acp176Config, parent.Header(), time)
 	if err != nil {
 		panic(err)

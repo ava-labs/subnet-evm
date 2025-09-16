@@ -7,44 +7,12 @@ package acp224feemanager
 import (
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/subnet-evm/commontype"
-	"github.com/ava-labs/subnet-evm/precompile/contract"
 )
 
 // ACP224FeeManagerFeeConfigUpdated represents a FeeConfigUpdated non-indexed event data raised by the ACP224FeeManager contract.
 type FeeConfigUpdatedEventData struct {
 	OldFeeConfig commontype.ACP224FeeConfig
 	NewFeeConfig commontype.ACP224FeeConfig
-}
-
-// GetFeeConfigUpdatedEventGasCost returns the gas cost of the event.
-// The gas cost of an event is the base gas cost + the gas cost of the topics + the gas cost of the non-indexed data.
-// The base gas cost and the gas cost of per topics are fixed and can be found in the contract package.
-// The gas cost of the non-indexed data depends on the data type and the data size.
-func GetFeeConfigUpdatedEventGasCost(data FeeConfigUpdatedEventData) uint64 {
-	gas := contract.LogGas // base gas cost
-
-	// Add topics gas cost (2 topics)
-	// Topics always include the signature hash of the event. The rest are the indexed event arguments.
-	gas += contract.LogTopicGas * 2
-
-	// CUSTOM CODE STARTS HERE
-	// TODO: calculate gas cost for packing the data.oldFeeConfig according to the type.
-	// Keep in mind that the data here will be encoded using the ABI encoding scheme.
-	// So the computation cost might change according to the data type + data size and should be charged accordingly.
-	// i.e gas += LogDataGas * uint64(len(data.oldFeeConfig))
-	gas += contract.LogDataGas // * ...
-	// CUSTOM CODE ENDS HERE
-	// CUSTOM CODE STARTS HERE
-	// TODO: calculate gas cost for packing the data.newFeeConfig according to the type.
-	// Keep in mind that the data here will be encoded using the ABI encoding scheme.
-	// So the computation cost might change according to the data type + data size and should be charged accordingly.
-	// i.e gas += LogDataGas * uint64(len(data.newFeeConfig))
-	gas += contract.LogDataGas // * ...
-	// CUSTOM CODE ENDS HERE
-
-	// CUSTOM CODE STARTS HERE
-	// TODO: do any additional gas cost calculation here (only if needed)
-	return gas
 }
 
 // PackFeeConfigUpdatedEvent packs the event into the appropriate arguments for FeeConfigUpdated.

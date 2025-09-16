@@ -47,6 +47,7 @@ import (
 	"github.com/ava-labs/subnet-evm/params/extras"
 	customheader "github.com/ava-labs/subnet-evm/plugin/evm/header"
 	"github.com/ava-labs/subnet-evm/plugin/evm/upgrade/legacy"
+	"github.com/ava-labs/subnet-evm/precompile/contracts/acp224feemanager"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/feemanager"
 	"github.com/ava-labs/subnet-evm/rpc"
 	"github.com/ava-labs/subnet-evm/utils"
@@ -143,8 +144,8 @@ func newTestBackend(t *testing.T, config *params.ChainConfig, numBlocks int, gen
 	engine := dummy.NewFaker()
 
 	// Generate testing blocks
-	targetBlockRate := params.GetExtra(config).FeeConfig.TargetBlockRate
-	_, blocks, _, err := core.GenerateChainWithGenesis(gspec, engine, numBlocks, targetBlockRate-1, genBlocks)
+	blockGap := uint64(1)
+	_, blocks, _, err := core.GenerateChainWithGenesis(gspec, engine, numBlocks, blockGap, genBlocks)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -270,8 +271,8 @@ func TestSuggestTipCapSimple(t *testing.T) {
 	applyGasPriceTest(t, suggestTipCapTest{
 		chainConfig: params.TestChainConfig,
 		numBlocks:   3,
-		genBlock:    testGenBlock(t, 55, 370),
-		expectedTip: big.NewInt(1_287_001_288),
+		genBlock:    testGenBlock(t, 55, 80),
+		expectedTip: big.NewInt(1),
 	}, defaultOracleConfig())
 }
 
@@ -279,8 +280,8 @@ func TestSuggestTipCapSimpleFloor(t *testing.T) {
 	applyGasPriceTest(t, suggestTipCapTest{
 		chainConfig: params.TestChainConfig,
 		numBlocks:   1,
-		genBlock:    testGenBlock(t, 55, 370),
-		expectedTip: big.NewInt(643_500_644),
+		genBlock:    testGenBlock(t, 55, 80),
+		expectedTip: big.NewInt(1),
 	}, defaultOracleConfig())
 }
 
@@ -311,7 +312,7 @@ func TestSuggestTipCapSmallTips(t *testing.T) {
 				}
 				b.AddTx(tx)
 				tx = types.NewTx(&types.DynamicFeeTx{
-					ChainID:   params.TestChainConfig.ChainID,
+					ChainID:   params.TestEtnaChainConfig.ChainID,
 					Nonce:     b.TxNonce(addr),
 					To:        &common.Address{},
 					Gas:       ethparams.TxGas,
@@ -324,7 +325,7 @@ func TestSuggestTipCapSmallTips(t *testing.T) {
 				b.AddTx(tx)
 			}
 		},
-		expectedTip: big.NewInt(1_287_001_288),
+		expectedTip: big.NewInt(1),
 	}, defaultOracleConfig())
 }
 
@@ -333,7 +334,7 @@ func TestSuggestTipCapMinGas(t *testing.T) {
 		chainConfig: params.TestChainConfig,
 		numBlocks:   3,
 		genBlock:    testGenBlock(t, 500, 50),
-		expectedTip: big.NewInt(0),
+		expectedTip: big.NewInt(1),
 	}, defaultOracleConfig())
 }
 
@@ -375,7 +376,7 @@ func TestSuggestGasPriceSubnetEVM(t *testing.T) {
 
 func TestSuggestTipCapMaxBlocksLookback(t *testing.T) {
 	applyGasPriceTest(t, suggestTipCapTest{
-		chainConfig: params.TestChainConfig,
+		chainConfig: params.TestEtnaChainConfig,
 		numBlocks:   20,
 		genBlock:    testGenBlock(t, 550, 370),
 		expectedTip: big.NewInt(5_807_226_111),
@@ -393,7 +394,7 @@ func TestSuggestTipCapMaxBlocksSecondsLookback(t *testing.T) {
 
 // Regression test to ensure the last estimation of base fee is not used
 // for the block immediately following a fee configuration update.
-func TestSuggestGasPriceAfterFeeConfigUpdate(t *testing.T) {
+func TestSuggestGasPriceAfterFeeManagerUpdate(t *testing.T) {
 	require := require.New(t)
 	config := Config{
 		Blocks:     20,
@@ -401,26 +402,26 @@ func TestSuggestGasPriceAfterFeeConfigUpdate(t *testing.T) {
 	}
 
 	// create a chain config with fee manager enabled at genesis with [addr] as the admin
-	chainConfig := params.Copy(params.TestChainConfig)
+	chainConfig := params.Copy(params.TestEtnaChainConfig)
 	chainConfigExtra := params.GetExtra(&chainConfig)
 	chainConfigExtra.GenesisPrecompiles = extras.Precompiles{
 		feemanager.ConfigKey: feemanager.NewConfig(utils.NewUint64(0), []common.Address{addr}, nil, nil, nil),
 	}
 
 	// create a fee config with higher MinBaseFee and prepare it for inclusion in a tx
-	signer := types.LatestSigner(params.TestChainConfig)
+	signer := types.LatestSigner(params.TestEtnaChainConfig)
 	highFeeConfig := chainConfigExtra.FeeConfig
 	highFeeConfig.MinBaseFee = big.NewInt(28_000_000_000)
 	data, err := feemanager.PackSetFeeConfig(highFeeConfig)
 	require.NoError(err)
 
-	// before issuing the block changing the fee into the chain, the fee estimation should
+	// before issuing the block changing the fee into the chain, the base fee estimation should
 	// follow the fee config in genesis.
 	backend := newTestBackend(t, &chainConfig, 0, func(i int, b *core.BlockGen) {})
 	defer backend.teardown()
 	oracle, err := NewOracle(backend, config)
 	require.NoError(err)
-	got, err := oracle.SuggestPrice(context.Background())
+	got, err := oracle.EstimateBaseFee(context.Background())
 	require.NoError(err)
 	require.Equal(chainConfigExtra.FeeConfig.MinBaseFee, got)
 
@@ -450,8 +451,71 @@ func TestSuggestGasPriceAfterFeeConfigUpdate(t *testing.T) {
 	_, err = backend.chain.InsertChain(blocks)
 	require.NoError(err)
 
-	// verify the suggested price follows the new fee config.
-	got, err = oracle.SuggestPrice(context.Background())
+	// verify the estimated base fee follows the new fee config.
+	got, err = oracle.EstimateBaseFee(context.Background())
 	require.NoError(err)
 	require.Equal(highFeeConfig.MinBaseFee, got)
+}
+
+func TestSuggestGasPriceAfterACP224FeeManagerUpdate(t *testing.T) {
+	require := require.New(t)
+	config := Config{
+		Blocks:     20,
+		Percentile: 60,
+	}
+
+	// create a chain config with fee manager enabled at genesis with [addr] as the admin
+	chainConfig := params.Copy(params.TestChainConfig)
+	chainConfigExtra := params.GetExtra(&chainConfig)
+	chainConfigExtra.GenesisPrecompiles = extras.Precompiles{
+		acp224feemanager.ConfigKey: acp224feemanager.NewConfig(utils.NewUint64(0), []common.Address{addr}, nil, nil, nil),
+	}
+
+	// create a fee config with higher MinBaseFee and prepare it for inclusion in a tx
+	signer := types.LatestSigner(params.TestChainConfig)
+	highFeeConfig := chainConfigExtra.ACP224FeeConfig
+	highFeeConfig.MinGasPrice = big.NewInt(13_000_000_000)
+	data, err := acp224feemanager.PackSetFeeConfig(highFeeConfig)
+	require.NoError(err)
+
+	// before issuing the block changing the fee into the chain, the base fee estimation should
+	// follow the fee config in genesis.
+	backend := newTestBackend(t, &chainConfig, 0, func(i int, b *core.BlockGen) {})
+	defer backend.teardown()
+	oracle, err := NewOracle(backend, config)
+	require.NoError(err)
+	got, err := oracle.EstimateBaseFee(context.Background())
+	require.NoError(err)
+	require.Equal(chainConfigExtra.ACP224FeeConfig.MinGasPrice, got)
+
+	// issue the block with tx that changes the fee
+	genesis := backend.chain.Genesis()
+	engine := backend.chain.Engine()
+	db := rawdb.NewDatabase(backend.chain.StateCache().DiskDB())
+	blocks, _, err := core.GenerateChain(&chainConfig, genesis, engine, db, 1, chainConfigExtra.FeeConfig.TargetBlockRate, func(i int, b *core.BlockGen) {
+		b.SetCoinbase(common.Address{1})
+
+		// admin issues tx to change fee config to higher MinBaseFee
+		tx := types.NewTx(&types.DynamicFeeTx{
+			ChainID:   chainConfig.ChainID,
+			Nonce:     b.TxNonce(addr),
+			To:        &acp224feemanager.ContractAddress,
+			Gas:       500_000,
+			Value:     common.Big0,
+			GasFeeCap: chainConfigExtra.ACP224FeeConfig.MinGasPrice, // give low fee, it should work since we still haven't applied high fees
+			GasTipCap: common.Big0,
+			Data:      data,
+		})
+		tx, err = types.SignTx(tx, signer, key)
+		require.NoError(err, "failed to create tx")
+		b.AddTx(tx)
+	})
+	require.NoError(err)
+	_, err = backend.chain.InsertChain(blocks)
+	require.NoError(err)
+
+	// verify the estimated base fee follows the new fee config.
+	got, err = oracle.EstimateBaseFee(context.Background())
+	require.NoError(err)
+	require.Equal(highFeeConfig.MinGasPrice, got)
 }

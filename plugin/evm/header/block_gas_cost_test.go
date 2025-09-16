@@ -35,7 +35,11 @@ var (
 		TimeToFillCapacity: big.NewInt(5),
 		TimeToDouble:       big.NewInt(60),
 	}
-	testACP176Config = acp176.DefaultACP176Config
+	testACP176Config = acp176.Config{
+		MinGasPrice:        1,
+		TimeToFillCapacity: 5,
+		TimeToDouble:       60,
+	}
 
 	testFeeConfigDouble = commontype.FeeConfig{
 		MinBlockGasCost:          big.NewInt(2),

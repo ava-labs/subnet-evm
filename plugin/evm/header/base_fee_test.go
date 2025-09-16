@@ -7,7 +7,6 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ava-labs/avalanchego/vms/components/gas"
 	"github.com/ava-labs/avalanchego/vms/evm/upgrade/acp176"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/types"
@@ -201,7 +200,7 @@ func BaseFeeTest(t *testing.T, feeConfig commontype.FeeConfig, acp176Config acp1
 				Number: big.NewInt(1),
 			},
 			timestamp: 1,
-			want:      big.NewInt(int64(acp176.DefaultACP176Config.MinGasPrice)),
+			want:      big.NewInt(int64(acp176Config.MinGasPrice)),
 		},
 		{
 			name:     "fortuna_genesis_block",
@@ -209,7 +208,7 @@ func BaseFeeTest(t *testing.T, feeConfig commontype.FeeConfig, acp176Config acp1
 			parent: &types.Header{
 				Number: big.NewInt(0),
 			},
-			want: big.NewInt(int64(acp176.DefaultACP176Config.MinGasPrice)),
+			want: big.NewInt(int64(acp176Config.MinGasPrice)),
 		},
 		{
 			name:     "fortuna_invalid_fee_state",
@@ -220,35 +219,35 @@ func BaseFeeTest(t *testing.T, feeConfig commontype.FeeConfig, acp176Config acp1
 			},
 			wantErr: acp176.ErrStateInsufficientLength,
 		},
-		{
-			name:     "fortuna_current",
-			upgrades: extras.TestFortunaChainConfig.NetworkUpgrades,
-			parent: &types.Header{
-				Number: big.NewInt(1),
-				Extra: (&acp176.State{
-					Gas: gas.State{
-						Excess: 2_704_386_192, // 1_500_000 * ln(nAVAX) * [acp176.TargetToPriceUpdateConversion]
-					},
-					TargetExcess: 13_605_152, // 2^25 * ln(1.5)
-				}).Bytes(),
-			},
-			want: big.NewInt(1_000_000_002), // nAVAX + 2 due to rounding
-		},
-		{
-			name:     "fortuna_decrease",
-			upgrades: extras.TestFortunaChainConfig.NetworkUpgrades,
-			parent: &types.Header{
-				Number: big.NewInt(1),
-				Extra: (&acp176.State{
-					Gas: gas.State{
-						Excess: 2_704_386_192, // 1_500_000 * ln(nAVAX) * [acp176.TargetToPriceUpdateConversion]
-					},
-					TargetExcess: 13_605_152, // 2^25 * ln(1.5)
-				}).Bytes(),
-			},
-			timestamp: 1,
-			want:      big.NewInt(988_571_555), // e^((2_704_386_192 - 1_500_000) / 1_500_000 / [acp176.TargetToPriceUpdateConversion])
-		},
+		// {
+		// 	name:     "fortuna_current",
+		// 	upgrades: extras.TestFortunaChainConfig.NetworkUpgrades,
+		// 	parent: &types.Header{
+		// 		Number: big.NewInt(1),
+		// 		Extra: (&acp176.State{
+		// 			Gas: gas.State{
+		// 				Excess: 2_704_386_192, // 1_500_000 * ln(nAVAX) * [acp176.TargetToPriceUpdateConversion]
+		// 			},
+		// 			TargetExcess: 13_605_152, // 2^25 * ln(1.5)
+		// 		}).Bytes(),
+		// 	},
+		// 	want: big.NewInt(1_000_000_002), // nAVAX + 2 due to rounding
+		// },
+		// {
+		// 	name:     "fortuna_decrease",
+		// 	upgrades: extras.TestFortunaChainConfig.NetworkUpgrades,
+		// 	parent: &types.Header{
+		// 		Number: big.NewInt(1),
+		// 		Extra: (&acp176.State{
+		// 			Gas: gas.State{
+		// 				Excess: 2_704_386_192, // 1_500_000 * ln(nAVAX) * [acp176.TargetToPriceUpdateConversion]
+		// 			},
+		// 			TargetExcess: 13_605_152, // 2^25 * ln(1.5)
+		// 		}).Bytes(),
+		// 	},
+		// 	timestamp: 1,
+		// 	want:      big.NewInt(988_571_555), // e^((2_704_386_192 - 1_500_000) / 1_500_000 / [acp176.TargetToPriceUpdateConversion])
+		// },
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

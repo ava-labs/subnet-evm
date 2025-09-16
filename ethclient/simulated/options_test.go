@@ -33,11 +33,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ava-labs/avalanchego/vms/evm/upgrade/acp176"
 	ethereum "github.com/ava-labs/libevm"
 	"github.com/ava-labs/libevm/core/types"
 	ethparams "github.com/ava-labs/libevm/params"
 	"github.com/ava-labs/subnet-evm/core"
+	"github.com/ava-labs/subnet-evm/params/extras"
 )
 
 // Tests that the simulator starts with the initial gas limit in the genesis block,
@@ -61,8 +61,15 @@ func TestWithBlockGasLimitOption(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to retrieve head block: %v", err)
 	}
-	if head.GasLimit() != uint64(acp176.DefaultACP176Config.MinMaxCapacity()) {
-		t.Errorf("head gas limit mismatch: have %v, want %v", head.GasLimit(), acp176.DefaultACP176Config.MinMaxCapacity())
+	acp176Config, err := extras.DefaultACP224FeeConfig.ToACP176Config()
+	if err != nil {
+		t.Fatalf("failed to convert ACP224 fee config to ACP176 config: %v", err)
+	}
+	if err != nil {
+		t.Fatalf("failed to convert ACP224 fee config to ACP176 config: %v", err)
+	}
+	if head.GasLimit() != uint64(acp176Config.MinMaxCapacity()) {
+		t.Errorf("head gas limit mismatch: have %v, want %v", head.GasLimit(), acp176Config.MinMaxCapacity())
 	}
 }
 

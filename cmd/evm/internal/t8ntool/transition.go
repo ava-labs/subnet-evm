@@ -35,7 +35,6 @@ import (
 	"os"
 	"path"
 
-	"github.com/ava-labs/avalanchego/vms/evm/upgrade/acp176"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/common/hexutil"
 	"github.com/ava-labs/libevm/core/state"
@@ -231,9 +230,12 @@ func applyLondonChecks(env *stEnv, chainConfig *params.ChainConfig) error {
 		// Override the default min base fee if it's set in the env
 		feeConfig.MinBaseFee = env.MinBaseFee
 	}
+	acp176Config, err := params.DefaultACP224FeeConfig.ToACP176Config()
+	if err != nil {
+		return NewError(ErrorConfig, fmt.Errorf("failed converting ACP224 fee config to ACP176 config: %v", err))
+	}
 	configExtra := params.GetExtra(chainConfig)
-	var err error
-	env.BaseFee, err = customheader.BaseFee(configExtra, feeConfig, acp176.DefaultACP176Config, parent, env.Timestamp)
+	env.BaseFee, err = customheader.BaseFee(configExtra, feeConfig, acp176Config, parent, env.Timestamp)
 	if err != nil {
 		return NewError(ErrorConfig, fmt.Errorf("failed calculating base fee: %v", err))
 	}

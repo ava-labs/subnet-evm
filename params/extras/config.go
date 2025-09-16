@@ -34,7 +34,7 @@ var (
 	}
 
 	DefaultACP224FeeConfig = commontype.ACP224FeeConfig{
-		TargetGas:          big.NewInt(1_000_000),
+		TargetGas:          big.NewInt(20_000_000),
 		MinGasPrice:        big.NewInt(1),
 		TimeToFillCapacity: big.NewInt(5),
 		TimeToDouble:       big.NewInt(60),
@@ -70,6 +70,7 @@ var (
 
 	TestGraniteChainConfig = copyAndSet(TestFortunaChainConfig, func(c *ChainConfig) {
 		c.NetworkUpgrades.GraniteTimestamp = utils.NewUint64(0)
+		c.ACP224FeeConfig = DefaultACP224FeeConfig
 	})
 
 	TestChainConfig = copyConfig(TestGraniteChainConfig)
