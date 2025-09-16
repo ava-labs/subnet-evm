@@ -663,6 +663,7 @@ func (vm *VM) initializeStateSync(lastAcceptedHeight uint64) error {
 	)
 	vm.Network.SetRequestHandler(networkHandler)
 
+	vm.Server = vmsync.NewServer(vm.blockChain, &message.BlockSyncSummaryProvider{}, vm.config.StateSyncCommitInterval)
 	stateSyncEnabled := vm.stateSyncEnabled(lastAcceptedHeight)
 	// parse nodeIDs from state sync IDs in vm config
 	var stateSyncIDs []ids.NodeID
@@ -704,6 +705,7 @@ func (vm *VM) initializeStateSync(lastAcceptedHeight uint64) error {
 		MetadataDB:         vm.metadataDB,
 		ToEngine:           vm.toEngine,
 		Acceptor:           vm,
+		Parser:             &message.BlockSyncSummaryParser{},
 	})
 
 	// If StateSync is disabled, clear any ongoing summary so that we will not attempt to resume
