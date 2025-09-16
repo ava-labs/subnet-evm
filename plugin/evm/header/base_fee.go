@@ -28,7 +28,6 @@ func BaseFee(
 	parent *types.Header,
 	timestamp uint64,
 ) (*big.Int, error) {
-	// TODO: XXX Handle feeConfig with Fortuna here
 	switch {
 	case config.IsFortuna(timestamp):
 		state, err := feeStateBeforeBlock(config, acp176Config, parent, timestamp)
