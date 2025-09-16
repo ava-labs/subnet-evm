@@ -14,6 +14,8 @@ import (
 
 // TestMarshalLeafsRequest asserts that the structure or serialization logic hasn't changed, primarily to
 // ensure compatibility with the network.
+// TestMarshalLeafsRequest asserts that the structure or serialization logic hasn't changed, primarily to
+// ensure compatibility with the network.
 func TestMarshalLeafsRequest(t *testing.T) {
 	// generate some random code data
 	// set random seed for deterministic random
@@ -29,13 +31,14 @@ func TestMarshalLeafsRequest(t *testing.T) {
 	assert.NoError(t, err)
 
 	leafsRequest := LeafsRequest{
-		Root:  common.BytesToHash([]byte("im ROOTing for ya")),
-		Start: startBytes,
-		End:   endBytes,
-		Limit: 1024,
+		Root:     common.BytesToHash([]byte("im ROOTing for ya")),
+		Start:    startBytes,
+		End:      endBytes,
+		Limit:    1024,
+		NodeType: StateTrieNode,
 	}
 
-	base64LeafsRequest := "AAAAAAAAAAAAAAAAAAAAAABpbSBST09UaW5nIGZvciB5YQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIFL9/AchgmVPFj9fD5piHXKVZsdNEAN8TXu7BAfR4sZJAAAAIIGFWthoHQ2G0ekeABZ5OctmlNLEIqzSCKAHKTlIf2mZBAA="
+	base64LeafsRequest := "AAAAAAAAAAAAAAAAAAAAAABpbSBST09UaW5nIGZvciB5YQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIFL9/AchgmVPFj9fD5piHXKVZsdNEAN8TXu7BAfR4sZJAAAAIIGFWthoHQ2G0ekeABZ5OctmlNLEIqzSCKAHKTlIf2mZBAAB"
 
 	leafsRequestBytes, err := Codec.Marshal(Version, leafsRequest)
 	assert.NoError(t, err)
@@ -48,6 +51,7 @@ func TestMarshalLeafsRequest(t *testing.T) {
 	assert.Equal(t, leafsRequest.Start, l.Start)
 	assert.Equal(t, leafsRequest.End, l.End)
 	assert.Equal(t, leafsRequest.Limit, l.Limit)
+	assert.Equal(t, leafsRequest.NodeType, l.NodeType)
 }
 
 // TestMarshalLeafsResponse asserts that the structure or serialization logic hasn't changed, primarily to

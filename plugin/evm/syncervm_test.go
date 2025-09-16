@@ -50,7 +50,7 @@ import (
 )
 
 func TestSkipStateSync(t *testing.T) {
-	rand.New(rand.NewSource(1))
+	rand.Seed(1)
 	test := syncTest{
 		syncableInterval:   256,
 		stateSyncMinBlocks: 300, // must be greater than [syncableInterval] to skip sync
