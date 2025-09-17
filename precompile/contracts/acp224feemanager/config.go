@@ -1,11 +1,14 @@
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
+
 package acp224feemanager
 
 import (
+	"github.com/ava-labs/libevm/common"
+
+	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
-
-	"github.com/ava-labs/libevm/common"
-	"github.com/ava-labs/subnet-evm/commontype"
 )
 
 var _ precompileconfig.Config = (*Config)(nil)

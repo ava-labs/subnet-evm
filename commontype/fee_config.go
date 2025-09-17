@@ -11,6 +11,7 @@ import (
 	"github.com/ava-labs/avalanchego/vms/components/gas"
 	"github.com/ava-labs/avalanchego/vms/evm/upgrade/acp176"
 	"github.com/ava-labs/libevm/common"
+
 	"github.com/ava-labs/subnet-evm/utils"
 )
 

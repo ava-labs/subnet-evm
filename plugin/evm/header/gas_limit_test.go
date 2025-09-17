@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/ava-labs/avalanchego/vms/evm/upgrade/acp176"
-
 	"github.com/ava-labs/libevm/core/types"
 	"github.com/stretchr/testify/require"
 

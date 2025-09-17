@@ -112,14 +112,6 @@ const (
 	ethMetricsPrefix        = "eth"
 	sdkMetricsPrefix        = "sdk"
 	chainStateMetricsPrefix = "chain_state"
-
-	// gossip constants
-	pushGossipDiscardedElements = 16_384
-	txGossipTargetMessageSize   = 20 * units.KiB
-	maxValidatorSetStaleness    = time.Minute
-	txGossipThrottlingPeriod    = 10 * time.Second
-	txGossipThrottlingLimit     = 2
-	txGossipPollSize            = 1
 )
 
 // Define the API endpoints for the VM

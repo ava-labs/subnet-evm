@@ -1,3 +1,6 @@
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
+
 package acp224feemanagertest
 
 import (
@@ -6,15 +9,15 @@ import (
 	"testing"
 
 	"github.com/ava-labs/avalanchego/vms/evm/upgrade/acp176"
+	"github.com/ava-labs/libevm/common"
+	"go.uber.org/mock/gomock"
+
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist/allowlisttest"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/acp224feemanager"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/precompile/precompiletest"
 	"github.com/ava-labs/subnet-evm/utils"
-
-	"github.com/ava-labs/libevm/common"
-	"go.uber.org/mock/gomock"
 )
 
 // TestVerify tests the verification of Config.

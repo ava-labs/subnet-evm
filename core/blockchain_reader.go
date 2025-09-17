@@ -425,7 +425,7 @@ func (bc *BlockChain) GetACP224FeeConfigAt(parent *types.Header) (commontype.ACP
 		return commontype.EmptyACP224FeeConfig, nil, err
 	}
 
-	storedFeeConfig := acp224feemanager.GetStoredFeeConfig(stateDB)
+	storedFeeConfig := acp224feemanager.GetStoredFeeConfig(stateDB, acp224feemanager.ContractAddress)
 	// this should not return an invalid fee config since it's assumed that
 	// StoreFeeConfig returns an error when an invalid fee config is attempted to be stored.
 	// However an external stateDB call can modify the contract state.
@@ -433,7 +433,7 @@ func (bc *BlockChain) GetACP224FeeConfigAt(parent *types.Header) (commontype.ACP
 	if err := storedFeeConfig.Verify(); err != nil {
 		return commontype.EmptyACP224FeeConfig, nil, err
 	}
-	lastChangedAt := acp224feemanager.GetFeeConfigLastChangedAt(stateDB)
+	lastChangedAt := acp224feemanager.GetFeeConfigLastChangedAt(stateDB, acp224feemanager.ContractAddress)
 	cacheable := &cacheableACP224FeeConfig{acp224FeeConfig: storedFeeConfig, lastChangedAt: lastChangedAt}
 	// add it to the cache
 	bc.acp224FeeConfigCache.Add(parent.Root, cacheable)

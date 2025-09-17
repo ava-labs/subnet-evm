@@ -1,3 +1,6 @@
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
+
 package acp224feemanagertest
 
 import (
@@ -6,14 +9,15 @@ import (
 
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/vm"
+	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
+
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/core/extstate"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist/allowlisttest"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/acp224feemanager"
 	"github.com/ava-labs/subnet-evm/precompile/precompiletest"
-	"github.com/stretchr/testify/require"
-	"go.uber.org/mock/gomock"
 )
 
 var (
@@ -43,7 +47,7 @@ var (
 				blockContext := contract.NewMockBlockContext(gomock.NewController(t))
 				blockContext.EXPECT().Number().Return(big.NewInt(6)).Times(1)
 				allowlisttest.SetDefaultRoles(acp224feemanager.Module.Address)(t, state)
-				require.NoError(t, acp224feemanager.StoreFeeConfig(state, testDefaultUpdatedFeeConfig, blockContext))
+				require.NoError(t, acp224feemanager.StoreFeeConfig(state, acp224feemanager.ContractAddress, testDefaultUpdatedFeeConfig, blockContext))
 			},
 			InputFn: func(t testing.TB) []byte {
 				input, err := acp224feemanager.PackGetFeeConfig()
@@ -67,7 +71,7 @@ var (
 				blockContext := contract.NewMockBlockContext(gomock.NewController(t))
 				blockContext.EXPECT().Number().Return(big.NewInt(6)).Times(1)
 				allowlisttest.SetDefaultRoles(acp224feemanager.Module.Address)(t, state)
-				require.NoError(t, acp224feemanager.StoreFeeConfig(state, testDefaultUpdatedFeeConfig, blockContext))
+				require.NoError(t, acp224feemanager.StoreFeeConfig(state, acp224feemanager.ContractAddress, testDefaultUpdatedFeeConfig, blockContext))
 			},
 			InputFn: func(t testing.TB) []byte {
 				input, err := acp224feemanager.PackGetFeeConfig()
@@ -91,7 +95,7 @@ var (
 				blockContext := contract.NewMockBlockContext(gomock.NewController(t))
 				blockContext.EXPECT().Number().Return(big.NewInt(6)).Times(1)
 				allowlisttest.SetDefaultRoles(acp224feemanager.Module.Address)(t, state)
-				require.NoError(t, acp224feemanager.StoreFeeConfig(state, testDefaultUpdatedFeeConfig, blockContext))
+				require.NoError(t, acp224feemanager.StoreFeeConfig(state, acp224feemanager.ContractAddress, testDefaultUpdatedFeeConfig, blockContext))
 			},
 			InputFn: func(t testing.TB) []byte {
 				input, err := acp224feemanager.PackGetFeeConfig()
@@ -115,7 +119,7 @@ var (
 				blockContext := contract.NewMockBlockContext(gomock.NewController(t))
 				blockContext.EXPECT().Number().Return(big.NewInt(6)).Times(1)
 				allowlisttest.SetDefaultRoles(acp224feemanager.Module.Address)(t, state)
-				require.NoError(t, acp224feemanager.StoreFeeConfig(state, testDefaultUpdatedFeeConfig, blockContext))
+				require.NoError(t, acp224feemanager.StoreFeeConfig(state, acp224feemanager.ContractAddress, testDefaultUpdatedFeeConfig, blockContext))
 			},
 			InputFn: func(t testing.TB) []byte {
 				input, err := acp224feemanager.PackGetFeeConfig()
@@ -150,7 +154,7 @@ var (
 				blockContext := contract.NewMockBlockContext(gomock.NewController(t))
 				blockContext.EXPECT().Number().Return(testBlockNumber).Times(1)
 				allowlisttest.SetDefaultRoles(acp224feemanager.Module.Address)(t, state)
-				require.NoError(t, acp224feemanager.StoreFeeConfig(state, testDefaultUpdatedFeeConfig, blockContext))
+				require.NoError(t, acp224feemanager.StoreFeeConfig(state, acp224feemanager.ContractAddress, testDefaultUpdatedFeeConfig, blockContext))
 			},
 			InputFn: func(t testing.TB) []byte {
 				input, err := acp224feemanager.PackGetFeeConfigLastChangedAt()
@@ -165,9 +169,9 @@ var (
 				return packedOutput
 			}(),
 			AfterHook: func(t testing.TB, state *extstate.StateDB) {
-				feeConfig := acp224feemanager.GetStoredFeeConfig(state)
+				feeConfig := acp224feemanager.GetStoredFeeConfig(state, acp224feemanager.ContractAddress)
 				require.Equal(t, testDefaultUpdatedFeeConfig, feeConfig)
-				lastChangedAt := acp224feemanager.GetFeeConfigLastChangedAt(state)
+				lastChangedAt := acp224feemanager.GetFeeConfigLastChangedAt(state, acp224feemanager.ContractAddress)
 				require.Equal(t, testBlockNumber, lastChangedAt)
 			},
 			SuppliedGas: acp224feemanager.GetFeeConfigLastChangedAtGasCost,
@@ -180,7 +184,7 @@ var (
 				blockContext := contract.NewMockBlockContext(gomock.NewController(t))
 				blockContext.EXPECT().Number().Return(testBlockNumber).Times(1)
 				allowlisttest.SetDefaultRoles(acp224feemanager.Module.Address)(t, state)
-				require.NoError(t, acp224feemanager.StoreFeeConfig(state, testDefaultUpdatedFeeConfig, blockContext))
+				require.NoError(t, acp224feemanager.StoreFeeConfig(state, acp224feemanager.ContractAddress, testDefaultUpdatedFeeConfig, blockContext))
 			},
 			InputFn: func(t testing.TB) []byte {
 				input, err := acp224feemanager.PackGetFeeConfigLastChangedAt()
@@ -195,9 +199,9 @@ var (
 				return packedOutput
 			}(),
 			AfterHook: func(t testing.TB, state *extstate.StateDB) {
-				feeConfig := acp224feemanager.GetStoredFeeConfig(state)
+				feeConfig := acp224feemanager.GetStoredFeeConfig(state, acp224feemanager.ContractAddress)
 				require.Equal(t, testDefaultUpdatedFeeConfig, feeConfig)
-				lastChangedAt := acp224feemanager.GetFeeConfigLastChangedAt(state)
+				lastChangedAt := acp224feemanager.GetFeeConfigLastChangedAt(state, acp224feemanager.ContractAddress)
 				require.Equal(t, testBlockNumber, lastChangedAt)
 			},
 			SuppliedGas: acp224feemanager.GetFeeConfigLastChangedAtGasCost,
@@ -210,7 +214,7 @@ var (
 				blockContext := contract.NewMockBlockContext(gomock.NewController(t))
 				blockContext.EXPECT().Number().Return(testBlockNumber).Times(1)
 				allowlisttest.SetDefaultRoles(acp224feemanager.Module.Address)(t, state)
-				require.NoError(t, acp224feemanager.StoreFeeConfig(state, testDefaultUpdatedFeeConfig, blockContext))
+				require.NoError(t, acp224feemanager.StoreFeeConfig(state, acp224feemanager.ContractAddress, testDefaultUpdatedFeeConfig, blockContext))
 			},
 			InputFn: func(t testing.TB) []byte {
 				input, err := acp224feemanager.PackGetFeeConfigLastChangedAt()
@@ -225,9 +229,9 @@ var (
 				return packedOutput
 			}(),
 			AfterHook: func(t testing.TB, state *extstate.StateDB) {
-				feeConfig := acp224feemanager.GetStoredFeeConfig(state)
+				feeConfig := acp224feemanager.GetStoredFeeConfig(state, acp224feemanager.ContractAddress)
 				require.Equal(t, testDefaultUpdatedFeeConfig, feeConfig)
-				lastChangedAt := acp224feemanager.GetFeeConfigLastChangedAt(state)
+				lastChangedAt := acp224feemanager.GetFeeConfigLastChangedAt(state, acp224feemanager.ContractAddress)
 				require.Equal(t, testBlockNumber, lastChangedAt)
 			},
 			SuppliedGas: acp224feemanager.GetFeeConfigLastChangedAtGasCost,
@@ -240,7 +244,7 @@ var (
 				blockContext := contract.NewMockBlockContext(gomock.NewController(t))
 				blockContext.EXPECT().Number().Return(testBlockNumber).Times(1)
 				allowlisttest.SetDefaultRoles(acp224feemanager.Module.Address)(t, state)
-				require.NoError(t, acp224feemanager.StoreFeeConfig(state, testDefaultUpdatedFeeConfig, blockContext))
+				require.NoError(t, acp224feemanager.StoreFeeConfig(state, acp224feemanager.ContractAddress, testDefaultUpdatedFeeConfig, blockContext))
 			},
 			InputFn: func(t testing.TB) []byte {
 				input, err := acp224feemanager.PackGetFeeConfigLastChangedAt()
@@ -255,9 +259,9 @@ var (
 				return packedOutput
 			}(),
 			AfterHook: func(t testing.TB, state *extstate.StateDB) {
-				feeConfig := acp224feemanager.GetStoredFeeConfig(state)
+				feeConfig := acp224feemanager.GetStoredFeeConfig(state, acp224feemanager.ContractAddress)
 				require.Equal(t, testDefaultUpdatedFeeConfig, feeConfig)
-				lastChangedAt := acp224feemanager.GetFeeConfigLastChangedAt(state)
+				lastChangedAt := acp224feemanager.GetFeeConfigLastChangedAt(state, acp224feemanager.ContractAddress)
 				require.Equal(t, testBlockNumber, lastChangedAt)
 			},
 			SuppliedGas: acp224feemanager.GetFeeConfigLastChangedAtGasCost,
