@@ -403,7 +403,7 @@ func (vm *shutdownOnceVM) Shutdown(ctx context.Context) error {
 type syncTest struct {
 	responseIntercept  func(vm *VM, nodeID ids.NodeID, requestID uint32, response []byte)
 	stateSyncMinBlocks uint64
-	syncableInterval   uint64 //nolint:unused
+	syncableInterval   uint64
 	syncMode           block.StateSyncMode
 	expectedErr        error
 }
