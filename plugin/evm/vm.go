@@ -84,6 +84,7 @@ import (
 	avalanchegoprometheus "github.com/ava-labs/avalanchego/vms/evm/metrics/prometheus"
 	ethparams "github.com/ava-labs/libevm/params"
 	subnetevmlog "github.com/ava-labs/subnet-evm/plugin/evm/log"
+	vmsync "github.com/ava-labs/subnet-evm/plugin/evm/sync"
 	warpcontract "github.com/ava-labs/subnet-evm/precompile/contracts/warp"
 	statesyncclient "github.com/ava-labs/subnet-evm/sync/client"
 	avalancheRPC "github.com/gorilla/rpc/v2"
@@ -210,8 +211,6 @@ type VM struct {
 
 	validatorsDB database.Database
 
-	syntacticBlockValidator BlockValidator
-
 	// builderLock is used to synchronize access to the block builder,
 	// as it is uninitialized at first and is only initialized when onNormalOperationsStarted is called.
 	builderLock sync.Mutex
@@ -237,8 +236,8 @@ type VM struct {
 
 	logger subnetevmlog.Logger
 	// State sync server and client
-	StateSyncServer
-	StateSyncClient
+	vmsync.Server
+	vmsync.Client
 
 	// Avalanche Warp Messaging backend
 	// Used to serve BLS signatures of warp messages over RPC
@@ -325,8 +324,6 @@ func (vm *VM) Initialize(
 	if err != nil {
 		return err
 	}
-
-	vm.syntacticBlockValidator = NewBlockValidator()
 
 	vm.ethConfig = ethconfig.NewDefaultConfig()
 	vm.ethConfig.Genesis = g
@@ -495,10 +492,8 @@ func (vm *VM) Initialize(
 
 	vm.setAppRequestHandlers()
 
-	vm.StateSyncServer = NewStateSyncServer(&stateSyncServerConfig{
-		Chain:            vm.blockChain,
-		SyncableInterval: vm.config.StateSyncCommitInterval,
-	})
+	vm.stateSyncDone = make(chan struct{})
+
 	return vm.initializeStateSyncClient(lastAcceptedHeight)
 }
 
@@ -648,11 +643,11 @@ func (vm *VM) initializeStateSyncClient(lastAcceptedHeight uint64) error {
 		}
 	}
 
-	vm.StateSyncClient = NewStateSyncClient(&stateSyncClientConfig{
-		chain:         vm.eth,
-		state:         vm.State,
-		stateSyncDone: vm.stateSyncDone,
-		client: statesyncclient.NewClient(
+	vm.Client = vmsync.NewClient(&vmsync.ClientConfig{
+		Chain:         vm.eth,
+		State:         vm.State,
+		StateSyncDone: vm.stateSyncDone,
+		Client: statesyncclient.NewClient(
 			&statesyncclient.ClientConfig{
 				NetworkClient:    vm.Network,
 				Codec:            vm.networkCodec,
@@ -661,28 +656,31 @@ func (vm *VM) initializeStateSyncClient(lastAcceptedHeight uint64) error {
 				BlockParser:      vm,
 			},
 		),
-		enabled:              vm.config.StateSyncEnabled,
-		skipResume:           vm.config.StateSyncSkipResume,
-		stateSyncMinBlocks:   vm.config.StateSyncMinBlocks,
-		stateSyncRequestSize: vm.config.StateSyncRequestSize,
-		lastAcceptedHeight:   lastAcceptedHeight, // TODO clean up how this is passed around
-		chaindb:              vm.chaindb,
-		metadataDB:           vm.metadataDB,
-		acceptedBlockDB:      vm.acceptedBlockDB,
-		db:                   vm.versiondb,
+		Enabled:            vm.config.StateSyncEnabled,
+		SkipResume:         vm.config.StateSyncSkipResume,
+		MinBlocks:          vm.config.StateSyncMinBlocks,
+		RequestSize:        vm.config.StateSyncRequestSize,
+		LastAcceptedHeight: lastAcceptedHeight, // TODO clean up how this is passed around
+		ChaindDB:           vm.chaindb,
+		VerDB:              vm.versiondb,
+		MetadataDB:         vm.metadataDB,
+		Acceptor:           vm,
 	})
 
 	// If StateSync is disabled, clear any ongoing summary so that we will not attempt to resume
 	// sync using a snapshot that has been modified by the node running normal operations.
 	if !vm.config.StateSyncEnabled {
-		return vm.StateSyncClient.ClearOngoingSummary()
+		return vm.Client.ClearOngoingSummary()
 	}
 
 	return nil
 }
 
 func (vm *VM) initChainState(lastAcceptedBlock *types.Block) error {
-	block := vm.newBlock(lastAcceptedBlock)
+	block, err := wrapBlock(lastAcceptedBlock, vm)
+	if err != nil {
+		return fmt.Errorf("failed to wrap last accepted block: %w", err)
+	}
 
 	config := &chain.Config{
 		DecidedCacheSize:      decidedCacheSize,
@@ -730,11 +728,11 @@ func (vm *VM) SetState(_ context.Context, state snow.State) error {
 // onBootstrapStarted marks this VM as bootstrapping
 func (vm *VM) onBootstrapStarted() error {
 	vm.bootstrapped.Set(false)
-	if err := vm.StateSyncClient.Error(); err != nil {
+	if err := vm.Client.Error(); err != nil {
 		return err
 	}
 	// After starting bootstrapping, do not attempt to resume a previous state sync.
-	if err := vm.StateSyncClient.ClearOngoingSummary(); err != nil {
+	if err := vm.Client.ClearOngoingSummary(); err != nil {
 		return err
 	}
 	// Ensure snapshots are initialized before bootstrapping (i.e., if state sync is skipped).
@@ -928,7 +926,7 @@ func (vm *VM) Shutdown(context.Context) error {
 		}
 	}
 	vm.Network.Shutdown()
-	if err := vm.StateSyncClient.Shutdown(); err != nil {
+	if err := vm.Client.Shutdown(); err != nil {
 		log.Error("error stopping state syncer", "err", err)
 	}
 	close(vm.shutdownChan)
@@ -973,7 +971,10 @@ func (vm *VM) buildBlockWithContext(_ context.Context, proposerVMBlockCtx *block
 	}
 
 	// Note: the status of block is set by ChainState
-	blk := vm.newBlock(block)
+	blk, err := wrapBlock(block, vm)
+	if err != nil {
+		return nil, fmt.Errorf("failed to wrap built block: %w", err)
+	}
 
 	// Verify is called on a non-wrapped block here, such that this
 	// does not add [blk] to the processing blocks map in ChainState.
@@ -1007,7 +1008,10 @@ func (vm *VM) parseBlock(_ context.Context, b []byte) (snowman.Block, error) {
 	}
 
 	// Note: the status of block is set by ChainState
-	block := vm.newBlock(ethBlock)
+	block, err := wrapBlock(ethBlock, vm)
+	if err != nil {
+		return nil, err
+	}
 	// Performing syntactic verification in ParseBlock allows for
 	// short-circuiting bad blocks before they are processed by the VM.
 	if err := block.syntacticVerify(); err != nil {
@@ -1022,7 +1026,7 @@ func (vm *VM) ParseEthBlock(b []byte) (*types.Block, error) {
 		return nil, err
 	}
 
-	return block.(*Block).ethBlock, nil
+	return block.(*wrappedBlock).ethBlock, nil
 }
 
 // getBlock attempts to retrieve block [id] from the VM to be wrapped
@@ -1035,7 +1039,7 @@ func (vm *VM) getBlock(_ context.Context, id ids.ID) (snowman.Block, error) {
 		return nil, database.ErrNotFound
 	}
 	// Note: the status of block is set by ChainState
-	return vm.newBlock(ethBlock), nil
+	return wrapBlock(ethBlock, vm)
 }
 
 // GetAcceptedBlock attempts to retrieve block [blkID] from the VM. This method
@@ -1069,7 +1073,7 @@ func (vm *VM) SetPreference(ctx context.Context, blkID ids.ID) error {
 		return fmt.Errorf("failed to set preference to %s: %w", blkID, err)
 	}
 
-	return vm.blockChain.SetPreference(block.(*Block).ethBlock)
+	return vm.blockChain.SetPreference(block.(*wrappedBlock).ethBlock)
 }
 
 // GetBlockIDAtHeight returns the canonical block at [height].
@@ -1337,4 +1341,8 @@ func (vm *VM) Disconnected(ctx context.Context, nodeID ids.NodeID) error {
 	}
 
 	return vm.Network.Disconnected(ctx, nodeID)
+}
+
+func (vm *VM) PutLastAcceptedID(id ids.ID) error {
+	return vm.acceptedBlockDB.Put(lastAcceptedKey, id[:])
 }
