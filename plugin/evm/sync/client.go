@@ -48,9 +48,9 @@ type EthBlockWrapper interface {
 // Extender is an interface that allows for extending the state sync process.
 type Extender interface {
 	// Sync is called to perform any extension-specific state sync logic.
-	Sync(ctx context.Context, client syncclient.LeafClient, verdb *versiondb.Database, syncSummary message.SyncSummary) error
+	Sync(ctx context.Context, client syncclient.LeafClient, verdb *versiondb.Database, syncSummary message.Syncable) error
 	// OnFinishBeforeCommit is called after the state sync process has completed but before the state sync summary is committed.
-	OnFinishBeforeCommit(lastAcceptedHeight uint64, syncSummary message.SyncSummary) error
+	OnFinishBeforeCommit(lastAcceptedHeight uint64, syncSummary message.Syncable) error
 	// OnFinishAfterCommit is called after the state sync process has completed and the state sync summary is committed.
 	OnFinishAfterCommit(summaryHeight uint64) error
 }
@@ -74,6 +74,8 @@ type ClientConfig struct {
 	VerDB      *versiondb.Database
 	MetadataDB database.Database
 
+	// Extension points
+	Parser message.SyncableParser
 	// Extender is an optional extension point for the state sync process, and can be nil.
 	Extender Extender
 
@@ -85,13 +87,13 @@ type ClientConfig struct {
 type client struct {
 	*ClientConfig
 
-	resumableSummary message.SyncSummary
+	resumableSummary message.Syncable
 
 	cancel context.CancelFunc
 	wg     sync.WaitGroup
 
 	// State Sync results
-	summary message.SyncSummary
+	summary message.Syncable
 	err     error
 }
 
@@ -140,7 +142,7 @@ func (client *client) GetOngoingSyncStateSummary(context.Context) (block.StateSu
 		return nil, err // includes the [database.ErrNotFound] case
 	}
 
-	summary, err := message.NewSyncSummaryFromBytes(summaryBytes, client.acceptSyncSummary)
+	summary, err := client.Parser.Parse(summaryBytes, client.acceptSyncSummary)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse saved state sync summary to SyncSummary: %w", err)
 	}
@@ -161,13 +163,13 @@ func (client *client) ClearOngoingSummary() error {
 }
 
 func (client *client) ParseStateSummary(_ context.Context, summaryBytes []byte) (block.StateSummary, error) {
-	return message.NewSyncSummaryFromBytes(summaryBytes, client.acceptSyncSummary)
+	return client.Parser.Parse(summaryBytes, client.acceptSyncSummary)
 }
 
 // stateSync blockingly performs the state sync for the EVM state and the atomic state
 // to [client.syncSummary]. returns an error if one occurred.
 func (client *client) stateSync(ctx context.Context) error {
-	if err := client.syncBlocks(ctx, client.summary.BlockHash, client.summary.BlockNumber, ParentsToFetch); err != nil {
+	if err := client.syncBlocks(ctx, client.summary.GetBlockHash(), client.summary.Height(), ParentsToFetch); err != nil {
 		return err
 	}
 
@@ -184,17 +186,18 @@ func (client *client) stateSync(ctx context.Context) error {
 
 // acceptSyncSummary returns true if sync will be performed and launches the state sync process
 // in a goroutine.
-func (client *client) acceptSyncSummary(proposedSummary message.SyncSummary) (block.StateSyncMode, error) {
-	isResume := proposedSummary.BlockHash == client.resumableSummary.BlockHash
+func (client *client) acceptSyncSummary(proposedSummary message.Syncable) (block.StateSyncMode, error) {
+	isResume := client.resumableSummary != nil &&
+		proposedSummary.GetBlockHash() == client.resumableSummary.GetBlockHash()
 	if !isResume {
 		// Skip syncing if the blockchain is not significantly ahead of local state,
 		// since bootstrapping would be faster.
 		// (Also ensures we don't sync to a height prior to local state.)
-		if client.LastAcceptedHeight+client.MinBlocks > proposedSummary.BlockNumber {
+		if client.LastAcceptedHeight+client.MinBlocks > proposedSummary.Height() {
 			log.Info(
 				"last accepted too close to most recent syncable block, skipping state sync",
 				"lastAccepted", client.LastAcceptedHeight,
-				"syncableHeight", proposedSummary.BlockNumber,
+				"syncableHeight", proposedSummary.Height(),
 			)
 			return block.StateSyncSkipped, nil
 		}
@@ -296,10 +299,10 @@ func (client *client) syncBlocks(ctx context.Context, fromHash common.Hash, from
 }
 
 func (client *client) syncStateTrie(ctx context.Context) error {
-	log.Info("state sync: sync starting", "root", client.summary.BlockRoot)
+	log.Info("state sync: sync starting", "root", client.summary.GetBlockRoot())
 	evmSyncer, err := statesync.NewStateSyncer(&statesync.StateSyncerConfig{
 		Client:                   client.Client,
-		Root:                     client.summary.BlockRoot,
+		Root:                     client.summary.GetBlockRoot(),
 		BatchSize:                ethdb.IdealBatchSize,
 		DB:                       client.ChaindDB,
 		MaxOutstandingCodeHashes: statesync.DefaultMaxOutstandingCodeHashes,
@@ -313,7 +316,7 @@ func (client *client) syncStateTrie(ctx context.Context) error {
 		return err
 	}
 	err = evmSyncer.Wait(ctx)
-	log.Info("state sync: sync finished", "root", client.summary.BlockRoot, "err", err)
+	log.Info("state sync: sync finished", "root", client.summary.GetBlockRoot(), "err", err)
 	return err
 }
 
@@ -328,9 +331,9 @@ func (client *client) Shutdown() error {
 // finishSync is responsible for updating disk and memory pointers so the VM is prepared
 // for bootstrapping. Executes any shared memory operations from the atomic trie to shared memory.
 func (client *client) finishSync() error {
-	stateBlock, err := client.State.GetBlock(context.TODO(), ids.ID(client.summary.BlockHash))
+	stateBlock, err := client.State.GetBlock(context.TODO(), ids.ID(client.summary.GetBlockHash()))
 	if err != nil {
-		return fmt.Errorf("could not get block by hash from client state: %s", client.summary.BlockHash)
+		return fmt.Errorf("could not get block by hash from client state: %s", client.summary.GetBlockHash())
 	}
 
 	wrapper, ok := stateBlock.(*chain.BlockWrapper)
@@ -346,10 +349,10 @@ func (client *client) finishSync() error {
 
 	block := evmBlockGetter.GetEthBlock()
 
-	if block.Hash() != client.summary.BlockHash {
-		return fmt.Errorf("attempted to set last summary block to unexpected block hash: (%s != %s)", block.Hash(), client.summary.BlockHash)
+	if block.Hash() != client.summary.GetBlockHash() {
+		return fmt.Errorf("attempted to set last summary block to unexpected block hash: (%s != %s)", block.Hash(), client.summary.GetBlockHash())
 	}
-	if block.NumberU64() != client.summary.BlockNumber {
+	if block.NumberU64() != client.summary.Height() {
 		return fmt.Errorf("attempted to set last summary block to unexpected block number: (%d != %d)", block.NumberU64(), client.summary.Height())
 	}
 
@@ -398,7 +401,7 @@ func (client *client) commitVMMarkers() error {
 	// Mark the previously last accepted block for the shared memory cursor, so that we will execute shared
 	// memory operations from the previously last accepted block to [vm.syncSummary] when ApplyToSharedMemory
 	// is called.
-	id := ids.ID(client.summary.BlockHash)
+	id := ids.ID(client.summary.GetBlockHash())
 	if err := client.Acceptor.PutLastAcceptedID(id); err != nil {
 		return err
 	}

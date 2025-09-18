@@ -67,6 +67,7 @@ import (
 	"github.com/ava-labs/subnet-evm/params/extras"
 	"github.com/ava-labs/subnet-evm/plugin/evm/config"
 	"github.com/ava-labs/subnet-evm/plugin/evm/customrawdb"
+	"github.com/ava-labs/subnet-evm/plugin/evm/extension"
 	"github.com/ava-labs/subnet-evm/plugin/evm/gossip"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
 	"github.com/ava-labs/subnet-evm/plugin/evm/validators"
@@ -180,6 +181,9 @@ type VM struct {
 	chainConfig *params.ChainConfig
 	ethConfig   ethconfig.Config
 
+	// Extension Points
+	extensionConfig *extension.Config
+
 	// pointers to eth constructs
 	eth        *eth.Ethereum
 	txPool     *txpool.TxPool
@@ -271,6 +275,20 @@ func (vm *VM) Initialize(
 		return fmt.Errorf("failed to get config: %w", err)
 	}
 	vm.config = cfg
+
+	// Initialize extension config if not already set
+	if vm.extensionConfig == nil {
+		// Initialize clock if not already set
+		if vm.clock == (mockable.Clock{}) {
+			vm.clock = mockable.Clock{}
+		}
+		vm.extensionConfig = &extension.Config{
+			SyncSummaryProvider: &message.BlockSyncSummaryProvider{},
+			SyncableParser:      message.NewBlockSyncSummaryParser(),
+		}
+		// Provide a clock to the extension config before validation
+		vm.extensionConfig.Clock = &vm.clock
+	}
 
 	vm.ctx = chainCtx
 
@@ -663,6 +681,7 @@ func (vm *VM) initializeStateSyncClient(lastAcceptedHeight uint64) error {
 		VerDB:              vm.versiondb,
 		MetadataDB:         vm.metadataDB,
 		Acceptor:           vm,
+		Parser:             vm.extensionConfig.SyncableParser,
 	})
 
 	// If StateSync is disabled, clear any ongoing summary so that we will not attempt to resume
@@ -886,6 +905,8 @@ func (vm *VM) setAppRequestHandlers() {
 
 	networkHandler := newNetworkHandler(vm.blockChain, vm.chaindb, evmTrieDB, vm.networkCodec)
 	vm.Network.SetRequestHandler(networkHandler)
+
+	vm.Server = vmsync.NewServer(vm.blockChain, vm.extensionConfig.SyncSummaryProvider, vm.config.StateSyncCommitInterval)
 }
 
 func (vm *VM) WaitForEvent(ctx context.Context) (commonEng.Message, error) {
