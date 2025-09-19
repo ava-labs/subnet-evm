@@ -25,16 +25,16 @@ import (
 // GenerateTrie creates a trie with [numKeys] random key-value pairs inside of [trieDB].
 // Returns the root of the generated trie, the slice of keys inserted into the trie in lexicographical
 // order, and the slice of corresponding values.
-func GenerateTrie(t *testing.T, trieDB *triedb.Database, numKeys int, keySize int) (common.Hash, [][]byte, [][]byte) {
+func GenerateTrie(t *testing.T, r *rand.Rand, trieDB *triedb.Database, numKeys int, keySize int) (common.Hash, [][]byte, [][]byte) {
 	if keySize < wrappers.LongLen+1 {
 		t.Fatal("key size must be at least 9 bytes (8 bytes for uint64 and 1 random byte)")
 	}
-	return FillTrie(t, 0, numKeys, keySize, trieDB, types.EmptyRootHash)
+	return FillTrie(t, r, 0, numKeys, keySize, trieDB, types.EmptyRootHash)
 }
 
 // FillTrie fills a given trie with [numKeys] random keys, each of size [keySize]
 // returns inserted keys and values
-func FillTrie(t *testing.T, start, numKeys int, keySize int, trieDB *triedb.Database, root common.Hash) (common.Hash, [][]byte, [][]byte) {
+func FillTrie(t *testing.T, r *rand.Rand, start, numKeys int, keySize int, trieDB *triedb.Database, root common.Hash) (common.Hash, [][]byte, [][]byte) {
 	testTrie, err := trie.New(trie.TrieID(root), trieDB)
 	if err != nil {
 		t.Fatalf("error creating trie: %v", err)
@@ -44,7 +44,6 @@ func FillTrie(t *testing.T, start, numKeys int, keySize int, trieDB *triedb.Data
 	values := make([][]byte, 0, numKeys)
 
 	// Generate key-value pairs
-	r := rand.New(rand.NewSource(1))
 	for i := start; i < numKeys; i++ {
 		key := make([]byte, keySize)
 		binary.BigEndian.PutUint64(key[:wrappers.LongLen], uint64(i+1))
@@ -143,7 +142,7 @@ func CorruptTrie(t *testing.T, diskdb ethdb.Batcher, tr *trie.Trie, n int) {
 // [onAccount] is called if non-nil (so the caller can modify the account before it is stored in the secure trie).
 // returns the new trie root and a map of funded keys to StateAccount structs.
 func FillAccounts(
-	t *testing.T, trieDB *triedb.Database, root common.Hash, numAccounts int,
+	t *testing.T, r *rand.Rand, trieDB *triedb.Database, root common.Hash, numAccounts int,
 	onAccount func(*testing.T, int, types.StateAccount) types.StateAccount,
 ) (common.Hash, map[*utilstest.Key]*types.StateAccount) {
 	var (
@@ -160,7 +159,7 @@ func FillAccounts(
 
 	for i := 0; i < numAccounts; i++ {
 		acc := types.StateAccount{
-			Nonce:    uint64(rand.Intn(maxNonce)),
+			Nonce:    uint64(r.Intn(maxNonce)),
 			Balance:  new(uint256.Int).Add(minBalance, randBalance),
 			CodeHash: types.EmptyCodeHash[:],
 			Root:     types.EmptyRootHash,
