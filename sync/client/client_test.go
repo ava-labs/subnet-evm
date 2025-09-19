@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"math/rand"
 	"strings"
 	"testing"
 
@@ -137,9 +136,6 @@ func TestGetCode(t *testing.T) {
 }
 
 func TestGetBlocks(t *testing.T) {
-	// set random seed for deterministic tests
-	rand.Seed(1)
-
 	gspec := &core.Genesis{
 		Config: params.TestChainConfig,
 	}
@@ -408,8 +404,6 @@ func buildGetter(blocks []*types.Block) handlers.BlockProvider {
 }
 
 func TestGetLeafs(t *testing.T) {
-	rand.Seed(1)
-
 	const leafsLimit = 1024
 
 	trieDB := triedb.NewDatabase(rawdb.NewMemoryDatabase(), nil)
@@ -781,8 +775,6 @@ func TestGetLeafs(t *testing.T) {
 }
 
 func TestGetLeafsRetries(t *testing.T) {
-	rand.Seed(1)
-
 	trieDB := triedb.NewDatabase(rawdb.NewMemoryDatabase(), nil)
 	root, _, _ := statesynctest.GenerateTrie(t, trieDB, 100_000, common.HashLength)
 
