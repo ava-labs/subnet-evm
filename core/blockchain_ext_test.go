@@ -28,6 +28,7 @@ import (
 	"github.com/ava-labs/subnet-evm/utils"
 
 	ethparams "github.com/ava-labs/libevm/params"
+	customheader "github.com/ava-labs/subnet-evm/plugin/evm/header"
 )
 
 type createFunc func(db ethdb.Database, gspec *Genesis, lastAcceptedHash common.Hash, dataPath string) (*BlockChain, error)
@@ -1419,7 +1420,7 @@ func GenerateChainInvalidBlockFee(t *testing.T, create createFunc) {
 		require.NoError(err)
 		gen.AddTx(signedTx)
 	})
-	require.ErrorIs(err, dummy.ErrInsufficientBlockGas)
+	require.ErrorIs(err, customheader.ErrInsufficientBlockGas)
 }
 
 func InsertChainInvalidBlockFee(t *testing.T, create createFunc) {
@@ -1463,7 +1464,7 @@ func InsertChainInvalidBlockFee(t *testing.T, create createFunc) {
 	})
 	require.NoError(err)
 	_, err = blockchain.InsertChain(chain)
-	require.ErrorIs(err, dummy.ErrInsufficientBlockGas)
+	require.ErrorIs(err, customheader.ErrInsufficientBlockGas)
 }
 
 func InsertChainValidBlockFee(t *testing.T, create createFunc) {
