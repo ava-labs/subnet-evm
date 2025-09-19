@@ -44,14 +44,15 @@ func FillTrie(t *testing.T, start, numKeys int, keySize int, trieDB *triedb.Data
 	values := make([][]byte, 0, numKeys)
 
 	// Generate key-value pairs
+	r := rand.New(rand.NewSource(1))
 	for i := start; i < numKeys; i++ {
 		key := make([]byte, keySize)
 		binary.BigEndian.PutUint64(key[:wrappers.LongLen], uint64(i+1))
-		_, err := rand.Read(key[wrappers.LongLen:])
+		_, err := r.Read(key[wrappers.LongLen:])
 		assert.NoError(t, err)
 
-		value := make([]byte, rand.Intn(128)+128) // min 128 bytes, max 256 bytes
-		_, err = rand.Read(value)
+		value := make([]byte, r.Intn(128)+128) // min 128 bytes, max 256 bytes
+		_, err = r.Read(value)
 		assert.NoError(t, err)
 
 		testTrie.MustUpdate(key, value)
