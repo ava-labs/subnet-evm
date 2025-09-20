@@ -205,8 +205,12 @@ func GetNetworkUpgrades(agoUpgrade upgrade.Config) NetworkUpgrades {
 		SubnetEVMTimestamp: utils.NewUint64(0),
 		DurangoTimestamp:   utils.TimeToNewUint64(agoUpgrade.DurangoTime),
 		EtnaTimestamp:      utils.TimeToNewUint64(agoUpgrade.EtnaTime),
-		FortunaTimestamp:   nil, // Fortuna is optional and has no effect on Subnet-EVM
-		GraniteTimestamp:   utils.TimeToNewUint64(agoUpgrade.GraniteTime),
+		// TODO: Fortuna was initially an optional upgrade upon its release, but it should be required as of the Granite upgrade.
+		// Chains can still opt to not activate Fortuna, but they will not be able to activate the Granite upgrade.
+		// Chains can also override this timestamp with a custom upgrade configuration.
+		// FortunaTimestamp: utils.TimeToNewUint64(agoUpgrade.GraniteTime),
+		FortunaTimestamp: nil,
+		GraniteTimestamp: utils.TimeToNewUint64(agoUpgrade.GraniteTime),
 	}
 }
 

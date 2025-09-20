@@ -57,4 +57,6 @@ type BlockChain interface {
 	StateAt(root common.Hash) (*state.StateDB, error)
 
 	GetFeeConfigAt(header *types.Header) (commontype.FeeConfig, *big.Int, error)
+
+	GetACP224FeeConfigAt(header *types.Header) (commontype.ACP224FeeConfig, *big.Int, error)
 }

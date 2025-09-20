@@ -283,6 +283,7 @@ func TestChainConfigMarshalWithUpgrades(t *testing.T) {
 			},
 			&extras.ChainConfig{
 				FeeConfig:          DefaultFeeConfig,
+				ACP224FeeConfig:    DefaultACP224FeeConfig,
 				AllowFeeRecipients: false,
 				NetworkUpgrades: extras.NetworkUpgrades{
 					SubnetEVMTimestamp: utils.NewUint64(0),
@@ -302,6 +303,12 @@ func TestChainConfigMarshalWithUpgrades(t *testing.T) {
 	result, err := json.Marshal(&config)
 	require.NoError(t, err)
 	expectedJSON := `{
+		"acp224FeeConfig": {
+			"targetGas": 20000000,
+			"minGasPrice": 1,
+			"timeToFillCapacity": 5,
+			"timeToDouble": 60
+		},
 		"chainId": 1,
 		"feeConfig": {
 			"gasLimit": 8000000,

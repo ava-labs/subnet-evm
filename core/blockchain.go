@@ -185,6 +185,13 @@ type cacheableFeeConfig struct {
 	lastChangedAt *big.Int
 }
 
+// cacheableACP224FeeConfig encapsulates ACP-224 fee configuration itself and the block number that it has changed at,
+// in order to cache them together.
+type cacheableACP224FeeConfig struct {
+	acp224FeeConfig commontype.ACP224FeeConfig
+	lastChangedAt   *big.Int
+}
+
 // cacheableCoinbaseConfig encapsulates coinbase address itself and allowFeeRecipient flag,
 // in order to cache them together.
 type cacheableCoinbaseConfig struct {
@@ -332,13 +339,14 @@ type BlockChain struct {
 
 	currentBlock atomic.Pointer[types.Header] // Current head of the block chain
 
-	bodyCache           *lru.Cache[common.Hash, *types.Body]              // Cache for the most recent block bodies
-	receiptsCache       *lru.Cache[common.Hash, []*types.Receipt]         // Cache for the most recent receipts per block
-	blockCache          *lru.Cache[common.Hash, *types.Block]             // Cache for the most recent entire blocks
-	txLookupCache       *lru.Cache[common.Hash, txLookup]                 // Cache for the most recent transaction lookup data.
-	badBlocks           *lru.Cache[common.Hash, *badBlock]                // Cache for bad blocks
-	feeConfigCache      *lru.Cache[common.Hash, *cacheableFeeConfig]      // Cache for the most recent feeConfig lookup data.
-	coinbaseConfigCache *lru.Cache[common.Hash, *cacheableCoinbaseConfig] // Cache for the most recent coinbaseConfig lookup data.
+	bodyCache            *lru.Cache[common.Hash, *types.Body]               // Cache for the most recent block bodies
+	receiptsCache        *lru.Cache[common.Hash, []*types.Receipt]          // Cache for the most recent receipts per block
+	blockCache           *lru.Cache[common.Hash, *types.Block]              // Cache for the most recent entire blocks
+	txLookupCache        *lru.Cache[common.Hash, txLookup]                  // Cache for the most recent transaction lookup data.
+	badBlocks            *lru.Cache[common.Hash, *badBlock]                 // Cache for bad blocks
+	feeConfigCache       *lru.Cache[common.Hash, *cacheableFeeConfig]       // Cache for the most recent feeConfig lookup data.
+	acp224FeeConfigCache *lru.Cache[common.Hash, *cacheableACP224FeeConfig] // Cache for the most recent ACP-224 feeConfig lookup data.
+	coinbaseConfigCache  *lru.Cache[common.Hash, *cacheableCoinbaseConfig]  // Cache for the most recent coinbaseConfig lookup data.
 
 	stopping atomic.Bool // false if chain is running, true when stopped
 
@@ -427,23 +435,24 @@ func NewBlockChain(
 	log.Info("")
 
 	bc := &BlockChain{
-		chainConfig:         chainConfig,
-		cacheConfig:         cacheConfig,
-		db:                  db,
-		triedb:              triedb,
-		bodyCache:           lru.NewCache[common.Hash, *types.Body](bodyCacheLimit),
-		receiptsCache:       lru.NewCache[common.Hash, []*types.Receipt](receiptsCacheLimit),
-		blockCache:          lru.NewCache[common.Hash, *types.Block](blockCacheLimit),
-		txLookupCache:       lru.NewCache[common.Hash, txLookup](txLookupCacheLimit),
-		badBlocks:           lru.NewCache[common.Hash, *badBlock](badBlockLimit),
-		feeConfigCache:      lru.NewCache[common.Hash, *cacheableFeeConfig](feeConfigCacheLimit),
-		coinbaseConfigCache: lru.NewCache[common.Hash, *cacheableCoinbaseConfig](coinbaseConfigCacheLimit),
-		engine:              engine,
-		vmConfig:            vmConfig,
-		senderCacher:        NewTxSenderCacher(runtime.NumCPU()),
-		acceptorQueue:       make(chan *types.Block, cacheConfig.AcceptorQueueLimit),
-		quit:                make(chan struct{}),
-		acceptedLogsCache:   NewFIFOCache[common.Hash, [][]*types.Log](cacheConfig.AcceptedCacheSize),
+		chainConfig:          chainConfig,
+		cacheConfig:          cacheConfig,
+		db:                   db,
+		triedb:               triedb,
+		bodyCache:            lru.NewCache[common.Hash, *types.Body](bodyCacheLimit),
+		receiptsCache:        lru.NewCache[common.Hash, []*types.Receipt](receiptsCacheLimit),
+		blockCache:           lru.NewCache[common.Hash, *types.Block](blockCacheLimit),
+		txLookupCache:        lru.NewCache[common.Hash, txLookup](txLookupCacheLimit),
+		badBlocks:            lru.NewCache[common.Hash, *badBlock](badBlockLimit),
+		feeConfigCache:       lru.NewCache[common.Hash, *cacheableFeeConfig](feeConfigCacheLimit),
+		acp224FeeConfigCache: lru.NewCache[common.Hash, *cacheableACP224FeeConfig](feeConfigCacheLimit),
+		coinbaseConfigCache:  lru.NewCache[common.Hash, *cacheableCoinbaseConfig](coinbaseConfigCacheLimit),
+		engine:               engine,
+		vmConfig:             vmConfig,
+		senderCacher:         NewTxSenderCacher(runtime.NumCPU()),
+		acceptorQueue:        make(chan *types.Block, cacheConfig.AcceptorQueueLimit),
+		quit:                 make(chan struct{}),
+		acceptedLogsCache:    NewFIFOCache[common.Hash, [][]*types.Log](cacheConfig.AcceptedCacheSize),
 	}
 	bc.stateCache = extstate.NewDatabaseWithNodeDB(bc.db, bc.triedb)
 	bc.validator = NewBlockValidator(chainConfig, bc, engine)

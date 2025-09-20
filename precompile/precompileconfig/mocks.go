@@ -203,6 +203,20 @@ func (mr *MockChainConfigMockRecorder) AllowedFeeRecipients() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AllowedFeeRecipients", reflect.TypeOf((*MockChainConfig)(nil).AllowedFeeRecipients))
 }
 
+// GetACP224FeeConfig mocks base method.
+func (m *MockChainConfig) GetACP224FeeConfig() commontype.ACP224FeeConfig {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetACP224FeeConfig")
+	ret0, _ := ret[0].(commontype.ACP224FeeConfig)
+	return ret0
+}
+
+// GetACP224FeeConfig indicates an expected call of GetACP224FeeConfig.
+func (mr *MockChainConfigMockRecorder) GetACP224FeeConfig() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetACP224FeeConfig", reflect.TypeOf((*MockChainConfig)(nil).GetACP224FeeConfig))
+}
+
 // GetFeeConfig mocks base method.
 func (m *MockChainConfig) GetFeeConfig() commontype.FeeConfig {
 	m.ctrl.T.Helper()

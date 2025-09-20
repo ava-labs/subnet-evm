@@ -146,6 +146,7 @@ type BlockChain interface {
 
 	SenderCacher() *core.TxSenderCacher
 	GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig, *big.Int, error)
+	GetACP224FeeConfigAt(parent *types.Header) (commontype.ACP224FeeConfig, *big.Int, error)
 }
 
 // Config are the configuration parameters of the transaction pool.
@@ -1851,8 +1852,16 @@ func (pool *LegacyPool) updateBaseFeeAt(head *types.Header) error {
 	if err != nil {
 		return err
 	}
+	acp224FeeConfig, _, err := pool.chain.GetACP224FeeConfigAt(head)
+	if err != nil {
+		return err
+	}
+	acp176Config, err := acp224FeeConfig.ToACP176Config()
+	if err != nil {
+		return err
+	}
 	chainConfig := params.GetExtra(pool.chainconfig)
-	baseFeeEstimate, err := header.EstimateNextBaseFee(chainConfig, feeConfig, head, uint64(time.Now().Unix()))
+	baseFeeEstimate, err := header.EstimateNextBaseFee(chainConfig, feeConfig, acp176Config, head, uint64(time.Now().Unix()))
 	if err != nil {
 		return err
 	}

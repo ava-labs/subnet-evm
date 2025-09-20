@@ -42,6 +42,7 @@ import (
 	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/core/state/snapshot"
 	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/precompile/contracts/acp224feemanager"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/feemanager"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/rewardmanager"
 )
@@ -397,6 +398,45 @@ func (bc *BlockChain) GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig
 	cacheable := &cacheableFeeConfig{feeConfig: storedFeeConfig, lastChangedAt: lastChangedAt}
 	// add it to the cache
 	bc.feeConfigCache.Add(parent.Root, cacheable)
+	return storedFeeConfig, lastChangedAt, nil
+}
+
+// GetACP224FeeConfigAt returns the ACP-224 fee configuration and the last changed block number at [parent].
+// If Fortuna is not activated, returns default fee config and nil block number.
+// If ACP224FeeManager is activated at [parent], returns the fee config in the precompile contract state.
+// Otherwise returns the fee config in the chain config.
+// Assumes that a valid configuration is stored when the precompile is activated.
+func (bc *BlockChain) GetACP224FeeConfigAt(parent *types.Header) (commontype.ACP224FeeConfig, *big.Int, error) {
+	config := params.GetExtra(bc.Config())
+	if !config.IsFortuna(parent.Time) {
+		return params.DefaultACP224FeeConfig, nil, nil
+	}
+	if !config.IsPrecompileEnabled(acp224feemanager.ContractAddress, parent.Time) {
+		return config.ACP224FeeConfig, common.Big0, nil
+	}
+
+	// try to return it from the cache
+	if cached, hit := bc.acp224FeeConfigCache.Get(parent.Root); hit {
+		return cached.acp224FeeConfig, cached.lastChangedAt, nil
+	}
+
+	stateDB, err := bc.StateAt(parent.Root)
+	if err != nil {
+		return commontype.EmptyACP224FeeConfig, nil, err
+	}
+
+	storedFeeConfig := acp224feemanager.GetStoredFeeConfig(stateDB, acp224feemanager.ContractAddress)
+	// this should not return an invalid fee config since it's assumed that
+	// StoreFeeConfig returns an error when an invalid fee config is attempted to be stored.
+	// However an external stateDB call can modify the contract state.
+	// This check is added to add a defense in-depth.
+	if err := storedFeeConfig.Verify(); err != nil {
+		return commontype.EmptyACP224FeeConfig, nil, err
+	}
+	lastChangedAt := acp224feemanager.GetFeeConfigLastChangedAt(stateDB, acp224feemanager.ContractAddress)
+	cacheable := &cacheableACP224FeeConfig{acp224FeeConfig: storedFeeConfig, lastChangedAt: lastChangedAt}
+	// add it to the cache
+	bc.acp224FeeConfigCache.Add(parent.Root, cacheable)
 	return storedFeeConfig, lastChangedAt, nil
 }
 

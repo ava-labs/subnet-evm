@@ -87,8 +87,9 @@ func (p *StateProcessor) Process(block *types.Block, parent *types.Header, state
 		return nil, nil, 0, err
 	}
 
+	rulesExtra := params.GetRulesExtra(p.config.Rules(blockNumber, params.IsMergeTODO, block.Time()))
 	var (
-		context = NewEVMBlockContext(header, p.bc, nil)
+		context = NewEVMBlockContext(rulesExtra.AvalancheRules, header, p.bc, nil)
 		vmenv   = vm.NewEVM(context, vm.TxContext{}, statedb, p.config, cfg)
 		signer  = types.MakeSigner(p.config, header.Number, header.Time)
 	)

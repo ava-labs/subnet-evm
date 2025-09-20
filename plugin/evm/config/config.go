@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ava-labs/avalanchego/vms/components/gas"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/common/hexutil"
 	"github.com/spf13/cast"
@@ -23,6 +24,11 @@ type (
 
 // Config ...
 type Config struct {
+	// GasTarget is the target gas per second that this node will attempt to use
+	// when creating blocks. If this config is not specified, the node will
+	// default to use the parent block's target gas per second.
+	GasTarget *gas.Gas `json:"gas-target,omitempty"`
+
 	// Airdrop
 	AirdropFile string `json:"airdrop"`
 

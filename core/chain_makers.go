@@ -31,6 +31,7 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ava-labs/avalanchego/vms/evm/upgrade/acp176"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/consensus/misc/eip4844"
 	"github.com/ava-labs/libevm/core/rawdb"
@@ -110,8 +111,9 @@ func (b *BlockGen) Difficulty() *big.Int {
 // block.
 func (b *BlockGen) SetParentBeaconRoot(root common.Hash) {
 	b.header.ParentBeaconRoot = &root
+	rulesExtra := params.GetRulesExtra(b.cm.config.Rules(b.header.Number, params.IsMergeTODO, b.header.Time))
 	var (
-		blockContext = NewEVMBlockContext(b.header, b.cm, &b.header.Coinbase)
+		blockContext = NewEVMBlockContext(rulesExtra.AvalancheRules, b.header, b.cm, &b.header.Coinbase)
 		vmenv        = vm.NewEVM(blockContext, vm.TxContext{}, b.statedb, b.cm.config, vm.Config{})
 	)
 	ProcessBeaconBlockRoot(root, vmenv, b.statedb)
@@ -129,7 +131,8 @@ func (b *BlockGen) addTx(bc *BlockChain, vmConfig vm.Config, tx *types.Transacti
 		b.SetCoinbase(common.Address{})
 	}
 	b.statedb.SetTxContext(tx.Hash(), len(b.txs))
-	blockContext := NewEVMBlockContext(b.header, bc, &b.header.Coinbase)
+	rulesExtra := params.GetRulesExtra(b.cm.config.Rules(b.header.Number, params.IsMergeTODO, b.header.Time))
+	blockContext := NewEVMBlockContext(rulesExtra.AvalancheRules, b.header, bc, &b.header.Coinbase)
 	receipt, err := ApplyTransaction(b.cm.config, bc, blockContext, b.gasPool, b.statedb, b.header, tx, &b.header.GasUsed, vmConfig)
 	if err != nil {
 		panic(err)
@@ -382,11 +385,22 @@ func (cm *chainMaker) makeHeader(parent *types.Block, gap uint64, state *state.S
 		panic(err)
 	}
 	config := params.GetExtra(cm.config)
-	gasLimit, err := header.GasLimit(config, feeConfig, parent.Header(), time)
+	var acp176Config acp176.Config
+	if config.IsFortuna(time) {
+		acp224FeeConfig, _, err := cm.GetACP224FeeConfigAt(parent.Header())
+		if err != nil {
+			panic(err)
+		}
+		acp176Config, err = acp224FeeConfig.ToACP176Config()
+		if err != nil {
+			panic(err)
+		}
+	}
+	gasLimit, err := header.GasLimit(config, feeConfig, acp176Config, parent.Header(), time)
 	if err != nil {
 		panic(err)
 	}
-	baseFee, err := header.BaseFee(config, feeConfig, parent.Header(), time)
+	baseFee, err := header.BaseFee(config, feeConfig, acp176Config, parent.Header(), time)
 	if err != nil {
 		panic(err)
 	}
@@ -501,6 +515,10 @@ func (cm *chainMaker) GetBlock(hash common.Hash, number uint64) *types.Block {
 
 func (cm *chainMaker) GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig, *big.Int, error) {
 	return params.GetExtra(cm.config).FeeConfig, nil, nil
+}
+
+func (cm *chainMaker) GetACP224FeeConfigAt(parent *types.Header) (commontype.ACP224FeeConfig, *big.Int, error) {
+	return params.GetExtra(cm.config).ACP224FeeConfig, nil, nil
 }
 
 func (cm *chainMaker) GetCoinbaseAt(parent *types.Header) (common.Address, bool, error) {

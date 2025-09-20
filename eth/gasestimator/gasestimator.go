@@ -218,9 +218,10 @@ func execute(ctx context.Context, call *core.Message, opts *Options, gasLimit ui
 // call invocation.
 func run(ctx context.Context, call *core.Message, opts *Options) (*core.ExecutionResult, error) {
 	// Assemble the call and the call context
+	rulesExtra := params.GetRulesExtra(opts.Config.Rules(opts.Header.Number, params.IsMergeTODO, opts.Header.Time))
 	var (
 		msgContext = core.NewEVMTxContext(call)
-		evmContext = core.NewEVMBlockContext(opts.Header, opts.Chain, nil)
+		evmContext = core.NewEVMBlockContext(rulesExtra.AvalancheRules, opts.Header, opts.Chain, nil)
 
 		dirtyState = opts.State.Copy()
 		evm        = vm.NewEVM(evmContext, msgContext, dirtyState, opts.Config, vm.Config{NoBaseFee: true})

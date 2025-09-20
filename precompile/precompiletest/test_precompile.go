@@ -104,6 +104,7 @@ func (test PrecompileTest) setup(t testing.TB, module modules.Module, state *tes
 		test.ChainConfigFn = func(ctrl *gomock.Controller) precompileconfig.ChainConfig {
 			mockChainConfig := precompileconfig.NewMockChainConfig(ctrl)
 			mockChainConfig.EXPECT().GetFeeConfig().AnyTimes().Return(commontype.ValidTestFeeConfig)
+			mockChainConfig.EXPECT().GetACP224FeeConfig().AnyTimes().Return(commontype.ValidTestACP224FeeConfig)
 			mockChainConfig.EXPECT().AllowedFeeRecipients().AnyTimes().Return(false)
 			mockChainConfig.EXPECT().IsDurango(gomock.Any()).AnyTimes().Return(true)
 			return mockChainConfig

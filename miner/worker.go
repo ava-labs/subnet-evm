@@ -40,6 +40,7 @@ import (
 	"github.com/ava-labs/avalanchego/utils/timer/mockable"
 	"github.com/ava-labs/avalanchego/utils/units"
 	"github.com/ava-labs/avalanchego/vms/evm/predicate"
+	"github.com/ava-labs/avalanchego/vms/evm/upgrade/acp176"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/consensus/misc/eip4844"
 	"github.com/ava-labs/libevm/core/state"
@@ -154,12 +155,20 @@ func (w *worker) commitNewWork(predicateContext *precompileconfig.PredicateConte
 	if err != nil {
 		return nil, err
 	}
+	acp224FeeConfig, _, err := w.chain.GetACP224FeeConfigAt(parent)
+	if err != nil {
+		return nil, err
+	}
+	acp176Config, err := acp224FeeConfig.ToACP176Config()
+	if err != nil {
+		return nil, err
+	}
 	chainConfig := params.GetExtra(w.chainConfig)
-	gasLimit, err := customheader.GasLimit(chainConfig, feeConfig, parent, timestamp)
+	gasLimit, err := customheader.GasLimit(chainConfig, feeConfig, acp176Config, parent, timestamp)
 	if err != nil {
 		return nil, fmt.Errorf("calculating new gas limit: %w", err)
 	}
-	baseFee, err := customheader.BaseFee(chainConfig, feeConfig, parent, timestamp)
+	baseFee, err := customheader.BaseFee(chainConfig, feeConfig, acp176Config, parent, timestamp)
 	if err != nil {
 		return nil, fmt.Errorf("failed to calculate new base fee: %w", err)
 	}
@@ -208,12 +217,13 @@ func (w *worker) commitNewWork(predicateContext *precompileconfig.PredicateConte
 		return nil, fmt.Errorf("failed to prepare header for mining: %w", err)
 	}
 
-	env, err := w.createCurrentEnvironment(predicateContext, parent, header, feeConfig, tstart)
+	env, err := w.createCurrentEnvironment(predicateContext, parent, header, feeConfig, acp176Config, tstart)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create new current environment: %w", err)
 	}
 	if header.ParentBeaconRoot != nil {
-		context := core.NewEVMBlockContext(header, w.chain, nil)
+		rulesExtra := params.GetRulesExtra(env.rules)
+		context := core.NewEVMBlockContext(rulesExtra.AvalancheRules, header, w.chain, nil)
 		vmenv := vm.NewEVM(context, vm.TxContext{}, env.state, w.chainConfig, vm.Config{})
 		core.ProcessBeaconBlockRoot(*header.ParentBeaconRoot, vmenv, env.state)
 	}
@@ -278,13 +288,20 @@ func (w *worker) commitNewWork(predicateContext *precompileconfig.PredicateConte
 	return w.commit(env)
 }
 
-func (w *worker) createCurrentEnvironment(predicateContext *precompileconfig.PredicateContext, parent *types.Header, header *types.Header, feeConfig commontype.FeeConfig, tstart time.Time) (*environment, error) {
+func (w *worker) createCurrentEnvironment(
+	predicateContext *precompileconfig.PredicateContext,
+	parent *types.Header,
+	header *types.Header,
+	feeConfig commontype.FeeConfig,
+	acp176Config acp176.Config,
+	tstart time.Time,
+) (*environment, error) {
 	currentState, err := w.chain.StateAt(parent.Root)
 	if err != nil {
 		return nil, err
 	}
 	chainConfig := params.GetExtra(w.chainConfig)
-	capacity, err := customheader.GasCapacity(chainConfig, feeConfig, parent, header.Time)
+	capacity, err := customheader.GasCapacity(chainConfig, feeConfig, acp176Config, parent, header.Time)
 	if err != nil {
 		return nil, fmt.Errorf("calculating gas capacity: %w", err)
 	}
@@ -350,7 +367,8 @@ func (w *worker) applyTransaction(env *environment, tx *types.Transaction, coinb
 		blockContext vm.BlockContext
 	)
 
-	if params.GetRulesExtra(env.rules).IsDurango {
+	rulesExtra := params.GetRulesExtra(env.rules)
+	if rulesExtra.IsDurango {
 		results, err := core.CheckPredicates(env.rules, env.predicateContext, tx)
 		if err != nil {
 			log.Debug("Transaction predicate failed verification in miner", "tx", tx.Hash(), "err", err)
@@ -362,9 +380,9 @@ func (w *worker) applyTransaction(env *environment, tx *types.Transaction, coinb
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshal predicate results: %w", err)
 		}
-		blockContext = core.NewEVMBlockContextWithPredicateResults(env.header, w.chain, &coinbase, predicateResultsBytes)
+		blockContext = core.NewEVMBlockContextWithPredicateResults(rulesExtra.AvalancheRules, env.header, w.chain, &coinbase, predicateResultsBytes)
 	} else {
-		blockContext = core.NewEVMBlockContext(env.header, w.chain, &coinbase)
+		blockContext = core.NewEVMBlockContext(rulesExtra.AvalancheRules, env.header, w.chain, &coinbase)
 	}
 
 	receipt, err := core.ApplyTransaction(w.chainConfig, w.chain, blockContext, env.gasPool, env.state, env.header, tx, &env.header.GasUsed, *w.chain.GetVMConfig())
