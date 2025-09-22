@@ -268,4 +268,3 @@ task("rewardManager:disableRewards", "Disables all rewards, and starts burning f
     const result = await rewardManager.disableRewards()
     console.log(result)
   })
-  
