@@ -3582,8 +3582,8 @@ func TestWaitForEvent(t *testing.T) {
 				go func() {
 					defer wg.Done()
 					msg, err := vm.WaitForEvent(ctx)
-					require.ErrorIs(t, err, context.DeadlineExceeded)
-					require.Zero(t, msg)
+					assert.ErrorIs(t, err, context.DeadlineExceeded)
+					assert.Zero(t, msg)
 				}()
 
 				wg.Wait()
@@ -3598,8 +3598,8 @@ func TestWaitForEvent(t *testing.T) {
 				go func() {
 					defer wg.Done()
 					msg, err := vm.WaitForEvent(context.Background())
-					require.NoError(t, err)
-					require.Equal(t, commonEng.PendingTxs, msg)
+					assert.NoError(t, err)
+					assert.Equal(t, commonEng.PendingTxs, msg)
 				}()
 
 				tx := types.NewTransaction(uint64(0), testEthAddrs[1], firstTxAmount, 21000, big.NewInt(testMinGasPrice), nil)
@@ -3643,8 +3643,8 @@ func TestWaitForEvent(t *testing.T) {
 				go func() {
 					defer wg.Done()
 					msg, err := vm.WaitForEvent(ctx)
-					require.ErrorIs(t, err, context.DeadlineExceeded)
-					require.Zero(t, msg)
+					assert.ErrorIs(t, err, context.DeadlineExceeded)
+					assert.Zero(t, msg)
 				}()
 
 				wg.Wait()
@@ -3666,8 +3666,8 @@ func TestWaitForEvent(t *testing.T) {
 				go func() {
 					defer wg.Done()
 					msg, err := vm.WaitForEvent(context.Background())
-					require.NoError(t, err)
-					require.Equal(t, commonEng.PendingTxs, msg)
+					assert.NoError(t, err)
+					assert.Equal(t, commonEng.PendingTxs, msg)
 				}()
 
 				wg.Wait()
@@ -3719,9 +3719,9 @@ func TestWaitForEvent(t *testing.T) {
 				go func() {
 					defer wg.Done()
 					msg, err := vm.WaitForEvent(context.Background())
-					require.NoError(t, err)
-					require.Equal(t, commonEng.PendingTxs, msg)
-					require.GreaterOrEqual(t, time.Since(lastBuildBlockTime), minBlockBuildingRetryDelay)
+					assert.NoError(t, err)
+					assert.Equal(t, commonEng.PendingTxs, msg)
+					assert.GreaterOrEqual(t, time.Since(lastBuildBlockTime), MinBlockBuildingRetryDelay)
 				}()
 
 				wg.Wait()

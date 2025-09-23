@@ -17,7 +17,7 @@ import (
 	"github.com/ava-labs/libevm/ethdb"
 	"github.com/ava-labs/libevm/trie"
 	"github.com/ava-labs/libevm/triedb"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/ava-labs/subnet-evm/core/state/snapshot"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
@@ -85,8 +85,8 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 	}
 
 	tests := map[string]struct {
-		prepareTestFn    func() (context.Context, message.LeafsRequest)
-		assertResponseFn func(*testing.T, message.LeafsRequest, []byte, error)
+		prepareTestFn     func() (context.Context, message.LeafsRequest)
+		requireResponseFn func(*testing.T, message.LeafsRequest, []byte, error)
 	}{
 		"zero limit dropped": {
 			prepareTestFn: func() (context.Context, message.LeafsRequest) {
@@ -97,10 +97,10 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 					Limit: 0,
 				}
 			},
-			assertResponseFn: func(t *testing.T, _ message.LeafsRequest, response []byte, err error) {
-				assert.Nil(t, response)
-				assert.Nil(t, err)
-				assert.EqualValues(t, 1, mockHandlerStats.InvalidLeafsRequestCount)
+			requireResponseFn: func(t *testing.T, _ message.LeafsRequest, response []byte, err error) {
+				require.Nil(t, response)
+				require.NoError(t, err)
+				require.Equal(t, uint32(1), mockHandlerStats.InvalidLeafsRequestCount)
 			},
 		},
 		"empty root dropped": {
@@ -112,10 +112,10 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 					Limit: maxLeavesLimit,
 				}
 			},
-			assertResponseFn: func(t *testing.T, _ message.LeafsRequest, response []byte, err error) {
-				assert.Nil(t, response)
-				assert.Nil(t, err)
-				assert.EqualValues(t, 1, mockHandlerStats.InvalidLeafsRequestCount)
+			requireResponseFn: func(t *testing.T, _ message.LeafsRequest, response []byte, err error) {
+				require.Nil(t, response)
+				require.NoError(t, err)
+				require.Equal(t, uint32(1), mockHandlerStats.InvalidLeafsRequestCount)
 			},
 		},
 		"bad start len dropped": {
@@ -127,10 +127,10 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 					Limit: maxLeavesLimit,
 				}
 			},
-			assertResponseFn: func(t *testing.T, _ message.LeafsRequest, response []byte, err error) {
-				assert.Nil(t, response)
-				assert.Nil(t, err)
-				assert.EqualValues(t, 1, mockHandlerStats.InvalidLeafsRequestCount)
+			requireResponseFn: func(t *testing.T, _ message.LeafsRequest, response []byte, err error) {
+				require.Nil(t, response)
+				require.NoError(t, err)
+				require.Equal(t, uint32(1), mockHandlerStats.InvalidLeafsRequestCount)
 			},
 		},
 		"bad end len dropped": {
@@ -142,10 +142,10 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 					Limit: maxLeavesLimit,
 				}
 			},
-			assertResponseFn: func(t *testing.T, _ message.LeafsRequest, response []byte, err error) {
-				assert.Nil(t, response)
-				assert.Nil(t, err)
-				assert.EqualValues(t, 1, mockHandlerStats.InvalidLeafsRequestCount)
+			requireResponseFn: func(t *testing.T, _ message.LeafsRequest, response []byte, err error) {
+				require.Nil(t, response)
+				require.NoError(t, err)
+				require.Equal(t, uint32(1), mockHandlerStats.InvalidLeafsRequestCount)
 			},
 		},
 		"empty storage root dropped": {
@@ -157,10 +157,10 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 					Limit: maxLeavesLimit,
 				}
 			},
-			assertResponseFn: func(t *testing.T, _ message.LeafsRequest, response []byte, err error) {
-				assert.Nil(t, response)
-				assert.Nil(t, err)
-				assert.EqualValues(t, 1, mockHandlerStats.InvalidLeafsRequestCount)
+			requireResponseFn: func(t *testing.T, _ message.LeafsRequest, response []byte, err error) {
+				require.Nil(t, response)
+				require.NoError(t, err)
+				require.Equal(t, uint32(1), mockHandlerStats.InvalidLeafsRequestCount)
 			},
 		},
 		"missing root dropped": {
@@ -172,10 +172,10 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 					Limit: maxLeavesLimit,
 				}
 			},
-			assertResponseFn: func(t *testing.T, _ message.LeafsRequest, response []byte, err error) {
-				assert.Nil(t, response)
-				assert.Nil(t, err)
-				assert.EqualValues(t, 1, mockHandlerStats.MissingRootCount)
+			requireResponseFn: func(t *testing.T, _ message.LeafsRequest, response []byte, err error) {
+				require.Nil(t, response)
+				require.NoError(t, err)
+				require.Equal(t, uint32(1), mockHandlerStats.MissingRootCount)
 			},
 		},
 		"corrupted trie drops request": {
@@ -187,10 +187,10 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 					Limit: maxLeavesLimit,
 				}
 			},
-			assertResponseFn: func(t *testing.T, _ message.LeafsRequest, response []byte, err error) {
-				assert.Nil(t, response)
-				assert.Nil(t, err)
-				assert.EqualValues(t, uint32(1), mockHandlerStats.TrieErrorCount)
+			requireResponseFn: func(t *testing.T, _ message.LeafsRequest, response []byte, err error) {
+				require.Nil(t, response)
+				require.NoError(t, err)
+				require.Equal(t, uint32(1), mockHandlerStats.TrieErrorCount)
 			},
 		},
 		"cancelled context dropped": {
@@ -204,9 +204,9 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 					Limit: maxLeavesLimit,
 				}
 			},
-			assertResponseFn: func(t *testing.T, _ message.LeafsRequest, response []byte, err error) {
-				assert.Nil(t, response)
-				assert.Nil(t, err)
+			requireResponseFn: func(t *testing.T, _ message.LeafsRequest, response []byte, err error) {
+				require.Nil(t, response)
+				require.NoError(t, err)
 			},
 		},
 		"nil start and end range returns entire trie": {
@@ -218,14 +218,14 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 					Limit: maxLeavesLimit,
 				}
 			},
-			assertResponseFn: func(t *testing.T, _ message.LeafsRequest, response []byte, err error) {
-				assert.NoError(t, err)
+			requireResponseFn: func(t *testing.T, _ message.LeafsRequest, response []byte, err error) {
+				require.NoError(t, err)
 				var leafsResponse message.LeafsResponse
 				_, err = message.Codec.Unmarshal(response, &leafsResponse)
-				assert.NoError(t, err)
-				assert.Len(t, leafsResponse.Keys, 500)
-				assert.Len(t, leafsResponse.Vals, 500)
-				assert.Len(t, leafsResponse.ProofVals, 0)
+				require.NoError(t, err)
+				require.Len(t, leafsResponse.Keys, 500)
+				require.Len(t, leafsResponse.Vals, 500)
+				require.Empty(t, leafsResponse.ProofVals)
 			},
 		},
 		"nil end range treated like greatest possible value": {
@@ -237,13 +237,13 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 					Limit: maxLeavesLimit,
 				}
 			},
-			assertResponseFn: func(t *testing.T, _ message.LeafsRequest, response []byte, err error) {
-				assert.NoError(t, err)
+			requireResponseFn: func(t *testing.T, _ message.LeafsRequest, response []byte, err error) {
+				require.NoError(t, err)
 				var leafsResponse message.LeafsResponse
 				_, err = message.Codec.Unmarshal(response, &leafsResponse)
-				assert.NoError(t, err)
-				assert.Len(t, leafsResponse.Keys, 500)
-				assert.Len(t, leafsResponse.Vals, 500)
+				require.NoError(t, err)
+				require.Len(t, leafsResponse.Keys, 500)
+				require.Len(t, leafsResponse.Vals, 500)
 			},
 		},
 		"end greater than start dropped": {
@@ -257,10 +257,10 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 					Limit: maxLeavesLimit,
 				}
 			},
-			assertResponseFn: func(t *testing.T, _ message.LeafsRequest, response []byte, err error) {
-				assert.Nil(t, response)
-				assert.Nil(t, err)
-				assert.EqualValues(t, 1, mockHandlerStats.InvalidLeafsRequestCount)
+			requireResponseFn: func(t *testing.T, _ message.LeafsRequest, response []byte, err error) {
+				require.Nil(t, response)
+				require.NoError(t, err)
+				require.Equal(t, uint32(1), mockHandlerStats.InvalidLeafsRequestCount)
 			},
 		},
 		"invalid node type dropped": {
@@ -274,9 +274,9 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 					Limit: maxLeavesLimit,
 				}
 			},
-			assertResponseFn: func(t *testing.T, _ message.LeafsRequest, response []byte, err error) {
-				assert.Nil(t, response)
-				assert.Nil(t, err)
+			requireResponseFn: func(t *testing.T, _ message.LeafsRequest, response []byte, err error) {
+				require.Nil(t, response)
+				require.NoError(t, err)
 			},
 		},
 		"max leaves overridden": {
@@ -288,15 +288,15 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 					Limit: maxLeavesLimit * 10,
 				}
 			},
-			assertResponseFn: func(t *testing.T, _ message.LeafsRequest, response []byte, err error) {
-				assert.NoError(t, err)
+			requireResponseFn: func(t *testing.T, _ message.LeafsRequest, response []byte, err error) {
+				require.NoError(t, err)
 				var leafsResponse message.LeafsResponse
 				_, err = message.Codec.Unmarshal(response, &leafsResponse)
-				assert.NoError(t, err)
-				assert.EqualValues(t, len(leafsResponse.Keys), maxLeavesLimit)
-				assert.EqualValues(t, len(leafsResponse.Vals), maxLeavesLimit)
-				assert.EqualValues(t, 1, mockHandlerStats.LeafsRequestCount)
-				assert.EqualValues(t, len(leafsResponse.Keys), mockHandlerStats.LeafsReturnedSum)
+				require.NoError(t, err)
+				require.Len(t, leafsResponse.Keys, int(maxLeavesLimit))
+				require.Len(t, leafsResponse.Vals, int(maxLeavesLimit))
+				require.Equal(t, uint32(1), testHandlerStats.LeafsRequestCount)
+				require.Equal(t, uint32(len(leafsResponse.Keys)), mockHandlerStats.LeafsReturnedSum)
 			},
 		},
 		"full range with nil start": {
@@ -308,16 +308,16 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 					Limit: maxLeavesLimit,
 				}
 			},
-			assertResponseFn: func(t *testing.T, request message.LeafsRequest, response []byte, err error) {
-				assert.NoError(t, err)
+			requireResponseFn: func(t *testing.T, request message.LeafsRequest, response []byte, err error) {
+				require.NoError(t, err)
 				var leafsResponse message.LeafsResponse
 				_, err = message.Codec.Unmarshal(response, &leafsResponse)
-				assert.NoError(t, err)
-				assert.EqualValues(t, len(leafsResponse.Keys), maxLeavesLimit)
-				assert.EqualValues(t, len(leafsResponse.Vals), maxLeavesLimit)
-				assert.EqualValues(t, 1, mockHandlerStats.LeafsRequestCount)
-				assert.EqualValues(t, len(leafsResponse.Keys), mockHandlerStats.LeafsReturnedSum)
-				assertRangeProofIsValid(t, &request, &leafsResponse, true)
+				require.NoError(t, err)
+				require.Len(t, leafsResponse.Keys, int(maxLeavesLimit))
+				require.Len(t, leafsResponse.Vals, int(maxLeavesLimit))
+				require.Equal(t, uint32(1), testHandlerStats.LeafsRequestCount)
+				require.Equal(t, uint32(len(leafsResponse.Keys)), mockHandlerStats.LeafsReturnedSum)
+				requireRangeProofIsValid(t, &request, &leafsResponse, true)
 			},
 		},
 		"full range with 0x00 start": {
@@ -329,16 +329,16 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 					Limit: maxLeavesLimit,
 				}
 			},
-			assertResponseFn: func(t *testing.T, request message.LeafsRequest, response []byte, err error) {
-				assert.NoError(t, err)
+			requireResponseFn: func(t *testing.T, request message.LeafsRequest, response []byte, err error) {
+				require.NoError(t, err)
 				var leafsResponse message.LeafsResponse
 				_, err = message.Codec.Unmarshal(response, &leafsResponse)
-				assert.NoError(t, err)
-				assert.EqualValues(t, len(leafsResponse.Keys), maxLeavesLimit)
-				assert.EqualValues(t, len(leafsResponse.Vals), maxLeavesLimit)
-				assert.EqualValues(t, 1, mockHandlerStats.LeafsRequestCount)
-				assert.EqualValues(t, len(leafsResponse.Keys), mockHandlerStats.LeafsReturnedSum)
-				assertRangeProofIsValid(t, &request, &leafsResponse, true)
+				require.NoError(t, err)
+				require.Len(t, leafsResponse.Keys, int(maxLeavesLimit))
+				require.Len(t, leafsResponse.Vals, int(maxLeavesLimit))
+				require.Equal(t, uint32(1), mockHandlerStats.LeafsRequestCount)
+				require.Equal(t, uint32(len(leafsResponse.Keys)), mockHandlerStats.LeafsReturnedSum)
+				requireRangeProofIsValid(t, &request, &leafsResponse, true)
 			},
 		},
 		"partial mid range": {
@@ -353,16 +353,16 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 					Limit: maxLeavesLimit,
 				}
 			},
-			assertResponseFn: func(t *testing.T, request message.LeafsRequest, response []byte, err error) {
-				assert.NoError(t, err)
+			requireResponseFn: func(t *testing.T, request message.LeafsRequest, response []byte, err error) {
+				require.NoError(t, err)
 				var leafsResponse message.LeafsResponse
 				_, err = message.Codec.Unmarshal(response, &leafsResponse)
-				assert.NoError(t, err)
-				assert.EqualValues(t, 40, len(leafsResponse.Keys))
-				assert.EqualValues(t, 40, len(leafsResponse.Vals))
-				assert.EqualValues(t, 1, mockHandlerStats.LeafsRequestCount)
-				assert.EqualValues(t, len(leafsResponse.Keys), mockHandlerStats.LeafsReturnedSum)
-				assertRangeProofIsValid(t, &request, &leafsResponse, true)
+				require.NoError(t, err)
+				require.Len(t, leafsResponse.Keys, 40)
+				require.Len(t, leafsResponse.Vals, 40)
+				require.Equal(t, uint32(1), mockHandlerStats.LeafsRequestCount)
+				require.Equal(t, uint32(len(leafsResponse.Keys)), mockHandlerStats.LeafsReturnedSum)
+				requireRangeProofIsValid(t, &request, &leafsResponse, true)
 			},
 		},
 		"partial end range": {
@@ -374,16 +374,16 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 					Limit: maxLeavesLimit,
 				}
 			},
-			assertResponseFn: func(t *testing.T, request message.LeafsRequest, response []byte, err error) {
-				assert.NoError(t, err)
+			requireResponseFn: func(t *testing.T, request message.LeafsRequest, response []byte, err error) {
+				require.NoError(t, err)
 				var leafsResponse message.LeafsResponse
 				_, err = message.Codec.Unmarshal(response, &leafsResponse)
-				assert.NoError(t, err)
-				assert.EqualValues(t, 600, len(leafsResponse.Keys))
-				assert.EqualValues(t, 600, len(leafsResponse.Vals))
-				assert.EqualValues(t, 1, mockHandlerStats.LeafsRequestCount)
-				assert.EqualValues(t, len(leafsResponse.Keys), mockHandlerStats.LeafsReturnedSum)
-				assertRangeProofIsValid(t, &request, &leafsResponse, false)
+				require.NoError(t, err)
+				require.Len(t, leafsResponse.Keys, 600)
+				require.Len(t, leafsResponse.Vals, 600)
+				require.Equal(t, uint32(1), testHandlerStats.LeafsRequestCount)
+				require.Equal(t, uint32(len(leafsResponse.Keys)), testHandlerStats.LeafsReturnedSum)
+				requireRangeProofIsValid(t, &request, &leafsResponse, false)
 			},
 		},
 		"final end range": {
@@ -395,16 +395,16 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 					Limit: maxLeavesLimit,
 				}
 			},
-			assertResponseFn: func(t *testing.T, request message.LeafsRequest, response []byte, err error) {
-				assert.NoError(t, err)
+			requireResponseFn: func(t *testing.T, request message.LeafsRequest, response []byte, err error) {
+				require.NoError(t, err)
 				var leafsResponse message.LeafsResponse
 				_, err = message.Codec.Unmarshal(response, &leafsResponse)
-				assert.NoError(t, err)
-				assert.EqualValues(t, len(leafsResponse.Keys), 0)
-				assert.EqualValues(t, len(leafsResponse.Vals), 0)
-				assert.EqualValues(t, 1, mockHandlerStats.LeafsRequestCount)
-				assert.EqualValues(t, len(leafsResponse.Keys), mockHandlerStats.LeafsReturnedSum)
-				assertRangeProofIsValid(t, &request, &leafsResponse, false)
+				require.NoError(t, err)
+				require.Empty(t, leafsResponse.Keys)
+				require.Empty(t, leafsResponse.Vals)
+				require.Equal(t, uint32(1), mockHandlerStats.LeafsRequestCount)
+				require.Equal(t, uint32(len(leafsResponse.Keys)), mockHandlerStats.LeafsReturnedSum)
+				requireRangeProofIsValid(t, &request, &leafsResponse, false)
 			},
 		},
 		"small trie root": {
@@ -416,20 +416,21 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 					Limit: maxLeavesLimit,
 				}
 			},
-			assertResponseFn: func(t *testing.T, request message.LeafsRequest, response []byte, err error) {
-				assert.NotEmpty(t, response)
+			requireResponseFn: func(t *testing.T, request message.LeafsRequest, response []byte, err error) {
+				require.NotEmpty(t, response)
+				require.NoError(t, err)
 
 				var leafsResponse message.LeafsResponse
 				if _, err = message.Codec.Unmarshal(response, &leafsResponse); err != nil {
 					t.Fatalf("unexpected error when unmarshalling LeafsResponse: %v", err)
 				}
 
-				assert.EqualValues(t, 500, len(leafsResponse.Keys))
-				assert.EqualValues(t, 500, len(leafsResponse.Vals))
-				assert.Empty(t, leafsResponse.ProofVals)
-				assert.EqualValues(t, 1, mockHandlerStats.LeafsRequestCount)
-				assert.EqualValues(t, len(leafsResponse.Keys), mockHandlerStats.LeafsReturnedSum)
-				assertRangeProofIsValid(t, &request, &leafsResponse, false)
+				require.Len(t, leafsResponse.Keys, 500)
+				require.Len(t, leafsResponse.Vals, 500)
+				require.Empty(t, leafsResponse.ProofVals)
+				require.Equal(t, uint32(1), mockHandlerStats.LeafsRequestCount)
+				require.Equal(t, uint32(len(leafsResponse.Keys)), mockHandlerStats.LeafsReturnedSum)
+				requireRangeProofIsValid(t, &request, &leafsResponse, false)
 			},
 		},
 		"account data served from snapshot": {
@@ -444,18 +445,18 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 					Limit: maxLeavesLimit,
 				}
 			},
-			assertResponseFn: func(t *testing.T, request message.LeafsRequest, response []byte, err error) {
-				assert.NoError(t, err)
+			requireResponseFn: func(t *testing.T, request message.LeafsRequest, response []byte, err error) {
+				require.NoError(t, err)
 				var leafsResponse message.LeafsResponse
 				_, err = message.Codec.Unmarshal(response, &leafsResponse)
-				assert.NoError(t, err)
-				assert.EqualValues(t, maxLeavesLimit, len(leafsResponse.Keys))
-				assert.EqualValues(t, maxLeavesLimit, len(leafsResponse.Vals))
-				assert.EqualValues(t, 1, mockHandlerStats.LeafsRequestCount)
-				assert.EqualValues(t, len(leafsResponse.Keys), mockHandlerStats.LeafsReturnedSum)
-				assert.EqualValues(t, 1, mockHandlerStats.SnapshotReadAttemptCount)
-				assert.EqualValues(t, 1, mockHandlerStats.SnapshotReadSuccessCount)
-				assertRangeProofIsValid(t, &request, &leafsResponse, true)
+				require.NoError(t, err)
+				require.Len(t, leafsResponse.Keys, int(maxLeavesLimit))
+				require.Len(t, leafsResponse.Vals, int(maxLeavesLimit))
+				require.Equal(t, uint32(1), mockHandlerStats.LeafsRequestCount)
+				require.Equal(t, uint32(len(leafsResponse.Keys)), mockHandlerStats.LeafsReturnedSum)
+				require.Equal(t, uint32(1), mockHandlerStats.SnapshotReadAttemptCount)
+				require.Equal(t, uint32(1), mockHandlerStats.SnapshotReadSuccessCount)
+				requireRangeProofIsValid(t, &request, &leafsResponse, true)
 			},
 		},
 		"partial account data served from snapshot": {
@@ -491,23 +492,23 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 					Limit: maxLeavesLimit,
 				}
 			},
-			assertResponseFn: func(t *testing.T, request message.LeafsRequest, response []byte, err error) {
-				assert.NoError(t, err)
+			requireResponseFn: func(t *testing.T, request message.LeafsRequest, response []byte, err error) {
+				require.NoError(t, err)
 				var leafsResponse message.LeafsResponse
 				_, err = message.Codec.Unmarshal(response, &leafsResponse)
-				assert.NoError(t, err)
-				assert.EqualValues(t, maxLeavesLimit, len(leafsResponse.Keys))
-				assert.EqualValues(t, maxLeavesLimit, len(leafsResponse.Vals))
-				assert.EqualValues(t, 1, mockHandlerStats.LeafsRequestCount)
-				assert.EqualValues(t, len(leafsResponse.Keys), mockHandlerStats.LeafsReturnedSum)
-				assert.EqualValues(t, 1, mockHandlerStats.SnapshotReadAttemptCount)
-				assert.EqualValues(t, 0, mockHandlerStats.SnapshotReadSuccessCount)
-				assertRangeProofIsValid(t, &request, &leafsResponse, true)
+				require.NoError(t, err)
+				require.Len(t, leafsResponse.Keys, int(maxLeavesLimit))
+				require.Len(t, leafsResponse.Vals, int(maxLeavesLimit))
+				require.Equal(t, uint32(1), mockHandlerStats.LeafsRequestCount)
+				require.Equal(t, uint32(len(leafsResponse.Keys)), mockHandlerStats.LeafsReturnedSum)
+				require.Equal(t, uint32(1), mockHandlerStats.SnapshotReadAttemptCount)
+				require.Equal(t, uint32(0), mockHandlerStats.SnapshotReadSuccessCount)
+				requireRangeProofIsValid(t, &request, &leafsResponse, true)
 
 				// expect 1/4th of segments to be invalid
 				numSegments := maxLeavesLimit / segmentLen
-				assert.EqualValues(t, numSegments/4, mockHandlerStats.SnapshotSegmentInvalidCount)
-				assert.EqualValues(t, 3*numSegments/4, mockHandlerStats.SnapshotSegmentValidCount)
+				require.Equal(t, uint32(numSegments/4), mockHandlerStats.SnapshotSegmentInvalidCount)
+				require.Equal(t, uint32(3*numSegments/4), mockHandlerStats.SnapshotSegmentValidCount)
 			},
 		},
 		"storage data served from snapshot": {
@@ -523,18 +524,18 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 					Limit:   maxLeavesLimit,
 				}
 			},
-			assertResponseFn: func(t *testing.T, request message.LeafsRequest, response []byte, err error) {
-				assert.NoError(t, err)
+			requireResponseFn: func(t *testing.T, request message.LeafsRequest, response []byte, err error) {
+				require.NoError(t, err)
 				var leafsResponse message.LeafsResponse
 				_, err = message.Codec.Unmarshal(response, &leafsResponse)
-				assert.NoError(t, err)
-				assert.EqualValues(t, maxLeavesLimit, len(leafsResponse.Keys))
-				assert.EqualValues(t, maxLeavesLimit, len(leafsResponse.Vals))
-				assert.EqualValues(t, 1, mockHandlerStats.LeafsRequestCount)
-				assert.EqualValues(t, len(leafsResponse.Keys), mockHandlerStats.LeafsReturnedSum)
-				assert.EqualValues(t, 1, mockHandlerStats.SnapshotReadAttemptCount)
-				assert.EqualValues(t, 1, mockHandlerStats.SnapshotReadSuccessCount)
-				assertRangeProofIsValid(t, &request, &leafsResponse, true)
+				require.NoError(t, err)
+				require.Len(t, leafsResponse.Keys, int(maxLeavesLimit))
+				require.Len(t, leafsResponse.Vals, int(maxLeavesLimit))
+				require.Equal(t, uint32(1), mockHandlerStats.LeafsRequestCount)
+				require.Equal(t, uint32(len(leafsResponse.Keys)), mockHandlerStats.LeafsReturnedSum)
+				require.Equal(t, uint32(1), mockHandlerStats.SnapshotReadAttemptCount)
+				require.Equal(t, uint32(1), mockHandlerStats.SnapshotReadSuccessCount)
+				requireRangeProofIsValid(t, &request, &leafsResponse, true)
 			},
 		},
 		"partial storage data served from snapshot": {
@@ -556,7 +557,7 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 					if i%(segmentLen*4) == 0 {
 						randomBytes := make([]byte, 5)
 						_, err := rand.Read(randomBytes)
-						assert.NoError(t, err)
+						require.NoError(t, err)
 						rawdb.WriteStorageSnapshot(memdb, largeStorageAccount, it.Hash(), randomBytes)
 					}
 					i++
@@ -568,23 +569,23 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 					Limit:   maxLeavesLimit,
 				}
 			},
-			assertResponseFn: func(t *testing.T, request message.LeafsRequest, response []byte, err error) {
-				assert.NoError(t, err)
+			requireResponseFn: func(t *testing.T, request message.LeafsRequest, response []byte, err error) {
+				require.NoError(t, err)
 				var leafsResponse message.LeafsResponse
 				_, err = message.Codec.Unmarshal(response, &leafsResponse)
-				assert.NoError(t, err)
-				assert.EqualValues(t, maxLeavesLimit, len(leafsResponse.Keys))
-				assert.EqualValues(t, maxLeavesLimit, len(leafsResponse.Vals))
-				assert.EqualValues(t, 1, mockHandlerStats.LeafsRequestCount)
-				assert.EqualValues(t, len(leafsResponse.Keys), mockHandlerStats.LeafsReturnedSum)
-				assert.EqualValues(t, 1, mockHandlerStats.SnapshotReadAttemptCount)
-				assert.EqualValues(t, 0, mockHandlerStats.SnapshotReadSuccessCount)
-				assertRangeProofIsValid(t, &request, &leafsResponse, true)
+				require.NoError(t, err)
+				require.Len(t, leafsResponse.Keys, int(maxLeavesLimit))
+				require.Len(t, leafsResponse.Vals, int(maxLeavesLimit))
+				require.Equal(t, uint32(1), mockHandlerStats.LeafsRequestCount)
+				require.Equal(t, uint32(len(leafsResponse.Keys)), mockHandlerStats.LeafsReturnedSum)
+				require.Equal(t, uint32(1), mockHandlerStats.SnapshotReadAttemptCount)
+				require.Equal(t, uint32(0), mockHandlerStats.SnapshotReadSuccessCount)
+				requireRangeProofIsValid(t, &request, &leafsResponse, true)
 
 				// expect 1/4th of segments to be invalid
 				numSegments := maxLeavesLimit / segmentLen
-				assert.EqualValues(t, numSegments/4, mockHandlerStats.SnapshotSegmentInvalidCount)
-				assert.EqualValues(t, 3*numSegments/4, mockHandlerStats.SnapshotSegmentValidCount)
+				require.Equal(t, uint32(numSegments/4), mockHandlerStats.SnapshotSegmentInvalidCount)
+				require.Equal(t, uint32(3*numSegments/4), mockHandlerStats.SnapshotSegmentValidCount)
 			},
 		},
 		"last snapshot key removed": {
@@ -608,18 +609,18 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 					Limit:   maxLeavesLimit,
 				}
 			},
-			assertResponseFn: func(t *testing.T, request message.LeafsRequest, response []byte, err error) {
-				assert.NoError(t, err)
+			requireResponseFn: func(t *testing.T, request message.LeafsRequest, response []byte, err error) {
+				require.NoError(t, err)
 				var leafsResponse message.LeafsResponse
 				_, err = message.Codec.Unmarshal(response, &leafsResponse)
-				assert.NoError(t, err)
-				assert.EqualValues(t, 500, len(leafsResponse.Keys))
-				assert.EqualValues(t, 500, len(leafsResponse.Vals))
-				assert.EqualValues(t, 1, mockHandlerStats.LeafsRequestCount)
-				assert.EqualValues(t, len(leafsResponse.Keys), mockHandlerStats.LeafsReturnedSum)
-				assert.EqualValues(t, 1, mockHandlerStats.SnapshotReadAttemptCount)
-				assert.EqualValues(t, 1, mockHandlerStats.SnapshotReadSuccessCount)
-				assertRangeProofIsValid(t, &request, &leafsResponse, false)
+				require.NoError(t, err)
+				require.Len(t, leafsResponse.Keys, 500)
+				require.Len(t, leafsResponse.Vals, 500)
+				require.Equal(t, uint32(1), mockHandlerStats.LeafsRequestCount)
+				require.Equal(t, uint32(len(leafsResponse.Keys)), mockHandlerStats.LeafsReturnedSum)
+				require.Equal(t, uint32(1), mockHandlerStats.SnapshotReadAttemptCount)
+				require.Equal(t, uint32(1), mockHandlerStats.SnapshotReadSuccessCount)
+				requireRangeProofIsValid(t, &request, &leafsResponse, false)
 			},
 		},
 		"request last key when removed from snapshot": {
@@ -644,18 +645,18 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 					Limit:   maxLeavesLimit,
 				}
 			},
-			assertResponseFn: func(t *testing.T, request message.LeafsRequest, response []byte, err error) {
-				assert.NoError(t, err)
+			requireResponseFn: func(t *testing.T, request message.LeafsRequest, response []byte, err error) {
+				require.NoError(t, err)
 				var leafsResponse message.LeafsResponse
 				_, err = message.Codec.Unmarshal(response, &leafsResponse)
-				assert.NoError(t, err)
-				assert.EqualValues(t, 1, len(leafsResponse.Keys))
-				assert.EqualValues(t, 1, len(leafsResponse.Vals))
-				assert.EqualValues(t, 1, mockHandlerStats.LeafsRequestCount)
-				assert.EqualValues(t, len(leafsResponse.Keys), mockHandlerStats.LeafsReturnedSum)
-				assert.EqualValues(t, 1, mockHandlerStats.SnapshotReadAttemptCount)
-				assert.EqualValues(t, 0, mockHandlerStats.SnapshotReadSuccessCount)
-				assertRangeProofIsValid(t, &request, &leafsResponse, false)
+				require.NoError(t, err)
+				require.Len(t, leafsResponse.Keys, 1)
+				require.Len(t, leafsResponse.Vals, 1)
+				require.Equal(t, uint32(1), mockHandlerStats.LeafsRequestCount)
+				require.Equal(t, uint32(len(leafsResponse.Keys)), mockHandlerStats.LeafsReturnedSum)
+				require.Equal(t, uint32(1), mockHandlerStats.SnapshotReadAttemptCount)
+				require.Equal(t, uint32(0), mockHandlerStats.SnapshotReadSuccessCount)
+				requireRangeProofIsValid(t, &request, &leafsResponse, false)
 			},
 		},
 	}
@@ -669,12 +670,12 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 			})
 
 			response, err := leafsHandler.OnLeafsRequest(ctx, ids.GenerateTestNodeID(), 1, request)
-			test.assertResponseFn(t, request, response, err)
+			test.requireResponseFn(t, request, response, err)
 		})
 	}
 }
 
-func assertRangeProofIsValid(t *testing.T, request *message.LeafsRequest, response *message.LeafsResponse, expectMore bool) {
+func requireRangeProofIsValid(t *testing.T, request *message.LeafsRequest, response *message.LeafsResponse, expectMore bool) {
 	t.Helper()
 
 	var start []byte
@@ -697,6 +698,6 @@ func assertRangeProofIsValid(t *testing.T, request *message.LeafsRequest, respon
 	}
 
 	more, err := trie.VerifyRangeProof(request.Root, start, response.Keys, response.Vals, proof)
-	assert.NoError(t, err)
-	assert.Equal(t, expectMore, more)
+	require.NoError(t, err)
+	require.Equal(t, expectMore, more)
 }
