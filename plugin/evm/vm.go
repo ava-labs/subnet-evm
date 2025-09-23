@@ -137,6 +137,8 @@ var (
 	errInvalidBlock                  = errors.New("invalid block")
 	errInvalidNonce                  = errors.New("invalid nonce")
 	errUnclesUnsupported             = errors.New("uncles unsupported")
+	errNilBaseFeeSubnetEVM           = errors.New("nil base fee is invalid after subnetEVM")
+	errNilBlockGasCostSubnetEVM      = errors.New("nil blockGasCost is invalid after subnetEVM")
 	errInvalidHeaderPredicateResults = errors.New("invalid header predicate results")
 	errInitializingLogger            = errors.New("failed to initialize logger")
 	errShuttingDownVM                = errors.New("shutting down VM")

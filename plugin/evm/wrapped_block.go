@@ -24,6 +24,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/params/extras"
+	"github.com/ava-labs/subnet-evm/plugin/evm/customtypes"
 	"github.com/ava-labs/subnet-evm/plugin/evm/header"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 )
@@ -261,6 +262,15 @@ func (b *wrappedBlock) syntacticVerify() error {
 		return err
 	}
 
+	if rulesExtra.IsSubnetEVM {
+		if ethHeader.BaseFee == nil {
+			return errNilBaseFeeSubnetEVM
+		}
+		if bfLen := ethHeader.BaseFee.BitLen(); bfLen > 256 {
+			return fmt.Errorf("too large base fee: bitlen %d", bfLen)
+		}
+	}
+
 	// Check that the tx hash in the header matches the body
 	txs := b.ethBlock.Transactions()
 	if len(txs) == 0 {
@@ -280,6 +290,18 @@ func (b *wrappedBlock) syntacticVerify() error {
 	// Block must not have any uncles
 	if len(b.ethBlock.Uncles()) > 0 {
 		return errUnclesUnsupported
+	}
+
+	if rulesExtra.IsSubnetEVM {
+		blockGasCost := customtypes.GetHeaderExtra(ethHeader).BlockGasCost
+		switch {
+		// Make sure BlockGasCost is not nil
+		// NOTE: ethHeader.BlockGasCost correctness is checked in header verification
+		case blockGasCost == nil:
+			return errNilBlockGasCostSubnetEVM
+		case !blockGasCost.IsUint64():
+			return fmt.Errorf("too large blockGasCost: %d", blockGasCost)
+		}
 	}
 
 	// Verify the existence / non-existence of excessBlobGas
