@@ -251,7 +251,7 @@ Failing to set these options will result in errors on VM initialization. Additio
 | `database-config-file` | string | Path to database configuration file | - |
 | `use-standalone-database` | bool | Use standalone database instead of shared one | - |
 | `inspect-database` | bool | Inspect database on startup | `false` |
-| `state-scheme` | string |  EXPERIMENTAL: specifies the database scheme to store state data; can be one of `hash` or `firewood` | `hash` | 
+| `state-scheme` | string |  EXPERIMENTAL: specifies the database scheme to store state data; can be one of `hash`, `firewood`, or `path` | `hash` | 
 
 ## Transaction Indexing
 

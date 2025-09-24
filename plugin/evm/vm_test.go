@@ -367,7 +367,8 @@ func issueAndAccept(t *testing.T, vm *VM) snowman.Block {
 }
 
 func TestBuildEthTxBlock(t *testing.T) {
-	for _, scheme := range schemes {
+	// This test is done for all schemes to ensure the VM can be started with any scheme.
+	for _, scheme := range []string{rawdb.HashScheme, rawdb.PathScheme, customrawdb.FirewoodScheme} {
 		t.Run(scheme, func(t *testing.T) {
 			testBuildEthTxBlock(t, scheme)
 		})
