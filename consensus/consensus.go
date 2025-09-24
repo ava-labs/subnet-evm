@@ -59,6 +59,9 @@ type ChainHeaderReader interface {
 	// GetFeeConfigAt retrieves the fee config and last changed block number at block header.
 	GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig, *big.Int, error)
 
+	// GetACP224FeeConfigAt retrieves the ACP224 fee config and last changed block number at block header.
+	GetACP224FeeConfigAt(parent *types.Header) (commontype.ACP224FeeConfig, *big.Int, error)
+
 	// GetCoinbaseAt retrieves the configured coinbase address at [parent].
 	// If fee recipients are allowed, returns true in the second return value and a predefined address in the first value.
 	GetCoinbaseAt(parent *types.Header) (common.Address, bool, error)

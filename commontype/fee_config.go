@@ -8,10 +8,95 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ava-labs/avalanchego/vms/components/gas"
+	"github.com/ava-labs/avalanchego/vms/evm/upgrade/acp176"
 	"github.com/ava-labs/libevm/common"
 
 	"github.com/ava-labs/subnet-evm/utils"
 )
+
+type ACP224FeeConfig struct {
+	TargetGas          *big.Int `json:"targetGas,omitempty"`
+	MinGasPrice        *big.Int `json:"minGasPrice,omitempty"`
+	TimeToFillCapacity *big.Int `json:"timeToFillCapacity,omitempty"`
+	TimeToDouble       *big.Int `json:"timeToDouble,omitempty"`
+}
+
+// represents an empty ACP-224 fee config without any field
+var EmptyACP224FeeConfig = ACP224FeeConfig{}
+
+func (f *ACP224FeeConfig) Verify() error {
+	switch {
+	case f.TargetGas == nil:
+		return errors.New("targetGas cannot be nil")
+	case f.MinGasPrice == nil:
+		return errors.New("minGasPrice cannot be nil")
+	case f.TimeToFillCapacity == nil:
+		return errors.New("timeToFillCapacity cannot be nil")
+	case f.TimeToDouble == nil:
+		return errors.New("timeToDouble cannot be nil")
+	}
+
+	switch {
+	case f.TargetGas.Cmp(common.Big0) != 1:
+		return fmt.Errorf("targetGas = %d cannot be less than or equal to 0", f.TargetGas)
+	case f.MinGasPrice.Cmp(common.Big0) != 1:
+		return fmt.Errorf("minGasPrice = %d cannot be less than or equal to 0", f.MinGasPrice)
+	case f.TimeToFillCapacity.Cmp(common.Big0) == -1:
+		return fmt.Errorf("timeToFillCapacity = %d cannot be less than 0", f.TimeToFillCapacity)
+	case f.TimeToDouble.Cmp(common.Big0) == -1:
+		return fmt.Errorf("timeToDouble = %d cannot be less than 0", f.TimeToDouble)
+	}
+
+	switch {
+	case f.TimeToFillCapacity.Cmp(big.NewInt(acp176.MaxTimeToFillCapacity)) == 1:
+		return fmt.Errorf("timeToFillCapacity = %d cannot be greater than %d", f.TimeToFillCapacity, acp176.MaxTimeToFillCapacity)
+	case f.TimeToDouble.Cmp(big.NewInt(acp176.MaxTimeToDouble)) == 1:
+		return fmt.Errorf("timeToDouble = %d cannot be greater than %d", f.TimeToDouble, acp176.MaxTimeToDouble)
+	}
+	return f.checkByteLens()
+}
+
+func (f *ACP224FeeConfig) Equal(other *ACP224FeeConfig) bool {
+	if other == nil {
+		return false
+	}
+
+	return utils.BigNumEqual(f.TargetGas, other.TargetGas) &&
+		utils.BigNumEqual(f.MinGasPrice, other.MinGasPrice) &&
+		utils.BigNumEqual(f.TimeToFillCapacity, other.TimeToFillCapacity) &&
+		utils.BigNumEqual(f.TimeToDouble, other.TimeToDouble)
+}
+
+func (f *ACP224FeeConfig) ToACP176Config() (acp176.Config, error) {
+	if err := f.Verify(); err != nil {
+		return acp176.Config{}, err
+	}
+
+	config := acp176.Config{
+		MinGasPrice:        gas.Price(f.MinGasPrice.Uint64()),
+		TimeToFillCapacity: gas.Gas(f.TimeToFillCapacity.Uint64()),
+		TimeToDouble:       f.TimeToDouble.Uint64(),
+	}
+	return config, config.Verify()
+}
+
+// checkByteLens checks byte lengths against common.HashLen (32 bytes) and returns error
+func (f *ACP224FeeConfig) checkByteLens() error {
+	if isBiggerThanHashLen(f.TargetGas) {
+		return fmt.Errorf("targetGas exceeds %d bytes", common.HashLength)
+	}
+	if isBiggerThanHashLen(f.MinGasPrice) {
+		return fmt.Errorf("minGasPrice exceeds %d bytes", common.HashLength)
+	}
+	if isBiggerThanHashLen(f.TimeToFillCapacity) {
+		return fmt.Errorf("timeToFillCapacity exceeds %d bytes", common.HashLength)
+	}
+	if isBiggerThanHashLen(f.TimeToDouble) {
+		return fmt.Errorf("timeToDouble exceeds %d bytes", common.HashLength)
+	}
+	return nil
+}
 
 // FeeConfig specifies the parameters for the dynamic fee algorithm, which determines the gas limit, base fee, and block gas cost of blocks
 // on the network.

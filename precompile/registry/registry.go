@@ -33,5 +33,6 @@ import (
 // FeeManagerAddress                = common.HexToAddress("0x0200000000000000000000000000000000000003")
 // RewardManagerAddress             = common.HexToAddress("0x0200000000000000000000000000000000000004")
 // WarpAddress                      = common.HexToAddress("0x0200000000000000000000000000000000000005")
+// ACP224FeeManagerAddress          = common.HexToAddress("0x0200000000000000000000000000000000000006")
 // ADD YOUR PRECOMPILE HERE
 // {YourPrecompile}Address          = common.HexToAddress("0x03000000000000000000000000000000000000??")

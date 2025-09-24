@@ -8,8 +8,11 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/ava-labs/avalanchego/vms/components/gas"
+	"github.com/ava-labs/avalanchego/vms/evm/upgrade/acp176"
 	"github.com/ava-labs/libevm/core/types"
 
+	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/params/extras"
 	"github.com/ava-labs/subnet-evm/plugin/evm/upgrade/subnetevm"
 )
@@ -20,17 +23,35 @@ const (
 
 var (
 	errInvalidExtraPrefix = errors.New("invalid header.Extra prefix")
+	errIncorrectFeeState  = errors.New("incorrect fee state")
 	errInvalidExtraLength = errors.New("invalid header.Extra length")
 )
 
-// ExtraPrefix takes the previous header and the timestamp of its child
-// block and calculates the expected extra prefix for the child block.
+// ExtraPrefix returns what the prefix of the header's Extra field should be
+// based on the desired target excess.
+//
+// If the `desiredTargetExcess` is nil, the parent's target excess is used.
 func ExtraPrefix(
 	config *extras.ChainConfig,
+	acp224FeeConfig commontype.ACP224FeeConfig,
 	parent *types.Header,
 	header *types.Header,
+	desiredTargetExcess *gas.Gas,
 ) ([]byte, error) {
 	switch {
+	case config.IsFortuna(header.Time):
+		state, err := feeStateAfterBlock(
+			config,
+			acp224FeeConfig,
+			parent,
+			header,
+			desiredTargetExcess,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("calculating fee state: %w", err)
+		}
+
+		return state.Bytes(), nil
 	case config.IsSubnetEVM(header.Time):
 		window, err := feeWindow(config, parent, header.Time)
 		if err != nil {
@@ -47,10 +68,40 @@ func ExtraPrefix(
 // formatted.
 func VerifyExtraPrefix(
 	config *extras.ChainConfig,
+	acp224FeeConfig commontype.ACP224FeeConfig,
 	parent *types.Header,
 	header *types.Header,
 ) error {
 	switch {
+	case config.IsFortuna(header.Time):
+		remoteState, err := acp176.ParseState(header.Extra)
+		if err != nil {
+			return fmt.Errorf("parsing remote fee state: %w", err)
+		}
+
+		// By passing in the claimed target excess, we ensure that the expected
+		// target excess is equal to the claimed target excess if it is possible
+		// to have correctly set it to that value. Otherwise, the resulting
+		// value will be as close to the claimed value as possible, but would
+		// not be equal.
+		expectedState, err := feeStateAfterBlock(
+			config,
+			acp224FeeConfig,
+			parent,
+			header,
+			&remoteState.TargetExcess,
+		)
+		if err != nil {
+			return fmt.Errorf("calculating expected fee state: %w", err)
+		}
+
+		if remoteState != expectedState {
+			return fmt.Errorf("%w: expected %+v, found %+v",
+				errIncorrectFeeState,
+				expectedState,
+				remoteState,
+			)
+		}
 	case config.IsSubnetEVM(header.Time):
 		feeWindow, err := feeWindow(config, parent, header.Time)
 		if err != nil {
@@ -75,6 +126,15 @@ func VerifyExtraPrefix(
 func VerifyExtra(rules extras.AvalancheRules, extra []byte) error {
 	extraLen := len(extra)
 	switch {
+	case rules.IsFortuna:
+		if extraLen < acp176.StateSize {
+			return fmt.Errorf(
+				"%w: expected >= %d but got %d",
+				errInvalidExtraLength,
+				acp176.StateSize,
+				extraLen,
+			)
+		}
 	case rules.IsDurango:
 		if extraLen < subnetevm.WindowSize {
 			return fmt.Errorf(
@@ -108,8 +168,11 @@ func VerifyExtra(rules extras.AvalancheRules, extra []byte) error {
 
 // PredicateBytesFromExtra returns the predicate result bytes from the header's
 // extra data. If the extra data is not long enough, an empty slice is returned.
-func PredicateBytesFromExtra(extra []byte) []byte {
+func PredicateBytesFromExtra(rules extras.AvalancheRules, extra []byte) []byte {
 	offset := subnetevm.WindowSize
+	if rules.IsFortuna {
+		offset = acp176.StateSize
+	}
 	// Prior to Durango, the VM enforces the extra data is smaller than or equal
 	// to `offset`.
 	// After Durango, the VM pre-verifies the extra data past `offset` is valid.

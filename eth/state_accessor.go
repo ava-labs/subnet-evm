@@ -44,6 +44,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/extstate"
 	"github.com/ava-labs/subnet-evm/eth/tracers"
+	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/plugin/evm/customrawdb"
 )
 
@@ -261,7 +262,8 @@ func (eth *Ethereum) stateAtTransaction(ctx context.Context, block *types.Block,
 		// Assemble the transaction call message and return if the requested offset
 		msg, _ := core.TransactionToMessage(tx, signer, block.BaseFee())
 		txContext := core.NewEVMTxContext(msg)
-		context := core.NewEVMBlockContext(block.Header(), eth.blockchain, nil)
+		rulesExtra := params.GetRulesExtra(eth.blockchain.Config().Rules(block.Number(), params.IsMergeTODO, block.Time()))
+		context := core.NewEVMBlockContext(rulesExtra.AvalancheRules, block.Header(), eth.blockchain, nil)
 		if idx == txIndex {
 			return msg, context, statedb, release, nil
 		}

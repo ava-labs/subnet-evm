@@ -79,7 +79,8 @@ func makePrecompile(contract contract.StatefulPrecompiledContract) libevm.Precom
 			panic(err) // Should never happen
 		}
 		var predicateResults predicate.BlockResults
-		if predicateResultsBytes := customheader.PredicateBytesFromExtra(header.Extra); len(predicateResultsBytes) > 0 {
+		rules := GetRulesExtra(env.Rules()).AvalancheRules
+		if predicateResultsBytes := customheader.PredicateBytesFromExtra(rules, header.Extra); len(predicateResultsBytes) > 0 {
 			predicateResults, err = predicate.ParseBlockResults(predicateResultsBytes)
 			if err != nil {
 				panic(err) // Should never happen, as results are already validated in block validation

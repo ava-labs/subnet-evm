@@ -127,6 +127,10 @@ func (b *EthAPIBackend) GetFeeConfigAt(parent *types.Header) (commontype.FeeConf
 	return b.eth.blockchain.GetFeeConfigAt(parent)
 }
 
+func (b *EthAPIBackend) GetACP224FeeConfigAt(parent *types.Header) (commontype.ACP224FeeConfig, *big.Int, error) {
+	return b.eth.blockchain.GetACP224FeeConfigAt(parent)
+}
+
 func (b *EthAPIBackend) HeaderByHash(ctx context.Context, hash common.Hash) (*types.Header, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
@@ -313,7 +317,8 @@ func (b *EthAPIBackend) GetEVM(ctx context.Context, msg *core.Message, state *st
 	if blockCtx != nil {
 		context = *blockCtx
 	} else {
-		context = core.NewEVMBlockContext(header, b.eth.BlockChain(), nil)
+		rulesExtra := params.GetRulesExtra(b.ChainConfig().Rules(header.Number, params.IsMergeTODO, header.Time))
+		context = core.NewEVMBlockContext(rulesExtra.AvalancheRules, header, b.eth.BlockChain(), nil)
 	}
 	return vm.NewEVM(context, txContext, state, b.ChainConfig(), *vmConfig)
 }

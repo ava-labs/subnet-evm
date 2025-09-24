@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ava-labs/avalanchego/utils/timer/mockable"
+	"github.com/ava-labs/avalanchego/vms/components/gas"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/consensus/misc/eip4844"
 	"github.com/ava-labs/libevm/core/state"
@@ -43,18 +44,21 @@ type Mode struct {
 
 type (
 	DummyEngine struct {
-		clock         *mockable.Clock
-		consensusMode Mode
+		clock               *mockable.Clock
+		consensusMode       Mode
+		desiredTargetExcess *gas.Gas
 	}
 )
 
 func NewDummyEngine(
 	mode Mode,
 	clock *mockable.Clock,
+	desiredTargetExcess *gas.Gas,
 ) *DummyEngine {
 	return &DummyEngine{
-		clock:         clock,
-		consensusMode: mode,
+		clock:               clock,
+		consensusMode:       mode,
+		desiredTargetExcess: desiredTargetExcess,
 	}
 }
 
@@ -128,9 +132,14 @@ func (eng *DummyEngine) verifyCoinbase(header *types.Header, parent *types.Heade
 	return nil
 }
 
-func verifyHeaderGasFields(config *extras.ChainConfig, header *types.Header, parent *types.Header, chain consensus.ChainHeaderReader) error {
-	// We verify the current block by checking the parent fee config
-	// this is because the current block cannot set the fee config for itself
+func verifyHeaderGasFields(
+	config *extras.ChainConfig,
+	header *types.Header,
+	parent *types.Header,
+	chain consensus.ChainHeaderReader,
+) error {
+	// We verify the current block by checking the parent fee configs
+	// because the current block cannot set the fee config for itself.
 	// Fee config might depend on the state when precompile is activated
 	// but we don't know the final state while forming the block.
 	// See worker package for more details.
@@ -138,18 +147,29 @@ func verifyHeaderGasFields(config *extras.ChainConfig, header *types.Header, par
 	if err != nil {
 		return err
 	}
-	if err := customheader.VerifyGasUsed(config, feeConfig, parent, header); err != nil {
+
+	acp224FeeConfig, _, err := chain.GetACP224FeeConfigAt(parent)
+	if err != nil {
 		return err
 	}
-	if err := customheader.VerifyGasLimit(config, feeConfig, parent, header); err != nil {
+	acp176Config, err := acp224FeeConfig.ToACP176Config()
+	if err != nil {
 		return err
 	}
-	if err := customheader.VerifyExtraPrefix(config, parent, header); err != nil {
+
+	if err := customheader.VerifyGasUsed(config, feeConfig, acp176Config, parent, header); err != nil {
+		return err
+	}
+	if err := customheader.VerifyGasLimit(config, feeConfig, acp176Config, parent, header); err != nil {
+		return err
+	}
+
+	if err := customheader.VerifyExtraPrefix(config, acp224FeeConfig, parent, header); err != nil {
 		return err
 	}
 
 	// Verify header.BaseFee matches the expected value.
-	expectedBaseFee, err := customheader.BaseFee(config, feeConfig, parent, header.Time)
+	expectedBaseFee, err := customheader.BaseFee(config, feeConfig, acp176Config, parent, header.Time)
 	if err != nil {
 		return fmt.Errorf("failed to calculate base fee: %w", err)
 	}
@@ -395,8 +415,14 @@ func (eng *DummyEngine) FinalizeAndAssemble(chain consensus.ChainHeaderReader, h
 		}
 	}
 
+	// Get the ACP224 fee config at the parent since the current block has not been finalized yet.
+	acp224FeeConfig, _, err := chain.GetACP224FeeConfigAt(parent)
+	if err != nil {
+		return nil, err
+	}
+
 	// finalize the header.Extra
-	extraPrefix, err := customheader.ExtraPrefix(config, parent, header)
+	extraPrefix, err := customheader.ExtraPrefix(config, acp224FeeConfig, parent, header, eng.desiredTargetExcess)
 	if err != nil {
 		return nil, fmt.Errorf("failed to calculate new header.Extra: %w", err)
 	}

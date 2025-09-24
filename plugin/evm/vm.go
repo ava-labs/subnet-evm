@@ -33,6 +33,8 @@ import (
 	"github.com/ava-labs/avalanchego/utils/units"
 	"github.com/ava-labs/avalanchego/version"
 	"github.com/ava-labs/avalanchego/vms/components/chain"
+	"github.com/ava-labs/avalanchego/vms/components/gas"
+	"github.com/ava-labs/avalanchego/vms/evm/upgrade/acp176"
 	"github.com/ava-labs/firewood-go-ethhash/ffi"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/rawdb"
@@ -601,6 +603,15 @@ func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.
 	if err != nil {
 		return err
 	}
+
+	// If the gas target is specified, calculate the desired target excess and
+	// use it during block creation.
+	var desiredTargetExcess *gas.Gas
+	if vm.config.GasTarget != nil {
+		desiredTargetExcess = new(gas.Gas)
+		*desiredTargetExcess = acp176.DesiredTargetExcess(*vm.config.GasTarget)
+	}
+
 	vm.eth, err = eth.New(
 		node,
 		&vm.ethConfig,
@@ -608,7 +619,11 @@ func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.
 		vm.chaindb,
 		eth.Settings{MaxBlocksPerRequest: vm.config.MaxBlocksPerRequest},
 		lastAcceptedHash,
-		dummy.NewFakerWithClock(&vm.clock),
+		dummy.NewDummyEngine(
+			dummy.Mode{},
+			&vm.clock,
+			desiredTargetExcess,
+		),
 		&vm.clock,
 	)
 	if err != nil {
@@ -619,11 +634,19 @@ func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.
 	vm.blockChain = vm.eth.BlockChain()
 	vm.miner = vm.eth.Miner()
 	lastAccepted := vm.blockChain.LastAcceptedBlock()
-	feeConfig, _, err := vm.blockChain.GetFeeConfigAt(lastAccepted.Header())
-	if err != nil {
-		return err
+	if vm.chainConfigExtra().IsFortuna(lastAccepted.Header().Time) {
+		acp224FeeConfig, _, err := vm.blockChain.GetACP224FeeConfigAt(lastAccepted.Header())
+		if err != nil {
+			return err
+		}
+		vm.txPool.SetMinFee(acp224FeeConfig.MinGasPrice)
+	} else {
+		feeConfig, _, err := vm.blockChain.GetFeeConfigAt(lastAccepted.Header())
+		if err != nil {
+			return err
+		}
+		vm.txPool.SetMinFee(feeConfig.MinBaseFee)
 	}
-	vm.txPool.SetMinFee(feeConfig.MinBaseFee)
 	vm.txPool.SetGasTip(big.NewInt(0))
 
 	vm.eth.Start()

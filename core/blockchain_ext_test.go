@@ -1479,7 +1479,7 @@ func InsertChainValidBlockFee(t *testing.T, create createFunc) {
 	// Ensure that key1 has some funds in the genesis block.
 	genesisBalance := new(big.Int).Mul(big.NewInt(1000000), big.NewInt(params.Ether))
 	gspec := &Genesis{
-		Config: params.TestChainConfig,
+		Config: params.TestEtnaChainConfig,
 		Alloc:  types.GenesisAlloc{addr1: {Balance: genesisBalance}},
 	}
 
@@ -1488,13 +1488,13 @@ func InsertChainValidBlockFee(t *testing.T, create createFunc) {
 	t.Cleanup(blockchain.Stop)
 
 	// This call generates a chain of 3 blocks.
-	signer := types.LatestSigner(params.TestChainConfig)
+	signer := types.LatestSigner(params.TestEtnaChainConfig)
 	tip := big.NewInt(50000 * params.GWei)
 	transfer := big.NewInt(10000)
-	_, chain, _, err := GenerateChainWithGenesis(gspec, blockchain.engine, 3, extras.TestChainConfig.FeeConfig.TargetBlockRate-1, func(_ int, gen *BlockGen) {
+	_, chain, _, err := GenerateChainWithGenesis(gspec, blockchain.engine, 3, extras.TestEtnaChainConfig.FeeConfig.TargetBlockRate-1, func(_ int, gen *BlockGen) {
 		feeCap := new(big.Int).Add(gen.BaseFee(), tip)
 		tx := types.NewTx(&types.DynamicFeeTx{
-			ChainID:   params.TestChainConfig.ChainID,
+			ChainID:   params.TestEtnaChainConfig.ChainID,
 			Nonce:     gen.TxNonce(addr1),
 			To:        &addr2,
 			Gas:       ethparams.TxGas,
@@ -1561,7 +1561,7 @@ func StatefulPrecompiles(t *testing.T, create createFunc) {
 
 	// Ensure that key1 has sufficient funds in the genesis block for all of the tests.
 	genesisBalance := new(big.Int).Mul(big.NewInt(1000000), big.NewInt(params.Ether))
-	config := params.Copy(params.TestChainConfig)
+	config := params.Copy(params.TestEtnaChainConfig)
 	// Set all of the required config parameters
 	params.GetExtra(&config).GenesisPrecompiles = extras.Precompiles{
 		deployerallowlist.ConfigKey: deployerallowlist.NewConfig(utils.NewUint64(0), []common.Address{addr1}, nil, nil),

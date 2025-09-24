@@ -37,6 +37,7 @@ import (
 	"github.com/ava-labs/libevm/core/types"
 	ethparams "github.com/ava-labs/libevm/params"
 	"github.com/ava-labs/subnet-evm/core"
+	"github.com/ava-labs/subnet-evm/params/extras"
 )
 
 // Tests that the simulator starts with the initial gas limit in the genesis block,
@@ -60,8 +61,15 @@ func TestWithBlockGasLimitOption(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to retrieve head block: %v", err)
 	}
-	if head.GasLimit() != 12_345_678 {
-		t.Errorf("head gas limit mismatch: have %v, want %v", head.GasLimit(), 12_345_678)
+	acp176Config, err := extras.DefaultACP224FeeConfig.ToACP176Config()
+	if err != nil {
+		t.Fatalf("failed to convert ACP224 fee config to ACP176 config: %v", err)
+	}
+	if err != nil {
+		t.Fatalf("failed to convert ACP224 fee config to ACP176 config: %v", err)
+	}
+	if head.GasLimit() != uint64(acp176Config.MinMaxCapacity()) {
+		t.Errorf("head gas limit mismatch: have %v, want %v", head.GasLimit(), acp176Config.MinMaxCapacity())
 	}
 }
 

@@ -33,6 +33,7 @@ import (
 	"testing"
 
 	"github.com/ava-labs/avalanchego/upgrade"
+	"github.com/ava-labs/avalanchego/vms/evm/upgrade/acp176"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/consensus/misc/eip4844"
 	"github.com/ava-labs/libevm/core/rawdb"
@@ -41,6 +42,7 @@ import (
 	"github.com/ava-labs/libevm/crypto"
 	ethparams "github.com/ava-labs/libevm/params"
 	"github.com/ava-labs/libevm/trie"
+	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/consensus"
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
 	"github.com/ava-labs/subnet-evm/params"
@@ -51,6 +53,12 @@ import (
 	"github.com/holiman/uint256"
 	"golang.org/x/crypto/sha3"
 )
+
+var testACP176Config = acp176.Config{
+	MinGasPrice:        1,
+	TimeToFillCapacity: 5,
+	TimeToDouble:       60,
+}
 
 func u64(val uint64) *uint64 { return &val }
 
@@ -154,9 +162,10 @@ func TestStateProcessorErrors(t *testing.T) {
 			},
 			{ // ErrGasLimitReached
 				txs: []*types.Transaction{
-					makeTx(key1, 0, common.Address{}, big.NewInt(0), 15000001, big.NewInt(225000000000), nil),
+					// This test was modified to account for ACP-176 gas limits
+					makeTx(key1, 0, common.Address{}, big.NewInt(0), uint64(testACP176Config.MinMaxCapacity()+1), big.NewInt(int64(testACP176Config.MinGasPrice)), nil),
 				},
-				want: "could not apply tx 0 [0x1354370681d2ab68247073d889736f8be4a8d87e35956f0c02658d3670803a66]: gas limit reached",
+				want: "could not apply tx 0 [0xb709565c056a68a4b4dc7714ae901a0f03663bb98f9fa58a10b88ec614362caf]: gas limit reached",
 			},
 			{ // ErrInsufficientFundsForTransfer
 				txs: []*types.Transaction{
@@ -182,15 +191,16 @@ func TestStateProcessorErrors(t *testing.T) {
 			},
 			{ // ErrGasLimitReached
 				txs: []*types.Transaction{
-					makeTx(key1, 0, common.Address{}, big.NewInt(0), ethparams.TxGas*762, big.NewInt(225000000000), nil),
+					// This test was modified to account for ACP-176 gas limits
+					makeTx(key1, 0, common.Address{}, big.NewInt(0), ethparams.TxGas*953, big.NewInt(int64(testACP176Config.MinGasPrice)), nil),
 				},
-				want: "could not apply tx 0 [0x76c07cc2b32007eb1a9c3fa066d579a3d77ec4ecb79bbc266624a601d7b08e46]: gas limit reached",
+				want: "could not apply tx 0 [0xcd46718c1af6fd074deb6b036d34c1cb499517bf90d93df74dcfaba25fdf34af]: gas limit reached",
 			},
 			{ // ErrFeeCapTooLow
 				txs: []*types.Transaction{
 					mkDynamicTx(0, common.Address{}, ethparams.TxGas, big.NewInt(0), big.NewInt(0)),
 				},
-				want: "could not apply tx 0 [0xc4ab868fef0c82ae0387b742aee87907f2d0fc528fc6ea0a021459fb0fc4a4a8]: max fee per gas less than block base fee: address 0x71562b71999873DB5b286dF957af199Ec94617F7, maxFeePerGas: 0, baseFee: 225000000000",
+				want: "could not apply tx 0 [0xc4ab868fef0c82ae0387b742aee87907f2d0fc528fc6ea0a021459fb0fc4a4a8]: max fee per gas less than block base fee: address 0x71562b71999873DB5b286dF957af199Ec94617F7, maxFeePerGas: 0, baseFee: 1",
 			},
 			{ // ErrTipVeryHigh
 				txs: []*types.Transaction{
@@ -243,7 +253,7 @@ func TestStateProcessorErrors(t *testing.T) {
 				txs: []*types.Transaction{
 					mkBlobTx(0, common.Address{}, ethparams.TxGas, big.NewInt(1), big.NewInt(1), big.NewInt(0), []common.Hash{(common.Hash{1})}),
 				},
-				want: "could not apply tx 0 [0x6c11015985ce82db691d7b2d017acda296db88b811c3c60dc71449c76256c716]: max fee per gas less than block base fee: address 0x71562b71999873DB5b286dF957af199Ec94617F7, maxFeePerGas: 1, baseFee: 225000000000",
+				want: "could not apply tx 0 [0x6c11015985ce82db691d7b2d017acda296db88b811c3c60dc71449c76256c716]: max fee per blob gas less than block blob gas fee: address 0x71562b71999873DB5b286dF957af199Ec94617F7 blobGasFeeCap: 0, blobBaseFee: 1",
 			},
 		} {
 			block := GenerateBadBlock(gspec.ToBlock(), dummy.NewCoinbaseFaker(), tt.txs, gspec.Config)
@@ -363,8 +373,20 @@ func GenerateBadBlock(parent *types.Block, engine consensus.Engine, txs types.Tr
 		panic(err)
 	}
 	configExtra := params.GetExtra(config)
-	gasLimit, _ := customheader.GasLimit(configExtra, feeConfig, parent.Header(), time)
-	baseFee, _ := customheader.BaseFee(configExtra, feeConfig, parent.Header(), time)
+	var acp224FeeConfig commontype.ACP224FeeConfig
+	var acp176Config acp176.Config
+	if configExtra.IsFortuna(time) {
+		acp224FeeConfig, _, err = fakeChainReader.GetACP224FeeConfigAt(parent.Header())
+		if err != nil {
+			panic(err)
+		}
+		acp176Config, err = acp224FeeConfig.ToACP176Config()
+		if err != nil {
+			panic(err)
+		}
+	}
+	gasLimit, _ := customheader.GasLimit(configExtra, feeConfig, acp176Config, parent.Header(), time)
+	baseFee, _ := customheader.BaseFee(configExtra, feeConfig, acp176Config, parent.Header(), time)
 	header := &types.Header{
 		ParentHash: parent.Hash(),
 		Coinbase:   parent.Coinbase(),
@@ -402,7 +424,7 @@ func GenerateBadBlock(parent *types.Block, engine consensus.Engine, txs types.Tr
 		cumulativeGas += tx.Gas()
 		nBlobs += len(tx.BlobHashes())
 	}
-	header.Extra, _ = customheader.ExtraPrefix(configExtra, parent.Header(), header)
+	header.Extra, _ = customheader.ExtraPrefix(configExtra, acp224FeeConfig, parent.Header(), header, nil)
 	header.Root = common.BytesToHash(hasher.Sum(nil))
 	if config.IsCancun(header.Number, header.Time) {
 		var pExcess, pUsed = uint64(0), uint64(0)

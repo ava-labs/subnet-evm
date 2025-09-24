@@ -16,8 +16,8 @@ import (
 	"github.com/ava-labs/subnet-evm/params"
 )
 
-func TestFeeInfoProvider(t *testing.T) {
-	backend := newTestBackend(t, params.TestChainConfig, 2, testGenBlock(t, 55, 370))
+func TestEtnaFeeInfoProvider(t *testing.T) {
+	backend := newTestBackend(t, params.TestEtnaChainConfig, 2, testGenBlock(t, 55, 370))
 	f, err := newFeeInfoProvider(backend, 1, 2)
 	require.NoError(t, err)
 

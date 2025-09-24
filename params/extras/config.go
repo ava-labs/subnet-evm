@@ -33,6 +33,13 @@ var (
 		BlockGasCostStep: big.NewInt(200_000),
 	}
 
+	DefaultACP224FeeConfig = commontype.ACP224FeeConfig{
+		TargetGas:          big.NewInt(20_000_000),
+		MinGasPrice:        big.NewInt(1),
+		TimeToFillCapacity: big.NewInt(5),
+		TimeToDouble:       big.NewInt(60),
+	}
+
 	SubnetEVMDefaultChainConfig = &ChainConfig{
 		FeeConfig:          DefaultFeeConfig,
 		NetworkUpgrades:    GetNetworkUpgrades(upgrade.GetConfig(constants.MainnetID)),
@@ -63,6 +70,7 @@ var (
 
 	TestGraniteChainConfig = copyAndSet(TestFortunaChainConfig, func(c *ChainConfig) {
 		c.NetworkUpgrades.GraniteTimestamp = utils.NewUint64(0)
+		c.ACP224FeeConfig = DefaultACP224FeeConfig
 	})
 
 	TestChainConfig = copyConfig(TestGraniteChainConfig)
@@ -103,10 +111,11 @@ type ChainConfig struct {
 
 	AvalancheContext `json:"-"` // Avalanche specific context set during VM initialization. Not serialized.
 
-	FeeConfig          commontype.FeeConfig `json:"feeConfig"`                    // Set the configuration for the dynamic fee algorithm
-	AllowFeeRecipients bool                 `json:"allowFeeRecipients,omitempty"` // Allows fees to be collected by block builders.
-	GenesisPrecompiles Precompiles          `json:"-"`                            // Config for enabling precompiles from genesis. JSON encode/decode will be handled by the custom marshaler/unmarshaler.
-	UpgradeConfig      `json:"-"`           // Config specified in upgradeBytes (avalanche network upgrades or enable/disabling precompiles). Not serialized.
+	FeeConfig          commontype.FeeConfig       `json:"feeConfig"`                    // Set the configuration for the dynamic fee algorithm
+	ACP224FeeConfig    commontype.ACP224FeeConfig `json:"acp224FeeConfig"`              // Set the configuration for the ACP224 fee algorithm
+	AllowFeeRecipients bool                       `json:"allowFeeRecipients,omitempty"` // Allows fees to be collected by block builders.
+	GenesisPrecompiles Precompiles                `json:"-"`                            // Config for enabling precompiles from genesis. JSON encode/decode will be handled by the custom marshaler/unmarshaler.
+	UpgradeConfig      `json:"-"`                 // Config specified in upgradeBytes (avalanche network upgrades or enable/disabling precompiles). Not serialized.
 }
 
 func (c *ChainConfig) CheckConfigCompatible(newConfig *ethparams.ChainConfig, headNumber *big.Int, headTimestamp uint64) *ethparams.ConfigCompatError {
@@ -341,6 +350,12 @@ func (c *ChainConfig) IsPrecompileEnabled(address common.Address, timestamp uint
 // Implements precompile.ChainConfig interface.
 func (c *ChainConfig) GetFeeConfig() commontype.FeeConfig {
 	return c.FeeConfig
+}
+
+// GetACP224FeeConfig returns the original ACP224FeeConfig contained in the genesis ChainConfig.
+// Implements precompile.ChainConfig interface.
+func (c *ChainConfig) GetACP224FeeConfig() commontype.ACP224FeeConfig {
+	return c.ACP224FeeConfig
 }
 
 // AllowedFeeRecipients returns the original AllowedFeeRecipients parameter contained in the genesis ChainConfig.

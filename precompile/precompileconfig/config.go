@@ -77,6 +77,8 @@ type Accepter interface {
 // about the chain configuration. The precompile can access this information to initialize
 // its state.
 type ChainConfig interface {
+	// GetACP224FeeConfig returns the original ACP224FeeConfig that was set in the genesis.
+	GetACP224FeeConfig() commontype.ACP224FeeConfig
 	// GetFeeConfig returns the original FeeConfig that was set in the genesis.
 	GetFeeConfig() commontype.FeeConfig
 	// AllowedFeeRecipients returns true if fee recipients are allowed in the genesis.
