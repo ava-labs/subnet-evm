@@ -28,7 +28,7 @@ import (
 	"github.com/ava-labs/subnet-evm/utils"
 
 	ethparams "github.com/ava-labs/libevm/params"
-	customheader "github.com/ava-labs/subnet-evm/plugin/evm/header"
+	"github.com/ava-labs/subnet-evm/plugin/evm/customheader"
 )
 
 type createFunc func(db ethdb.Database, gspec *Genesis, lastAcceptedHash common.Hash, dataPath string) (*BlockChain, error)
