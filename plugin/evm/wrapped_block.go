@@ -24,7 +24,8 @@ import (
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/params/extras"
-	"github.com/ava-labs/subnet-evm/plugin/evm/header"
+	"github.com/ava-labs/subnet-evm/plugin/evm/customheader"
+	"github.com/ava-labs/subnet-evm/plugin/evm/customtypes"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 )
 
@@ -257,8 +258,17 @@ func (b *wrappedBlock) syntacticVerify() error {
 	}
 
 	// Verify the extra data is well-formed.
-	if err := header.VerifyExtra(rulesExtra.AvalancheRules, ethHeader.Extra); err != nil {
+	if err := customheader.VerifyExtra(rulesExtra.AvalancheRules, ethHeader.Extra); err != nil {
 		return err
+	}
+
+	if rulesExtra.IsSubnetEVM {
+		if ethHeader.BaseFee == nil {
+			return errNilBaseFeeSubnetEVM
+		}
+		if bfLen := ethHeader.BaseFee.BitLen(); bfLen > 256 {
+			return fmt.Errorf("too large base fee: bitlen %d", bfLen)
+		}
 	}
 
 	// Check that the tx hash in the header matches the body
@@ -280,6 +290,18 @@ func (b *wrappedBlock) syntacticVerify() error {
 	// Block must not have any uncles
 	if len(b.ethBlock.Uncles()) > 0 {
 		return errUnclesUnsupported
+	}
+
+	if rulesExtra.IsSubnetEVM {
+		blockGasCost := customtypes.GetHeaderExtra(ethHeader).BlockGasCost
+		switch {
+		// Make sure BlockGasCost is not nil
+		// NOTE: ethHeader.BlockGasCost correctness is checked in header verification
+		case blockGasCost == nil:
+			return errNilBlockGasCostSubnetEVM
+		case !blockGasCost.IsUint64():
+			return fmt.Errorf("too large blockGasCost: %d", blockGasCost)
+		}
 	}
 
 	// Verify the existence / non-existence of excessBlobGas
@@ -342,7 +364,7 @@ func (b *wrappedBlock) verifyPredicates(predicateContext *precompileconfig.Predi
 		return fmt.Errorf("failed to marshal predicate results: %w", err)
 	}
 	extraData := b.ethBlock.Extra()
-	headerPredicateResultsBytes := header.PredicateBytesFromExtra(extraData)
+	headerPredicateResultsBytes := customheader.PredicateBytesFromExtra(extraData)
 	if !bytes.Equal(headerPredicateResultsBytes, predicateResultsBytes) {
 		return fmt.Errorf("%w (remote: %x local: %x)", errInvalidHeaderPredicateResults, headerPredicateResultsBytes, predicateResultsBytes)
 	}
