@@ -45,7 +45,7 @@ type wrappedBlock struct {
 }
 
 // wrapBlock returns a new Block wrapping the ethBlock type and implementing the snowman.Block interface
-func wrapBlock(ethBlock *types.Block, vm *VM) (*wrappedBlock, error) { //nolint:unparam // this just makes the function compatible with the future syncs I'll do, it's temporary!!
+func wrapBlock(ethBlock *types.Block, vm *VM) (*wrappedBlock, error) {
 	b := &wrappedBlock{
 		id:       ids.ID(ethBlock.Hash()),
 		ethBlock: ethBlock,
