@@ -141,6 +141,8 @@ var (
 	errInvalidBlock                  = errors.New("invalid block")
 	errInvalidNonce                  = errors.New("invalid nonce")
 	errUnclesUnsupported             = errors.New("uncles unsupported")
+	errNilBaseFeeSubnetEVM           = errors.New("nil base fee is invalid after subnetEVM")
+	errNilBlockGasCostSubnetEVM      = errors.New("nil blockGasCost is invalid after subnetEVM")
 	errInvalidHeaderPredicateResults = errors.New("invalid header predicate results")
 	errInitializingLogger            = errors.New("failed to initialize logger")
 	errShuttingDownVM                = errors.New("shutting down VM")
@@ -1371,10 +1373,6 @@ func (vm *VM) stateSyncEnabled(lastAcceptedHeight uint64) bool {
 
 	// enable state sync by default if the chain is empty.
 	return lastAcceptedHeight == 0
-}
-
-func (vm *VM) PutLastAcceptedID(id ids.ID) error {
-	return vm.acceptedBlockDB.Put(lastAcceptedKey, id[:])
 }
 
 func (vm *VM) PutLastAcceptedID(id ids.ID) error {
