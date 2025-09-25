@@ -16,6 +16,7 @@ import (
 	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/libevm/trie"
 
+	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/consensus"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/params/extras"
@@ -344,23 +345,36 @@ func (eng *DummyEngine) Finalize(chain consensus.ChainHeaderReader, block *types
 func (eng *DummyEngine) FinalizeAndAssemble(chain consensus.ChainHeaderReader, header *types.Header, parent *types.Header, state *state.StateDB, txs []*types.Transaction,
 	uncles []*types.Header, receipts []*types.Receipt,
 ) (*types.Block, error) {
+	var (
+		feeConfig    commontype.FeeConfig
+		contribution *big.Int
+		err          error
+	)
+
 	// we use the parent to determine the fee config
 	// since the current block has not been finalized yet.
-	feeConfig, _, err := chain.GetFeeConfigAt(parent)
+	feeConfig, _, err = chain.GetFeeConfigAt(parent)
 	if err != nil {
 		return nil, err
 	}
-	config := params.GetExtra(chain.Config())
 
-	// Calculate the required block gas cost for this block.
+	if eng.cb.OnFinalizeAndAssemble != nil {
+		_, contribution, err = eng.cb.OnFinalizeAndAssemble(header, parent, state, txs)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	configExtra := params.GetExtra(chain.Config())
 	headerExtra := customtypes.GetHeaderExtra(header)
+	// Calculate the required block gas cost for this block.
 	headerExtra.BlockGasCost = customheader.BlockGasCost(
-		config,
+		configExtra,
 		feeConfig,
 		parent,
 		header.Time,
 	)
-	if config.IsSubnetEVM(header.Time) {
+	if configExtra.IsSubnetEVM(header.Time) {
 		// Verify that this block covers the block fee.
 		if !eng.consensusMode.ModeSkipBlockFee {
 			if err := customheader.VerifyBlockFee(
@@ -368,7 +382,7 @@ func (eng *DummyEngine) FinalizeAndAssemble(chain consensus.ChainHeaderReader, h
 				headerExtra.BlockGasCost,
 				txs,
 				receipts,
-				nil,
+				contribution,
 			); err != nil {
 				return nil, err
 			}
@@ -376,7 +390,7 @@ func (eng *DummyEngine) FinalizeAndAssemble(chain consensus.ChainHeaderReader, h
 	}
 
 	// finalize the header.Extra
-	extraPrefix, err := customheader.ExtraPrefix(config, parent, header)
+	extraPrefix, err := customheader.ExtraPrefix(configExtra, parent, header)
 	if err != nil {
 		return nil, fmt.Errorf("failed to calculate new header.Extra: %w", err)
 	}
