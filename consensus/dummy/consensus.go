@@ -265,7 +265,7 @@ func (*DummyEngine) Prepare(_ consensus.ChainHeaderReader, header *types.Header)
 	return nil
 }
 
-func (eng *DummyEngine) Finalize(chain consensus.ChainHeaderReader, block *types.Block, parent *types.Header, state *state.StateDB, receipts []*types.Receipt) error {
+func (eng *DummyEngine) Finalize(chain consensus.ChainHeaderReader, block *types.Block, parent *types.Header, _ *state.StateDB, receipts []*types.Receipt) error {
 	// Perform extra state change while finalizing the block
 	var (
 		contribution *big.Int
