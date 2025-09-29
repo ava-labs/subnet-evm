@@ -39,36 +39,10 @@ type Mode struct {
 	ModeSkipCoinbase bool
 }
 
-type (
-	OnFinalizeAndAssembleCallbackType = func(
-		header *types.Header,
-		parent *types.Header,
-		state *state.StateDB,
-		txs []*types.Transaction,
-	) (
-		extraData []byte,
-		blockFeeContribution *big.Int,
-		err error,
-	)
-
-	OnExtraStateChangeType = func(
-		block *types.Block,
-		parent *types.Header,
-		statedb *state.StateDB,
-	) (
-		blockFeeContribution *big.Int,
-		err error,
-	)
-	ConsensusCallbacks struct {
-		OnFinalizeAndAssemble OnFinalizeAndAssembleCallbackType
-		OnExtraStateChange    OnExtraStateChangeType
-	}
-	DummyEngine struct {
-		cb            ConsensusCallbacks
-		clock         *mockable.Clock
-		consensusMode Mode
-	}
-)
+type DummyEngine struct {
+	clock         *mockable.Clock
+	consensusMode Mode
+}
 
 func NewDummyEngine(
 	mode Mode,
@@ -297,12 +271,6 @@ func (eng *DummyEngine) Finalize(chain consensus.ChainHeaderReader, block *types
 		contribution *big.Int
 		err          error
 	)
-	if eng.cb.OnExtraStateChange != nil {
-		contribution, err = eng.cb.OnExtraStateChange(block, parent, state)
-		if err != nil {
-			return err
-		}
-	}
 
 	config := params.GetExtra(chain.Config())
 	timestamp := block.Time()
@@ -354,13 +322,6 @@ func (eng *DummyEngine) FinalizeAndAssemble(chain consensus.ChainHeaderReader, h
 	feeConfig, _, err := chain.GetFeeConfigAt(parent)
 	if err != nil {
 		return nil, err
-	}
-
-	if eng.cb.OnFinalizeAndAssemble != nil {
-		_, contribution, err = eng.cb.OnFinalizeAndAssemble(header, parent, state, txs)
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	configExtra := params.GetExtra(chain.Config())
