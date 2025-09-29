@@ -267,12 +267,6 @@ func (*DummyEngine) Prepare(_ consensus.ChainHeaderReader, header *types.Header)
 }
 
 func (eng *DummyEngine) Finalize(chain consensus.ChainHeaderReader, block *types.Block, parent *types.Header, _ *state.StateDB, receipts []*types.Receipt) error {
-	// Perform extra state change while finalizing the block
-	var (
-		contribution *big.Int
-		err          error
-	)
-
 	config := params.GetExtra(chain.Config())
 	timestamp := block.Time()
 	// we use the parent to determine the fee config
@@ -300,7 +294,7 @@ func (eng *DummyEngine) Finalize(chain consensus.ChainHeaderReader, block *types
 				blockGasCost,
 				block.Transactions(),
 				receipts,
-				contribution,
+				nil,
 			); err != nil {
 				return err
 			}
