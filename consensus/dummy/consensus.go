@@ -28,9 +28,8 @@ import (
 var (
 	allowedFutureBlockTime = 10 * time.Second // Max time from current time allowed for blocks, before they're considered future blocks
 
-	errInvalidBlockTime    = errors.New("timestamp less than parent's")
-	errUnclesUnsupported   = errors.New("uncles unsupported")
-	errInvalidBlockGasCost = errors.New("invalid blockGasCost")
+	errInvalidBlockTime  = errors.New("timestamp less than parent's")
+	errUnclesUnsupported = errors.New("uncles unsupported")
 )
 
 type Mode struct {
@@ -291,7 +290,7 @@ func (eng *DummyEngine) Finalize(chain consensus.ChainHeaderReader, block *types
 		timestamp,
 	)
 	if !utils.BigEqual(blockGasCost, expectedBlockGasCost) {
-		return fmt.Errorf("%w: have %d, want %d", errInvalidBlockGasCost, blockGasCost, expectedBlockGasCost)
+		return fmt.Errorf("invalid blockGasCost: have %d, want %d", blockGasCost, expectedBlockGasCost)
 	}
 	if config.IsSubnetEVM(timestamp) {
 		// Verify the block fee was paid.
@@ -314,11 +313,6 @@ func (eng *DummyEngine) Finalize(chain consensus.ChainHeaderReader, block *types
 func (eng *DummyEngine) FinalizeAndAssemble(chain consensus.ChainHeaderReader, header *types.Header, parent *types.Header, state *state.StateDB, txs []*types.Transaction,
 	uncles []*types.Header, receipts []*types.Receipt,
 ) (*types.Block, error) {
-	var (
-		contribution *big.Int
-		err          error
-	)
-
 	// we use the parent to determine the fee config
 	// since the current block has not been finalized yet.
 	feeConfig, _, err := chain.GetFeeConfigAt(parent)
@@ -343,7 +337,7 @@ func (eng *DummyEngine) FinalizeAndAssemble(chain consensus.ChainHeaderReader, h
 				headerExtra.BlockGasCost,
 				txs,
 				receipts,
-				contribution,
+				nil,
 			); err != nil {
 				return nil, err
 			}
