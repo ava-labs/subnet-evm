@@ -39,10 +39,12 @@ type Mode struct {
 	ModeSkipCoinbase bool
 }
 
-type DummyEngine struct {
-	clock         *mockable.Clock
-	consensusMode Mode
-}
+type (
+	DummyEngine struct {
+		clock         *mockable.Clock
+		consensusMode Mode
+	}
+)
 
 func NewDummyEngine(
 	mode Mode,
