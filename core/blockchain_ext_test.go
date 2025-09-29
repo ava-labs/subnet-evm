@@ -122,10 +122,6 @@ var reexecTests = []ReexecTest{
 		"ReexecCorruptedState",
 		ReexecCorruptedStateTest,
 	},
-	{
-		"ReexecCorruptedState",
-		ReexecCorruptedStateTest,
-	},
 }
 
 func copyMemDB(db ethdb.Database) (ethdb.Database, error) {
