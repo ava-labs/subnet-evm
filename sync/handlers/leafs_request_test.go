@@ -33,9 +33,7 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 
 	corruptedTrieRoot, _, _ := statesynctest.GenerateTrie(t, r, trieDB, 100, common.HashLength)
 	tr, err := trie.New(trie.TrieID(corruptedTrieRoot), trieDB)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	// Corrupt [corruptedTrieRoot]
 	statesynctest.CorruptTrie(t, memdb, tr, 5)
 
@@ -422,9 +420,8 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 				require.NoError(t, err)
 
 				var leafsResponse message.LeafsResponse
-				if _, err := message.Codec.Unmarshal(response, &leafsResponse); err != nil {
-					t.Fatalf("unexpected error when unmarshalling LeafsResponse: %v", err)
-				}
+				_, err = message.Codec.Unmarshal(response, &leafsResponse)
+				require.NoError(t, err)
 
 				require.Len(t, leafsResponse.Keys, 500)
 				require.Len(t, leafsResponse.Vals, 500)
@@ -437,9 +434,7 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 		"account data served from snapshot": {
 			prepareTestFn: func() (context.Context, message.LeafsRequest) {
 				snap, err := snapshot.New(snapConfig, memdb, trieDB, common.Hash{}, accountTrieRoot)
-				if err != nil {
-					t.Fatal(err)
-				}
+				require.NoError(t, err)
 				snapshotProvider.Snapshot = snap
 				return context.Background(), message.LeafsRequest{
 					Root:  accountTrieRoot,
@@ -463,9 +458,7 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 		"partial account data served from snapshot": {
 			prepareTestFn: func() (context.Context, message.LeafsRequest) {
 				snap, err := snapshot.New(snapConfig, memdb, trieDB, common.Hash{}, accountTrieRoot)
-				if err != nil {
-					t.Fatal(err)
-				}
+				require.NoError(t, err)
 				snapshotProvider.Snapshot = snap
 				it := snap.DiskAccountIterator(common.Hash{})
 				defer it.Release()
@@ -478,9 +471,7 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 					// modify one entry of 1 in 4 segments
 					if i%(segmentLen*4) == 0 {
 						acc, err := types.FullAccount(it.Account())
-						if err != nil {
-							t.Fatalf("could not parse snapshot account: %v", err)
-						}
+						require.NoError(t, err)
 						acc.Nonce++
 						bytes := types.SlimAccountRLP(*acc)
 						rawdb.WriteAccountSnapshot(memdb, it.Hash(), bytes)
@@ -515,9 +506,7 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 		"storage data served from snapshot": {
 			prepareTestFn: func() (context.Context, message.LeafsRequest) {
 				snap, err := snapshot.New(snapConfig, memdb, trieDB, common.Hash{}, accountTrieRoot)
-				if err != nil {
-					t.Fatal(err)
-				}
+				require.NoError(t, err)
 				snapshotProvider.Snapshot = snap
 				return context.Background(), message.LeafsRequest{
 					Root:    largeTrieRoot,
@@ -542,9 +531,7 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 		"partial storage data served from snapshot": {
 			prepareTestFn: func() (context.Context, message.LeafsRequest) {
 				snap, err := snapshot.New(snapConfig, memdb, trieDB, common.Hash{}, accountTrieRoot)
-				if err != nil {
-					t.Fatal(err)
-				}
+				require.NoError(t, err)
 				snapshotProvider.Snapshot = snap
 				it := snap.DiskStorageIterator(largeStorageAccount, common.Hash{})
 				defer it.Release()
@@ -592,9 +579,7 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 		"last snapshot key removed": {
 			prepareTestFn: func() (context.Context, message.LeafsRequest) {
 				snap, err := snapshot.New(snapConfig, memdb, trieDB, common.Hash{}, accountTrieRoot)
-				if err != nil {
-					t.Fatal(err)
-				}
+				require.NoError(t, err)
 				snapshotProvider.Snapshot = snap
 				it := snap.DiskStorageIterator(smallStorageAccount, common.Hash{})
 				defer it.Release()
@@ -627,9 +612,7 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 		"request last key when removed from snapshot": {
 			prepareTestFn: func() (context.Context, message.LeafsRequest) {
 				snap, err := snapshot.New(snapConfig, memdb, trieDB, common.Hash{}, accountTrieRoot)
-				if err != nil {
-					t.Fatal(err)
-				}
+				require.NoError(t, err)
 				snapshotProvider.Snapshot = snap
 				it := snap.DiskStorageIterator(smallStorageAccount, common.Hash{})
 				defer it.Release()
@@ -692,9 +675,7 @@ func requireRangeProofIsValid(t *testing.T, request *message.LeafsRequest, respo
 		defer proof.Close()
 		for _, proofVal := range response.ProofVals {
 			proofKey := crypto.Keccak256(proofVal)
-			if err := proof.Put(proofKey, proofVal); err != nil {
-				t.Fatal(err)
-			}
+			require.NoError(t, proof.Put(proofKey, proofVal))
 		}
 	}
 
