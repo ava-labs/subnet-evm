@@ -100,7 +100,6 @@ func makePrecompile(contract contract.StatefulPrecompiledContract) libevm.Precom
 			env.InvalidateExecution(fmt.Errorf("precompile cannot be called with %s", callType))
 		}
 
-		// EVM semantic addresses are used here to maintain consistency with prior behavior as present in AvalancheGo 1.13.0.
 		return contract.Run(accessibleState, env.Addresses().EVMSemantic.Caller, env.Addresses().EVMSemantic.Self, input, suppliedGas, env.ReadOnly())
 	}
 	return vm.NewStatefulPrecompile(legacy.PrecompiledStatefulContract(run).Upgrade())
