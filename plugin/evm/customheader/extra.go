@@ -50,8 +50,7 @@ func VerifyExtraPrefix(
 	parent *types.Header,
 	header *types.Header,
 ) error {
-	switch {
-	case config.IsSubnetEVM(header.Time):
+	if config.IsSubnetEVM(header.Time) {
 		feeWindow, err := feeWindow(config, parent, header.Time)
 		if err != nil {
 			return fmt.Errorf("calculating expected fee window: %w", err)

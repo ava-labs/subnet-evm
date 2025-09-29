@@ -361,6 +361,6 @@ func TestUptimeSignatures(t *testing.T) {
 		require.NoError(t, err)
 		response := &sdk.SignatureResponse{}
 		require.NoError(t, proto.Unmarshal(responseBytes, response))
-		require.Equal(t, expectedSignature[:], response.Signature)
+		require.Equal(t, expectedSignature, response.Signature)
 	}
 }
