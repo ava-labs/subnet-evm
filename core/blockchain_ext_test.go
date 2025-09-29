@@ -23,6 +23,7 @@ import (
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/params/extras"
+	"github.com/ava-labs/subnet-evm/plugin/evm/customheader"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/deployerallowlist"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/feemanager"
@@ -1420,7 +1421,7 @@ func GenerateChainInvalidBlockFee(t *testing.T, create createFunc) {
 		require.NoError(err)
 		gen.AddTx(signedTx)
 	})
-	require.ErrorIs(err, dummy.ErrInsufficientBlockGas)
+	require.ErrorIs(err, customheader.ErrInsufficientBlockGas)
 }
 
 func InsertChainInvalidBlockFee(t *testing.T, create createFunc) {
@@ -1464,7 +1465,7 @@ func InsertChainInvalidBlockFee(t *testing.T, create createFunc) {
 	})
 	require.NoError(err)
 	_, err = blockchain.InsertChain(chain)
-	require.ErrorIs(err, dummy.ErrInsufficientBlockGas)
+	require.ErrorIs(err, customheader.ErrInsufficientBlockGas)
 }
 
 func InsertChainValidBlockFee(t *testing.T, create createFunc) {
