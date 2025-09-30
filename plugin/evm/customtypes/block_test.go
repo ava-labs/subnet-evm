@@ -313,7 +313,7 @@ func TestSubnetEVMBlockEncoding(t *testing.T) {
 	check("Time", block.Time(), uint64(1426516743))
 	check("Size", block.Size(), uint64(len(blockEnc)))
 	check("BaseFee", block.BaseFee(), big.NewInt(1_000_000_000))
-	check("BlockGasCost", BlockGasCost(&block), big.NewInt(1_000_000))
+	check("BlockGasCost", BlockGasCost(&block), big.NewInt(100_000))
 	check("TimeMilliseconds", BlockTimeMilliseconds(&block), (*uint64)(nil))
 
 	tx1 := types.NewTransaction(0, common.HexToAddress("095e7baea6a6c7c4c2dfeb977efac326af552d87"), big.NewInt(10), 50000, big.NewInt(10), nil)
