@@ -66,7 +66,6 @@ import (
 
 	commonEng "github.com/ava-labs/avalanchego/snow/engine/common"
 	avagoconstants "github.com/ava-labs/avalanchego/utils/constants"
-	ethparams "github.com/ava-labs/libevm/params"
 )
 
 const delegateCallPrecompileCode = "6080604052348015600e575f5ffd5b506106608061001c5f395ff3fe608060405234801561000f575f5ffd5b506004361061003f575f3560e01c80638b336b5e14610043578063b771b3bc14610061578063e4246eec1461007f575b5f5ffd5b61004b61009d565b604051610058919061029e565b60405180910390f35b610069610256565b6040516100769190610331565b60405180910390f35b61008761026e565b604051610094919061036a565b60405180910390f35b5f5f6040516020016100ae906103dd565b60405160208183030381529060405290505f63ee5b48eb60e01b826040516024016100d9919061046b565b604051602081830303815290604052907bffffffffffffffffffffffffffffffffffffffffffffffffffffffff19166020820180517bffffffffffffffffffffffffffffffffffffffffffffffffffffffff838183161783525050505090505f5f73020000000000000000000000000000000000000573ffffffffffffffffffffffffffffffffffffffff168360405161017391906104c5565b5f60405180830381855af49150503d805f81146101ab576040519150601f19603f3d011682016040523d82523d5f602084013e6101b0565b606091505b5091509150816101f5576040517f08c379a00000000000000000000000000000000000000000000000000000000081526004016101ec9061054b565b60405180910390fd5b808060200190518101906102099190610597565b94505f5f1b850361024f576040517f08c379a00000000000000000000000000000000000000000000000000000000081526004016102469061060c565b60405180910390fd5b5050505090565b73020000000000000000000000000000000000000581565b73020000000000000000000000000000000000000581565b5f819050919050565b61029881610286565b82525050565b5f6020820190506102b15f83018461028f565b92915050565b5f73ffffffffffffffffffffffffffffffffffffffff82169050919050565b5f819050919050565b5f6102f96102f46102ef846102b7565b6102d6565b6102b7565b9050919050565b5f61030a826102df565b9050919050565b5f61031b82610300565b9050919050565b61032b81610311565b82525050565b5f6020820190506103445f830184610322565b92915050565b5f610354826102b7565b9050919050565b6103648161034a565b82525050565b5f60208201905061037d5f83018461035b565b92915050565b5f82825260208201905092915050565b7f68656c6c6f0000000000000000000000000000000000000000000000000000005f82015250565b5f6103c7600583610383565b91506103d282610393565b602082019050919050565b5f6020820190508181035f8301526103f4816103bb565b9050919050565b5f81519050919050565b5f82825260208201905092915050565b8281835e5f83830152505050565b5f601f19601f8301169050919050565b5f61043d826103fb565b6104478185610405565b9350610457818560208601610415565b61046081610423565b840191505092915050565b5f6020820190508181035f8301526104838184610433565b905092915050565b5f81905092915050565b5f61049f826103fb565b6104a9818561048b565b93506104b9818560208601610415565b80840191505092915050565b5f6104d08284610495565b915081905092915050565b7f44656c65676174652063616c6c20746f2073656e64576172704d6573736167655f8201527f206661696c656400000000000000000000000000000000000000000000000000602082015250565b5f610535602783610383565b9150610540826104db565b604082019050919050565b5f6020820190508181035f83015261056281610529565b9050919050565b5f5ffd5b61057681610286565b8114610580575f5ffd5b50565b5f815190506105918161056d565b92915050565b5f602082840312156105ac576105ab610569565b5b5f6105b984828501610583565b91505092915050565b7f4661696c656420746f2073656e642077617270206d65737361676500000000005f82015250565b5f6105f6601b83610383565b9150610601826105c2565b602082019050919050565b5f6020820190508181035f830152610623816105ea565b905091905056fea2646970667358221220192acba01cff6d70ce187c63c7ccac116d811f6c35e316fde721f14929ced12564736f6c634300081e0033"
@@ -355,6 +354,68 @@ func issueAndAccept(t *testing.T, vm *VM) snowman.Block {
 	return blk
 }
 
+// IssueTxsAndSetPreference adds transactions to the mempool, builds a block, and sets preference
+func IssueTxsAndSetPreference(txs []*types.Transaction, vm *VM) (snowman.Block, error) {
+	errs := vm.txPool.AddRemotesSync(txs)
+	for i, err := range errs {
+		if err != nil {
+			return nil, fmt.Errorf("failed to add tx at index %d: %w", i, err)
+		}
+	}
+
+	msg, err := vm.WaitForEvent(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	if msg != commonEng.PendingTxs {
+		return nil, fmt.Errorf("expected PendingTxs message, got %d", msg)
+	}
+
+	blk, err := vm.BuildBlock(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
+	if err := blk.Verify(context.Background()); err != nil {
+		return nil, err
+	}
+
+	if err := vm.SetPreference(context.Background(), blk.ID()); err != nil {
+		return nil, err
+	}
+
+	return blk, nil
+}
+
+// IssueTxsAndBuild adds transactions to the mempool and builds a block without setting preference
+func IssueTxsAndBuild(txs []*types.Transaction, vm *VM) (snowman.Block, error) {
+	errs := vm.txPool.AddRemotesSync(txs)
+	for i, err := range errs {
+		if err != nil {
+			return nil, fmt.Errorf("failed to add tx at index %d: %w", i, err)
+		}
+	}
+
+	msg, err := vm.WaitForEvent(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	if msg != commonEng.PendingTxs {
+		return nil, fmt.Errorf("expected PendingTxs message, got %d", msg)
+	}
+
+	blk, err := vm.BuildBlock(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
+	if err := blk.Verify(context.Background()); err != nil {
+		return nil, err
+	}
+
+	return blk, nil
+}
+
 func TestBuildEthTxBlock(t *testing.T) {
 	for _, scheme := range schemes {
 		t.Run(scheme, func(t *testing.T) {
@@ -374,7 +435,7 @@ func testBuildEthTxBlock(t *testing.T, scheme string) {
 	newTxPoolHeadChan := make(chan core.NewTxPoolReorgEvent, 1)
 	tvm.vm.txPool.SubscribeNewReorgEvent(newTxPoolHeadChan)
 
-	signedTx := newSignedLegacyTx(t, tvm.vm.chainConfig, testKeys[0].ToECDSA(), 0, &testEthAddrs[1], big.NewInt(1), 21000, big.NewInt(ethparams.InitialBaseFee), nil)
+	signedTx := newSignedLegacyTx(t, tvm.vm.chainConfig, testKeys[0].ToECDSA(), 0, &testEthAddrs[1], big.NewInt(1), 21000, big.NewInt(testMinGasPrice), nil)
 	blk1, err := IssueTxsAndSetPreference([]*types.Transaction{signedTx}, tvm.vm)
 	if err != nil {
 		t.Fatalf("Failed to issue txs and build block: %s", err)
@@ -1970,7 +2031,7 @@ func testBuildSubnetEVMBlock(t *testing.T, scheme string) {
 	key := testKeys[1].ToECDSA()
 	address := testEthAddrs[1]
 
-	signedTx := newSignedLegacyTx(t, tvm.vm.chainConfig, testKeys[0].ToECDSA(), 0, &testEthAddrs[1], big.NewInt(1), 21000, big.NewInt(ethparams.big.NewInt(ethparams.InitialBaseFee)), nil)
+	signedTx := newSignedLegacyTx(t, tvm.vm.chainConfig, testKeys[0].ToECDSA(), 0, &testEthAddrs[1], big.NewInt(1), 21000, big.NewInt(testMinGasPrice), nil)
 	blk, err := IssueTxsAndSetPreference([]*types.Transaction{signedTx}, tvm.vm)
 	if err != nil {
 		t.Fatal(err)
@@ -2064,6 +2125,9 @@ func testBuildAllowListActivationBlock(t *testing.T, scheme string) {
 			t.Fatal(err)
 		}
 	}()
+
+	newTxPoolHeadChan := make(chan core.NewTxPoolReorgEvent, 1)
+	tvm.vm.txPool.SubscribeNewReorgEvent(newTxPoolHeadChan)
 
 	signedTx := newSignedLegacyTx(t, tvm.vm.chainConfig, testKeys[0].ToECDSA(), 0, &testEthAddrs[1], big.NewInt(1), 21000, big.NewInt(testMinGasPrice), nil)
 	blk, err := IssueTxsAndSetPreference([]*types.Transaction{signedTx}, tvm.vm)
@@ -2949,7 +3013,7 @@ func TestParentBeaconRootBlock(t *testing.T) {
 				}
 			}()
 
-			signedTx := newSignedLegacyTx(t, tvm.vm.chainConfig, testKeys[0].ToECDSA(), 0, &testEthAddrs[1], big.NewInt(1), 21000, big.NewInt(ethparams.InitialBaseFee), nil)
+			signedTx := newSignedLegacyTx(t, tvm.vm.chainConfig, testKeys[0].ToECDSA(), 0, &testEthAddrs[1], big.NewInt(1), 21000, big.NewInt(testMinGasPrice), nil)
 			blk, err := IssueTxsAndBuild([]*types.Transaction{signedTx}, tvm.vm)
 			if err != nil {
 				t.Fatalf("Failed to build block with import transaction: %s", err)
@@ -3260,7 +3324,7 @@ func TestWaitForEvent(t *testing.T) {
 					require.Equal(t, commonEng.PendingTxs, msg)
 				}()
 
-				signedTx := newSignedLegacyTx(t, vm.chainConfig, testKeys[0].ToECDSA(), 0, &testEthAddrs[1], big.NewInt(1), 21000, big.NewInt(ethparams.InitialBaseFee), nil)
+				signedTx := newSignedLegacyTx(t, vm.chainConfig, testKeys[0].ToECDSA(), 0, &testEthAddrs[1], big.NewInt(1), 21000, big.NewInt(testMinGasPrice), nil)
 				for _, err := range vm.txPool.AddRemotesSync([]*types.Transaction{signedTx}) {
 					require.NoError(t, err)
 				}
@@ -3271,7 +3335,7 @@ func TestWaitForEvent(t *testing.T) {
 		{
 			name: "WaitForEvent doesn't return once a block is built and accepted",
 			testCase: func(t *testing.T, vm *VM) {
-				signedTx := newSignedLegacyTx(t, vm.chainConfig, testKeys[0].ToECDSA(), 0, &testEthAddrs[1], big.NewInt(1), 21000, big.NewInt(ethparams.InitialBaseFee), nil)
+				signedTx := newSignedLegacyTx(t, vm.chainConfig, testKeys[0].ToECDSA(), 0, &testEthAddrs[1], big.NewInt(1), 21000, big.NewInt(testMinGasPrice), nil)
 
 				for _, err := range vm.txPool.AddRemotesSync([]*types.Transaction{signedTx}) {
 					require.NoError(t, err)
@@ -3306,7 +3370,7 @@ func TestWaitForEvent(t *testing.T) {
 
 				time.Sleep(time.Second * 2) // sleep some time to let the gas capacity to refill
 
-				signedTx = newSignedLegacyTx(t, vm.chainConfig, testKeys[0].ToECDSA(), 1, &testEthAddrs[1], big.NewInt(1), 21000, big.NewInt(ethparams.InitialBaseFee), nil)
+				signedTx = newSignedLegacyTx(t, vm.chainConfig, testKeys[0].ToECDSA(), 1, &testEthAddrs[1], big.NewInt(1), 21000, big.NewInt(testMinGasPrice), nil)
 
 				for _, err := range vm.txPool.AddRemotesSync([]*types.Transaction{signedTx}) {
 					require.NoError(t, err)
@@ -3337,12 +3401,12 @@ func TestWaitForEvent(t *testing.T) {
 		{
 			name: "WaitForEvent waits some time after a block is built",
 			testCase: func(t *testing.T, vm *VM) {
-				signedTx := newSignedLegacyTx(t, vm.chainConfig, testKeys[0].ToECDSA(), 0, &testEthAddrs[1], big.NewInt(1), 21000, big.NewInt(ethparams.InitialBaseFee), nil)
+				signedTx := newSignedLegacyTx(t, vm.chainConfig, testKeys[0].ToECDSA(), 0, &testEthAddrs[1], big.NewInt(1), 21000, big.NewInt(testMinGasPrice), nil)
 				lastBuildBlockTime := time.Now()
 				blk, err := IssueTxsAndBuild([]*types.Transaction{signedTx}, vm)
 				require.NoError(t, err)
 				require.NoError(t, blk.Accept(context.Background()))
-				signedTx = newSignedLegacyTx(t, vm.chainConfig, testKeys[0].ToECDSA(), 1, &testEthAddrs[1], big.NewInt(1), 21000, big.NewInt(ethparams.InitialBaseFee), nil)
+				signedTx = newSignedLegacyTx(t, vm.chainConfig, testKeys[0].ToECDSA(), 1, &testEthAddrs[1], big.NewInt(1), 21000, big.NewInt(testMinGasPrice), nil)
 
 				for _, err := range vm.txPool.AddRemotesSync([]*types.Transaction{signedTx}) {
 					require.NoError(t, err)
@@ -3510,7 +3574,7 @@ func newSignedLegacyTx(
 // deployContract deploys the provided EVM bytecode using a prefunded test account
 // and returns the created contract address. It is reusable for any contract code.
 func deployContract(ctx context.Context, t *testing.T, vm *VM, gasPrice *big.Int, code []byte) common.Address {
-	callerAddr := TestEthAddrs[0]
+	callerAddr := testEthAddrs[0]
 	callerKey := testKeys[0]
 
 	nonce := vm.txPool.Nonce(callerAddr)
@@ -3564,8 +3628,8 @@ func TestDelegatePrecompile_BehaviorAcrossUpgrades(t *testing.T) {
 		{
 			name:           "granite_should_revert",
 			fork:           upgradetest.Granite,
-			deployGasPrice: big.NewInt(ethparams.InitialBaseFee),
-			txGasPrice:     big.NewInt(ethparams.InitialBaseFee),
+			deployGasPrice: big.NewInt(testMinGasPrice),
+			txGasPrice:     big.NewInt(testMinGasPrice),
 			// Time is irrelevant as only the fork dictates the logic
 			refillCapacityFortuna: false,
 			wantIncluded:          true,
@@ -3596,10 +3660,8 @@ func TestDelegatePrecompile_BehaviorAcrossUpgrades(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			vm := newVM(t, testVMConfig{
 				genesisJSON: genesisJSONSubnetEVM,
+				fork:        &tt.fork,
 			}).vm
-			SetupTestVM(t, vm, TestVMConfig{
-				Fork: &tt.fork,
-			})
 			defer vm.Shutdown(ctx)
 
 			if tt.preDeployTime != 0 {
