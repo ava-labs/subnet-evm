@@ -7,7 +7,7 @@ require (
 	github.com/antithesishq/antithesis-sdk-go v0.3.8
 	github.com/ava-labs/avalanchego v1.13.5
 	github.com/ava-labs/firewood-go-ethhash/ffi v0.0.12
-	github.com/ava-labs/libevm v1.13.15-0.20250904180142-72e9ad796212
+	github.com/ava-labs/libevm v1.13.14-0.3.0.release
 	github.com/davecgh/go-spew v1.1.1
 	github.com/deckarep/golang-set/v2 v2.1.0
 	github.com/fjl/gencodec v0.1.1
