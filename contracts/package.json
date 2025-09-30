@@ -16,7 +16,6 @@
     "@types/node": "^24.5.2",
     "chai": "^4.5.0",
     "ds-test": "https://github.com/dapphub/ds-test.git",
-    "ethers": "^6.15.0",
     "hardhat": "^2.26.3",
     "hardhat-gas-reporter": "^2.3.0",
     "prettier": "^3.6.2",
