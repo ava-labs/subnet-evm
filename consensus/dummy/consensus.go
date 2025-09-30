@@ -30,10 +30,7 @@ var (
 
 	errInvalidBlockTime                    = errors.New("timestamp less than parent's")
 	errUnclesUnsupported                   = errors.New("uncles unsupported")
-	errExtDataGasUsedNil                   = errors.New("extDataGasUsed is nil")
-	errExtDataGasUsedTooLarge              = errors.New("extDataGasUsed is not uint64")
 	ErrInvalidBlockGasCost                 = errors.New("invalid blockGasCost")
-	errInvalidExtDataGasUsed               = errors.New("invalid extDataGasUsed")
 	errInvalidExcessBlobGasBeforeCancun    = errors.New("invalid excessBlobGas before cancun")
 	errInvalidBlobGasUsedBeforeCancun      = errors.New("invalid blobGasUsed before cancun")
 	errInvalidParentBeaconRootBeforeCancun = errors.New("invalid parentBeaconRoot before cancun")
