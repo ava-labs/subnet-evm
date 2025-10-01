@@ -390,7 +390,7 @@ func TestSuggestTipCapMaxBlocksSecondsLookback(t *testing.T) {
 
 // Regression test to ensure the last estimation of base fee is not used
 // for the block immediately following a fee configuration update.
-func TestSuggestGasPriceAfterFeeConfigUpdate(t *testing.T) {
+func TestEstimateBaseFeeAfterFeeConfigUpdate(t *testing.T) {
 	require := require.New(t)
 	config := Config{
 		Blocks:     20,
