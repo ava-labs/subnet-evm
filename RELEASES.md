@@ -4,6 +4,7 @@
 
 - Add pending releases here
 - Upgrade to Go version 1.24
+- Implement ACP-226: Set expected block gas cost to 0 in Granite network upgrade, removing block gas cost requirements for block building.
 
 ## [v0.7.9](https://github.com/ava-labs/subnet-evm/releases/tag/v0.7.9)
 
