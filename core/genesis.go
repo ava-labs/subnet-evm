@@ -60,12 +60,6 @@ import (
 
 var errGenesisNoConfig = errors.New("genesis has no chain configuration")
 
-// Deprecated: use types.Account instead.
-type GenesisAccount = types.Account
-
-// Deprecated: use types.GenesisAlloc instead.
-type GenesisAlloc = types.GenesisAlloc
-
 type Airdrop struct {
 	// Address strings are hex-formatted common.Address
 	Address common.Address `json:"address"`
@@ -434,7 +428,7 @@ func (g *Genesis) Verify() error {
 func GenesisBlockForTesting(db ethdb.Database, addr common.Address, balance *big.Int) *types.Block {
 	g := Genesis{
 		Config:  params.TestChainConfig,
-		Alloc:   GenesisAlloc{addr: {Balance: balance}},
+		Alloc:   types.GenesisAlloc{addr: {Balance: balance}},
 		BaseFee: big.NewInt(legacy.BaseFee),
 	}
 	return g.MustCommit(db, triedb.NewDatabase(db, triedb.HashDefaults))
