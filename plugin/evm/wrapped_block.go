@@ -241,7 +241,11 @@ func (b *wrappedBlock) verifyIntrinsicGas() error {
 	}
 
 	// Verify that the claimed GasUsed is within the current capacity.
-	if err := customheader.VerifyGasUsed(b.vm.chainConfigExtra(), parent, b.ethBlock.Header()); err != nil {
+	feeConfig, _, err := b.vm.blockChain.GetFeeConfigAt(parent)
+	if err != nil {
+		return fmt.Errorf("failed to get fee config: %w", err)
+	}
+	if err := customheader.VerifyGasUsed(b.vm.chainConfigExtra(), feeConfig, parent, b.ethBlock.Header()); err != nil {
 		return fmt.Errorf("%w: %w", errInvalidGasUsedRelativeToCapacity, err)
 	}
 

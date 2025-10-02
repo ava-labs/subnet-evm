@@ -37,8 +37,6 @@ import (
 	"github.com/ava-labs/avalanchego/vms/evm/predicate"
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
-	"github.com/ava-labs/coreth-internal/plugin/evm/vmtest"
-	"github.com/ava-labs/coreth/plugin/evm/upgrade/ap0"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/common/math"
 	"github.com/ava-labs/libevm/core/rawdb"
@@ -3828,8 +3826,8 @@ func TestCreateHandlers(t *testing.T) {
 // deployContract deploys the provided EVM bytecode using a prefunded test account
 // and returns the created contract address. It is reusable for any contract code.
 func deployContract(ctx context.Context, t *testing.T, vm *VM, gasPrice *big.Int, code []byte) common.Address {
-	callerAddr := vmtest.TestEthAddrs[0]
-	callerKey := vmtest.TestKeys[0]
+	callerAddr := testEthAddrs[0]
+	callerKey := testKeys[0]
 
 	nonce := vm.txPool.Nonce(callerAddr)
 	signedTx := newSignedLegacyTx(t, vm.chainConfig, callerKey.ToECDSA(), nonce, nil, big.NewInt(0), 1000000, gasPrice, code)
@@ -3866,106 +3864,6 @@ func deployContract(ctx context.Context, t *testing.T, vm *VM, gasPrice *big.Int
 	return crypto.CreateAddress(callerAddr, nonce)
 }
 
-func TestDelegatePrecompile_BehaviorAcrossUpgrades(t *testing.T) {
-	ctx := context.Background()
-	tests := []struct {
-		name                  string
-		fork                  upgradetest.Fork
-		deployGasPrice        *big.Int
-		txGasPrice            *big.Int
-		preDeployTime         int64
-		setTime               int64
-		refillCapacityFortuna bool
-		wantIncluded          bool
-		wantReceiptStatus     uint64
-	}{
-		{
-			name:           "granite_should_revert",
-			fork:           upgradetest.Granite,
-			deployGasPrice: vmtest.InitialBaseFee,
-			txGasPrice:     vmtest.InitialBaseFee,
-			// Time is irrelevant as only the fork dictates the logic
-			refillCapacityFortuna: false,
-			wantIncluded:          true,
-			wantReceiptStatus:     types.ReceiptStatusFailed,
-		},
-		{
-			name:                  "fortuna_post_cutoff_should_invalidate",
-			fork:                  upgradetest.Fortuna,
-			deployGasPrice:        big.NewInt(ap0.MinGasPrice),
-			txGasPrice:            big.NewInt(ap0.MinGasPrice),
-			setTime:               params.InvalidateDelegateUnix + 1,
-			refillCapacityFortuna: true,
-			wantIncluded:          false,
-		},
-		{
-			name:                  "fortuna_pre_cutoff_should_succeed",
-			fork:                  upgradetest.Fortuna,
-			deployGasPrice:        big.NewInt(ap0.MinGasPrice),
-			txGasPrice:            big.NewInt(ap0.MinGasPrice),
-			preDeployTime:         params.InvalidateDelegateUnix - acp176.TimeToFillCapacity - 1,
-			refillCapacityFortuna: true,
-			wantIncluded:          true,
-			wantReceiptStatus:     types.ReceiptStatusSuccessful,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			vm := newDefaultTestVM()
-			vmtest.SetupTestVM(t, vm, vmtest.TestVMConfig{
-				Fork: &tt.fork,
-			})
-			defer vm.Shutdown(ctx)
-
-			if tt.preDeployTime != 0 {
-				vm.clock.Set(time.Unix(tt.preDeployTime, 0))
-			}
-
-			contractAddr := deployContract(ctx, t, vm, tt.deployGasPrice, common.FromHex(delegateCallPrecompileCode))
-
-			if tt.setTime != 0 {
-				vm.clock.Set(time.Unix(tt.setTime, 0))
-			}
-
-			if tt.refillCapacityFortuna {
-				// Ensure gas capacity is refilled relative to the parent block's timestamp
-				parent := vm.blockChain.CurrentBlock()
-				parentTime := time.Unix(int64(parent.Time), 0)
-				minRefillTime := parentTime.Add(acp176.TimeToFillCapacity * time.Second)
-				if vm.clock.Time().Before(minRefillTime) {
-					vm.clock.Set(minRefillTime)
-				}
-			}
-
-			data := crypto.Keccak256([]byte("delegateSendHello()"))[:4]
-			nonce := vm.txPool.Nonce(vmtest.TestEthAddrs[0])
-			signedTx := newSignedLegacyTx(t, vm.chainConfig, vmtest.TestKeys[0].ToECDSA(), nonce, &contractAddr, big.NewInt(0), 100000, tt.txGasPrice, data)
-			for _, err := range vm.txPool.AddRemotesSync([]*types.Transaction{signedTx}) {
-				require.NoError(t, err)
-			}
-
-			blk, err := vm.BuildBlock(ctx)
-			require.NoError(t, err)
-			require.NoError(t, blk.Verify(ctx))
-			require.NoError(t, vm.SetPreference(ctx, blk.ID()))
-			require.NoError(t, blk.Accept(ctx))
-
-			ethBlock := blk.(*chain.BlockWrapper).Block.(*wrappedBlock).ethBlock
-
-			if !tt.wantIncluded {
-				require.Empty(t, ethBlock.Transactions())
-				return
-			}
-
-			require.Len(t, ethBlock.Transactions(), 1)
-			receipts := vm.blockChain.GetReceiptsByHash(ethBlock.Hash())
-			require.Len(t, receipts, 1)
-			require.Equal(t, tt.wantReceiptStatus, receipts[0].Status)
-		})
-	}
-}
-
 // TestBlockGasValidation tests the two validation checks:
 // 1. invalid gas used relative to capacity
 // 2. total intrinsic gas cost is greater than claimed gas used
@@ -3981,9 +3879,11 @@ func TestBlockGasValidation(t *testing.T) {
 		parent := vm.eth.APIBackend.CurrentBlock()
 		const timeDelta = acp176.TimeToFillCapacity
 		timestamp := parent.Time + timeDelta
-		gasLimit, err := customheader.GasLimit(chainExtra, parent, timestamp)
+		feeConfig, _, err := vm.blockChain.GetFeeConfigAt(parent)
 		require.NoError(err)
-		baseFee, err := customheader.BaseFee(chainExtra, parent, timestamp)
+		gasLimit, err := customheader.GasLimit(chainExtra, feeConfig, parent, timestamp)
+		require.NoError(err)
+		baseFee, err := customheader.BaseFee(chainExtra, feeConfig, parent, timestamp)
 		require.NoError(err)
 
 		callPayload, err := payload.NewAddressedCall(nil, nil)
@@ -4020,7 +3920,7 @@ func TestBlockGasValidation(t *testing.T) {
 			types.NewTx(&types.DynamicFeeTx{
 				ChainID:    vm.chainConfig.ChainID,
 				Nonce:      1,
-				To:         &vmtest.TestEthAddrs[0],
+				To:         &testEthAddrs[0],
 				Gas:        acp176.MinMaxCapacity,
 				GasFeeCap:  baseFee,
 				GasTipCap:  baseFee,
@@ -4028,7 +3928,7 @@ func TestBlockGasValidation(t *testing.T) {
 				AccessList: accessList,
 			}),
 			types.LatestSigner(vm.chainConfig),
-			vmtest.TestKeys[0].ToECDSA(),
+			testKeys[0].ToECDSA(),
 		)
 		require.NoError(err)
 
@@ -4047,27 +3947,18 @@ func TestBlockGasValidation(t *testing.T) {
 		}
 
 		configExtra := params.GetExtra(vm.chainConfig)
-		header.Extra, err = customheader.ExtraPrefix(configExtra, parent, header, nil)
+		header.Extra, err = customheader.ExtraPrefix(configExtra, parent, header)
 		require.NoError(err)
-
-		// Set TimeMilliseconds for Granite blocks
-		if configExtra.IsGranite(timestamp) {
-			headerExtra := customtypes.GetHeaderExtra(header)
-			timeMilliseconds := timestamp * 1000
-			headerExtra.TimeMilliseconds = &timeMilliseconds
-		}
 
 		// Set the gasUsed after calculating the extra prefix to support large
 		// claimed gas used values.
 		header.GasUsed = claimedGasUsed
-		return customtypes.NewBlockWithExtData(
+		return types.NewBlock(
 			header,
 			[]*types.Transaction{tx},
 			nil,
 			nil,
 			trie.NewStackTrie(nil),
-			nil,
-			true,
 		)
 	}
 
@@ -4092,8 +3983,19 @@ func TestBlockGasValidation(t *testing.T) {
 			require := require.New(t)
 			ctx := context.Background()
 
-			vm := newDefaultTestVM()
-			vmtest.SetupTestVM(t, vm, vmtest.TestVMConfig{})
+			// Configure genesis with warp precompile enabled since test uses warp predicates
+			genesis := &core.Genesis{}
+			require.NoError(genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)))
+			params.GetExtra(genesis.Config).GenesisPrecompiles = extras.Precompiles{
+				warpcontract.ConfigKey: warpcontract.NewDefaultConfig(utils.TimeToNewUint64(upgrade.InitiallyActiveTime)),
+			}
+			genesisJSON, err := genesis.MarshalJSON()
+			require.NoError(err)
+
+			tvm := newVM(t, testVMConfig{
+				genesisJSON: string(genesisJSON),
+			})
+			vm := tvm.vm
 			defer func() {
 				require.NoError(vm.Shutdown(ctx))
 			}()
