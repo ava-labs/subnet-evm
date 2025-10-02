@@ -2076,88 +2076,96 @@ func TestBuildSubnetEVMBlock(t *testing.T) {
 }
 
 func testBuildSubnetEVMBlock(t *testing.T, scheme string) {
-	fork := upgradetest.Fortuna
-	tvm := newVM(t, testVMConfig{
-		fork:        &fork,
-		genesisJSON: genesisJSONSubnetEVM,
-		configJSON:  getConfig(scheme, ""),
-	})
-
-	defer func() {
-		if err := tvm.vm.Shutdown(context.Background()); err != nil {
-			t.Fatal(err)
-		}
-	}()
-
-	newTxPoolHeadChan := make(chan core.NewTxPoolReorgEvent, 1)
-	tvm.vm.txPool.SubscribeNewReorgEvent(newTxPoolHeadChan)
-
-	tx := types.NewTransaction(uint64(0), testEthAddrs[1], new(big.Int).Mul(firstTxAmount, big.NewInt(4)), 21000, big.NewInt(testMinGasPrice*3), nil)
-	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(tvm.vm.chainConfig.ChainID), testKeys[0].ToECDSA())
-	if err != nil {
-		t.Fatal(err)
+	tests := []struct {
+		name                  string
+		fork                  upgradetest.Fork
+		expectMinBlockGasCost *big.Int // nil means we expect 0
+		expectMinRequiredTip  *big.Int // nil means we expect 0
+	}{
+		{
+			name:                  "pre-granite (Fortuna)",
+			fork:                  upgradetest.Fortuna,
+			expectMinBlockGasCost: big.NewInt(100),
+			expectMinRequiredTip:  big.NewInt(0.05 * utils.GWei),
+		},
+		{
+			name:                  "granite",
+			fork:                  upgradetest.Granite,
+			expectMinBlockGasCost: big.NewInt(0),
+			expectMinRequiredTip:  big.NewInt(0),
+		},
 	}
 
-	txErrors := tvm.vm.txPool.AddRemotesSync([]*types.Transaction{signedTx})
-	for i, err := range txErrors {
-		if err != nil {
-			t.Fatalf("Failed to add tx at index %d: %s", i, err)
-		}
-	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fork := tt.fork
+			tvm := newVM(t, testVMConfig{
+				fork:        &fork,
+				genesisJSON: genesisJSONSubnetEVM,
+				configJSON:  getConfig(scheme, ""),
+			})
 
-	blk := issueAndAccept(t, tvm.vm)
-	newHead := <-newTxPoolHeadChan
-	if newHead.Head.Hash() != common.Hash(blk.ID()) {
-		t.Fatalf("Expected new block to match")
-	}
+			defer func() {
+				require.NoError(t, tvm.vm.Shutdown(context.Background()))
+			}()
 
-	txs := make([]*types.Transaction, 10)
-	for i := 0; i < 10; i++ {
-		tx := types.NewTransaction(uint64(i), testEthAddrs[0], big.NewInt(10), 21000, big.NewInt(testMinGasPrice*3), nil)
-		signedTx, err := types.SignTx(tx, types.NewEIP155Signer(tvm.vm.chainConfig.ChainID), testKeys[1].ToECDSA())
-		if err != nil {
-			t.Fatal(err)
-		}
-		txs[i] = signedTx
-	}
-	errs := tvm.vm.txPool.AddRemotesSync(txs)
-	for i, err := range errs {
-		if err != nil {
-			t.Fatalf("Failed to add tx at index %d: %s", i, err)
-		}
-	}
+			newTxPoolHeadChan := make(chan core.NewTxPoolReorgEvent, 1)
+			tvm.vm.txPool.SubscribeNewReorgEvent(newTxPoolHeadChan)
 
-	blk = issueAndAccept(t, tvm.vm)
-	ethBlk := blk.(*chain.BlockWrapper).Block.(*wrappedBlock).ethBlock
-	if customtypes.BlockGasCost(ethBlk) == nil || customtypes.BlockGasCost(ethBlk).Cmp(big.NewInt(100)) < 0 {
-		t.Fatalf("expected blockGasCost to be at least 100 but got %d", customtypes.BlockGasCost(ethBlk))
-	}
-	chainConfig := params.GetExtra(tvm.vm.chainConfig)
-	minRequiredTip, err := customheader.EstimateRequiredTip(chainConfig, ethBlk.Header())
-	if err != nil {
-		t.Fatal(err)
-	}
-	if minRequiredTip == nil || minRequiredTip.Cmp(big.NewInt(0.05*utils.GWei)) < 0 {
-		t.Fatalf("expected minRequiredTip to be at least 0.05 gwei but got %d", minRequiredTip)
-	}
+			tx := types.NewTransaction(uint64(0), testEthAddrs[1], new(big.Int).Mul(firstTxAmount, big.NewInt(4)), 21000, big.NewInt(testMinGasPrice*3), nil)
+			signedTx, err := types.SignTx(tx, types.NewEIP155Signer(tvm.vm.chainConfig.ChainID), testKeys[0].ToECDSA())
+			require.NoError(t, err)
 
-	lastAcceptedID, err := tvm.vm.LastAccepted(context.Background())
-	if err != nil {
-		t.Fatal(err)
-	}
-	if lastAcceptedID != blk.ID() {
-		t.Fatalf("Expected last accepted blockID to be the accepted block: %s, but found %s", blk.ID(), lastAcceptedID)
-	}
+			txErrors := tvm.vm.txPool.AddRemotesSync([]*types.Transaction{signedTx})
+			for i, err := range txErrors {
+				require.NoError(t, err, "Failed to add tx at index %d: %s", i, err)
+			}
 
-	// Confirm all txs are present
-	ethBlkTxs := tvm.vm.blockChain.GetBlockByNumber(2).Transactions()
-	for i, tx := range txs {
-		if len(ethBlkTxs) <= i {
-			t.Fatalf("missing transactions expected: %d but found: %d", len(txs), len(ethBlkTxs))
-		}
-		if ethBlkTxs[i].Hash() != tx.Hash() {
-			t.Fatalf("expected tx at index %d to have hash: %x but has: %x", i, txs[i].Hash(), tx.Hash())
-		}
+			blk := issueAndAccept(t, tvm.vm)
+			newHead := <-newTxPoolHeadChan
+			require.Equal(t, newHead.Head.Hash(), common.Hash(blk.ID()), "Expected new block to match")
+
+			txs := make([]*types.Transaction, 10)
+			for i := 0; i < 10; i++ {
+				tx := types.NewTransaction(uint64(i), testEthAddrs[0], big.NewInt(10), 21000, big.NewInt(testMinGasPrice*3), nil)
+				signedTx, err := types.SignTx(tx, types.NewEIP155Signer(tvm.vm.chainConfig.ChainID), testKeys[1].ToECDSA())
+				require.NoError(t, err)
+				txs[i] = signedTx
+			}
+			errs := tvm.vm.txPool.AddRemotesSync(txs)
+			for i, err := range errs {
+				require.NoError(t, err, "Failed to add tx at index %d: %s", i, err)
+			}
+
+			blk = issueAndAccept(t, tvm.vm)
+			ethBlk := blk.(*chain.BlockWrapper).Block.(*wrappedBlock).ethBlock
+
+			// Verify BlockGasCost
+			blockGasCost := customtypes.BlockGasCost(ethBlk)
+			require.GreaterOrEqual(t, blockGasCost.Cmp(tt.expectMinBlockGasCost), 0,
+				"expected blockGasCost to be at least %d but got %d", tt.expectMinBlockGasCost, blockGasCost)
+
+			// Verify minRequiredTip
+			chainConfig := params.GetExtra(tvm.vm.chainConfig)
+			minRequiredTip, err := customheader.EstimateRequiredTip(chainConfig, ethBlk.Header())
+			require.NoError(t, err)
+			require.GreaterOrEqual(t, minRequiredTip.Cmp(tt.expectMinRequiredTip), 0,
+				"expected minRequiredTip to be at least %d but got %d", tt.expectMinRequiredTip, minRequiredTip)
+
+			lastAcceptedID, err := tvm.vm.LastAccepted(context.Background())
+			require.NoError(t, err)
+			require.Equal(t, blk.ID(), lastAcceptedID,
+				"Expected last accepted blockID to be the accepted block: %s, but found %s", blk.ID(), lastAcceptedID)
+
+			// Confirm all txs are present
+			ethBlkTxs := tvm.vm.blockChain.GetBlockByNumber(2).Transactions()
+			for i, tx := range txs {
+				require.Greater(t, len(ethBlkTxs), i,
+					"missing transactions expected: %d but found: %d", len(txs), len(ethBlkTxs))
+				require.Equal(t, tx.Hash(), ethBlkTxs[i].Hash(),
+					"expected tx at index %d to have hash: %x but has: %x", i, tx.Hash(), ethBlkTxs[i].Hash())
+			}
+		})
 	}
 }
 
