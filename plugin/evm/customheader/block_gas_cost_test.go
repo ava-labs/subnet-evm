@@ -77,7 +77,7 @@ func BlockGasCostTest(t *testing.T, feeConfig commontype.FeeConfig) {
 		},
 		{
 			name:       "normal",
-			upgrades:   extras.TestChainConfig.NetworkUpgrades,
+			upgrades:   extras.TestFortunaChainConfig.NetworkUpgrades,
 			parentTime: 10,
 			parentCost: maxBlockGasCostBig,
 			timestamp:  10 + targetBlockRate + 1,
@@ -85,7 +85,7 @@ func BlockGasCostTest(t *testing.T, feeConfig commontype.FeeConfig) {
 		},
 		{
 			name:       "negative_time_elapsed",
-			upgrades:   extras.TestChainConfig.NetworkUpgrades,
+			upgrades:   extras.TestFortunaChainConfig.NetworkUpgrades,
 			parentTime: 10,
 			parentCost: feeConfig.MinBlockGasCost,
 			timestamp:  9,

@@ -2076,7 +2076,9 @@ func TestBuildSubnetEVMBlock(t *testing.T) {
 }
 
 func testBuildSubnetEVMBlock(t *testing.T, scheme string) {
+	fork := upgradetest.Fortuna
 	tvm := newVM(t, testVMConfig{
+		fork:        &fork,
 		genesisJSON: genesisJSONSubnetEVM,
 		configJSON:  getConfig(scheme, ""),
 	})
