@@ -23,9 +23,7 @@ import (
 	"github.com/ava-labs/subnet-evm/utils"
 )
 
-var (
-	errUnclesUnsupported = errors.New("uncles unsupported")
-)
+var errUnclesUnsupported = errors.New("uncles unsupported")
 
 type Mode struct {
 	ModeSkipHeader   bool
