@@ -396,11 +396,10 @@ func TestSuggestTipCapMaxBlocksLookback(t *testing.T) {
 	}
 	for _, c := range cases {
 		applyGasPriceTest(t, suggestTipCapTest{
-			chainConfig:     c.chainConfig,
-			numBlocks:       200,
-			extDataGasUsage: common.Big0,
-			genBlock:        testGenBlock(t, 550, 80),
-			expectedTip:     c.expectedTip,
+			chainConfig: c.chainConfig,
+			numBlocks:   200,
+			genBlock:    testGenBlock(t, 550, 80),
+			expectedTip: c.expectedTip,
 		}, defaultOracleConfig())
 	}
 }
