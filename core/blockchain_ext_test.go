@@ -1396,7 +1396,7 @@ func GenerateChainInvalidBlockFee(t *testing.T, create createFunc) {
 	genesisBalance := new(big.Int).Mul(big.NewInt(1000000), big.NewInt(params.Ether))
 	gspec := &Genesis{
 		Config: params.TestFortunaChainConfig,
-		Alloc:  types.GenesisAlloc{addr1: {Balance: genesisBalance}},
+		Alloc:  GenesisAlloc{addr1: {Balance: genesisBalance}},
 	}
 
 	blockchain, err := create(chainDB, gspec, common.Hash{}, t.TempDir())
@@ -1437,7 +1437,7 @@ func InsertChainInvalidBlockFee(t *testing.T, create createFunc) {
 	genesisBalance := new(big.Int).Mul(big.NewInt(1000000), big.NewInt(params.Ether))
 	gspec := &Genesis{
 		Config: params.TestFortunaChainConfig,
-		Alloc:  types.GenesisAlloc{addr1: {Balance: genesisBalance}},
+		Alloc:  GenesisAlloc{addr1: {Balance: genesisBalance}},
 	}
 
 	blockchain, err := create(chainDB, gspec, common.Hash{}, t.TempDir())
