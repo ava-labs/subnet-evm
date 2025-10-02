@@ -5,7 +5,6 @@ package evm
 
 import (
 	"context"
-	"crypto/ecdsa"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -41,7 +40,6 @@ import (
 	"github.com/ava-labs/libevm/common/math"
 	"github.com/ava-labs/libevm/core/rawdb"
 	"github.com/ava-labs/libevm/core/types"
-	"github.com/ava-labs/libevm/crypto"
 	"github.com/ava-labs/libevm/log"
 	"github.com/ava-labs/libevm/rlp"
 	"github.com/ava-labs/libevm/trie"
@@ -3823,47 +3821,6 @@ func TestCreateHandlers(t *testing.T) {
 	}
 }
 
-// deployContract deploys the provided EVM bytecode using a prefunded test account
-// and returns the created contract address. It is reusable for any contract code.
-func deployContract(ctx context.Context, t *testing.T, vm *VM, gasPrice *big.Int, code []byte) common.Address {
-	callerAddr := testEthAddrs[0]
-	callerKey := testKeys[0]
-
-	nonce := vm.txPool.Nonce(callerAddr)
-	signedTx := newSignedLegacyTx(t, vm.chainConfig, callerKey.ToECDSA(), nonce, nil, big.NewInt(0), 1000000, gasPrice, code)
-
-	for _, err := range vm.txPool.AddRemotesSync([]*types.Transaction{signedTx}) {
-		require.NoError(t, err)
-	}
-
-	blk, err := vm.BuildBlock(ctx)
-	require.NoError(t, err)
-	require.NoError(t, blk.Verify(ctx))
-	require.NoError(t, vm.SetPreference(ctx, blk.ID()))
-	require.NoError(t, blk.Accept(ctx))
-
-	ethBlock := blk.(*chain.BlockWrapper).Block.(*wrappedBlock).ethBlock
-	receipts := vm.blockChain.GetReceiptsByHash(ethBlock.Hash())
-	require.Len(t, receipts, len(ethBlock.Transactions()))
-
-	found := false
-	for i, btx := range ethBlock.Transactions() {
-		if btx.Hash() == signedTx.Hash() {
-			found = true
-			require.Equal(t, types.ReceiptStatusSuccessful, receipts[i].Status)
-			break
-		}
-	}
-	require.True(t, found, "deployContract: expected deploy tx %s to be included in block %s (caller=%s, nonce=%d)",
-		signedTx.Hash().Hex(),
-		ethBlock.Hash().Hex(),
-		callerAddr.Hex(),
-		nonce,
-	)
-
-	return crypto.CreateAddress(callerAddr, nonce)
-}
-
 // TestBlockGasValidation tests the two validation checks:
 // 1. invalid gas used relative to capacity
 // 2. total intrinsic gas cost is greater than claimed gas used
@@ -4021,32 +3978,4 @@ func TestBlockGasValidation(t *testing.T) {
 			require.ErrorIs(err, test.want)
 		})
 	}
-}
-
-// newSignedLegacyTx builds a legacy transaction and signs it using the
-// LatestSigner derived from the provided chain config.
-func newSignedLegacyTx(
-	t *testing.T,
-	cfg *params.ChainConfig,
-	key *ecdsa.PrivateKey,
-	nonce uint64,
-	to *common.Address,
-	value *big.Int,
-	gas uint64,
-	gasPrice *big.Int,
-	data []byte,
-) *types.Transaction {
-	t.Helper()
-
-	tx := types.NewTx(&types.LegacyTx{
-		Nonce:    nonce,
-		To:       to,
-		Value:    value,
-		Gas:      gas,
-		GasPrice: gasPrice,
-		Data:     data,
-	})
-	signedTx, err := types.SignTx(tx, types.LatestSigner(cfg), key)
-	require.NoError(t, err)
-	return signedTx
 }
