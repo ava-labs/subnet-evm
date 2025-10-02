@@ -4,6 +4,7 @@
 
 - Add pending releases here
 - Upgrade to Go version 1.24
+- Implement ACP-226: Set expected block gas cost to 0 in Granite network upgrade, removing block gas cost requirements for block building.
 
 ## [v0.7.9](https://github.com/ava-labs/subnet-evm/releases/tag/v0.7.9)
 
@@ -21,7 +22,6 @@ The plugin version is unchanged at 43 and is compatible with AvalancheGo version
   - `GetModifiedAccountsByHash`
 - Removed deprecated flag `tx-lookup-limit`. Use `transaction-history` instead.
 - Enabled RPC batch limits by default, and configurable with `batch-request-limit` and `batch-max-response-size`.
-- Implement ACP-226: Set expected block gas cost to 0 in Granite network upgrade, removing block gas cost requirements for block building.
 
 ## [v0.7.8](https://github.com/ava-labs/subnet-evm/releases/tag/v0.7.8)
 
