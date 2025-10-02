@@ -1980,7 +1980,7 @@ func TestTimeSemanticVerify(t *testing.T) {
 			}()
 
 			tx := types.NewTransaction(uint64(0), testEthAddrs[1], firstTxAmount, 21000, big.NewInt(testMinGasPrice), nil)
-			signedTx, err := types.SignTx(tx, types.NewEIP155Signer(tvm.vm.chainConfig.ChainID), testKeys[0].ToECDSA())
+			signedTx, err := types.SignTx(tx, types.LatestSigner(tvm.vm.chainConfig), testKeys[0].ToECDSA())
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -1996,37 +1996,39 @@ func TestTimeSemanticVerify(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, commonEng.PendingTxs, msg)
 
-			blkA, err := tvm.vm.BuildBlock(context.Background())
+			blk, err := tvm.vm.BuildBlock(context.Background())
 			if err != nil {
 				t.Fatalf("Failed to build block with import transaction: %s", err)
 			}
 
+			if err := blk.Verify(context.Background()); err != nil {
+				t.Fatalf("Block failed verification on VM: %s", err)
+			}
+
 			// Create empty block from blkA
-			internalBlkA := blkA.(*chain.BlockWrapper).Block.(*wrappedBlock)
-			modifiedHeader := types.CopyHeader(internalBlkA.ethBlock.Header())
-			// Set the VM's clock to the time of the produced block
-			tvm.vm.clock.Set(time.Unix(int64(modifiedHeader.Time), 0))
-			// Set the modified time to exceed the allowed future time
-			modifiedTime := modifiedHeader.Time + uint64(maxFutureBlockTime.Seconds()+1)
-			modifiedHeader.Time = modifiedTime
+			ethBlk := blk.(*chain.BlockWrapper).Block.(*wrappedBlock).ethBlock
+
+			// Modify the header to have the desired time values
+			modifiedHeader := types.CopyHeader(ethBlk.Header())
+			modifiedHeader.Time = test.timeSeconds
+			modifiedExtra := customtypes.GetHeaderExtra(modifiedHeader)
+			modifiedExtra.TimeMilliseconds = test.timeMilliseconds
+
+			// Build new block with modified header
+			receipts := tvm.vm.blockChain.GetReceiptsByHash(ethBlk.Hash())
 			modifiedBlock := types.NewBlock(
 				modifiedHeader,
-				internalBlkA.ethBlock.Transactions(),
+				ethBlk.Transactions(),
 				nil,
-				nil,
+				receipts,
 				trie.NewStackTrie(nil),
 			)
+			modifiedBlk, err := wrapBlock(modifiedBlock, tvm.vm)
+			require.NoError(t, err)
 
-			futureBlock, err := wrapBlock(modifiedBlock, tvm.vm)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if err := futureBlock.Verify(context.Background()); err == nil {
-				t.Fatal("Future block should have failed verification due to block timestamp too far in the future")
-			} else if !strings.Contains(err.Error(), "block timestamp is too far in the future") {
-				t.Fatalf("Expected error to be block timestamp too far in the future but found %s", err)
-			}
+			tvm.vm.clock.Set(timestamp) // set current time to base for time checks
+			err = modifiedBlk.Verify(context.Background())
+			require.ErrorIs(t, err, test.expectedError)
 		})
 	}
 }
