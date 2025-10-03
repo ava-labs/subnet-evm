@@ -66,7 +66,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	core.RegisterExtras()
+	RegisterAllLibEVMExtras()
 	os.Exit(m.Run())
 }
 

@@ -29,6 +29,7 @@ import (
 func TestMain(m *testing.M) {
 	core.RegisterExtras()
 	customtypes.Register()
+	params.RegisterExtras()
 	os.Exit(m.Run())
 }
 
