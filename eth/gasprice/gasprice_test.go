@@ -47,6 +47,7 @@ import (
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/params/extras"
 	"github.com/ava-labs/subnet-evm/plugin/evm/customheader"
+	"github.com/ava-labs/subnet-evm/plugin/evm/customtypes"
 	"github.com/ava-labs/subnet-evm/plugin/evm/upgrade/legacy"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/feemanager"
 	"github.com/ava-labs/subnet-evm/rpc"
@@ -56,6 +57,7 @@ import (
 
 func TestMain(m *testing.M) {
 	core.RegisterExtras()
+	customtypes.Register()
 	os.Exit(m.Run())
 }
 

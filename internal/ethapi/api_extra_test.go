@@ -20,6 +20,7 @@ import (
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/plugin/evm/customtypes"
 	"github.com/ava-labs/subnet-evm/rpc"
 
 	ethparams "github.com/ava-labs/libevm/params"
@@ -27,6 +28,7 @@ import (
 
 func TestMain(m *testing.M) {
 	core.RegisterExtras()
+	customtypes.Register()
 	os.Exit(m.Run())
 }
 
