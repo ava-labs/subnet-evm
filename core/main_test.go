@@ -12,6 +12,8 @@ import (
 // TestMain uses goleak to verify tests in this package do not leak unexpected
 // goroutines.
 func TestMain(m *testing.M) {
+	RegisterExtras()
+
 	opts := []goleak.Option{
 		// No good way to shut down these goroutines:
 		goleak.IgnoreTopFunction("github.com/ava-labs/subnet-evm/core/state/snapshot.(*diskLayer).generate"),

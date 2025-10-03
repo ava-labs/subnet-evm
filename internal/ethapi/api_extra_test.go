@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"math/big"
+	"os"
 	"testing"
 
 	"github.com/ava-labs/libevm/common"
@@ -23,6 +24,11 @@ import (
 
 	ethparams "github.com/ava-labs/libevm/params"
 )
+
+func TestMain(m *testing.M) {
+	core.RegisterExtras()
+	os.Exit(m.Run())
+}
 
 func TestBlockchainAPI_GetChainConfig(t *testing.T) {
 	t.Parallel()

@@ -30,6 +30,7 @@ package gasprice
 import (
 	"context"
 	"math/big"
+	"os"
 	"testing"
 	"time"
 
@@ -52,6 +53,11 @@ import (
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/stretchr/testify/require"
 )
+
+func TestMain(m *testing.M) {
+	core.RegisterExtras()
+	os.Exit(m.Run())
+}
 
 var (
 	key, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
