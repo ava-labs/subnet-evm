@@ -6,9 +6,10 @@ package core
 import (
 	"testing"
 
+	"go.uber.org/goleak"
+
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/plugin/evm/customtypes"
-	"go.uber.org/goleak"
 )
 
 // TestMain uses goleak to verify tests in this package do not leak unexpected
