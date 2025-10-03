@@ -6,6 +6,7 @@ package core
 import (
 	"testing"
 
+	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/plugin/evm/customtypes"
 	"go.uber.org/goleak"
 )
@@ -16,6 +17,7 @@ func TestMain(m *testing.M) {
 	RegisterExtras()
 
 	customtypes.Register()
+	params.RegisterExtras()
 
 	opts := []goleak.Option{
 		// No good way to shut down these goroutines:
