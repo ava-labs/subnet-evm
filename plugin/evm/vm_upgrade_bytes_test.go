@@ -211,7 +211,7 @@ func TestNetworkUpgradesOverridden(t *testing.T) {
 	// verify upgrade overrides
 	require.False(t, restartedVM.chainConfigExtra().IsGranite(uint64(upgrade.InitiallyActiveTime.Unix())))
 	require.True(t, restartedVM.chainConfigExtra().IsGranite(graniteTimestamp))
-	require.False(t, rules.IsGranite)
+	require.False(t, currentRules(tvm.vm).IsGranite)
 
 	// Activate Durango
 	restartedVM.clock.Set(time.Unix(int64(graniteTimestamp), 0))
@@ -232,7 +232,7 @@ func TestNetworkUpgradesOverridden(t *testing.T) {
 	require.EqualValues(t, 1, blk.Height())
 
 	// verify upgrade overrides
-	require.True(t, rules.IsDurango)
+	require.True(t, currentRules(restartedVM).IsDurango)
 
 	// Test Case 2: Set Granite override after Granite activation
 	newGraniteTimestamp := graniteTimestamp + 1
