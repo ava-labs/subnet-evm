@@ -189,8 +189,9 @@ func TestNetworkUpgradesOverridden(t *testing.T) {
 
 	// verify initial state
 	require.True(t, tvm.vm.chainConfigExtra().IsGranite(uint64(upgrade.InitiallyActiveTime.Unix())))
-	require.True(t, tvm.vm.currentRules().IsSubnetEVM)
-	require.False(t, tvm.vm.currentRules().IsGranite)
+	rules := currentRules(tvm.vm)
+	require.True(t, rules.IsSubnetEVM)
+	require.False(t, rules.IsGranite)
 
 	// restart the vm with overrides
 	graniteTimestamp := uint64(upgrade.InitiallyActiveTime.Unix()) + 1
@@ -210,7 +211,7 @@ func TestNetworkUpgradesOverridden(t *testing.T) {
 	// verify upgrade overrides
 	require.False(t, restartedVM.chainConfigExtra().IsGranite(uint64(upgrade.InitiallyActiveTime.Unix())))
 	require.True(t, restartedVM.chainConfigExtra().IsGranite(graniteTimestamp))
-	require.False(t, restartedVM.currentRules().IsGranite)
+	require.False(t, rules.IsGranite)
 
 	// Activate Durango
 	restartedVM.clock.Set(time.Unix(int64(graniteTimestamp), 0))
@@ -231,7 +232,7 @@ func TestNetworkUpgradesOverridden(t *testing.T) {
 	require.EqualValues(t, 1, blk.Height())
 
 	// verify upgrade overrides
-	require.True(t, restartedVM.currentRules().IsDurango)
+	require.True(t, rules.IsDurango)
 
 	// Test Case 2: Set Granite override after Granite activation
 	newGraniteTimestamp := graniteTimestamp + 1
@@ -410,4 +411,10 @@ func TestVMEtnaActivatesCancun(t *testing.T) {
 			test.check(t, tvm.vm)
 		})
 	}
+}
+
+// currentRules returns the chain rules for the current block.
+func currentRules(vm *VM) extras.Rules {
+	header := vm.eth.APIBackend.CurrentHeader()
+	return vm.rules(header.Number, header.Time)
 }
