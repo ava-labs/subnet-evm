@@ -253,7 +253,8 @@ func makeChainForBench(db ethdb.Database, genesis *Genesis, full bool, count uin
 		rawdb.WriteCanonicalHash(db, hash, n)
 
 		if n == 0 {
-			customrawdb.WriteChainConfig(db, hash, genesis.Config)
+			extra := params.GetExtra(genesis.Config)
+			customrawdb.WriteChainConfig(db, hash, genesis.Config, *extra)
 		}
 		rawdb.WriteHeadHeaderHash(db, hash)
 
