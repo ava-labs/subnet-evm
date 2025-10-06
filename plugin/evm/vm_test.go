@@ -2256,15 +2256,27 @@ func testBuildSubnetEVMBlock(t *testing.T, scheme string) {
 
 			// Verify BlockGasCost
 			blockGasCost := customtypes.BlockGasCost(ethBlk)
-			require.GreaterOrEqual(t, blockGasCost.Cmp(tt.expectMinBlockGasCost), 0,
-				"expected blockGasCost to be at least %d but got %d", tt.expectMinBlockGasCost, blockGasCost)
+			if tt.expectMinBlockGasCost.Cmp(big.NewInt(0)) == 0 {
+				// For Granite, block gas cost should be exactly 0
+				require.Equal(t, 0, blockGasCost.Cmp(big.NewInt(0)),
+					"expected blockGasCost to be 0 but got %d", blockGasCost)
+			} else {
+				require.GreaterOrEqual(t, blockGasCost.Cmp(tt.expectMinBlockGasCost), 0,
+					"expected blockGasCost to be at least %d but got %d", tt.expectMinBlockGasCost, blockGasCost)
+			}
 
 			// Verify minRequiredTip
 			chainConfig := params.GetExtra(tvm.vm.chainConfig)
 			minRequiredTip, err := customheader.EstimateRequiredTip(chainConfig, ethBlk.Header())
 			require.NoError(t, err)
-			require.GreaterOrEqual(t, minRequiredTip.Cmp(tt.expectMinRequiredTip), 0,
-				"expected minRequiredTip to be at least %d but got %d", tt.expectMinRequiredTip, minRequiredTip)
+			if tt.expectMinRequiredTip.Cmp(big.NewInt(0)) == 0 {
+				// For Granite, min required tip should be exactly 0
+				require.Equal(t, 0, minRequiredTip.Cmp(big.NewInt(0)),
+					"expected minRequiredTip to be 0 but got %d", minRequiredTip)
+			} else {
+				require.GreaterOrEqual(t, minRequiredTip.Cmp(tt.expectMinRequiredTip), 0,
+					"expected minRequiredTip to be at least %d but got %d", tt.expectMinRequiredTip, minRequiredTip)
+			}
 
 			lastAcceptedID, err := tvm.vm.LastAccepted(context.Background())
 			require.NoError(t, err)
