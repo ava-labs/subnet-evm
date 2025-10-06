@@ -124,6 +124,11 @@ func init() {
 	genesisJSONSubnetEVM = toGenesisJSON(params.TestSubnetEVMChainConfig)
 }
 
+func TestMain(m *testing.M) {
+	RegisterAllLibEVMExtras()
+	os.Exit(m.Run())
+}
+
 type testVMConfig struct {
 	isSyncing bool
 	fork      *upgradetest.Fork
@@ -1869,25 +1874,69 @@ func testAcceptReorg(t *testing.T, scheme string) {
 	}
 }
 
-func TestFutureBlock(t *testing.T) {
-	for _, scheme := range schemes {
-		t.Run(scheme, func(t *testing.T) {
-			testFutureBlock(t, scheme)
-		})
+func TestTimeSemanticVerify(t *testing.T) {
+	timestamp := time.Unix(1714339200, 123_456_789)
+	cases := []struct {
+		name             string
+		fork             upgradetest.Fork
+		timeSeconds      uint64
+		timeMilliseconds *uint64
+		expectedError    error
+	}{
+		{
+			name:             "Fortuna without TimeMilliseconds",
+			fork:             upgradetest.Fortuna,
+			timeSeconds:      uint64(timestamp.Unix()),
+			timeMilliseconds: nil,
+		},
+		{
+			name:             "Granite with TimeMilliseconds",
+			fork:             upgradetest.Granite,
+			timeSeconds:      uint64(timestamp.Unix()),
+			timeMilliseconds: utils.NewUint64(uint64(timestamp.UnixMilli())),
+		},
+		{
+			name:             "Fortuna with TimeMilliseconds",
+			fork:             upgradetest.Fortuna,
+			timeSeconds:      uint64(timestamp.Unix()),
+			timeMilliseconds: utils.NewUint64(uint64(timestamp.UnixMilli())),
+			expectedError:    customheader.ErrTimeMillisecondsBeforeGranite,
+		},
+		{
+			name:             "Granite without TimeMilliseconds",
+			fork:             upgradetest.Granite,
+			timeSeconds:      uint64(timestamp.Unix()),
+			timeMilliseconds: nil,
+			expectedError:    customheader.ErrTimeMillisecondsRequired,
+		},
+		{
+			name:             "Granite with mismatched TimeMilliseconds",
+			fork:             upgradetest.Granite,
+			timeSeconds:      uint64(timestamp.Unix()),
+			timeMilliseconds: utils.NewUint64(uint64(timestamp.UnixMilli()) + 1000),
+			expectedError:    customheader.ErrTimeMillisecondsMismatched,
+		},
+		{
+			name:             "Block too far in the future",
+			fork:             upgradetest.Granite,
+			timeSeconds:      uint64(timestamp.Add(2 * time.Hour).Unix()),
+			timeMilliseconds: utils.NewUint64(uint64(timestamp.Add(2 * time.Hour).UnixMilli())),
+			expectedError:    customheader.ErrBlockTooFarInFuture,
+		},
 	}
-}
 
-func testFutureBlock(t *testing.T, scheme string) {
-	tvm := newVM(t, testVMConfig{
-		genesisJSON: genesisJSONSubnetEVM,
-		configJSON:  getConfig(scheme, ""),
-	})
+	for _, test := range cases {
+		t.Run(test.name, func(t *testing.T) {
+			tvm := newVM(t, testVMConfig{
+				genesisJSON: genesisJSONSubnetEVM,
+				fork:        &test.fork,
+			})
 
-	defer func() {
-		if err := tvm.vm.Shutdown(context.Background()); err != nil {
-			t.Fatal(err)
-		}
-	}()
+			defer func() {
+				if err := tvm.vm.Shutdown(context.Background()); err != nil {
+					t.Fatal(err)
+				}
+			}()
 
 	signedTx := newSignedLegacyTx(t, tvm.vm.chainConfig, testKeys[0].ToECDSA(), 0, &testEthAddrs[1], big.NewInt(1), 21000, big.NewInt(testMinGasPrice), nil)
 	blkA, err := IssueTxsAndBuild([]*types.Transaction{signedTx}, tvm.vm)
@@ -1895,31 +1944,32 @@ func testFutureBlock(t *testing.T, scheme string) {
 		t.Fatalf("Failed to build block with import transaction: %s", err)
 	}
 
-	// Create empty block from blkA
-	internalBlkA := blkA.(*chain.BlockWrapper).Block.(*wrappedBlock)
-	modifiedHeader := types.CopyHeader(internalBlkA.ethBlock.Header())
-	// Set the VM's clock to the time of the produced block
-	tvm.vm.clock.Set(time.Unix(int64(modifiedHeader.Time), 0))
-	// Set the modified time to exceed the allowed future time
-	modifiedTime := modifiedHeader.Time + uint64(maxFutureBlockTime.Seconds()+1)
-	modifiedHeader.Time = modifiedTime
-	modifiedBlock := types.NewBlock(
-		modifiedHeader,
-		internalBlkA.ethBlock.Transactions(),
-		nil,
-		nil,
-		trie.NewStackTrie(nil),
-	)
+			tvm.vm.clock.Set(buildTime)
+			tx := types.NewTransaction(uint64(0), testEthAddrs[1], firstTxAmount, 21000, big.NewInt(testMinGasPrice), nil)
+			signedTx, err := types.SignTx(tx, types.NewEIP155Signer(tvm.vm.chainConfig.ChainID), testKeys[0].ToECDSA())
+			if err != nil {
+				t.Fatal(err)
+			}
 
-	futureBlock, err := wrapBlock(modifiedBlock, tvm.vm)
-	if err != nil {
-		t.Fatal(err)
-	}
+			txErrors := tvm.vm.txPool.AddRemotesSync([]*types.Transaction{signedTx})
+			for i, err := range txErrors {
+				if err != nil {
+					t.Fatalf("Failed to add tx at index %d: %s", i, err)
+				}
+			}
 
-	if err := futureBlock.Verify(context.Background()); err == nil {
-		t.Fatal("Future block should have failed verification due to block timestamp too far in the future")
-	} else if !strings.Contains(err.Error(), "block timestamp is too far in the future") {
-		t.Fatalf("Expected error to be block timestamp too far in the future but found %s", err)
+			msg, err := tvm.vm.WaitForEvent(context.Background())
+			require.NoError(t, err)
+			require.Equal(t, commonEng.PendingTxs, msg)
+
+			blk, err := tvm.vm.BuildBlock(context.Background())
+			if err != nil {
+				t.Fatalf("Failed to build block with import transaction: %s", err)
+			}
+			require.NoError(t, err)
+			ethBlk := blk.(*chain.BlockWrapper).Block.(*wrappedBlock).ethBlock
+			require.Equal(t, test.expectedTimeMilliseconds, customtypes.BlockTimeMilliseconds(ethBlk))
+		})
 	}
 }
 

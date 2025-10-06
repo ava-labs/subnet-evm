@@ -30,6 +30,7 @@ package gasprice
 import (
 	"context"
 	"math/big"
+	"os"
 	"testing"
 	"time"
 
@@ -46,12 +47,20 @@ import (
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/params/extras"
 	"github.com/ava-labs/subnet-evm/plugin/evm/customheader"
+	"github.com/ava-labs/subnet-evm/plugin/evm/customtypes"
 	"github.com/ava-labs/subnet-evm/plugin/evm/upgrade/legacy"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/feemanager"
 	"github.com/ava-labs/subnet-evm/rpc"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/stretchr/testify/require"
 )
+
+func TestMain(m *testing.M) {
+	core.RegisterExtras()
+	customtypes.Register()
+	params.RegisterExtras()
+	os.Exit(m.Run())
+}
 
 var (
 	key, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
@@ -330,7 +339,7 @@ func TestSuggestTipCapMinGas(t *testing.T) {
 		chainConfig: params.TestChainConfig,
 		numBlocks:   3,
 		genBlock:    testGenBlock(t, 500, 50),
-		expectedTip: big.NewInt(0),
+		expectedTip: DefaultMinPrice,
 	}, defaultOracleConfig())
 }
 
@@ -390,7 +399,7 @@ func TestSuggestTipCapMaxBlocksSecondsLookback(t *testing.T) {
 
 // Regression test to ensure the last estimation of base fee is not used
 // for the block immediately following a fee configuration update.
-func TestSuggestGasPriceAfterFeeConfigUpdate(t *testing.T) {
+func TestEstimateBaseFeeAfterFeeConfigUpdate(t *testing.T) {
 	require := require.New(t)
 	config := Config{
 		Blocks:     20,
@@ -417,7 +426,7 @@ func TestSuggestGasPriceAfterFeeConfigUpdate(t *testing.T) {
 	defer backend.teardown()
 	oracle, err := NewOracle(backend, config)
 	require.NoError(err)
-	got, err := oracle.SuggestPrice(context.Background())
+	got, err := oracle.EstimateBaseFee(context.Background())
 	require.NoError(err)
 	require.Equal(chainConfigExtra.FeeConfig.MinBaseFee, got)
 
@@ -447,8 +456,8 @@ func TestSuggestGasPriceAfterFeeConfigUpdate(t *testing.T) {
 	_, err = backend.chain.InsertChain(blocks)
 	require.NoError(err)
 
-	// verify the suggested price follows the new fee config.
-	got, err = oracle.SuggestPrice(context.Background())
+	// verify the base fee estimation follows the new fee config.
+	got, err = oracle.EstimateBaseFee(context.Background())
 	require.NoError(err)
 	require.Equal(highFeeConfig.MinBaseFee, got)
 }
