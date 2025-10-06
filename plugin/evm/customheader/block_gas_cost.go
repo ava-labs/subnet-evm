@@ -28,6 +28,7 @@ var (
 // BlockGasCost calculates the required block gas cost based on the parent
 // header and the timestamp of the new block.
 // Prior to Subnet-EVM, the returned block gas cost will be nil.
+// In Granite, the returned block gas cost will be 0.
 func BlockGasCost(
 	config *extras.ChainConfig,
 	feeConfig commontype.FeeConfig,
@@ -37,6 +38,10 @@ func BlockGasCost(
 	if !config.IsSubnetEVM(timestamp) {
 		return nil
 	}
+	if config.IsGranite(timestamp) {
+		return big.NewInt(0)
+	}
+
 	step := feeConfig.BlockGasCostStep.Uint64()
 	// Treat an invalid parent/current time combination as 0 elapsed time.
 	//

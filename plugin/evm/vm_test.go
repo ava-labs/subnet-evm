@@ -4081,18 +4081,22 @@ func TestDelegatePrecompile_BehaviorAcrossUpgrades(t *testing.T) {
 			}
 
 			blk, err := vm.BuildBlock(ctx)
+
+			if !tt.wantIncluded {
+				// On subnet-evm, InvalidateExecution causes the transaction to be excluded from the block.
+				// BuildBlock will create a block but it will fail verification because it's empty
+				// and subnet-evm doesn't allow empty blocks.
+				require.Error(t, err, "BuildBlock should fail because it would create an empty block")
+				require.ErrorContains(t, err, "empty block", "Should fail with empty block error")
+				return
+			}
+
 			require.NoError(t, err)
 			require.NoError(t, blk.Verify(ctx))
 			require.NoError(t, vm.SetPreference(ctx, blk.ID()))
 			require.NoError(t, blk.Accept(ctx))
 
 			ethBlock := blk.(*chain.BlockWrapper).Block.(*wrappedBlock).ethBlock
-
-			if !tt.wantIncluded {
-				require.Empty(t, ethBlock.Transactions())
-				return
-			}
-
 			require.Len(t, ethBlock.Transactions(), 1)
 			receipts := vm.blockChain.GetReceiptsByHash(ethBlock.Hash())
 			require.Len(t, receipts, 1)
