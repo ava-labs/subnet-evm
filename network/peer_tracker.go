@@ -12,9 +12,9 @@ import (
 	"github.com/ava-labs/avalanchego/utils/set"
 	"github.com/ava-labs/avalanchego/version"
 	"github.com/ava-labs/libevm/log"
-	evmmetrics "github.com/ava-labs/libevm/metrics" // alias to avoid name collision with local 'metrics' in this package
 
 	safemath "github.com/ava-labs/avalanchego/utils/math"
+	evmmetrics "github.com/ava-labs/libevm/metrics" // alias to avoid name collision with local 'metrics' in this package
 )
 
 const (
