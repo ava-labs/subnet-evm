@@ -16,10 +16,9 @@ RUN go mod download
 # Copy the code into the container
 COPY . .
 
-# If a local avalanchego source directory is present in the repository (manual CI case),
-# move it outside the module root and update the replace directive to point to it so
-# avalanchego sources are not flattened into this module's package tree.
-RUN if [ -d ./avalanchego ]; then \
+# If a local avalanchego module is present, move it out of the module tree and
+# point the replace directive at it to avoid flattening into this module's packages.
+RUN if [ -f ./avalanchego/go.mod ]; then \
   mkdir -p /third_party && \
   mv ./avalanchego /third_party/avalanchego && \
   go mod edit -replace github.com/ava-labs/avalanchego=./third_party/avalanchego && \

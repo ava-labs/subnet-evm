@@ -32,6 +32,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"strings"
 	"time"
 
 	"github.com/ava-labs/avalanchego/vms/evm/sync/customrawdb"
@@ -177,32 +178,24 @@ func SetupGenesisBlock(
 		return genesis.Config, common.Hash{}, &GenesisMismatchError{stored, hash}
 	}
 	// Get the existing chain configuration.
-	newcfg := genesis.Config
-	if err := newcfg.CheckConfigForkOrder(); err != nil {
-		return newcfg, common.Hash{}, err
+	newCfg := genesis.Config
+	if err := newCfg.CheckConfigForkOrder(); err != nil {
+		return newCfg, common.Hash{}, err
 	}
 
 	// Read stored config into a local extras copy to avoid mutating the
 	// caller's attached extras (which may be concurrently accessed in tests).
 	// We'll persist the new config (including upgrade bytes) using the attached
 	// extras below to ensure on-disk state is up to date.
-	readExtra := *params.GetExtra(newcfg)
+	readExtra := *params.GetExtra(newCfg)
 	storedCfg := customrawdb.ReadChainConfig(db, stored, &readExtra)
 	// If there is no previously stored chain config, write the chain config to disk.
 	if storedCfg == nil {
 		// Note: this can happen since we did not previously write the genesis block and chain config in the same batch.
 		log.Warn("Found genesis block without chain config")
-		customrawdb.WriteChainConfig(db, stored, newcfg, *params.GetExtra(newcfg))
-		return newcfg, stored, nil
+		customrawdb.WriteChainConfig(db, stored, newCfg, *params.GetExtra(newCfg))
+		return newCfg, stored, nil
 	}
-
-	// Persist the new chain config (and upgrade bytes) to disk now to avoid
-	// spurious compatibility failures due to missing upgrade bytes on older databases.
-	customrawdb.WriteChainConfig(db, stored, newcfg, *params.GetExtra(newcfg))
-
-	// Re-read stored config into a fresh extras copy for a clean comparison.
-	compareExtra := *params.GetExtra(newcfg)
-	storedCfg = customrawdb.ReadChainConfig(db, stored, &compareExtra)
 
 	// Notes on the following line:
 	// - this is needed in coreth to handle the case where existing nodes do not
@@ -222,24 +215,31 @@ func SetupGenesisBlock(
 	// when we start syncing from scratch, the last accepted block
 	// will be genesis block
 	if lastBlock == nil {
-		return newcfg, common.Hash{}, errors.New("missing last accepted block")
+		return newCfg, common.Hash{}, errors.New("missing last accepted block")
 	}
 	height := lastBlock.NumberU64()
 	timestamp := lastBlock.Time()
-	if skipChainConfigCheckCompatible {
-		log.Info("skipping verifying activated network upgrades on chain config")
-	} else {
-		compatErr := storedCfg.CheckCompatible(newcfg, height, timestamp)
-		if compatErr != nil && ((height != 0 && compatErr.RewindToBlock != 0) || (timestamp != 0 && compatErr.RewindToTime != 0)) {
-			storedData, _ := params.ToWithUpgradesJSON(storedCfg).MarshalJSON()
-			newData, _ := params.ToWithUpgradesJSON(newcfg).MarshalJSON()
-			log.Error("found mismatch between config on database vs. new config", "storedConfig", string(storedData), "newConfig", string(newData), "err", compatErr)
-			return newcfg, stored, compatErr
-		}
+
+	// If the chain hasn't advanced past genesis (height 0), persist the new
+	// chain config (including upgrade bytes) before compatibility checks so
+	// subsequent restarts see the updated upgrades and do not flag them as
+	// retroactive enables.
+	if height == 0 {
+		storedCfg = persistChainConfigAndReload(db, stored, newCfg)
 	}
-	// Chain config has already been written above.
-	// Write is idempotent but not required here.
-	return newcfg, stored, nil
+
+	if !skipChainConfigCheckCompatible {
+		if _, err := reconcileCompatibility(db, stored, storedCfg, newCfg, height, timestamp); err != nil {
+			logCompatibilityMismatch(storedCfg, newCfg, err)
+			return newCfg, stored, err
+		}
+	} else {
+		log.Info("skipping verifying activated network upgrades on chain config")
+	}
+
+	// Persist the new chain config (including upgrade bytes) now that compatibility is verified.
+	customrawdb.WriteChainConfig(db, stored, newCfg, *params.GetExtra(newCfg))
+	return newCfg, stored, nil
 }
 
 // IsVerkle indicates whether the state is already stored in a verkle
@@ -467,4 +467,55 @@ func ReadBlockByHash(db ethdb.Reader, hash common.Hash) *types.Block {
 		return nil
 	}
 	return rawdb.ReadBlock(db, hash, *blockNumber)
+}
+
+// reconcileCompatibility checks compatibility between the stored and new chain configs.
+// If the only incompatibility is missing precompile upgrade metadata, it persists the
+// new config (including upgrade bytes) and returns a refreshed stored config view.
+// Otherwise, it returns the compatibility error.
+func reconcileCompatibility(
+	db ethdb.Database,
+	genesisHash common.Hash,
+	storedCfg *params.ChainConfig,
+	newCfg *params.ChainConfig,
+	height uint64,
+	timestamp uint64,
+) (*params.ChainConfig, error) {
+	compatErr := storedCfg.CheckCompatible(newCfg, height, timestamp)
+	needsRewind := compatErr != nil && ((height != 0 && compatErr.RewindToBlock != 0) || (timestamp != 0 && compatErr.RewindToTime != 0))
+	if !needsRewind {
+		return storedCfg, nil
+	}
+	if !isPrecompileUpgradeOnlyIncompatibility(compatErr) {
+		return nil, compatErr
+	}
+	// Only precompile upgrade metadata differs: write upgrades and proceed.
+	refreshed := persistChainConfigAndReload(db, genesisHash, newCfg)
+	return refreshed, nil
+}
+
+// persistChainConfigAndReload writes the provided chain config (including upgrade bytes)
+// and returns a fresh view of the stored config using a separate extras copy.
+func persistChainConfigAndReload(db ethdb.Database, genesisHash common.Hash, cfg *params.ChainConfig) *params.ChainConfig {
+	customrawdb.WriteChainConfig(db, genesisHash, cfg, *params.GetExtra(cfg))
+	refreshedExtra := *params.GetExtra(cfg)
+	return customrawdb.ReadChainConfig(db, genesisHash, &refreshedExtra)
+}
+
+// isPrecompileUpgradeOnlyIncompatibility returns true if the compatibility error
+// pertains exclusively to precompile upgrade activation metadata being absent on disk.
+// In such cases, persisting the new chain config (including upgrade bytes) resolves
+// the mismatch without requiring a rewind.
+func isPrecompileUpgradeOnlyIncompatibility(err *ethparams.ConfigCompatError) bool {
+	if err == nil {
+		return false
+	}
+	return strings.Contains(err.What, "PrecompileUpgrade[")
+}
+
+// logCompatibilityMismatch emits a structured error comparing stored and new configs.
+func logCompatibilityMismatch(storedCfg, newCfg *params.ChainConfig, err error) {
+	storedData, _ := params.ToWithUpgradesJSON(storedCfg).MarshalJSON()
+	newData, _ := params.ToWithUpgradesJSON(newCfg).MarshalJSON()
+	log.Error("found mismatch between config on database vs. new config", "storedConfig", string(storedData), "newConfig", string(newData), "err", err)
 }

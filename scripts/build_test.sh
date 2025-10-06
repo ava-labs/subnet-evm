@@ -34,7 +34,7 @@ do
     if [[ ${command_status:-0} == 0 ]]; then
         rm test.out
         exit 0
-    else 
+    else
         unset command_status # Clear the error code for the next run
     fi
 
@@ -42,7 +42,7 @@ do
     unexpected_failures=$(
         # First grep pattern corresponds to test failures, second pattern corresponds to test panics due to timeouts
         (grep "^--- FAIL" test.out | awk '{print $3}' || grep -E '^\s+Test.+ \(' test.out | awk '{print $1}') |
-        sort -u | comm -23 -  <(sed 's/\r$//' ./scripts/known_flakes.txt)
+        sort -u | comm -23 -  <(sed 's/\r$//' ./scripts/known_flakes.txt | sort -u)
     )
     if [ -n "${unexpected_failures}" ]; then
         echo "Unexpected test failures: ${unexpected_failures}"
