@@ -66,7 +66,7 @@ jobs:
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "22.20"
+          node-version: "20.13"
       - name: Setup Contracts
         run: ./scripts/run_task.sh setup-contracts
       - name: Run E2E Precompile Tests
@@ -93,7 +93,7 @@ jobs:
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "22.20"
+          node-version: "20.13"
       - name: Setup Contracts
         run: ./scripts/run_task.sh setup-contracts
       - name: Run Warp E2E Tests
