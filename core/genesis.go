@@ -182,32 +182,34 @@ func SetupGenesisBlock(
 		return newcfg, common.Hash{}, err
 	}
 
-	// Read stored config. We'll persist the new config (including upgrade bytes)
-	// prior to compatibility checks to ensure on-disk state is up to date.
-	extra := params.GetExtra(newcfg)
-	storedcfg := customrawdb.ReadChainConfig(db, stored, extra)
+	// Read stored config into a local extras copy to avoid mutating the
+	// caller's attached extras (which may be concurrently accessed in tests).
+	// We'll persist the new config (including upgrade bytes) using the attached
+	// extras below to ensure on-disk state is up to date.
+	readExtra := *params.GetExtra(newcfg)
+	storedCfg := customrawdb.ReadChainConfig(db, stored, &readExtra)
 	// If there is no previously stored chain config, write the chain config to disk.
-	if storedcfg == nil {
+	if storedCfg == nil {
 		// Note: this can happen since we did not previously write the genesis block and chain config in the same batch.
 		log.Warn("Found genesis block without chain config")
-		customrawdb.WriteChainConfig(db, stored, newcfg, *extra)
+		customrawdb.WriteChainConfig(db, stored, newcfg, *params.GetExtra(newcfg))
 		return newcfg, stored, nil
 	}
 
 	// Persist the new chain config (and upgrade bytes) to disk now to avoid
 	// spurious compatibility failures due to missing upgrade bytes on older databases.
-	customrawdb.WriteChainConfig(db, stored, newcfg, *extra)
+	customrawdb.WriteChainConfig(db, stored, newcfg, *params.GetExtra(newcfg))
 
 	// Re-read stored config into a fresh extras copy for a clean comparison.
-	storedExtra := *params.GetExtra(newcfg)
-	storedcfg = customrawdb.ReadChainConfig(db, stored, &storedExtra)
+	compareExtra := *params.GetExtra(newcfg)
+	storedCfg = customrawdb.ReadChainConfig(db, stored, &compareExtra)
 
 	// Notes on the following line:
 	// - this is needed in coreth to handle the case where existing nodes do not
 	//   have the Berlin or London forks initialized by block number on disk.
 	//   See https://github.com/ava-labs/coreth/pull/667/files
 	// - this is not needed in subnet-evm but it does not impact it either
-	if err := params.SetEthUpgrades(storedcfg); err != nil {
+	if err := params.SetEthUpgrades(storedCfg); err != nil {
 		return genesis.Config, common.Hash{}, err
 	}
 	// Check config compatibility and write the config. Compatibility errors
@@ -227,9 +229,9 @@ func SetupGenesisBlock(
 	if skipChainConfigCheckCompatible {
 		log.Info("skipping verifying activated network upgrades on chain config")
 	} else {
-		compatErr := storedcfg.CheckCompatible(newcfg, height, timestamp)
+		compatErr := storedCfg.CheckCompatible(newcfg, height, timestamp)
 		if compatErr != nil && ((height != 0 && compatErr.RewindToBlock != 0) || (timestamp != 0 && compatErr.RewindToTime != 0)) {
-			storedData, _ := params.ToWithUpgradesJSON(storedcfg).MarshalJSON()
+			storedData, _ := params.ToWithUpgradesJSON(storedCfg).MarshalJSON()
 			newData, _ := params.ToWithUpgradesJSON(newcfg).MarshalJSON()
 			log.Error("found mismatch between config on database vs. new config", "storedConfig", string(storedData), "newConfig", string(newData), "err", compatErr)
 			return newcfg, stored, compatErr
