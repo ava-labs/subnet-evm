@@ -15,8 +15,6 @@
     "chai": "^4.5.0",
     "ds-test": "https://github.com/dapphub/ds-test.git",
     "hardhat": "^2.26.3",
-    "hardhat-gas-reporter": "^2.3.0",
-    "solidity-coverage": "^0.8.16",
     "ts-node": "^10.9.2",
     "typechain": "^8.3.2",
     "typescript": "^5.9.2"
@@ -49,8 +47,8 @@
     "solc": "^0.8.30"
   },
   "engines": {
-    "npm": ">7.0.0",
-    "node": ">=20.13.0"
+    "npm": "10.x",
+    "node": "22.x"
   },
   "overrides": {
     "cookie": "^0.7.0",
