@@ -32,7 +32,6 @@ import (
 	"github.com/ava-labs/avalanchego/utils/crypto/secp256k1"
 	"github.com/ava-labs/avalanchego/utils/set"
 	"github.com/ava-labs/avalanchego/vms/components/chain"
-	"github.com/ava-labs/avalanchego/vms/evm/acp176"
 	"github.com/ava-labs/avalanchego/vms/evm/predicate"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
 	"github.com/ava-labs/libevm/common"
@@ -3835,7 +3834,7 @@ func TestBlockGasValidation(t *testing.T) {
 
 		chainExtra := params.GetExtra(vm.chainConfig)
 		parent := vm.eth.APIBackend.CurrentBlock()
-		const timeDelta = acp176.TimeToFillCapacity
+		const timeDelta = 10 // seconds to fill gas capacity
 		timestamp := parent.Time + timeDelta
 		feeConfig, _, err := vm.blockChain.GetFeeConfigAt(parent)
 		require.NoError(err)
@@ -3879,7 +3878,7 @@ func TestBlockGasValidation(t *testing.T) {
 				ChainID:    vm.chainConfig.ChainID,
 				Nonce:      1,
 				To:         &testEthAddrs[0],
-				Gas:        acp176.MinMaxCapacity,
+				Gas:        8_000_000, // min max gas capacity
 				GasFeeCap:  baseFee,
 				GasTipCap:  baseFee,
 				Value:      common.Big0,
