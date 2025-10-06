@@ -32,6 +32,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ava-labs/avalanchego/vms/evm/sync/customrawdb"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/common/math"
 	"github.com/ava-labs/libevm/core/rawdb"
@@ -42,7 +43,6 @@ import (
 	ethparams "github.com/ava-labs/libevm/params"
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
 	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/plugin/evm/customrawdb"
 )
 
 func BenchmarkInsertChain_empty_memdb(b *testing.B) {

@@ -31,10 +31,10 @@ import (
 	"math/rand"
 	"testing"
 
+	"github.com/ava-labs/avalanchego/vms/evm/sync/customrawdb"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/rawdb"
 	"github.com/ava-labs/libevm/ethdb/memorydb"
-	"github.com/ava-labs/subnet-evm/plugin/evm/customrawdb"
 )
 
 // Tests that given a database with random data content, all parts of a snapshot

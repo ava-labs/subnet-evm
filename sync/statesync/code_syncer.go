@@ -15,7 +15,7 @@ import (
 	"github.com/ava-labs/libevm/core/rawdb"
 	"github.com/ava-labs/libevm/ethdb"
 
-	"github.com/ava-labs/subnet-evm/plugin/evm/customrawdb"
+	"github.com/ava-labs/avalanchego/vms/evm/sync/customrawdb"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
 
 	statesyncclient "github.com/ava-labs/subnet-evm/sync/client"

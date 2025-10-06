@@ -53,6 +53,7 @@ import (
 	_ "github.com/ava-labs/libevm/eth/tracers/native"
 	_ "github.com/ava-labs/subnet-evm/precompile/registry" // Force-load precompiles to trigger registration
 
+	"github.com/ava-labs/avalanchego/vms/evm/sync/customrawdb"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
 	"github.com/ava-labs/subnet-evm/constants"
@@ -66,7 +67,6 @@ import (
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/params/extras"
 	"github.com/ava-labs/subnet-evm/plugin/evm/config"
-	"github.com/ava-labs/subnet-evm/plugin/evm/customrawdb"
 	"github.com/ava-labs/subnet-evm/plugin/evm/gossip"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
 	"github.com/ava-labs/subnet-evm/plugin/evm/validators"

@@ -34,6 +34,7 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/ava-labs/avalanchego/vms/evm/sync/customrawdb"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/common/hexutil"
 	"github.com/ava-labs/libevm/common/math"
@@ -49,7 +50,6 @@ import (
 	"github.com/ava-labs/libevm/triedb"
 	"github.com/ava-labs/subnet-evm/core/extstate"
 	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/plugin/evm/customrawdb"
 	"github.com/ava-labs/subnet-evm/plugin/evm/customtypes"
 	"github.com/ava-labs/subnet-evm/plugin/evm/upgrade/legacy"
 	"github.com/ava-labs/subnet-evm/triedb/pathdb"

@@ -18,11 +18,11 @@ import (
 	"github.com/ava-labs/libevm/eth/tracers/logger"
 	"github.com/ava-labs/libevm/ethdb"
 
+	"github.com/ava-labs/avalanchego/vms/evm/sync/customrawdb"
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
 	"github.com/ava-labs/subnet-evm/core/state/pruner"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/params/extras"
-	"github.com/ava-labs/subnet-evm/plugin/evm/customrawdb"
 	"github.com/ava-labs/subnet-evm/plugin/evm/upgrade/legacy"
 
 	ethparams "github.com/ava-labs/libevm/params"

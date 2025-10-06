@@ -32,12 +32,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/ava-labs/avalanchego/vms/evm/sync/customrawdb"
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
 	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/coretest"
 	"github.com/ava-labs/subnet-evm/params/paramstest"
-	"github.com/ava-labs/subnet-evm/plugin/evm/customrawdb"
 	"github.com/ava-labs/subnet-evm/plugin/evm/database"
 	"github.com/ava-labs/subnet-evm/sync/statesync/statesynctest"
 	"github.com/ava-labs/subnet-evm/utils/utilstest"

@@ -33,6 +33,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ava-labs/avalanchego/vms/evm/sync/customrawdb"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/rawdb"
 	"github.com/ava-labs/libevm/core/state"
@@ -44,7 +45,6 @@ import (
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/extstate"
 	"github.com/ava-labs/subnet-evm/eth/tracers"
-	"github.com/ava-labs/subnet-evm/plugin/evm/customrawdb"
 )
 
 // noopReleaser is returned in case there is no operation expected

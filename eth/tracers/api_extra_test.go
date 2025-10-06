@@ -20,11 +20,11 @@ import (
 	"github.com/ava-labs/libevm/eth/tracers/logger"
 	"github.com/stretchr/testify/require"
 
+	"github.com/ava-labs/avalanchego/vms/evm/sync/customrawdb"
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/internal/ethapi"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/params/extras"
-	"github.com/ava-labs/subnet-evm/plugin/evm/customrawdb"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/txallowlist"
 	"github.com/ava-labs/subnet-evm/rpc"
 

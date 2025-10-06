@@ -38,6 +38,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/ava-labs/avalanchego/vms/evm/sync/customrawdb"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/core"
@@ -49,7 +50,6 @@ import (
 	"github.com/ava-labs/subnet-evm/params/paramstest"
 	"github.com/ava-labs/subnet-evm/plugin/evm/config"
 	"github.com/ava-labs/subnet-evm/plugin/evm/customheader"
-	"github.com/ava-labs/subnet-evm/plugin/evm/customrawdb"
 	"github.com/ava-labs/subnet-evm/plugin/evm/customtypes"
 	"github.com/ava-labs/subnet-evm/plugin/evm/vmerrors"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
