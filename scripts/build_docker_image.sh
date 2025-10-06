@@ -2,6 +2,19 @@
 
 set -euo pipefail
 
+# If set, ensure a clean git workspace before building to avoid stray files in context
+if [[ -n "${CLEAN_CONTEXT:-}" ]]; then
+  echo "Cleaning build context (git clean -fdx)"
+  git -C "$(dirname "$0")/.." clean -fdx
+fi
+
+# If set, disable build cache for docker buildx
+if [[ -n "${NO_CACHE:-}" ]]; then
+  DOCKER_NO_CACHE="--no-cache"
+else
+  DOCKER_NO_CACHE=""
+fi
+
 # If set to non-empty, prompts the building of a multi-arch image when the image
 # name indicates use of a registry.
 #
@@ -34,7 +47,7 @@ ALLOW_TAG_LATEST="${ALLOW_TAG_LATEST:-}"
 # simplifies creation of multi-arch images.
 #
 # Reference: https://docs.docker.com/build/buildkit/
-DOCKER_CMD="docker buildx build"
+DOCKER_CMD="docker buildx build ${DOCKER_NO_CACHE}"
 ispush=0
 if [[ -n "${PUBLISH}" ]]; then
   echo "Pushing $IMAGE_NAME:$BUILD_IMAGE_ID"
