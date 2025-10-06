@@ -12,9 +12,9 @@ import (
 	"github.com/ava-labs/avalanchego/utils/set"
 	"github.com/ava-labs/avalanchego/version"
 	"github.com/ava-labs/libevm/log"
+	"github.com/ava-labs/libevm/metrics"
 
 	safemath "github.com/ava-labs/avalanchego/utils/math"
-	evmmetrics "github.com/ava-labs/libevm/metrics" // alias to avoid name collision with local 'metrics' in this package
 )
 
 const (
@@ -42,24 +42,24 @@ type peerInfo struct {
 // Note: is not thread safe, caller must handle synchronization.
 type peerTracker struct {
 	peers                  map[ids.NodeID]*peerInfo // all peers we are connected to
-	numTrackedPeers        evmmetrics.Gauge
+	numTrackedPeers        metrics.Gauge
 	trackedPeers           set.Set[ids.NodeID] // peers that we have sent a request to
-	numResponsivePeers     evmmetrics.Gauge
+	numResponsivePeers     metrics.Gauge
 	responsivePeers        set.Set[ids.NodeID]   // peers that responded to the last request they were sent
 	bandwidthHeap          safemath.AveragerHeap // tracks bandwidth peers are responding with
-	averageBandwidthMetric evmmetrics.GaugeFloat64
+	averageBandwidthMetric metrics.GaugeFloat64
 	averageBandwidth       safemath.Averager
 }
 
 func NewPeerTracker() *peerTracker {
 	return &peerTracker{
 		peers:                  make(map[ids.NodeID]*peerInfo),
-		numTrackedPeers:        evmmetrics.GetOrRegisterGauge("net_tracked_peers", nil),
+		numTrackedPeers:        metrics.GetOrRegisterGauge("net_tracked_peers", nil),
 		trackedPeers:           make(set.Set[ids.NodeID]),
-		numResponsivePeers:     evmmetrics.GetOrRegisterGauge("net_responsive_peers", nil),
+		numResponsivePeers:     metrics.GetOrRegisterGauge("net_responsive_peers", nil),
 		responsivePeers:        make(set.Set[ids.NodeID]),
 		bandwidthHeap:          safemath.NewMaxAveragerHeap(),
-		averageBandwidthMetric: evmmetrics.GetOrRegisterGaugeFloat64("net_average_bandwidth", nil),
+		averageBandwidthMetric: metrics.GetOrRegisterGaugeFloat64("net_average_bandwidth", nil),
 		averageBandwidth:       safemath.NewAverager(0, bandwidthHalflife, time.Now()),
 	}
 }

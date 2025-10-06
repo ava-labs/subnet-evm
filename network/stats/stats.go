@@ -6,7 +6,7 @@ package stats
 import (
 	"time"
 
-	evmmetrics "github.com/ava-labs/libevm/metrics" // alias to avoid name collision with local 'metrics' in this package
+	"github.com/ava-labs/libevm/metrics"
 )
 
 // RequestHandlerStats provides the interface for metrics for app requests.
@@ -16,8 +16,8 @@ type RequestHandlerStats interface {
 }
 
 type requestHandlerStats struct {
-	timeUntilDeadline evmmetrics.Timer
-	droppedRequests   evmmetrics.Counter
+	timeUntilDeadline metrics.Timer
+	droppedRequests   metrics.Counter
 }
 
 func (h *requestHandlerStats) IncDeadlineDroppedRequest() {
@@ -30,7 +30,7 @@ func (h *requestHandlerStats) UpdateTimeUntilDeadline(duration time.Duration) {
 
 func NewRequestHandlerStats() RequestHandlerStats {
 	return &requestHandlerStats{
-		timeUntilDeadline: evmmetrics.GetOrRegisterTimer("net_req_time_until_deadline", nil),
-		droppedRequests:   evmmetrics.GetOrRegisterCounter("net_req_deadline_dropped", nil),
+		timeUntilDeadline: metrics.GetOrRegisterTimer("net_req_time_until_deadline", nil),
+		droppedRequests:   metrics.GetOrRegisterCounter("net_req_deadline_dropped", nil),
 	}
 }

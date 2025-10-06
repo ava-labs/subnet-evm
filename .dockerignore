@@ -7,7 +7,3 @@
 
 LICENSE
 *.md
-# Exclude Go test files from Docker build context to prevent test-only code being compiled into images
-**/*_test.go
-# Safeguard for any stray non-_test helper that could be cached/pulled in CI
-network/test_network.go

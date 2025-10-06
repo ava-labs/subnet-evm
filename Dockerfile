@@ -8,18 +8,26 @@ FROM --platform=$BUILDPLATFORM golang:1.24.7-bookworm AS builder
 
 WORKDIR /build
 
-# Copy avalanche dependencies first (intermediate docker image caching)
-# Copy avalanchego directory if present (for manual CI case, which uses local dependency)
-COPY go.mod go.sum avalanchego* ./
-# Download avalanche dependencies using go mod
-RUN go mod download && go mod tidy
+# Copy module files first (improves Docker layer caching)
+COPY go.mod go.sum ./
+# Download module dependencies
+RUN go mod download
 
 # Copy the code into the container
 COPY . .
 
+# If a local avalanchego source directory is present in the repository (manual CI case),
+# move it outside the module root and update the replace directive to point to it so
+# avalanchego sources are not flattened into this module's package tree.
+RUN if [ -d ./avalanchego ]; then \
+  mkdir -p /third_party && \
+  mv ./avalanchego /third_party/avalanchego && \
+  go mod edit -replace github.com/ava-labs/avalanchego=./third_party/avalanchego && \
+  go mod tidy; \
+fi
+
 # Ensure pre-existing builds are not available for inclusion in the final image
 RUN [ -d ./build ] && rm -rf ./build/* || true
-
 
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM

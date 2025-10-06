@@ -182,16 +182,25 @@ func SetupGenesisBlock(
 		return newcfg, common.Hash{}, err
 	}
 
-	// Read stored config into a local extras copy to avoid mutating shared extras concurrently.
-	extraCopy := *params.GetExtra(newcfg)
-	storedcfg := customrawdb.ReadChainConfig(db, stored, &extraCopy)
+	// Read stored config. We'll persist the new config (including upgrade bytes)
+	// prior to compatibility checks to ensure on-disk state is up to date.
+	extra := params.GetExtra(newcfg)
+	storedcfg := customrawdb.ReadChainConfig(db, stored, extra)
 	// If there is no previously stored chain config, write the chain config to disk.
 	if storedcfg == nil {
 		// Note: this can happen since we did not previously write the genesis block and chain config in the same batch.
 		log.Warn("Found genesis block without chain config")
-		customrawdb.WriteChainConfig(db, stored, newcfg, *params.GetExtra(newcfg))
+		customrawdb.WriteChainConfig(db, stored, newcfg, *extra)
 		return newcfg, stored, nil
 	}
+
+	// Persist the new chain config (and upgrade bytes) to disk now to avoid
+	// spurious compatibility failures due to missing upgrade bytes on older databases.
+	customrawdb.WriteChainConfig(db, stored, newcfg, *extra)
+
+	// Re-read stored config into a fresh extras copy for a clean comparison.
+	storedExtra := *params.GetExtra(newcfg)
+	storedcfg = customrawdb.ReadChainConfig(db, stored, &storedExtra)
 
 	// Notes on the following line:
 	// - this is needed in coreth to handle the case where existing nodes do not
@@ -226,9 +235,8 @@ func SetupGenesisBlock(
 			return newcfg, stored, compatErr
 		}
 	}
-	// Required to write the chain config to disk to ensure both the chain config and upgrade bytes are persisted to disk.
-	// Note: this intentionally removes an extra check from upstream.
-	customrawdb.WriteChainConfig(db, stored, newcfg, *params.GetExtra(newcfg))
+	// Chain config has already been written above.
+	// Write is idempotent but not required here.
 	return newcfg, stored, nil
 }
 
