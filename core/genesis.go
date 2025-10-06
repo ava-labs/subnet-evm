@@ -182,15 +182,14 @@ func SetupGenesisBlock(
 		return newcfg, common.Hash{}, err
 	}
 
-	// Avoid mutating shared extras attached to newcfg (tests may reuse global configs).
-	extra := *params.GetExtra(newcfg)
-
-	storedcfg := customrawdb.ReadChainConfig(db, stored, &extra)
+	// Use the attached extras pointer to ensure upgrade bytes round-trip correctly.
+	extra := params.GetExtra(newcfg)
+	storedcfg := customrawdb.ReadChainConfig(db, stored, extra)
 	// If there is no previously stored chain config, write the chain config to disk.
 	if storedcfg == nil {
 		// Note: this can happen since we did not previously write the genesis block and chain config in the same batch.
 		log.Warn("Found genesis block without chain config")
-		customrawdb.WriteChainConfig(db, stored, newcfg, extra)
+		customrawdb.WriteChainConfig(db, stored, newcfg, *extra)
 		return newcfg, stored, nil
 	}
 
@@ -229,7 +228,7 @@ func SetupGenesisBlock(
 	}
 	// Required to write the chain config to disk to ensure both the chain config and upgrade bytes are persisted to disk.
 	// Note: this intentionally removes an extra check from upstream.
-	customrawdb.WriteChainConfig(db, stored, newcfg, extra)
+	customrawdb.WriteChainConfig(db, stored, newcfg, *extra)
 	return newcfg, stored, nil
 }
 
@@ -406,9 +405,8 @@ func (g *Genesis) Commit(db ethdb.Database, triedb *triedb.Database) (*types.Blo
 	rawdb.WriteHeadBlockHash(batch, block.Hash())
 	rawdb.WriteHeadHeaderHash(batch, block.Hash())
 
-	// Avoid mutating shared extras attached to config
-	extraCommit := *params.GetExtra(config)
-	customrawdb.WriteChainConfig(batch, block.Hash(), config, extraCommit)
+	extra := params.GetExtra(config)
+	customrawdb.WriteChainConfig(batch, block.Hash(), config, *extra)
 	if err := batch.Write(); err != nil {
 		return nil, fmt.Errorf("failed to write genesis block: %w", err)
 	}
