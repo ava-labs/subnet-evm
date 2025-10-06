@@ -38,10 +38,11 @@ func BlockGasCost(
 	if !config.IsSubnetEVM(timestamp) {
 		return nil
 	}
-	step := feeConfig.BlockGasCostStep.Uint64()
+
 	if config.IsGranite(timestamp) {
 		return big.NewInt(0)
 	}
+	step := feeConfig.BlockGasCostStep.Uint64()
 
 	// Treat an invalid parent/current time combination as 0 elapsed time.
 	//

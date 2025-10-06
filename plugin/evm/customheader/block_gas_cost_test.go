@@ -76,7 +76,7 @@ func BlockGasCostTest(t *testing.T, feeConfig commontype.FeeConfig) {
 			expected:   nil,
 		},
 		{
-			name:       "normal",
+			name:       "normal_pre_granite",
 			upgrades:   extras.TestFortunaChainConfig.NetworkUpgrades,
 			parentTime: 10,
 			parentCost: maxBlockGasCostBig,
