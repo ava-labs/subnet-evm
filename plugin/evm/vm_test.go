@@ -3948,7 +3948,7 @@ func TestBlockGasValidation(t *testing.T) {
 
 		chainExtra := params.GetExtra(vm.chainConfig)
 		parent := vm.eth.APIBackend.CurrentBlock()
-		const timeDelta = 10 // seconds to fill gas capacity
+		const timeDelta = 5 // seconds to fill gas capacity
 		timestamp := parent.Time + timeDelta
 		feeConfig, _, err := vm.blockChain.GetFeeConfigAt(parent)
 		require.NoError(err)
@@ -4020,6 +4020,13 @@ func TestBlockGasValidation(t *testing.T) {
 		configExtra := params.GetExtra(vm.chainConfig)
 		header.Extra, err = customheader.ExtraPrefix(configExtra, parent, header)
 		require.NoError(err)
+
+		// Set TimeMilliseconds if Granite is active
+		if configExtra.IsGranite(timestamp) {
+			headerExtra := customtypes.GetHeaderExtra(header)
+			timeMilliseconds := timestamp * 1000 // convert to milliseconds
+			headerExtra.TimeMilliseconds = &timeMilliseconds
+		}
 
 		// Set the gasUsed after calculating the extra prefix to support large
 		// claimed gas used values.
