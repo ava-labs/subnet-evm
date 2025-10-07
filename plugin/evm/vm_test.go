@@ -3854,7 +3854,7 @@ func TestBlockGasValidation(t *testing.T) {
 
 		chainExtra := params.GetExtra(vm.chainConfig)
 		parent := vm.eth.APIBackend.CurrentBlock()
-		const timeDelta = 5 // seconds to fill gas capacity
+		const timeDelta = 5 // mocked block delay
 		timestamp := parent.Time + timeDelta
 		feeConfig, _, err := vm.blockChain.GetFeeConfigAt(parent)
 		require.NoError(err)
@@ -3898,7 +3898,7 @@ func TestBlockGasValidation(t *testing.T) {
 				ChainID:    vm.chainConfig.ChainID,
 				Nonce:      1,
 				To:         &testEthAddrs[0],
-				Gas:        8_000_000, // min max gas capacity
+				Gas:        8_000_000, // block gas limit
 				GasFeeCap:  baseFee,
 				GasTipCap:  baseFee,
 				Value:      common.Big0,
