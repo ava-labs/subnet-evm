@@ -100,7 +100,6 @@ func makePrecompile(contract contract.StatefulPrecompiledContract) libevm.Precom
 			panic(err) // Should never happen
 		}
 		var predicateResults predicate.BlockResults
-		rules := GetRulesExtra(env.Rules()).AvalancheRules
 		if predicateResultsBytes := customheader.PredicateBytesFromExtra(header.Extra); len(predicateResultsBytes) > 0 {
 			predicateResults, err = predicate.ParseBlockResults(predicateResultsBytes)
 			if err != nil {
@@ -116,6 +115,7 @@ func makePrecompile(contract contract.StatefulPrecompiledContract) libevm.Precom
 			},
 		}
 
+		rules := GetRulesExtra(env.Rules()).AvalancheRules
 		switch call := env.IncomingCallType(); {
 		case call != vm.DelegateCall && call != vm.CallCode: // Others always allowed
 		case rules.IsGranite:
