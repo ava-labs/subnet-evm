@@ -4093,8 +4093,16 @@ func TestDelegatePrecompile_BehaviorAcrossUpgrades(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			genesis := &core.Genesis{}
+			require.NoError(t, genesis.UnmarshalJSON([]byte(toGenesisJSON(paramstest.ForkToChainConfig[tt.fork]))))
+			params.GetExtra(genesis.Config).GenesisPrecompiles = extras.Precompiles{
+				warpcontract.ConfigKey: warpcontract.NewDefaultConfig(utils.TimeToNewUint64(upgrade.InitiallyActiveTime)),
+			}
+			genesisJSON, err := genesis.MarshalJSON()
+			require.NoError(t, err)
+
 			vm := newVM(t, testVMConfig{
-				genesisJSON: genesisJSONSubnetEVM,
+				genesisJSON: string(genesisJSON),
 				fork:        &tt.fork,
 			}).vm
 			defer vm.Shutdown(ctx)
