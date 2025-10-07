@@ -5,7 +5,9 @@ package params
 
 import (
 	"fmt"
+	"maps"
 	"math/big"
+	"slices"
 
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/avalanchego/utils/set"
@@ -27,7 +29,10 @@ import (
 
 // invalidateDelegateTime is the Unix timestamp for August 2nd, 2025, midnight Eastern Time
 // (August 2nd, 2025, 04:00 UTC)
-const invalidateDelegateUnix = 1754107200
+const InvalidateDelegateUnix = 1754107200
+
+// P256VerifyAddress is the address of the p256 signature verification precompile
+var P256VerifyAddress = common.BytesToAddress([]byte{0x1, 0x00})
 
 type RulesExtra extras.Rules
 
@@ -56,20 +61,36 @@ func (RulesExtra) CanExecuteTransaction(common.Address, *common.Address, libevm.
 	return nil
 }
 
-func (RulesExtra) ActivePrecompiles(existing []common.Address) []common.Address {
-	return existing
-}
-
 // MinimumGasConsumption is a no-op.
 func (RulesExtra) MinimumGasConsumption(x uint64) uint64 {
 	return (ethparams.NOOPHooks{}).MinimumGasConsumption(x)
 }
 
+var PrecompiledContractsGranite = map[common.Address]vm.PrecompiledContract{
+	P256VerifyAddress: &vm.P256Verify{},
+}
+
+func (r RulesExtra) ActivePrecompiles(existing []common.Address) []common.Address {
+	var addresses []common.Address
+	addresses = slices.AppendSeq(addresses, maps.Keys(r.currentPrecompiles()))
+	addresses = append(addresses, existing...)
+	return addresses
+}
+
+func (r RulesExtra) currentPrecompiles() map[common.Address]vm.PrecompiledContract {
+	switch {
+	case r.IsGranite:
+		return PrecompiledContractsGranite
+	}
+	return nil
+}
+
 // precompileOverrideBuiltin specifies precompiles that were activated prior to the
 // dynamic precompile activation registry.
 // These were only active historically and are not active in the current network.
-func (RulesExtra) precompileOverrideBuiltin(common.Address) (libevm.PrecompiledContract, bool) {
-	return nil, false
+func (r RulesExtra) precompileOverrideBuiltin(addr common.Address) (libevm.PrecompiledContract, bool) {
+	precompile, ok := r.currentPrecompiles()[addr]
+	return precompile, ok
 }
 
 func makePrecompile(contract contract.StatefulPrecompiledContract) libevm.PrecompiledContract {
@@ -94,13 +115,18 @@ func makePrecompile(contract contract.StatefulPrecompiledContract) libevm.Precom
 			},
 		}
 
-		callType := env.IncomingCallType()
-		isDisallowedCallType := callType == vm.DelegateCall || callType == vm.CallCode
-		if env.BlockTime() >= invalidateDelegateUnix && isDisallowedCallType {
-			env.InvalidateExecution(fmt.Errorf("precompile cannot be called with %s", callType))
+		rules := GetRulesExtra(env.Rules()).AvalancheRules
+		switch call := env.IncomingCallType(); {
+		case call != vm.DelegateCall && call != vm.CallCode: // Others always allowed
+		case rules.IsGranite:
+			return nil, 0, vm.ErrExecutionReverted
+		case env.BlockTime() >= InvalidateDelegateUnix:
+			env.InvalidateExecution(fmt.Errorf("precompile cannot be called with %s", call))
+		default:
+			// Otherwise, we allow the precompile to be called
 		}
 
-		return contract.Run(accessibleState, env.Addresses().Caller, env.Addresses().Self, input, suppliedGas, env.ReadOnly())
+		return contract.Run(accessibleState, env.Addresses().EVMSemantic.Caller, env.Addresses().EVMSemantic.Self, input, suppliedGas, env.ReadOnly())
 	}
 	return vm.NewStatefulPrecompile(legacy.PrecompiledStatefulContract(run).Upgrade())
 }
@@ -109,6 +135,7 @@ func (r RulesExtra) PrecompileOverride(addr common.Address) (libevm.PrecompiledC
 	if p, ok := r.precompileOverrideBuiltin(addr); ok {
 		return p, true
 	}
+
 	if _, ok := r.Precompiles[addr]; !ok {
 		return nil, false
 	}
