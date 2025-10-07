@@ -84,7 +84,6 @@ import (
 	avalanchegoprometheus "github.com/ava-labs/avalanchego/vms/evm/metrics/prometheus"
 	ethparams "github.com/ava-labs/libevm/params"
 	subnetevmlog "github.com/ava-labs/subnet-evm/plugin/evm/log"
-	warpPrecompile "github.com/ava-labs/subnet-evm/precompile/contracts/warp"
 	statesyncclient "github.com/ava-labs/subnet-evm/sync/client"
 	avalancheRPC "github.com/gorilla/rpc/v2"
 )
@@ -531,29 +530,6 @@ func parseGenesis(ctx *snow.Context, genesisBytes []byte, upgradeBytes []byte, a
 
 	// Set network upgrade defaults
 	configExtra.SetDefaults(ctx.NetworkUpgrades)
-
-	// If Durango is scheduled, schedule the Warp Precompile at the same time
-	// (unless it's already been configured manually).
-	if configExtra.DurangoTimestamp != nil {
-		// Check if Warp is already configured in genesis precompiles
-		_, warpInGenesis := configExtra.GenesisPrecompiles[warpPrecompile.ConfigKey]
-
-		// Check if Warp is already configured in precompile upgrades
-		warpInUpgrades := false
-		for _, upgrade := range configExtra.PrecompileUpgrades {
-			if upgrade.Key() == warpPrecompile.ConfigKey {
-				warpInUpgrades = true
-				break
-			}
-		}
-
-		// Only add automatic Warp config if it's not already configured
-		if !warpInGenesis && !warpInUpgrades {
-			configExtra.PrecompileUpgrades = append(configExtra.PrecompileUpgrades, extras.PrecompileUpgrade{
-				Config: warpPrecompile.NewDefaultConfig(configExtra.DurangoTimestamp),
-			})
-		}
-	}
 
 	// Apply upgradeBytes (if any) by unmarshalling them into [chainConfig.UpgradeConfig].
 	// Initializing the chain will verify upgradeBytes are compatible with existing values.
