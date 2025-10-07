@@ -19,31 +19,66 @@ var (
 	// and fail verification
 	MaxFutureBlockTime = 10 * time.Second
 
+	errBlockTooOld                   = errors.New("block timestamp is too old")
 	ErrBlockTooFarInFuture           = errors.New("block timestamp is too far in the future")
 	ErrTimeMillisecondsRequired      = errors.New("TimeMilliseconds is required after Granite activation")
 	ErrTimeMillisecondsMismatched    = errors.New("TimeMilliseconds does not match header.Time")
 	ErrTimeMillisecondsBeforeGranite = errors.New("TimeMilliseconds should be nil before Granite activation")
 )
 
+// GetNextTimestamp calculates the timestamp (in seconds and milliseconds) for the next child block based on the parent's timestamp and the current time.
+// First return value is the timestamp in seconds, second return value is the timestamp in milliseconds.
+func GetNextTimestamp(parent *types.Header, now time.Time) (uint64, uint64) {
+	var (
+		timestamp   = uint64(now.Unix())
+		timestampMS = uint64(now.UnixMilli())
+	)
+	// Note: in order to support asynchronous block production, blocks are allowed to have
+	// the same timestamp as their parent. This allows more than one block to be produced
+	// per second.
+	parentExtra := customtypes.GetHeaderExtra(parent)
+	if parent.Time >= timestamp ||
+		(parentExtra.TimeMilliseconds != nil && *parentExtra.TimeMilliseconds >= timestampMS) {
+		timestamp = parent.Time
+		// If the parent has a TimeMilliseconds, use it. Otherwise, use the parent time * 1000.
+		if parentExtra.TimeMilliseconds != nil {
+			timestampMS = *parentExtra.TimeMilliseconds
+		} else {
+			timestampMS = parent.Time * 1000 // TODO: establish minimum time
+		}
+	}
+	return timestamp, timestampMS
+}
+
 // VerifyTime verifies that the header's Time and TimeMilliseconds fields are
 // consistent with the given rules and the current time.
 // This includes:
-// - Time is not too far in the future
 // - TimeMilliseconds is nil before Granite activation
 // - TimeMilliseconds is non-nil after Granite activation
 // - Time matches TimeMilliseconds/1000 after Granite activation
-// - (TODO) Time is strictly increasing if parent is also after Granite activation
+// - Time/TimeMilliseconds is not too far in the future
+// - Time/TimeMilliseconds is non-decreasing
 // - (TODO) Minimum block delay is enforced
-// - (TODO) More time-related checks from dummy.VerifyHeader
-func VerifyTime(extraConfig *extras.ChainConfig, header *types.Header, now time.Time) error {
-	headerExtra := customtypes.GetHeaderExtra(header)
-	// Make sure the block isn't too far in the future
-	if maxBlockTime := uint64(now.Add(MaxFutureBlockTime).Unix()); header.Time > maxBlockTime {
-		return fmt.Errorf("%w: %d > allowed %d", ErrBlockTooFarInFuture, header.Time, maxBlockTime)
+func VerifyTime(extraConfig *extras.ChainConfig, parent *types.Header, header *types.Header, now time.Time) error {
+	var (
+		headerExtra = customtypes.GetHeaderExtra(header)
+		parentExtra = customtypes.GetHeaderExtra(parent)
+	)
+
+	// Verify the header's timestamp is not earlier than parent's
+	// it does include equality(==), so multiple blocks per second is ok
+	if header.Time < parent.Time {
+		return fmt.Errorf("%w: %d < parent %d", errBlockTooOld, header.Time, parent.Time)
 	}
 
-	// Validate TimeMilliseconds field isn't present prior to Granite
+	// Do all checks that apply only before Granite
 	if !extraConfig.IsGranite(header.Time) {
+		// Make sure the block isn't too far in the future
+		if maxBlockTime := uint64(now.Add(MaxFutureBlockTime).Unix()); header.Time > maxBlockTime {
+			return fmt.Errorf("%w: %d > allowed %d", ErrBlockTooFarInFuture, header.Time, maxBlockTime)
+		}
+
+		// This field should not be set yet.
 		if headerExtra.TimeMilliseconds != nil {
 			return ErrTimeMillisecondsBeforeGranite
 		}
@@ -64,6 +99,24 @@ func VerifyTime(extraConfig *extras.ChainConfig, header *types.Header, now time.
 		)
 	}
 
-	// TODO: If the parent is also after Granite, ensure time is strictly increasing
+	// Verify TimeMilliseconds is not earlier than parent's TimeMilliseconds
+	// TODO: Ensure minimum block delay is enforced
+	if parentExtra.TimeMilliseconds != nil && *headerExtra.TimeMilliseconds < *parentExtra.TimeMilliseconds {
+		return fmt.Errorf("%w: %d < parent %d",
+			errBlockTooOld,
+			*headerExtra.TimeMilliseconds,
+			*parentExtra.TimeMilliseconds,
+		)
+	}
+
+	// Verify TimeMilliseconds is not too far in the future
+	if maxBlockTimeMillis := uint64(now.Add(MaxFutureBlockTime).UnixMilli()); *headerExtra.TimeMilliseconds > maxBlockTimeMillis {
+		return fmt.Errorf("%w: %d > allowed %d",
+			ErrBlockTooFarInFuture,
+			*headerExtra.TimeMilliseconds,
+			maxBlockTimeMillis,
+		)
+	}
+
 	return nil
 }
