@@ -60,6 +60,12 @@ import (
 
 var errGenesisNoConfig = errors.New("genesis has no chain configuration")
 
+// Deprecated: use types.Account instead.
+type GenesisAccount = types.Account
+
+// Deprecated: use types.GenesisAlloc instead.
+type GenesisAlloc = types.GenesisAlloc
+
 type Airdrop struct {
 	// Address strings are hex-formatted common.Address
 	Address common.Address `json:"address"`
