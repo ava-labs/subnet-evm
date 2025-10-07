@@ -16,13 +16,18 @@ RUN go mod download
 # Copy the code into the container
 COPY . .
 
-# If a local avalanchego module is present, move it out of the module tree and
-# point the replace directive at it to avoid flattening into this module's packages.
-RUN if [ -f ./avalanchego/go.mod ]; then \
-  mkdir -p /third_party && \
-  mv ./avalanchego /third_party/avalanchego && \
-  go mod edit -replace github.com/ava-labs/avalanchego=./third_party/avalanchego && \
-  go mod tidy; \
+# Ensure we never keep a stale local replace when no local module is present
+RUN go mod edit -dropreplace github.com/ava-labs/avalanchego || true
+
+# If a local avalanchego source dir is present, move it outside the module tree.
+# Only add a replace if the moved directory is a standalone module with go.mod,
+# otherwise drop any existing replace so upstream is used.
+RUN if [ -d ./avalanchego ]; then \
+  mkdir -p /third_party && mv ./avalanchego /third_party/avalanchego; \
+  if [ -f /third_party/avalanchego/go.mod ]; then \
+    go mod edit -replace github.com/ava-labs/avalanchego=/third_party/avalanchego; \
+    go mod tidy; \
+  fi; \
 fi
 
 # Ensure pre-existing builds are not available for inclusion in the final image
