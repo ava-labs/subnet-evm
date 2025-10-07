@@ -25,15 +25,21 @@ import (
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/avalanchego/snow/consensus/snowman"
 	"github.com/ava-labs/avalanchego/snow/engine/enginetest"
+	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
 	"github.com/ava-labs/avalanchego/snow/snowtest"
 	"github.com/ava-labs/avalanchego/upgrade"
 	"github.com/ava-labs/avalanchego/upgrade/upgradetest"
 	"github.com/ava-labs/avalanchego/utils/crypto/secp256k1"
+	"github.com/ava-labs/avalanchego/utils/set"
 	"github.com/ava-labs/avalanchego/vms/components/chain"
+	"github.com/ava-labs/avalanchego/vms/evm/predicate"
+	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
 	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/common/math"
 	"github.com/ava-labs/libevm/core/rawdb"
 	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/libevm/log"
+	"github.com/ava-labs/libevm/rlp"
 	"github.com/ava-labs/libevm/trie"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -63,7 +69,14 @@ import (
 
 	commonEng "github.com/ava-labs/avalanchego/snow/engine/common"
 	avagoconstants "github.com/ava-labs/avalanchego/utils/constants"
+	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
+	warpcontract "github.com/ava-labs/subnet-evm/precompile/contracts/warp"
 )
+
+func TestMain(m *testing.M) {
+	RegisterAllLibEVMExtras()
+	os.Exit(m.Run())
+}
 
 var (
 	schemes = []string{rawdb.HashScheme, customrawdb.FirewoodScheme}
@@ -1915,73 +1928,182 @@ func testAcceptReorg(t *testing.T, scheme string) {
 	}
 }
 
-func TestFutureBlock(t *testing.T) {
-	for _, scheme := range schemes {
-		t.Run(scheme, func(t *testing.T) {
-			testFutureBlock(t, scheme)
+func TestTimeSemanticVerify(t *testing.T) {
+	timestamp := time.Unix(1714339200, 123_456_789)
+	cases := []struct {
+		name             string
+		fork             upgradetest.Fork
+		timeSeconds      uint64
+		timeMilliseconds *uint64
+		expectedError    error
+	}{
+		{
+			name:             "Fortuna without TimeMilliseconds",
+			fork:             upgradetest.Fortuna,
+			timeSeconds:      uint64(timestamp.Unix()),
+			timeMilliseconds: nil,
+		},
+		{
+			name:             "Granite with TimeMilliseconds",
+			fork:             upgradetest.Granite,
+			timeSeconds:      uint64(timestamp.Unix()),
+			timeMilliseconds: utils.NewUint64(uint64(timestamp.UnixMilli())),
+		},
+		{
+			name:             "Fortuna with TimeMilliseconds",
+			fork:             upgradetest.Fortuna,
+			timeSeconds:      uint64(timestamp.Unix()),
+			timeMilliseconds: utils.NewUint64(uint64(timestamp.UnixMilli())),
+			expectedError:    customheader.ErrTimeMillisecondsBeforeGranite,
+		},
+		{
+			name:             "Granite without TimeMilliseconds",
+			fork:             upgradetest.Granite,
+			timeSeconds:      uint64(timestamp.Unix()),
+			timeMilliseconds: nil,
+			expectedError:    customheader.ErrTimeMillisecondsRequired,
+		},
+		{
+			name:             "Granite with mismatched TimeMilliseconds",
+			fork:             upgradetest.Granite,
+			timeSeconds:      uint64(timestamp.Unix()),
+			timeMilliseconds: utils.NewUint64(uint64(timestamp.UnixMilli()) + 1000),
+			expectedError:    customheader.ErrTimeMillisecondsMismatched,
+		},
+		{
+			name:             "Block too far in the future",
+			fork:             upgradetest.Granite,
+			timeSeconds:      uint64(timestamp.Add(2 * time.Hour).Unix()),
+			timeMilliseconds: utils.NewUint64(uint64(timestamp.Add(2 * time.Hour).UnixMilli())),
+			expectedError:    customheader.ErrBlockTooFarInFuture,
+		},
+	}
+
+	for _, test := range cases {
+		t.Run(test.name, func(t *testing.T) {
+			tvm := newVM(t, testVMConfig{
+				genesisJSON: genesisJSONSubnetEVM,
+				fork:        &test.fork,
+			})
+
+			defer func() {
+				if err := tvm.vm.Shutdown(context.Background()); err != nil {
+					t.Fatal(err)
+				}
+			}()
+
+			tx := types.NewTransaction(uint64(0), testEthAddrs[1], firstTxAmount, 21000, big.NewInt(testMinGasPrice), nil)
+			signedTx, err := types.SignTx(tx, types.LatestSigner(tvm.vm.chainConfig), testKeys[0].ToECDSA())
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			txErrors := tvm.vm.txPool.AddRemotesSync([]*types.Transaction{signedTx})
+			for i, err := range txErrors {
+				if err != nil {
+					t.Fatalf("Failed to add tx at index %d: %s", i, err)
+				}
+			}
+
+			msg, err := tvm.vm.WaitForEvent(context.Background())
+			require.NoError(t, err)
+			require.Equal(t, commonEng.PendingTxs, msg)
+
+			blk, err := tvm.vm.BuildBlock(context.Background())
+			if err != nil {
+				t.Fatalf("Failed to build block with import transaction: %s", err)
+			}
+
+			if err := blk.Verify(context.Background()); err != nil {
+				t.Fatalf("Block failed verification on VM: %s", err)
+			}
+
+			// Create empty block from blkA
+			ethBlk := blk.(*chain.BlockWrapper).Block.(*wrappedBlock).ethBlock
+
+			// Modify the header to have the desired time values
+			modifiedHeader := types.CopyHeader(ethBlk.Header())
+			modifiedHeader.Time = test.timeSeconds
+			modifiedExtra := customtypes.GetHeaderExtra(modifiedHeader)
+			modifiedExtra.TimeMilliseconds = test.timeMilliseconds
+
+			// Build new block with modified header
+			receipts := tvm.vm.blockChain.GetReceiptsByHash(ethBlk.Hash())
+			modifiedBlock := types.NewBlock(
+				modifiedHeader,
+				ethBlk.Transactions(),
+				nil,
+				receipts,
+				trie.NewStackTrie(nil),
+			)
+			modifiedBlk, err := wrapBlock(modifiedBlock, tvm.vm)
+			require.NoError(t, err)
+
+			tvm.vm.clock.Set(timestamp) // set current time to base for time checks
+			err = modifiedBlk.Verify(context.Background())
+			require.ErrorIs(t, err, test.expectedError)
 		})
 	}
 }
 
-func testFutureBlock(t *testing.T, scheme string) {
-	tvm := newVM(t, testVMConfig{
-		genesisJSON: genesisJSONSubnetEVM,
-		configJSON:  getConfig(scheme, ""),
-	})
-
-	defer func() {
-		if err := tvm.vm.Shutdown(context.Background()); err != nil {
-			t.Fatal(err)
-		}
-	}()
-
-	tx := types.NewTransaction(uint64(0), testEthAddrs[1], firstTxAmount, 21000, big.NewInt(testMinGasPrice), nil)
-	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(tvm.vm.chainConfig.ChainID), testKeys[0].ToECDSA())
-	if err != nil {
-		t.Fatal(err)
+func TestBuildTimeMilliseconds(t *testing.T) {
+	buildTime := time.Unix(1714339200, 123_456_789)
+	cases := []struct {
+		name                     string
+		fork                     upgradetest.Fork
+		expectedTimeMilliseconds *uint64
+	}{
+		{
+			name:                     "fortuna_should_not_have_timestamp_milliseconds",
+			fork:                     upgradetest.Fortuna,
+			expectedTimeMilliseconds: nil,
+		},
+		{
+			name:                     "granite_should_have_timestamp_milliseconds",
+			fork:                     upgradetest.Granite,
+			expectedTimeMilliseconds: utils.NewUint64(uint64(buildTime.UnixMilli())),
+		},
 	}
 
-	txErrors := tvm.vm.txPool.AddRemotesSync([]*types.Transaction{signedTx})
-	for i, err := range txErrors {
-		if err != nil {
-			t.Fatalf("Failed to add tx at index %d: %s", i, err)
-		}
-	}
+	for _, test := range cases {
+		t.Run(test.name, func(t *testing.T) {
+			tvm := newVM(t, testVMConfig{
+				fork:        &test.fork,
+				genesisJSON: genesisJSONSubnetEVM,
+			})
 
-	msg, err := tvm.vm.WaitForEvent(context.Background())
-	require.NoError(t, err)
-	require.Equal(t, commonEng.PendingTxs, msg)
+			defer func() {
+				if err := tvm.vm.Shutdown(context.Background()); err != nil {
+					t.Fatal(err)
+				}
+			}()
 
-	blkA, err := tvm.vm.BuildBlock(context.Background())
-	if err != nil {
-		t.Fatalf("Failed to build block with import transaction: %s", err)
-	}
+			tvm.vm.clock.Set(buildTime)
+			tx := types.NewTransaction(uint64(0), testEthAddrs[1], firstTxAmount, 21000, big.NewInt(testMinGasPrice), nil)
+			signedTx, err := types.SignTx(tx, types.NewEIP155Signer(tvm.vm.chainConfig.ChainID), testKeys[0].ToECDSA())
+			if err != nil {
+				t.Fatal(err)
+			}
 
-	// Create empty block from blkA
-	internalBlkA := blkA.(*chain.BlockWrapper).Block.(*wrappedBlock)
-	modifiedHeader := types.CopyHeader(internalBlkA.ethBlock.Header())
-	// Set the VM's clock to the time of the produced block
-	tvm.vm.clock.Set(time.Unix(int64(modifiedHeader.Time), 0))
-	// Set the modified time to exceed the allowed future time
-	modifiedTime := modifiedHeader.Time + uint64(maxFutureBlockTime.Seconds()+1)
-	modifiedHeader.Time = modifiedTime
-	modifiedBlock := types.NewBlock(
-		modifiedHeader,
-		internalBlkA.ethBlock.Transactions(),
-		nil,
-		nil,
-		trie.NewStackTrie(nil),
-	)
+			txErrors := tvm.vm.txPool.AddRemotesSync([]*types.Transaction{signedTx})
+			for i, err := range txErrors {
+				if err != nil {
+					t.Fatalf("Failed to add tx at index %d: %s", i, err)
+				}
+			}
 
-	futureBlock, err := wrapBlock(modifiedBlock, tvm.vm)
-	if err != nil {
-		t.Fatal(err)
-	}
+			msg, err := tvm.vm.WaitForEvent(context.Background())
+			require.NoError(t, err)
+			require.Equal(t, commonEng.PendingTxs, msg)
 
-	if err := futureBlock.Verify(context.Background()); err == nil {
-		t.Fatal("Future block should have failed verification due to block timestamp too far in the future")
-	} else if !strings.Contains(err.Error(), "block timestamp is too far in the future") {
-		t.Fatalf("Expected error to be block timestamp too far in the future but found %s", err)
+			blk, err := tvm.vm.BuildBlock(context.Background())
+			if err != nil {
+				t.Fatalf("Failed to build block with import transaction: %s", err)
+			}
+			require.NoError(t, err)
+			ethBlk := blk.(*chain.BlockWrapper).Block.(*wrappedBlock).ethBlock
+			require.Equal(t, test.expectedTimeMilliseconds, customtypes.BlockTimeMilliseconds(ethBlk))
+		})
 	}
 }
 
@@ -2062,100 +2184,6 @@ func testLastAcceptedBlockNumberAllow(t *testing.T, scheme string) {
 
 	if b := tvm.vm.blockChain.GetBlockByNumber(blkHeight); b.Hash() != blkHash {
 		t.Fatalf("expected block at %d to have hash %s but got %s", blkHeight, blkHash.Hex(), b.Hash().Hex())
-	}
-}
-
-// Regression test to ensure we can build blocks if we are starting with the
-// Subnet EVM ruleset in genesis.
-func TestBuildSubnetEVMBlock(t *testing.T) {
-	for _, scheme := range schemes {
-		t.Run(scheme, func(t *testing.T) {
-			testBuildSubnetEVMBlock(t, scheme)
-		})
-	}
-}
-
-func testBuildSubnetEVMBlock(t *testing.T, scheme string) {
-	tvm := newVM(t, testVMConfig{
-		genesisJSON: genesisJSONSubnetEVM,
-		configJSON:  getConfig(scheme, ""),
-	})
-
-	defer func() {
-		if err := tvm.vm.Shutdown(context.Background()); err != nil {
-			t.Fatal(err)
-		}
-	}()
-
-	newTxPoolHeadChan := make(chan core.NewTxPoolReorgEvent, 1)
-	tvm.vm.txPool.SubscribeNewReorgEvent(newTxPoolHeadChan)
-
-	tx := types.NewTransaction(uint64(0), testEthAddrs[1], new(big.Int).Mul(firstTxAmount, big.NewInt(4)), 21000, big.NewInt(testMinGasPrice*3), nil)
-	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(tvm.vm.chainConfig.ChainID), testKeys[0].ToECDSA())
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	txErrors := tvm.vm.txPool.AddRemotesSync([]*types.Transaction{signedTx})
-	for i, err := range txErrors {
-		if err != nil {
-			t.Fatalf("Failed to add tx at index %d: %s", i, err)
-		}
-	}
-
-	blk := issueAndAccept(t, tvm.vm)
-	newHead := <-newTxPoolHeadChan
-	if newHead.Head.Hash() != common.Hash(blk.ID()) {
-		t.Fatalf("Expected new block to match")
-	}
-
-	txs := make([]*types.Transaction, 10)
-	for i := 0; i < 10; i++ {
-		tx := types.NewTransaction(uint64(i), testEthAddrs[0], big.NewInt(10), 21000, big.NewInt(testMinGasPrice*3), nil)
-		signedTx, err := types.SignTx(tx, types.NewEIP155Signer(tvm.vm.chainConfig.ChainID), testKeys[1].ToECDSA())
-		if err != nil {
-			t.Fatal(err)
-		}
-		txs[i] = signedTx
-	}
-	errs := tvm.vm.txPool.AddRemotesSync(txs)
-	for i, err := range errs {
-		if err != nil {
-			t.Fatalf("Failed to add tx at index %d: %s", i, err)
-		}
-	}
-
-	blk = issueAndAccept(t, tvm.vm)
-	ethBlk := blk.(*chain.BlockWrapper).Block.(*wrappedBlock).ethBlock
-	if customtypes.BlockGasCost(ethBlk) == nil || customtypes.BlockGasCost(ethBlk).Cmp(big.NewInt(100)) < 0 {
-		t.Fatalf("expected blockGasCost to be at least 100 but got %d", customtypes.BlockGasCost(ethBlk))
-	}
-	chainConfig := params.GetExtra(tvm.vm.chainConfig)
-	minRequiredTip, err := customheader.EstimateRequiredTip(chainConfig, ethBlk.Header())
-	if err != nil {
-		t.Fatal(err)
-	}
-	if minRequiredTip == nil || minRequiredTip.Cmp(big.NewInt(0.05*utils.GWei)) < 0 {
-		t.Fatalf("expected minRequiredTip to be at least 0.05 gwei but got %d", minRequiredTip)
-	}
-
-	lastAcceptedID, err := tvm.vm.LastAccepted(context.Background())
-	if err != nil {
-		t.Fatal(err)
-	}
-	if lastAcceptedID != blk.ID() {
-		t.Fatalf("Expected last accepted blockID to be the accepted block: %s, but found %s", blk.ID(), lastAcceptedID)
-	}
-
-	// Confirm all txs are present
-	ethBlkTxs := tvm.vm.blockChain.GetBlockByNumber(2).Transactions()
-	for i, tx := range txs {
-		if len(ethBlkTxs) <= i {
-			t.Fatalf("missing transactions expected: %d but found: %d", len(txs), len(ethBlkTxs))
-		}
-		if ethBlkTxs[i].Hash() != tx.Hash() {
-			t.Fatalf("expected tx at index %d to have hash: %x but has: %x", i, txs[i].Hash(), tx.Hash())
-		}
 	}
 }
 
@@ -3810,5 +3838,171 @@ func TestCreateHandlers(t *testing.T) {
 	// All other elements should have an error indicating there's no response
 	for _, elem := range batch[1:] {
 		require.ErrorIs(t, elem.Error, rpc.ErrMissingBatchResponse)
+	}
+}
+
+// TestBlockGasValidation tests the two validation checks:
+// 1. invalid gas used relative to capacity
+// 2. total intrinsic gas cost is greater than claimed gas used
+func TestBlockGasValidation(t *testing.T) {
+	newBlock := func(
+		t *testing.T,
+		vm *VM,
+		claimedGasUsed uint64,
+	) *types.Block {
+		require := require.New(t)
+
+		chainExtra := params.GetExtra(vm.chainConfig)
+		parent := vm.eth.APIBackend.CurrentBlock()
+		const timeDelta = 5 // mocked block delay
+		timestamp := parent.Time + timeDelta
+		feeConfig, _, err := vm.blockChain.GetFeeConfigAt(parent)
+		require.NoError(err)
+		gasLimit, err := customheader.GasLimit(chainExtra, feeConfig, parent, timestamp)
+		require.NoError(err)
+		baseFee, err := customheader.BaseFee(chainExtra, feeConfig, parent, timestamp)
+		require.NoError(err)
+
+		callPayload, err := payload.NewAddressedCall(nil, nil)
+		require.NoError(err)
+		unsignedMessage, err := avalancheWarp.NewUnsignedMessage(
+			1,
+			ids.Empty,
+			callPayload.Bytes(),
+		)
+		require.NoError(err)
+		signersBitSet := set.NewBits()
+		warpSignature := &avalancheWarp.BitSetSignature{
+			Signers: signersBitSet.Bytes(),
+		}
+		signedMessage, err := avalancheWarp.NewMessage(
+			unsignedMessage,
+			warpSignature,
+		)
+		require.NoError(err)
+
+		// 9401 is the maximum number of predicates so that the block is less
+		// than 2 MiB.
+		const numPredicates = 9401
+		accessList := make(types.AccessList, 0, numPredicates)
+		predicate := predicate.New(signedMessage.Bytes())
+		for range numPredicates {
+			accessList = append(accessList, types.AccessTuple{
+				Address:     warpcontract.ContractAddress,
+				StorageKeys: predicate,
+			})
+		}
+
+		tx, err := types.SignTx(
+			types.NewTx(&types.DynamicFeeTx{
+				ChainID:    vm.chainConfig.ChainID,
+				Nonce:      1,
+				To:         &testEthAddrs[0],
+				Gas:        8_000_000, // block gas limit
+				GasFeeCap:  baseFee,
+				GasTipCap:  baseFee,
+				Value:      common.Big0,
+				AccessList: accessList,
+			}),
+			types.LatestSigner(vm.chainConfig),
+			testKeys[0].ToECDSA(),
+		)
+		require.NoError(err)
+
+		header := &types.Header{
+			ParentHash:       parent.Hash(),
+			Coinbase:         constants.BlackholeAddr,
+			Difficulty:       new(big.Int).Add(parent.Difficulty, common.Big1),
+			Number:           new(big.Int).Add(parent.Number, common.Big1),
+			GasLimit:         gasLimit,
+			GasUsed:          0,
+			Time:             timestamp,
+			BaseFee:          baseFee,
+			BlobGasUsed:      new(uint64),
+			ExcessBlobGas:    new(uint64),
+			ParentBeaconRoot: &common.Hash{},
+		}
+
+		configExtra := params.GetExtra(vm.chainConfig)
+		header.Extra, err = customheader.ExtraPrefix(configExtra, parent, header)
+		require.NoError(err)
+
+		// Set TimeMilliseconds if Granite is active
+		if configExtra.IsGranite(timestamp) {
+			headerExtra := customtypes.GetHeaderExtra(header)
+			timeMilliseconds := timestamp * 1000 // convert to milliseconds
+			headerExtra.TimeMilliseconds = &timeMilliseconds
+		}
+
+		// Set the gasUsed after calculating the extra prefix to support large
+		// claimed gas used values.
+		header.GasUsed = claimedGasUsed
+		return types.NewBlock(
+			header,
+			[]*types.Transaction{tx},
+			nil,
+			nil,
+			trie.NewStackTrie(nil),
+		)
+	}
+
+	tests := []struct {
+		name    string
+		gasUsed uint64
+		want    error
+	}{
+		{
+			name:    "gas_used_over_capacity",
+			gasUsed: math.MaxUint64,
+			want:    errInvalidGasUsedRelativeToCapacity,
+		},
+		{
+			name:    "intrinsic_gas_over_gas_used",
+			gasUsed: 0,
+			want:    errTotalIntrinsicGasCostExceedsClaimed,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			require := require.New(t)
+			ctx := context.Background()
+
+			// Configure genesis with warp precompile enabled since test uses warp predicates
+			genesis := &core.Genesis{}
+			require.NoError(genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)))
+			params.GetExtra(genesis.Config).GenesisPrecompiles = extras.Precompiles{
+				warpcontract.ConfigKey: warpcontract.NewDefaultConfig(utils.TimeToNewUint64(upgrade.InitiallyActiveTime)),
+			}
+			genesisJSON, err := genesis.MarshalJSON()
+			require.NoError(err)
+
+			tvm := newVM(t, testVMConfig{
+				genesisJSON: string(genesisJSON),
+			})
+			vm := tvm.vm
+			defer func() {
+				require.NoError(vm.Shutdown(ctx))
+			}()
+
+			blk := newBlock(t, vm, test.gasUsed)
+			blkBytes, err := rlp.EncodeToBytes(blk)
+			require.NoError(err)
+
+			parsedBlk, err := vm.ParseBlock(ctx, blkBytes)
+			require.NoError(err)
+
+			parsedBlkWithContext, ok := parsedBlk.(block.WithVerifyContext)
+			require.True(ok)
+
+			shouldVerify, err := parsedBlkWithContext.ShouldVerifyWithContext(ctx)
+			require.NoError(err)
+			require.True(shouldVerify)
+
+			err = parsedBlkWithContext.VerifyWithContext(
+				ctx,
+				&block.Context{},
+			)
+			require.ErrorIs(err, test.want)
+		})
 	}
 }
