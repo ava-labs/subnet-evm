@@ -1,4 +1,4 @@
-name: Tests
+name: CI
 
 on:
   push:
@@ -78,6 +78,7 @@ jobs:
           name: subnet-evm-e2e-logs-precompile
           path: /tmp/e2e-test/precompile-data
           retention-days: 5
+  
   e2e_warp:
     name: e2e warp tests
     runs-on: ubuntu-latest
@@ -109,6 +110,7 @@ jobs:
           loki_push_url: ${{ secrets.LOKI_PUSH_URL || '' }}
           loki_username: ${{ secrets.LOKI_ID || '' }}
           loki_password: ${{ secrets.LOKI_PASSWORD || '' }}
+       
   e2e_load:
     name: e2e load tests
     runs-on: ubuntu-latest
@@ -134,6 +136,7 @@ jobs:
           loki_push_url: ${{ secrets.LOKI_PUSH_URL || '' }}
           loki_username: ${{ secrets.LOKI_ID || '' }}
           loki_password: ${{ secrets.LOKI_PASSWORD || '' }}
+  
   test_build_image:
     name: Image build
     runs-on: ubuntu-latest
@@ -145,6 +148,7 @@ jobs:
           sudo apt -y install qemu-system qemu-user-static
       - name: Check image build
         run: ./scripts/run_task.sh test-build-image
+  
   test_build_antithesis_images:
     name: Build Antithesis images
     runs-on: ubuntu-latest
