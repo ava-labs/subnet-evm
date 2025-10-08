@@ -277,19 +277,16 @@ func (vm *VM) Initialize(
 	}
 	vm.config = cfg
 
-	// Initialize extension config if not already set
-	if vm.extensionConfig == nil {
-		// Initialize clock if not already set
-		if vm.clock == (mockable.Clock{}) {
-			vm.clock = mockable.Clock{}
-		}
-		vm.extensionConfig = &extension.Config{
-			SyncSummaryProvider: &message.BlockSyncSummaryProvider{},
-			SyncableParser:      message.NewBlockSyncSummaryParser(),
-		}
-		// Provide a clock to the extension config before validation
-		vm.extensionConfig.Clock = &vm.clock
+	// Initialize clock if not already set
+	if vm.clock == (mockable.Clock{}) {
+		vm.clock = mockable.Clock{}
 	}
+	vm.extensionConfig = &extension.Config{
+		SyncSummaryProvider: &message.BlockSyncSummaryProvider{},
+		SyncableParser:      message.NewBlockSyncSummaryParser(),
+	}
+	// Provide a clock to the extension config before validation
+	vm.extensionConfig.Clock = &vm.clock
 
 	vm.ctx = chainCtx
 
