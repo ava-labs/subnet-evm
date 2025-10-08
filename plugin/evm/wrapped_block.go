@@ -46,7 +46,6 @@ var (
 	errInvalidParent                       = errors.New("parent header not found")
 	errInvalidParentBeaconRootBeforeCancun = errors.New("invalid parentBeaconRoot before cancun")
 	errInvalidExcessBlobGas                = errors.New("invalid excessBlobGas")
-	errMissingParentBeaconRoot             = errors.New("header is missing parentBeaconRoot")
 	errParentBeaconRootNonEmpty            = errors.New("invalid non-empty parentBeaconRoot")
 	errBlobGasUsedNilInCancun              = errors.New("blob gas used must not be nil in Cancun")
 	errBlobsNotEnabled                     = errors.New("blobs not enabled on avalanche networks")

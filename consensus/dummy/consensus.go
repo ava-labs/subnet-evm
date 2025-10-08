@@ -22,13 +22,7 @@ import (
 	"github.com/ava-labs/subnet-evm/utils"
 )
 
-var (
-	errUnclesUnsupported      = errors.New("uncles unsupported")
-	errExtDataGasUsedNil      = errors.New("extDataGasUsed is nil")
-	errExtDataGasUsedTooLarge = errors.New("extDataGasUsed is not uint64")
-	ErrInvalidBlockGasCost    = errors.New("invalid blockGasCost")
-	errInvalidExtDataGasUsed  = errors.New("invalid extDataGasUsed")
-)
+var errUnclesUnsupported = errors.New("uncles unsupported")
 
 type Mode struct {
 	ModeSkipHeader   bool
