@@ -15,7 +15,7 @@ extra_imports=$(find . -type f \( -name "*.go" \) ! -name "mocks.go" ! -path "si
   grep -v 'eth\w\+ "' |
   grep -v '_ "' |
   grep -o "${libevm_regexp}" |
-  sort -u | comm -23 - ./scripts/eth-allowed-packages.txt)
+  sort -u | comm -23 - <(sort -u ./scripts/eth-allowed-packages.txt))
 if [ -n "${extra_imports}" ]; then
     echo "new ethereum imports should be added to ./scripts/eth-allowed-packages.txt to prevent accidental imports:"
     echo "${extra_imports}"

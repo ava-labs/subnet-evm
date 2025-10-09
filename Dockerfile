@@ -4,22 +4,34 @@
 ARG AVALANCHEGO_NODE_IMAGE="invalid-image"
 
 # ============= Compilation Stage ================
-FROM --platform=$BUILDPLATFORM golang:1.24.7-bookworm AS builder
+FROM --platform=$BUILDPLATFORM golang:1.24.8-bookworm AS builder
 
 WORKDIR /build
 
-# Copy avalanche dependencies first (intermediate docker image caching)
-# Copy avalanchego directory if present (for manual CI case, which uses local dependency)
-COPY go.mod go.sum avalanchego* ./
-# Download avalanche dependencies using go mod
-RUN go mod download && go mod tidy
+# Copy module files first (improves Docker layer caching)
+COPY go.mod go.sum ./
+# Download module dependencies
+RUN go mod download
 
 # Copy the code into the container
 COPY . .
 
+# Ensure we never keep a stale local replace when no local module is present
+RUN go mod edit -dropreplace github.com/ava-labs/avalanchego || true
+
+# If a local avalanchego source dir is present, move it outside the module tree.
+# Only add a replace if the moved directory is a standalone module with go.mod,
+# otherwise drop any existing replace so upstream is used.
+RUN if [ -d ./avalanchego ]; then \
+  mkdir -p /third_party && mv ./avalanchego /third_party/avalanchego; \
+  if [ -f /third_party/avalanchego/go.mod ]; then \
+    go mod edit -replace github.com/ava-labs/avalanchego=/third_party/avalanchego; \
+    go mod tidy; \
+  fi; \
+fi
+
 # Ensure pre-existing builds are not available for inclusion in the final image
 RUN [ -d ./build ] && rm -rf ./build/* || true
-
 
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
