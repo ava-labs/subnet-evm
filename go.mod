@@ -1,11 +1,11 @@
 module github.com/ava-labs/subnet-evm
 
-go 1.24.7
+go 1.24.8
 
 require (
 	github.com/VictoriaMetrics/fastcache v1.12.1
 	github.com/antithesishq/antithesis-sdk-go v0.3.8
-	github.com/ava-labs/avalanchego v1.13.6-0.20251003124629-84e9aebcfbc0
+	github.com/ava-labs/avalanchego v1.13.6-0.20251007213349-63cc1a166a56
 	github.com/ava-labs/firewood-go-ethhash/ffi v0.0.12
 	github.com/ava-labs/libevm v1.13.15-0.20251002164226-35926db4d661
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
@@ -75,6 +75,7 @@ require (
 	github.com/dop251/goja v0.0.0-20230806174421-c933cf95e127 // indirect
 	github.com/emicklei/go-restful/v3 v3.11.0 // indirect
 	github.com/ethereum/c-kzg-4844 v1.0.0 // indirect
+	github.com/fatih/structtag v1.2.0 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/garslo/gogen v0.0.0-20230926014519-f497ca02dd4c // indirect
 	github.com/gballet/go-libpcsclite v0.0.0-20191108122812-4678299bea08 // indirect

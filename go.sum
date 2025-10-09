@@ -30,6 +30,8 @@ github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5 h1:0CwZNZbxp69SHPd
 github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5/go.mod h1:wHh0iHkYZB8zMSxRWpUBQtwG5a7fFgvEO+odwuTv2gs=
 github.com/ava-labs/avalanchego v1.13.6-0.20251003124629-84e9aebcfbc0 h1:B3ti+6P0r7V6BZw5PG7nP7hZ4AJj/1tSsmOOAwnonhs=
 github.com/ava-labs/avalanchego v1.13.6-0.20251003124629-84e9aebcfbc0/go.mod h1:yplWYV/FzAZeYAhy0yOj8wjJA1PCdTPxQf8Wzpwg6DY=
+github.com/ava-labs/avalanchego v1.13.6-0.20251007213349-63cc1a166a56 h1:Q4lnXtjMwsIheyRUkuOU7EZZ9WFf28vMWG4lPCmqhaE=
+github.com/ava-labs/avalanchego v1.13.6-0.20251007213349-63cc1a166a56/go.mod h1:EL0MGbL2liE9jp4QtCHR2thkNl8hCkD26DJ+7cmcaqs=
 github.com/ava-labs/coreth v0.15.4-rc.3.0.20251002221438-a857a64c28ea h1:vrHUSx6hlQgdVufhtT9LT9i7eHZcWmBEjH9cBozDLuc=
 github.com/ava-labs/coreth v0.15.4-rc.3.0.20251002221438-a857a64c28ea/go.mod h1:y/14LplmA0lLwIDlKiGAZ8OlxQ7OxhaU2dfkYcviLPM=
 github.com/ava-labs/firewood-go-ethhash/ffi v0.0.12 h1:aMcrLbpJ/dyu2kZDf/Di/4JIWsUcYPyTDKymiHpejt0=
@@ -159,6 +161,8 @@ github.com/ethereum/c-kzg-4844 v1.0.0 h1:0X1LBXxaEtYD9xsyj9B9ctQEZIpnvVDeoBx8aHE
 github.com/ethereum/c-kzg-4844 v1.0.0/go.mod h1:VewdlzQmpT5QSrVhbBuGoCdFJkpaJlO1aQputP83wc0=
 github.com/fasthttp-contrib/websocket v0.0.0-20160511215533-1f3b11f56072/go.mod h1:duJ4Jxv5lDcvg4QuQr0oowTf7dz4/CR8NtyCooz9HL8=
 github.com/fatih/structs v1.1.0/go.mod h1:9NiDSp5zOcgEDl+j00MP/WkGVPOlPRLejGD8Ga6PJ7M=
+github.com/fatih/structtag v1.2.0 h1:/OdNE99OxoI/PqaW/SuSK9uxxT3f/tcSZgon/ssNSx4=
+github.com/fatih/structtag v1.2.0/go.mod h1:mBJUNpUnHmRKrKlQQlmCrh5PuhftFbNv8Ys4/aAZl94=
 github.com/fjl/gencodec v0.1.1 h1:DhQY29Q6JLXB/GgMqE86NbOEuvckiYcJCbXFu02toms=
 github.com/fjl/gencodec v0.1.1/go.mod h1:chDHL3wKXuBgauP8x3XNZkl5EIAR5SoCTmmmDTZRzmw=
 github.com/frankban/quicktest v1.14.6 h1:7Xjx+VpznH+oBnejlPUj8oUpdxnVs4f8XU8WnHkI4W8=
