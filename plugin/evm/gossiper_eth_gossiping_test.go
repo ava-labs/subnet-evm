@@ -86,7 +86,7 @@ func TestMempoolEthTxsAppGossipHandling(t *testing.T) {
 	})
 
 	defer func() {
-		require.NoError(vm.Shutdown(context.Background()))
+		require.NoError(tvm.vm.Shutdown(context.Background()))
 	}()
 	tvm.vm.txPool.SetGasTip(common.Big1)
 	tvm.vm.txPool.SetMinFee(common.Big0)

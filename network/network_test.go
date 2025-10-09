@@ -619,7 +619,7 @@ func buildCodec(t *testing.T, types ...interface{}) codec.Manager {
 	for _, typ := range types {
 		require.NoError(t, c.RegisterType(typ))
 	}
-	require.NoError(t, codecManager.RegisterCodec(codecVersion, c))
+	require.NoError(t, codecManager.RegisterCodec(message.Version, c))
 	return codecManager
 }
 

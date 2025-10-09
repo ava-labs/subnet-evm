@@ -34,7 +34,7 @@ func GenerateTrie(t *testing.T, r *rand.Rand, trieDB *triedb.Database, numKeys i
 
 // FillTrie fills a given trie with [numKeys] random keys, each of size [keySize]
 // returns inserted keys and values
-func FillTrie(t *testing.T, r *rand.Rand, start, numKeys int, keySize int, trieDB *triedb.Database, root common.Hash) (common.Hash, [][]byte, [][]byte) {
+func FillTrie(t *testing.T, _ *rand.Rand, start, numKeys int, keySize int, trieDB *triedb.Database, root common.Hash) (common.Hash, [][]byte, [][]byte) {
 	testTrie, err := trie.New(trie.TrieID(root), trieDB)
 	if err != nil {
 		t.Fatalf("error creating trie: %v", err)

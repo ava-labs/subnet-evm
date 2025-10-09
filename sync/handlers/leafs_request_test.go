@@ -295,7 +295,7 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 				require.NoError(t, err)
 				require.Len(t, leafsResponse.Keys, int(maxLeavesLimit))
 				require.Len(t, leafsResponse.Vals, int(maxLeavesLimit))
-				require.Equal(t, uint32(1), testHandlerStats.LeafsRequestCount)
+				require.Equal(t, uint32(1), mockHandlerStats.LeafsRequestCount)
 				require.Equal(t, uint32(len(leafsResponse.Keys)), mockHandlerStats.LeafsReturnedSum)
 			},
 		},
@@ -315,7 +315,7 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 				require.NoError(t, err)
 				require.Len(t, leafsResponse.Keys, int(maxLeavesLimit))
 				require.Len(t, leafsResponse.Vals, int(maxLeavesLimit))
-				require.Equal(t, uint32(1), testHandlerStats.LeafsRequestCount)
+				require.Equal(t, uint32(1), mockHandlerStats.LeafsRequestCount)
 				require.Equal(t, uint32(len(leafsResponse.Keys)), mockHandlerStats.LeafsReturnedSum)
 				requireRangeProofIsValid(t, &request, &leafsResponse, true)
 			},
@@ -381,8 +381,8 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 				require.NoError(t, err)
 				require.Len(t, leafsResponse.Keys, 600)
 				require.Len(t, leafsResponse.Vals, 600)
-				require.Equal(t, uint32(1), testHandlerStats.LeafsRequestCount)
-				require.Equal(t, uint32(len(leafsResponse.Keys)), testHandlerStats.LeafsReturnedSum)
+				require.Equal(t, uint32(1), mockHandlerStats.LeafsRequestCount)
+				require.Equal(t, uint32(len(leafsResponse.Keys)), mockHandlerStats.LeafsReturnedSum)
 				requireRangeProofIsValid(t, &request, &leafsResponse, false)
 			},
 		},

@@ -74,7 +74,7 @@ func TestAddAndGetUnknownMessage(t *testing.T) {
 
 	// Try getting a signature for a message that was not added.
 	_, err = backend.GetMessageSignature(context.TODO(), testUnsignedMessage)
-	require.ErrorContains(t, err, "unknown payload type")
+	require.ErrorContains(t, err, "unknown codec version")
 }
 
 func TestGetBlockSignature(t *testing.T) {
