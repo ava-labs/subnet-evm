@@ -5,6 +5,7 @@ package evm
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -29,10 +30,16 @@ import (
 	"github.com/ava-labs/avalanchego/upgrade"
 	"github.com/ava-labs/avalanchego/upgrade/upgradetest"
 	"github.com/ava-labs/avalanchego/utils/crypto/secp256k1"
+	"github.com/ava-labs/avalanchego/utils/set"
 	"github.com/ava-labs/avalanchego/vms/components/chain"
+	"github.com/ava-labs/avalanchego/vms/evm/acp176"
+	"github.com/ava-labs/avalanchego/vms/evm/predicate"
+	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
 	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/common/math"
 	"github.com/ava-labs/libevm/core/rawdb"
 	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/crypto"
 	"github.com/ava-labs/libevm/log"
 	"github.com/ava-labs/libevm/trie"
 	"github.com/stretchr/testify/assert"
@@ -63,7 +70,11 @@ import (
 
 	commonEng "github.com/ava-labs/avalanchego/snow/engine/common"
 	avagoconstants "github.com/ava-labs/avalanchego/utils/constants"
+	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
+	warpcontract "github.com/ava-labs/subnet-evm/precompile/contracts/warp"
 )
+
+const delegateCallPrecompileCode = "6080604052348015600e575f5ffd5b506106608061001c5f395ff3fe608060405234801561000f575f5ffd5b506004361061003f575f3560e01c80638b336b5e14610043578063b771b3bc14610061578063e4246eec1461007f575b5f5ffd5b61004b61009d565b604051610058919061029e565b60405180910390f35b610069610256565b6040516100769190610331565b60405180910390f35b61008761026e565b604051610094919061036a565b60405180910390f35b5f5f6040516020016100ae906103dd565b60405160208183030381529060405290505f63ee5b48eb60e01b826040516024016100d9919061046b565b604051602081830303815290604052907bffffffffffffffffffffffffffffffffffffffffffffffffffffffff19166020820180517bffffffffffffffffffffffffffffffffffffffffffffffffffffffff838183161783525050505090505f5f73020000000000000000000000000000000000000573ffffffffffffffffffffffffffffffffffffffff168360405161017391906104c5565b5f60405180830381855af49150503d805f81146101ab576040519150601f19603f3d011682016040523d82523d5f602084013e6101b0565b606091505b5091509150816101f5576040517f08c379a00000000000000000000000000000000000000000000000000000000081526004016101ec9061054b565b60405180910390fd5b808060200190518101906102099190610597565b94505f5f1b850361024f576040517f08c379a00000000000000000000000000000000000000000000000000000000081526004016102469061060c565b60405180910390fd5b5050505090565b73020000000000000000000000000000000000000581565b73020000000000000000000000000000000000000581565b5f819050919050565b61029881610286565b82525050565b5f6020820190506102b15f83018461028f565b92915050565b5f73ffffffffffffffffffffffffffffffffffffffff82169050919050565b5f819050919050565b5f6102f96102f46102ef846102b7565b6102d6565b6102b7565b9050919050565b5f61030a826102df565b9050919050565b5f61031b82610300565b9050919050565b61032b81610311565b82525050565b5f6020820190506103445f830184610322565b92915050565b5f610354826102b7565b9050919050565b6103648161034a565b82525050565b5f60208201905061037d5f83018461035b565b92915050565b5f82825260208201905092915050565b7f68656c6c6f0000000000000000000000000000000000000000000000000000005f82015250565b5f6103c7600583610383565b91506103d282610393565b602082019050919050565b5f6020820190508181035f8301526103f4816103bb565b9050919050565b5f81519050919050565b5f82825260208201905092915050565b8281835e5f83830152505050565b5f601f19601f8301169050919050565b5f61043d826103fb565b6104478185610405565b9350610457818560208601610415565b61046081610423565b840191505092915050565b5f6020820190508181035f8301526104838184610433565b905092915050565b5f81905092915050565b5f61049f826103fb565b6104a9818561048b565b93506104b9818560208601610415565b80840191505092915050565b5f6104d08284610495565b915081905092915050565b7f44656c65676174652063616c6c20746f2073656e64576172704d6573736167655f8201527f206661696c656400000000000000000000000000000000000000000000000000602082015250565b5f610535602783610383565b9150610540826104db565b604082019050919050565b5f6020820190508181035f83015261056281610529565b9050919050565b5f5ffd5b61057681610286565b8114610580575f5ffd5b50565b5f815190506105918161056d565b92915050565b5f602082840312156105ac576105ab610569565b5b5f6105b984828501610583565b91505092915050565b7f4661696c656420746f2073656e642077617270206d65737361676500000000005f82015250565b5f6105f6601b83610383565b9150610601826105c2565b602082019050919050565b5f6020820190508181035f830152610623816105ea565b905091905056fea2646970667358221220192acba01cff6d70ce187c63c7ccac116d811f6c35e316fde721f14929ced12564736f6c634300081e0033"
 
 func TestMain(m *testing.M) {
 	RegisterAllLibEVMExtras()
@@ -2179,100 +2190,6 @@ func testLastAcceptedBlockNumberAllow(t *testing.T, scheme string) {
 	}
 }
 
-// Regression test to ensure we can build blocks if we are starting with the
-// Subnet EVM ruleset in genesis.
-func TestBuildSubnetEVMBlock(t *testing.T) {
-	for _, scheme := range schemes {
-		t.Run(scheme, func(t *testing.T) {
-			testBuildSubnetEVMBlock(t, scheme)
-		})
-	}
-}
-
-func testBuildSubnetEVMBlock(t *testing.T, scheme string) {
-	tvm := newVM(t, testVMConfig{
-		genesisJSON: genesisJSONSubnetEVM,
-		configJSON:  getConfig(scheme, ""),
-	})
-
-	defer func() {
-		if err := tvm.vm.Shutdown(context.Background()); err != nil {
-			t.Fatal(err)
-		}
-	}()
-
-	newTxPoolHeadChan := make(chan core.NewTxPoolReorgEvent, 1)
-	tvm.vm.txPool.SubscribeNewReorgEvent(newTxPoolHeadChan)
-
-	tx := types.NewTransaction(uint64(0), testEthAddrs[1], new(big.Int).Mul(firstTxAmount, big.NewInt(4)), 21000, big.NewInt(testMinGasPrice*3), nil)
-	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(tvm.vm.chainConfig.ChainID), testKeys[0].ToECDSA())
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	txErrors := tvm.vm.txPool.AddRemotesSync([]*types.Transaction{signedTx})
-	for i, err := range txErrors {
-		if err != nil {
-			t.Fatalf("Failed to add tx at index %d: %s", i, err)
-		}
-	}
-
-	blk := issueAndAccept(t, tvm.vm)
-	newHead := <-newTxPoolHeadChan
-	if newHead.Head.Hash() != common.Hash(blk.ID()) {
-		t.Fatalf("Expected new block to match")
-	}
-
-	txs := make([]*types.Transaction, 10)
-	for i := 0; i < 10; i++ {
-		tx := types.NewTransaction(uint64(i), testEthAddrs[0], big.NewInt(10), 21000, big.NewInt(testMinGasPrice*3), nil)
-		signedTx, err := types.SignTx(tx, types.NewEIP155Signer(tvm.vm.chainConfig.ChainID), testKeys[1].ToECDSA())
-		if err != nil {
-			t.Fatal(err)
-		}
-		txs[i] = signedTx
-	}
-	errs := tvm.vm.txPool.AddRemotesSync(txs)
-	for i, err := range errs {
-		if err != nil {
-			t.Fatalf("Failed to add tx at index %d: %s", i, err)
-		}
-	}
-
-	blk = issueAndAccept(t, tvm.vm)
-	ethBlk := blk.(*chain.BlockWrapper).Block.(*wrappedBlock).ethBlock
-	if customtypes.BlockGasCost(ethBlk) == nil || customtypes.BlockGasCost(ethBlk).Cmp(big.NewInt(100)) < 0 {
-		t.Fatalf("expected blockGasCost to be at least 100 but got %d", customtypes.BlockGasCost(ethBlk))
-	}
-	chainConfig := params.GetExtra(tvm.vm.chainConfig)
-	minRequiredTip, err := customheader.EstimateRequiredTip(chainConfig, ethBlk.Header())
-	if err != nil {
-		t.Fatal(err)
-	}
-	if minRequiredTip == nil || minRequiredTip.Cmp(big.NewInt(0.05*utils.GWei)) < 0 {
-		t.Fatalf("expected minRequiredTip to be at least 0.05 gwei but got %d", minRequiredTip)
-	}
-
-	lastAcceptedID, err := tvm.vm.LastAccepted(context.Background())
-	if err != nil {
-		t.Fatal(err)
-	}
-	if lastAcceptedID != blk.ID() {
-		t.Fatalf("Expected last accepted blockID to be the accepted block: %s, but found %s", blk.ID(), lastAcceptedID)
-	}
-
-	// Confirm all txs are present
-	ethBlkTxs := tvm.vm.blockChain.GetBlockByNumber(2).Transactions()
-	for i, tx := range txs {
-		if len(ethBlkTxs) <= i {
-			t.Fatalf("missing transactions expected: %d but found: %d", len(txs), len(ethBlkTxs))
-		}
-		if ethBlkTxs[i].Hash() != tx.Hash() {
-			t.Fatalf("expected tx at index %d to have hash: %x but has: %x", i, txs[i].Hash(), tx.Hash())
-		}
-	}
-}
-
 func TestBuildAllowListActivationBlock(t *testing.T) {
 	for _, scheme := range schemes {
 		t.Run(scheme, func(t *testing.T) {
@@ -3924,5 +3841,320 @@ func TestCreateHandlers(t *testing.T) {
 	// All other elements should have an error indicating there's no response
 	for _, elem := range batch[1:] {
 		require.ErrorIs(t, elem.Error, rpc.ErrMissingBatchResponse)
+	}
+}
+
+// TestBlockGasValidation tests the two validation checks:
+// 1. invalid gas used relative to capacity
+// 2. total intrinsic gas cost is greater than claimed gas used
+func TestBlockGasValidation(t *testing.T) {
+	newBlock := func(
+		t *testing.T,
+		vm *VM,
+		claimedGasUsed uint64,
+	) *types.Block {
+		require := require.New(t)
+
+		blk, err := vm.BuildBlock(context.Background())
+		require.NoError(err)
+
+		callPayload, err := payload.NewAddressedCall(nil, nil)
+		require.NoError(err)
+		unsignedMessage, err := avalancheWarp.NewUnsignedMessage(
+			1,
+			ids.Empty,
+			callPayload.Bytes(),
+		)
+		require.NoError(err)
+		signersBitSet := set.NewBits()
+		warpSignature := &avalancheWarp.BitSetSignature{
+			Signers: signersBitSet.Bytes(),
+		}
+		signedMessage, err := avalancheWarp.NewMessage(
+			unsignedMessage,
+			warpSignature,
+		)
+		require.NoError(err)
+
+		// 9401 is the maximum number of predicates so that the block is less
+		// than 2 MiB.
+		const numPredicates = 9401
+		accessList := make(types.AccessList, 0, numPredicates)
+		predicate := predicate.New(signedMessage.Bytes())
+		for range numPredicates {
+			accessList = append(accessList, types.AccessTuple{
+				Address:     warpcontract.ContractAddress,
+				StorageKeys: predicate,
+			})
+		}
+
+		tx, err := types.SignTx(
+			types.NewTx(&types.DynamicFeeTx{
+				ChainID:    vm.chainConfig.ChainID,
+				Nonce:      1,
+				To:         &testEthAddrs[0],
+				Gas:        8_000_000, // block gas limit
+				GasFeeCap:  big.NewInt(10),
+				GasTipCap:  big.NewInt(10),
+				Value:      common.Big0,
+				AccessList: accessList,
+			}),
+			types.LatestSigner(vm.chainConfig),
+			testKeys[0].ToECDSA(),
+		)
+		require.NoError(err)
+
+		ethBlock := blk.(*chain.BlockWrapper).Block.(*wrappedBlock).ethBlock
+		modifiedHeader := types.CopyHeader(ethBlock.Header())
+
+		// Set the gasUsed after calculating the extra prefix to support large
+		// claimed gas used values.
+		modifiedHeader.GasUsed = claimedGasUsed
+		return types.NewBlock(
+			modifiedHeader,
+			[]*types.Transaction{tx},
+			nil,
+			nil,
+			trie.NewStackTrie(nil),
+		)
+	}
+
+	tests := []struct {
+		name    string
+		gasUsed uint64
+		want    error
+	}{
+		{
+			name:    "gas_used_over_capacity",
+			gasUsed: math.MaxUint64,
+			want:    errInvalidGasUsedRelativeToCapacity,
+		},
+		{
+			name:    "intrinsic_gas_over_gas_used",
+			gasUsed: 0,
+			want:    errTotalIntrinsicGasCostExceedsClaimed,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			require := require.New(t)
+			ctx := context.Background()
+
+			// Configure genesis with warp precompile enabled since test uses warp predicates
+			genesis := &core.Genesis{}
+			require.NoError(genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)))
+			params.GetExtra(genesis.Config).GenesisPrecompiles = extras.Precompiles{
+				warpcontract.ConfigKey: warpcontract.NewDefaultConfig(utils.TimeToNewUint64(upgrade.InitiallyActiveTime)),
+			}
+			genesisJSON, err := genesis.MarshalJSON()
+			require.NoError(err)
+
+			tvm := newVM(t, testVMConfig{
+				genesisJSON: string(genesisJSON),
+			})
+			vm := tvm.vm
+			defer func() {
+				require.NoError(vm.Shutdown(ctx))
+			}()
+
+			// Add a transaction to the pool so BuildBlock doesn't create an empty block
+			// (subnet-evm doesn't allow empty blocks)
+			tx := types.NewTransaction(uint64(0), testEthAddrs[1], big.NewInt(1), 21000, big.NewInt(testMinGasPrice), nil)
+			signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0].ToECDSA())
+			require.NoError(err)
+			errs := vm.txPool.AddRemotesSync([]*types.Transaction{signedTx})
+			for i, err := range errs {
+				require.NoError(err, "Failed to add tx at index %d", i)
+			}
+
+			blk := newBlock(t, vm, test.gasUsed)
+
+			modifiedBlk, err := wrapBlock(blk, vm)
+			require.NoError(err)
+
+			err = modifiedBlk.Verify(ctx)
+			require.ErrorIs(err, test.want)
+		})
+	}
+}
+
+// newSignedLegacyTx builds a legacy transaction and signs it using the
+// LatestSigner derived from the provided chain config.
+func newSignedLegacyTx(
+	t *testing.T,
+	cfg *params.ChainConfig,
+	key *ecdsa.PrivateKey,
+	nonce uint64,
+	to *common.Address,
+	value *big.Int,
+	gas uint64,
+	gasPrice *big.Int,
+	data []byte,
+) *types.Transaction {
+	t.Helper()
+
+	tx := types.NewTx(&types.LegacyTx{
+		Nonce:    nonce,
+		To:       to,
+		Value:    value,
+		Gas:      gas,
+		GasPrice: gasPrice,
+		Data:     data,
+	})
+	signedTx, err := types.SignTx(tx, types.LatestSigner(cfg), key)
+	require.NoError(t, err)
+	return signedTx
+}
+
+// deployContract deploys the provided EVM bytecode using a prefunded test account
+// and returns the created contract address. It is reusable for any contract code.
+func deployContract(ctx context.Context, t *testing.T, vm *VM, gasPrice *big.Int, code []byte) common.Address {
+	callerAddr := testEthAddrs[0]
+	callerKey := testKeys[0]
+
+	nonce := vm.txPool.Nonce(callerAddr)
+	signedTx := newSignedLegacyTx(t, vm.chainConfig, callerKey.ToECDSA(), nonce, nil, big.NewInt(0), 1000000, gasPrice, code)
+
+	for _, err := range vm.txPool.AddRemotesSync([]*types.Transaction{signedTx}) {
+		require.NoError(t, err)
+	}
+
+	blk, err := vm.BuildBlock(ctx)
+	require.NoError(t, err)
+	require.NoError(t, blk.Verify(ctx))
+	require.NoError(t, vm.SetPreference(ctx, blk.ID()))
+	require.NoError(t, blk.Accept(ctx))
+
+	ethBlock := blk.(*chain.BlockWrapper).Block.(*wrappedBlock).ethBlock
+	receipts := vm.blockChain.GetReceiptsByHash(ethBlock.Hash())
+	require.Len(t, receipts, len(ethBlock.Transactions()))
+
+	found := false
+	for i, btx := range ethBlock.Transactions() {
+		if btx.Hash() == signedTx.Hash() {
+			found = true
+			require.Equal(t, types.ReceiptStatusSuccessful, receipts[i].Status)
+			break
+		}
+	}
+	require.True(t, found, "deployContract: expected deploy tx %s to be included in block %s (caller=%s, nonce=%d)",
+		signedTx.Hash().Hex(),
+		ethBlock.Hash().Hex(),
+		callerAddr.Hex(),
+		nonce,
+	)
+
+	return crypto.CreateAddress(callerAddr, nonce)
+}
+
+func TestDelegatePrecompile_BehaviorAcrossUpgrades(t *testing.T) {
+	ctx := context.Background()
+	tests := []struct {
+		name                  string
+		fork                  upgradetest.Fork
+		deployGasPrice        *big.Int
+		txGasPrice            *big.Int
+		preDeployTime         int64
+		setTime               int64
+		refillCapacityFortuna bool
+		wantIncluded          bool
+		wantReceiptStatus     uint64
+	}{
+		{
+			name:           "granite_should_revert",
+			fork:           upgradetest.Granite,
+			deployGasPrice: big.NewInt(testMinGasPrice),
+			txGasPrice:     big.NewInt(testMinGasPrice),
+			// Time is irrelevant as only the fork dictates the logic
+			refillCapacityFortuna: false,
+			wantIncluded:          true,
+			wantReceiptStatus:     types.ReceiptStatusFailed,
+		},
+		{
+			name:                  "fortuna_post_cutoff_should_invalidate",
+			fork:                  upgradetest.Fortuna,
+			deployGasPrice:        big.NewInt(testMinGasPrice),
+			txGasPrice:            big.NewInt(testMinGasPrice),
+			setTime:               params.InvalidateDelegateUnix + 1,
+			refillCapacityFortuna: true,
+			wantIncluded:          false,
+		},
+		{
+			name:                  "fortuna_pre_cutoff_should_succeed",
+			fork:                  upgradetest.Fortuna,
+			deployGasPrice:        big.NewInt(testMinGasPrice),
+			txGasPrice:            big.NewInt(testMinGasPrice),
+			preDeployTime:         params.InvalidateDelegateUnix - acp176.TimeToFillCapacity - 1,
+			refillCapacityFortuna: true,
+			wantIncluded:          true,
+			wantReceiptStatus:     types.ReceiptStatusSuccessful,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			genesis := &core.Genesis{}
+			require.NoError(t, genesis.UnmarshalJSON([]byte(toGenesisJSON(paramstest.ForkToChainConfig[tt.fork]))))
+			params.GetExtra(genesis.Config).GenesisPrecompiles = extras.Precompiles{
+				warpcontract.ConfigKey: warpcontract.NewDefaultConfig(utils.TimeToNewUint64(upgrade.InitiallyActiveTime)),
+			}
+			genesisJSON, err := genesis.MarshalJSON()
+			require.NoError(t, err)
+
+			vm := newVM(t, testVMConfig{
+				genesisJSON: string(genesisJSON),
+				fork:        &tt.fork,
+			}).vm
+			defer vm.Shutdown(ctx)
+
+			if tt.preDeployTime != 0 {
+				vm.clock.Set(time.Unix(tt.preDeployTime, 0))
+			}
+
+			contractAddr := deployContract(ctx, t, vm, tt.deployGasPrice, common.FromHex(delegateCallPrecompileCode))
+
+			if tt.setTime != 0 {
+				vm.clock.Set(time.Unix(tt.setTime, 0))
+			}
+
+			if tt.refillCapacityFortuna {
+				// Ensure gas capacity is refilled relative to the parent block's timestamp
+				parent := vm.blockChain.CurrentBlock()
+				parentTime := time.Unix(int64(parent.Time), 0)
+				minRefillTime := parentTime.Add(acp176.TimeToFillCapacity * time.Second)
+				if vm.clock.Time().Before(minRefillTime) {
+					vm.clock.Set(minRefillTime)
+				}
+			}
+
+			data := crypto.Keccak256([]byte("delegateSendHello()"))[:4]
+			nonce := vm.txPool.Nonce(testEthAddrs[0])
+			signedTx := newSignedLegacyTx(t, vm.chainConfig, testKeys[0].ToECDSA(), nonce, &contractAddr, big.NewInt(0), 100000, tt.txGasPrice, data)
+			for _, err := range vm.txPool.AddRemotesSync([]*types.Transaction{signedTx}) {
+				require.NoError(t, err)
+			}
+
+			blk, err := vm.BuildBlock(ctx)
+
+			if !tt.wantIncluded {
+				// On subnet-evm, InvalidateExecution causes the transaction to be excluded from the block.
+				// BuildBlock will create a block but it will fail verification because it's empty
+				// and subnet-evm doesn't allow empty blocks.
+				require.Error(t, err, "BuildBlock should fail because it would create an empty block")
+				require.ErrorContains(t, err, "empty block", "Should fail with empty block error")
+				return
+			}
+
+			require.NoError(t, err)
+			require.NoError(t, blk.Verify(ctx))
+			require.NoError(t, vm.SetPreference(ctx, blk.ID()))
+			require.NoError(t, blk.Accept(ctx))
+
+			ethBlock := blk.(*chain.BlockWrapper).Block.(*wrappedBlock).ethBlock
+			require.Len(t, ethBlock.Transactions(), 1)
+			receipts := vm.blockChain.GetReceiptsByHash(ethBlock.Hash())
+			require.Len(t, receipts, 1)
+			require.Equal(t, tt.wantReceiptStatus, receipts[0].Status)
+		})
 	}
 }
