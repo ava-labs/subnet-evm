@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"time"
 
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/consensus/misc/eip4844"
@@ -25,9 +24,6 @@ import (
 )
 
 var (
-	allowedFutureBlockTime = 10 * time.Second // Max time from current time allowed for blocks, before they're considered future blocks
-
-	errInvalidBlockTime                    = errors.New("timestamp less than parent's")
 	errUnclesUnsupported                   = errors.New("uncles unsupported")
 	ErrInvalidBlockGasCost                 = errors.New("invalid blockGasCost")
 	errInvalidExcessBlobGasBeforeCancun    = errors.New("invalid excessBlobGas before cancun")
