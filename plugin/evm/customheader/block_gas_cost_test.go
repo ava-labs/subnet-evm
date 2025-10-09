@@ -4,11 +4,11 @@
 package customheader
 
 import (
+	"math"
 	"math/big"
 	"testing"
 
 	"github.com/ava-labs/libevm/common"
-	"github.com/ava-labs/libevm/common/math"
 	"github.com/ava-labs/libevm/core/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -76,8 +76,8 @@ func BlockGasCostTest(t *testing.T, feeConfig commontype.FeeConfig) {
 			expected:   nil,
 		},
 		{
-			name:       "normal",
-			upgrades:   extras.TestChainConfig.NetworkUpgrades,
+			name:       "normal_pre_granite",
+			upgrades:   extras.TestFortunaChainConfig.NetworkUpgrades,
 			parentTime: 10,
 			parentCost: maxBlockGasCostBig,
 			timestamp:  10 + targetBlockRate + 1,
@@ -85,11 +85,19 @@ func BlockGasCostTest(t *testing.T, feeConfig commontype.FeeConfig) {
 		},
 		{
 			name:       "negative_time_elapsed",
-			upgrades:   extras.TestChainConfig.NetworkUpgrades,
+			upgrades:   extras.TestFortunaChainConfig.NetworkUpgrades,
 			parentTime: 10,
 			parentCost: feeConfig.MinBlockGasCost,
 			timestamp:  9,
 			expected:   new(big.Int).SetUint64(minBlockGasCost + blockGasCostStep*targetBlockRate),
+		},
+		{
+			name:       "granite_returns_zero",
+			upgrades:   extras.TestGraniteChainConfig.NetworkUpgrades,
+			parentTime: 10,
+			parentCost: big.NewInt(int64(maxBlockGasCost)),
+			timestamp:  10 + targetBlockRate + 1,
+			expected:   big.NewInt(0),
 		},
 	}
 
@@ -446,6 +454,14 @@ func TestVerifyBlockFee(t *testing.T) {
 			receipts: []*types.Receipt{
 				{GasUsed: 1000},
 			},
+			extraStateContribution: nil,
+		},
+		"zero block gas cost": {
+			baseFee:                big.NewInt(100),
+			parentBlockGasCost:     big.NewInt(0),
+			timeElapsed:            testFeeConfig.TargetBlockRate + 1,
+			txs:                    nil,
+			receipts:               nil,
 			extraStateContribution: nil,
 		},
 	}

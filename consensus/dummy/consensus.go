@@ -7,9 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"time"
 
-	"github.com/ava-labs/avalanchego/utils/timer/mockable"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/consensus/misc/eip4844"
 	"github.com/ava-labs/libevm/core/state"
@@ -47,64 +45,42 @@ type Mode struct {
 
 type (
 	DummyEngine struct {
-		clock         *mockable.Clock
 		consensusMode Mode
 	}
 )
 
 func NewDummyEngine(
 	mode Mode,
-	clock *mockable.Clock,
 ) *DummyEngine {
 	return &DummyEngine{
-		clock:         clock,
 		consensusMode: mode,
 	}
 }
 
 func NewETHFaker() *DummyEngine {
 	return &DummyEngine{
-		clock:         &mockable.Clock{},
 		consensusMode: Mode{ModeSkipBlockFee: true},
 	}
 }
 
 func NewFaker() *DummyEngine {
-	return &DummyEngine{
-		clock: &mockable.Clock{},
-	}
-}
-
-func NewFakerWithClock(clock *mockable.Clock) *DummyEngine {
-	return &DummyEngine{
-		clock: clock,
-	}
+	return &DummyEngine{}
 }
 
 func NewFakerWithMode(mode Mode) *DummyEngine {
 	return &DummyEngine{
-		clock:         &mockable.Clock{},
-		consensusMode: mode,
-	}
-}
-
-func NewFakerWithModeAndClock(mode Mode, clock *mockable.Clock) *DummyEngine {
-	return &DummyEngine{
-		clock:         clock,
 		consensusMode: mode,
 	}
 }
 
 func NewCoinbaseFaker() *DummyEngine {
 	return &DummyEngine{
-		clock:         &mockable.Clock{},
 		consensusMode: Mode{ModeSkipCoinbase: true},
 	}
 }
 
 func NewFullFaker() *DummyEngine {
 	return &DummyEngine{
-		clock:         &mockable.Clock{},
 		consensusMode: Mode{ModeSkipHeader: true},
 	}
 }
@@ -142,9 +118,8 @@ func verifyHeaderGasFields(config *extras.ChainConfig, header *types.Header, par
 	if err != nil {
 		return err
 	}
-	if err := customheader.VerifyGasUsed(config, feeConfig, parent, header); err != nil {
-		return err
-	}
+	// Verifying the gas used occurs earlier in the block validation process in verifyIntrinsicGas, so
+	// customheader.VerifyGasUsed is not called here.
 	if err := customheader.VerifyGasLimit(config, feeConfig, parent, header); err != nil {
 		return err
 	}
@@ -198,15 +173,6 @@ func (eng *DummyEngine) verifyHeader(chain consensus.ChainHeaderReader, header *
 		return err
 	}
 
-	// Verify the header's timestamp
-	if header.Time > uint64(eng.clock.Time().Add(allowedFutureBlockTime).Unix()) {
-		return consensus.ErrFutureBlock
-	}
-	// Verify the header's timestamp is not earlier than parent's
-	// it does include equality(==), so multiple blocks per second is ok
-	if header.Time < parent.Time {
-		return errInvalidBlockTime
-	}
 	// Verify that the block number is parent's +1
 	if diff := new(big.Int).Sub(header.Number, parent.Number); diff.Cmp(big.NewInt(1)) != 0 {
 		return consensus.ErrInvalidNumber
