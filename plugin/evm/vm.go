@@ -219,7 +219,7 @@ type VM struct {
 	builderLock sync.Mutex
 	builder     *blockBuilder
 
-	clock mockable.Clock
+	clock *mockable.Clock
 
 	shutdownChan chan struct{}
 	shutdownWg   sync.WaitGroup
@@ -277,16 +277,9 @@ func (vm *VM) Initialize(
 	}
 	vm.config = cfg
 
-	// Initialize clock if not already set
-	if vm.clock == (mockable.Clock{}) {
-		vm.clock = mockable.Clock{}
-	}
-	vm.extensionConfig = &extension.Config{
-		SyncSummaryProvider: &message.BlockSyncSummaryProvider{},
-		SyncableParser:      message.NewBlockSyncSummaryParser(),
-	}
-	// Provide a clock to the extension config before validation
-	vm.extensionConfig.Clock = &vm.clock
+	vm.extensionConfig = defaultExtensions()
+	// Get clock from extension config
+	vm.clock = vm.extensionConfig.Clock
 
 	vm.ctx = chainCtx
 
@@ -457,7 +450,7 @@ func (vm *VM) Initialize(
 		return fmt.Errorf("failed to create network: %w", err)
 	}
 
-	vm.validatorsManager, err = validators.NewManager(vm.ctx, vm.validatorsDB, &vm.clock)
+	vm.validatorsManager, err = validators.NewManager(vm.ctx, vm.validatorsDB, vm.clock)
 	if err != nil {
 		return fmt.Errorf("failed to initialize validators manager: %w", err)
 	}
@@ -618,7 +611,7 @@ func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.
 		eth.Settings{MaxBlocksPerRequest: vm.config.MaxBlocksPerRequest},
 		lastAcceptedHash,
 		dummy.NewFaker(),
-		&vm.clock,
+		vm.clock,
 	)
 	if err != nil {
 		return err
@@ -1281,6 +1274,15 @@ func (vm *VM) readLastAccepted() (common.Hash, uint64, error) {
 			return common.Hash{}, 0, fmt.Errorf("failed to retrieve header number of last accepted block: %s", lastAcceptedHash)
 		}
 		return lastAcceptedHash, *height, nil
+	}
+}
+
+// defaultExtensions returns the default extension configuration.
+func defaultExtensions() *extension.Config {
+	return &extension.Config{
+		Clock:               &mockable.Clock{},
+		SyncSummaryProvider: &message.BlockSyncSummaryProvider{},
+		SyncableParser:      message.NewBlockSyncSummaryParser(),
 	}
 }
 
