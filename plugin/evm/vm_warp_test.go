@@ -157,7 +157,7 @@ func testSendWarpMessage(t *testing.T, scheme string) {
 
 	// Verify the signature cannot be fetched before the block is accepted
 	_, err = tvm.vm.warpBackend.GetMessageSignature(context.TODO(), unsignedMessage)
-	require.ErrorContains(err, "unknown payload type")
+	require.ErrorContains(err, "unknown codec version")
 	_, err = tvm.vm.warpBackend.GetBlockSignature(context.TODO(), blk.ID())
 	require.ErrorContains(err, "failed to get block")
 
