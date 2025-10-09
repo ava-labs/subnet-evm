@@ -67,11 +67,11 @@ linters:
     - ineffassign
     - misspell
     - nakedret
-    # - nilerr
+    - nilerr
     - noctx
     - nolintlint
     - perfsprint
-    # - prealloc
+    - prealloc
     # - predeclared
     - revive
     - spancheck
