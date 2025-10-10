@@ -32,12 +32,10 @@ type Mode struct {
 	ModeSkipCoinbase bool
 }
 
-type (
-	DummyEngine struct {
-		consensusMode      Mode
-		desiredDelayExcess *acp226.DelayExcess
-	}
-)
+type DummyEngine struct {
+	consensusMode      Mode
+	desiredDelayExcess *acp226.DelayExcess
+}
 
 func NewDummyEngine(
 	mode Mode,
