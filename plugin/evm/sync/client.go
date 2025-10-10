@@ -162,7 +162,6 @@ func (client *client) ClearOngoingSummary() error {
 	return nil
 }
 
-// ParseStateSummary parses [summaryBytes] to [commonEng.Summary]
 func (client *client) ParseStateSummary(_ context.Context, summaryBytes []byte) (block.StateSummary, error) {
 	return client.Parser.Parse(summaryBytes, client.acceptSyncSummary)
 }
