@@ -93,7 +93,7 @@ func createAllowListRoleSetter(precompileAddr common.Address, role Role) contrac
 		}
 
 		// do not use strict mode after Durango
-		useStrictMode := !contract.IsDurangoActivated(evm)
+		useStrictMode := !evm.GetRules().IsDurangoActivated()
 		modifyAddress, err := UnpackModifyAllowListInput(input, role, useStrictMode)
 		if err != nil {
 			return nil, remainingGas, err
@@ -112,7 +112,7 @@ func createAllowListRoleSetter(precompileAddr common.Address, role Role) contrac
 		if !callerStatus.CanModify(modifyStatus, role) {
 			return nil, remainingGas, fmt.Errorf("%w: modify address: %s, from role: %s, to role: %s", ErrCannotModifyAllowList, callerAddr, modifyStatus, role)
 		}
-		if contract.IsDurangoActivated(evm) {
+		if evm.GetRules().IsDurangoActivated() {
 			if remainingGas, err = contract.DeductGas(remainingGas, AllowListEventGasCost); err != nil {
 				return nil, 0, err
 			}
@@ -164,7 +164,7 @@ func createReadAllowList(precompileAddr common.Address) contract.RunStatefulPrec
 		}
 
 		// We skip the fixed length check with Durango
-		useStrictMode := !contract.IsDurangoActivated(evm)
+		useStrictMode := !evm.GetRules().IsDurangoActivated()
 		readAddress, err := UnpackReadAllowListInput(input, useStrictMode)
 		if err != nil {
 			return nil, remainingGas, err
@@ -192,6 +192,9 @@ func CreateAllowListPrecompile(precompileAddr common.Address) contract.StatefulP
 
 func CreateAllowListFunctions(precompileAddr common.Address) []*contract.StatefulPrecompileFunction {
 	functions := make([]*contract.StatefulPrecompileFunction, 0, len(AllowListABI.Methods))
+	durangoActivationFunc := func(evm contract.AccessibleState) bool {
+		return evm.GetRules().IsDurangoActivated()
+	}
 
 	for name, method := range AllowListABI.Methods {
 		var fn *contract.StatefulPrecompileFunction
@@ -204,7 +207,7 @@ func CreateAllowListFunctions(precompileAddr common.Address) []*contract.Statefu
 		} else if noRoleFnName, _ := NoRole.GetSetterFunctionName(); name == noRoleFnName {
 			fn = contract.NewStatefulPrecompileFunction(method.ID, createAllowListRoleSetter(precompileAddr, NoRole))
 		} else if managerFnName, _ := ManagerRole.GetSetterFunctionName(); name == managerFnName {
-			fn = contract.NewStatefulPrecompileFunctionWithActivator(method.ID, createAllowListRoleSetter(precompileAddr, ManagerRole), contract.IsDurangoActivated)
+			fn = contract.NewStatefulPrecompileFunctionWithActivator(method.ID, createAllowListRoleSetter(precompileAddr, ManagerRole), durangoActivationFunc)
 		} else {
 			panic("unexpected method name: " + name)
 		}
