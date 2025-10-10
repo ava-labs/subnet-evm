@@ -16,9 +16,10 @@ import (
 	"github.com/ava-labs/avalanchego/vms/evm/acp226"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/rlp"
-	"github.com/ava-labs/subnet-evm/utils/utilstest"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/ava-labs/subnet-evm/utils/utilstest"
 
 	// TODO(arr4n) These tests were originally part of the `subnet-evm/core/types`
 	// package so assume the presence of identifiers. A dot-import reduces PR
