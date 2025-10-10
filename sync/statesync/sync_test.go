@@ -149,7 +149,7 @@ func TestSimpleSyncCases(t *testing.T) {
 			prepareForTest: func(t *testing.T, r *rand.Rand) (ethdb.Database, ethdb.Database, *triedb.Database, common.Hash) {
 				serverDB := rawdb.NewMemoryDatabase()
 				serverTrieDB := triedb.NewDatabase(serverDB, nil)
-				root := statesynctest.FillAccountsWithStorage(t, r, serverDB, serverTrieDB, common.Hash{}, numAccounts)
+				root := fillAccountsWithStorage(t, r, serverDB, serverTrieDB, common.Hash{}, numAccounts)
 				return rawdb.NewMemoryDatabase(), serverDB, serverTrieDB, root
 			},
 		},
@@ -191,7 +191,7 @@ func TestSimpleSyncCases(t *testing.T) {
 			prepareForTest: func(t *testing.T, r *rand.Rand) (ethdb.Database, ethdb.Database, *triedb.Database, common.Hash) {
 				serverDB := rawdb.NewMemoryDatabase()
 				serverTrieDB := triedb.NewDatabase(serverDB, nil)
-				root := statesynctest.FillAccountsWithStorage(t, r, serverDB, serverTrieDB, common.Hash{}, numAccountsSmall)
+				root := fillAccountsWithStorage(t, r, serverDB, serverTrieDB, common.Hash{}, numAccountsSmall)
 				return rawdb.NewMemoryDatabase(), serverDB, serverTrieDB, root
 			},
 			GetCodeIntercept: func(_ []common.Hash, _ [][]byte) ([][]byte, error) {
@@ -213,7 +213,7 @@ func TestCancelSync(t *testing.T) {
 	serverDB := rawdb.NewMemoryDatabase()
 	serverTrieDB := triedb.NewDatabase(serverDB, nil)
 	// Create trie with 2000 accounts (more than one leaf request)
-	root := statesynctest.FillAccountsWithStorage(t, r, serverDB, serverTrieDB, common.Hash{}, 2000)
+	root := fillAccountsWithStorage(t, r, serverDB, serverTrieDB, common.Hash{}, 2000)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	testSync(t, syncTest{
@@ -589,13 +589,11 @@ func assertDBConsistency(t testing.TB, root common.Hash, clientDB ethdb.Database
 	assert.Equal(t, trieAccountLeaves, numSnapshotAccounts)
 }
 
-func fillAccountsWithStorage(t *testing.T, r *rand.Rand, serverDB ethdb.Database, serverTrieDB *triedb.Database, root common.Hash, numAccounts int) common.Hash {
-	newRoot, _ := statesynctest.FillAccounts(t, r, serverTrieDB, root, numAccounts, func(t *testing.T, _ int, account types.StateAccount) types.StateAccount {
+func fillAccountsWithStorage(t *testing.T, r *rand.Rand, serverDB ethdb.Database, serverTrieDB *triedb.Database, root common.Hash, numAccounts int) common.Hash { //nolint:unparam
+	newRoot, _ := statesynctest.FillAccounts(t, r, serverTrieDB, root, numAccounts, func(_ *testing.T, _ int, account types.StateAccount) types.StateAccount {
 		codeBytes := make([]byte, 256)
-		_, err := rand.Read(codeBytes)
-		if err != nil {
-			t.Fatalf("error reading random code bytes: %v", err)
-		}
+		_, err := r.Read(codeBytes)
+		require.NoError(t, err, "error reading random code bytes")
 
 		codeHash := crypto.Keccak256Hash(codeBytes)
 		rawdb.WriteCode(serverDB, codeHash, codeBytes)
@@ -614,7 +612,7 @@ func TestDifferentWaitContext(t *testing.T) {
 	serverDB := rawdb.NewMemoryDatabase()
 	serverTrieDB := triedb.NewDatabase(serverDB, nil)
 	// Create trie with many accounts to ensure sync takes time
-	root := statesynctest.FillAccountsWithStorage(t, r, serverDB, serverTrieDB, common.Hash{}, 2000)
+	root := fillAccountsWithStorage(t, r, serverDB, serverTrieDB, common.Hash{}, 2000)
 	clientDB := rawdb.NewMemoryDatabase()
 
 	// Track requests to show sync continues after Wait returns
