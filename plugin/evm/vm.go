@@ -33,6 +33,7 @@ import (
 	"github.com/ava-labs/avalanchego/utils/timer/mockable"
 	"github.com/ava-labs/avalanchego/utils/units"
 	"github.com/ava-labs/avalanchego/vms/components/chain"
+	"github.com/ava-labs/coreth/plugin/evm/vmsync"
 	"github.com/ava-labs/firewood-go-ethhash/ffi"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/rawdb"
@@ -86,8 +87,6 @@ import (
 	avalanchegoprometheus "github.com/ava-labs/avalanchego/vms/evm/metrics/prometheus"
 	ethparams "github.com/ava-labs/libevm/params"
 	subnetevmlog "github.com/ava-labs/subnet-evm/plugin/evm/log"
-	vmsync "github.com/ava-labs/subnet-evm/plugin/evm/sync"
-	warpcontract "github.com/ava-labs/subnet-evm/precompile/contracts/warp"
 	statesyncclient "github.com/ava-labs/subnet-evm/sync/client"
 	handlerstats "github.com/ava-labs/subnet-evm/sync/handlers/stats"
 	avalancheRPC "github.com/gorilla/rpc/v2"
@@ -622,8 +621,8 @@ func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.
 		vm.chaindb,
 		eth.Settings{MaxBlocksPerRequest: vm.config.MaxBlocksPerRequest},
 		lastAcceptedHash,
-		dummy.NewFakerWithClock(vm.clock),
-		vm.clock,
+		dummy.NewFaker(),
+		&vm.clock,
 	)
 	if err != nil {
 		return err
@@ -1189,7 +1188,7 @@ func (vm *VM) CreateHandlers(context.Context) (map[string]http.Handler, error) {
 		warpSDKClient := vm.Network.NewClient(p2p.SignatureRequestHandlerID)
 		signatureAggregator := acp118.NewSignatureAggregator(vm.ctx.Log, warpSDKClient)
 
-		if err := handler.RegisterName("warp", warp.NewAPI(vm.ctx, vm.warpBackend, signatureAggregator, vm.requirePrimaryNetworkSigners)); err != nil {
+		if err := handler.RegisterName("warp", warp.NewAPI(vm.ctx, vm.warpBackend, signatureAggregator)); err != nil {
 			return nil, err
 		}
 		enabledAPIs = append(enabledAPIs, "warp")
@@ -1256,24 +1255,6 @@ func (vm *VM) chainConfigExtra() *extras.ChainConfig {
 func (vm *VM) rules(number *big.Int, time uint64) extras.Rules {
 	ethrules := vm.chainConfig.Rules(number, params.IsMergeTODO, time)
 	return *params.GetRulesExtra(ethrules)
-}
-
-// currentRules returns the chain rules for the current block.
-func (vm *VM) currentRules() extras.Rules {
-	header := vm.eth.APIBackend.CurrentHeader()
-	return vm.rules(header.Number, header.Time)
-}
-
-// requirePrimaryNetworkSigners returns true if warp messages from the primary
-// network must be signed by the primary network validators.
-// This is necessary when the subnet is not validating the primary network.
-func (vm *VM) requirePrimaryNetworkSigners() bool {
-	switch c := vm.currentRules().Precompiles[warpcontract.ContractAddress].(type) {
-	case *warpcontract.Config:
-		return c.RequirePrimaryNetworkSigners
-	default: // includes nil due to non-presence
-		return false
-	}
 }
 
 func (vm *VM) startContinuousProfiler() {
