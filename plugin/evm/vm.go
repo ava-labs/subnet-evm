@@ -33,7 +33,6 @@ import (
 	"github.com/ava-labs/avalanchego/utils/timer/mockable"
 	"github.com/ava-labs/avalanchego/utils/units"
 	"github.com/ava-labs/avalanchego/vms/components/chain"
-	"github.com/ava-labs/coreth/plugin/evm/vmsync"
 	"github.com/ava-labs/firewood-go-ethhash/ffi"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/rawdb"
@@ -87,6 +86,7 @@ import (
 	avalanchegoprometheus "github.com/ava-labs/avalanchego/vms/evm/metrics/prometheus"
 	ethparams "github.com/ava-labs/libevm/params"
 	subnetevmlog "github.com/ava-labs/subnet-evm/plugin/evm/log"
+	vmsync "github.com/ava-labs/subnet-evm/plugin/evm/sync"
 	statesyncclient "github.com/ava-labs/subnet-evm/sync/client"
 	handlerstats "github.com/ava-labs/subnet-evm/sync/handlers/stats"
 	avalancheRPC "github.com/gorilla/rpc/v2"
@@ -622,7 +622,7 @@ func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.
 		eth.Settings{MaxBlocksPerRequest: vm.config.MaxBlocksPerRequest},
 		lastAcceptedHash,
 		dummy.NewFaker(),
-		&vm.clock,
+		vm.clock,
 	)
 	if err != nil {
 		return err

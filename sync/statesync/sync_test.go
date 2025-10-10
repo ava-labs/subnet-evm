@@ -54,7 +54,7 @@ func testSync(t *testing.T, test syncTest) {
 	}
 	r := rand.New(rand.NewSource(1))
 	clientDB, serverDB, serverTrieDB, root := test.prepareForTest(t, r)
-	leafsRequestHandler := handlers.NewLeafsRequestHandler(serverTrieDB, nil, message.Codec, handlerstats.NewNoopHandlerStats())
+	leafsRequestHandler := handlers.NewLeafsRequestHandler(serverTrieDB, message.StateTrieKeyLength, nil, message.Codec, handlerstats.NewNoopHandlerStats())
 	codeRequestHandler := handlers.NewCodeRequestHandler(serverDB, message.Codec, handlerstats.NewNoopHandlerStats())
 	mockClient := statesyncclient.NewTestClient(message.Codec, leafsRequestHandler, codeRequestHandler, nil)
 	// Set intercept functions for the mock client
@@ -589,8 +589,8 @@ func assertDBConsistency(t testing.TB, root common.Hash, clientDB ethdb.Database
 	assert.Equal(t, trieAccountLeaves, numSnapshotAccounts)
 }
 
-func fillAccountsWithStorage(t *testing.T, serverDB ethdb.Database, serverTrieDB *triedb.Database, root common.Hash, numAccounts int) common.Hash {
-	newRoot, _ := statesynctest.FillAccounts(t, serverTrieDB, root, numAccounts, func(t *testing.T, _ int, account types.StateAccount) types.StateAccount {
+func fillAccountsWithStorage(t *testing.T, r *rand.Rand, serverDB ethdb.Database, serverTrieDB *triedb.Database, root common.Hash, numAccounts int) common.Hash {
+	newRoot, _ := statesynctest.FillAccounts(t, r, serverTrieDB, root, numAccounts, func(t *testing.T, _ int, account types.StateAccount) types.StateAccount {
 		codeBytes := make([]byte, 256)
 		_, err := rand.Read(codeBytes)
 		if err != nil {
@@ -603,7 +603,7 @@ func fillAccountsWithStorage(t *testing.T, serverDB ethdb.Database, serverTrieDB
 
 		// now create state trie
 		numKeys := 16
-		account.Root, _, _ = statesynctest.GenerateTrie(t, serverTrieDB, numKeys, common.HashLength)
+		account.Root, _, _ = statesynctest.GenerateTrie(t, r, serverTrieDB, numKeys, common.HashLength)
 		return account
 	})
 	return newRoot
