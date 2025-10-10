@@ -297,6 +297,12 @@ func (vm *VM) Initialize(
 	}
 	vm.config = cfg
 
+	vm.extensionConfig = defaultExtensions()
+	// Get clock from extension config
+	vm.clock = vm.extensionConfig.Clock
+
+	vm.ctx = chainCtx
+
 	// Create logger
 	alias, err := vm.ctx.BCLookup.PrimaryAlias(vm.ctx.ChainID)
 	if err != nil {
@@ -1306,6 +1312,15 @@ func (vm *VM) ReadLastAccepted() (common.Hash, uint64, error) {
 			return common.Hash{}, 0, fmt.Errorf("failed to retrieve header number of last accepted block: %s", lastAcceptedHash)
 		}
 		return lastAcceptedHash, *height, nil
+	}
+}
+
+// defaultExtensions returns the default extension configuration.
+func defaultExtensions() *extension.Config {
+	return &extension.Config{
+		Clock:               &mockable.Clock{},
+		SyncSummaryProvider: &message.BlockSyncSummaryProvider{},
+		SyncableParser:      message.NewBlockSyncSummaryParser(),
 	}
 }
 

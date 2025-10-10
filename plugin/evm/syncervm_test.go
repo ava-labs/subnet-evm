@@ -50,7 +50,7 @@ import (
 )
 
 func TestSkipStateSync(t *testing.T) {
-	rand.New(rand.NewSource(1))
+	rand.Seed(1)
 	test := syncTest{
 		syncableInterval:   256,
 		stateSyncMinBlocks: 300, // must be greater than [syncableInterval] to skip sync
@@ -62,7 +62,7 @@ func TestSkipStateSync(t *testing.T) {
 }
 
 func TestStateSyncFromScratch(t *testing.T) {
-	rand.New(rand.NewSource(1))
+	rand.Seed(1)
 	test := syncTest{
 		syncableInterval:   256,
 		stateSyncMinBlocks: 50, // must be less than [syncableInterval] to perform sync
@@ -74,7 +74,7 @@ func TestStateSyncFromScratch(t *testing.T) {
 }
 
 func TestStateSyncFromScratchExceedParent(t *testing.T) {
-	rand.New(rand.NewSource(1))
+	rand.Seed(1)
 	numToGen := syncervm.ParentsToFetch + uint64(32)
 	test := syncTest{
 		syncableInterval:   numToGen,

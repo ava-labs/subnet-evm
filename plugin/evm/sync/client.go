@@ -330,7 +330,7 @@ func (client *client) Shutdown() error {
 }
 
 // finishSync is responsible for updating disk and memory pointers so the VM is prepared
-// for bootstrapping. Executes any shared memory operations from the atomic trie to shared memory.
+// for bootstrapping.
 func (client *client) finishSync() error {
 	stateBlock, err := client.State.GetBlock(context.TODO(), ids.ID(client.summary.GetBlockHash()))
 	if err != nil {
