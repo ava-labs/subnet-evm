@@ -4,12 +4,20 @@
 package stateupgrade
 
 import (
+	"errors"
+	"fmt"
 	"math/big"
 
+	"github.com/ava-labs/libevm/accounts/abi"
 	"github.com/ava-labs/libevm/common"
 	"github.com/holiman/uint256"
 
 	"github.com/ava-labs/subnet-evm/params/extras"
+)
+
+var (
+	errInsufficientBalanceForSubtraction = errors.New("insufficient balance for subtraction")
+	errBalanceOverflow                   = errors.New("balance overflow")
 )
 
 // Configure applies the state upgrade to the state.
@@ -30,9 +38,31 @@ func upgradeAccount(account common.Address, upgrade extras.StateUpgradeAccount, 
 		state.CreateAccount(account)
 	}
 
+	// Balance change detected - update the balance of the account
 	if upgrade.BalanceChange != nil {
-		balanceChange, _ := uint256.FromBig((*big.Int)(upgrade.BalanceChange))
-		state.AddBalance(account, balanceChange)
+		// BalanceChange is a HexOrDecimal256, which is just a typed big.Int
+		bigChange := (*big.Int)(upgrade.BalanceChange)
+		switch bigChange.Sign() {
+		case 1: // Positive
+			balanceChange, _ := uint256.FromBig(bigChange)
+			currentBalance := state.GetBalance(account)
+			if new(big.Int).Add(currentBalance.ToBig(), balanceChange.ToBig()).Cmp(abi.MaxUint256) > 0 {
+				return fmt.Errorf("%w: account %s current balance %s + change %s would exceed maximum uint256",
+					errBalanceOverflow, account.Hex(), currentBalance.ToBig().String(), balanceChange.ToBig().String())
+			}
+			state.AddBalance(account, balanceChange)
+		case -1: // Negative
+			absChange := new(big.Int).Abs(bigChange)
+			balanceChange, _ := uint256.FromBig(absChange)
+			currentBalance := state.GetBalance(account)
+			if currentBalance.Cmp(balanceChange) < 0 {
+				return fmt.Errorf("%w: account %s has %s but trying to subtract %s",
+					errInsufficientBalanceForSubtraction,
+					account.Hex(), currentBalance.ToBig().String(), balanceChange.ToBig().String())
+			}
+			state.SubBalance(account, balanceChange)
+		}
+		// If zero (Sign() == 0), do nothing
 	}
 	if len(upgrade.Code) != 0 {
 		// if the nonce is 0, set the nonce to 1 as we would when deploying a contract at
