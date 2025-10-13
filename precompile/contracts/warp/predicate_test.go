@@ -30,6 +30,7 @@ import (
 	"github.com/ava-labs/subnet-evm/utils/utilstest"
 
 	agoUtils "github.com/ava-labs/avalanchego/utils"
+	safemath "github.com/ava-labs/avalanchego/utils/math"
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
 )
 
@@ -649,7 +650,7 @@ func TestWarpNoValidatorsAndOverflowUseSameGas(t *testing.T) {
 		Predicate:   pred,
 		Gas:         expectedGas,
 		GasErr:      nil,
-		ExpectedErr: avalancheWarp.ErrWeightOverflow,
+		ExpectedErr: safemath.ErrOverflow,
 	}
 	precompiletest.RunPredicateTests(t, map[string]precompiletest.PredicateTest{
 		"no_validators":   noValidators,
