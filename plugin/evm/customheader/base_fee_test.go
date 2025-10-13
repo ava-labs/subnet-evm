@@ -237,10 +237,9 @@ func EstimateNextBaseFeeTest(t *testing.T, feeConfig commontype.FeeConfig) {
 		parent   *types.Header
 		timeMS   uint64
 		want     *big.Int
-		wantErr  error
 	}{
 		{
-			name:     "activated",
+			name:     "subnetevm_activated",
 			upgrades: extras.TestSubnetEVMChainConfig.NetworkUpgrades,
 			parent: &types.Header{
 				Number:  big.NewInt(1),
@@ -248,6 +247,29 @@ func EstimateNextBaseFeeTest(t *testing.T, feeConfig commontype.FeeConfig) {
 				BaseFee: new(big.Int).SetUint64(testBaseFee),
 			},
 			timeMS: 1000,
+			want: func() *big.Int {
+				var (
+					gasTarget                  = feeConfig.TargetGas.Uint64()
+					gasUsed                    = uint64(0)
+					amountUnderTarget          = gasTarget - gasUsed
+					parentBaseFee              = testBaseFee
+					smoothingFactor            = feeConfig.BaseFeeChangeDenominator.Uint64()
+					baseFeeFractionUnderTarget = amountUnderTarget * parentBaseFee / gasTarget
+					delta                      = baseFeeFractionUnderTarget / smoothingFactor
+					baseFee                    = parentBaseFee - delta
+				)
+				return new(big.Int).SetUint64(baseFee)
+			}(),
+		},
+		{
+			name:     "granite_activated_rounds_seconds",
+			upgrades: extras.TestGraniteChainConfig.NetworkUpgrades,
+			parent: &types.Header{
+				Number:  big.NewInt(1),
+				Extra:   (&subnetevm.Window{}).Bytes(),
+				BaseFee: new(big.Int).SetUint64(testBaseFee),
+			},
+			timeMS: 1999,
 			want: func() *big.Int {
 				var (
 					gasTarget                  = feeConfig.TargetGas.Uint64()
@@ -271,7 +293,7 @@ func EstimateNextBaseFeeTest(t *testing.T, feeConfig commontype.FeeConfig) {
 				NetworkUpgrades: test.upgrades,
 			}
 			got, err := EstimateNextBaseFee(config, feeConfig, test.parent, test.timeMS)
-			require.ErrorIs(err, test.wantErr)
+			require.NoError(err)
 			require.Equal(test.want, got)
 		})
 	}
