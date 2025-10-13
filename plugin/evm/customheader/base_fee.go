@@ -23,8 +23,9 @@ func BaseFee(
 	config *extras.ChainConfig,
 	feeConfig commontype.FeeConfig,
 	parent *types.Header,
-	timestamp uint64,
+	timeMS uint64,
 ) (*big.Int, error) {
+	timestamp := timeMS / 1000
 	switch {
 	case config.IsSubnetEVM(timestamp):
 		return baseFeeFromWindow(config, feeConfig, parent, timestamp)
@@ -53,5 +54,6 @@ func EstimateNextBaseFee(
 	}
 
 	timestamp = max(timestamp, parent.Time, *config.SubnetEVMTimestamp)
-	return BaseFee(config, feeConfig, parent, timestamp)
+	timeMS := timestamp * 1000
+	return BaseFee(config, feeConfig, parent, timeMS)
 }
