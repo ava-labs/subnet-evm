@@ -59,12 +59,12 @@ type (
 		OnFinalizeAndAssemble OnFinalizeAndAssembleCallbackType
 		OnExtraStateChange    OnExtraStateChangeType
 	}
-  
-  DummyEngine struct {
-	  consensusMode      Mode
-	  desiredDelayExcess *acp226.DelayExcess
-  }
-}
+
+	DummyEngine struct {
+		consensusMode      Mode
+		desiredDelayExcess *acp226.DelayExcess
+	}
+)
 
 func NewDummyEngine(
 	mode Mode,
