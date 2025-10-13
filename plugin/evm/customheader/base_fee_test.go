@@ -80,7 +80,6 @@ func BaseFeeTest(t *testing.T, feeConfig commontype.FeeConfig) {
 				Time:   1,
 				Extra:  (&subnetevm.Window{}).Bytes(),
 			},
-			timeMS:  0,
 			wantErr: errInvalidTimestamp,
 		},
 		{
@@ -232,14 +231,13 @@ func TestEstimateNextBaseFee(t *testing.T) {
 
 func EstimateNextBaseFeeTest(t *testing.T, feeConfig commontype.FeeConfig) {
 	testBaseFee := uint64(225 * utils.GWei)
-	nilUpgrade := extras.NetworkUpgrades{}
 	tests := []struct {
-		name      string
-		upgrades  extras.NetworkUpgrades
-		parent    *types.Header
-		timestamp uint64
-		want      *big.Int
-		wantErr   error
+		name     string
+		upgrades extras.NetworkUpgrades
+		parent   *types.Header
+		timeMS   uint64
+		want     *big.Int
+		wantErr  error
 	}{
 		{
 			name:     "activated",
@@ -249,7 +247,7 @@ func EstimateNextBaseFeeTest(t *testing.T, feeConfig commontype.FeeConfig) {
 				Extra:   (&subnetevm.Window{}).Bytes(),
 				BaseFee: new(big.Int).SetUint64(testBaseFee),
 			},
-			timestamp: 1,
+			timeMS: 1000,
 			want: func() *big.Int {
 				var (
 					gasTarget                  = feeConfig.TargetGas.Uint64()
@@ -264,11 +262,6 @@ func EstimateNextBaseFeeTest(t *testing.T, feeConfig commontype.FeeConfig) {
 				return new(big.Int).SetUint64(baseFee)
 			}(),
 		},
-		{
-			name:     "not_scheduled",
-			upgrades: nilUpgrade,
-			wantErr:  errEstimateBaseFeeWithoutActivation,
-		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -277,7 +270,7 @@ func EstimateNextBaseFeeTest(t *testing.T, feeConfig commontype.FeeConfig) {
 			config := &extras.ChainConfig{
 				NetworkUpgrades: test.upgrades,
 			}
-			got, err := EstimateNextBaseFee(config, feeConfig, test.parent, test.timestamp)
+			got, err := EstimateNextBaseFee(config, feeConfig, test.parent, test.timeMS)
 			require.ErrorIs(err, test.wantErr)
 			require.Equal(test.want, got)
 		})

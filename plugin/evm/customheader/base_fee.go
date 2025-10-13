@@ -4,16 +4,14 @@
 package customheader
 
 import (
-	"errors"
 	"math/big"
 
 	"github.com/ava-labs/libevm/core/types"
 
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/params/extras"
+	"github.com/ava-labs/subnet-evm/plugin/evm/customtypes"
 )
-
-var errEstimateBaseFeeWithoutActivation = errors.New("cannot estimate base fee for chain without activation scheduled")
 
 // BaseFee takes the previous header and the timestamp of its child block and
 // calculates the expected base fee for the child block.
@@ -47,13 +45,9 @@ func EstimateNextBaseFee(
 	config *extras.ChainConfig,
 	feeConfig commontype.FeeConfig,
 	parent *types.Header,
-	timestamp uint64,
+	timeMS uint64,
 ) (*big.Int, error) {
-	if config.SubnetEVMTimestamp == nil {
-		return nil, errEstimateBaseFeeWithoutActivation
-	}
-
-	timestamp = max(timestamp, parent.Time, *config.SubnetEVMTimestamp)
-	timeMS := timestamp * 1000
+	parentMS := customtypes.HeaderTimeMilliseconds(parent)
+	timeMS = max(timeMS, parentMS)
 	return BaseFee(config, feeConfig, parent, timeMS)
 }
