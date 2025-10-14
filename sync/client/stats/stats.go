@@ -77,7 +77,7 @@ func (m *messageMetric) UpdateRequestLatency(duration time.Duration) {
 
 type clientSyncerStats struct {
 	leafMetrics map[message.NodeType]MessageMetric
-	codeRequestMetric,
+	codeRequestMetric MessageMetric
 	blockRequestMetric MessageMetric
 }
 
