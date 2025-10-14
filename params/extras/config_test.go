@@ -16,6 +16,7 @@ import (
 
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/txallowlist"
+	"github.com/ava-labs/subnet-evm/stateupgrade"
 )
 
 func pointer[T any](v T) *T { return &v }
@@ -61,10 +62,10 @@ $`,
 					NetworkUpgradeOverrides: &NetworkUpgrades{
 						SubnetEVMTimestamp: pointer(uint64(13)),
 					},
-					StateUpgrades: []StateUpgrade{
+					StateUpgrades: []stateupgrade.StateUpgrade{
 						{
 							BlockTimestamp: pointer(uint64(14)),
-							StateUpgradeAccounts: map[common.Address]StateUpgradeAccount{
+							StateUpgradeAccounts: map[common.Address]stateupgrade.StateUpgradeAccount{
 								{15}: {
 									Code: []byte{16},
 								},
@@ -135,7 +136,7 @@ func TestChainConfigVerify(t *testing.T) {
 			config: ChainConfig{
 				FeeConfig: validFeeConfig,
 				UpgradeConfig: UpgradeConfig{
-					StateUpgrades: []StateUpgrade{
+					StateUpgrades: []stateupgrade.StateUpgrade{
 						{BlockTimestamp: nil},
 					},
 				},
