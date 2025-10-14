@@ -7,6 +7,7 @@ import (
 	"io"
 	"math/big"
 
+	"github.com/ava-labs/avalanchego/vms/evm/acp226"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/common/hexutil"
 	"github.com/ava-labs/libevm/rlp"
@@ -38,7 +39,18 @@ func WithHeaderExtra(h *ethtypes.Header, extra *HeaderExtra) *ethtypes.Header {
 type HeaderExtra struct {
 	BlockGasCost     *big.Int
 	TimeMilliseconds *uint64
-	MinDelayExcess   *uint64
+	MinDelayExcess   *acp226.DelayExcess
+}
+
+// HeaderTimeMilliseconds returns the header timestamp in milliseconds.
+// If the header has the Granite field TimeMilliseconds set in extras, it is used.
+// Otherwise, it falls back to seconds-based Time multiplied by 1000.
+func HeaderTimeMilliseconds(h *ethtypes.Header) uint64 {
+	extra := GetHeaderExtra(h)
+	if extra != nil && extra.TimeMilliseconds != nil {
+		return *extra.TimeMilliseconds
+	}
+	return h.Time * 1000
 }
 
 // EncodeRLP RLP encodes the given [ethtypes.Header] and [HeaderExtra] together
@@ -154,13 +166,13 @@ func (h *HeaderSerializable) updateToEth(eth *ethtypes.Header) {
 func (h *HeaderSerializable) updateFromExtras(extras *HeaderExtra) {
 	h.BlockGasCost = extras.BlockGasCost
 	h.TimeMilliseconds = extras.TimeMilliseconds
-	h.MinDelayExcess = extras.MinDelayExcess
+	h.MinDelayExcess = (*uint64)(extras.MinDelayExcess)
 }
 
 func (h *HeaderSerializable) updateToExtras(extras *HeaderExtra) {
 	extras.BlockGasCost = h.BlockGasCost
 	extras.TimeMilliseconds = h.TimeMilliseconds
-	extras.MinDelayExcess = h.MinDelayExcess
+	extras.MinDelayExcess = (*acp226.DelayExcess)(h.MinDelayExcess)
 }
 
 // NOTE: both generators currently do not support type aliases.
@@ -211,6 +223,7 @@ type HeaderSerializable struct {
 	TimeMilliseconds *uint64 `json:"timestampMilliseconds" rlp:"optional"`
 
 	// MinDelayExcess was added by Granite and is ignored in legacy headers.
+	// We use *uint64 type here to avoid rlpgen generating incorrect code
 	MinDelayExcess *uint64 `json:"minDelayExcess" rlp:"optional"`
 }
 
