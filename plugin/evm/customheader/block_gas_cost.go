@@ -24,8 +24,8 @@ var (
 
 	ErrInsufficientBlockGas                     = errors.New("insufficient gas to cover the block cost")
 	errInvalidExtraStateChangeContribution      = errors.New("invalid extra state change contribution")
-	errInvalidBaseFeeApricotPhase4              = errors.New("invalid base fee in apricot phase 4")
-	errInvalidRequiredBlockGasCostApricotPhase4 = errors.New("invalid block gas cost in apricot phase 4")
+	errInvalidBaseFee             = errors.New("invalid base fee")
+	errInvalidRequiredBlockGasCost = errors.New("invalid block gas cost")
 )
 
 // BlockGasCost calculates the required block gas cost based on the parent
