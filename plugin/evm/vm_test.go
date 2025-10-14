@@ -3636,7 +3636,7 @@ func TestWaitForEvent(t *testing.T) {
 				wg.Wait()
 			},
 		},
-		// TODO (ceyonur): remove this test after Granite is activated. (See https://github.com/ava-labs/coreth/issues/1318)
+		// TODO (ceyonur): remove this test after Granite is activated.
 		{
 			name: "WaitForEvent does not wait for new block to be built in fortuna",
 			Fork: &fortunaFork,
@@ -3665,7 +3665,7 @@ func TestWaitForEvent(t *testing.T) {
 				wg.Wait()
 			},
 		},
-		// TODO (ceyonur): remove this test after Granite is activated. (See https://github.com/ava-labs/coreth/issues/1318)
+		// TODO (ceyonur): remove this test after Granite is activated.
 		{
 			name: "WaitForEvent waits for a delay with a retry in fortuna",
 			Fork: &fortunaFork,
