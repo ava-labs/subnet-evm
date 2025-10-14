@@ -22,10 +22,10 @@ var (
 	errBlockGasCostNil = errors.New("block gas cost is nil")
 	errNoGasUsed       = errors.New("no gas used")
 
-	ErrInsufficientBlockGas                     = errors.New("insufficient gas to cover the block cost")
-	errInvalidExtraStateChangeContribution      = errors.New("invalid extra state change contribution")
-	errInvalidBaseFee             = errors.New("invalid base fee")
-	errInvalidRequiredBlockGasCost = errors.New("invalid block gas cost")
+	ErrInsufficientBlockGas                = errors.New("insufficient gas to cover the block cost")
+	errInvalidExtraStateChangeContribution = errors.New("invalid extra state change contribution")
+	errInvalidBaseFee                      = errors.New("invalid base fee")
+	errInvalidRequiredBlockGasCost         = errors.New("invalid block gas cost")
 )
 
 // BlockGasCost calculates the required block gas cost based on the parent
@@ -138,10 +138,10 @@ func VerifyBlockFee(
 	extraStateChangeContribution *big.Int,
 ) error {
 	if baseFee == nil || baseFee.Sign() <= 0 {
-		return fmt.Errorf("%w: %d", errInvalidBaseFeeApricotPhase4, baseFee)
+		return fmt.Errorf("%w: %d", errInvalidBaseFee, baseFee)
 	}
 	if requiredBlockGasCost == nil || !requiredBlockGasCost.IsUint64() {
-		return fmt.Errorf("%w: %d", errInvalidRequiredBlockGasCostApricotPhase4, requiredBlockGasCost)
+		return fmt.Errorf("%w: %d", errInvalidRequiredBlockGasCost, requiredBlockGasCost)
 	}
 	// If the required block gas cost is 0, we don't need to verify the block fee
 	if requiredBlockGasCost.Sign() == 0 {
