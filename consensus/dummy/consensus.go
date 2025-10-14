@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ava-labs/avalanchego/vms/evm/acp226"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/consensus/misc/eip4844"
 	"github.com/ava-labs/libevm/core/state"
@@ -23,7 +24,16 @@ import (
 	"github.com/ava-labs/subnet-evm/utils"
 )
 
-var errUnclesUnsupported = errors.New("uncles unsupported")
+var (
+	errUnclesUnsupported                   = errors.New("uncles unsupported")
+	ErrInvalidBlockGasCost                 = errors.New("invalid blockGasCost")
+	errInvalidExcessBlobGasBeforeCancun    = errors.New("invalid excessBlobGas before cancun")
+	errInvalidBlobGasUsedBeforeCancun      = errors.New("invalid blobGasUsed before cancun")
+	errInvalidParentBeaconRootBeforeCancun = errors.New("invalid parentBeaconRoot before cancun")
+	errMissingParentBeaconRoot             = errors.New("header is missing beaconRoot")
+	errNonEmptyParentBeaconRoot            = errors.New("invalid non-empty parentBeaconRoot")
+	errBlobsNotEnabled                     = errors.New("blobs not enabled on avalanche networks")
+)
 
 type Mode struct {
 	ModeSkipHeader   bool
@@ -31,17 +41,18 @@ type Mode struct {
 	ModeSkipCoinbase bool
 }
 
-type (
-	DummyEngine struct {
-		consensusMode Mode
-	}
-)
+type DummyEngine struct {
+	consensusMode      Mode
+	desiredDelayExcess *acp226.DelayExcess
+}
 
 func NewDummyEngine(
 	mode Mode,
+	desiredDelayExcess *acp226.DelayExcess, // Guides the min delay excess (ACP-226) toward the desired value
 ) *DummyEngine {
 	return &DummyEngine{
-		consensusMode: mode,
+		consensusMode:      mode,
+		desiredDelayExcess: desiredDelayExcess,
 	}
 }
 
@@ -116,7 +127,8 @@ func verifyHeaderGasFields(config *extras.ChainConfig, header *types.Header, par
 	}
 
 	// Verify header.BaseFee matches the expected value.
-	expectedBaseFee, err := customheader.BaseFee(config, feeConfig, parent, header.Time)
+	timeMS := customtypes.HeaderTimeMilliseconds(header)
+	expectedBaseFee, err := customheader.BaseFee(config, feeConfig, parent, timeMS)
 	if err != nil {
 		return fmt.Errorf("failed to calculate base fee: %w", err)
 	}
@@ -170,24 +182,24 @@ func (eng *DummyEngine) verifyHeader(chain consensus.ChainHeaderReader, header *
 	if !cancun {
 		switch {
 		case header.ExcessBlobGas != nil:
-			return fmt.Errorf("invalid excessBlobGas: have %d, expected nil", *header.ExcessBlobGas)
+			return fmt.Errorf("%w: have %d, expected nil", errInvalidExcessBlobGasBeforeCancun, *header.ExcessBlobGas)
 		case header.BlobGasUsed != nil:
-			return fmt.Errorf("invalid blobGasUsed: have %d, expected nil", *header.BlobGasUsed)
+			return fmt.Errorf("%w: have %d, expected nil", errInvalidBlobGasUsedBeforeCancun, *header.BlobGasUsed)
 		case header.ParentBeaconRoot != nil:
-			return fmt.Errorf("invalid parentBeaconRoot, have %#x, expected nil", *header.ParentBeaconRoot)
+			return fmt.Errorf("%w: have %#x, expected nil", errInvalidParentBeaconRootBeforeCancun, *header.ParentBeaconRoot)
 		}
 	} else {
 		if header.ParentBeaconRoot == nil {
-			return errors.New("header is missing beaconRoot")
+			return errMissingParentBeaconRoot
 		}
 		if *header.ParentBeaconRoot != (common.Hash{}) {
-			return fmt.Errorf("invalid parentBeaconRoot, have %#x, expected empty", *header.ParentBeaconRoot)
+			return fmt.Errorf("%w: have %#x, expected empty", errNonEmptyParentBeaconRoot, *header.ParentBeaconRoot)
 		}
 		if err := eip4844.VerifyEIP4844Header(parent, header); err != nil {
 			return err
 		}
 		if *header.BlobGasUsed > 0 { // VerifyEIP4844Header ensures BlobGasUsed is non-nil
-			return fmt.Errorf("blobs not enabled on avalanche networks: used %d blob gas, expected 0", *header.BlobGasUsed)
+			return fmt.Errorf("%w: used %d blob gas, expected 0", errBlobsNotEnabled, *header.BlobGasUsed)
 		}
 	}
 	return nil
@@ -245,7 +257,7 @@ func (eng *DummyEngine) Finalize(chain consensus.ChainHeaderReader, block *types
 		timestamp,
 	)
 	if !utils.BigEqual(blockGasCost, expectedBlockGasCost) {
-		return fmt.Errorf("invalid blockGasCost: have %d, want %d", blockGasCost, expectedBlockGasCost)
+		return fmt.Errorf("%w: have %d, want %d", ErrInvalidBlockGasCost, blockGasCost, expectedBlockGasCost)
 	}
 	if config.IsSubnetEVM(timestamp) {
 		// Verify the block fee was paid.
@@ -305,6 +317,18 @@ func (eng *DummyEngine) FinalizeAndAssemble(chain consensus.ChainHeaderReader, h
 		return nil, fmt.Errorf("failed to calculate new header.Extra: %w", err)
 	}
 	header.Extra = append(extraPrefix, header.Extra...)
+
+	// Set the min delay excess
+	minDelayExcess, err := customheader.MinDelayExcess(
+		configExtra,
+		parent,
+		header.Time,
+		eng.desiredDelayExcess,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to calculate min delay excess: %w", err)
+	}
+	headerExtra.MinDelayExcess = minDelayExcess
 
 	// commit the final state root
 	header.Root = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
