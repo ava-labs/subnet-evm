@@ -14,7 +14,6 @@ import (
 	"github.com/ava-labs/avalanchego/snow/consensus/snowman"
 	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
 	"github.com/ava-labs/avalanchego/utils/math"
-	"github.com/ava-labs/avalanchego/vms/evm/predicate"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/rawdb"
 	"github.com/ava-labs/libevm/core/types"
@@ -296,8 +295,14 @@ func (b *wrappedBlock) semanticVerify() error {
 	if parent == nil {
 		return fmt.Errorf("%w: %s at height %d", errInvalidParent, b.ethBlock.ParentHash(), b.ethBlock.NumberU64()-1)
 	}
+
+	header := b.ethBlock.Header()
+	// Ensure MinDelayExcess is consistent with rules and minimum block delay is enforced.
+	if err := customheader.VerifyMinDelayExcess(extraConfig, parent, header); err != nil {
+		return err
+	}
 	// Ensure Time and TimeMilliseconds are consistent with rules.
-	if err := customheader.VerifyTime(extraConfig, parent, b.ethBlock.Header(), b.vm.clock.Time()); err != nil {
+	if err := customheader.VerifyTime(extraConfig, parent, header, b.vm.clock.Time()); err != nil {
 		return err
 	}
 
@@ -425,15 +430,14 @@ func (b *wrappedBlock) verifyPredicates(predicateContext *precompileconfig.Predi
 		return nil
 	}
 
-	predicateResults := predicate.BlockResults{}
-	for _, tx := range b.ethBlock.Transactions() {
-		results, err := core.CheckPredicates(rules, predicateContext, tx)
-		if err != nil {
-			return err
-		}
-		predicateResults.Set(tx.Hash(), results)
+	predicateResults, err := core.CheckBlockPredicates(
+		rules,
+		predicateContext,
+		b.ethBlock.Transactions(),
+	)
+	if err != nil {
+		return err
 	}
-	// TODO: document required gas constraints to ensure marshalling predicate results does not error
 	predicateResultsBytes, err := predicateResults.Bytes()
 	if err != nil {
 		return fmt.Errorf("failed to marshal predicate results: %w", err)
