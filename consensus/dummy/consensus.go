@@ -23,7 +23,10 @@ import (
 	"github.com/ava-labs/subnet-evm/utils"
 )
 
-var errUnclesUnsupported = errors.New("uncles unsupported")
+var (
+	errUnclesUnsupported   = errors.New("uncles unsupported")
+	ErrInvalidBlockGasCost = errors.New("invalid blockGasCost")
+)
 
 type Mode struct {
 	ModeSkipHeader   bool
@@ -222,7 +225,7 @@ func (eng *DummyEngine) Finalize(chain consensus.ChainHeaderReader, block *types
 		timestamp,
 	)
 	if !utils.BigEqual(blockGasCost, expectedBlockGasCost) {
-		return fmt.Errorf("invalid blockGasCost: have %d, want %d", blockGasCost, expectedBlockGasCost)
+		return fmt.Errorf("%w: have %d, want %d", ErrInvalidBlockGasCost, blockGasCost, expectedBlockGasCost)
 	}
 	if config.IsSubnetEVM(timestamp) {
 		// Verify the block fee was paid.

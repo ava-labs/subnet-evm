@@ -45,6 +45,7 @@ var (
 	errInvalidParent                       = errors.New("parent header not found")
 	errInvalidParentBeaconRootBeforeCancun = errors.New("invalid parentBeaconRoot before cancun")
 	errInvalidExcessBlobGas                = errors.New("invalid excessBlobGas")
+	errMissingParentBeaconRoot             = errors.New("header is missing parentBeaconRoot")
 	errParentBeaconRootNonEmpty            = errors.New("invalid non-empty parentBeaconRoot")
 	errBlobGasUsedNilInCancun              = errors.New("blob gas used must not be nil in Cancun")
 	errBlobsNotEnabled                     = errors.New("blobs not enabled on avalanche networks")
@@ -392,7 +393,7 @@ func (b *wrappedBlock) syntacticVerify() error {
 	if rules.IsCancun {
 		switch {
 		case ethHeader.ParentBeaconRoot == nil:
-			return errors.New("header is missing parentBeaconRoot")
+			return errMissingParentBeaconRoot
 		case *ethHeader.ParentBeaconRoot != (common.Hash{}):
 			return fmt.Errorf("%w: have %x, expected empty hash", errParentBeaconRootNonEmpty, ethHeader.ParentBeaconRoot)
 		case ethHeader.BlobGasUsed == nil:
