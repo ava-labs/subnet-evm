@@ -3566,8 +3566,10 @@ func restartVM(tvm *testVM, tvmConfig testVMConfig) (*testVM, error) {
 }
 
 func TestWaitForEvent(t *testing.T) {
+	fortunaFork := upgradetest.Fortuna
 	for _, testCase := range []struct {
 		name     string
+		Fork     *upgradetest.Fork
 		testCase func(*testing.T, *VM)
 	}{
 		{
@@ -3615,25 +3617,8 @@ func TestWaitForEvent(t *testing.T) {
 			},
 		},
 		{
-			name: "WaitForEvent doesn't return once a block is built and accepted",
+			name: "WaitForEvent doesn't return if mempool is empty",
 			testCase: func(t *testing.T, vm *VM) {
-				tx := types.NewTransaction(uint64(0), testEthAddrs[1], firstTxAmount, 21000, big.NewInt(testMinGasPrice), nil)
-				signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0].ToECDSA())
-				require.NoError(t, err)
-
-				for _, err := range vm.txPool.AddRemotesSync([]*types.Transaction{signedTx}) {
-					require.NoError(t, err)
-				}
-
-				blk, err := vm.BuildBlock(context.Background())
-				require.NoError(t, err)
-
-				require.NoError(t, blk.Verify(context.Background()))
-
-				require.NoError(t, vm.SetPreference(context.Background(), blk.ID()))
-
-				require.NoError(t, blk.Accept(context.Background()))
-
 				ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*100)
 				defer cancel()
 
@@ -3649,95 +3634,76 @@ func TestWaitForEvent(t *testing.T) {
 				}()
 
 				wg.Wait()
-
-				t.Log("WaitForEvent returns when regular transactions are added to the mempool")
-
-				time.Sleep(time.Second * 2) // sleep some time to let the gas capacity to refill
-
-				tx = types.NewTransaction(uint64(1), testEthAddrs[1], firstTxAmount, 21000, big.NewInt(testMinGasPrice), nil)
-				signedTx, err = types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0].ToECDSA())
-				require.NoError(t, err)
-
-				for _, err := range vm.txPool.AddRemotesSync([]*types.Transaction{signedTx}) {
-					require.NoError(t, err)
-				}
-
-				wg.Add(1)
-
-				go func() {
-					defer wg.Done()
-					msg, err := vm.WaitForEvent(context.Background())
-					require.NoError(t, err)
-					require.Equal(t, commonEng.PendingTxs, msg)
-				}()
-
-				wg.Wait()
-
-				// Build a block again to wipe out the subscription
-				blk, err = vm.BuildBlock(context.Background())
-				require.NoError(t, err)
-
-				require.NoError(t, blk.Verify(context.Background()))
-
-				require.NoError(t, vm.SetPreference(context.Background(), blk.ID()))
-
-				require.NoError(t, blk.Accept(context.Background()))
 			},
 		},
+		// TODO (ceyonur): remove this test after Granite is activated.
 		{
-			name: "WaitForEvent waits some time after a block is built",
+			name: "WaitForEvent does not wait for new block to be built in fortuna",
+			Fork: &fortunaFork,
 			testCase: func(t *testing.T, vm *VM) {
-				tx := types.NewTransaction(uint64(0), testEthAddrs[1], firstTxAmount, 21000, big.NewInt(testMinGasPrice), nil)
-				signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0].ToECDSA())
+				signedTx := newSignedLegacyTx(t, vm.chainConfig, testKeys[0].ToECDSA(), 0, &testEthAddrs[1], big.NewInt(1), 21000, big.NewInt(testMinGasPrice), nil)
+				blk, err := IssueTxsAndSetPreference([]*types.Transaction{signedTx}, vm)
 				require.NoError(t, err)
+				require.NoError(t, blk.Accept(context.Background()))
+				signedTx = newSignedLegacyTx(t, vm.chainConfig, testKeys[0].ToECDSA(), 1, &testEthAddrs[1], big.NewInt(1), 21000, big.NewInt(testMinGasPrice), nil)
 
 				for _, err := range vm.txPool.AddRemotesSync([]*types.Transaction{signedTx}) {
 					require.NoError(t, err)
 				}
 
+				ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*100)
+				defer cancel()
+
+				var wg sync.WaitGroup
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					msg, err := vm.WaitForEvent(ctx)
+					assert.NoError(t, err)
+					assert.Equal(t, commonEng.PendingTxs, msg)
+				}()
+				wg.Wait()
+			},
+		},
+		// TODO (ceyonur): remove this test after Granite is activated.
+		{
+			name: "WaitForEvent waits for a delay with a retry in fortuna",
+			Fork: &fortunaFork,
+			testCase: func(t *testing.T, vm *VM) {
 				lastBuildBlockTime := time.Now()
-
-				blk, err := vm.BuildBlock(context.Background())
+				signedTx := newSignedLegacyTx(t, vm.chainConfig, testKeys[0].ToECDSA(), 0, &testEthAddrs[1], big.NewInt(1), 21000, big.NewInt(testMinGasPrice), nil)
+				for _, err := range vm.txPool.AddRemotesSync([]*types.Transaction{signedTx}) {
+					require.NoError(t, err)
+				}
+				_, err := vm.BuildBlock(context.Background())
 				require.NoError(t, err)
-
-				require.NoError(t, blk.Verify(context.Background()))
-
-				require.NoError(t, vm.SetPreference(context.Background(), blk.ID()))
-
-				require.NoError(t, blk.Accept(context.Background()))
-
-				tx = types.NewTransaction(uint64(1), testEthAddrs[1], firstTxAmount, 21000, big.NewInt(testMinGasPrice), nil)
-				signedTx, err = types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0].ToECDSA())
-				require.NoError(t, err)
-
+				// we haven't advanced the tip to include the previous built block, so this is a retry
+				signedTx = newSignedLegacyTx(t, vm.chainConfig, testKeys[1].ToECDSA(), 0, &testEthAddrs[0], big.NewInt(2), 21000, big.NewInt(testMinGasPrice), nil)
 				for _, err := range vm.txPool.AddRemotesSync([]*types.Transaction{signedTx}) {
 					require.NoError(t, err)
 				}
 
 				var wg sync.WaitGroup
 				wg.Add(1)
-
 				go func() {
 					defer wg.Done()
 					msg, err := vm.WaitForEvent(context.Background())
-					require.NoError(t, err)
-					require.Equal(t, commonEng.PendingTxs, msg)
-					require.GreaterOrEqual(t, time.Since(lastBuildBlockTime), minBlockBuildingRetryDelay)
+					assert.NoError(t, err)
+					assert.Equal(t, commonEng.PendingTxs, msg)
+					assert.GreaterOrEqual(t, time.Since(lastBuildBlockTime), RetryDelay)
 				}()
-
 				wg.Wait()
 			},
 		},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
-			genesis := &core.Genesis{}
-			require.NoError(t, genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)))
-			genesisJSON, err := genesis.MarshalJSON()
-			require.NoError(t, err)
+			fork := upgradetest.Latest
+			if testCase.Fork != nil {
+				fork = *testCase.Fork
+			}
 			tvm := newVM(t, testVMConfig{
-				genesisJSON: string(genesisJSON),
+				fork: &fork,
 			}).vm
-
 			testCase.testCase(t, tvm)
 			tvm.Shutdown(context.Background())
 		})
@@ -4234,4 +4200,45 @@ func TestMinDelayExcessInHeader(t *testing.T) {
 			require.Equal(test.expectedMinDelayExcess, headerExtra.MinDelayExcess, "expected %s, got %s", test.expectedMinDelayExcess, headerExtra.MinDelayExcess)
 		})
 	}
+}
+
+func IssueTxsAndBuild(txs []*types.Transaction, vm *VM) (snowman.Block, error) {
+	errs := vm.txPool.AddRemotesSync(txs)
+	for i, err := range errs {
+		if err != nil {
+			return nil, fmt.Errorf("failed to add tx at index %d: %w", i, err)
+		}
+	}
+
+	msg, err := vm.WaitForEvent(context.Background())
+	if err != nil {
+		return nil, fmt.Errorf("failed to wait for event: %w", err)
+	}
+	if msg != commonEng.PendingTxs {
+		return nil, fmt.Errorf("expected pending txs, got %v", msg)
+	}
+
+	block, err := vm.BuildBlock(context.Background())
+	if err != nil {
+		return nil, fmt.Errorf("failed to build block with transaction: %w", err)
+	}
+
+	if err := block.Verify(context.Background()); err != nil {
+		return nil, fmt.Errorf("block verification failed: %w", err)
+	}
+
+	return block, nil
+}
+
+func IssueTxsAndSetPreference(txs []*types.Transaction, vm *VM) (snowman.Block, error) {
+	block, err := IssueTxsAndBuild(txs, vm)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := vm.SetPreference(context.Background(), block.ID()); err != nil {
+		return nil, fmt.Errorf("failed to set preference: %w", err)
+	}
+
+	return block, nil
 }
