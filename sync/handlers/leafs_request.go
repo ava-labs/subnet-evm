@@ -6,7 +6,6 @@ package handlers
 import (
 	"bytes"
 	"context"
-	"sync"
 	"time"
 
 	"github.com/ava-labs/avalanchego/codec"
@@ -53,7 +52,6 @@ type leafsRequestHandler struct {
 	snapshotProvider SnapshotProvider
 	codec            codec.Manager
 	stats            stats.LeafsRequestHandlerStats
-	pool             sync.Pool
 	trieKeyLength    int
 }
 
@@ -64,9 +62,6 @@ func NewLeafsRequestHandler(trieDB *triedb.Database, trieKeyLength int, snapshot
 		codec:            codec,
 		stats:            syncerStats,
 		trieKeyLength:    trieKeyLength,
-		pool: sync.Pool{
-			New: func() interface{} { return make([][]byte, 0, maxLeavesLimit) },
-		},
 	}
 }
 
@@ -98,6 +93,7 @@ func (lrh *leafsRequestHandler) OnLeafsRequest(ctx context.Context, nodeID ids.N
 		lrh.stats.IncInvalidLeafsRequest()
 		return nil, nil
 	}
+
 	// TODO: We should know the state root that accounts correspond to,
 	// as this information will be necessary to access storage tries when
 	// the trie is path based.
@@ -113,20 +109,11 @@ func (lrh *leafsRequestHandler) OnLeafsRequest(ctx context.Context, nodeID ids.N
 	if limit > maxLeavesLimit {
 		limit = maxLeavesLimit
 	}
+
 	var leafsResponse message.LeafsResponse
-	// pool response's key/val allocations
-	leafsResponse.Keys = lrh.pool.Get().([][]byte)
-	leafsResponse.Vals = lrh.pool.Get().([][]byte)
-	defer func() {
-		for i := range leafsResponse.Keys {
-			// clear out slices before returning them to the pool
-			// to avoid memory leak.
-			leafsResponse.Keys[i] = nil
-			leafsResponse.Vals[i] = nil
-		}
-		lrh.pool.Put(leafsResponse.Keys[:0])
-		lrh.pool.Put(leafsResponse.Vals[:0])
-	}()
+	leafsResponse.Keys = make([][]byte, 0, limit)
+	leafsResponse.Vals = make([][]byte, 0, limit)
+
 	responseBuilder := &responseBuilder{
 		request:   &leafsRequest,
 		response:  &leafsResponse,
@@ -140,6 +127,7 @@ func (lrh *leafsRequestHandler) OnLeafsRequest(ctx context.Context, nodeID ids.N
 		responseBuilder.snap = lrh.snapshotProvider.Snapshots()
 	}
 	err = responseBuilder.handleRequest(ctx)
+
 	// ensure metrics are captured properly on all return paths
 	defer func() {
 		lrh.stats.UpdateLeafsRequestProcessingTime(time.Since(startTime))
@@ -156,11 +144,13 @@ func (lrh *leafsRequestHandler) OnLeafsRequest(ctx context.Context, nodeID ids.N
 		log.Debug("context err set before any leafs were iterated", "nodeID", nodeID, "requestID", requestID, "request", leafsRequest, "ctxErr", ctx.Err())
 		return nil, nil
 	}
+
 	responseBytes, err := lrh.codec.Marshal(message.Version, leafsResponse)
 	if err != nil {
 		log.Debug("failed to marshal LeafsResponse, dropping request", "nodeID", nodeID, "requestID", requestID, "request", leafsRequest, "err", err)
 		return nil, nil
 	}
+
 	log.Debug("handled leafsRequest", "time", time.Since(startTime), "leafs", len(leafsResponse.Keys), "proofLen", len(leafsResponse.ProofVals))
 	return responseBytes, nil
 }
