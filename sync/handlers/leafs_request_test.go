@@ -49,9 +49,10 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 		10_000,
 		func(_ *testing.T, i int, acc types.StateAccount) types.StateAccount {
 			// set the storage trie root for two accounts
-			if i == 0 {
+			switch i {
+			case 0:
 				acc.Root = largeTrieRoot
-			} else if i == 1 {
+			case 1:
 				acc.Root = smallTrieRoot
 			}
 
@@ -421,7 +422,7 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 				require.NoError(t, err)
 
 				var leafsResponse message.LeafsResponse
-				if _, err = message.Codec.Unmarshal(response, &leafsResponse); err != nil {
+				if _, err := message.Codec.Unmarshal(response, &leafsResponse); err != nil {
 					t.Fatalf("unexpected error when unmarshalling LeafsResponse: %v", err)
 				}
 
