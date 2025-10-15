@@ -26,12 +26,14 @@ import (
 	"github.com/ava-labs/subnet-evm/params/extras"
 	"github.com/ava-labs/subnet-evm/plugin/evm/customheader"
 	"github.com/ava-labs/subnet-evm/plugin/evm/customtypes"
+	"github.com/ava-labs/subnet-evm/plugin/evm/extension"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 )
 
 var (
 	_ snowman.Block           = (*wrappedBlock)(nil)
 	_ block.WithVerifyContext = (*wrappedBlock)(nil)
+	_ extension.ExtendedBlock = (*wrappedBlock)(nil)
 
 	errInvalidParent                       = errors.New("parent header not found")
 	errMissingParentBlock                  = errors.New("missing parent block")
@@ -54,17 +56,25 @@ var (
 
 // wrappedBlock implements the snowman.wrappedBlock interface
 type wrappedBlock struct {
-	id       ids.ID
-	ethBlock *types.Block
-	vm       *VM
+	id        ids.ID
+	ethBlock  *types.Block
+	extension extension.BlockExtension
+	vm        *VM
 }
 
 // wrapBlock returns a new Block wrapping the ethBlock type and implementing the snowman.Block interface
-func wrapBlock(ethBlock *types.Block, vm *VM) (*wrappedBlock, error) { //nolint:unparam // this just makes the function compatible with the future syncs I'll do, it's temporary!!
+func wrapBlock(ethBlock *types.Block, vm *VM) (*wrappedBlock, error) {
 	b := &wrappedBlock{
 		id:       ids.ID(ethBlock.Hash()),
 		ethBlock: ethBlock,
 		vm:       vm,
+	}
+	if vm.extensionConfig.BlockExtender != nil {
+		extension, err := vm.extensionConfig.BlockExtender.NewBlockExtension(b)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create block extension: %w", err)
+		}
+		b.extension = extension
 	}
 	return b, nil
 }
@@ -308,6 +318,11 @@ func (b *wrappedBlock) semanticVerify() error {
 		return err
 	}
 
+	if b.extension != nil {
+		if err := b.extension.SemanticVerify(); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -421,6 +436,11 @@ func (b *wrappedBlock) syntacticVerify() error {
 		}
 	}
 
+	if b.extension != nil {
+		if err := b.extension.SyntacticVerify(*rulesExtra); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -468,3 +488,5 @@ func (b *wrappedBlock) Bytes() []byte {
 func (b *wrappedBlock) String() string { return fmt.Sprintf("EVM block, ID = %s", b.ID()) }
 
 func (b *wrappedBlock) GetEthBlock() *types.Block { return b.ethBlock }
+
+func (b *wrappedBlock) GetBlockExtension() extension.BlockExtension { return b.extension }
