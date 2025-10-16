@@ -59,7 +59,7 @@ linters:
     - errorlint
     # - forbidigo
     - goconst
-    # - gocritic
+    - gocritic
     - goprintffuncname
     # - gosec
     - govet
@@ -72,10 +72,10 @@ linters:
     - nolintlint
     - perfsprint
     - prealloc
-    # - predeclared
+    - predeclared
     - revive
     - spancheck
-    # - staticcheck
+    - staticcheck
     - tagalign
     # - testifylint
     - unconvert

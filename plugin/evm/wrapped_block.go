@@ -14,7 +14,6 @@ import (
 	"github.com/ava-labs/avalanchego/snow/consensus/snowman"
 	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
 	"github.com/ava-labs/avalanchego/utils/math"
-	"github.com/ava-labs/avalanchego/vms/evm/predicate"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/rawdb"
 	"github.com/ava-labs/libevm/core/types"
@@ -34,13 +33,25 @@ var (
 	_ snowman.Block           = (*wrappedBlock)(nil)
 	_ block.WithVerifyContext = (*wrappedBlock)(nil)
 
-	errInvalidParent                       = errors.New("parent header not found")
 	errMissingParentBlock                  = errors.New("missing parent block")
 	errInvalidGasUsedRelativeToCapacity    = errors.New("invalid gas used relative to capacity")
 	errTotalIntrinsicGasCostExceedsClaimed = errors.New("total intrinsic gas cost is greater than claimed gas used")
 )
 
-// wrappedBlock implements the snowman.Block interface by wrapping a libevm block
+// Sentinel errors for header validation in this file
+var (
+	errInvalidExcessBlobGasBeforeCancun    = errors.New("invalid excessBlobGas before cancun")
+	errInvalidBlobGasUsedBeforeCancun      = errors.New("invalid blobGasUsed before cancun")
+	errInvalidParent                       = errors.New("parent header not found")
+	errInvalidParentBeaconRootBeforeCancun = errors.New("invalid parentBeaconRoot before cancun")
+	errInvalidExcessBlobGas                = errors.New("invalid excessBlobGas")
+	errMissingParentBeaconRoot             = errors.New("header is missing parentBeaconRoot")
+	errParentBeaconRootNonEmpty            = errors.New("invalid non-empty parentBeaconRoot")
+	errBlobGasUsedNilInCancun              = errors.New("blob gas used must not be nil in Cancun")
+	errBlobsNotEnabled                     = errors.New("blobs not enabled on avalanche networks")
+)
+
+// wrappedBlock implements the snowman.wrappedBlock interface
 type wrappedBlock struct {
 	id       ids.ID
 	ethBlock *types.Block
@@ -286,8 +297,13 @@ func (b *wrappedBlock) semanticVerify() error {
 		return fmt.Errorf("%w: %s at height %d", errInvalidParent, b.ethBlock.ParentHash(), b.ethBlock.NumberU64()-1)
 	}
 
+	header := b.ethBlock.Header()
+	// Ensure MinDelayExcess is consistent with rules and minimum block delay is enforced.
+	if err := customheader.VerifyMinDelayExcess(extraConfig, parent, header); err != nil {
+		return err
+	}
 	// Ensure Time and TimeMilliseconds are consistent with rules.
-	if err := customheader.VerifyTime(extraConfig, parent, b.ethBlock.Header(), b.vm.clock.Time()); err != nil {
+	if err := customheader.VerifyTime(extraConfig, parent, header, b.vm.clock.Time()); err != nil {
 		return err
 	}
 
@@ -374,33 +390,29 @@ func (b *wrappedBlock) syntacticVerify() error {
 	}
 
 	// Verify the existence / non-existence of excessBlobGas
-	cancun := rules.IsCancun
-	if !cancun && ethHeader.ExcessBlobGas != nil {
-		return fmt.Errorf("invalid excessBlobGas: have %d, expected nil", *ethHeader.ExcessBlobGas)
-	}
-	if !cancun && ethHeader.BlobGasUsed != nil {
-		return fmt.Errorf("invalid blobGasUsed: have %d, expected nil", *ethHeader.BlobGasUsed)
-	}
-	if cancun && ethHeader.ExcessBlobGas == nil {
-		return errors.New("header is missing excessBlobGas")
-	}
-	if cancun && ethHeader.BlobGasUsed == nil {
-		return errors.New("header is missing blobGasUsed")
-	}
-	if !cancun && ethHeader.ParentBeaconRoot != nil {
-		return fmt.Errorf("invalid parentBeaconRoot: have %x, expected nil", *ethHeader.ParentBeaconRoot)
-	}
-	if cancun {
+	if rules.IsCancun {
 		switch {
 		case ethHeader.ParentBeaconRoot == nil:
-			return errors.New("header is missing parentBeaconRoot")
+			return errMissingParentBeaconRoot
 		case *ethHeader.ParentBeaconRoot != (common.Hash{}):
-			return fmt.Errorf("invalid parentBeaconRoot: have %x, expected empty hash", ethHeader.ParentBeaconRoot)
+			return fmt.Errorf("%w: have %x, expected empty hash", errParentBeaconRootNonEmpty, ethHeader.ParentBeaconRoot)
+		case ethHeader.BlobGasUsed == nil:
+			return errBlobGasUsedNilInCancun
+		case *ethHeader.BlobGasUsed != 0:
+			return fmt.Errorf("%w: used %d blob gas, expected 0", errBlobsNotEnabled, *ethHeader.BlobGasUsed)
+		case ethHeader.ExcessBlobGas == nil:
+			return fmt.Errorf("%w: have nil, expected 0", errInvalidExcessBlobGas)
+		case *ethHeader.ExcessBlobGas != 0:
+			return fmt.Errorf("%w: have %d, expected 0", errInvalidExcessBlobGas, *ethHeader.ExcessBlobGas)
 		}
-		if ethHeader.BlobGasUsed == nil {
-			return errors.New("blob gas used must not be nil in Cancun")
-		} else if *ethHeader.BlobGasUsed > 0 {
-			return fmt.Errorf("blobs not enabled on avalanche networks: used %d blob gas, expected 0", *ethHeader.BlobGasUsed)
+	} else {
+		switch {
+		case ethHeader.ExcessBlobGas != nil:
+			return fmt.Errorf("%w: have %d, expected nil", errInvalidExcessBlobGasBeforeCancun, *ethHeader.ExcessBlobGas)
+		case ethHeader.BlobGasUsed != nil:
+			return fmt.Errorf("%w: have %d, expected nil", errInvalidBlobGasUsedBeforeCancun, *ethHeader.BlobGasUsed)
+		case ethHeader.ParentBeaconRoot != nil:
+			return fmt.Errorf("%w: have %x, expected nil", errInvalidParentBeaconRootBeforeCancun, *ethHeader.ParentBeaconRoot)
 		}
 	}
 
@@ -419,15 +431,14 @@ func (b *wrappedBlock) verifyPredicates(predicateContext *precompileconfig.Predi
 		return nil
 	}
 
-	predicateResults := predicate.BlockResults{}
-	for _, tx := range b.ethBlock.Transactions() {
-		results, err := core.CheckPredicates(rules, predicateContext, tx)
-		if err != nil {
-			return err
-		}
-		predicateResults.Set(tx.Hash(), results)
+	predicateResults, err := core.CheckBlockPredicates(
+		rules,
+		predicateContext,
+		b.ethBlock.Transactions(),
+	)
+	if err != nil {
+		return err
 	}
-	// TODO: document required gas constraints to ensure marshalling predicate results does not error
 	predicateResultsBytes, err := predicateResults.Bytes()
 	if err != nil {
 		return fmt.Errorf("failed to marshal predicate results: %w", err)

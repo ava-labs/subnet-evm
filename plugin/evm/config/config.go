@@ -26,6 +26,11 @@ type Config struct {
 	// Airdrop
 	AirdropFile string `json:"airdrop"`
 
+	// MinDelayTarget is the minimum delay between blocks (in milliseconds) that this node will attempt to use
+	// when creating blocks. If this config is not specified, the node will
+	// default to use the parent block's target delay per second.
+	MinDelayTarget *uint64 `json:"min-delay-target,omitempty"`
+
 	// Subnet EVM APIs
 	ValidatorsAPIEnabled bool   `json:"validators-api-enabled"`
 	AdminAPIEnabled      bool   `json:"admin-api-enabled"`
@@ -168,7 +173,7 @@ type Config struct {
 	WarpOffChainMessages []hexutil.Bytes `json:"warp-off-chain-messages"`
 
 	// RPC settings
-	HttpBodyLimit        uint64 `json:"http-body-limit"`
+	HTTPBodyLimit        uint64 `json:"http-body-limit"`
 	BatchRequestLimit    uint64 `json:"batch-request-limit"`
 	BatchResponseMaxSize uint64 `json:"batch-response-max-size"`
 
