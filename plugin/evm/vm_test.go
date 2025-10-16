@@ -765,10 +765,10 @@ func testReorgProtection(t *testing.T, scheme string) {
 	// with the preferred chain lower than the last finalized block)
 	// should NEVER happen. However, the VM defends against this
 	// just in case.
-	err = vm1.SetPreference(t.Context(), vm1BlkC.ID())             //nolint:forbidigo // uses upstream code
+	err = vm1.SetPreference(t.Context(), vm1BlkC.ID())
 	require.ErrorContains(t, err, "cannot orphan finalized block") //nolint:forbidigo // uses upstream code
-	err = vm1BlkC.Accept(t.Context())                              //nolint:forbidigo // uses upstream code
-	require.ErrorContains(t, err, "expected accepted block to have parent")
+	err = vm1BlkC.Accept(t.Context())
+	require.ErrorContains(t, err, "expected accepted block to have parent") //nolint:forbidigo // uses upstream code
 }
 
 // Regression test to ensure that a VM that accepts block C while preferring
@@ -2662,9 +2662,9 @@ func TestParentBeaconRootBlock(t *testing.T) {
 			parentBeaconBlock, err := wrapBlock(parentBeaconEthBlock, tvm.vm)
 			require.NoError(t, err)
 
-			_, err = tvm.vm.ParseBlock(context.Background(), parentBeaconBlock.Bytes())
+			_, err = tvm.vm.ParseBlock(t.Context(), parentBeaconBlock.Bytes())
 			require.ErrorIs(t, err, test.expectedError)
-			err = parentBeaconBlock.Verify(context.Background())
+			err = parentBeaconBlock.Verify(t.Context())
 			require.ErrorIs(t, err, test.expectedError)
 		})
 	}
