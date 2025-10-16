@@ -36,7 +36,7 @@ var (
 			},
 			SuppliedGas: AllowFeeRecipientsGasCost,
 			ReadOnly:    false,
-			ExpectedErr: ErrCannotAllowFeeRecipients.Error(),
+			ExpectedErr: ErrCannotAllowFeeRecipients,
 		},
 		{
 			Name:       "set_reward_address_from_no_role_fails",
@@ -50,7 +50,7 @@ var (
 			},
 			SuppliedGas: SetRewardAddressGasCost,
 			ReadOnly:    false,
-			ExpectedErr: ErrCannotSetRewardAddress.Error(),
+			ExpectedErr: ErrCannotSetRewardAddress,
 		},
 		{
 			Name:       "disable_rewards_from_no_role_fails",
@@ -64,7 +64,7 @@ var (
 			},
 			SuppliedGas: DisableRewardsGasCost,
 			ReadOnly:    false,
-			ExpectedErr: ErrCannotDisableRewards.Error(),
+			ExpectedErr: ErrCannotDisableRewards,
 		},
 		{
 			Name:       "set_allow_fee_recipients_from_enabled_succeeds",
@@ -379,7 +379,7 @@ var (
 			},
 			SuppliedGas: AllowFeeRecipientsGasCost,
 			ReadOnly:    true,
-			ExpectedErr: vm.ErrWriteProtection.Error(),
+			ExpectedErr: vm.ErrWriteProtection,
 		},
 		{
 			Name:       "readOnly_set_reward_address_with_allowed_role_fails",
@@ -393,7 +393,7 @@ var (
 			},
 			SuppliedGas: SetRewardAddressGasCost,
 			ReadOnly:    true,
-			ExpectedErr: vm.ErrWriteProtection.Error(),
+			ExpectedErr: vm.ErrWriteProtection,
 		},
 		{
 			Name:       "insufficient_gas_set_reward_address_from_allowed_role",
@@ -407,7 +407,7 @@ var (
 			},
 			SuppliedGas: SetRewardAddressGasCost + RewardAddressChangedEventGasCost - 1,
 			ReadOnly:    false,
-			ExpectedErr: vm.ErrOutOfGas.Error(),
+			ExpectedErr: vm.ErrOutOfGas,
 		},
 		{
 			Name:       "insufficient_gas_allow_fee_recipients_from_allowed_role",
@@ -421,7 +421,7 @@ var (
 			},
 			SuppliedGas: AllowFeeRecipientsGasCost + FeeRecipientsAllowedEventGasCost - 1,
 			ReadOnly:    false,
-			ExpectedErr: vm.ErrOutOfGas.Error(),
+			ExpectedErr: vm.ErrOutOfGas,
 		},
 		{
 			Name:       "insufficient_gas_read_current_reward_address_from_allowed_role",
@@ -435,7 +435,7 @@ var (
 			},
 			SuppliedGas: CurrentRewardAddressGasCost - 1,
 			ReadOnly:    false,
-			ExpectedErr: vm.ErrOutOfGas.Error(),
+			ExpectedErr: vm.ErrOutOfGas,
 		},
 		{
 			Name:       "insufficient_gas_are_fee_recipients_allowed_from_allowed_role",
@@ -449,7 +449,7 @@ var (
 			},
 			SuppliedGas: AreFeeRecipientsAllowedGasCost - 1,
 			ReadOnly:    false,
-			ExpectedErr: vm.ErrOutOfGas.Error(),
+			ExpectedErr: vm.ErrOutOfGas,
 		},
 	}
 )
