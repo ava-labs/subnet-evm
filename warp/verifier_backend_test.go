@@ -59,7 +59,7 @@ func TestAddressedCallSignatures(t *testing.T) {
 				require.NoError(t, err)
 
 				backend.AddMessage(msg)
-				return msg.Bytes(), signature[:]
+				return msg.Bytes(), signature
 			},
 			verifyStats: func(t *testing.T, stats *verifierStats) {
 				require.Zero(t, stats.messageParseFail.Snapshot().Count())
@@ -68,7 +68,7 @@ func TestAddressedCallSignatures(t *testing.T) {
 		},
 		"offchain message": {
 			setup: func(_ Backend) (request []byte, expectedResponse []byte) {
-				return offchainMessage.Bytes(), offchainSignature[:]
+				return offchainMessage.Bytes(), offchainSignature
 			},
 			verifyStats: func(t *testing.T, stats *verifierStats) {
 				require.Zero(t, stats.messageParseFail.Snapshot().Count())
@@ -183,7 +183,7 @@ func TestBlockSignatures(t *testing.T) {
 				require.NoError(t, err)
 				signature, err := snowCtx.WarpSigner.Sign(unsignedMessage)
 				require.NoError(t, err)
-				return toMessageBytes(knownBlkID), signature[:]
+				return toMessageBytes(knownBlkID), signature
 			},
 			verifyStats: func(t *testing.T, stats *verifierStats) {
 				require.Zero(t, stats.blockValidationFail.Snapshot().Count())
@@ -350,6 +350,6 @@ func TestUptimeSignatures(t *testing.T) {
 		require.NoError(t, err)
 		response := &sdk.SignatureResponse{}
 		require.NoError(t, proto.Unmarshal(responseBytes, response))
-		require.Equal(t, expectedSignature[:], response.Signature)
+		require.Equal(t, expectedSignature, response.Signature)
 	}
 }
