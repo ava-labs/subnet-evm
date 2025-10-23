@@ -21,10 +21,8 @@ type ValidatorsAPI struct {
 func (api *ValidatorsAPI) GetCurrentValidators(_ *http.Request, req *client.GetCurrentValidatorsRequest, reply *client.GetCurrentValidatorsResponse) error {
 	api.vm.vmLock.RLock()
 	defer api.vm.vmLock.RUnlock()
-
 	ctx := context.Background()
 
-	// Get current validator set from platform
 	validatorSet, _, err := api.vm.ctx.ValidatorState.GetCurrentValidatorSet(ctx, api.vm.ctx.SubnetID)
 	if err != nil {
 		return fmt.Errorf("failed to get current validator set: %w", err)
@@ -39,7 +37,6 @@ func (api *ValidatorsAPI) GetCurrentValidators(_ *http.Request, req *client.GetC
 	}
 
 	reply.Validators = make([]client.CurrentValidator, 0, len(validatorSet))
-
 	for validationID, validator := range validatorSet {
 		// Skip if specific nodeIDs were requested and this isn't one of them
 		if len(requestedNodeIDs) > 0 {
@@ -48,7 +45,6 @@ func (api *ValidatorsAPI) GetCurrentValidators(_ *http.Request, req *client.GetC
 			}
 		}
 
-		// Get uptime information from uptimeTracker
 		upDuration, lastUpdated, found, err := api.vm.uptimeTracker.GetUptime(validationID)
 		if err != nil {
 			return fmt.Errorf("failed to get uptime for validation ID %s: %w", validationID, err)
@@ -72,7 +68,6 @@ func (api *ValidatorsAPI) GetCurrentValidators(_ *http.Request, req *client.GetC
 			uptimeSeconds = uint64(upDuration.Seconds())
 		}
 
-		// Check if this validator's node is currently connected via P2P validators registry
 		isConnected := api.vm.P2PValidators().Has(ctx, validator.NodeID)
 
 		reply.Validators = append(reply.Validators, client.CurrentValidator{

@@ -327,8 +327,5 @@ func TestUptimeSignatures(t *testing.T) {
 		_, appErr = handler.AppRequest(context.Background(), ids.GenerateTestNodeID(), time.Time{}, protoBytes)
 		require.ErrorIs(t, appErr, &common.AppError{Code: VerifyErrCode})
 		require.Contains(t, appErr.Error(), "validator not found")
-
-		// Note: Uptime tracking tests are now handled by the uptimetracker package in avalanchego
-		// The integration with warp backend is tested above with non-existing validators
 	}
 }
