@@ -19,7 +19,7 @@ import (
 	avagovalidators "github.com/ava-labs/avalanchego/snow/validators"
 )
 
-func TestValidatorState(t *testing.T) {
+func TestUptimeTracker(t *testing.T) {
 	testNodeIDs := []ids.NodeID{
 		ids.GenerateTestNodeID(),
 		ids.GenerateTestNodeID(),
