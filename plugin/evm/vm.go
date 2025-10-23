@@ -777,6 +777,9 @@ func (vm *VM) onNormalOperationsStarted() error {
 	ctx, cancel := context.WithCancel(context.TODO())
 	vm.cancel = cancel
 
+	// immediately sync the uptime tracker once
+	vm.uptimeTracker.Sync(ctx)
+
 	// Start syncing validator set updates
 	vm.shutdownWg.Add(1)
 	go func() {
