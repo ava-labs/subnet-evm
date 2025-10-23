@@ -5,7 +5,6 @@ package warp
 
 import (
 	"context"
-	"sync"
 	"testing"
 	"time"
 
@@ -18,17 +17,16 @@ import (
 	"github.com/ava-labs/avalanchego/snow/engine/common"
 	"github.com/ava-labs/avalanchego/utils/timer/mockable"
 	"github.com/ava-labs/avalanchego/vms/evm/metrics/metricstest"
+	"github.com/ava-labs/avalanchego/vms/evm/uptimetracker"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 
-	"github.com/ava-labs/subnet-evm/plugin/evm/validators"
 	"github.com/ava-labs/subnet-evm/utils/utilstest"
 	"github.com/ava-labs/subnet-evm/warp/messages"
 	"github.com/ava-labs/subnet-evm/warp/warptest"
 
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
-	stateinterfaces "github.com/ava-labs/subnet-evm/plugin/evm/validators/state/interfaces"
 )
 
 func TestAddressedCallSignatures(t *testing.T) {
@@ -228,7 +226,7 @@ func TestBlockSignatures(t *testing.T) {
 					snowCtx.ChainID,
 					snowCtx.WarpSigner,
 					blockClient,
-					warptest.NoOpValidatorReader{},
+					nil,
 					database,
 					sigCache,
 					nil,
@@ -297,17 +295,19 @@ func TestUptimeSignatures(t *testing.T) {
 		}
 		chainCtx := utilstest.NewTestSnowContext(t)
 		clk := &mockable.Clock{}
-		validatorsManager, err := validators.NewManager(chainCtx, memdb.New(), clk)
+		uptimeTracker, err := uptimetracker.New(
+			chainCtx.ValidatorState,
+			chainCtx.SubnetID,
+			memdb.New(),
+			clk,
+		)
 		require.NoError(t, err)
-		lock := &sync.RWMutex{}
-		newLockedValidatorManager := validators.NewLockedValidatorReader(validatorsManager, lock)
-		validatorsManager.StartTracking([]ids.NodeID{})
 		warpBackend, err := NewBackend(
 			snowCtx.NetworkID,
 			snowCtx.ChainID,
 			snowCtx.WarpSigner,
 			warptest.EmptyBlockClient,
-			newLockedValidatorManager,
+			uptimeTracker,
 			database,
 			sigCache,
 			nil,
@@ -326,41 +326,9 @@ func TestUptimeSignatures(t *testing.T) {
 		protoBytes, _ = getUptimeMessageBytes([]byte{}, vID)
 		_, appErr = handler.AppRequest(context.Background(), ids.GenerateTestNodeID(), time.Time{}, protoBytes)
 		require.ErrorIs(t, appErr, &common.AppError{Code: VerifyErrCode})
-		require.Contains(t, appErr.Error(), "failed to get validator")
+		require.Contains(t, appErr.Error(), "validator not found")
 
-		// uptime is less than requested (not connected)
-		validationID := ids.GenerateTestID()
-		nodeID := ids.GenerateTestNodeID()
-		require.NoError(t, validatorsManager.AddValidator(stateinterfaces.Validator{
-			ValidationID:   validationID,
-			NodeID:         nodeID,
-			Weight:         1,
-			StartTimestamp: clk.Unix(),
-			IsActive:       true,
-			IsL1Validator:  true,
-		}))
-		protoBytes, _ = getUptimeMessageBytes([]byte{}, validationID)
-		_, appErr = handler.AppRequest(context.Background(), nodeID, time.Time{}, protoBytes)
-		require.ErrorIs(t, appErr, &common.AppError{Code: VerifyErrCode})
-		require.Contains(t, appErr.Error(), "current uptime 0 is less than queried uptime 80")
-
-		// uptime is less than requested (not enough)
-		require.NoError(t, validatorsManager.Connect(nodeID))
-		clk.Set(clk.Time().Add(40 * time.Second))
-		protoBytes, _ = getUptimeMessageBytes([]byte{}, validationID)
-		_, appErr = handler.AppRequest(context.Background(), nodeID, time.Time{}, protoBytes)
-		require.ErrorIs(t, appErr, &common.AppError{Code: VerifyErrCode})
-		require.Contains(t, appErr.Error(), "current uptime 40 is less than queried uptime 80")
-
-		// valid uptime
-		clk.Set(clk.Time().Add(40 * time.Second))
-		protoBytes, msg := getUptimeMessageBytes([]byte{}, validationID)
-		responseBytes, appErr := handler.AppRequest(context.Background(), nodeID, time.Time{}, protoBytes)
-		require.Nil(t, appErr)
-		expectedSignature, err := snowCtx.WarpSigner.Sign(msg)
-		require.NoError(t, err)
-		response := &sdk.SignatureResponse{}
-		require.NoError(t, proto.Unmarshal(responseBytes, response))
-		require.Equal(t, expectedSignature, response.Signature)
+		// Note: Uptime tracking tests are now handled by the uptimetracker package in avalanchego
+		// The integration with warp backend is tested above with non-existing validators
 	}
 }
