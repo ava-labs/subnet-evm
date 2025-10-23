@@ -126,9 +126,6 @@ func TestValidatorState(t *testing.T) {
 		require.NoError(vm.SetState(context.Background(), snow.Bootstrapping))
 		require.NoError(vm.SetState(context.Background(), snow.NormalOp))
 
-		// Wait at least a second --  give the sync goroutine time to run at least once
-		time.Sleep(2 * time.Second)
-
 		// Connect the validators to start tracking their uptime
 		for _, nodeID := range testNodeIDs {
 			require.NoError(vm.uptimeTracker.Connect(nodeID))
@@ -166,7 +163,6 @@ func TestValidatorState(t *testing.T) {
 
 		require.NoError(vm.SetState(context.Background(), snow.Bootstrapping))
 		require.NoError(vm.SetState(context.Background(), snow.NormalOp))
-		time.Sleep(2 * time.Second)
 
 		// Connect validators to start tracking
 		for _, nodeID := range testNodeIDs {
@@ -200,7 +196,6 @@ func TestValidatorState(t *testing.T) {
 
 		require.NoError(vm.SetState(context.Background(), snow.Bootstrapping))
 		require.NoError(vm.SetState(context.Background(), snow.NormalOp))
-		time.Sleep(2 * time.Second)
 
 		// After restart, uptime data should be persisted from the previous run
 		_, _, found, err = vm.uptimeTracker.GetUptime(testValidationIDs[0])
