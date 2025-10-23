@@ -81,7 +81,7 @@ func TestValidatorState(t *testing.T) {
 		appSender.SendAppGossipF = func(context.Context, commonEng.SendConfig, []byte) error { return nil }
 
 		vm := &VM{}
-		err := vm.Initialize(
+		require.NoError(vm.Initialize(
 			context.Background(),
 			ctx,
 			dbManager,
@@ -90,8 +90,7 @@ func TestValidatorState(t *testing.T) {
 			[]byte(""),
 			[]*commonEng.Fx{},
 			appSender,
-		)
-		require.NoError(err)
+		))
 		defer vm.Shutdown(context.Background())
 
 		require.NoError(vm.SetState(context.Background(), snow.Bootstrapping))
@@ -112,7 +111,7 @@ func TestValidatorState(t *testing.T) {
 		appSender.SendAppGossipF = func(context.Context, commonEng.SendConfig, []byte) error { return nil }
 
 		vm := &VM{}
-		err := vm.Initialize(
+		require.NoError(vm.Initialize(
 			context.Background(),
 			ctx,
 			dbManager,
@@ -121,8 +120,7 @@ func TestValidatorState(t *testing.T) {
 			[]byte(""),
 			[]*commonEng.Fx{},
 			appSender,
-		)
-		require.NoError(err)
+		))
 		defer vm.Shutdown(context.Background())
 
 		require.NoError(vm.SetState(context.Background(), snow.Bootstrapping))
@@ -155,7 +153,7 @@ func TestValidatorState(t *testing.T) {
 
 		// First VM initialization
 		vm := &VM{}
-		err := vm.Initialize(
+		require.NoError(vm.Initialize(
 			context.Background(),
 			ctx,
 			dbManager,
@@ -164,8 +162,7 @@ func TestValidatorState(t *testing.T) {
 			[]byte(""),
 			[]*commonEng.Fx{},
 			appSender,
-		)
-		require.NoError(err)
+		))
 
 		require.NoError(vm.SetState(context.Background(), snow.Bootstrapping))
 		require.NoError(vm.SetState(context.Background(), snow.NormalOp))
@@ -189,7 +186,7 @@ func TestValidatorState(t *testing.T) {
 		ctx2.ValidatorState = makeValidatorState()
 
 		vm = &VM{}
-		err = vm.Initialize(
+		require.NoError(vm.Initialize(
 			context.Background(),
 			ctx2,
 			dbManager,
@@ -198,8 +195,7 @@ func TestValidatorState(t *testing.T) {
 			[]byte(""),
 			[]*commonEng.Fx{},
 			appSender,
-		)
-		require.NoError(err)
+		))
 		defer vm.Shutdown(context.Background())
 
 		require.NoError(vm.SetState(context.Background(), snow.Bootstrapping))
