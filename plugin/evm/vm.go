@@ -107,6 +107,8 @@ const (
 	bytesToIDCacheSize     = 5 * units.MiB
 	warpSignatureCacheSize = 500
 
+	syncFrequency = 1 * time.Minute
+
 	// Prefixes for metrics gatherers
 	ethMetricsPrefix        = "eth"
 	sdkMetricsPrefix        = "sdk"
@@ -779,7 +781,7 @@ func (vm *VM) onNormalOperationsStarted() error {
 	vm.shutdownWg.Add(1)
 	go func() {
 		defer vm.shutdownWg.Done()
-		ticker := time.NewTicker(time.Second)
+		ticker := time.NewTicker(syncFrequency)
 		defer ticker.Stop()
 
 		for {
