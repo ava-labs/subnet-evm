@@ -20,13 +20,6 @@ import (
 )
 
 func TestValidatorState(t *testing.T) {
-	require := require.New(t)
-	ctx, dbManager, genesisBytes := setupGenesis(t, upgradetest.Latest)
-
-	vm := &VM{}
-
-	appSender := &enginetest.Sender{T: t}
-	appSender.CantSendAppGossip = true
 	testNodeIDs := []ids.NodeID{
 		ids.GenerateTestNodeID(),
 		ids.GenerateTestNodeID(),
@@ -38,90 +31,184 @@ func TestValidatorState(t *testing.T) {
 		ids.GenerateTestID(),
 	}
 	startTime := uint64(time.Now().Unix())
-	ctx.ValidatorState = &validatorstest.State{
-		GetCurrentValidatorSetF: func(context.Context, ids.ID) (map[ids.ID]*avagovalidators.GetCurrentValidatorOutput, uint64, error) {
-			return map[ids.ID]*avagovalidators.GetCurrentValidatorOutput{
-				testValidationIDs[0]: {
-					NodeID:    testNodeIDs[0],
-					PublicKey: nil,
-					Weight:    1,
-					StartTime: startTime,
-					IsActive:  true,
-				},
-				testValidationIDs[1]: {
-					NodeID:    testNodeIDs[1],
-					PublicKey: nil,
-					Weight:    1,
-					StartTime: startTime,
-					IsActive:  true,
-				},
-				testValidationIDs[2]: {
-					NodeID:    testNodeIDs[2],
-					PublicKey: nil,
-					Weight:    1,
-					StartTime: startTime,
-					IsActive:  true,
-				},
-			}, 0, nil
-		},
+
+	makeValidatorState := func() *validatorstest.State {
+		return &validatorstest.State{
+			GetMinimumHeightF: func(context.Context) (uint64, error) {
+				return 0, nil
+			},
+			GetCurrentHeightF: func(context.Context) (uint64, error) {
+				return 0, nil
+			},
+			GetSubnetIDF: func(context.Context, ids.ID) (ids.ID, error) {
+				return ids.Empty, nil
+			},
+			GetCurrentValidatorSetF: func(context.Context, ids.ID) (map[ids.ID]*avagovalidators.GetCurrentValidatorOutput, uint64, error) {
+				return map[ids.ID]*avagovalidators.GetCurrentValidatorOutput{
+					testValidationIDs[0]: {
+						NodeID:    testNodeIDs[0],
+						PublicKey: nil,
+						Weight:    1,
+						StartTime: startTime,
+						IsActive:  true,
+					},
+					testValidationIDs[1]: {
+						NodeID:    testNodeIDs[1],
+						PublicKey: nil,
+						Weight:    1,
+						StartTime: startTime,
+						IsActive:  true,
+					},
+					testValidationIDs[2]: {
+						NodeID:    testNodeIDs[2],
+						PublicKey: nil,
+						Weight:    1,
+						StartTime: startTime,
+						IsActive:  true,
+					},
+				}, 0, nil
+			},
+		}
 	}
-	appSender.SendAppGossipF = func(context.Context, commonEng.SendConfig, []byte) error { return nil }
-	err := vm.Initialize(
-		context.Background(),
-		ctx,
-		dbManager,
-		genesisBytes,
-		[]byte(""),
-		[]byte(""),
-		[]*commonEng.Fx{},
-		appSender,
-	)
-	require.NoError(err, "error initializing GenesisVM")
 
-	// Test case 1: uptime should not be tracked until NormalOp
-	require.NoError(vm.SetState(context.Background(), snow.Bootstrapping))
-	// After bootstrapping but before NormalOp, uptimeTracker hasn't started syncing yet
-	_, _, found, err := vm.uptimeTracker.GetUptime(testValidationIDs[0])
-	require.NoError(err)
-	require.False(found, "uptime should not be tracked yet")
+	t.Run("uptime not tracked before NormalOp", func(t *testing.T) {
+		require := require.New(t)
+		ctx, dbManager, genesisBytes := setupGenesis(t, upgradetest.Latest)
+		ctx.ValidatorState = makeValidatorState()
 
-	// Test case 2: uptime should be tracked after NormalOp
-	require.NoError(vm.SetState(context.Background(), snow.NormalOp))
-	// Give the sync goroutine time to run at least once
-	time.Sleep(2 * time.Second)
-	_, _, found, err = vm.uptimeTracker.GetUptime(testValidationIDs[0])
-	require.NoError(err)
-	require.True(found, "uptime should be tracked after NormalOp")
+		appSender := &enginetest.Sender{T: t}
+		appSender.CantSendAppGossip = true
+		appSender.SendAppGossipF = func(context.Context, commonEng.SendConfig, []byte) error { return nil }
 
-	// Test case 3: uptime data should be persisted across restarts
-	require.NoError(vm.Shutdown(context.Background()))
+		vm := &VM{}
+		err := vm.Initialize(
+			context.Background(),
+			ctx,
+			dbManager,
+			genesisBytes,
+			[]byte(""),
+			[]byte(""),
+			[]*commonEng.Fx{},
+			appSender,
+		)
+		require.NoError(err)
+		defer vm.Shutdown(context.Background())
 
-	// Create a new context for the restarted VM to avoid metric conflicts
-	ctx2, _, _ := setupGenesis(t, upgradetest.Latest)
-	ctx2.ValidatorState = ctx.ValidatorState // Reuse the same validator state
+		require.NoError(vm.SetState(context.Background(), snow.Bootstrapping))
 
-	vm = &VM{}
-	err = vm.Initialize(
-		context.Background(),
-		ctx2,
-		dbManager,
-		genesisBytes,
-		[]byte(""),
-		[]byte(""),
-		[]*commonEng.Fx{},
-		appSender,
-	)
-	require.NoError(err, "error initializing GenesisVM after restart")
+		// After bootstrapping but before NormalOp, uptimeTracker hasn't started syncing yet
+		_, _, found, err := vm.uptimeTracker.GetUptime(testValidationIDs[0])
+		require.NoError(err)
+		require.False(found, "uptime should not be tracked yet")
+	})
 
-	// Uptime data should be persisted from the previous run - the state is \
-	// persisted in the database and will be loaded on initialization
-	require.NoError(vm.SetState(context.Background(), snow.Bootstrapping))
-	require.NoError(vm.SetState(context.Background(), snow.NormalOp))
-	time.Sleep(2 * time.Second)
+	t.Run("uptime tracked after NormalOp and Connect", func(t *testing.T) {
+		require := require.New(t)
+		ctx, dbManager, genesisBytes := setupGenesis(t, upgradetest.Latest)
+		ctx.ValidatorState = makeValidatorState()
 
-	_, _, found, err = vm.uptimeTracker.GetUptime(testValidationIDs[0])
-	require.NoError(err)
-	require.True(found, "uptime should be tracked after restart and NormalOp")
+		appSender := &enginetest.Sender{T: t}
+		appSender.CantSendAppGossip = true
+		appSender.SendAppGossipF = func(context.Context, commonEng.SendConfig, []byte) error { return nil }
 
-	require.NoError(vm.Shutdown(context.Background()))
+		vm := &VM{}
+		err := vm.Initialize(
+			context.Background(),
+			ctx,
+			dbManager,
+			genesisBytes,
+			[]byte(""),
+			[]byte(""),
+			[]*commonEng.Fx{},
+			appSender,
+		)
+		require.NoError(err)
+		defer vm.Shutdown(context.Background())
+
+		require.NoError(vm.SetState(context.Background(), snow.Bootstrapping))
+		require.NoError(vm.SetState(context.Background(), snow.NormalOp))
+
+		// Wait at least a second --  give the sync goroutine time to run at least once
+		time.Sleep(2 * time.Second)
+
+		// Connect the validators to start tracking their uptime
+		for _, nodeID := range testNodeIDs {
+			require.NoError(vm.uptimeTracker.Connect(nodeID))
+		}
+
+		// Manually call Sync to ensure state is updated after Connect
+		require.NoError(vm.uptimeTracker.Sync(context.Background()))
+
+		_, _, found, err := vm.uptimeTracker.GetUptime(testValidationIDs[0])
+		require.NoError(err)
+		require.True(found, "uptime should be tracked after validators are connected")
+	})
+
+	t.Run("uptime persisted across restarts", func(t *testing.T) {
+		require := require.New(t)
+		ctx, dbManager, genesisBytes := setupGenesis(t, upgradetest.Latest)
+		ctx.ValidatorState = makeValidatorState()
+
+		appSender := &enginetest.Sender{T: t}
+		appSender.CantSendAppGossip = true
+		appSender.SendAppGossipF = func(context.Context, commonEng.SendConfig, []byte) error { return nil }
+
+		// First VM initialization
+		vm := &VM{}
+		err := vm.Initialize(
+			context.Background(),
+			ctx,
+			dbManager,
+			genesisBytes,
+			[]byte(""),
+			[]byte(""),
+			[]*commonEng.Fx{},
+			appSender,
+		)
+		require.NoError(err)
+
+		require.NoError(vm.SetState(context.Background(), snow.Bootstrapping))
+		require.NoError(vm.SetState(context.Background(), snow.NormalOp))
+		time.Sleep(2 * time.Second)
+
+		// Connect validators to start tracking
+		for _, nodeID := range testNodeIDs {
+			require.NoError(vm.uptimeTracker.Connect(nodeID))
+		}
+		require.NoError(vm.uptimeTracker.Sync(context.Background()))
+
+		// Verify uptime is tracked
+		_, _, found, err := vm.uptimeTracker.GetUptime(testValidationIDs[0])
+		require.NoError(err)
+		require.True(found)
+
+		require.NoError(vm.Shutdown(context.Background()))
+
+		// Restart VM with same database
+		ctx2, _, _ := setupGenesis(t, upgradetest.Latest)
+		ctx2.ValidatorState = makeValidatorState()
+
+		vm = &VM{}
+		err = vm.Initialize(
+			context.Background(),
+			ctx2,
+			dbManager,
+			genesisBytes,
+			[]byte(""),
+			[]byte(""),
+			[]*commonEng.Fx{},
+			appSender,
+		)
+		require.NoError(err)
+		defer vm.Shutdown(context.Background())
+
+		require.NoError(vm.SetState(context.Background(), snow.Bootstrapping))
+		require.NoError(vm.SetState(context.Background(), snow.NormalOp))
+		time.Sleep(2 * time.Second)
+
+		// After restart, uptime data should be persisted from the previous run
+		_, _, found, err = vm.uptimeTracker.GetUptime(testValidationIDs[0])
+		require.NoError(err)
+		require.True(found, "uptime should be persisted after restart")
+	})
 }
