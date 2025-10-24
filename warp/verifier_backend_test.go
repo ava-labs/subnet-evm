@@ -5,6 +5,7 @@ package warp
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -353,19 +354,20 @@ func TestUptimeSignatures(t *testing.T) {
 		protoBytes, _ := getUptimeMessageBytes([]byte{1, 2, 3}, ids.GenerateTestID())
 		_, appErr := handler.AppRequest(context.Background(), ids.GenerateTestNodeID(), time.Time{}, protoBytes)
 		require.ErrorIs(t, appErr, &common.AppError{Code: VerifyErrCode})
-		require.Contains(t, appErr.Error(), "source address should be empty")
+		require.Equal(t, "2: source address should be empty for offchain addressed messages", appErr.Error())
 
 		// not existing validationID
 		vID := ids.GenerateTestID()
 		protoBytes, _ = getUptimeMessageBytes([]byte{}, vID)
 		_, appErr = handler.AppRequest(context.Background(), ids.GenerateTestNodeID(), time.Time{}, protoBytes)
 		require.ErrorIs(t, appErr, &common.AppError{Code: VerifyErrCode})
+		require.Equal(t, fmt.Sprintf("2: validator not found for validationID %s", vID), appErr.Error())
 
 		// uptime is less than requested (not connected)
 		protoBytes, _ = getUptimeMessageBytes([]byte{}, validationID)
 		_, appErr = handler.AppRequest(context.Background(), nodeID, time.Time{}, protoBytes)
 		require.ErrorIs(t, appErr, &common.AppError{Code: VerifyErrCode})
-		require.Contains(t, appErr.Error(), "current uptime 0 is less than queried uptime 80")
+		require.Equal(t, fmt.Sprintf("2: current uptime 0 is less than queried uptime 80 for validationID %s", validationID), appErr.Error())
 
 		// uptime is less than requested (not enough time)
 		require.NoError(t, uptimeTracker.Connect(nodeID))
@@ -373,7 +375,7 @@ func TestUptimeSignatures(t *testing.T) {
 		protoBytes, _ = getUptimeMessageBytes([]byte{}, validationID)
 		_, appErr = handler.AppRequest(context.Background(), nodeID, time.Time{}, protoBytes)
 		require.ErrorIs(t, appErr, &common.AppError{Code: VerifyErrCode})
-		require.Contains(t, appErr.Error(), "current uptime 40 is less than queried uptime 80")
+		require.Equal(t, fmt.Sprintf("2: current uptime 40 is less than queried uptime 80 for validationID %s", validationID), appErr.Error())
 
 		// valid uptime (enough time has passed)
 		clk.Set(clk.Time().Add(40 * time.Second))
