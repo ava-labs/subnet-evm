@@ -15,6 +15,8 @@ import (
 	"github.com/ava-labs/avalanchego/network/p2p/acp118"
 	"github.com/ava-labs/avalanchego/proto/pb/sdk"
 	"github.com/ava-labs/avalanchego/snow/engine/common"
+	"github.com/ava-labs/avalanchego/snow/validators"
+	"github.com/ava-labs/avalanchego/snow/validators/validatorstest"
 	"github.com/ava-labs/avalanchego/utils/timer/mockable"
 	"github.com/ava-labs/avalanchego/vms/evm/metrics/metricstest"
 	"github.com/ava-labs/avalanchego/vms/evm/uptimetracker"
@@ -272,6 +274,10 @@ func TestUptimeSignatures(t *testing.T) {
 	database := memdb.New()
 	snowCtx := utilstest.NewTestSnowContext(t)
 
+	validationID := ids.GenerateTestID()
+	nodeID := ids.GenerateTestNodeID()
+	startTime := uint64(time.Now().Unix())
+
 	getUptimeMessageBytes := func(sourceAddress []byte, vID ids.ID) ([]byte, *avalancheWarp.UnsignedMessage) {
 		uptimePayload, err := messages.NewValidatorUptime(vID, 80)
 		require.NoError(t, err)
@@ -293,15 +299,43 @@ func TestUptimeSignatures(t *testing.T) {
 		} else {
 			sigCache = &cache.Empty[ids.ID, []byte]{}
 		}
-		chainCtx := utilstest.NewTestSnowContext(t)
+
+		// Create a validator state that includes our test validator
+		validatorState := &validatorstest.State{
+			GetMinimumHeightF: func(context.Context) (uint64, error) {
+				return 0, nil
+			},
+			GetCurrentHeightF: func(context.Context) (uint64, error) {
+				return 0, nil
+			},
+			GetSubnetIDF: func(context.Context, ids.ID) (ids.ID, error) {
+				return snowCtx.SubnetID, nil
+			},
+			GetCurrentValidatorSetF: func(context.Context, ids.ID) (map[ids.ID]*validators.GetCurrentValidatorOutput, uint64, error) {
+				return map[ids.ID]*validators.GetCurrentValidatorOutput{
+					validationID: {
+						ValidationID:  validationID,
+						NodeID:        nodeID,
+						Weight:        1,
+						StartTime:     startTime,
+						IsActive:      true,
+						IsL1Validator: true,
+					},
+				}, 0, nil
+			},
+		}
+
 		clk := &mockable.Clock{}
 		uptimeTracker, err := uptimetracker.New(
-			chainCtx.ValidatorState,
-			chainCtx.SubnetID,
+			validatorState,
+			snowCtx.SubnetID,
 			memdb.New(),
 			clk,
 		)
 		require.NoError(t, err)
+
+		require.NoError(t, uptimeTracker.Sync(context.Background()))
+
 		warpBackend, err := NewBackend(
 			snowCtx.NetworkID,
 			snowCtx.ChainID,
@@ -326,5 +360,31 @@ func TestUptimeSignatures(t *testing.T) {
 		protoBytes, _ = getUptimeMessageBytes([]byte{}, vID)
 		_, appErr = handler.AppRequest(context.Background(), ids.GenerateTestNodeID(), time.Time{}, protoBytes)
 		require.ErrorIs(t, appErr, &common.AppError{Code: VerifyErrCode})
+		require.Contains(t, appErr.Error(), "validator not found")
+
+		// uptime is less than requested (not connected)
+		protoBytes, _ = getUptimeMessageBytes([]byte{}, validationID)
+		_, appErr = handler.AppRequest(context.Background(), nodeID, time.Time{}, protoBytes)
+		require.ErrorIs(t, appErr, &common.AppError{Code: VerifyErrCode})
+		require.Contains(t, appErr.Error(), "current uptime 0 is less than queried uptime 80")
+
+		// uptime is less than requested (not enough time)
+		require.NoError(t, uptimeTracker.Connect(nodeID))
+		clk.Set(clk.Time().Add(40 * time.Second))
+		protoBytes, _ = getUptimeMessageBytes([]byte{}, validationID)
+		_, appErr = handler.AppRequest(context.Background(), nodeID, time.Time{}, protoBytes)
+		require.ErrorIs(t, appErr, &common.AppError{Code: VerifyErrCode})
+		require.Contains(t, appErr.Error(), "current uptime 40 is less than queried uptime 80")
+
+		// valid uptime (enough time has passed)
+		clk.Set(clk.Time().Add(40 * time.Second))
+		protoBytes, msg := getUptimeMessageBytes([]byte{}, validationID)
+		responseBytes, appErr := handler.AppRequest(context.Background(), nodeID, time.Time{}, protoBytes)
+		require.Nil(t, appErr)
+		expectedSignature, err := snowCtx.WarpSigner.Sign(msg)
+		require.NoError(t, err)
+		response := &sdk.SignatureResponse{}
+		require.NoError(t, proto.Unmarshal(responseBytes, response))
+		require.Equal(t, expectedSignature, response.Signature)
 	}
 }
