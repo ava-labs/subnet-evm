@@ -4,12 +4,12 @@
 package evm
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/ava-labs/avalanchego/ids"
+	"github.com/ava-labs/avalanchego/utils/set"
 
 	"github.com/ava-labs/subnet-evm/plugin/evm/client"
 )
@@ -18,10 +18,10 @@ type ValidatorsAPI struct {
 	vm *VM
 }
 
-func (api *ValidatorsAPI) GetCurrentValidators(_ *http.Request, req *client.GetCurrentValidatorsRequest, reply *client.GetCurrentValidatorsResponse) error {
+func (api *ValidatorsAPI) GetCurrentValidators(httpReq *http.Request, req *client.GetCurrentValidatorsRequest, reply *client.GetCurrentValidatorsResponse) error {
 	api.vm.vmLock.RLock()
 	defer api.vm.vmLock.RUnlock()
-	ctx := context.Background()
+	ctx := httpReq.Context()
 
 	validatorSet, _, err := api.vm.ctx.ValidatorState.GetCurrentValidatorSet(ctx, api.vm.ctx.SubnetID)
 	if err != nil {
@@ -29,23 +29,26 @@ func (api *ValidatorsAPI) GetCurrentValidators(_ *http.Request, req *client.GetC
 	}
 
 	// Filter by requested nodeIDs if specified
-	requestedNodeIDs := make(map[ids.NodeID]struct{})
+	requestedNodeIDs := set.NewSet[ids.NodeID](len(req.NodeIDs))
 	if len(req.NodeIDs) > 0 {
 		for _, nodeID := range req.NodeIDs {
-			requestedNodeIDs[nodeID] = struct{}{}
+			requestedNodeIDs.Add(nodeID)
 		}
 	}
 
 	reply.Validators = make([]client.CurrentValidator, 0, len(validatorSet))
 	for validationID, validator := range validatorSet {
 		// Skip if specific nodeIDs were requested and this isn't one of them
-		if len(requestedNodeIDs) > 0 {
-			if _, ok := requestedNodeIDs[validator.NodeID]; !ok {
+		if requestedNodeIDs.Len() > 0 {
+			if !requestedNodeIDs.Contains(validator.NodeID) {
 				continue
 			}
 		}
 
 		upDuration, lastUpdated, found, err := api.vm.uptimeTracker.GetUptime(validationID)
+		if !found {
+			return fmt.Errorf("validator not found for validation ID %s", validationID)
+		}
 		if err != nil {
 			return fmt.Errorf("failed to get uptime for validation ID %s: %w", validationID, err)
 		}
@@ -54,19 +57,17 @@ func (api *ValidatorsAPI) GetCurrentValidators(_ *http.Request, req *client.GetC
 		var uptimePercentage float32
 		var uptimeSeconds uint64
 
-		if found {
-			startTime := time.Unix(int64(validator.StartTime), 0)
-			bestPossibleUpDuration := lastUpdated.Sub(startTime)
-			if bestPossibleUpDuration == 0 {
-				uptimeFloat = 1
-			} else {
-				uptimeFloat = float64(upDuration) / float64(bestPossibleUpDuration)
-			}
-			// Transform this to a percentage (0-100) to make it consistent
-			// with currentValidators in PlatformVM API
-			uptimePercentage = float32(uptimeFloat * 100)
-			uptimeSeconds = uint64(upDuration.Seconds())
+		startTime := time.Unix(int64(validator.StartTime), 0)
+		bestPossibleUpDuration := lastUpdated.Sub(startTime)
+		if bestPossibleUpDuration == 0 {
+			uptimeFloat = 1
+		} else {
+			uptimeFloat = float64(upDuration) / float64(bestPossibleUpDuration)
 		}
+		// Transform this to a percentage (0-100) to make it consistent
+		// with currentValidators in PlatformVM API
+		uptimePercentage = float32(uptimeFloat * 100)
+		uptimeSeconds = uint64(upDuration.Seconds())
 
 		isConnected := api.vm.P2PValidators().Has(ctx, validator.NodeID)
 
