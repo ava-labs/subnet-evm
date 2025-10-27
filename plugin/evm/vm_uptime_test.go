@@ -32,17 +32,10 @@ func TestUptimeTracker(t *testing.T) {
 	}
 	startTime := uint64(time.Now().Unix())
 
+	// TODO(JonathanOppenheimer): see func NewTestValidatorState() -- this should be examined
+	// when we address the issue of that function.
 	makeValidatorState := func() *validatorstest.State {
 		return &validatorstest.State{
-			GetMinimumHeightF: func(context.Context) (uint64, error) {
-				return 0, nil
-			},
-			GetCurrentHeightF: func(context.Context) (uint64, error) {
-				return 0, nil
-			},
-			GetSubnetIDF: func(context.Context, ids.ID) (ids.ID, error) {
-				return ids.Empty, nil
-			},
 			GetCurrentValidatorSetF: func(context.Context, ids.ID) (map[ids.ID]*avagovalidators.GetCurrentValidatorOutput, uint64, error) {
 				return map[ids.ID]*avagovalidators.GetCurrentValidatorOutput{
 					testValidationIDs[0]: {
@@ -75,10 +68,7 @@ func TestUptimeTracker(t *testing.T) {
 		require := require.New(t)
 		ctx, dbManager, genesisBytes := setupGenesis(t, upgradetest.Latest)
 		ctx.ValidatorState = makeValidatorState()
-
 		appSender := &enginetest.Sender{T: t}
-		appSender.CantSendAppGossip = true
-		appSender.SendAppGossipF = func(context.Context, commonEng.SendConfig, []byte) error { return nil }
 
 		vm := &VM{}
 		require.NoError(vm.Initialize(
@@ -105,10 +95,7 @@ func TestUptimeTracker(t *testing.T) {
 		require := require.New(t)
 		ctx, dbManager, genesisBytes := setupGenesis(t, upgradetest.Latest)
 		ctx.ValidatorState = makeValidatorState()
-
 		appSender := &enginetest.Sender{T: t}
-		appSender.CantSendAppGossip = true
-		appSender.SendAppGossipF = func(context.Context, commonEng.SendConfig, []byte) error { return nil }
 
 		vm := &VM{}
 		require.NoError(vm.Initialize(
