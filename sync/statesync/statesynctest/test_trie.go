@@ -34,7 +34,7 @@ func GenerateTrie(t *testing.T, r *rand.Rand, trieDB *triedb.Database, numKeys i
 
 // FillTrie fills a given trie with [numKeys] random keys, each of size [keySize]
 // returns inserted keys and values
-func FillTrie(t *testing.T, _ *rand.Rand, start, numKeys int, keySize int, trieDB *triedb.Database, root common.Hash) (common.Hash, [][]byte, [][]byte) {
+func FillTrie(t *testing.T, r *rand.Rand, start, numKeys int, keySize int, trieDB *triedb.Database, root common.Hash) (common.Hash, [][]byte, [][]byte) {
 	testTrie, err := trie.New(trie.TrieID(root), trieDB)
 	if err != nil {
 		t.Fatalf("error creating trie: %v", err)
@@ -47,11 +47,11 @@ func FillTrie(t *testing.T, _ *rand.Rand, start, numKeys int, keySize int, trieD
 	for i := start; i < numKeys; i++ {
 		key := make([]byte, keySize)
 		binary.BigEndian.PutUint64(key[:wrappers.LongLen], uint64(i+1))
-		_, err := rand.Read(key[wrappers.LongLen:])
+		_, err := r.Read(key[wrappers.LongLen:])
 		require.NoError(t, err)
 
-		value := make([]byte, rand.Intn(128)+128) // min 128 bytes, max 256 bytes
-		_, err = rand.Read(value)
+		value := make([]byte, r.Intn(128)+128) // min 128 bytes, max 256 bytes
+		_, err = r.Read(value)
 		require.NoError(t, err)
 
 		testTrie.MustUpdate(key, value)
