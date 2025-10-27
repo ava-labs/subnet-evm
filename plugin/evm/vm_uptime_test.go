@@ -118,9 +118,6 @@ func TestUptimeTracker(t *testing.T) {
 			require.NoError(vm.uptimeTracker.Connect(nodeID))
 		}
 
-		// Manually call Sync to ensure state is updated after Connect
-		require.NoError(vm.uptimeTracker.Sync(context.Background()))
-
 		_, _, found, err := vm.uptimeTracker.GetUptime(testValidationIDs[0])
 		require.NoError(err)
 		require.True(found, "uptime should be tracked after validators are connected")
