@@ -39,10 +39,8 @@ func (api *ValidatorsAPI) GetCurrentValidators(httpReq *http.Request, req *clien
 	reply.Validators = make([]client.CurrentValidator, 0, len(validatorSet))
 	for validationID, validator := range validatorSet {
 		// Skip if specific nodeIDs were requested and this isn't one of them
-		if requestedNodeIDs.Len() > 0 {
-			if !requestedNodeIDs.Contains(validator.NodeID) {
-				continue
-			}
+		if requestedNodeIDs.Len() > 0 && !requestedNodeIDs.Contains(validator.NodeID) {
+			continue
 		}
 
 		upDuration, lastUpdated, found, err := api.vm.uptimeTracker.GetUptime(validationID)
