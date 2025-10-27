@@ -26,13 +26,14 @@ const (
 // LeafsRequest is a request to receive trie leaves at specified Root within Start and End byte range
 // Limit outlines maximum number of leaves to returns starting at Start
 // NodeType outlines which trie to read from state/atomic.
+// NOTE: NodeType is not serialized to avoid breaking changes. We rely on the single used node type (StateTrieNode).
 type LeafsRequest struct {
 	Root     common.Hash `serialize:"true"`
 	Account  common.Hash `serialize:"true"`
 	Start    []byte      `serialize:"true"`
 	End      []byte      `serialize:"true"`
 	Limit    uint16      `serialize:"true"`
-	NodeType NodeType    `serialize:"true"`
+	NodeType NodeType    `serialize:"false"`
 }
 
 func (l LeafsRequest) String() string {
