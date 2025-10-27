@@ -69,7 +69,7 @@ func TestUptimeTracker(t *testing.T) {
 		require.False(found, "uptime should not be tracked yet")
 	})
 
-	t.Run("uptime tracked after NormalOp and Connect", func(t *testing.T) {
+	t.Run("uptime tracked after NormalOp", func(t *testing.T) {
 		require := require.New(t)
 		ctx, dbManager, genesisBytes := setupGenesis(t, upgradetest.Latest)
 		ctx.ValidatorState = makeValidatorState()
@@ -91,11 +91,10 @@ func TestUptimeTracker(t *testing.T) {
 		require.NoError(vm.SetState(context.Background(), snow.Bootstrapping))
 		require.NoError(vm.SetState(context.Background(), snow.NormalOp))
 
-		// Connect the validators to start tracking their uptime
-		require.NoError(vm.uptimeTracker.Connect(testNodeID))
-
+		// After transitioning to NormalOp, Sync() is called automatically to populate uptime
+		// from validator state
 		_, _, found, err := vm.uptimeTracker.GetUptime(testValidationID)
 		require.NoError(err)
-		require.True(found, "uptime should be tracked after validators are connected")
+		require.True(found, "uptime should be tracked after transitioning to NormalOp")
 	})
 }
