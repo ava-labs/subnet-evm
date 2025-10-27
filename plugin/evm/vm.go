@@ -778,6 +778,10 @@ func (vm *VM) onNormalOperationsStarted() error {
 	vm.cancel = cancel
 
 	// immediately sync the uptime tracker once
+	// This ensures uptime data is available immediately when normal operations start,
+	// rather than waiting for the async goroutine to run. The async goroutine runs
+	// on a ticker and may not execute immediately, causing API calls to return
+	// empty uptime data if called before the first async sync completes.
 	vm.uptimeTracker.Sync(ctx)
 
 	vm.shutdownWg.Add(1)
