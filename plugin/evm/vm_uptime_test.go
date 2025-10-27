@@ -42,59 +42,36 @@ func TestUptimeTracker(t *testing.T) {
 		}
 	}
 
-	t.Run("uptime not tracked before NormalOp", func(t *testing.T) {
-		require := require.New(t)
-		ctx, dbManager, genesisBytes := setupGenesis(t, upgradetest.Latest)
-		ctx.ValidatorState = makeValidatorState()
-		appSender := &enginetest.Sender{T: t}
+	require := require.New(t)
+	ctx, dbManager, genesisBytes := setupGenesis(t, upgradetest.Latest)
+	ctx.ValidatorState = makeValidatorState()
+	appSender := &enginetest.Sender{T: t}
 
-		vm := &VM{}
-		require.NoError(vm.Initialize(
-			context.Background(),
-			ctx,
-			dbManager,
-			genesisBytes,
-			[]byte(""),
-			[]byte(""),
-			[]*commonEng.Fx{},
-			appSender,
-		))
-		defer vm.Shutdown(context.Background())
+	vm := &VM{}
+	require.NoError(vm.Initialize(
+		context.Background(),
+		ctx,
+		dbManager,
+		genesisBytes,
+		[]byte(""),
+		[]byte(""),
+		[]*commonEng.Fx{},
+		appSender,
+	))
+	defer vm.Shutdown(context.Background())
 
-		require.NoError(vm.SetState(context.Background(), snow.Bootstrapping))
+	require.NoError(vm.SetState(context.Background(), snow.Bootstrapping))
 
-		// After bootstrapping but before NormalOp, uptimeTracker hasn't started syncing yet
-		_, _, found, err := vm.uptimeTracker.GetUptime(testValidationID)
-		require.NoError(err)
-		require.False(found, "uptime should not be tracked yet")
-	})
+	// After bootstrapping but before NormalOp, uptimeTracker hasn't started syncing yet
+	_, _, found, err := vm.uptimeTracker.GetUptime(testValidationID)
+	require.NoError(err)
+	require.False(found, "uptime should not be tracked yet")
 
-	t.Run("uptime tracked after NormalOp", func(t *testing.T) {
-		require := require.New(t)
-		ctx, dbManager, genesisBytes := setupGenesis(t, upgradetest.Latest)
-		ctx.ValidatorState = makeValidatorState()
-		appSender := &enginetest.Sender{T: t}
+	require.NoError(vm.SetState(context.Background(), snow.NormalOp))
 
-		vm := &VM{}
-		require.NoError(vm.Initialize(
-			context.Background(),
-			ctx,
-			dbManager,
-			genesisBytes,
-			[]byte(""),
-			[]byte(""),
-			[]*commonEng.Fx{},
-			appSender,
-		))
-		defer vm.Shutdown(context.Background())
-
-		require.NoError(vm.SetState(context.Background(), snow.Bootstrapping))
-		require.NoError(vm.SetState(context.Background(), snow.NormalOp))
-
-		// After transitioning to NormalOp, Sync() is called automatically to populate uptime
-		// from validator state
-		_, _, found, err := vm.uptimeTracker.GetUptime(testValidationID)
-		require.NoError(err)
-		require.True(found, "uptime should be tracked after transitioning to NormalOp")
-	})
+	// After transitioning to NormalOp, Sync() is called automatically to populate uptime
+	// from validator state
+	_, _, found, err = vm.uptimeTracker.GetUptime(testValidationID)
+	require.NoError(err)
+	require.True(found, "uptime should be tracked after transitioning to NormalOp")
 }
