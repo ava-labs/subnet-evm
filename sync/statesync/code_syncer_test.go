@@ -63,11 +63,7 @@ func testCodeSyncer(t *testing.T, test codeSyncerTest) {
 
 	for _, codeHashes := range test.codeRequestHashes {
 		if err := codeSyncer.addCode(codeHashes); err != nil {
-			if test.err == nil {
-				t.Fatal(err)
-			} else {
-				require.ErrorIs(t, err, test.err)
-			}
+			require.ErrorIs(t, err, test.err)
 		}
 	}
 	codeSyncer.notifyAccountTrieCompleted()
