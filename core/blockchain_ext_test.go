@@ -6,6 +6,9 @@ package core
 import (
 	"fmt"
 	"math/big"
+	"os"
+	"path/filepath"
+	"slices"
 	"testing"
 
 	"github.com/ava-labs/libevm/common"
@@ -138,6 +141,30 @@ func copyMemDB(db ethdb.Database) (ethdb.Database, error) {
 	return newDB, nil
 }
 
+// This copies all files from a flat directory [src] to a new temporary directory and returns
+// the path to the new directory.
+func copyFlatDir(t *testing.T, src string) string {
+	t.Helper()
+	if src == "" {
+		return ""
+	}
+
+	dst := t.TempDir()
+	ents, err := os.ReadDir(src)
+	require.NoError(t, err)
+
+	for _, e := range ents {
+		require.False(t, e.IsDir(), "expected flat directory")
+		name := e.Name()
+		data, err := os.ReadFile(filepath.Join(src, name))
+		require.NoError(t, err)
+		info, err := e.Info()
+		require.NoError(t, err)
+		require.NoError(t, os.WriteFile(filepath.Join(dst, name), data, info.Mode().Perm()))
+	}
+	return dst
+}
+
 // checkBlockChainState creates a new BlockChain instance and checks that exporting each block from
 // genesis to last accepted from the original instance yields the same last accepted block and state
 // root.
@@ -204,7 +231,8 @@ func checkBlockChainState(
 	if err != nil {
 		t.Fatal(err)
 	}
-	restartedChain, err := create(originalDB, gspec, lastAcceptedBlock.Hash(), oldChainDataDir)
+	newChainDataDir := copyFlatDir(t, oldChainDataDir)
+	restartedChain, err := create(originalDB, gspec, lastAcceptedBlock.Hash(), newChainDataDir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -241,7 +269,7 @@ func InsertChainAcceptSingleBlock(t *testing.T, create createFunc) {
 	genesisBalance := big.NewInt(1000000)
 	gspec := &Genesis{
 		Config: &params.ChainConfig{HomesteadBlock: new(big.Int)},
-		Alloc:  GenesisAlloc{addr1: {Balance: genesisBalance}},
+		Alloc:  types.GenesisAlloc{addr1: {Balance: genesisBalance}},
 	}
 	blockchain, err := create(chainDB, gspec, common.Hash{}, t.TempDir())
 	if err != nil {
@@ -718,7 +746,7 @@ func BuildOnVariousStages(t *testing.T, create createFunc) {
 	genesisBalance := big.NewInt(1000000)
 	gspec := &Genesis{
 		Config: &params.ChainConfig{HomesteadBlock: new(big.Int)},
-		Alloc: GenesisAlloc{
+		Alloc: types.GenesisAlloc{
 			addr1: {Balance: genesisBalance},
 			addr3: {Balance: genesisBalance},
 		},
@@ -875,7 +903,7 @@ func EmptyBlocks(t *testing.T, create createFunc) {
 
 	gspec := &Genesis{
 		Config: &params.ChainConfig{HomesteadBlock: new(big.Int)},
-		Alloc:  GenesisAlloc{},
+		Alloc:  types.GenesisAlloc{},
 	}
 
 	blockchain, err := create(chainDB, gspec, common.Hash{}, t.TempDir())
@@ -1396,7 +1424,7 @@ func GenerateChainInvalidBlockFee(t *testing.T, create createFunc) {
 	genesisBalance := new(big.Int).Mul(big.NewInt(1000000), big.NewInt(params.Ether))
 	gspec := &Genesis{
 		Config: params.TestFortunaChainConfig,
-		Alloc:  GenesisAlloc{addr1: {Balance: genesisBalance}},
+		Alloc:  types.GenesisAlloc{addr1: {Balance: genesisBalance}},
 	}
 
 	blockchain, err := create(chainDB, gspec, common.Hash{}, t.TempDir())
@@ -1437,7 +1465,7 @@ func InsertChainInvalidBlockFee(t *testing.T, create createFunc) {
 	genesisBalance := new(big.Int).Mul(big.NewInt(1000000), big.NewInt(params.Ether))
 	gspec := &Genesis{
 		Config: params.TestFortunaChainConfig,
-		Alloc:  GenesisAlloc{addr1: {Balance: genesisBalance}},
+		Alloc:  types.GenesisAlloc{addr1: {Balance: genesisBalance}},
 	}
 
 	blockchain, err := create(chainDB, gspec, common.Hash{}, t.TempDir())
@@ -1570,7 +1598,7 @@ func StatefulPrecompiles(t *testing.T, create createFunc) {
 	}
 	gspec := &Genesis{
 		Config: &config,
-		Alloc:  GenesisAlloc{addr1: {Balance: genesisBalance}},
+		Alloc:  types.GenesisAlloc{addr1: {Balance: genesisBalance}},
 	}
 
 	blockchain, err := create(chainDB, gspec, common.Hash{}, t.TempDir())
@@ -1853,7 +1881,7 @@ func ReexecBlocks(t *testing.T, create ReexecTestFunc) {
 
 	newChain, restartedChain := checkBlockChainState(t, blockchain, gspec, chainDB, checkCreate, checkState)
 
-	allTxs := append(foundTxs, missingTxs...)
+	allTxs := slices.Concat(foundTxs, missingTxs)
 	for _, bc := range []*BlockChain{newChain, restartedChain} {
 		// We should confirm that snapshots were properly initialized
 		if bc.snaps == nil && bc.cacheConfig.SnapshotLimit > 0 {
@@ -1985,7 +2013,7 @@ func ReexecMaxBlocks(t *testing.T, create ReexecTestFunc) {
 	}
 	newChain, restartedChain := checkBlockChainState(t, blockchain, gspec, chainDB, checkCreate, checkState)
 
-	allTxs := append(foundTxs, missingTxs...)
+	allTxs := slices.Concat(foundTxs, missingTxs)
 	for _, bc := range []*BlockChain{newChain, restartedChain} {
 		// We should confirm that snapshots were properly initialized
 		if bc.snaps == nil && bc.cacheConfig.SnapshotLimit > 0 {
