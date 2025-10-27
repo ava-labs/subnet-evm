@@ -20,16 +20,8 @@ import (
 )
 
 func TestUptimeTracker(t *testing.T) {
-	testNodeIDs := []ids.NodeID{
-		ids.GenerateTestNodeID(),
-		ids.GenerateTestNodeID(),
-		ids.GenerateTestNodeID(),
-	}
-	testValidationIDs := []ids.ID{
-		ids.GenerateTestID(),
-		ids.GenerateTestID(),
-		ids.GenerateTestID(),
-	}
+	testNodeID := ids.GenerateTestNodeID()
+	testValidationID := ids.GenerateTestID()
 	startTime := uint64(time.Now().Unix())
 
 	// TODO(JonathanOppenheimer): see func NewTestValidatorState() -- this should be examined
@@ -38,22 +30,8 @@ func TestUptimeTracker(t *testing.T) {
 		return &validatorstest.State{
 			GetCurrentValidatorSetF: func(context.Context, ids.ID) (map[ids.ID]*avagovalidators.GetCurrentValidatorOutput, uint64, error) {
 				return map[ids.ID]*avagovalidators.GetCurrentValidatorOutput{
-					testValidationIDs[0]: {
-						NodeID:    testNodeIDs[0],
-						PublicKey: nil,
-						Weight:    1,
-						StartTime: startTime,
-						IsActive:  true,
-					},
-					testValidationIDs[1]: {
-						NodeID:    testNodeIDs[1],
-						PublicKey: nil,
-						Weight:    1,
-						StartTime: startTime,
-						IsActive:  true,
-					},
-					testValidationIDs[2]: {
-						NodeID:    testNodeIDs[2],
+					testValidationID: {
+						NodeID:    testNodeID,
 						PublicKey: nil,
 						Weight:    1,
 						StartTime: startTime,
@@ -86,7 +64,7 @@ func TestUptimeTracker(t *testing.T) {
 		require.NoError(vm.SetState(context.Background(), snow.Bootstrapping))
 
 		// After bootstrapping but before NormalOp, uptimeTracker hasn't started syncing yet
-		_, _, found, err := vm.uptimeTracker.GetUptime(testValidationIDs[0])
+		_, _, found, err := vm.uptimeTracker.GetUptime(testValidationID)
 		require.NoError(err)
 		require.False(found, "uptime should not be tracked yet")
 	})
@@ -114,11 +92,9 @@ func TestUptimeTracker(t *testing.T) {
 		require.NoError(vm.SetState(context.Background(), snow.NormalOp))
 
 		// Connect the validators to start tracking their uptime
-		for _, nodeID := range testNodeIDs {
-			require.NoError(vm.uptimeTracker.Connect(nodeID))
-		}
+		require.NoError(vm.uptimeTracker.Connect(testNodeID))
 
-		_, _, found, err := vm.uptimeTracker.GetUptime(testValidationIDs[0])
+		_, _, found, err := vm.uptimeTracker.GetUptime(testValidationID)
 		require.NoError(err)
 		require.True(found, "uptime should be tracked after validators are connected")
 	})

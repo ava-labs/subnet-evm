@@ -302,16 +302,9 @@ func TestUptimeSignatures(t *testing.T) {
 		}
 
 		// Create a validator state that includes our test validator
+		// TODO(JonathanOppenheimer): see func NewTestValidatorState() -- this should be examined
+		// when we address the issue of that function.
 		validatorState := &validatorstest.State{
-			GetMinimumHeightF: func(context.Context) (uint64, error) {
-				return 0, nil
-			},
-			GetCurrentHeightF: func(context.Context) (uint64, error) {
-				return 0, nil
-			},
-			GetSubnetIDF: func(context.Context, ids.ID) (ids.ID, error) {
-				return snowCtx.SubnetID, nil
-			},
 			GetCurrentValidatorSetF: func(context.Context, ids.ID) (map[ids.ID]*validators.GetCurrentValidatorOutput, uint64, error) {
 				return map[ids.ID]*validators.GetCurrentValidatorOutput{
 					validationID: {
