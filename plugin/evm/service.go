@@ -44,16 +44,14 @@ func (api *ValidatorsAPI) GetCurrentValidators(httpReq *http.Request, req *clien
 		}
 
 		upDuration, lastUpdated, found, err := api.vm.uptimeTracker.GetUptime(validationID)
-		if !found {
-			return fmt.Errorf("validator not found for validation ID %s", validationID)
-		}
 		if err != nil {
 			return fmt.Errorf("failed to get uptime for validation ID %s: %w", validationID, err)
 		}
+		if !found {
+			return fmt.Errorf("validator not found for validation ID %s", validationID)
+		}
 
 		var uptimeFloat float64
-		var uptimePercentage float32
-		var uptimeSeconds uint64
 
 		startTime := time.Unix(int64(validator.StartTime), 0)
 		bestPossibleUpDuration := lastUpdated.Sub(startTime)
@@ -64,8 +62,8 @@ func (api *ValidatorsAPI) GetCurrentValidators(httpReq *http.Request, req *clien
 		}
 		// Transform this to a percentage (0-100) to make it consistent
 		// with currentValidators in PlatformVM API
-		uptimePercentage = float32(uptimeFloat * 100)
-		uptimeSeconds = uint64(upDuration.Seconds())
+		uptimePercentage := float32(uptimeFloat * 100)
+		uptimeSeconds := uint64(upDuration.Seconds())
 
 		isConnected := api.vm.P2PValidators().Has(ctx, validator.NodeID)
 
