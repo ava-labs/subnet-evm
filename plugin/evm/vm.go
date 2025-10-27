@@ -780,7 +780,6 @@ func (vm *VM) onNormalOperationsStarted() error {
 	// immediately sync the uptime tracker once
 	vm.uptimeTracker.Sync(ctx)
 
-	// Start syncing validator set updates
 	vm.shutdownWg.Add(1)
 	go func() {
 		defer vm.shutdownWg.Done()
