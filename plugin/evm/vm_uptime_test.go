@@ -13,7 +13,6 @@ import (
 	"github.com/ava-labs/avalanchego/snow/engine/enginetest"
 	"github.com/ava-labs/avalanchego/snow/validators/validatorstest"
 	"github.com/ava-labs/avalanchego/upgrade/upgradetest"
-	"github.com/ava-labs/avalanchego/utils/timer/mockable"
 	"github.com/ava-labs/avalanchego/vms/evm/uptimetracker"
 	"github.com/stretchr/testify/require"
 
@@ -73,7 +72,7 @@ func TestUptimeTracker(t *testing.T) {
 
 	// After bootstrapping but before NormalOp, uptimeTracker hasn't started syncing yet
 	// so GetUptime should not be able to find the validation ID
-	_, _, err = vm.uptimeTracker.GetUptime(testValidationID)
+	_, _, err := vm.uptimeTracker.GetUptime(testValidationID)
 	require.ErrorIs(err, uptimetracker.ErrValidationIDNotFound)
 
 	require.NoError(vm.SetState(context.Background(), snow.NormalOp))
