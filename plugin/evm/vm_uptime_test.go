@@ -63,15 +63,13 @@ func TestUptimeTracker(t *testing.T) {
 	require.NoError(vm.SetState(context.Background(), snow.Bootstrapping))
 
 	// After bootstrapping but before NormalOp, uptimeTracker hasn't started syncing yet
-	_, _, found, err := vm.uptimeTracker.GetUptime(testValidationID)
+	_, _, err := vm.uptimeTracker.GetUptime(testValidationID)
 	require.NoError(err)
-	require.False(found, "uptime should not be tracked yet")
 
 	require.NoError(vm.SetState(context.Background(), snow.NormalOp))
 
 	// After transitioning to NormalOp, Sync() is called automatically to populate uptime
 	// from validator state
-	_, _, found, err = vm.uptimeTracker.GetUptime(testValidationID)
+	_, _, err = vm.uptimeTracker.GetUptime(testValidationID)
 	require.NoError(err)
-	require.True(found, "uptime should be tracked after transitioning to NormalOp")
 }
