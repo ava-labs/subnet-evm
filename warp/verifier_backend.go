@@ -115,7 +115,7 @@ func (b *backend) verifyUptimeMessage(uptimeMsg *messages.ValidatorUptime) *comm
 	if err != nil {
 		return &common.AppError{
 			Code:    VerifyErrCode,
-			Message: fmt.Sprintf("failed to get uptime: %s", err.Error()),
+			Message: "failed to get uptime: " + err.Error(),
 		}
 	}
 
