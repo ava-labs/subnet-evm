@@ -65,14 +65,9 @@ func TestUptimeTracker(t *testing.T) {
 	))
 	defer vm.Shutdown(context.Background())
 
-	// Replace the clock with a mockable one and recreate the uptime tracker;
-	// this allows us to control the time progression
-	var err error
-	clock := &mockable.Clock{}
+	// Mock the clock to control time progression
+	clock := vm.clock
 	clock.Set(baseTime)
-	vm.clock = clock
-	vm.uptimeTracker, err = uptimetracker.New(vm.ctx.ValidatorState, vm.ctx.SubnetID, vm.validatorsDB, clock)
-	require.NoError(err)
 
 	require.NoError(vm.SetState(context.Background(), snow.Bootstrapping))
 
