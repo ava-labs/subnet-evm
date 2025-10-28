@@ -18,16 +18,14 @@ export VERSION_RC=v0.7.3-rc.0
 export VERSION=v0.7.3
 ```
 
-Remember to use the appropriate versioning for your release.
+Remember to use the appropriate versioning for your release. 
 
 1. Create your branch, usually from the tip of the `master` branch:
-
     ```bash
     git fetch origin master
     git checkout master
     git checkout -b "releases/$VERSION_RC"
     ```
-
 2. Update the [RELEASES.md](../../RELEASES.md) file with the new release version `$VERSION`.
 3. Modify the [plugin/evm/version.go](../../plugin/evm/version.go) `Version` global string variable and set it to the desired `$VERSION`.
 4. Ensure the AvalancheGo version used in [go.mod](../../go.mod) is [its last release](https://github.com/ava-labs/avalanchego/releases). If not, upgrade it with, for example:
