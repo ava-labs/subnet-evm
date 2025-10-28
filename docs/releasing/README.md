@@ -21,20 +21,20 @@ export VERSION=v0.7.3
 Remember to use the appropriate versioning for your release. 
 
 1. Create your branch, usually from the tip of the `master` branch:
+
     ```bash
     git fetch origin master
     git checkout master
     git checkout -b "releases/$VERSION_RC"
     ```
+
 2. Update the [RELEASES.md](../../RELEASES.md) file with the new release version `$VERSION`.
 3. Modify the [plugin/evm/version.go](../../plugin/evm/version.go) `Version` global string variable and set it to the desired `$VERSION`.
 4. Ensure the AvalancheGo version used in [go.mod](../../go.mod) is [its last release](https://github.com/ava-labs/avalanchego/releases). If not, upgrade it with, for example:
-
     ```bash
       go get github.com/ava-labs/avalanchego@v1.13.0
       go mod tidy
     ```
-
     And fix any errors that may arise from the upgrade. If it requires significant changes, you may want to create a separate PR for the upgrade and wait for it to be merged before continuing with this procedure.
 
 5. Add an entry in the object in [compatibility.json](../../compatibility.json), adding the target release `$VERSION` as key and the AvalancheGo RPC chain VM protocol version as value, to the `"rpcChainVMProtocolVersion"` JSON object. For example, we would add:
