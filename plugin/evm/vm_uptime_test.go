@@ -31,11 +31,13 @@ func TestUptimeTracker(t *testing.T) {
 			GetCurrentValidatorSetF: func(context.Context, ids.ID) (map[ids.ID]*avagovalidators.GetCurrentValidatorOutput, uint64, error) {
 				return map[ids.ID]*avagovalidators.GetCurrentValidatorOutput{
 					testValidationID: {
-						NodeID:    testNodeID,
-						PublicKey: nil,
-						Weight:    1,
-						StartTime: startTime,
-						IsActive:  true,
+						ValidationID:  testValidationID,
+						NodeID:        testNodeID,
+						PublicKey:     nil,
+						Weight:        1,
+						StartTime:     startTime,
+						IsActive:      true,
+						IsL1Validator: true,
 					},
 				}, 0, nil
 			},
@@ -63,13 +65,14 @@ func TestUptimeTracker(t *testing.T) {
 	require.NoError(vm.SetState(context.Background(), snow.Bootstrapping))
 
 	// After bootstrapping but before NormalOp, uptimeTracker hasn't started syncing yet
+	// so GetUptime should return an error
 	_, _, err := vm.uptimeTracker.GetUptime(testValidationID)
-	require.NoError(err)
+	require.Error(err)
 
 	require.NoError(vm.SetState(context.Background(), snow.NormalOp))
 
 	// After transitioning to NormalOp, Sync() is called automatically to populate uptime
-	// from validator state
+	// from validator state, so GetUptime should work now
 	_, _, err = vm.uptimeTracker.GetUptime(testValidationID)
 	require.NoError(err)
 }
