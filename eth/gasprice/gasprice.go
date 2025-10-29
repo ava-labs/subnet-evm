@@ -44,7 +44,6 @@ import (
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/plugin/evm/customheader"
 	"github.com/ava-labs/subnet-evm/plugin/evm/upgrade/legacy"
-	"github.com/ava-labs/subnet-evm/precompile/contracts/feemanager"
 	"github.com/ava-labs/subnet-evm/rpc"
 	"golang.org/x/exp/slices"
 )
@@ -282,15 +281,6 @@ func (oracle *Oracle) suggestTip(ctx context.Context) (*big.Int, error) {
 		return nil, err
 	}
 
-	chainConfig := params.GetExtra(oracle.backend.ChainConfig())
-	var feeLastChangedAt *big.Int
-	if chainConfig.IsPrecompileEnabled(feemanager.ContractAddress, head.Time) {
-		_, feeLastChangedAt, err = oracle.backend.GetFeeConfigAt(head)
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	headHash := head.Hash()
 
 	// If the latest gasprice is still available, return it.
@@ -319,13 +309,6 @@ func (oracle *Oracle) suggestTip(ctx context.Context) (*big.Int, error) {
 
 	if uint64(oracle.checkBlocks) <= latestBlockNumber {
 		lowerBlockNumberLimit = latestBlockNumber - uint64(oracle.checkBlocks)
-	}
-
-	// if fee config has changed at a more recent block, it should be the lower limit
-	if feeLastChangedAt != nil {
-		if lowerBlockNumberLimit < feeLastChangedAt.Uint64() {
-			lowerBlockNumberLimit = feeLastChangedAt.Uint64()
-		}
 	}
 
 	// Process block headers in the range calculated for this gas price estimation.
