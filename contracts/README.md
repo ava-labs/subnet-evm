@@ -12,9 +12,18 @@ The goal of this guide is to lay out best practices regarding writing, testing a
 
 ## Prerequisites
 
-### NodeJS and NPM
+### Go
 
-First, install the LTS (long-term support) version of [nodejs](https://nodejs.org/en). This is `18.16.0` at the time of writing. NodeJS bundles `npm`.
+This project requires Go 1.21 or later. Install from [golang.org](https://golang.org/dl/).
+
+### Solidity Compiler (solc)
+
+The Solidity compiler version 0.8.30 is required to compile contracts. In CI, this is installed automatically via the [setup-solc](https://github.com/ARR4N/setup-solc) GitHub Action.
+
+For local development, you can install solc via:
+- **macOS**: `brew install solidity` (or `brew install solidity@0.8` for version 0.8.x)
+- **Linux**: Follow instructions at [solidity docs](https://docs.soliditylang.org/en/latest/installing-solidity.html)
+- **CI**: Automatically installed via GitHub Actions (version 0.8.30)
 
 ### Solidity and Avalanche
 
@@ -22,12 +31,38 @@ It is also helpful to have a basic understanding of [Solidity](https://docs.soli
 
 ## Dependencies
 
-Clone the repo and install the necessary packages via `yarn`.
+Clone the repo and initialize submodules:
 
 ```bash
 git clone https://github.com/ava-labs/subnet-evm.git
+cd subnet-evm
+git submodule update --init --recursive
+```
+
+## Compiling Contracts
+
+Contracts are compiled using `solc` directly, and Go bindings are generated using `abigen` from [libevm](https://github.com/ava-labs/libevm).
+
+From the repository root, run:
+
+```bash
+./scripts/run_task.sh setup-contracts
+```
+
+This will:
+1. Compile all Solidity contracts in `contracts/contracts/` to ABIs and bytecode
+2. Generate Go bindings in `contracts/bindings/`
+
+The compilation artifacts are stored in `contracts/artifacts/` (gitignored).
+
+### Manual Compilation
+
+To manually compile contracts:
+
+```bash
 cd contracts
-npm install
+go generate ./compile.go      # Compile Solidity contracts
+go generate ./bindings/bindings.go  # Generate Go bindings
 ```
 
 ## Write Contracts

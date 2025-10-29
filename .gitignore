@@ -61,3 +61,8 @@ diffs/
 avalanchego/
 
 .direnv
+
+# Contract compilation artifacts and generated bindings
+contracts/artifacts/
+contracts/bindings/*.go
+!contracts/bindings/bindings.go
