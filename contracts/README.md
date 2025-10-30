@@ -43,6 +43,8 @@ git submodule update --init --recursive
 
 Contracts are compiled using `solc` directly, and Go bindings are generated using `abigen` from [libevm](https://github.com/ava-labs/libevm).
 
+OpenZeppelin contracts are included as a git submodule at `contracts/lib/openzeppelin-contracts/` (pinned to v5.4.0).
+
 From the repository root, run:
 
 ```bash

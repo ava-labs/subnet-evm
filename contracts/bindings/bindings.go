@@ -8,7 +8,6 @@ package bindings
 //go:generate go run github.com/ava-labs/libevm/cmd/abigen --pkg bindings --type AllowList --abi ../artifacts/AllowList.abi --bin ../artifacts/AllowList.bin --out allowlist.go
 //go:generate go run github.com/ava-labs/libevm/cmd/abigen --pkg bindings --type ERC20NativeMinter --abi ../artifacts/ERC20NativeMinter.abi --bin ../artifacts/ERC20NativeMinter.bin --out erc20nativeminter.go
 //go:generate go run github.com/ava-labs/libevm/cmd/abigen --pkg bindings --type ExampleDeployerList --abi ../artifacts/ExampleDeployerList.abi --bin ../artifacts/ExampleDeployerList.bin --out exampledeployerlist.go
-//go:generate go run github.com/ava-labs/libevm/cmd/abigen --pkg bindings --type Example --abi ../artifacts/Example.abi --bin ../artifacts/Example.bin --out example.go
 //go:generate go run github.com/ava-labs/libevm/cmd/abigen --pkg bindings --type ExampleFeeManager --abi ../artifacts/ExampleFeeManager.abi --bin ../artifacts/ExampleFeeManager.bin --out examplefeemanager.go
 //go:generate go run github.com/ava-labs/libevm/cmd/abigen --pkg bindings --type ExampleRewardManager --abi ../artifacts/ExampleRewardManager.abi --bin ../artifacts/ExampleRewardManager.bin --out examplerewardmanager.go
 //go:generate go run github.com/ava-labs/libevm/cmd/abigen --pkg bindings --type ExampleTxAllowList --abi ../artifacts/ExampleTxAllowList.abi --bin ../artifacts/ExampleTxAllowList.bin --out exampletxallowlist.go
