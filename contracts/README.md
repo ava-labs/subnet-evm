@@ -63,7 +63,7 @@ To manually compile contracts:
 
 ```bash
 cd contracts
-go generate ./compile.go      # Compile Solidity contracts
+go generate ./contracts/compile.go  # Compile Solidity contracts
 go generate ./bindings/bindings.go  # Generate Go bindings
 ```
 
