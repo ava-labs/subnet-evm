@@ -5,14 +5,7 @@
 // This file contains go:generate directives to compile Solidity contracts using solc.
 package contracts
 
-// Compile main contracts
-//go:generate solc -o ./artifacts --overwrite --abi --bin --base-path . contracts/AllowList.sol @openzeppelin/contracts/=submodules/openzeppelin-contracts/contracts/
-//go:generate solc -o ./artifacts --overwrite --abi --bin --base-path . contracts/ERC20NativeMinter.sol @openzeppelin/contracts/=submodules/openzeppelin-contracts/contracts/
-//go:generate solc -o ./artifacts --overwrite --abi --bin --base-path . contracts/ExampleDeployerList.sol @openzeppelin/contracts/=submodules/openzeppelin-contracts/contracts/
-//go:generate solc -o ./artifacts --overwrite --abi --bin --base-path . contracts/ExampleFeeManager.sol @openzeppelin/contracts/=submodules/openzeppelin-contracts/contracts/
-//go:generate solc -o ./artifacts --overwrite --abi --bin --base-path . contracts/ExampleRewardManager.sol @openzeppelin/contracts/=submodules/openzeppelin-contracts/contracts/
-//go:generate solc -o ./artifacts --overwrite --abi --bin --base-path . contracts/ExampleTxAllowList.sol @openzeppelin/contracts/=submodules/openzeppelin-contracts/contracts/
-//go:generate solc -o ./artifacts --overwrite --abi --bin --base-path . contracts/ExampleWarp.sol @openzeppelin/contracts/=submodules/openzeppelin-contracts/contracts/
+//go:generate solc -o ./artifacts --overwrite --abi --bin --base-path . @openzeppelin/contracts/=submodules/openzeppelin-contracts/contracts/ contracts/AllowList.sol contracts/ERC20NativeMinter.sol contracts/ExampleDeployerList.sol contracts/ExampleFeeManager.sol contracts/ExampleRewardManager.sol contracts/ExampleTxAllowList.sol contracts/ExampleWarp.sol
 
 // Compile interface contracts
 //go:generate solc -o ./artifacts --overwrite --abi --bin --base-path . contracts/interfaces/IAllowList.sol @openzeppelin/contracts/=submodules/openzeppelin-contracts/contracts/

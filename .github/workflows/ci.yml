@@ -67,7 +67,7 @@ jobs:
       - name: Set up solc
         uses: ARR4N/setup-solc@v0.2.0
         with:
-          version: '0.8.30'
+          versions: '0.8.30'
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
@@ -96,7 +96,7 @@ jobs:
       - name: Set up solc
         uses: ARR4N/setup-solc@v0.2.0
         with:
-          version: '0.8.30'
+          versions: '0.8.30'
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
