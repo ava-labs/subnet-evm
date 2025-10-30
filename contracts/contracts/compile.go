@@ -5,4 +5,4 @@
 // This file contains go:generate directives to compile Solidity contracts using solc.
 package contracts
 
-//go:generate solc-v0.8.30 -o ../artifacts --overwrite --abi --bin --base-path .. @openzeppelin/contracts/=../lib/openzeppelin-contracts/contracts/ AllowList.sol ERC20NativeMinter.sol ExampleDeployerList.sol ExampleFeeManager.sol ExampleRewardManager.sol ExampleTxAllowList.sol ExampleWarp.sol
+//go:generate solc-v0.8.30 -o ../artifacts --overwrite --abi --bin --base-path . @openzeppelin/contracts/=../lib/openzeppelin-contracts/contracts/ AllowList.sol ERC20NativeMinter.sol ExampleDeployerList.sol ExampleFeeManager.sol ExampleRewardManager.sol ExampleTxAllowList.sol ExampleWarp.sol
