@@ -62,7 +62,5 @@ avalanchego/
 
 .direnv
 
-# Contract compilation artifacts and generated bindings
+# Contract compilation artifacts (binary files are not committed)
 contracts/artifacts/
-contracts/bindings/*.go
-!contracts/bindings/bindings.go
