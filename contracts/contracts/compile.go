@@ -1,8 +1,6 @@
 // Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-// Package contracts provides contract compilation directives.
-// This file contains go:generate directives to compile Solidity contracts using solc.
 package contracts
 
 // Step 1: Compile Solidity contracts to generate ABI and bin files
