@@ -131,7 +131,8 @@ tasks:
       - cmd: npx hardhat clean
       - cmd: npx hardhat compile
       # New: Compile contracts with solc and generate Go bindings
-      - cmd: go generate ./...
+      - cmd: go generate ./contracts/compile.go
+      - cmd: go generate ./bindings/bindings.go
 
   shellcheck:
     desc: Run shellcheck static analysis on all shell scripts with version management
