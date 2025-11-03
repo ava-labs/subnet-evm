@@ -23,4 +23,4 @@ if [ -n "${GINKGO_LABEL_FILTER:-}" ]; then
   LABEL_FILTER_FLAG="--label-filter=${GINKGO_LABEL_FILTER}"
 fi
 
-TEST_SOURCE_ROOT="$TEST_SOURCE_ROOT" "${SUBNET_EVM_PATH}"/bin/ginkgo run -procs=5 --vv ${LABEL_FILTER_FLAG} tests/precompile
+TEST_SOURCE_ROOT="$TEST_SOURCE_ROOT" "${SUBNET_EVM_PATH}"/bin/ginkgo run -procs=5 --vv "${LABEL_FILTER_FLAG}" tests/precompile
