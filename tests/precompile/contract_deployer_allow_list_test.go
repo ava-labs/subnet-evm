@@ -61,7 +61,9 @@ func init() {
 		})
 
 		ginkgo.It("should emit RoleSet event when setting admin role", func() {
-			testAddress := common.HexToAddress("0x0111000000000000000000000000000000000001")
+			// TODO: revert to using the TypeScript address for this after migration (ensures OldRole is None)
+			// testAddress := common.HexToAddress("0x0111000000000000000000000000000000000001")
+			testAddress := common.HexToAddress("0x1111111111111111111111111111111111111111")
 
 			tx, err := allowList.SetAdmin(backend.Admin.Auth, testAddress)
 			require.NoError(err)
@@ -80,7 +82,9 @@ func init() {
 		})
 
 		ginkgo.It("should emit RoleSet event when setting manager role", func() {
-			testAddress := common.HexToAddress("0x0222000000000000000000000000000000000002")
+			// TODO: revert to using the TypeScript address for this after migration (ensures OldRole is None)
+			// testAddress := common.HexToAddress("0x0222000000000000000000000000000000000002")
+			testAddress := common.HexToAddress("0x2222222222222222222222222222222222222222")
 
 			tx, err := allowList.SetManager(backend.Admin.Auth, testAddress)
 			require.NoError(err)
