@@ -14,6 +14,10 @@ import (
 	ginkgo "github.com/onsi/ginkgo/v2"
 )
 
+// SubnetsSuite is the shared subnet suite for all precompile tests
+// Exported so Go tests can access it
+var SubnetsSuite *utils.SubnetSuite
+
 // Registers the Asynchronized Precompile Tests
 // Before running the tests, this function creates all subnets given in the genesis files
 // and then runs the hardhat tests for each one asynchronously if called with `ginkgo run -procs=`.
@@ -27,7 +31,8 @@ func RegisterAsyncTests() {
 	if len(genesisFiles) == 0 {
 		ginkgo.AbortSuite("No genesis files found")
 	}
-	subnetsSuite := utils.CreateSubnetsSuite(genesisFiles)
+	SubnetsSuite = utils.CreateSubnetsSuite(genesisFiles)
+	subnetsSuite := SubnetsSuite
 
 	timeout := 3 * time.Minute
 	_ = ginkgo.Describe("[Asynchronized Precompile Tests]", func() {

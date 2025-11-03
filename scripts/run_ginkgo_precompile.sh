@@ -17,6 +17,10 @@ TEST_SOURCE_ROOT=$(pwd)
 # By default, it runs all e2e test cases!
 # Use "--ginkgo.skip" to skip tests.
 # Use "--ginkgo.focus" to select tests.
-TEST_SOURCE_ROOT="$TEST_SOURCE_ROOT" "${SUBNET_EVM_PATH}"/bin/ginkgo run -procs=5 tests/precompile \
-  --ginkgo.vv \
-  --ginkgo.label-filter="${GINKGO_LABEL_FILTER:-""}"
+# Use GINKGO_LABEL_FILTER environment variable to filter by label (e.g., GINKGO_LABEL_FILTER="Go")
+LABEL_FILTER_FLAG=""
+if [ -n "${GINKGO_LABEL_FILTER:-}" ]; then
+  LABEL_FILTER_FLAG="--label-filter=${GINKGO_LABEL_FILTER}"
+fi
+
+TEST_SOURCE_ROOT="$TEST_SOURCE_ROOT" "${SUBNET_EVM_PATH}"/bin/ginkgo run -procs=5 --vv ${LABEL_FILTER_FLAG} tests/precompile
