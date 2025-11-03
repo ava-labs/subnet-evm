@@ -12,8 +12,9 @@ import (
 	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/libevm/crypto"
 	"github.com/ava-labs/libevm/ethclient"
-	"github.com/ava-labs/subnet-evm/contracts/bindings"
 	"github.com/stretchr/testify/require"
+
+	"github.com/ava-labs/subnet-evm/contracts/bindings"
 )
 
 // TmpnetBackend wraps an ethclient connection to a tmpnet subnet

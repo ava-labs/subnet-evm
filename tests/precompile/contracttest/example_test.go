@@ -6,8 +6,9 @@ package contracttest
 import (
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/contracts/bindings"
 	"github.com/stretchr/testify/require"
+
+	"github.com/ava-labs/subnet-evm/contracts/bindings"
 )
 
 // TestExampleDeployment demonstrates the test infrastructure

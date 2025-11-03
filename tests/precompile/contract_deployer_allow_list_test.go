@@ -9,10 +9,12 @@ import (
 	"github.com/ava-labs/libevm/accounts/abi/bind"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/types"
+
 	"github.com/ava-labs/subnet-evm/contracts/bindings"
 	"github.com/ava-labs/subnet-evm/tests/precompile/contracttest"
 	"github.com/ava-labs/subnet-evm/tests/precompile/solidity"
 	"github.com/ava-labs/subnet-evm/tests/utils"
+
 	ginkgo "github.com/onsi/ginkgo/v2"
 	requirePkg "github.com/stretchr/testify/require"
 )
