@@ -56,9 +56,6 @@ func NewTmpnetBackendSimple(rpcURL string) *TmpnetBackend {
 			panic("failed to create transactor: " + err.Error())
 		}
 
-		// Leave Nonce as nil so the binding fetches it automatically for each transaction
-		// This is essential for parallel tests to avoid nonce conflicts
-
 		account := &TestAccount{
 			Key:     key,
 			Address: addr,
@@ -105,9 +102,6 @@ func NewTmpnetBackend(t testing.TB, rpcURL string) *TmpnetBackend {
 
 		auth, err := bind.NewKeyedTransactorWithChainID(key, chainID)
 		require.NoError(err)
-
-		// Leave Nonce as nil so the binding fetches it automatically for each transaction
-		// This is essential for parallel tests to avoid nonce conflicts
 
 		account := &TestAccount{
 			Key:     key,
