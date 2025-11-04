@@ -72,11 +72,20 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20.13"
-      - name: Setup Contracts
-        run: ./scripts/run_task.sh setup-contracts
+      - name: Install solc
+        shell: bash
+        run: sudo add-apt-repository ppa:ethereum/ethereum && sudo apt update && sudo apt install -y solc
+      - name: Install abigen
+        shell: bash
+        run: go install github.com/ava-labs/subnet-evm/cmd/abigen
+      - name: Generate abigen bindings
+        shell: bash
+        run: go generate ./contracts/... ./testing/...
       - name: Confirm abigen bindings up to date
         shell: bash
-        run: git diff --exit-code || (echo "abigen bindings are not up to date. Please run 'go generate ./contracts/... ./testing/...'" && exit 1)
+        run: .github/workflows/check-clean-branch.sh
+      - name: Setup Contracts
+        run: ./scripts/run_task.sh setup-contracts
       - name: Run E2E Precompile Tests
         run: ./scripts/run_task.sh test-e2e-precompile-ci
       - name: Upload Artifact
