@@ -5,7 +5,6 @@
 package contracttest
 
 import (
-	"context"
 	"crypto/ecdsa"
 	"math/big"
 	"testing"
@@ -64,8 +63,6 @@ type Backend struct {
 
 // NewTestBackend creates a simulated backend with funded test accounts
 func NewTestBackend(t testing.TB) *Backend {
-	require := require.New(t)
-
 	// Create test accounts
 	var fundedAccounts Accounts
 	fundedAccounts.AllAccounts = make([]*Account, len(testPrivateKeys))
@@ -76,13 +73,13 @@ func NewTestBackend(t testing.TB) *Backend {
 
 	for i, keyHex := range testPrivateKeys {
 		key, err := crypto.HexToECDSA(keyHex)
-		require.NoError(err)
+		require.NoError(t, err)
 
 		addr := crypto.PubkeyToAddress(key.PublicKey)
 		alloc[addr] = types.Account{Balance: balance}
 
 		auth, err := bind.NewKeyedTransactorWithChainID(key, big.NewInt(simulatedBackendChainID))
-		require.NoError(err)
+		require.NoError(t, err)
 
 		account := &Account{
 			Key:     key,
@@ -91,7 +88,6 @@ func NewTestBackend(t testing.TB) *Backend {
 		}
 		fundedAccounts.AllAccounts[i] = account
 
-		// Set up special accounts as convenience pointers
 		switch addr {
 		case AdminAddress:
 			fundedAccounts.Admin = account
@@ -100,32 +96,24 @@ func NewTestBackend(t testing.TB) *Backend {
 		}
 	}
 
-
-	return &Backend{
+	backend := &Backend{
 		Backend:  simulated.NewBackend(alloc),
 		Accounts: fundedAccounts,
 	}
-}
 
-// GetAccount returns a TestAccount by address, or nil if not found
-func (tb *Backend) GetAccount(addr common.Address) *Account {
-	for _, account := range tb.AllAccounts {
-		if account.Address == addr {
-			return account
-		}
-	}
-	return nil
+	t.Cleanup(func() { backend.Close() })
+
+	return backend
 }
 
 // WaitForReceipt waits for a transaction receipt and commits a block if needed
 func WaitForReceipt(t testing.TB, tb *Backend, tx *types.Transaction) *types.Receipt {
-
+	t.Helper()
 	tb.Commit()
 
 	client := tb.Client()
 	receipt, err := client.TransactionReceipt(t.Context(), tx.Hash())
-	require.NoError(err, "failed to get transaction receipt")
-	require.NotNil(receipt, "receipt is nil")
+	require.NoError(t, err, "failed to get transaction receipt")
 
 	return receipt
 }

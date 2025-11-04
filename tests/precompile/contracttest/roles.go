@@ -12,24 +12,29 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/ava-labs/subnet-evm/contracts/bindings"
+	"github.com/ava-labs/subnet-evm/precompile/contracts/deployerallowlist"
+	"github.com/ava-labs/subnet-evm/precompile/contracts/feemanager"
+	"github.com/ava-labs/subnet-evm/precompile/contracts/nativeminter"
+	"github.com/ava-labs/subnet-evm/precompile/contracts/rewardmanager"
+	"github.com/ava-labs/subnet-evm/precompile/contracts/txallowlist"
+	"github.com/ava-labs/subnet-evm/precompile/contracts/warp"
 )
 
-// AllowList roles (matching TypeScript Roles in utils.ts)
 const (
-	RoleNone uint = iota
+	RoleNone uint8 = iota
 	RoleEnabled
 	RoleAdmin
 	RoleManager
 )
 
-// Precompile addresses
+// Precompile addresses - aliased from their source modules
 var (
-	ContractDeployerAllowListAddress = common.HexToAddress("0x0200000000000000000000000000000000000000")
-	TxAllowListAddress               = common.HexToAddress("0x0200000000000000000000000000000000000002")
-	NativeMinterAddress              = common.HexToAddress("0x0200000000000000000000000000000000000001")
-	FeeManagerAddress                = common.HexToAddress("0x0200000000000000000000000000000000000003")
-	RewardManagerAddress             = common.HexToAddress("0x0200000000000000000000000000000000000004")
-	WarpAddress                      = common.HexToAddress("0x0200000000000000000000000000000000000005")
+	ContractDeployerAllowListAddress = deployerallowlist.ContractAddress
+	TxAllowListAddress               = txallowlist.ContractAddress
+	NativeMinterAddress              = nativeminter.ContractAddress
+	FeeManagerAddress                = feemanager.ContractAddress
+	RewardManagerAddress             = rewardmanager.ContractAddress
+	WarpAddress                      = warp.ContractAddress
 )
 
 // SetupAllowListRole configures an address with a specific role on an allowlist precompile
@@ -65,7 +70,7 @@ func SetupAllowListRole(
 
 	// Commit and verify
 	receipt := WaitForReceipt(t, backend, tx)
-	RequireSuccessReceipt(t, receipt)
+	require.Equal(t, types.ReceiptStatusSuccessful, receipt.Status, "%T.Status", receipt)
 }
 
 // GetAllowListRole returns the role of an address on an allowlist precompile
