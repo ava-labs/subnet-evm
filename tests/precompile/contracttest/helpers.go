@@ -100,7 +100,6 @@ func NewTestBackend(t testing.TB) *Backend {
 		}
 	}
 
-	// Create simulated backend from libevm (uses AllDevChainProtocolChanges by default)
 
 	return &Backend{
 		Backend:  simulated.NewBackend(alloc),
@@ -120,21 +119,13 @@ func (tb *Backend) GetAccount(addr common.Address) *Account {
 
 // WaitForReceipt waits for a transaction receipt and commits a block if needed
 func WaitForReceipt(t testing.TB, tb *Backend, tx *types.Transaction) *types.Receipt {
-	require := require.New(t)
 
-	// Commit the transaction (mines a block)
 	tb.Commit()
 
-	// Get the receipt
 	client := tb.Client()
-	receipt, err := client.TransactionReceipt(context.Background(), tx.Hash())
+	receipt, err := client.TransactionReceipt(t.Context(), tx.Hash())
 	require.NoError(err, "failed to get transaction receipt")
 	require.NotNil(receipt, "receipt is nil")
 
 	return receipt
-}
-
-// RequireSuccessReceipt asserts that a transaction was successful
-func RequireSuccessReceipt(t testing.TB, receipt *types.Receipt) {
-	require.Equal(t, types.ReceiptStatusSuccessful, receipt.Status, "transaction failed")
 }

@@ -16,10 +16,10 @@ import (
 
 // AllowList roles (matching TypeScript Roles in utils.ts)
 const (
-	RoleNone    = uint8(0)
-	RoleEnabled = uint8(1)
-	RoleAdmin   = uint8(2)
-	RoleManager = uint8(3)
+	RoleNone uint = iota
+	RoleEnabled
+	RoleAdmin
+	RoleManager
 )
 
 // Precompile addresses
