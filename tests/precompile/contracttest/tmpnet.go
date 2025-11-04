@@ -95,12 +95,12 @@ func (tb *TmpnetBackend) Close() {
 }
 
 // WaitForReceipt waits for a transaction receipt from the RPC endpoint
-func (be *TmpnetBackend) WaitForReceipt(t testing.TB, tx *types.Transaction) *types.Receipt {
-	t.Helper()
+func (be *TmpnetBackend) WaitForReceipt(tb testing.TB, tx *types.Transaction) *types.Receipt {
+	tb.Helper()
 
 	receipt, err := bind.WaitMined(context.Background(), be.Client, tx)
-	require.NoError(t, err, "failed to wait for transaction")
-	require.NotNil(t, receipt, "receipt is nil")
+	require.NoError(tb, err, "failed to wait for transaction")
+	require.NotNil(tb, receipt, "receipt is nil")
 
 	return receipt
 }
