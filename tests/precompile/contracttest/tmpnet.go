@@ -88,9 +88,9 @@ func NewTmpnetBackend(t testing.TB, rpcURL string) *TmpnetBackend {
 }
 
 // Close closes the client connection
-func (tb *TmpnetBackend) Close() {
-	if tb.Client != nil {
-		tb.Client.Close()
+func (be *TmpnetBackend) Close() {
+	if be.Client != nil {
+		be.Client.Close()
 	}
 }
 
