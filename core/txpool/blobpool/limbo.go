@@ -1,4 +1,5 @@
-// (c) 2024, Ava Labs, Inc.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -29,10 +30,10 @@ package blobpool
 import (
 	"errors"
 
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/log"
+	"github.com/ava-labs/libevm/rlp"
 	"github.com/holiman/billy"
 )
 
@@ -63,7 +64,7 @@ func newLimbo(datadir string) (*limbo, error) {
 		index:  make(map[common.Hash]uint64),
 		groups: make(map[uint64]map[uint64]common.Hash),
 	}
-	// Index all limboed blobs on disk and delete anything inprocessable
+	// Index all limboed blobs on disk and delete anything unprocessable
 	var fails []uint64
 	index := func(id uint64, size uint32, data []byte) {
 		if l.parseBlob(id, data) != nil {
@@ -99,7 +100,7 @@ func (l *limbo) parseBlob(id uint64, data []byte) error {
 	item := new(limboBlob)
 	if err := rlp.DecodeBytes(data, item); err != nil {
 		// This path is impossible unless the disk data representation changes
-		// across restarts. For that ever unprobable case, recover gracefully
+		// across restarts. For that ever improbable case, recover gracefully
 		// by ignoring this data entry.
 		log.Error("Failed to decode blob limbo entry", "id", id, "err", err)
 		return err
@@ -182,7 +183,7 @@ func (l *limbo) pull(tx common.Hash) (*types.Transaction, error) {
 // update changes the block number under which a blob transaction is tracked. This
 // method should be used when a reorg changes a transaction's inclusion block.
 //
-// The method may log errors for various unexpcted scenarios but will not return
+// The method may log errors for various unexpected scenarios but will not return
 // any of it since there's no clear error case. Some errors may be due to coding
 // issues, others caused by signers mining MEV stuff or swapping transactions. In
 // all cases, the pool needs to continue operating.

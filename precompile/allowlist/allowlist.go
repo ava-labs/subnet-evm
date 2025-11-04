@@ -1,17 +1,20 @@
-// (c) 2019-2023, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package allowlist
 
 import (
-	_ "embed"
 	"errors"
 	"fmt"
 	"math/big"
 
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/core/vm"
+
+	_ "embed"
+
 	"github.com/ava-labs/subnet-evm/precompile/contract"
-	"github.com/ava-labs/subnet-evm/vmerrs"
-	"github.com/ethereum/go-ethereum/common"
 )
 
 // AllowList is an abstraction that allows other precompiles to manage
@@ -38,7 +41,7 @@ var (
 
 // GetAllowListStatus returns the allow list role of [address] for the precompile
 // at [precompileAddr]
-func GetAllowListStatus(state contract.StateDB, precompileAddr common.Address, address common.Address) Role {
+func GetAllowListStatus(state contract.StateReader, precompileAddr common.Address, address common.Address) Role {
 	// Generate the state key for [address]
 	addressKey := common.BytesToHash(address.Bytes())
 	return Role(state.GetState(precompileAddr, addressKey))
@@ -81,8 +84,9 @@ func UnpackModifyAllowListInput(input []byte, r Role, useStrictMode bool) (commo
 }
 
 // createAllowListRoleSetter returns an execution function for setting the allow list status of the input address argument to [role].
-// This execution function is speciifc to [precompileAddr].
+// This execution function is specific to [precompileAddr].
 func createAllowListRoleSetter(precompileAddr common.Address, role Role) contract.RunStatefulPrecompileFunc {
+	//nolint:revive // General-purpose types lose the meaning of args if unused ones are removed
 	return func(evm contract.AccessibleState, callerAddr, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
 		if remainingGas, err = contract.DeductGas(suppliedGas, ModifyAllowListGasCost); err != nil {
 			return nil, 0, err
@@ -91,13 +95,12 @@ func createAllowListRoleSetter(precompileAddr common.Address, role Role) contrac
 		// do not use strict mode after Durango
 		useStrictMode := !contract.IsDurangoActivated(evm)
 		modifyAddress, err := UnpackModifyAllowListInput(input, role, useStrictMode)
-
 		if err != nil {
 			return nil, remainingGas, err
 		}
 
 		if readOnly {
-			return nil, remainingGas, vmerrs.ErrWriteProtection
+			return nil, remainingGas, vm.ErrWriteProtection
 		}
 
 		stateDB := evm.GetStateDB()
@@ -117,12 +120,12 @@ func createAllowListRoleSetter(precompileAddr common.Address, role Role) contrac
 			if err != nil {
 				return nil, remainingGas, err
 			}
-			stateDB.AddLog(
-				precompileAddr,
-				topics,
-				data,
-				evm.GetBlockContext().Number().Uint64(),
-			)
+			stateDB.AddLog(&types.Log{
+				Address:     precompileAddr,
+				Topics:      topics,
+				Data:        data,
+				BlockNumber: evm.GetBlockContext().Number().Uint64(),
+			})
 		}
 
 		SetAllowListRole(stateDB, precompileAddr, modifyAddress, role)
@@ -154,6 +157,7 @@ func PackReadAllowListOutput(roleNumber *big.Int) ([]byte, error) {
 // The execution function parses the input into a single address and returns the 32 byte hash that specifies the
 // designated role of that address
 func createReadAllowList(precompileAddr common.Address) contract.RunStatefulPrecompileFunc {
+	//nolint:revive // General-purpose types lose the meaning of args if unused ones are removed
 	return func(evm contract.AccessibleState, callerAddr common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
 		if remainingGas, err = contract.DeductGas(suppliedGas, ReadAllowListGasCost); err != nil {
 			return nil, 0, err
@@ -187,7 +191,7 @@ func CreateAllowListPrecompile(precompileAddr common.Address) contract.StatefulP
 }
 
 func CreateAllowListFunctions(precompileAddr common.Address) []*contract.StatefulPrecompileFunction {
-	var functions []*contract.StatefulPrecompileFunction
+	functions := make([]*contract.StatefulPrecompileFunction, 0, len(AllowListABI.Methods))
 
 	for name, method := range AllowListABI.Methods {
 		var fn *contract.StatefulPrecompileFunction
@@ -202,7 +206,7 @@ func CreateAllowListFunctions(precompileAddr common.Address) []*contract.Statefu
 		} else if managerFnName, _ := ManagerRole.GetSetterFunctionName(); name == managerFnName {
 			fn = contract.NewStatefulPrecompileFunctionWithActivator(method.ID, createAllowListRoleSetter(precompileAddr, ManagerRole), contract.IsDurangoActivated)
 		} else {
-			panic(fmt.Sprintf("unexpected method name: %s", name))
+			panic("unexpected method name: " + name)
 		}
 		functions = append(functions, fn)
 	}

@@ -1,4 +1,5 @@
-// (c) 2019-2020, Ava Labs, Inc.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -32,11 +33,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/crypto"
 )
-
-var MaxHash = common.HexToHash("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
 
 func TestMakeTopics(t *testing.T) {
 	t.Parallel()
@@ -86,7 +85,7 @@ func TestMakeTopics(t *testing.T) {
 				{big.NewInt(math.MinInt64)},
 			}},
 			[][]common.Hash{
-				{MaxHash},
+				{common.MaxHash},
 				{common.HexToHash("ffffffffffffffffffffffffffffffffffffffffffffffff8000000000000000")},
 			},
 			false,
@@ -149,7 +148,6 @@ func TestMakeTopics(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			got, err := MakeTopics(tt.args.query...)
@@ -385,7 +383,6 @@ func TestParseTopics(t *testing.T) {
 	tests := setupTopicsTests()
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			createObj := tt.args.createObj()
@@ -405,7 +402,6 @@ func TestParseTopicsIntoMap(t *testing.T) {
 	tests := setupTopicsTests()
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			outMap := make(map[string]interface{})

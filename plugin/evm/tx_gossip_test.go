@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2023, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package evm
@@ -17,44 +17,44 @@ import (
 	"github.com/ava-labs/avalanchego/network/p2p/gossip"
 	"github.com/ava-labs/avalanchego/proto/pb/sdk"
 	"github.com/ava-labs/avalanchego/snow"
-	"github.com/ava-labs/avalanchego/snow/engine/common"
+	"github.com/ava-labs/avalanchego/snow/engine/enginetest"
 	"github.com/ava-labs/avalanchego/snow/validators"
-	agoUtils "github.com/ava-labs/avalanchego/utils"
+	"github.com/ava-labs/avalanchego/upgrade/upgradetest"
 	"github.com/ava-labs/avalanchego/utils/logging"
 	"github.com/ava-labs/avalanchego/utils/set"
+	"github.com/ava-labs/libevm/core/types"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
-
 	"google.golang.org/protobuf/proto"
 
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/utils"
+	"github.com/ava-labs/subnet-evm/params/paramstest"
+	"github.com/ava-labs/subnet-evm/plugin/evm/config"
+	"github.com/ava-labs/subnet-evm/utils/utilstest"
+
+	agoUtils "github.com/ava-labs/avalanchego/utils"
 )
 
 func TestEthTxGossip(t *testing.T) {
 	require := require.New(t)
 	ctx := context.Background()
-	snowCtx := utils.TestSnowContext()
-	validatorState := &validators.TestState{}
+	snowCtx := utilstest.NewTestSnowContext(t)
+	validatorState := utilstest.NewTestValidatorState()
 	snowCtx.ValidatorState = validatorState
 
-	responseSender := &common.FakeSender{
+	responseSender := &enginetest.SenderStub{
 		SentAppResponse: make(chan []byte, 1),
 	}
-	vm := &VM{
-		p2pSender: responseSender,
-	}
+	vm := &VM{}
 
 	require.NoError(vm.Initialize(
 		ctx,
 		snowCtx,
 		memdb.New(),
-		[]byte(genesisJSONLatest),
+		[]byte(toGenesisJSON(paramstest.ForkToChainConfig[upgradetest.Latest])),
 		nil,
 		nil,
-		make(chan common.Message),
 		nil,
-		&common.SenderTest{},
+		responseSender,
 	))
 	require.NoError(vm.SetState(ctx, snow.NormalOp))
 
@@ -63,13 +63,25 @@ func TestEthTxGossip(t *testing.T) {
 	}()
 
 	// sender for the peer requesting gossip from [vm]
-	peerSender := &common.FakeSender{
+	peerSender := &enginetest.SenderStub{
 		SentAppRequest: make(chan []byte, 1),
 	}
 
-	network, err := p2p.NewNetwork(logging.NoLog{}, peerSender, prometheus.NewRegistry(), "")
+	validatorSet := p2p.NewValidators(
+		logging.NoLog{},
+		snowCtx.SubnetID,
+		validatorState,
+		0,
+	)
+	network, err := p2p.NewNetwork(
+		logging.NoLog{},
+		peerSender,
+		prometheus.NewRegistry(),
+		"",
+		validatorSet,
+	)
 	require.NoError(err)
-	client := network.NewClient(ethTxGossipProtocol)
+	client := network.NewClient(p2p.TxGossipHandlerID, validatorSet)
 
 	// we only accept gossip requests from validators
 	requestingNodeID := ids.GenerateTestNodeID()
@@ -87,7 +99,7 @@ func TestEthTxGossip(t *testing.T) {
 	}
 
 	// Ask the VM for any new transactions. We should get nothing at first.
-	emptyBloomFilter, err := gossip.NewBloomFilter(prometheus.NewRegistry(), "", txGossipBloomMinTargetElements, txGossipBloomTargetFalsePositiveRate, txGossipBloomResetFalsePositiveRate)
+	emptyBloomFilter, err := gossip.NewBloomFilter(prometheus.NewRegistry(), "", config.TxGossipBloomMinTargetElements, config.TxGossipBloomTargetFalsePositiveRate, config.TxGossipBloomResetFalsePositiveRate)
 	require.NoError(err)
 	emptyBloomFilterBytes, _ := emptyBloomFilter.Marshal()
 	request := &sdk.PullGossipRequest{
@@ -100,7 +112,7 @@ func TestEthTxGossip(t *testing.T) {
 
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
-	onResponse := func(_ context.Context, nodeID ids.NodeID, responseBytes []byte, err error) {
+	onResponse := func(_ context.Context, _ ids.NodeID, responseBytes []byte, err error) {
 		require.NoError(err)
 
 		response := &sdk.PullGossipResponse{}
@@ -115,9 +127,8 @@ func TestEthTxGossip(t *testing.T) {
 
 	// Issue a tx to the VM
 	address := testEthAddrs[0]
-	key := testKeys[0]
 	tx := types.NewTransaction(0, address, big.NewInt(10), 21000, big.NewInt(testMinGasPrice), nil)
-	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), key)
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0].ToECDSA())
 	require.NoError(err)
 
 	errs := vm.txPool.Add([]*types.Transaction{signedTx}, true, true)
@@ -130,7 +141,7 @@ func TestEthTxGossip(t *testing.T) {
 	marshaller := GossipEthTxMarshaller{}
 	// Ask the VM for new transactions. We should get the newly issued tx.
 	wg.Add(1)
-	onResponse = func(_ context.Context, nodeID ids.NodeID, responseBytes []byte, err error) {
+	onResponse = func(_ context.Context, _ ids.NodeID, responseBytes []byte, err error) {
 		require.NoError(err)
 
 		response := &sdk.PullGossipResponse{}
@@ -149,19 +160,12 @@ func TestEthTxGossip(t *testing.T) {
 	wg.Wait()
 }
 
+// Tests that a tx is gossiped when it is issued
 func TestEthTxPushGossipOutbound(t *testing.T) {
 	require := require.New(t)
 	ctx := context.Background()
-	snowCtx := utils.TestSnowContext()
-	snowCtx.ValidatorState = &validators.TestState{
-		GetCurrentHeightF: func(context.Context) (uint64, error) {
-			return 0, nil
-		},
-		GetValidatorSetF: func(context.Context, uint64, ids.ID) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
-			return nil, nil
-		},
-	}
-	sender := &common.FakeSender{
+	snowCtx := utilstest.NewTestSnowContext(t)
+	sender := &enginetest.SenderStub{
 		SentAppGossip: make(chan []byte, 1),
 	}
 
@@ -173,10 +177,9 @@ func TestEthTxPushGossipOutbound(t *testing.T) {
 		ctx,
 		snowCtx,
 		memdb.New(),
-		[]byte(genesisJSONLatest),
+		[]byte(toGenesisJSON(paramstest.ForkToChainConfig[upgradetest.Latest])),
 		nil,
 		nil,
-		make(chan common.Message),
 		nil,
 		sender,
 	))
@@ -187,9 +190,8 @@ func TestEthTxPushGossipOutbound(t *testing.T) {
 	}()
 
 	address := testEthAddrs[0]
-	key := testKeys[0]
 	tx := types.NewTransaction(0, address, big.NewInt(10), 21000, big.NewInt(testMinGasPrice), nil)
-	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), key)
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0].ToECDSA())
 	require.NoError(err)
 
 	// issue a tx
@@ -201,7 +203,7 @@ func TestEthTxPushGossipOutbound(t *testing.T) {
 
 	// we should get a message that has the protocol prefix and the gossip
 	// message
-	require.Equal(byte(ethTxGossipProtocol), sent[0])
+	require.Equal(byte(p2p.TxGossipHandlerID), sent[0])
 	require.NoError(proto.Unmarshal(sent[1:], got))
 
 	marshaller := GossipEthTxMarshaller{}
@@ -215,9 +217,9 @@ func TestEthTxPushGossipOutbound(t *testing.T) {
 func TestEthTxPushGossipInbound(t *testing.T) {
 	require := require.New(t)
 	ctx := context.Background()
-	snowCtx := utils.TestSnowContext()
+	snowCtx := utilstest.NewTestSnowContext(t)
 
-	sender := &common.SenderTest{}
+	sender := &enginetest.Sender{}
 	vm := &VM{
 		ethTxPullGossiper: gossip.NoOpGossiper{},
 	}
@@ -226,10 +228,9 @@ func TestEthTxPushGossipInbound(t *testing.T) {
 		ctx,
 		snowCtx,
 		memdb.New(),
-		[]byte(genesisJSONLatest),
+		[]byte(toGenesisJSON(paramstest.ForkToChainConfig[upgradetest.Latest])),
 		nil,
 		nil,
-		make(chan common.Message),
 		nil,
 		sender,
 	))
@@ -240,9 +241,8 @@ func TestEthTxPushGossipInbound(t *testing.T) {
 	}()
 
 	address := testEthAddrs[0]
-	key := testKeys[0]
 	tx := types.NewTransaction(0, address, big.NewInt(10), 21000, big.NewInt(testMinGasPrice), nil)
-	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), key)
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0].ToECDSA())
 	require.NoError(err)
 
 	marshaller := GossipEthTxMarshaller{}
@@ -259,7 +259,7 @@ func TestEthTxPushGossipInbound(t *testing.T) {
 	inboundGossipBytes, err := proto.Marshal(inboundGossip)
 	require.NoError(err)
 
-	inboundGossipMsg := append(binary.AppendUvarint(nil, ethTxGossipProtocol), inboundGossipBytes...)
+	inboundGossipMsg := append(binary.AppendUvarint(nil, p2p.TxGossipHandlerID), inboundGossipBytes...)
 	require.NoError(vm.AppGossip(ctx, ids.EmptyNodeID, inboundGossipMsg))
 
 	require.True(vm.txPool.Has(signedTx.Hash()))

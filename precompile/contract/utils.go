@@ -1,4 +1,4 @@
-// (c) 2019-2020, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package contract
@@ -8,9 +8,10 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/ava-labs/libevm/core/vm"
+	"github.com/ava-labs/libevm/crypto"
+
 	"github.com/ava-labs/subnet-evm/accounts/abi"
-	"github.com/ava-labs/subnet-evm/vmerrs"
-	"github.com/ethereum/go-ethereum/crypto"
 )
 
 // Gas costs for stateful precompiles
@@ -43,7 +44,7 @@ func CalculateFunctionSelector(functionSignature string) []byte {
 // DeductGas checks if [suppliedGas] is sufficient against [requiredGas] and deducts [requiredGas] from [suppliedGas].
 func DeductGas(suppliedGas uint64, requiredGas uint64) (uint64, error) {
 	if suppliedGas < requiredGas {
-		return 0, vmerrs.ErrOutOfGas
+		return 0, vm.ErrOutOfGas
 	}
 	return suppliedGas - requiredGas, nil
 }

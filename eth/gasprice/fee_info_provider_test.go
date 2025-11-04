@@ -1,4 +1,4 @@
-// (c) 2022, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package gasprice
@@ -9,15 +9,15 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/core"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/libevm/core/types"
 	"github.com/stretchr/testify/require"
+
+	"github.com/ava-labs/subnet-evm/core"
 )
 
 func TestFeeInfoProvider(t *testing.T) {
-	backend := newTestBackend(t, params.TestChainConfig, 2, testGenBlock(t, 55, 370))
-	f, err := newFeeInfoProvider(backend, 1, 2)
+	backend := newTestBackend(t, 2, testGenBlock(t, 55, 80))
+	f, err := newFeeInfoProvider(backend, 2)
 	require.NoError(t, err)
 
 	// check that accepted event was subscribed
@@ -44,15 +44,15 @@ func TestFeeInfoProvider(t *testing.T) {
 func TestFeeInfoProviderCacheSize(t *testing.T) {
 	size := 5
 	overflow := 3
-	backend := newTestBackend(t, params.TestChainConfig, 0, testGenBlock(t, 55, 370))
-	f, err := newFeeInfoProvider(backend, 1, size)
+	backend := newTestBackend(t, 0, testGenBlock(t, 55, 370))
+	f, err := newFeeInfoProvider(backend, size)
 	require.NoError(t, err)
 
 	// add [overflow] more elements than what will fit in the cache
 	// to test eviction behavior.
 	for i := 0; i < size+feeCacheExtraSlots+overflow; i++ {
 		header := &types.Header{Number: big.NewInt(int64(i))}
-		_, err := f.addHeader(context.Background(), header)
+		_, err := f.addHeader(context.Background(), header, []*types.Transaction{})
 		require.NoError(t, err)
 	}
 

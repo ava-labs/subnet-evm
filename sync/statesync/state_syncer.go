@@ -1,27 +1,32 @@
-// (c) 2021-2022, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package statesync
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 
-	"github.com/ava-labs/subnet-evm/core/state/snapshot"
-	syncclient "github.com/ava-labs/subnet-evm/sync/client"
-	"github.com/ava-labs/subnet-evm/trie"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/ethdb"
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/ethdb"
+	"github.com/ava-labs/libevm/triedb"
 	"golang.org/x/sync/errgroup"
+
+	"github.com/ava-labs/subnet-evm/core/state/snapshot"
+
+	syncclient "github.com/ava-labs/subnet-evm/sync/client"
 )
 
 const (
 	segmentThreshold       = 500_000 // if we estimate trie to have greater than this number of leafs, split it
 	numStorageTrieSegments = 4
 	numMainTrieSegments    = 8
-	defaultNumThreads      = 8
+	defaultNumWorkers      = 8
 )
+
+var errWaitBeforeStart = errors.New("cannot call Wait before Start")
 
 type StateSyncerConfig struct {
 	Root                     common.Hash
@@ -35,12 +40,11 @@ type StateSyncerConfig struct {
 
 // stateSync keeps the state of the entire state sync operation.
 type stateSync struct {
-	db        ethdb.Database    // database we are syncing
-	root      common.Hash       // root of the EVM state we are syncing to
-	trieDB    *trie.Database    // trieDB on top of db we are syncing. used to restore any existing tries.
-	snapshot  snapshot.Snapshot // used to access the database we are syncing as a snapshot.
-	batchSize int               // write batches when they reach this size
-	client    syncclient.Client // used to contact peers over the network
+	db        ethdb.Database            // database we are syncing
+	root      common.Hash               // root of the EVM state we are syncing to
+	trieDB    *triedb.Database          // trieDB on top of db we are syncing. used to restore any existing tries.
+	snapshot  snapshot.SnapshotIterable // used to access the database we are syncing as a snapshot.
+	batchSize int                       // write batches when they reach this size
 
 	segments   chan syncclient.LeafSyncTask   // channel of tasks to sync
 	syncer     *syncclient.CallbackLeafSyncer // performs the sync, looping over each task's range and invoking specified callbacks
@@ -60,27 +64,29 @@ type stateSync struct {
 	triesInProgressSem chan struct{}
 	done               chan error
 	stats              *trieSyncStats
+
+	// context cancellation management
+	cancelFunc context.CancelFunc
 }
 
 func NewStateSyncer(config *StateSyncerConfig) (*stateSync, error) {
 	ss := &stateSync{
 		batchSize:       config.BatchSize,
 		db:              config.DB,
-		client:          config.Client,
 		root:            config.Root,
-		trieDB:          trie.NewDatabase(config.DB, nil),
+		trieDB:          triedb.NewDatabase(config.DB, nil),
 		snapshot:        snapshot.NewDiskLayer(config.DB),
 		stats:           newTrieSyncStats(),
 		triesInProgress: make(map[common.Hash]*trieToSync),
 
 		// [triesInProgressSem] is used to keep the number of tries syncing
-		// less than or equal to [defaultNumThreads].
-		triesInProgressSem: make(chan struct{}, defaultNumThreads),
+		// less than or equal to [defaultNumWorkers].
+		triesInProgressSem: make(chan struct{}, defaultNumWorkers),
 
 		// Each [trieToSync] will have a maximum of [numSegments] segments.
-		// We set the capacity of [segments] such that [defaultNumThreads]
+		// We set the capacity of [segments] such that [defaultNumWorkers]
 		// storage tries can sync concurrently.
-		segments:         make(chan syncclient.LeafSyncTask, defaultNumThreads*numStorageTrieSegments),
+		segments:         make(chan syncclient.LeafSyncTask, defaultNumWorkers*numStorageTrieSegments),
 		mainTrieDone:     make(chan struct{}),
 		storageTriesDone: make(chan struct{}),
 		done:             make(chan error, 1),
@@ -218,10 +224,14 @@ func (t *stateSync) storageTrieProducer(ctx context.Context) error {
 }
 
 func (t *stateSync) Start(ctx context.Context) error {
+	// Create a cancellable context for the sync operations
+	syncCtx, cancel := context.WithCancel(ctx)
+	t.cancelFunc = cancel
+
 	// Start the code syncer and leaf syncer.
-	eg, egCtx := errgroup.WithContext(ctx)
+	eg, egCtx := errgroup.WithContext(syncCtx)
 	t.codeSyncer.start(egCtx) // start the code syncer first since the leaf syncer may add code tasks
-	t.syncer.Start(egCtx, defaultNumThreads, t.onSyncFailure)
+	t.syncer.Start(egCtx, defaultNumWorkers, t.onSyncFailure)
 	eg.Go(func() error {
 		if err := <-t.syncer.Done(); err != nil {
 			return err
@@ -244,7 +254,21 @@ func (t *stateSync) Start(ctx context.Context) error {
 	return nil
 }
 
-func (t *stateSync) Done() <-chan error { return t.done }
+func (t *stateSync) Wait(ctx context.Context) error {
+	// This should only be called after Start, so we can assume cancelFunc is set.
+	if t.cancelFunc == nil {
+		return errWaitBeforeStart
+	}
+
+	select {
+	case err := <-t.done:
+		return err
+	case <-ctx.Done():
+		t.cancelFunc() // cancel the sync operations if the context is done
+		<-t.done       // wait for the sync operations to finish
+		return ctx.Err()
+	}
+}
 
 // addTrieInProgress tracks the root as being currently synced.
 func (t *stateSync) addTrieInProgress(root common.Hash, trie *trieToSync) {

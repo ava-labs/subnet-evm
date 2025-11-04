@@ -1,4 +1,5 @@
-// (c) 2019-2020, Ava Labs, Inc.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -38,8 +39,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ava-labs/subnet-evm/metrics"
-	"github.com/ethereum/go-ethereum/log"
+	"github.com/ava-labs/libevm/log"
+	"github.com/ava-labs/libevm/metrics"
 	"golang.org/x/time/rate"
 )
 
@@ -479,7 +480,7 @@ func (h *handler) startCallProc(fn func(*callProc)) {
 	}
 }
 
-// handleResponse processes method call responses.
+// handleResponses processes method call responses.
 func (h *handler) handleResponses(batch []*jsonrpcMessage, handleCall func(*jsonrpcMessage)) {
 	var resolvedops []*requestOp
 	handleResp := func(msg *jsonrpcMessage) {

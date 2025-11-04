@@ -1,4 +1,5 @@
-// (c) 2019-2020, Ava Labs, Inc.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -31,23 +32,16 @@ import (
 	"errors"
 	"os"
 
-	"github.com/ava-labs/subnet-evm/core/rawdb"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/log"
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/core/rawdb"
+	"github.com/ava-labs/libevm/log"
 	bloomfilter "github.com/holiman/bloomfilter/v2"
 )
 
-// stateBloomHasher is a wrapper around a byte blob to satisfy the interface API
-// requirements of the bloom library used. It's used to convert a trie hash or
-// contract code hash into a 64 bit mini hash.
-type stateBloomHasher []byte
-
-func (f stateBloomHasher) Write(p []byte) (n int, err error) { panic("not implemented") }
-func (f stateBloomHasher) Sum(b []byte) []byte               { panic("not implemented") }
-func (f stateBloomHasher) Reset()                            { panic("not implemented") }
-func (f stateBloomHasher) BlockSize() int                    { panic("not implemented") }
-func (f stateBloomHasher) Size() int                         { return 8 }
-func (f stateBloomHasher) Sum64() uint64                     { return binary.BigEndian.Uint64(f) }
+// stateBloomHash is used to convert a trie hash or contract code hash into a 64 bit mini hash.
+func stateBloomHash(f []byte) uint64 {
+	return binary.BigEndian.Uint64(f)
+}
 
 // stateBloom is a bloom filter used during the state conversion(snapshot->state).
 // The keys of all generated entries will be recorded here so that in the pruning
@@ -123,10 +117,10 @@ func (bloom *stateBloom) Put(key []byte, value []byte) error {
 		if !isCode {
 			return errors.New("invalid entry")
 		}
-		bloom.bloom.Add(stateBloomHasher(codeKey))
+		bloom.bloom.AddHash(stateBloomHash(codeKey))
 		return nil
 	}
-	bloom.bloom.Add(stateBloomHasher(key))
+	bloom.bloom.AddHash(stateBloomHash(key))
 	return nil
 }
 
@@ -138,5 +132,5 @@ func (bloom *stateBloom) Delete(key []byte) error { panic("not supported") }
 // - If it says yes, the key may be contained
 // - If it says no, the key is definitely not contained.
 func (bloom *stateBloom) Contain(key []byte) bool {
-	return bloom.bloom.Contains(stateBloomHasher(key))
+	return bloom.bloom.ContainsHash(stateBloomHash(key))
 }

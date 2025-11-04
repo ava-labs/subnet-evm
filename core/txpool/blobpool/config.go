@@ -1,4 +1,5 @@
-// (c) 2024, Ava Labs, Inc.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -27,7 +28,7 @@
 package blobpool
 
 import (
-	"github.com/ethereum/go-ethereum/log"
+	"github.com/ava-labs/libevm/log"
 )
 
 // Config are the configuration parameters of the blob transaction pool.
@@ -40,8 +41,8 @@ type Config struct {
 // DefaultConfig contains the default configurations for the transaction pool.
 var DefaultConfig = Config{
 	Datadir:   "blobpool",
-	Datacap:   10 * 1024 * 1024 * 1024,
-	PriceBump: 100, // either have patience or be aggressive, no mushy ground
+	Datacap:   10 * 1024 * 1024 * 1024 / 4, // TODO(karalabe): /4 handicap for rollout, gradually bump back up to 10GB
+	PriceBump: 100,                         // either have patience or be aggressive, no mushy ground
 }
 
 // sanitize checks the provided user configurations and changes anything that's

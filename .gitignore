@@ -24,6 +24,7 @@ awscpu
 .idea/
 
 *logs/
+!*customlogs/
 
 .vscode*
 workspace.code-workspace
@@ -55,3 +56,11 @@ dist/
 
 # Outputs of `scripts/diff_against.sh`
 diffs/
+
+# clone used for antithesis image builds
+avalanchego/
+
+.direnv
+
+# Contract compilation artifacts (binary files are not committed)
+contracts/artifacts/

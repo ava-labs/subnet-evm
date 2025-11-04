@@ -1,4 +1,4 @@
-// (c) 2021-2022, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package statesyncclient
@@ -10,11 +10,12 @@ import (
 
 	"github.com/ava-labs/avalanchego/codec"
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/subnet-evm/core/types"
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/rlp"
+
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
 	"github.com/ava-labs/subnet-evm/sync/handlers"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/rlp"
 )
 
 var (
@@ -140,10 +141,10 @@ func (ml *MockClient) BlocksReceived() int32 {
 
 type testBlockParser struct{}
 
-func (t *testBlockParser) ParseEthBlock(b []byte) (*types.Block, error) {
+func (*testBlockParser) ParseEthBlock(b []byte) (*types.Block, error) {
 	block := new(types.Block)
 	if err := rlp.DecodeBytes(b, block); err != nil {
-		return nil, fmt.Errorf("%s: %w", errUnmarshalResponse, err)
+		return nil, fmt.Errorf("%w: %w", errUnmarshalResponse, err)
 	}
 
 	return block, nil

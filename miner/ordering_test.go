@@ -1,4 +1,5 @@
-// (c) 2024, Ava Labs, Inc.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -33,10 +34,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/crypto"
 	"github.com/ava-labs/subnet-evm/core/txpool"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/holiman/uint256"
 )
 
 func TestTransactionPriceNonceSortLegacy(t *testing.T) {
@@ -102,8 +104,8 @@ func testTransactionPriceNonceSort(t *testing.T, baseFee *big.Int) {
 				Hash:      tx.Hash(),
 				Tx:        tx,
 				Time:      tx.Time(),
-				GasFeeCap: tx.GasFeeCap(),
-				GasTipCap: tx.GasTipCap(),
+				GasFeeCap: uint256.MustFromBig(tx.GasFeeCap()),
+				GasTipCap: uint256.MustFromBig(tx.GasTipCap()),
 				Gas:       tx.Gas(),
 				BlobGas:   tx.BlobGas(),
 			})
@@ -114,7 +116,7 @@ func testTransactionPriceNonceSort(t *testing.T, baseFee *big.Int) {
 	txset := newTransactionsByPriceAndNonce(signer, groups, baseFee)
 
 	txs := types.Transactions{}
-	for tx := txset.Peek(); tx != nil; tx = txset.Peek() {
+	for tx, _ := txset.Peek(); tx != nil; tx, _ = txset.Peek() {
 		txs = append(txs, tx.Tx)
 		txset.Shift()
 	}
@@ -170,8 +172,8 @@ func TestTransactionTimeSort(t *testing.T) {
 			Hash:      tx.Hash(),
 			Tx:        tx,
 			Time:      tx.Time(),
-			GasFeeCap: tx.GasFeeCap(),
-			GasTipCap: tx.GasTipCap(),
+			GasFeeCap: uint256.MustFromBig(tx.GasFeeCap()),
+			GasTipCap: uint256.MustFromBig(tx.GasTipCap()),
 			Gas:       tx.Gas(),
 			BlobGas:   tx.BlobGas(),
 		})
@@ -180,7 +182,7 @@ func TestTransactionTimeSort(t *testing.T) {
 	txset := newTransactionsByPriceAndNonce(signer, groups, nil)
 
 	txs := types.Transactions{}
-	for tx := txset.Peek(); tx != nil; tx = txset.Peek() {
+	for tx, _ := txset.Peek(); tx != nil; tx, _ = txset.Peek() {
 		txs = append(txs, tx.Tx)
 		txset.Shift()
 	}

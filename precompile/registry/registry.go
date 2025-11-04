@@ -1,4 +1,4 @@
-// (c) 2023, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 // Module to facilitate the registration of precompiles and their configuration.
@@ -8,18 +8,11 @@ package registry
 // with the registry.
 import (
 	_ "github.com/ava-labs/subnet-evm/precompile/contracts/deployerallowlist"
-
-	_ "github.com/ava-labs/subnet-evm/precompile/contracts/nativeminter"
-
-	_ "github.com/ava-labs/subnet-evm/precompile/contracts/txallowlist"
-
 	_ "github.com/ava-labs/subnet-evm/precompile/contracts/feemanager"
-
+	_ "github.com/ava-labs/subnet-evm/precompile/contracts/nativeminter"
 	_ "github.com/ava-labs/subnet-evm/precompile/contracts/rewardmanager"
-
+	_ "github.com/ava-labs/subnet-evm/precompile/contracts/txallowlist"
 	_ "github.com/ava-labs/subnet-evm/precompile/contracts/warp"
-	// ADD YOUR PRECOMPILE HERE
-	// _ "github.com/ava-labs/subnet-evm/precompile/contracts/yourprecompile"
 )
 
 // This list is kept just for reference. The actual addresses defined in respective packages of precompiles.

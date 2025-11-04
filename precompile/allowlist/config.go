@@ -1,17 +1,20 @@
-// (c) 2019-2023, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package allowlist
 
 import (
+	"errors"
 	"fmt"
+	"slices"
+
+	"github.com/ava-labs/libevm/common"
 
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
-	"github.com/ethereum/go-ethereum/common"
 )
 
-var ErrCannotAddManagersBeforeDurango = fmt.Errorf("cannot add managers before Durango")
+var ErrCannotAddManagersBeforeDurango = errors.New("cannot add managers before Durango")
 
 // AllowListConfig specifies the initial set of addresses with Admin or Enabled roles.
 type AllowListConfig struct {
@@ -22,7 +25,7 @@ type AllowListConfig struct {
 
 // Configure initializes the address space of [precompileAddr] by initializing the role of each of
 // the addresses in [AllowListAdmins].
-func (c *AllowListConfig) Configure(chainConfig precompileconfig.ChainConfig, precompileAddr common.Address, state contract.StateDB, blockContext contract.ConfigurationBlockContext) error {
+func (c *AllowListConfig) Configure(_ precompileconfig.ChainConfig, precompileAddr common.Address, state contract.StateDB, _ contract.ConfigurationBlockContext) error {
 	for _, enabledAddr := range c.EnabledAddresses {
 		SetAllowListRole(state, precompileAddr, enabledAddr, EnabledRole)
 	}
@@ -50,15 +53,7 @@ func (c *AllowListConfig) Equal(other *AllowListConfig) bool {
 
 // areEqualAddressLists returns true iff [a] and [b] have the same addresses in the same order.
 func areEqualAddressLists(current []common.Address, other []common.Address) bool {
-	if len(current) != len(other) {
-		return false
-	}
-	for i, address := range current {
-		if address != other[i] {
-			return false
-		}
-	}
-	return true
+	return slices.Equal(current, other)
 }
 
 // Verify returns an error if there is an overlapping address between admin and enabled roles

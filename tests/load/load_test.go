@@ -1,4 +1,4 @@
-// Copyright (C) 2023, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package load
@@ -11,19 +11,17 @@ import (
 	"strings"
 	"testing"
 
-	ginkgo "github.com/onsi/ginkgo/v2"
-
-	"github.com/stretchr/testify/require"
-
-	"github.com/ethereum/go-ethereum/log"
-
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/tests/fixture/e2e"
 	"github.com/ava-labs/avalanchego/tests/fixture/tmpnet"
 	"github.com/ava-labs/avalanchego/utils/set"
+	"github.com/ava-labs/libevm/log"
+	"github.com/stretchr/testify/require"
 
 	"github.com/ava-labs/subnet-evm/tests"
 	"github.com/ava-labs/subnet-evm/tests/utils"
+
+	ginkgo "github.com/onsi/ginkgo/v2"
 )
 
 const (
@@ -53,10 +51,12 @@ var _ = ginkgo.Describe("[Load Simulator]", ginkgo.Ordered, func() {
 	var env *e2e.TestEnvironment
 
 	ginkgo.BeforeAll(func() {
+		tc := e2e.NewTestContext()
 		genesisPath := filepath.Join(repoRootPath, "tests/load/genesis/genesis.json")
 
 		nodes := utils.NewTmpnetNodes(nodeCount)
 		env = e2e.NewTestEnvironment(
+			tc,
 			flagVars,
 			utils.NewTmpnetNetwork(
 				"subnet-evm-small-load",
@@ -74,7 +74,7 @@ var _ = ginkgo.Describe("[Load Simulator]", ginkgo.Ordered, func() {
 		require.NotNil(subnet)
 		blockchainID := subnet.Chains[0].ChainID
 
-		nodeURIs := tmpnet.GetNodeURIs(network.Nodes)
+		nodeURIs := env.GetNetwork().GetNodeURIs()
 		validatorIDs := set.NewSet[ids.NodeID](len(subnet.ValidatorIDs))
 		validatorIDs.Add(subnet.ValidatorIDs...)
 		rpcEndpoints := make([]string, 0, len(nodeURIs))
@@ -85,8 +85,7 @@ var _ = ginkgo.Describe("[Load Simulator]", ginkgo.Ordered, func() {
 			rpcEndpoints = append(rpcEndpoints, fmt.Sprintf("%s/ext/bc/%s/rpc", nodeURI.URI, blockchainID))
 		}
 		commaSeparatedRPCEndpoints := strings.Join(rpcEndpoints, ",")
-		err := os.Setenv("RPC_ENDPOINTS", commaSeparatedRPCEndpoints)
-		require.NoError(err)
+		require.NoError(os.Setenv("RPC_ENDPOINTS", commaSeparatedRPCEndpoints))
 
 		log.Info("Running load simulator...", "rpcEndpoints", commaSeparatedRPCEndpoints)
 		cmd := exec.Command("./scripts/run_simulator.sh")

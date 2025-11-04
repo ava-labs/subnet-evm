@@ -1,20 +1,23 @@
-// (c) 2019-2020, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package feemanager
 
 import (
-	_ "embed"
 	"errors"
 	"fmt"
 	"math/big"
+
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/core/vm"
+
+	_ "embed"
 
 	"github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
-	"github.com/ava-labs/subnet-evm/vmerrs"
-	"github.com/ethereum/go-ethereum/common"
 )
 
 const (
@@ -70,7 +73,7 @@ type FeeConfigABIStruct struct {
 }
 
 // GetFeeManagerStatus returns the role of [address] for the fee config manager list.
-func GetFeeManagerStatus(stateDB contract.StateDB, address common.Address) allowlist.Role {
+func GetFeeManagerStatus(stateDB contract.StateReader, address common.Address) allowlist.Role {
 	return allowlist.GetAllowListStatus(stateDB, ContractAddress, address)
 }
 
@@ -81,7 +84,7 @@ func SetFeeManagerStatus(stateDB contract.StateDB, address common.Address, role 
 }
 
 // GetStoredFeeConfig returns fee config from contract storage in given state
-func GetStoredFeeConfig(stateDB contract.StateDB) commontype.FeeConfig {
+func GetStoredFeeConfig(stateDB contract.StateReader) commontype.FeeConfig {
 	feeConfig := commontype.FeeConfig{}
 	for i := minFeeConfigFieldKey; i <= numFeeConfigField; i++ {
 		val := stateDB.GetState(ContractAddress, common.Hash{byte(i)})
@@ -110,7 +113,7 @@ func GetStoredFeeConfig(stateDB contract.StateDB) commontype.FeeConfig {
 	return feeConfig
 }
 
-func GetFeeConfigLastChangedAt(stateDB contract.StateDB) *big.Int {
+func GetFeeConfigLastChangedAt(stateDB contract.StateReader) *big.Int {
 	val := stateDB.GetState(ContractAddress, feeConfigLastChangedAtKey)
 	return val.Big()
 }
@@ -150,7 +153,7 @@ func StoreFeeConfig(stateDB contract.StateDB, feeConfig commontype.FeeConfig, bl
 
 	blockNumber := blockContext.Number()
 	if blockNumber == nil {
-		return fmt.Errorf("blockNumber cannot be nil")
+		return errors.New("blockNumber cannot be nil")
 	}
 	stateDB.SetState(ContractAddress, feeConfigLastChangedAtKey, common.BigToHash(blockNumber))
 	return nil
@@ -204,13 +207,13 @@ func UnpackSetFeeConfigInput(input []byte, useStrictMode bool) (commontype.FeeCo
 
 // setFeeConfig checks if the caller has permissions to set the fee config.
 // The execution function parses [input] into FeeConfig structure and sets contract storage accordingly.
-func setFeeConfig(accessibleState contract.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
+func setFeeConfig(accessibleState contract.AccessibleState, caller common.Address, _ common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
 	if remainingGas, err = contract.DeductGas(suppliedGas, SetFeeConfigGasCost); err != nil {
 		return nil, 0, err
 	}
 
 	if readOnly {
-		return nil, remainingGas, vmerrs.ErrWriteProtection
+		return nil, remainingGas, vm.ErrWriteProtection
 	}
 
 	// do not use strict mode after Durango
@@ -241,12 +244,12 @@ func setFeeConfig(accessibleState contract.AccessibleState, caller common.Addres
 			return nil, remainingGas, err
 		}
 
-		stateDB.AddLog(
-			ContractAddress,
-			topics,
-			data,
-			accessibleState.GetBlockContext().Number().Uint64(),
-		)
+		stateDB.AddLog(&types.Log{
+			Address:     ContractAddress,
+			Topics:      topics,
+			Data:        data,
+			BlockNumber: accessibleState.GetBlockContext().Number().Uint64(),
+		})
 	}
 
 	if err := StoreFeeConfig(stateDB, feeConfig, accessibleState.GetBlockContext()); err != nil {
@@ -296,7 +299,6 @@ func UnpackGetFeeConfigOutput(output []byte, skipLenCheck bool) (commontype.FeeC
 	}
 	outputStruct := FeeConfigABIStruct{}
 	err := FeeManagerABI.UnpackIntoInterface(&outputStruct, "getFeeConfig", output)
-
 	if err != nil {
 		return commontype.FeeConfig{}, err
 	}
@@ -316,6 +318,8 @@ func UnpackGetFeeConfigOutput(output []byte, skipLenCheck bool) (commontype.FeeC
 
 // getFeeConfig returns the stored fee config as an output.
 // The execution function reads the contract state for the stored fee config and returns the output.
+//
+//nolint:revive // General-purpose types lose the meaning of args if unused ones are removed
 func getFeeConfig(accessibleState contract.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
 	if remainingGas, err = contract.DeductGas(suppliedGas, GetFeeConfigGasCost); err != nil {
 		return nil, 0, err
@@ -357,6 +361,8 @@ func UnpackGetFeeConfigLastChangedAtOutput(output []byte) (*big.Int, error) {
 
 // getFeeConfigLastChangedAt returns the block number that fee config was last changed in.
 // The execution function reads the contract state for the stored block number and returns the output.
+//
+//nolint:revive // General-purpose types lose the meaning of args if unused ones are removed
 func getFeeConfigLastChangedAt(accessibleState contract.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
 	if remainingGas, err = contract.DeductGas(suppliedGas, GetLastChangedAtGasCost); err != nil {
 		return nil, 0, err
@@ -374,14 +380,13 @@ func getFeeConfigLastChangedAt(accessibleState contract.AccessibleState, caller 
 // createFeeManagerPrecompile returns a StatefulPrecompiledContract with getters and setters for the precompile.
 // Access to the getters/setters is controlled by an allow list for ContractAddress.
 func createFeeManagerPrecompile() contract.StatefulPrecompiledContract {
-	var functions []*contract.StatefulPrecompileFunction
-	functions = append(functions, allowlist.CreateAllowListFunctions(ContractAddress)...)
-
 	abiFunctionMap := map[string]contract.RunStatefulPrecompileFunc{
 		"getFeeConfig":              getFeeConfig,
 		"getFeeConfigLastChangedAt": getFeeConfigLastChangedAt,
 		"setFeeConfig":              setFeeConfig,
 	}
+	functions := make([]*contract.StatefulPrecompileFunction, 0, len(abiFunctionMap)+len(allowlist.AllowListABI.Methods))
+	functions = append(functions, allowlist.CreateAllowListFunctions(ContractAddress)...)
 
 	for name, function := range abiFunctionMap {
 		method, ok := FeeManagerABI.Methods[name]

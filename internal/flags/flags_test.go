@@ -1,4 +1,5 @@
-// (c) 2023, Ava Labs, Inc.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -27,7 +28,6 @@
 package flags
 
 import (
-	"os"
 	"os/user"
 	"runtime"
 	"testing"
@@ -61,7 +61,7 @@ func TestPathExpansion(t *testing.T) {
 		}
 	}
 
-	os.Setenv(`DDDXXX`, `/tmp`)
+	t.Setenv(`DDDXXX`, `/tmp`)
 	for test, expected := range tests {
 		got := expandPath(test)
 		if got != expected {

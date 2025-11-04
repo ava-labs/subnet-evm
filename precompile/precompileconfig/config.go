@@ -1,17 +1,17 @@
-// (c) 2023, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 // Defines the stateless interface for unmarshalling an arbitrary config of a precompile
 package precompileconfig
 
 import (
-	"github.com/ava-labs/avalanchego/chains/atomic"
-	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
+	"github.com/ava-labs/avalanchego/vms/evm/predicate"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp"
+	"github.com/ava-labs/libevm/common"
+
 	"github.com/ava-labs/subnet-evm/commontype"
-	"github.com/ethereum/go-ethereum/common"
 )
 
 // StatefulPrecompileConfig defines the interface for a stateful precompile to
@@ -50,14 +50,8 @@ type PredicateContext struct {
 // The bitset is stored in the block, so that historical blocks can be re-verified
 // without calling VerifyPredicate.
 type Predicater interface {
-	PredicateGas(predicateBytes []byte) (uint64, error)
-	VerifyPredicate(predicateContext *PredicateContext, predicateBytes []byte) error
-}
-
-// SharedMemoryWriter defines an interface to allow a precompile's Accepter to write operations
-// into shared memory to be committed atomically on block accept.
-type SharedMemoryWriter interface {
-	AddSharedMemoryRequests(chainID ids.ID, requests *atomic.Requests)
+	PredicateGas(pred predicate.Predicate, rules Rules) (uint64, error)
+	VerifyPredicate(predicateContext *PredicateContext, pred predicate.Predicate) error
 }
 
 type WarpMessageWriter interface {
@@ -66,9 +60,8 @@ type WarpMessageWriter interface {
 
 // AcceptContext defines the context passed in to a precompileconfig's Accepter
 type AcceptContext struct {
-	SnowCtx      *snow.Context
-	SharedMemory SharedMemoryWriter
-	Warp         WarpMessageWriter
+	SnowCtx *snow.Context
+	Warp    WarpMessageWriter
 }
 
 // Accepter is an optional interface for StatefulPrecompiledContracts to implement.
@@ -90,4 +83,9 @@ type ChainConfig interface {
 	AllowedFeeRecipients() bool
 	// IsDurango returns true if the time is after Durango.
 	IsDurango(time uint64) bool
+}
+
+// Rules defines the interface that provides information about the current rules of the chain.
+type Rules interface {
+	IsGraniteActivated() bool
 }

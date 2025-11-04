@@ -1,4 +1,4 @@
-// (c) 2021-2022, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package statesync
@@ -11,11 +11,14 @@ import (
 
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/set"
-	"github.com/ava-labs/subnet-evm/core/rawdb"
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/core/rawdb"
+	"github.com/ava-labs/libevm/ethdb"
+
+	"github.com/ava-labs/subnet-evm/plugin/evm/customrawdb"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
+
 	statesyncclient "github.com/ava-labs/subnet-evm/sync/client"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/ethdb"
 )
 
 const (
@@ -39,7 +42,7 @@ type CodeSyncerConfig struct {
 	DB ethdb.Database
 }
 
-// codeSyncer syncs code bytes from the network in a seprate thread.
+// codeSyncer syncs code bytes from the network in a separate thread.
 // Tracks outstanding requests in the DB, so that it will still fulfill them if interrupted.
 type codeSyncer struct {
 	lock sync.Mutex
@@ -104,16 +107,16 @@ func (c *codeSyncer) start(ctx context.Context) {
 // Clean out any codeToFetch markers from the database that are no longer needed and
 // add any outstanding markers to the queue.
 func (c *codeSyncer) addCodeToFetchFromDBToQueue() error {
-	it := rawdb.NewCodeToFetchIterator(c.DB)
+	it := customrawdb.NewCodeToFetchIterator(c.DB)
 	defer it.Release()
 
 	batch := c.DB.NewBatch()
 	codeHashes := make([]common.Hash, 0)
 	for it.Next() {
-		codeHash := common.BytesToHash(it.Key()[len(rawdb.CodeToFetchPrefix):])
+		codeHash := common.BytesToHash(it.Key()[len(customrawdb.CodeToFetchPrefix):])
 		// If we already have the codeHash, delete the marker from the database and continue
 		if rawdb.HasCode(c.DB, codeHash) {
-			rawdb.DeleteCodeToFetch(batch, codeHash)
+			customrawdb.DeleteCodeToFetch(batch, codeHash)
 			// Write the batch to disk if it has reached the ideal batch size.
 			if batch.ValueSize() > ethdb.IdealBatchSize {
 				if err := batch.Write(); err != nil {
@@ -186,14 +189,14 @@ func (c *codeSyncer) fulfillCodeRequest(ctx context.Context, codeHashes []common
 	c.lock.Lock()
 	batch := c.DB.NewBatch()
 	for i, codeHash := range codeHashes {
-		rawdb.DeleteCodeToFetch(batch, codeHash)
+		customrawdb.DeleteCodeToFetch(batch, codeHash)
 		c.outstandingCodeHashes.Remove(ids.ID(codeHash))
 		rawdb.WriteCode(batch, codeHash, codeByteSlices[i])
 	}
 	c.lock.Unlock() // Release the lock before writing the batch
 
 	if err := batch.Write(); err != nil {
-		return fmt.Errorf("faild to write batch for fulfilled code requests: %w", err)
+		return fmt.Errorf("failed to write batch for fulfilled code requests: %w", err)
 	}
 	return nil
 }
@@ -211,7 +214,7 @@ func (c *codeSyncer) addCode(codeHashes []common.Hash) error {
 		if !c.outstandingCodeHashes.Contains(ids.ID(codeHash)) && !rawdb.HasCode(c.DB, codeHash) {
 			selectedCodeHashes = append(selectedCodeHashes, codeHash)
 			c.outstandingCodeHashes.Add(ids.ID(codeHash))
-			rawdb.AddCodeToFetch(batch, codeHash)
+			customrawdb.AddCodeToFetch(batch, codeHash)
 		}
 	}
 	c.lock.Unlock()
@@ -223,7 +226,7 @@ func (c *codeSyncer) addCode(codeHashes []common.Hash) error {
 }
 
 // notifyAccountTrieCompleted notifies the code syncer that there will be no more incoming
-// code hashes from syncing the account trie, so it only needs to compelete its outstanding
+// code hashes from syncing the account trie, so it only needs to complete its outstanding
 // work.
 // Note: this allows the worker threads to exit and return a nil error.
 func (c *codeSyncer) notifyAccountTrieCompleted() {

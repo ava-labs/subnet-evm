@@ -1,4 +1,5 @@
-// (c) 2019-2020, Ava Labs, Inc.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -30,10 +31,11 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/core/rawdb"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/ethdb/memorydb"
-	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/core/rawdb"
+	"github.com/ava-labs/libevm/ethdb/memorydb"
+	"github.com/ava-labs/libevm/rlp"
+	"github.com/ava-labs/subnet-evm/plugin/evm/customrawdb"
 )
 
 // reverse reverses the contents of a byte slice. It's used to update random accs
@@ -106,7 +108,7 @@ func TestDiskMerge(t *testing.T) {
 	rawdb.WriteAccountSnapshot(db, conNukeCache, conNukeCache[:])
 	rawdb.WriteStorageSnapshot(db, conNukeCache, conNukeCacheSlot, conNukeCacheSlot[:])
 
-	rawdb.WriteSnapshotBlockHash(db, baseBlockHash)
+	customrawdb.WriteSnapshotBlockHash(db, baseBlockHash)
 	rawdb.WriteSnapshotRoot(db, baseRoot)
 
 	// Create a disk layer based on the above and cache in some data
@@ -121,7 +123,7 @@ func TestDiskMerge(t *testing.T) {
 	base.Storage(conNukeCache, conNukeCacheSlot)
 
 	// Modify or delete some accounts, flatten everything onto disk
-	if err := snaps.Update(diffBlockHash, diffRoot, baseBlockHash, map[common.Hash]struct{}{
+	if err := snaps.UpdateWithBlockHashes(diffBlockHash, diffRoot, baseBlockHash, map[common.Hash]struct{}{
 		accDelNoCache:  {},
 		accDelCache:    {},
 		conNukeNoCache: {},
@@ -144,7 +146,7 @@ func TestDiskMerge(t *testing.T) {
 	// Retrieve all the data through the disk layer and validate it
 	base = snaps.Snapshot(diffRoot)
 	if _, ok := base.(*diskLayer); !ok {
-		t.Fatalf("update not flattend into the disk layer")
+		t.Fatalf("update not flattened into the disk layer")
 	}
 
 	// assertAccount ensures that an account matches the given blob.
@@ -297,7 +299,7 @@ func TestDiskPartialMerge(t *testing.T) {
 		insertAccount(conNukeCache, conNukeCache[:])
 		insertStorage(conNukeCache, conNukeCacheSlot, conNukeCacheSlot[:])
 
-		rawdb.WriteSnapshotBlockHash(db, baseBlockHash)
+		customrawdb.WriteSnapshotBlockHash(db, baseBlockHash)
 		rawdb.WriteSnapshotRoot(db, baseRoot)
 
 		// Create a disk layer based on the above using a random progress marker
@@ -341,7 +343,7 @@ func TestDiskPartialMerge(t *testing.T) {
 		assertStorage(conNukeCache, conNukeCacheSlot, conNukeCacheSlot[:])
 
 		// Modify or delete some accounts, flatten everything onto disk
-		if err := snaps.Update(diffBlockHash, diffRoot, baseBlockHash, map[common.Hash]struct{}{
+		if err := snaps.UpdateWithBlockHashes(diffBlockHash, diffRoot, baseBlockHash, map[common.Hash]struct{}{
 			accDelNoCache:  {},
 			accDelCache:    {},
 			conNukeNoCache: {},
@@ -363,7 +365,7 @@ func TestDiskPartialMerge(t *testing.T) {
 		// Retrieve all the data through the disk layer and validate it
 		base = snaps.Snapshot(diffRoot)
 		if _, ok := base.(*diskLayer); !ok {
-			t.Fatalf("test %d: update not flattend into the disk layer", i)
+			t.Fatalf("test %d: update not flattened into the disk layer", i)
 		}
 		assertAccount(accNoModNoCache, accNoModNoCache[:])
 		assertAccount(accNoModCache, accNoModCache[:])
@@ -452,7 +454,7 @@ func TestDiskGeneratorPersistence(t *testing.T) {
 	rawdb.WriteAccountSnapshot(db, accOne, accOne[:])
 	rawdb.WriteStorageSnapshot(db, accOne, accOneSlotOne, accOneSlotOne[:])
 	rawdb.WriteStorageSnapshot(db, accOne, accOneSlotTwo, accOneSlotTwo[:])
-	rawdb.WriteSnapshotBlockHash(db, baseBlockHash)
+	customrawdb.WriteSnapshotBlockHash(db, baseBlockHash)
 	rawdb.WriteSnapshotRoot(db, baseRoot)
 
 	// Create a disk layer based on all above updates
@@ -460,7 +462,7 @@ func TestDiskGeneratorPersistence(t *testing.T) {
 	dl := snaps.disklayer()
 	dl.genMarker = genMarker
 	// Modify or delete some accounts, flatten everything onto disk
-	if err := snaps.Update(diffBlockHash, diffRoot, baseBlockHash, nil, map[common.Hash][]byte{
+	if err := snaps.UpdateWithBlockHashes(diffBlockHash, diffRoot, baseBlockHash, nil, map[common.Hash][]byte{
 		accTwo: accTwo[:],
 	}, nil); err != nil {
 		t.Fatalf("failed to update snapshot tree: %v", err)
@@ -478,7 +480,7 @@ func TestDiskGeneratorPersistence(t *testing.T) {
 	}
 	// Test scenario 2, the disk layer is fully generated
 	// Modify or delete some accounts, flatten everything onto disk
-	if err := snaps.Update(diffTwoBlockHash, diffTwoRoot, diffBlockHash, nil, map[common.Hash][]byte{
+	if err := snaps.UpdateWithBlockHashes(diffTwoBlockHash, diffTwoRoot, diffBlockHash, nil, map[common.Hash][]byte{
 		accThree: accThree.Bytes(),
 	}, map[common.Hash]map[common.Hash][]byte{
 		accThree: {accThreeSlot: accThreeSlot.Bytes()},
@@ -527,7 +529,7 @@ func TestDiskSeek(t *testing.T) {
 
 	baseRoot := randomHash()
 	baseBlockHash := randomHash()
-	rawdb.WriteSnapshotBlockHash(db, baseBlockHash)
+	customrawdb.WriteSnapshotBlockHash(db, baseBlockHash)
 	rawdb.WriteSnapshotRoot(db, baseRoot)
 
 	snaps := NewTestTree(db, baseBlockHash, baseRoot)

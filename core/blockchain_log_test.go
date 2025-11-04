@@ -1,4 +1,4 @@
-// (c) 2023, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package core
@@ -8,15 +8,17 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/core/rawdb"
+	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/core/vm"
+	"github.com/ava-labs/libevm/crypto"
+	"github.com/stretchr/testify/require"
+
 	"github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
-	"github.com/ava-labs/subnet-evm/core/rawdb"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/core/vm"
 	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/stretchr/testify/require"
+	"github.com/ava-labs/subnet-evm/plugin/evm/upgrade/legacy"
 )
 
 func TestAcceptedLogsSubscription(t *testing.T) {
@@ -42,8 +44,8 @@ func TestAcceptedLogsSubscription(t *testing.T) {
 		funds   = new(big.Int).Mul(big.NewInt(100), big.NewInt(params.Ether))
 		gspec   = &Genesis{
 			Config:  params.TestChainConfig,
-			Alloc:   GenesisAlloc{addr1: {Balance: funds}},
-			BaseFee: big.NewInt(params.TestInitialBaseFee),
+			Alloc:   types.GenesisAlloc{addr1: {Balance: funds}},
+			BaseFee: big.NewInt(legacy.BaseFee),
 		}
 		contractAddress = crypto.CreateAddress(addr1, 0)
 		signer          = types.LatestSigner(gspec.Config)
@@ -59,13 +61,13 @@ func TestAcceptedLogsSubscription(t *testing.T) {
 		switch i {
 		case 0:
 			// First, we deploy the contract
-			contractTx := types.NewContractCreation(0, common.Big0, 200000, big.NewInt(params.TestInitialBaseFee), common.FromHex(callableBin))
+			contractTx := types.NewContractCreation(0, common.Big0, 200000, big.NewInt(legacy.BaseFee), common.FromHex(callableBin))
 			contractSignedTx, err := types.SignTx(contractTx, signer, key1)
 			require.NoError(err)
 			b.AddTx(contractSignedTx)
 		case 1:
 			// In the next block, we call the contract function
-			tx := types.NewTransaction(1, contractAddress, common.Big0, 23000, big.NewInt(params.TestInitialBaseFee), packedFunction)
+			tx := types.NewTransaction(1, contractAddress, common.Big0, 23000, big.NewInt(legacy.BaseFee), packedFunction)
 			tx, err := types.SignTx(tx, signer, key1)
 			require.NoError(err)
 			b.AddTx(tx)
@@ -88,8 +90,7 @@ func TestAcceptedLogsSubscription(t *testing.T) {
 	require.NoError(err)
 
 	for _, block := range blocks {
-		err := chain.Accept(block)
-		require.NoError(err)
+		require.NoError(chain.Accept(block))
 	}
 	chain.DrainAcceptorQueue()
 

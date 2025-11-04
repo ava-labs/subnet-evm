@@ -1,3 +1,14 @@
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
+//
+// This file is a derived work, based on the go-ethereum library whose original
+// notices appear below.
+//
+// It is distributed under a license compatible with the licensing terms of the
+// original code from which it is derived.
+//
+// Much love to the original authors for their work.
+// **********
 // Copyright 2016 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
@@ -19,10 +30,11 @@ package filters
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"testing"
 
+	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/subnet-evm/rpc"
-	"github.com/ethereum/go-ethereum/common"
 )
 
 func TestUnmarshalJSONNewFilterArgs(t *testing.T) {
@@ -181,5 +193,16 @@ func TestUnmarshalJSONNewFilterArgs(t *testing.T) {
 	}
 	if len(test7.Topics[2]) != 0 {
 		t.Fatalf("expected 0 topics, got %d topics", len(test7.Topics[2]))
+	}
+
+	// multiple address exceeding max
+	var test8 FilterCriteria
+	addresses := make([]string, maxAddresses+1)
+	for i := 0; i < maxAddresses+1; i++ {
+		addresses[i] = fmt.Sprintf(`"%s"`, common.HexToAddress(fmt.Sprintf("0x%x", i)).Hex())
+	}
+	vector = fmt.Sprintf(`{"address": [%s]}`, strings.Join(addresses, ", "))
+	if err := json.Unmarshal([]byte(vector), &test8); err != errExceedMaxAddresses {
+		t.Fatal("expected errExceedMaxAddresses, got", err)
 	}
 }

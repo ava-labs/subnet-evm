@@ -1,4 +1,5 @@
-// (c) 2019-2020, Ava Labs, Inc.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -31,9 +32,9 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/interfaces"
-	"github.com/ethereum/go-ethereum/common"
+	ethereum "github.com/ava-labs/libevm"
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/core/types"
 )
 
 var (
@@ -64,7 +65,7 @@ type ContractCaller interface {
 
 	// CallContract executes an Ethereum contract call with the specified data as the
 	// input.
-	CallContract(ctx context.Context, call interfaces.CallMsg, blockNumber *big.Int) ([]byte, error)
+	CallContract(ctx context.Context, call ethereum.CallMsg, blockNumber *big.Int) ([]byte, error)
 }
 
 // AcceptedContractCaller defines methods to perform contract calls on the pending state.
@@ -75,7 +76,7 @@ type AcceptedContractCaller interface {
 	AcceptedCodeAt(ctx context.Context, contract common.Address) ([]byte, error)
 
 	// AcceptedCallContract executes an Ethereum contract call against the accepted state.
-	AcceptedCallContract(ctx context.Context, call interfaces.CallMsg) ([]byte, error)
+	AcceptedCallContract(ctx context.Context, call ethereum.CallMsg) ([]byte, error)
 }
 
 // BlockHashContractCaller defines methods to perform contract calls on a specific block hash.
@@ -86,7 +87,7 @@ type BlockHashContractCaller interface {
 	CodeAtHash(ctx context.Context, contract common.Address, blockHash common.Hash) ([]byte, error)
 
 	// CallContractAtHash executes an Ethereum contract call against the state at the specified block hash.
-	CallContractAtHash(ctx context.Context, call interfaces.CallMsg, blockHash common.Hash) ([]byte, error)
+	CallContractAtHash(ctx context.Context, call ethereum.CallMsg, blockHash common.Hash) ([]byte, error)
 }
 
 // ContractTransactor defines the methods needed to allow operating with a contract
@@ -94,6 +95,11 @@ type BlockHashContractCaller interface {
 // used when the user does not provide some needed values, but rather leaves it up
 // to the transactor to decide.
 type ContractTransactor interface {
+	ethereum.GasEstimator
+	ethereum.GasPricer
+	ethereum.GasPricer1559
+	ethereum.TransactionSender
+
 	// HeaderByNumber returns a block header from the current canonical chain. If
 	// number is nil, the latest known header is returned.
 	HeaderByNumber(ctx context.Context, number *big.Int) (*types.Header, error)
@@ -101,46 +107,20 @@ type ContractTransactor interface {
 	// AcceptedCodeAt returns the code of the given account in the accepted state.
 	AcceptedCodeAt(ctx context.Context, account common.Address) ([]byte, error)
 
-	// AcceptedNonceAt retrieves the current accepted nonce associated with an account.
-	AcceptedNonceAt(ctx context.Context, account common.Address) (uint64, error)
-
-	// SuggestGasPrice retrieves the currently suggested gas price to allow a timely
-	// execution of a transaction.
-	SuggestGasPrice(ctx context.Context) (*big.Int, error)
-
-	// SuggestGasTipCap retrieves the currently suggested 1559 priority fee to allow
-	// a timely execution of a transaction.
-	SuggestGasTipCap(ctx context.Context) (*big.Int, error)
-
-	// EstimateGas tries to estimate the gas needed to execute a specific
-	// transaction based on the current pending state of the backend blockchain.
-	// There is no guarantee that this is the true gas limit requirement as other
-	// transactions may be added or removed by miners, but it should provide a basis
-	// for setting a reasonable default.
-	EstimateGas(ctx context.Context, call interfaces.CallMsg) (gas uint64, err error)
-
-	// SendTransaction injects the transaction into the pending pool for execution.
-	SendTransaction(ctx context.Context, tx *types.Transaction) error
-}
-
-// ContractFilterer defines the methods needed to access log events using one-off
-// queries or continuous event subscriptions.
-type ContractFilterer interface {
-	// FilterLogs executes a log filter operation, blocking during execution and
-	// returning all the results in one batch.
-	//
-	// TODO(karalabe): Deprecate when the subscription one can return past data too.
-	FilterLogs(ctx context.Context, query interfaces.FilterQuery) ([]types.Log, error)
-
-	// SubscribeFilterLogs creates a background log filtering operation, returning
-	// a subscription immediately, which can be used to stream the found events.
-	SubscribeFilterLogs(ctx context.Context, query interfaces.FilterQuery, ch chan<- types.Log) (interfaces.Subscription, error)
+	// NonceAt retrieves the nonce associated with an account.
+	NonceAt(ctx context.Context, account common.Address, blockNum *big.Int) (uint64, error)
 }
 
 // DeployBackend wraps the operations needed by WaitMined and WaitDeployed.
 type DeployBackend interface {
 	TransactionReceipt(ctx context.Context, txHash common.Hash) (*types.Receipt, error)
 	CodeAt(ctx context.Context, account common.Address, blockNumber *big.Int) ([]byte, error)
+}
+
+// ContractFilterer defines the methods needed to access log events using one-off
+// queries or continuous event subscriptions.
+type ContractFilterer interface {
+	ethereum.LogFilterer
 }
 
 // ContractBackend defines the methods needed to work with contracts on a read-write basis.

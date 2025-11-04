@@ -1,4 +1,4 @@
-// (c) 2021-2022, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package message
@@ -8,7 +8,7 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/ava-labs/libevm/common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -36,7 +36,7 @@ func TestMarshalCodeRequest(t *testing.T) {
 func TestMarshalCodeResponse(t *testing.T) {
 	// generate some random code data
 	// set random seed for deterministic random
-	rand.Seed(1)
+	rand := rand.New(rand.NewSource(1))
 	codeData := make([]byte, 50)
 	_, err := rand.Read(codeData)
 	assert.NoError(t, err)

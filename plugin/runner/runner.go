@@ -1,4 +1,4 @@
-// (c) 2019-2020, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package runner
@@ -22,7 +22,7 @@ func Run(versionStr string) {
 		os.Exit(1)
 	}
 	if printVersion && versionStr != "" {
-		fmt.Printf(versionStr)
+		fmt.Println(versionStr)
 		os.Exit(0)
 	}
 	if err := ulimit.Set(ulimit.DefaultFDLimit, logging.NoLog{}); err != nil {

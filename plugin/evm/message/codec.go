@@ -1,4 +1,4 @@
-// (c) 2019-2022, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package message
@@ -15,22 +15,19 @@ const (
 	maxMessageSize = 2*units.MiB - 64*units.KiB // Subtract 64 KiB from p2p network cap to leave room for encoding overhead from AvalancheGo
 )
 
-var (
-	Codec           codec.Manager
-	CrossChainCodec codec.Manager
-)
+var Codec codec.Manager
 
 func init() {
 	Codec = codec.NewManager(maxMessageSize)
 	c := linearcodec.NewDefault()
 
+	// Skip registration to keep registeredTypes unchanged after legacy gossip deprecation
+	c.SkipRegistrations(1)
+
 	errs := wrappers.Errs{}
 	errs.Add(
-		// Gossip types
-		c.RegisterType(EthTxsGossip{}),
-
 		// Types for state sync frontier consensus
-		c.RegisterType(SyncSummary{}),
+		c.RegisterType(BlockSyncSummary{}),
 
 		// state sync types
 		c.RegisterType(BlockRequest{}),
@@ -39,30 +36,13 @@ func init() {
 		c.RegisterType(LeafsResponse{}),
 		c.RegisterType(CodeRequest{}),
 		c.RegisterType(CodeResponse{}),
-
-		// Warp request types
-		c.RegisterType(MessageSignatureRequest{}),
-		c.RegisterType(BlockSignatureRequest{}),
-		c.RegisterType(SignatureResponse{}),
-
-		Codec.RegisterCodec(Version, c),
 	)
 
-	if errs.Errored() {
-		panic(errs.Err)
-	}
+	// Deprecated Warp request/responde types are skipped
+	// See https://github.com/ava-labs/coreth/pull/999
+	c.SkipRegistrations(3)
 
-	CrossChainCodec = codec.NewManager(maxMessageSize)
-	ccc := linearcodec.NewDefault()
-
-	errs = wrappers.Errs{}
-	errs.Add(
-		// CrossChainRequest Types
-		ccc.RegisterType(EthCallRequest{}),
-		ccc.RegisterType(EthCallResponse{}),
-
-		CrossChainCodec.RegisterCodec(Version, ccc),
-	)
+	Codec.RegisterCodec(Version, c)
 
 	if errs.Errored() {
 		panic(errs.Err)

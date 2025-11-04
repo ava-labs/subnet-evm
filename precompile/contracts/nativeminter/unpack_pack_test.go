@@ -1,4 +1,4 @@
-// (c) 2019-2023, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package nativeminter
@@ -8,17 +8,16 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/crypto"
+	"github.com/stretchr/testify/require"
+
 	"github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/stretchr/testify/require"
 )
 
-var (
-	mintSignature = contract.CalculateFunctionSelector("mintNativeCoin(address,uint256)") // address, amount
-)
+var mintSignature = contract.CalculateFunctionSelector("mintNativeCoin(address,uint256)") // address, amount
 
 func FuzzPackMintNativeCoinEqualTest(f *testing.F) {
 	key, err := crypto.GenerateKey()
@@ -33,13 +32,10 @@ func FuzzPackMintNativeCoinEqualTest(f *testing.F) {
 	f.Add(constants.BlackholeAddr.Bytes(), common.Big2.Bytes())
 	f.Fuzz(func(t *testing.T, b []byte, bigIntBytes []byte) {
 		bigIntVal := new(big.Int).SetBytes(bigIntBytes)
-		doCheckOutputs := true
 		// we can only check if outputs are correct if the value is less than MaxUint256
 		// otherwise the value will be truncated when packed,
 		// and thus unpacked output will not be equal to the value
-		if bigIntVal.Cmp(abi.MaxUint256) > 0 {
-			doCheckOutputs = false
-		}
+		doCheckOutputs := bigIntVal.Cmp(abi.MaxUint256) <= 0
 		testOldPackMintNativeCoinEqual(t, common.BytesToAddress(b), bigIntVal, doCheckOutputs)
 	})
 }

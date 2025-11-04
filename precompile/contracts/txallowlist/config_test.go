@@ -1,4 +1,4 @@
-// (c) 2019-2020, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package txallowlist
@@ -6,23 +6,24 @@ package txallowlist
 import (
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/precompile/allowlist"
-	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
-	"github.com/ava-labs/subnet-evm/precompile/testutils"
-	"github.com/ava-labs/subnet-evm/utils"
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/ava-labs/libevm/common"
 	"go.uber.org/mock/gomock"
+
+	"github.com/ava-labs/subnet-evm/precompile/allowlist/allowlisttest"
+	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
+	"github.com/ava-labs/subnet-evm/precompile/precompiletest"
+	"github.com/ava-labs/subnet-evm/utils"
 )
 
 func TestVerify(t *testing.T) {
-	allowlist.VerifyPrecompileWithAllowListTests(t, Module, nil)
+	allowlisttest.VerifyPrecompileWithAllowListTests(t, Module, nil)
 }
 
 func TestEqual(t *testing.T) {
-	admins := []common.Address{allowlist.TestAdminAddr}
-	enableds := []common.Address{allowlist.TestEnabledAddr}
-	managers := []common.Address{allowlist.TestManagerAddr}
-	tests := map[string]testutils.ConfigEqualTest{
+	admins := []common.Address{allowlisttest.TestAdminAddr}
+	enableds := []common.Address{allowlisttest.TestEnabledAddr}
+	managers := []common.Address{allowlisttest.TestManagerAddr}
+	tests := map[string]precompiletest.ConfigEqualTest{
 		"non-nil config and nil other": {
 			Config:   NewConfig(utils.NewUint64(3), admins, enableds, managers),
 			Other:    nil,
@@ -44,5 +45,5 @@ func TestEqual(t *testing.T) {
 			Expected: true,
 		},
 	}
-	allowlist.EqualPrecompileWithAllowListTests(t, Module, tests)
+	allowlisttest.EqualPrecompileWithAllowListTests(t, Module, tests)
 }

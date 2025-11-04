@@ -1,4 +1,4 @@
-// (c) 2023 Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package stateupgrade
@@ -6,14 +6,16 @@ package stateupgrade
 import (
 	"math/big"
 
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/libevm/stateconf"
+	"github.com/holiman/uint256"
 )
 
 // StateDB is the interface for accessing EVM state in state upgrades
 type StateDB interface {
-	SetState(common.Address, common.Hash, common.Hash)
+	SetState(common.Address, common.Hash, common.Hash, ...stateconf.StateDBStateOption)
 	SetCode(common.Address, []byte)
-	AddBalance(common.Address, *big.Int)
+	AddBalance(common.Address, *uint256.Int)
 
 	GetNonce(common.Address) uint64
 	SetNonce(common.Address, uint64)

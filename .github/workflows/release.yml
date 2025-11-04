@@ -4,27 +4,26 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Tag to include in artifact name"
+        description: "Tag to checkout & release"
         required: true
-  push:
-    tags:
-      - "v[0-9]+.[0-9]+.[0-9]+"
+  release:
+    types:
+      - released
 
 jobs:
   release:
-    # needs: [lint_test, unit_test, e2e_test, simulator_test]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Git checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
           path: subnet-evm
+          ref: ${{ github.event.inputs.tag }}
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "~1.21.12"
-          check-latest: true
+          go-version-file: "./subnet-evm/go.mod"
       - name: Set up arm64 cross compiler
         run: |
           sudo apt-get -y update
@@ -42,12 +41,17 @@ jobs:
           echo cd4f08a75577145b8f05245a2975f7c81401d75e9535dcffbb879ee1deefcbf4 tarballs/MacOSX11.3.sdk.tar.xz | sha256sum -c -
           UNATTENDED=1 ./build.sh
           echo "$PWD/target/bin" >> "$GITHUB_PATH"
+      - name: Git checkout workflow event ref for .goreleaser.yml only
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          path: goreleaser
       - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v3
+        uses: goreleaser/goreleaser-action@9c156ee8a17a598857849441385a2041ef570552 #v6.3.0
         with:
           distribution: goreleaser
-          version: latest
-          args: release --clean
+          version: v2.5.1
+          args: release --clean --config ../goreleaser/.goreleaser.yml
           workdir: ./subnet-evm/
         env:
           # https://docs.github.com/en/actions/security-guides/automatic-token-authentication#about-the-github_token-secret

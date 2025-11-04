@@ -1,4 +1,4 @@
-// (c) 2019-2020, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package evm
@@ -9,7 +9,9 @@ import (
 
 	"github.com/ava-labs/avalanchego/api"
 	"github.com/ava-labs/avalanchego/utils/profiler"
-	"github.com/ethereum/go-ethereum/log"
+	"github.com/ava-labs/libevm/log"
+
+	"github.com/ava-labs/subnet-evm/plugin/evm/client"
 )
 
 // Admin is the API service for admin API calls
@@ -26,54 +28,50 @@ func NewAdminService(vm *VM, performanceDir string) *Admin {
 }
 
 // StartCPUProfiler starts a cpu profile writing to the specified file
-func (p *Admin) StartCPUProfiler(_ *http.Request, _ *struct{}, _ *api.EmptyReply) error {
+func (p *Admin) StartCPUProfiler(*http.Request, *struct{}, *api.EmptyReply) error {
 	log.Info("Admin: StartCPUProfiler called")
 
-	p.vm.ctx.Lock.Lock()
-	defer p.vm.ctx.Lock.Unlock()
+	p.vm.vmLock.Lock()
+	defer p.vm.vmLock.Unlock()
 
 	return p.profiler.StartCPUProfiler()
 }
 
 // StopCPUProfiler stops the cpu profile
-func (p *Admin) StopCPUProfiler(r *http.Request, _ *struct{}, _ *api.EmptyReply) error {
+func (p *Admin) StopCPUProfiler(*http.Request, *struct{}, *api.EmptyReply) error {
 	log.Info("Admin: StopCPUProfiler called")
 
-	p.vm.ctx.Lock.Lock()
-	defer p.vm.ctx.Lock.Unlock()
+	p.vm.vmLock.Lock()
+	defer p.vm.vmLock.Unlock()
 
 	return p.profiler.StopCPUProfiler()
 }
 
 // MemoryProfile runs a memory profile writing to the specified file
-func (p *Admin) MemoryProfile(_ *http.Request, _ *struct{}, _ *api.EmptyReply) error {
+func (p *Admin) MemoryProfile(*http.Request, *struct{}, *api.EmptyReply) error {
 	log.Info("Admin: MemoryProfile called")
 
-	p.vm.ctx.Lock.Lock()
-	defer p.vm.ctx.Lock.Unlock()
+	p.vm.vmLock.Lock()
+	defer p.vm.vmLock.Unlock()
 
 	return p.profiler.MemoryProfile()
 }
 
 // LockProfile runs a mutex profile writing to the specified file
-func (p *Admin) LockProfile(_ *http.Request, _ *struct{}, _ *api.EmptyReply) error {
+func (p *Admin) LockProfile(*http.Request, *struct{}, *api.EmptyReply) error {
 	log.Info("Admin: LockProfile called")
 
-	p.vm.ctx.Lock.Lock()
-	defer p.vm.ctx.Lock.Unlock()
+	p.vm.vmLock.Lock()
+	defer p.vm.vmLock.Unlock()
 
 	return p.profiler.LockProfile()
 }
 
-type SetLogLevelArgs struct {
-	Level string `json:"level"`
-}
-
-func (p *Admin) SetLogLevel(_ *http.Request, args *SetLogLevelArgs, reply *api.EmptyReply) error {
+func (p *Admin) SetLogLevel(_ *http.Request, args *client.SetLogLevelArgs, _ *api.EmptyReply) error {
 	log.Info("EVM: SetLogLevel called", "logLevel", args.Level)
 
-	p.vm.ctx.Lock.Lock()
-	defer p.vm.ctx.Lock.Unlock()
+	p.vm.vmLock.Lock()
+	defer p.vm.vmLock.Unlock()
 
 	if err := p.vm.logger.SetLogLevel(args.Level); err != nil {
 		return fmt.Errorf("failed to parse log level: %w ", err)
@@ -81,11 +79,7 @@ func (p *Admin) SetLogLevel(_ *http.Request, args *SetLogLevelArgs, reply *api.E
 	return nil
 }
 
-type ConfigReply struct {
-	Config *Config `json:"config"`
-}
-
-func (p *Admin) GetVMConfig(_ *http.Request, _ *struct{}, reply *ConfigReply) error {
+func (p *Admin) GetVMConfig(_ *http.Request, _ *struct{}, reply *client.ConfigReply) error {
 	reply.Config = &p.vm.config
 	return nil
 }

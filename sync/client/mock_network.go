@@ -1,4 +1,4 @@
-// (c) 2021-2022, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package statesyncclient
@@ -8,19 +8,17 @@ import (
 	"errors"
 
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/subnet-evm/peer"
-
 	"github.com/ava-labs/avalanchego/version"
+
+	"github.com/ava-labs/subnet-evm/network"
 )
 
-var _ peer.NetworkClient = &mockNetwork{}
+var _ network.SyncedNetworkClient = (*mockNetwork)(nil)
 
 // TODO replace with gomock library
 type mockNetwork struct {
 	// captured request data
-	numCalls         uint
-	requestedVersion *version.Application
-	request          []byte
+	numCalls uint
 
 	// response mocking for RequestAny and Request calls
 	response       [][]byte
@@ -29,29 +27,26 @@ type mockNetwork struct {
 	nodesRequested []ids.NodeID
 }
 
-func (t *mockNetwork) SendAppRequestAny(ctx context.Context, minVersion *version.Application, request []byte) ([]byte, ids.NodeID, error) {
+func (t *mockNetwork) SendSyncedAppRequestAny(context.Context, *version.Application, []byte) ([]byte, ids.NodeID, error) {
 	if len(t.response) == 0 {
 		return nil, ids.EmptyNodeID, errors.New("no mocked response to return in mockNetwork")
 	}
 
-	t.requestedVersion = minVersion
-
-	response, err := t.processMock(request)
+	response, err := t.processMock()
 	return response, ids.EmptyNodeID, err
 }
 
-func (t *mockNetwork) SendAppRequest(ctx context.Context, nodeID ids.NodeID, request []byte) ([]byte, error) {
+func (t *mockNetwork) SendSyncedAppRequest(_ context.Context, nodeID ids.NodeID, _ []byte) ([]byte, error) {
 	if len(t.response) == 0 {
 		return nil, errors.New("no mocked response to return in mockNetwork")
 	}
 
 	t.nodesRequested = append(t.nodesRequested, nodeID)
 
-	return t.processMock(request)
+	return t.processMock()
 }
 
-func (t *mockNetwork) processMock(request []byte) ([]byte, error) {
-	t.request = request
+func (t *mockNetwork) processMock() ([]byte, error) {
 	t.numCalls++
 
 	if t.callback != nil {
@@ -74,11 +69,7 @@ func (t *mockNetwork) processMock(request []byte) ([]byte, error) {
 	return response, err
 }
 
-func (t *mockNetwork) Gossip([]byte) error {
-	panic("not implemented") // we don't care about this function for this test
-}
-
-func (t *mockNetwork) SendCrossChainRequest(ctx context.Context, chainID ids.ID, request []byte) ([]byte, error) {
+func (*mockNetwork) Gossip([]byte) error {
 	panic("not implemented") // we don't care about this function for this test
 }
 
@@ -97,4 +88,4 @@ func (t *mockNetwork) mockResponses(callback func(), responses ...[]byte) {
 	t.numCalls = 0
 }
 
-func (t *mockNetwork) TrackBandwidth(ids.NodeID, float64) {}
+func (*mockNetwork) TrackBandwidth(ids.NodeID, float64) {}

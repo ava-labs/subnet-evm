@@ -1,3 +1,15 @@
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
+//
+// This file is a derived work, based on the go-ethereum library whose original
+// notices appear below.
+//
+// It is distributed under a license compatible with the licensing terms of the
+// original code from which it is derived.
+//
+// Much love to the original authors for their work.
+// **********
+
 package log
 
 import (
@@ -106,7 +118,7 @@ func LevelAlignedString(l slog.Level) string {
 	}
 }
 
-// LevelString returns a 5-character string containing the name of a Lvl.
+// LevelString returns a string containing the name of a Lvl.
 func LevelString(l slog.Level) string {
 	switch l {
 	case LevelTrace:
@@ -118,7 +130,7 @@ func LevelString(l slog.Level) string {
 	case slog.LevelWarn:
 		return "warn"
 	case slog.LevelError:
-		return "eror"
+		return "error"
 	case LevelCrit:
 		return "crit"
 	default:

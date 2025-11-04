@@ -1,4 +1,4 @@
-// (c) 2023, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package warp
@@ -9,32 +9,74 @@ import (
 
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
-	"github.com/ava-labs/subnet-evm/accounts/abi"
-	"github.com/ava-labs/subnet-evm/precompile/contract"
-	"github.com/ava-labs/subnet-evm/vmerrs"
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/common/math"
+	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/core/vm"
 
 	_ "embed"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/math"
+	"github.com/ava-labs/subnet-evm/accounts/abi"
+	"github.com/ava-labs/subnet-evm/precompile/contract"
+	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 )
 
-const (
-	GetVerifiedWarpMessageBaseCost uint64 = 2      // Base cost of entering getVerifiedWarpMessage
-	GetBlockchainIDGasCost         uint64 = 2      // Based on GasQuickStep used in existing EVM instructions
-	AddWarpMessageGasCost          uint64 = 20_000 // Cost of producing and serving a BLS Signature
-	// Sum of base log gas cost, cost of producing 4 topics, and producing + serving a BLS Signature (sign + trie write)
-	// Note: using trie write for the gas cost results in a conservative overestimate since the message is stored in a
-	// flat database that can be cleaned up after a period of time instead of the EVM trie.
+const addWarpMessageBaseGasCost uint64 = 20_000 // Cost of producing and serving a BLS Signature
 
-	SendWarpMessageGasCost uint64 = contract.LogGas + 3*contract.LogTopicGas + AddWarpMessageGasCost + contract.WriteGasCostPerSlot
-	// SendWarpMessageGasCostPerByte cost accounts for producing a signed message of a given size
-	SendWarpMessageGasCostPerByte uint64 = contract.LogDataGas
+var (
+	preGraniteGasConfig = GasConfig{
+		GetBlockchainID: 2,
 
-	GasCostPerWarpSigner            uint64 = 500
-	GasCostPerWarpMessageBytes      uint64 = 100
-	GasCostPerSignatureVerification uint64 = 200_000
+		GetVerifiedWarpMessageBase: 2,
+		PerWarpSigner:              500,
+		PerWarpMessageChunk:        3_200,
+		VerifyPredicateBase:        200_000,
+
+		// Sum of base log gas cost, cost of producing 3 topics, and
+		// producing + serving a BLS Signature (sign + trie write).
+		//
+		// Note: using trie write for the gas cost results in a conservative
+		// overestimate since the message is stored in a flat database that can
+		// be cleaned up after a period of time instead of the EVM trie.
+		SendWarpMessageBase: contract.LogGas + 3*contract.LogTopicGas + addWarpMessageBaseGasCost + contract.WriteGasCostPerSlot,
+		PerWarpMessageByte:  contract.LogDataGas,
+	}
+	// graniteGasConfig updated the gas costs of warp operations to target a
+	// processing speed of around 100 mgas/s after the introduction of epoching
+	// which allows for pre-calculating the warp validator sets for all active
+	// networks.
+	graniteGasConfig = GasConfig{
+		GetBlockchainID: 200,
+
+		GetVerifiedWarpMessageBase: 750,
+		PerWarpSigner:              250,
+		PerWarpMessageChunk:        512, // matches call data byte cost
+		VerifyPredicateBase:        125_000,
+
+		// Unchanged during Granite.
+		SendWarpMessageBase: preGraniteGasConfig.SendWarpMessageBase,
+		PerWarpMessageByte:  preGraniteGasConfig.PerWarpMessageByte,
+	}
 )
+
+type GasConfig struct {
+	// Cost to call getBlockchainID
+	GetBlockchainID uint64
+
+	// Base cost of entering getVerifiedWarpMessage
+	GetVerifiedWarpMessageBase uint64
+	// Gas cost per warp signer in the validator set
+	PerWarpSigner uint64
+	// Gas cost per chunk of the warp message (each chunk is 32 bytes)
+	PerWarpMessageChunk uint64
+	// Gas cost to verify a BLS signature
+	VerifyPredicateBase uint64
+
+	// Base cost of entering sendWarpMessage
+	SendWarpMessageBase uint64
+	// PerWarpMessageByte cost accounts for producing a message of a given size
+	PerWarpMessageByte uint64
+}
 
 var (
 	errInvalidSendInput  = errors.New("invalid sendWarpMessage input")
@@ -92,8 +134,11 @@ func PackGetBlockchainIDOutput(blockchainID common.Hash) ([]byte, error) {
 }
 
 // getBlockchainID returns the snow Chain Context ChainID of this blockchain.
+//
+//nolint:revive // General-purpose types lose the meaning of args if unused ones are removed
 func getBlockchainID(accessibleState contract.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
-	if remainingGas, err = contract.DeductGas(suppliedGas, GetBlockchainIDGasCost); err != nil {
+	warpGasConfig := CurrentGasConfig(accessibleState.GetRules())
+	if remainingGas, err = contract.DeductGas(suppliedGas, warpGasConfig.GetBlockchainID); err != nil {
 		return nil, 0, err
 	}
 	packedOutput, err := PackGetBlockchainIDOutput(common.Hash(accessibleState.GetSnowContext().ChainID))
@@ -143,6 +188,7 @@ func UnpackGetVerifiedWarpBlockHashOutput(output []byte) (GetVerifiedWarpBlockHa
 	return outputStruct, err
 }
 
+//nolint:revive // General-purpose types lose the meaning of args if unused ones are removed
 func getVerifiedWarpBlockHash(accessibleState contract.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
 	return handleWarpMessage(accessibleState, input, suppliedGas, blockHashHandler{})
 }
@@ -187,6 +233,8 @@ func UnpackGetVerifiedWarpMessageOutput(output []byte) (GetVerifiedWarpMessageOu
 
 // getVerifiedWarpMessage retrieves the pre-verified warp message from the predicate storage slots and returns
 // the expected ABI encoding of the message to the caller.
+//
+//nolint:revive // General-purpose types lose the meaning of args if unused ones are removed
 func getVerifiedWarpMessage(accessibleState contract.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
 	return handleWarpMessage(accessibleState, input, suppliedGas, addressedPayloadHandler{})
 }
@@ -228,26 +276,27 @@ func UnpackSendWarpMessageOutput(output []byte) (common.Hash, error) {
 
 // sendWarpMessage constructs an Avalanche Warp Message containing an AddressedPayload and emits a log to signal validators that they should
 // be willing to sign this message.
-func sendWarpMessage(accessibleState contract.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
-	if remainingGas, err = contract.DeductGas(suppliedGas, SendWarpMessageGasCost); err != nil {
+func sendWarpMessage(accessibleState contract.AccessibleState, caller common.Address, _ common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
+	warpGasConfig := CurrentGasConfig(accessibleState.GetRules())
+	if remainingGas, err = contract.DeductGas(suppliedGas, warpGasConfig.SendWarpMessageBase); err != nil {
 		return nil, 0, err
 	}
 	// This gas cost includes buffer room because it is based off of the total size of the input instead of the produced payload.
 	// This ensures that we charge gas before we unpack the variable sized input.
-	payloadGas, overflow := math.SafeMul(SendWarpMessageGasCostPerByte, uint64(len(input)))
+	payloadGas, overflow := math.SafeMul(warpGasConfig.PerWarpMessageByte, uint64(len(input)))
 	if overflow {
-		return nil, 0, vmerrs.ErrOutOfGas
+		return nil, 0, vm.ErrOutOfGas
 	}
 	if remainingGas, err = contract.DeductGas(remainingGas, payloadGas); err != nil {
 		return nil, 0, err
 	}
 	if readOnly {
-		return nil, remainingGas, vmerrs.ErrWriteProtection
+		return nil, remainingGas, vm.ErrWriteProtection
 	}
 	// unpack the arguments
 	payloadData, err := UnpackSendWarpMessageInput(input)
 	if err != nil {
-		return nil, remainingGas, fmt.Errorf("%w: %s", errInvalidSendInput, err)
+		return nil, remainingGas, fmt.Errorf("%w: %w", errInvalidSendInput, err)
 	}
 
 	var (
@@ -280,12 +329,12 @@ func sendWarpMessage(accessibleState contract.AccessibleState, caller common.Add
 	if err != nil {
 		return nil, remainingGas, err
 	}
-	accessibleState.GetStateDB().AddLog(
-		ContractAddress,
-		topics,
-		data,
-		accessibleState.GetBlockContext().Number().Uint64(),
-	)
+	accessibleState.GetStateDB().AddLog(&types.Log{
+		Address:     ContractAddress,
+		Topics:      topics,
+		Data:        data,
+		BlockNumber: accessibleState.GetBlockContext().Number().Uint64(),
+	})
 
 	packed, err := PackSendWarpMessageOutput(common.Hash(unsignedWarpMessage.ID()))
 	if err != nil {
@@ -313,14 +362,13 @@ func UnpackSendWarpEventDataToMessage(data []byte) (*warp.UnsignedMessage, error
 
 // createWarpPrecompile returns a StatefulPrecompiledContract with getters and setters for the precompile.
 func createWarpPrecompile() contract.StatefulPrecompiledContract {
-	var functions []*contract.StatefulPrecompileFunction
-
 	abiFunctionMap := map[string]contract.RunStatefulPrecompileFunc{
 		"getBlockchainID":          getBlockchainID,
 		"getVerifiedWarpBlockHash": getVerifiedWarpBlockHash,
 		"getVerifiedWarpMessage":   getVerifiedWarpMessage,
 		"sendWarpMessage":          sendWarpMessage,
 	}
+	functions := make([]*contract.StatefulPrecompileFunction, 0, len(abiFunctionMap))
 
 	for name, function := range abiFunctionMap {
 		method, ok := WarpABI.Methods[name]
@@ -335,4 +383,13 @@ func createWarpPrecompile() contract.StatefulPrecompiledContract {
 		panic(err)
 	}
 	return statefulContract
+}
+
+func CurrentGasConfig(rules precompileconfig.Rules) GasConfig {
+	switch {
+	case rules.IsGraniteActivated():
+		return graniteGasConfig
+	default:
+		return preGraniteGasConfig
+	}
 }

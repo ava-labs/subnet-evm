@@ -1,4 +1,5 @@
-// (c) 2019-2020, Ava Labs, Inc.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -29,9 +30,9 @@ package ethapi
 import (
 	"fmt"
 
+	"github.com/ava-labs/libevm/common/hexutil"
+	"github.com/ava-labs/libevm/core/vm"
 	"github.com/ava-labs/subnet-evm/accounts/abi"
-	"github.com/ava-labs/subnet-evm/vmerrs"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
 // revertError is an API error that encompasses an EVM revert with JSON error
@@ -54,14 +55,35 @@ func (e *revertError) ErrorData() interface{} {
 
 // newRevertError creates a revertError instance with the provided revert data.
 func newRevertError(revert []byte) *revertError {
-	err := vmerrs.ErrExecutionReverted
+	err := vm.ErrExecutionReverted
 
 	reason, errUnpack := abi.UnpackRevert(revert)
 	if errUnpack == nil {
-		err = fmt.Errorf("%w: %v", vmerrs.ErrExecutionReverted, reason)
+		err = fmt.Errorf("%w: %v", vm.ErrExecutionReverted, reason)
 	}
 	return &revertError{
 		error:  err,
 		reason: hexutil.Encode(revert),
 	}
 }
+
+// TxIndexingError is an API error that indicates the transaction indexing is not
+// fully finished yet with JSON error code and a binary data blob.
+type TxIndexingError struct{}
+
+// NewTxIndexingError creates a TxIndexingError instance.
+func NewTxIndexingError() *TxIndexingError { return &TxIndexingError{} }
+
+// Error implement error interface, returning the error message.
+func (e *TxIndexingError) Error() string {
+	return "transaction indexing is in progress"
+}
+
+// ErrorCode returns the JSON error code for a revert.
+// See: https://github.com/ethereum/wiki/wiki/JSON-RPC-Error-Codes-Improvement-Proposal
+func (e *TxIndexingError) ErrorCode() int {
+	return -32000 // to be decided
+}
+
+// ErrorData returns the hex encoded revert reason.
+func (e *TxIndexingError) ErrorData() interface{} { return "transaction indexing is in progress" }

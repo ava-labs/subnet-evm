@@ -1,4 +1,5 @@
-// (c) 2019-2020, Ava Labs, Inc.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -29,8 +30,8 @@ package eth
 import (
 	"time"
 
-	"github.com/ava-labs/subnet-evm/core/rawdb"
-	"github.com/ethereum/go-ethereum/common/bitutil"
+	"github.com/ava-labs/libevm/common/bitutil"
+	"github.com/ava-labs/libevm/core/rawdb"
 )
 
 const (

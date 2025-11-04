@@ -1,4 +1,4 @@
-// (c) 2021, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package core
@@ -65,7 +65,7 @@ func (f *BufferFIFOCache[K, V]) remove(key K) error {
 
 type NoOpFIFOCache[K comparable, V any] struct{}
 
-func (f *NoOpFIFOCache[K, V]) Put(_ K, _ V) {}
-func (f *NoOpFIFOCache[K, V]) Get(_ K) (V, bool) {
+func (*NoOpFIFOCache[K, V]) Put(K, V) {}
+func (*NoOpFIFOCache[K, V]) Get(K) (V, bool) {
 	return *new(V), false
 }

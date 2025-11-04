@@ -1,4 +1,5 @@
-// (c) 2019-2020, Ava Labs, Inc.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -32,25 +33,33 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/common/hexutil"
+	"github.com/ava-labs/libevm/common/math"
+	"github.com/ava-labs/libevm/consensus/misc/eip4844"
+	"github.com/ava-labs/libevm/core/rawdb"
+	"github.com/ava-labs/libevm/core/state"
+	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/core/vm"
+	"github.com/ava-labs/libevm/crypto"
+	"github.com/ava-labs/libevm/ethdb"
+	ethparams "github.com/ava-labs/libevm/params"
+	"github.com/ava-labs/libevm/rlp"
+	"github.com/ava-labs/libevm/triedb"
 	"github.com/ava-labs/subnet-evm/core"
-	"github.com/ava-labs/subnet-evm/core/rawdb"
-	"github.com/ava-labs/subnet-evm/core/state"
+	"github.com/ava-labs/subnet-evm/core/extstate"
 	"github.com/ava-labs/subnet-evm/core/state/snapshot"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/core/vm"
 	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/trie"
-	"github.com/ava-labs/subnet-evm/trie/triedb/hashdb"
-	"github.com/ava-labs/subnet-evm/trie/triedb/pathdb"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/common/math"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/ethdb"
-	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/ava-labs/subnet-evm/plugin/evm/customrawdb"
+	"github.com/ava-labs/subnet-evm/triedb/firewood"
+	"github.com/ava-labs/subnet-evm/triedb/hashdb"
+	"github.com/ava-labs/subnet-evm/triedb/pathdb"
+	"github.com/holiman/uint256"
 	"golang.org/x/crypto/sha3"
 )
 
@@ -72,7 +81,7 @@ func (t *StateTest) UnmarshalJSON(in []byte) error {
 
 type stJSON struct {
 	Env  stEnv                    `json:"env"`
-	Pre  core.GenesisAlloc        `json:"pre"`
+	Pre  types.GenesisAlloc       `json:"pre"`
 	Tx   stTransaction            `json:"transaction"`
 	Out  hexutil.Bytes            `json:"out"`
 	Post map[string][]stPostState `json:"post"`
@@ -92,13 +101,25 @@ type stPostState struct {
 
 //go:generate go run github.com/fjl/gencodec -type stEnv -field-override stEnvMarshaling -out gen_stenv.go
 type stEnv struct {
-	Coinbase   common.Address `json:"currentCoinbase"   gencodec:"required"`
-	Difficulty *big.Int       `json:"currentDifficulty" gencodec:"required"`
-	Random     *big.Int       `json:"currentRandom"     gencodec:"optional"`
-	GasLimit   uint64         `json:"currentGasLimit"   gencodec:"required"`
-	Number     uint64         `json:"currentNumber"     gencodec:"required"`
-	Timestamp  uint64         `json:"currentTimestamp"  gencodec:"required"`
-	BaseFee    *big.Int       `json:"currentBaseFee"  gencodec:"optional"`
+	Coinbase      common.Address `json:"currentCoinbase"   gencodec:"required"`
+	Difficulty    *big.Int       `json:"currentDifficulty" gencodec:"optional"`
+	Random        *big.Int       `json:"currentRandom"     gencodec:"optional"`
+	GasLimit      uint64         `json:"currentGasLimit"   gencodec:"required"`
+	Number        uint64         `json:"currentNumber"     gencodec:"required"`
+	Timestamp     uint64         `json:"currentTimestamp"  gencodec:"required"`
+	BaseFee       *big.Int       `json:"currentBaseFee"    gencodec:"optional"`
+	ExcessBlobGas *uint64        `json:"currentExcessBlobGas" gencodec:"optional"`
+}
+
+type stEnvMarshaling struct {
+	Coinbase      common.UnprefixedAddress
+	Difficulty    *math.HexOrDecimal256
+	Random        *math.HexOrDecimal256
+	GasLimit      math.HexOrDecimal64
+	Number        math.HexOrDecimal64
+	Timestamp     math.HexOrDecimal64
+	BaseFee       *math.HexOrDecimal256
+	ExcessBlobGas *math.HexOrDecimal64
 }
 
 //go:generate go run github.com/fjl/gencodec -type stTransaction -field-override stTransactionMarshaling -out gen_sttransaction.go
@@ -203,20 +224,14 @@ func (t *StateTest) checkError(subtest StateSubtest, err error) error {
 }
 
 // Run executes a specific subtest and verifies the post-state and logs
-func (t *StateTest) Run(subtest StateSubtest, vmconfig vm.Config, snapshotter bool, scheme string, postCheck func(err error, snaps *snapshot.Tree, state *state.StateDB)) (result error) {
-	triedb, snaps, statedb, root, err := t.RunNoVerify(subtest, vmconfig, snapshotter, scheme)
-
+func (t *StateTest) Run(subtest StateSubtest, vmconfig vm.Config, snapshotter bool, scheme string, postCheck func(err error, st *StateTestState)) (result error) {
+	st, root, err := t.RunNoVerify(subtest, vmconfig, snapshotter, scheme)
 	// Invoke the callback at the end of function for further analysis.
 	defer func() {
-		postCheck(result, snaps, statedb)
-
-		if triedb != nil {
-			triedb.Close()
-		}
-		if snaps != nil {
-			snaps.Release()
-		}
+		postCheck(result, &st)
+		st.Close()
 	}()
+
 	checkedErr := t.checkError(subtest, err)
 	if checkedErr != nil {
 		return checkedErr
@@ -233,26 +248,27 @@ func (t *StateTest) Run(subtest StateSubtest, vmconfig vm.Config, snapshotter bo
 	if root != common.Hash(post.Root) {
 		return fmt.Errorf("post state root mismatch: got %x, want %x", root, post.Root)
 	}
-	if logs := rlpHash(statedb.Logs()); logs != common.Hash(post.Logs) {
+	if logs := rlpHash(st.StateDB.Logs()); logs != common.Hash(post.Logs) {
 		return fmt.Errorf("post state logs hash mismatch: got %x, want %x", logs, post.Logs)
 	}
-	statedb, _ = state.New(root, statedb.Database(), snaps)
+	st.StateDB, _ = state.New(root, st.StateDB.Database(), st.Snapshots)
 	return nil
 }
 
-// RunNoVerify runs a specific subtest and returns the statedb and post-state root
-func (t *StateTest) RunNoVerify(subtest StateSubtest, vmconfig vm.Config, snapshotter bool, scheme string) (*trie.Database, *snapshot.Tree, *state.StateDB, common.Hash, error) {
+// RunNoVerify runs a specific subtest and returns the statedb and post-state root.
+// Remember to call state.Close after verifying the test result!
+func (t *StateTest) RunNoVerify(subtest StateSubtest, vmconfig vm.Config, snapshotter bool, scheme string) (state StateTestState, root common.Hash, err error) {
 	config, eips, err := GetChainConfig(subtest.Fork)
 	if err != nil {
-		return nil, nil, nil, common.Hash{}, UnsupportedForkError{subtest.Fork}
+		return state, common.Hash{}, UnsupportedForkError{subtest.Fork}
 	}
 	vmconfig.ExtraEips = eips
 
 	block := t.genesis(config).ToBlock()
-	triedb, snaps, statedb := MakePreState(rawdb.NewMemoryDatabase(), t.json.Pre, snapshotter, scheme)
+	state = MakePreState(rawdb.NewMemoryDatabase(), t.json.Pre, snapshotter, scheme)
 
 	var baseFee *big.Int
-	if config.IsSubnetEVM(0) {
+	if params.GetExtra(config).IsSubnetEVM(0) {
 		baseFee = t.json.Env.BaseFee
 		if baseFee == nil {
 			// Retesteth uses `0x10` for genesis baseFee. Therefore, it defaults to
@@ -263,8 +279,18 @@ func (t *StateTest) RunNoVerify(subtest StateSubtest, vmconfig vm.Config, snapsh
 	post := t.json.Post[subtest.Fork][subtest.Index]
 	msg, err := t.json.Tx.toMessage(post, baseFee)
 	if err != nil {
-		triedb.Close()
-		return nil, nil, nil, common.Hash{}, err
+		return state, common.Hash{}, err
+	}
+
+	{ // Blob transactions may be present after the Cancun fork.
+		// In production,
+		// - the header is verified against the max in eip4844.go:VerifyEIP4844Header
+		// - the block body is verified against the header in block_validator.go:ValidateBody
+		// Here, we just do this shortcut smaller fix, since state tests do not
+		// utilize those codepaths
+		if len(msg.BlobHashes)*ethparams.BlobTxBlobGasPerBlob > ethparams.MaxBlobGasPerBlock {
+			return state, common.Hash{}, errors.New("blob gas exceeds maximum")
+		}
 	}
 
 	// Try to recover tx with current signer
@@ -272,13 +298,10 @@ func (t *StateTest) RunNoVerify(subtest StateSubtest, vmconfig vm.Config, snapsh
 		var ttx types.Transaction
 		err := ttx.UnmarshalBinary(post.TxBytes)
 		if err != nil {
-			triedb.Close()
-			return nil, nil, nil, common.Hash{}, err
+			return state, common.Hash{}, err
 		}
-
 		if _, err := types.Sender(types.LatestSigner(config), &ttx); err != nil {
-			triedb.Close()
-			return nil, nil, nil, common.Hash{}, err
+			return state, common.Hash{}, err
 		}
 	}
 
@@ -287,63 +310,35 @@ func (t *StateTest) RunNoVerify(subtest StateSubtest, vmconfig vm.Config, snapsh
 	context := core.NewEVMBlockContext(block.Header(), nil, &t.json.Env.Coinbase)
 	context.GetHash = vmTestBlockHash
 	context.BaseFee = baseFee
-	if config.IsSubnetEVM(0) && t.json.Env.Random != nil {
+	context.Random = nil
+	if config.IsLondon(new(big.Int)) && t.json.Env.Random != nil {
+		rnd := common.BigToHash(t.json.Env.Random)
+		context.Random = &rnd
 		context.Difficulty = big.NewInt(0)
 	}
-	evm := vm.NewEVM(context, txContext, statedb, config, vmconfig)
+	if config.IsCancun(new(big.Int), block.Time()) && t.json.Env.ExcessBlobGas != nil {
+		context.BlobBaseFee = eip4844.CalcBlobFee(*t.json.Env.ExcessBlobGas)
+	}
+	evm := vm.NewEVM(context, txContext, state.StateDB, config, vmconfig)
 
 	// Execute the message.
-	snapshot := statedb.Snapshot()
+	snapshot := state.StateDB.Snapshot()
 	gaspool := new(core.GasPool)
 	gaspool.AddGas(block.GasLimit())
 	_, err = core.ApplyMessage(evm, msg, gaspool)
 	if err != nil {
-		statedb.RevertToSnapshot(snapshot)
+		state.StateDB.RevertToSnapshot(snapshot)
 	}
 	// Add 0-value mining reward. This only makes a difference in the cases
 	// where
 	// - the coinbase self-destructed, or
 	// - there are only 'bad' transactions, which aren't executed. In those cases,
 	//   the coinbase gets no txfee, so isn't created, and thus needs to be touched
-	statedb.AddBalance(block.Coinbase(), new(big.Int))
-	// Commit block
-	root, _ := statedb.Commit(block.NumberU64(), config.IsEIP158(block.Number()), false)
-	return triedb, snaps, statedb, root, err
-}
+	state.StateDB.AddBalance(block.Coinbase(), new(uint256.Int))
 
-func MakePreState(db ethdb.Database, accounts core.GenesisAlloc, snapshotter bool, scheme string) (*trie.Database, *snapshot.Tree, *state.StateDB) {
-	tconf := &trie.Config{Preimages: true}
-	if scheme == rawdb.HashScheme {
-		tconf.HashDB = hashdb.Defaults
-	} else {
-		tconf.PathDB = pathdb.Defaults
-	}
-	triedb := trie.NewDatabase(db, tconf)
-	sdb := state.NewDatabaseWithNodeDB(db, triedb)
-	statedb, _ := state.New(types.EmptyRootHash, sdb, nil)
-	for addr, a := range accounts {
-		statedb.SetCode(addr, a.Code)
-		statedb.SetNonce(addr, a.Nonce)
-		statedb.SetBalance(addr, a.Balance)
-		for k, v := range a.Storage {
-			statedb.SetState(addr, k, v)
-		}
-	}
-	// Commit and re-open to start with a clean state.
-	root, _ := statedb.Commit(0, false, false)
-
-	var snaps *snapshot.Tree
-	if snapshotter {
-		snapconfig := snapshot.Config{
-			CacheSize:  1,
-			NoBuild:    false,
-			AsyncBuild: false,
-			SkipVerify: true,
-		}
-		snaps, _ = snapshot.New(snapconfig, db, triedb, common.Hash{}, root)
-	}
-	statedb, _ = state.New(root, sdb, snaps)
-	return triedb, snaps, statedb
+	// Commit state mutations into database.
+	root, _ = state.StateDB.Commit(block.NumberU64(), config.IsEIP158(block.Number()))
+	return state, root, err
 }
 
 func (t *StateTest) genesis(config *params.ChainConfig) *core.Genesis {
@@ -461,4 +456,87 @@ func rlpHash(x interface{}) (h common.Hash) {
 
 func vmTestBlockHash(n uint64) common.Hash {
 	return common.BytesToHash(crypto.Keccak256([]byte(big.NewInt(int64(n)).String())))
+}
+
+// StateTestState groups all the state database objects together for use in tests.
+type StateTestState struct {
+	StateDB   *state.StateDB
+	TrieDB    *triedb.Database
+	Snapshots *snapshot.Tree
+	TempDir   string
+}
+
+// MakePreState creates a state containing the given allocation.
+func MakePreState(db ethdb.Database, accounts types.GenesisAlloc, snapshotter bool, scheme string) StateTestState {
+	// Set database path
+	tempdir, err := os.MkdirTemp("", "coreth-state-test-*")
+	if err != nil {
+		panic("failed to create temporary directory: " + err.Error())
+	}
+
+	tconf := &triedb.Config{Preimages: true}
+	switch scheme {
+	case rawdb.HashScheme:
+		tconf.DBOverride = hashdb.Defaults.BackendConstructor
+	case rawdb.PathScheme:
+		tconf.DBOverride = pathdb.Defaults.BackendConstructor
+	case customrawdb.FirewoodScheme:
+		cfg := firewood.Defaults
+		cfg.FilePath = filepath.Join(tempdir, "firewood")
+		tconf.DBOverride = cfg.BackendConstructor
+	default:
+		panic("unknown trie database scheme" + scheme)
+	}
+
+	triedb := triedb.NewDatabase(db, tconf)
+	sdb := extstate.NewDatabaseWithNodeDB(db, triedb)
+	statedb, _ := state.New(types.EmptyRootHash, sdb, nil)
+	for addr, a := range accounts {
+		statedb.SetCode(addr, a.Code)
+		statedb.SetNonce(addr, a.Nonce)
+		statedb.SetBalance(addr, uint256.MustFromBig(a.Balance))
+		for k, v := range a.Storage {
+			statedb.SetState(addr, k, v)
+		}
+	}
+	// Commit and re-open to start with a clean state.
+	root, err := statedb.Commit(0, false)
+	if err != nil {
+		panic("failed to commit state: " + err.Error())
+	}
+
+	// If snapshot is requested, initialize the snapshotter and use it in state.
+	var snaps *snapshot.Tree
+	if snapshotter {
+		snapconfig := snapshot.Config{
+			CacheSize:  1,
+			NoBuild:    false,
+			AsyncBuild: false,
+			SkipVerify: true,
+		}
+		snaps, _ = snapshot.New(snapconfig, db, triedb, common.Hash{}, root)
+	}
+	statedb, _ = state.New(root, sdb, snaps)
+	return StateTestState{statedb, triedb, snaps, tempdir}
+}
+
+// Close should be called when the state is no longer needed, ie. after running the test.
+func (st *StateTestState) Close() {
+	if st.TrieDB != nil {
+		st.TrieDB.Close()
+		st.TrieDB = nil
+	}
+	if st.Snapshots != nil {
+		// Need to call Disable here to quit the snapshot generator goroutine.
+		st.Snapshots.AbortGeneration()
+		st.Snapshots.Release()
+		st.Snapshots = nil
+	}
+
+	if st.TempDir != "" {
+		if err := os.RemoveAll(st.TempDir); err != nil {
+			panic("failed to remove temporary directory: " + err.Error())
+		}
+		st.TempDir = ""
+	}
 }

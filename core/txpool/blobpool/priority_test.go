@@ -1,4 +1,5 @@
-// (c) 2024, Ava Labs, Inc.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -74,7 +75,7 @@ func BenchmarkDynamicFeeJumpCalculation(b *testing.B) {
 // Benchmarks how many priority recalculations can be done.
 func BenchmarkPriorityCalculation(b *testing.B) {
 	// The basefee and blob fee is constant for all transactions across a block,
-	// so we can assume theit absolute jump counts can be pre-computed.
+	// so we can assume their absolute jump counts can be pre-computed.
 	basefee := uint256.NewInt(17_200_000_000)  // 17.2 Gwei is the 22.03.2023 zero-emission basefee, random number
 	blobfee := uint256.NewInt(123_456_789_000) // Completely random, no idea what this will be
 

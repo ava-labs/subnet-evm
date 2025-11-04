@@ -1,4 +1,4 @@
-// (c) 2021-2022, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package message
@@ -8,7 +8,7 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/ava-labs/libevm/common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -40,7 +40,7 @@ func TestMarshalBlockRequest(t *testing.T) {
 func TestMarshalBlockResponse(t *testing.T) {
 	// create some random bytes
 	// set seed to ensure deterministic random behaviour
-	rand.Seed(1)
+	rand := rand.New(rand.NewSource(1))
 	blocksBytes := make([][]byte, 32)
 	for i := range blocksBytes {
 		blocksBytes[i] = make([]byte, rand.Intn(32)+32) // min 32 length, max 64

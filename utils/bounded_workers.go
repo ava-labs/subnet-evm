@@ -1,4 +1,4 @@
-// (c) 2019-2023, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package utils
@@ -18,10 +18,10 @@ type BoundedWorkers struct {
 }
 
 // NewBoundedWorkers returns an instance of [BoundedWorkers] that
-// will spawn up to [max] goroutines.
-func NewBoundedWorkers(max int) *BoundedWorkers {
+// will spawn up to count goroutines.
+func NewBoundedWorkers(count int) *BoundedWorkers {
 	return &BoundedWorkers{
-		workerSpawner: make(chan struct{}, max),
+		workerSpawner: make(chan struct{}, count),
 		work:          make(chan func()),
 	}
 }

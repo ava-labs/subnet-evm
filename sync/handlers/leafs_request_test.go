@@ -1,4 +1,4 @@
-// (c) 2021-2022, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package handlers
@@ -10,45 +10,49 @@ import (
 	"testing"
 
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/subnet-evm/core/rawdb"
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/core/rawdb"
+	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/crypto"
+	"github.com/ava-labs/libevm/ethdb"
+	"github.com/ava-labs/libevm/trie"
+	"github.com/ava-labs/libevm/triedb"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/ava-labs/subnet-evm/core/state/snapshot"
-	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
 	"github.com/ava-labs/subnet-evm/sync/handlers/stats"
-	"github.com/ava-labs/subnet-evm/sync/syncutils"
-	"github.com/ava-labs/subnet-evm/trie"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/ethdb"
-	"github.com/stretchr/testify/assert"
+	"github.com/ava-labs/subnet-evm/sync/statesync/statesynctest"
 )
 
 func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
-	rand.Seed(1)
+	r := rand.New(rand.NewSource(1))
 	mockHandlerStats := &stats.MockHandlerStats{}
 	memdb := rawdb.NewMemoryDatabase()
-	trieDB := trie.NewDatabase(memdb, nil)
+	trieDB := triedb.NewDatabase(memdb, nil)
 
-	corruptedTrieRoot, _, _ := syncutils.GenerateTrie(t, trieDB, 100, common.HashLength)
+	corruptedTrieRoot, _, _ := statesynctest.GenerateTrie(t, r, trieDB, 100, common.HashLength)
 	tr, err := trie.New(trie.TrieID(corruptedTrieRoot), trieDB)
 	if err != nil {
 		t.Fatal(err)
 	}
 	// Corrupt [corruptedTrieRoot]
-	syncutils.CorruptTrie(t, memdb, tr, 5)
+	statesynctest.CorruptTrie(t, memdb, tr, 5)
 
-	largeTrieRoot, largeTrieKeys, _ := syncutils.GenerateTrie(t, trieDB, 10_000, common.HashLength)
-	smallTrieRoot, _, _ := syncutils.GenerateTrie(t, trieDB, 500, common.HashLength)
-	accountTrieRoot, accounts := syncutils.FillAccounts(
+	largeTrieRoot, largeTrieKeys, _ := statesynctest.GenerateTrie(t, r, trieDB, 10_000, common.HashLength)
+	smallTrieRoot, _, _ := statesynctest.GenerateTrie(t, r, trieDB, 500, common.HashLength)
+	accountTrieRoot, accounts := statesynctest.FillAccounts(
 		t,
+		r,
 		trieDB,
 		common.Hash{},
 		10_000,
-		func(t *testing.T, i int, acc types.StateAccount) types.StateAccount {
+		func(_ *testing.T, i int, acc types.StateAccount) types.StateAccount {
 			// set the storage trie root for two accounts
-			if i == 0 {
+			switch i {
+			case 0:
 				acc.Root = largeTrieRoot
-			} else if i == 1 {
+			case 1:
 				acc.Root = smallTrieRoot
 			}
 
@@ -341,8 +345,8 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 		"partial mid range": {
 			prepareTestFn: func() (context.Context, message.LeafsRequest) {
 				startKey := largeTrieKeys[1_000]
-				startKey[31] = startKey[31] + 1 // exclude start key from response
-				endKey := largeTrieKeys[1_040]  // include end key in response
+				startKey[31]++                 // exclude start key from response
+				endKey := largeTrieKeys[1_040] // include end key in response
 				return context.Background(), message.LeafsRequest{
 					Root:  largeTrieRoot,
 					Start: startKey,
@@ -415,9 +419,10 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 			},
 			assertResponseFn: func(t *testing.T, request message.LeafsRequest, response []byte, err error) {
 				assert.NotEmpty(t, response)
+				assert.NoError(t, err)
 
 				var leafsResponse message.LeafsResponse
-				if _, err = message.Codec.Unmarshal(response, &leafsResponse); err != nil {
+				if _, err := message.Codec.Unmarshal(response, &leafsResponse); err != nil {
 					t.Fatalf("unexpected error when unmarshalling LeafsResponse: %v", err)
 				}
 

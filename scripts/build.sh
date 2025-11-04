@@ -10,18 +10,15 @@ SUBNET_EVM_PATH=$(
     cd .. && pwd
 )
 
-# Load the versions
-source "$SUBNET_EVM_PATH"/scripts/versions.sh
-
 # Load the constants
 source "$SUBNET_EVM_PATH"/scripts/constants.sh
 
 if [[ $# -eq 1 ]]; then
     BINARY_PATH=$1
 elif [[ $# -eq 0 ]]; then
-    BINARY_PATH="$GOPATH/src/github.com/ava-labs/avalanchego/build/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy"
+    BINARY_PATH="$DEFAULT_PLUGIN_DIR/$DEFAULT_VM_ID"
 else
-    echo "Invalid arguments to build subnet-evm. Requires zero (default location) or one argument to specify binary location."
+    echo "Invalid arguments to build subnet-evm. Requires zero (default binary path) or one argument to specify the binary path."
     exit 1
 fi
 

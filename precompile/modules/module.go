@@ -1,4 +1,4 @@
-// (c) 2023, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package modules
@@ -6,8 +6,9 @@ package modules
 import (
 	"bytes"
 
+	"github.com/ava-labs/libevm/common"
+
 	"github.com/ava-labs/subnet-evm/precompile/contract"
-	"github.com/ethereum/go-ethereum/common"
 )
 
 type Module struct {
@@ -24,12 +25,12 @@ type Module struct {
 
 type moduleArray []Module
 
-func (u moduleArray) Len() int {
-	return len(u)
+func (m moduleArray) Len() int {
+	return len(m)
 }
 
-func (u moduleArray) Swap(i, j int) {
-	u[i], u[j] = u[j], u[i]
+func (m moduleArray) Swap(i, j int) {
+	m[i], m[j] = m[j], m[i]
 }
 
 func (m moduleArray) Less(i, j int) bool {

@@ -1,4 +1,5 @@
-// (c) 2024, Ava Labs, Inc.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -64,4 +65,10 @@ var (
 	// ErrFutureReplacePending is returned if a future transaction replaces a pending
 	// one. Future transactions should only be able to replace other future transactions.
 	ErrFutureReplacePending = errors.New("future transaction tries to replace pending")
+
+	// ErrAlreadyReserved is returned if the sender address has a pending transaction
+	// in a different subpool. For example, this error is returned in response to any
+	// input transaction of non-blob type when a blob transaction from this sender
+	// remains pending (and vice-versa).
+	ErrAlreadyReserved = errors.New("address already reserved")
 )

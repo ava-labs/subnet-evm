@@ -1,4 +1,5 @@
-// (c) 2019-2020, Ava Labs, Inc.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -37,21 +38,23 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ava-labs/subnet-evm/core/rawdb"
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/core/rawdb"
+	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/ethdb"
+	"github.com/ava-labs/libevm/log"
+	"github.com/ava-labs/libevm/rlp"
+	"github.com/ava-labs/libevm/trie"
+	"github.com/ava-labs/libevm/triedb"
 	"github.com/ava-labs/subnet-evm/core/state/snapshot"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/trie"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/ethdb"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/ava-labs/subnet-evm/plugin/evm/customrawdb"
 )
 
 const (
 	// stateBloomFilePrefix is the filename prefix of state bloom filter.
 	stateBloomFilePrefix = "statebloom"
 
-	// stateBloomFilePrefix is the filename suffix of state bloom filter.
+	// stateBloomFileSuffix is the filename suffix of state bloom filter.
 	stateBloomFileSuffix = "bf.gz"
 
 	// stateBloomFileTempSuffix is the filename suffix of state bloom filter
@@ -96,7 +99,7 @@ func NewPruner(db ethdb.Database, config Config) (*Pruner, error) {
 		return nil, errors.New("failed to load head block")
 	}
 	// Offline pruning is only supported in legacy hash based scheme.
-	triedb := trie.NewDatabase(db, trie.HashDefaults)
+	triedb := triedb.NewDatabase(db, triedb.HashDefaults)
 
 	// Note: we refuse to start a pruning session unless the snapshot disk layer exists, which should prevent
 	// us from ever needing to enter RecoverPruning in an invalid pruning session (a session where we do not have
@@ -135,7 +138,7 @@ func prune(maindb ethdb.Database, stateBloom *stateBloom, bloomPath string, star
 	// the trie nodes(and codes) belong to the active state will be filtered
 	// out. A very small part of stale tries will also be filtered because of
 	// the false-positive rate of bloom filter. But the assumption is held here
-	// that the false-positive is low enough(~0.05%). The probablity of the
+	// that the false-positive is low enough(~0.05%). The probability of the
 	// dangling node is the state root is super low. So the dangling nodes in
 	// theory will never ever be visited again.
 	var (
@@ -216,7 +219,7 @@ func prune(maindb ethdb.Database, stateBloom *stateBloom, bloomPath string, star
 
 	// Write marker to DB to indicate offline pruning finished successfully. We write before calling os.RemoveAll
 	// to guarantee that if the node dies midway through pruning, then this will run during RecoverPruning.
-	if err := rawdb.WriteOfflinePruning(maindb); err != nil {
+	if err := customrawdb.WriteOfflinePruning(maindb); err != nil {
 		return fmt.Errorf("failed to write offline pruning success marker: %w", err)
 	}
 
@@ -347,7 +350,7 @@ func extractGenesis(db ethdb.Database, stateBloom *stateBloom) error {
 	if genesis == nil {
 		return errors.New("missing genesis block")
 	}
-	t, err := trie.NewStateTrie(trie.StateTrieID(genesis.Root()), trie.NewDatabase(db, trie.HashDefaults))
+	t, err := trie.NewStateTrie(trie.StateTrieID(genesis.Root()), triedb.NewDatabase(db, triedb.HashDefaults))
 	if err != nil {
 		return err
 	}
@@ -371,7 +374,7 @@ func extractGenesis(db ethdb.Database, stateBloom *stateBloom) error {
 			}
 			if acc.Root != types.EmptyRootHash {
 				id := trie.StorageTrieID(genesis.Root(), common.BytesToHash(accIter.LeafKey()), acc.Root)
-				storageTrie, err := trie.NewStateTrie(id, trie.NewDatabase(db, trie.HashDefaults))
+				storageTrie, err := trie.NewStateTrie(id, triedb.NewDatabase(db, triedb.HashDefaults))
 				if err != nil {
 					return err
 				}

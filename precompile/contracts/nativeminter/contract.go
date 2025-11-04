@@ -1,18 +1,22 @@
-// (c) 2019-2020, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package nativeminter
 
 import (
-	_ "embed"
 	"errors"
 	"fmt"
 	"math/big"
 
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/core/vm"
+	"github.com/holiman/uint256"
+
+	_ "embed"
+
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
-	"github.com/ava-labs/subnet-evm/vmerrs"
-	"github.com/ethereum/go-ethereum/common"
 )
 
 const (
@@ -75,13 +79,13 @@ func UnpackMintNativeCoinInput(input []byte, useStrictMode bool) (common.Address
 
 // mintNativeCoin checks if the caller is permissioned for minting operation.
 // The execution function parses the [input] into native coin amount and receiver address.
-func mintNativeCoin(accessibleState contract.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
+func mintNativeCoin(accessibleState contract.AccessibleState, caller common.Address, _ common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
 	if remainingGas, err = contract.DeductGas(suppliedGas, MintGasCost); err != nil {
 		return nil, 0, err
 	}
 
 	if readOnly {
-		return nil, remainingGas, vmerrs.ErrWriteProtection
+		return nil, remainingGas, vm.ErrWriteProtection
 	}
 
 	useStrictMode := !contract.IsDurangoActivated(accessibleState)
@@ -105,19 +109,20 @@ func mintNativeCoin(accessibleState contract.AccessibleState, caller common.Addr
 		if err != nil {
 			return nil, remainingGas, err
 		}
-		stateDB.AddLog(
-			ContractAddress,
-			topics,
-			data,
-			accessibleState.GetBlockContext().Number().Uint64(),
-		)
+		stateDB.AddLog(&types.Log{
+			Address:     ContractAddress,
+			Topics:      topics,
+			Data:        data,
+			BlockNumber: accessibleState.GetBlockContext().Number().Uint64(),
+		})
 	}
 	// if there is no address in the state, create one.
 	if !stateDB.Exist(to) {
 		stateDB.CreateAccount(to)
 	}
 
-	stateDB.AddBalance(to, amount)
+	amountU256, _ := uint256.FromBig(amount)
+	stateDB.AddBalance(to, amountU256)
 	// Return an empty output and the remaining gas
 	return []byte{}, remainingGas, nil
 }
@@ -125,12 +130,11 @@ func mintNativeCoin(accessibleState contract.AccessibleState, caller common.Addr
 // createNativeMinterPrecompile returns a StatefulPrecompiledContract with getters and setters for the precompile.
 // Access to the getters/setters is controlled by an allow list for ContractAddress.
 func createNativeMinterPrecompile() contract.StatefulPrecompiledContract {
-	var functions []*contract.StatefulPrecompileFunction
-	functions = append(functions, allowlist.CreateAllowListFunctions(ContractAddress)...)
-
 	abiFunctionMap := map[string]contract.RunStatefulPrecompileFunc{
 		"mintNativeCoin": mintNativeCoin,
 	}
+	functions := make([]*contract.StatefulPrecompileFunction, 0, len(abiFunctionMap)+len(allowlist.AllowListABI.Methods))
+	functions = append(functions, allowlist.CreateAllowListFunctions(ContractAddress)...)
 
 	for name, function := range abiFunctionMap {
 		method, ok := NativeMinterABI.Methods[name]

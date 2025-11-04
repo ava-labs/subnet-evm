@@ -1,4 +1,4 @@
-// (c) 2021-2022, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package statesync
@@ -11,18 +11,21 @@ import (
 	"sync"
 
 	"github.com/ava-labs/avalanchego/utils/wrappers"
-	"github.com/ava-labs/subnet-evm/core/rawdb"
-	syncclient "github.com/ava-labs/subnet-evm/sync/client"
-	"github.com/ava-labs/subnet-evm/trie"
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/core/rawdb"
+	"github.com/ava-labs/libevm/ethdb"
+	"github.com/ava-labs/libevm/log"
+	"github.com/ava-labs/libevm/trie"
+
+	"github.com/ava-labs/subnet-evm/plugin/evm/customrawdb"
 	"github.com/ava-labs/subnet-evm/utils"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/ethdb"
-	"github.com/ethereum/go-ethereum/log"
+
+	syncclient "github.com/ava-labs/subnet-evm/sync/client"
 )
 
 var (
-	_ syncclient.LeafSyncTask = &trieSegment{}
-	_ fmt.Stringer            = &trieSegment{}
+	_ syncclient.LeafSyncTask = (*trieSegment)(nil)
+	_ fmt.Stringer            = (*trieSegment)(nil)
 )
 
 // trieToSync keeps the state of a single trie syncing
@@ -85,7 +88,7 @@ func (t *trieToSync) loadSegments() error {
 	// Get an iterator for segments for t.root and see if we find anything.
 	// This lets us check if this trie was previously segmented, in which
 	// case we need to restore the same segments on resume.
-	it := rawdb.NewSyncSegmentsIterator(t.sync.db, t.root)
+	it := customrawdb.NewSyncSegmentsIterator(t.sync.db, t.root)
 	defer it.Release()
 
 	// Track the previously added segment as we loop over persisted values.
@@ -98,7 +101,7 @@ func (t *trieToSync) loadSegments() error {
 		// key immediately prior to the segment we found on disk.
 		// This is because we do not persist the beginning of
 		// the first segment.
-		_, segmentStart := rawdb.UnpackSyncSegmentKey(it.Key())
+		_, segmentStart := customrawdb.UnpackSyncSegmentKey(it.Key())
 		segmentStartPos := binary.BigEndian.Uint16(segmentStart[:wrappers.ShortLen])
 		t.addSegment(prevSegmentStart, addPadding(segmentStartPos-1, 0xff))
 
@@ -231,7 +234,7 @@ func (t *trieToSync) segmentFinished(ctx context.Context, idx int) error {
 	}
 
 	// remove all segments for this root from persistent storage
-	if err := rawdb.ClearSyncSegments(t.sync.db, t.root); err != nil {
+	if err := customrawdb.ClearSyncSegments(t.sync.db, t.root); err != nil {
 		return err
 	}
 	return t.task.OnFinish()
@@ -300,7 +303,7 @@ func (t *trieToSync) createSegments(numSegments int) error {
 
 		// create the segments
 		segment := t.addSegment(startBytes, endBytes)
-		if err := rawdb.WriteSyncSegment(t.sync.db, t.root, segment.start); err != nil {
+		if err := customrawdb.WriteSyncSegment(t.sync.db, t.root, common.BytesToHash(segment.start)); err != nil {
 			return err
 		}
 	}

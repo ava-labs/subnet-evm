@@ -1,4 +1,5 @@
-// (c) 2019-2020, Ava Labs, Inc.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -26,14 +27,12 @@
 
 package params
 
-import (
-	"fmt"
-)
+import "fmt"
 
 const (
 	VersionMajor = 1        // Major version component of the current release
 	VersionMinor = 13       // Minor version component of the current release
-	VersionPatch = 8        // Patch version component of the current release
+	VersionPatch = 14       // Patch version component of the current release
 	VersionMeta  = "stable" // Version metadata to append to the version string
 )
 

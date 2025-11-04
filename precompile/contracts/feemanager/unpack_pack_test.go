@@ -1,4 +1,4 @@
-// (c) 2019-2023, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package feemanager
@@ -8,12 +8,13 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/common/math"
+	"github.com/stretchr/testify/require"
+
 	"github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/math"
-	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -41,13 +42,10 @@ func FuzzPackGetFeeConfigOutputEqualTest(f *testing.F) {
 			MaxBlockGasCost:          bigIntVal,
 			BlockGasCostStep:         bigIntVal,
 		}
-		doCheckOutputs := true
 		// we can only check if outputs are correct if the value is less than MaxUint256
 		// otherwise the value will be truncated when packed,
 		// and thus unpacked output will not be equal to the value
-		if bigIntVal.Cmp(abi.MaxUint256) > 0 {
-			doCheckOutputs = false
-		}
+		doCheckOutputs := bigIntVal.Cmp(abi.MaxUint256) <= 0
 		testOldPackGetFeeConfigOutputEqual(t, feeConfig, doCheckOutputs)
 	})
 }
@@ -55,6 +53,7 @@ func FuzzPackGetFeeConfigOutputEqualTest(f *testing.F) {
 func TestOldPackGetFeeConfigOutputEqual(t *testing.T) {
 	testOldPackGetFeeConfigOutputEqual(t, testFeeConfig, true)
 }
+
 func TestPackGetFeeConfigOutputPanic(t *testing.T) {
 	require.Panics(t, func() {
 		_, _ = OldPackFeeConfig(commontype.FeeConfig{})
@@ -171,13 +170,10 @@ func FuzzPackGetLastChangedAtOutput(f *testing.F) {
 	f.Add(math.MaxBig256.Add(math.MaxBig256, common.Big1).Bytes())
 	f.Fuzz(func(t *testing.T, bigIntBytes []byte) {
 		bigIntVal := new(big.Int).SetBytes(bigIntBytes)
-		doCheckOutputs := true
 		// we can only check if outputs are correct if the value is less than MaxUint256
 		// otherwise the value will be truncated when packed,
 		// and thus unpacked output will not be equal to the value
-		if bigIntVal.Cmp(abi.MaxUint256) > 0 {
-			doCheckOutputs = false
-		}
+		doCheckOutputs := bigIntVal.Cmp(abi.MaxUint256) <= 0
 		testOldPackGetLastChangedAtOutputEqual(t, bigIntVal, doCheckOutputs)
 	})
 }
@@ -201,13 +197,10 @@ func FuzzPackSetFeeConfigEqualTest(f *testing.F) {
 			MaxBlockGasCost:          bigIntVal,
 			BlockGasCostStep:         bigIntVal,
 		}
-		doCheckOutputs := true
 		// we can only check if outputs are correct if the value is less than MaxUint256
 		// otherwise the value will be truncated when packed,
 		// and thus unpacked output will not be equal to the value
-		if bigIntVal.Cmp(abi.MaxUint256) > 0 {
-			doCheckOutputs = false
-		}
+		doCheckOutputs := bigIntVal.Cmp(abi.MaxUint256) <= 0
 		testOldPackSetFeeConfigInputEqual(t, feeConfig, doCheckOutputs)
 	})
 }

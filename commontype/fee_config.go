@@ -1,14 +1,16 @@
-// (c) 2019-2022, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package commontype
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
 
+	"github.com/ava-labs/libevm/common"
+
 	"github.com/ava-labs/subnet-evm/utils"
-	"github.com/ethereum/go-ethereum/common"
 )
 
 // FeeConfig specifies the parameters for the dynamic fee algorithm, which determines the gas limit, base fee, and block gas cost of blocks
@@ -63,19 +65,19 @@ var EmptyFeeConfig = FeeConfig{}
 func (f *FeeConfig) Verify() error {
 	switch {
 	case f.GasLimit == nil:
-		return fmt.Errorf("gasLimit cannot be nil")
+		return errors.New("gasLimit cannot be nil")
 	case f.MinBaseFee == nil:
-		return fmt.Errorf("minBaseFee cannot be nil")
+		return errors.New("minBaseFee cannot be nil")
 	case f.TargetGas == nil:
-		return fmt.Errorf("targetGas cannot be nil")
+		return errors.New("targetGas cannot be nil")
 	case f.BaseFeeChangeDenominator == nil:
-		return fmt.Errorf("baseFeeChangeDenominator cannot be nil")
+		return errors.New("baseFeeChangeDenominator cannot be nil")
 	case f.MinBlockGasCost == nil:
-		return fmt.Errorf("minBlockGasCost cannot be nil")
+		return errors.New("minBlockGasCost cannot be nil")
 	case f.MaxBlockGasCost == nil:
-		return fmt.Errorf("maxBlockGasCost cannot be nil")
+		return errors.New("maxBlockGasCost cannot be nil")
 	case f.BlockGasCostStep == nil:
-		return fmt.Errorf("blockGasCostStep cannot be nil")
+		return errors.New("blockGasCostStep cannot be nil")
 	}
 
 	switch {
@@ -95,6 +97,8 @@ func (f *FeeConfig) Verify() error {
 		return fmt.Errorf("minBlockGasCost = %d cannot be greater than maxBlockGasCost = %d", f.MinBlockGasCost, f.MaxBlockGasCost)
 	case f.BlockGasCostStep.Cmp(common.Big0) == -1:
 		return fmt.Errorf("blockGasCostStep = %d cannot be less than 0", f.BlockGasCostStep)
+	case !f.MaxBlockGasCost.IsUint64():
+		return fmt.Errorf("maxBlockGasCost = %d is not a valid uint64", f.MaxBlockGasCost)
 	}
 	return f.checkByteLens()
 }

@@ -1,4 +1,4 @@
-// (c) 2019-2020, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package rewardmanager
@@ -6,14 +6,14 @@ package rewardmanager
 import (
 	"fmt"
 
+	"github.com/ava-labs/libevm/common"
+
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
-
-	"github.com/ethereum/go-ethereum/common"
 )
 
-var _ contract.Configurator = &configurator{}
+var _ contract.Configurator = (*configurator)(nil)
 
 // ConfigKey is the key used in json config files to specify this precompile config.
 // must be unique across all precompiles.
@@ -55,12 +55,14 @@ func (*configurator) Configure(chainConfig precompileconfig.ChainConfig, cfg pre
 		return fmt.Errorf("expected config type %T, got %T: %v", &Config{}, cfg, cfg)
 	}
 	// configure the RewardManager with the given initial configuration
-	if config.InitialRewardConfig != nil {
+
+	switch {
+	case config.InitialRewardConfig != nil:
 		config.InitialRewardConfig.Configure(state)
-	} else if chainConfig.AllowedFeeRecipients() {
+	case chainConfig.AllowedFeeRecipients():
 		// configure the RewardManager according to chainConfig
 		EnableAllowFeeRecipients(state)
-	} else {
+	default:
 		// chainConfig does not have any reward address
 		// if chainConfig does not enable fee recipients
 		// default to disabling rewards

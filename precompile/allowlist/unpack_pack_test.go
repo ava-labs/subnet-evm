@@ -1,4 +1,4 @@
-// (c) 2019-2020, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package allowlist
@@ -7,10 +7,11 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/precompile/contract"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/crypto"
 	"github.com/stretchr/testify/require"
+
+	"github.com/ava-labs/subnet-evm/precompile/contract"
 )
 
 var (
@@ -70,8 +71,8 @@ func TestPackReadAllowlistTest(f *testing.T) {
 
 func testPackReadAllowlistTest(t *testing.T, address common.Address) {
 	t.Helper()
-	require := require.New(t)
 	t.Run(fmt.Sprintf("TestPackReadAllowlistTest, address %v", address), func(t *testing.T) {
+		require := require.New(t)
 		// use new Pack/Unpack methods
 		input, err := PackReadAllowList(address)
 		require.NoError(err)
@@ -134,8 +135,8 @@ func FuzzPackModifyAllowlistTestSkipCheck(f *testing.F) {
 
 func testPackModifyAllowListTest(t *testing.T, address common.Address, role Role) {
 	t.Helper()
-	require := require.New(t)
 	t.Run(fmt.Sprintf("TestPackModifyAllowlistTest, address %v, role %s", address, role.String()), func(t *testing.T) {
+		require := require.New(t)
 		// use new Pack/Unpack methods
 		input, err := PackModifyAllowList(address, role)
 		require.NoError(err)
@@ -219,7 +220,7 @@ func OldPackModifyAllowList(address common.Address, role Role) ([]byte, error) {
 	return input, nil
 }
 
-func OldUnpackModifyAllowList(input []byte, role Role) (common.Address, error) {
+func OldUnpackModifyAllowList(input []byte, _ Role) (common.Address, error) {
 	if len(input) != allowListInputLen {
 		return common.Address{}, fmt.Errorf("invalid input length for modifying allow list: %d", len(input))
 	}

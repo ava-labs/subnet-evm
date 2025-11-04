@@ -1,4 +1,4 @@
-// (c) 2023, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package metrics
@@ -11,7 +11,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/ethereum/go-ethereum/log"
+	"github.com/ava-labs/libevm/log"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
@@ -58,9 +58,6 @@ func NewMetrics(reg *prometheus.Registry) *Metrics {
 }
 
 type MetricsServer struct {
-	metricsPort     string
-	metricsEndpoint string
-
 	cancel context.CancelFunc
 	stopCh chan struct{}
 }
@@ -69,7 +66,7 @@ func (m *Metrics) Serve(ctx context.Context, metricsPort string, metricsEndpoint
 	ctx, cancel := context.WithCancel(ctx)
 	// Create a prometheus server to expose individual tx metrics
 	server := &http.Server{
-		Addr: fmt.Sprintf(":%s", metricsPort),
+		Addr: ":" + metricsPort,
 	}
 
 	// Start up go routine to listen for SIGINT notifications to gracefully shut down server
@@ -85,10 +82,8 @@ func (m *Metrics) Serve(ctx context.Context, metricsPort string, metricsEndpoint
 
 	// Start metrics server
 	ms := &MetricsServer{
-		metricsPort:     metricsPort,
-		metricsEndpoint: metricsEndpoint,
-		stopCh:          make(chan struct{}),
-		cancel:          cancel,
+		stopCh: make(chan struct{}),
+		cancel: cancel,
 	}
 	go func() {
 		defer close(ms.stopCh)

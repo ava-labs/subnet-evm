@@ -1,4 +1,5 @@
-// (c) 2024, Ava Labs, Inc.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -36,20 +37,24 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/common/prque"
+	"github.com/ava-labs/libevm/core/state"
+	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/event"
+	"github.com/ava-labs/libevm/log"
+	"github.com/ava-labs/libevm/metrics"
 	"github.com/ava-labs/subnet-evm/commontype"
-	"github.com/ava-labs/subnet-evm/consensus/dummy"
 	"github.com/ava-labs/subnet-evm/core"
-	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/core/txpool"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/metrics"
 	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/plugin/evm/customheader"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/feemanager"
 	"github.com/ava-labs/subnet-evm/utils"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/prque"
-	"github.com/ethereum/go-ethereum/event"
-	"github.com/ethereum/go-ethereum/log"
+	"github.com/holiman/uint256"
+
+	// Force libevm metrics of the same name to be registered first.
+	_ "github.com/ava-labs/libevm/core/txpool/legacypool"
 )
 
 const (
@@ -80,42 +85,48 @@ var (
 	baseFeeUpdateInterval = 10 * time.Second // Time interval at which to schedule a base fee update for the tx pool after SubnetEVM is enabled
 )
 
+// ====== If resolving merge conflicts ======
+//
+// All calls to metrics.NewRegistered*() for metrics also defined in libevm/core/txpool/legacypool
+// have been replaced with metrics.GetOrRegister*() to get metrics already registered in
+// libevm/core/txpool/legacypool or register them here otherwise. These replacements ensure the
+// same metrics are shared between the two packages.
 var (
 	// Metrics for the pending pool
-	pendingDiscardMeter   = metrics.NewRegisteredMeter("txpool/pending/discard", nil)
-	pendingReplaceMeter   = metrics.NewRegisteredMeter("txpool/pending/replace", nil)
-	pendingRateLimitMeter = metrics.NewRegisteredMeter("txpool/pending/ratelimit", nil) // Dropped due to rate limiting
-	pendingNofundsMeter   = metrics.NewRegisteredMeter("txpool/pending/nofunds", nil)   // Dropped due to out-of-funds
+	pendingDiscardMeter   = metrics.GetOrRegisterMeter("txpool/pending/discard", nil)
+	pendingReplaceMeter   = metrics.GetOrRegisterMeter("txpool/pending/replace", nil)
+	pendingRateLimitMeter = metrics.GetOrRegisterMeter("txpool/pending/ratelimit", nil) // Dropped due to rate limiting
+	pendingNofundsMeter   = metrics.GetOrRegisterMeter("txpool/pending/nofunds", nil)   // Dropped due to out-of-funds
 
 	// Metrics for the queued pool
-	queuedDiscardMeter   = metrics.NewRegisteredMeter("txpool/queued/discard", nil)
-	queuedReplaceMeter   = metrics.NewRegisteredMeter("txpool/queued/replace", nil)
-	queuedRateLimitMeter = metrics.NewRegisteredMeter("txpool/queued/ratelimit", nil) // Dropped due to rate limiting
-	queuedNofundsMeter   = metrics.NewRegisteredMeter("txpool/queued/nofunds", nil)   // Dropped due to out-of-funds
-	queuedEvictionMeter  = metrics.NewRegisteredMeter("txpool/queued/eviction", nil)  // Dropped due to lifetime
+	queuedDiscardMeter   = metrics.GetOrRegisterMeter("txpool/queued/discard", nil)
+	queuedReplaceMeter   = metrics.GetOrRegisterMeter("txpool/queued/replace", nil)
+	queuedRateLimitMeter = metrics.GetOrRegisterMeter("txpool/queued/ratelimit", nil) // Dropped due to rate limiting
+	queuedNofundsMeter   = metrics.GetOrRegisterMeter("txpool/queued/nofunds", nil)   // Dropped due to out-of-funds
+	queuedEvictionMeter  = metrics.GetOrRegisterMeter("txpool/queued/eviction", nil)  // Dropped due to lifetime
 
 	// General tx metrics
-	knownTxMeter       = metrics.NewRegisteredMeter("txpool/known", nil)
-	validTxMeter       = metrics.NewRegisteredMeter("txpool/valid", nil)
-	invalidTxMeter     = metrics.NewRegisteredMeter("txpool/invalid", nil)
-	underpricedTxMeter = metrics.NewRegisteredMeter("txpool/underpriced", nil)
-	overflowedTxMeter  = metrics.NewRegisteredMeter("txpool/overflowed", nil)
+	knownTxMeter       = metrics.GetOrRegisterMeter("txpool/known", nil)
+	validTxMeter       = metrics.GetOrRegisterMeter("txpool/valid", nil)
+	invalidTxMeter     = metrics.GetOrRegisterMeter("txpool/invalid", nil)
+	underpricedTxMeter = metrics.GetOrRegisterMeter("txpool/underpriced", nil)
+	overflowedTxMeter  = metrics.GetOrRegisterMeter("txpool/overflowed", nil)
 
 	// throttleTxMeter counts how many transactions are rejected due to too-many-changes between
 	// txpool reorgs.
-	throttleTxMeter = metrics.NewRegisteredMeter("txpool/throttle", nil)
+	throttleTxMeter = metrics.GetOrRegisterMeter("txpool/throttle", nil)
 	// reorgDurationTimer measures how long time a txpool reorg takes.
-	reorgDurationTimer = metrics.NewRegisteredTimer("txpool/reorgtime", nil)
+	reorgDurationTimer = metrics.GetOrRegisterTimer("txpool/reorgtime", nil)
 	// dropBetweenReorgHistogram counts how many drops we experience between two reorg runs. It is expected
 	// that this number is pretty low, since txpool reorgs happen very frequently.
-	dropBetweenReorgHistogram = metrics.NewRegisteredHistogram("txpool/dropbetweenreorg", nil, metrics.NewExpDecaySample(1028, 0.015))
+	dropBetweenReorgHistogram = metrics.GetOrRegisterHistogram("txpool/dropbetweenreorg", nil, metrics.NewExpDecaySample(1028, 0.015))
 
-	pendingGauge = metrics.NewRegisteredGauge("txpool/pending", nil)
-	queuedGauge  = metrics.NewRegisteredGauge("txpool/queued", nil)
-	localGauge   = metrics.NewRegisteredGauge("txpool/local", nil)
-	slotsGauge   = metrics.NewRegisteredGauge("txpool/slots", nil)
+	pendingGauge = metrics.GetOrRegisterGauge("txpool/pending", nil)
+	queuedGauge  = metrics.GetOrRegisterGauge("txpool/queued", nil)
+	localGauge   = metrics.GetOrRegisterGauge("txpool/local", nil)
+	slotsGauge   = metrics.GetOrRegisterGauge("txpool/slots", nil)
 
-	reheapTimer = metrics.NewRegisteredTimer("txpool/reheap", nil)
+	reheapTimer = metrics.GetOrRegisterTimer("txpool/reheap", nil)
 )
 
 // BlockChain defines the minimal set of methods needed to back a tx pool with
@@ -223,15 +234,12 @@ type LegacyPool struct {
 	config      Config
 	chainconfig *params.ChainConfig
 	chain       BlockChain
-	gasTip      atomic.Pointer[big.Int]
+	gasTip      atomic.Pointer[uint256.Int]
 	minimumFee  *big.Int
 	txFeed      event.Feed
 	signer      types.Signer
 	mu          sync.RWMutex
 
-	// [currentStateLock] is required to allow concurrent access to address nonces
-	// and balances during reorgs and gossip handling.
-	currentStateLock sync.Mutex
 	// closed when the transaction pool is stopped. Any goroutine can listen
 	// to this to be notified if it should shut down.
 	generalShutdownChan chan struct{}
@@ -317,15 +325,15 @@ func (pool *LegacyPool) Filter(tx *types.Transaction) bool {
 // head to allow balance / nonce checks. The transaction journal will be loaded
 // from disk and filtered based on the provided starting settings. The internal
 // goroutines will be spun up and the pool deemed operational afterwards.
-func (pool *LegacyPool) Init(gasTip *big.Int, head *types.Header, reserve txpool.AddressReserver) error {
+func (pool *LegacyPool) Init(gasTip uint64, head *types.Header, reserve txpool.AddressReserver) error {
 	// Set the address reserver to request exclusive access to pooled accounts
 	pool.reserve = reserve
 
 	// Set the basic pool parameters
-	pool.gasTip.Store(gasTip)
+	pool.gasTip.Store(uint256.NewInt(gasTip))
 
 	// Initialize the state with head block, or fallback to empty one in
-	// case the head state is not available(might occur when node is not
+	// case the head state is not available (might occur when node is not
 	// fully synced).
 	statedb, err := pool.chain.StateAt(head.Root)
 	if err != nil {
@@ -468,11 +476,13 @@ func (pool *LegacyPool) SetGasTip(tip *big.Int) {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
-	old := pool.gasTip.Load()
-	pool.gasTip.Store(new(big.Int).Set(tip))
-
+	var (
+		newTip = uint256.MustFromBig(tip)
+		old    = pool.gasTip.Load()
+	)
+	pool.gasTip.Store(newTip)
 	// If the min miner fee increased, remove transactions below the new threshold
-	if tip.Cmp(old) > 0 {
+	if newTip.Cmp(old) > 0 {
 		// pool.priced is sorted by GasFeeCap, so we have to iterate through pool.all instead
 		drop := pool.all.RemotesBelowTip(tip)
 		for _, tx := range drop {
@@ -480,7 +490,7 @@ func (pool *LegacyPool) SetGasTip(tip *big.Int) {
 		}
 		pool.priced.Removed(len(drop))
 	}
-	log.Info("Legacy pool tip threshold updated", "tip", tip)
+	log.Info("Legacy pool tip threshold updated", "tip", newTip)
 }
 
 func (pool *LegacyPool) SetMinFee(minFee *big.Int) {
@@ -557,23 +567,33 @@ func (pool *LegacyPool) ContentFrom(addr common.Address) ([]*types.Transaction, 
 }
 
 // Pending retrieves all currently processable transactions, grouped by origin
-// account and sorted by nonce. The returned transaction set is a copy and can be
-// freely modified by calling code.
+// account and sorted by nonce.
 //
-// The enforceTips parameter can be used to do an extra filtering on the pending
-// transactions and only return those whose **effective** tip is large enough in
-// the next pending execution environment.
-func (pool *LegacyPool) Pending(enforceTips bool) map[common.Address][]*txpool.LazyTransaction {
-	return pool.PendingWithBaseFee(enforceTips, nil)
-}
-
-// If baseFee is nil, then pool.priced.urgent.baseFee is used.
-func (pool *LegacyPool) PendingWithBaseFee(enforceTips bool, baseFee *big.Int) map[common.Address][]*txpool.LazyTransaction {
+// The transactions can also be pre-filtered by the dynamic fee components to
+// reduce allocations and load on downstream subsystems.
+func (pool *LegacyPool) Pending(filter txpool.PendingFilter) map[common.Address][]*txpool.LazyTransaction {
+	// If only blob transactions are requested, this pool is unsuitable as it
+	// contains none, don't even bother.
+	if filter.OnlyBlobTxs {
+		return nil
+	}
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
-	if baseFee == nil {
-		baseFee = pool.priced.urgent.baseFee
+	// Convert the new uint256.Int types to the old big.Int ones used by the legacy pool
+	var (
+		minTipBig  *big.Int
+		baseFeeBig *big.Int
+	)
+	if filter.MinTip != nil {
+		minTipBig = filter.MinTip.ToBig()
+	}
+	if filter.BaseFee != nil {
+		baseFeeBig = filter.BaseFee.ToBig()
+	}
+
+	if baseFeeBig == nil {
+		baseFeeBig = pool.priced.urgent.baseFee
 	}
 
 	pending := make(map[common.Address][]*txpool.LazyTransaction, len(pool.pending))
@@ -581,9 +601,9 @@ func (pool *LegacyPool) PendingWithBaseFee(enforceTips bool, baseFee *big.Int) m
 		txs := list.Flatten()
 
 		// If the miner requests tip enforcement, cap the lists now
-		if enforceTips && !pool.locals.contains(addr) {
+		if minTipBig != nil && !pool.locals.contains(addr) {
 			for i, tx := range txs {
-				if tx.EffectiveGasTipIntCmp(pool.gasTip.Load(), baseFee) < 0 {
+				if tx.EffectiveGasTipIntCmp(minTipBig, baseFeeBig) < 0 {
 					txs = txs[:i]
 					break
 				}
@@ -597,8 +617,8 @@ func (pool *LegacyPool) PendingWithBaseFee(enforceTips bool, baseFee *big.Int) m
 					Hash:      txs[i].Hash(),
 					Tx:        txs[i].WithoutBlobTxSidecar(),
 					Time:      txs[i].Time(),
-					GasFeeCap: txs[i].GasFeeCap(),
-					GasTipCap: txs[i].GasTipCap(),
+					GasFeeCap: uint256.MustFromBig(txs[i].GasFeeCap()),
+					GasTipCap: uint256.MustFromBig(txs[i].GasTipCap()),
 					Gas:       txs[i].Gas(),
 					BlobGas:   txs[i].BlobGas(),
 				}
@@ -661,7 +681,7 @@ func (pool *LegacyPool) validateTxBasics(tx *types.Transaction, local bool) erro
 			1<<types.AccessListTxType |
 			1<<types.DynamicFeeTxType,
 		MaxSize: txMaxSize,
-		MinTip:  pool.gasTip.Load(),
+		MinTip:  pool.gasTip.Load().ToBig(),
 	}
 	if local {
 		opts.MinTip = new(big.Int)
@@ -675,13 +695,11 @@ func (pool *LegacyPool) validateTxBasics(tx *types.Transaction, local bool) erro
 // validateTx checks whether a transaction is valid according to the consensus
 // rules and adheres to some heuristic limits of the local node (price and size).
 func (pool *LegacyPool) validateTx(tx *types.Transaction, local bool) error {
-	pool.currentStateLock.Lock()
-	defer pool.currentStateLock.Unlock()
-
 	opts := &txpool.ValidationOptionsWithState{
 		State: pool.currentState,
 		Rules: pool.chainconfig.Rules(
 			pool.currentHead.Load().Number,
+			params.IsMergeTODO,
 			pool.currentHead.Load().Time,
 		),
 		MinimumFee: pool.minimumFee,
@@ -699,7 +717,7 @@ func (pool *LegacyPool) validateTx(tx *types.Transaction, local bool) error {
 		},
 		ExistingExpenditure: func(addr common.Address) *big.Int {
 			if list := pool.pending[addr]; list != nil {
-				return list.totalcost
+				return list.totalcost.ToBig()
 			}
 			return new(big.Int)
 		},
@@ -1359,7 +1377,7 @@ func (pool *LegacyPool) runReorg(done chan struct{}, reset *txpoolResetRequest, 
 	if reset != nil {
 		pool.demoteUnexecutables()
 		if reset.newHead != nil {
-			if pool.chainconfig.IsSubnetEVM(reset.newHead.Time) {
+			if pool.chainconfig.IsLondon(reset.newHead.Number) {
 				if err := pool.updateBaseFeeAt(reset.newHead); err != nil {
 					log.Error("error at updating base fee in tx pool", "error", err)
 				}
@@ -1490,14 +1508,13 @@ func (pool *LegacyPool) reset(oldHead, newHead *types.Header) {
 		return
 	}
 	pool.currentHead.Store(newHead)
-	pool.currentStateLock.Lock()
 	pool.currentState = statedb
-	pool.currentStateLock.Unlock()
 	pool.pendingNonces = newNoncer(statedb)
 
 	// when we reset txPool we should explicitly check if fee struct for min base fee has changed
 	// so that we can correctly drop txs with < minBaseFee from tx pool.
-	if pool.chainconfig.IsPrecompileEnabled(feemanager.ContractAddress, newHead.Time) {
+	chainConfig := params.GetExtra(pool.chainconfig)
+	if chainConfig.IsPrecompileEnabled(feemanager.ContractAddress, newHead.Time) {
 		feeConfig, _, err := pool.chain.GetFeeConfigAt(newHead)
 		if err != nil {
 			log.Error("Failed to get fee config state", "err", err, "root", newHead.Root)
@@ -1516,9 +1533,6 @@ func (pool *LegacyPool) reset(oldHead, newHead *types.Header) {
 // future queue to the set of pending transactions. During this process, all
 // invalidated transactions (low nonce, low balance) are deleted.
 func (pool *LegacyPool) promoteExecutables(accounts []common.Address) []*types.Transaction {
-	pool.currentStateLock.Lock()
-	defer pool.currentStateLock.Unlock()
-
 	// Track the promoted transactions to broadcast them at once
 	var promoted []*types.Transaction
 
@@ -1725,9 +1739,6 @@ func (pool *LegacyPool) truncateQueue() {
 // is always explicitly triggered by SetBaseFee and it would be unnecessary and wasteful
 // to trigger a re-heap is this function
 func (pool *LegacyPool) demoteUnexecutables() {
-	pool.currentStateLock.Lock()
-	defer pool.currentStateLock.Unlock()
-
 	// Iterate over all accounts and demote any non-executable transactions
 	gasLimit := pool.currentHead.Load().GasLimit
 	for addr, list := range pool.pending {
@@ -1765,7 +1776,7 @@ func (pool *LegacyPool) demoteUnexecutables() {
 			gapped := list.Cap(0)
 			for _, tx := range gapped {
 				hash := tx.Hash()
-				log.Error("Demoting invalidated transaction", "hash", hash)
+				log.Warn("Demoting invalidated transaction", "hash", hash)
 
 				// Internal shuffle shouldn't touch the lookup set.
 				pool.enqueueTx(hash, tx, false, false)
@@ -1783,13 +1794,14 @@ func (pool *LegacyPool) demoteUnexecutables() {
 }
 
 func (pool *LegacyPool) startPeriodicFeeUpdate() {
-	if pool.chainconfig.SubnetEVMTimestamp == nil {
+	subnetEVMTimestamp := params.GetExtra(pool.chainconfig).SubnetEVMTimestamp
+	if subnetEVMTimestamp == nil {
 		return
 	}
 
 	// Call updateBaseFee here to ensure that there is not a [baseFeeUpdateInterval] delay
-	// when starting up in Subnet EVM before the base fee is updated.
-	if time.Now().After(utils.Uint64ToTime(pool.chainconfig.SubnetEVMTimestamp)) {
+	// when starting up in ApricotPhase3 before the base fee is updated.
+	if time.Now().After(utils.Uint64ToTime(subnetEVMTimestamp)) {
 		pool.updateBaseFee()
 	}
 
@@ -1801,8 +1813,9 @@ func (pool *LegacyPool) periodicBaseFeeUpdate() {
 	defer pool.wg.Done()
 
 	// Sleep until its time to start the periodic base fee update or the tx pool is shutting down
+	subnetEVMTime := utils.Uint64ToTime(params.GetExtra(pool.chainconfig).SubnetEVMTimestamp)
 	select {
-	case <-time.After(time.Until(utils.Uint64ToTime(pool.chainconfig.SubnetEVMTimestamp))):
+	case <-time.After(time.Until(subnetEVMTime)):
 	case <-pool.generalShutdownChan:
 		return // Return early if shutting down
 	}
@@ -1819,6 +1832,8 @@ func (pool *LegacyPool) periodicBaseFeeUpdate() {
 	}
 }
 
+// updateBaseFee updates the base fee in the tx pool based on the current head block.
+// should only be called when the chain is in Subnet EVM.
 func (pool *LegacyPool) updateBaseFee() {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
@@ -1830,12 +1845,14 @@ func (pool *LegacyPool) updateBaseFee() {
 }
 
 // assumes lock is already held
+// should only be called when the chain is in Subnet EVM.
 func (pool *LegacyPool) updateBaseFeeAt(head *types.Header) error {
 	feeConfig, _, err := pool.chain.GetFeeConfigAt(head)
 	if err != nil {
 		return err
 	}
-	_, baseFeeEstimate, err := dummy.EstimateNextBaseFee(pool.chainconfig, feeConfig, head, uint64(time.Now().Unix()))
+	chainConfig := params.GetExtra(pool.chainconfig)
+	baseFeeEstimate, err := customheader.EstimateNextBaseFee(chainConfig, feeConfig, head, uint64(time.Now().UnixMilli()))
 	if err != nil {
 		return err
 	}

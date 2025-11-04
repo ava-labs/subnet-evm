@@ -1,4 +1,4 @@
-// (c) 2023, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package evm
@@ -7,14 +7,16 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/core/rawdb"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
-	"github.com/ava-labs/subnet-evm/trie"
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/core/rawdb"
+	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/trie"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
+
+	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/params/extras"
+	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 )
 
 func TestHandlePrecompileAccept(t *testing.T) {
@@ -87,11 +89,12 @@ func TestHandlePrecompileAccept(t *testing.T) {
 	)
 
 	// Call handlePrecompileAccept
-	blk := vm.newBlock(ethBlock)
-	rules := params.Rules{
+	blk, err := wrapBlock(ethBlock, vm)
+	require.NoError(err)
+	rules := extras.Rules{
 		AccepterPrecompiles: map[common.Address]precompileconfig.Accepter{
 			precompileAddr: mockAccepter,
 		},
 	}
-	require.NoError(blk.handlePrecompileAccept(rules, nil))
+	require.NoError(blk.handlePrecompileAccept(rules))
 }

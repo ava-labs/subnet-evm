@@ -1,4 +1,5 @@
-// (c) 2019-2022, Ava Labs, Inc.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -30,8 +31,8 @@ import (
 	"context"
 	"math/big"
 
+	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/subnet-evm/core"
-	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/rpc"
 	lru "github.com/hashicorp/golang-lru"
 )
@@ -42,26 +43,23 @@ import (
 const feeCacheExtraSlots = 5
 
 type feeInfoProvider struct {
-	cache   *lru.Cache
-	backend OracleBackend
-	// [minGasUsed] ensures we don't recommend users pay non-zero tips when other
-	// users are paying a tip to unnecessarily expedite block production.
-	minGasUsed     uint64
+	cache          *lru.Cache
+	backend        OracleBackend
 	newHeaderAdded func() // callback used in tests
 }
 
 // feeInfo is the type of data stored in feeInfoProvider's cache.
 type feeInfo struct {
-	baseFee, tip *big.Int // baseFee and min. suggested tip for tx to be included in the block
-	timestamp    uint64   // timestamp of the block header
+	baseFee   *big.Int   // base fee of the block
+	tips      []*big.Int // tips for txs to be included in the block
+	timestamp uint64     // timestamp of the block header
 }
 
 // newFeeInfoProvider returns a bounded buffer with [size] slots to
 // store [*feeInfo] for the most recently accepted blocks.
-func newFeeInfoProvider(backend OracleBackend, minGasUsed uint64, size int) (*feeInfoProvider, error) {
+func newFeeInfoProvider(backend OracleBackend, size int) (*feeInfoProvider, error) {
 	fc := &feeInfoProvider{
-		backend:    backend,
-		minGasUsed: minGasUsed,
+		backend: backend,
 	}
 	if size == 0 {
 		// if size is zero, we return early as there is no
@@ -77,7 +75,7 @@ func newFeeInfoProvider(backend OracleBackend, minGasUsed uint64, size int) (*fe
 	backend.SubscribeChainAcceptedEvent(acceptedEvent)
 	go func() {
 		for ev := range acceptedEvent {
-			fc.addHeader(context.Background(), ev.Block.Header())
+			fc.addHeader(context.Background(), ev.Block.Header(), ev.Block.Transactions())
 			if fc.newHeaderAdded != nil {
 				fc.newHeaderAdded()
 			}
@@ -87,28 +85,23 @@ func newFeeInfoProvider(backend OracleBackend, minGasUsed uint64, size int) (*fe
 }
 
 // addHeader processes header into a feeInfo struct and caches the result.
-func (f *feeInfoProvider) addHeader(ctx context.Context, header *types.Header) (*feeInfo, error) {
+func (f *feeInfoProvider) addHeader(ctx context.Context, header *types.Header, txs []*types.Transaction) (*feeInfo, error) {
+	tips := make([]*big.Int, 0, len(txs))
+	for _, tx := range txs {
+		tip, err := tx.EffectiveGasTip(header.BaseFee)
+		if err != nil {
+			return nil, err
+		}
+		tips = append(tips, tip)
+	}
+
 	feeInfo := &feeInfo{
 		timestamp: header.Time,
 		baseFee:   header.BaseFee,
+		tips:      tips,
 	}
-	// Don't bias the estimate with blocks containing a limited number of transactions paying to
-	// expedite block production.
-	var err error
-	if f.minGasUsed <= header.GasUsed {
-		// Compute minimum required tip to be included in previous block
-		//
-		// NOTE: Using this approach, we will never recommend that the caller
-		// provides a non-zero tip unless some block is produced faster than the
-		// target rate (which could only occur if some set of callers manually override the
-		// suggested tip). In the future, we may wish to start suggesting a non-zero
-		// tip when most blocks are full otherwise callers may observe an unexpected
-		// delay in transaction inclusion.
-		feeInfo.tip, err = f.backend.MinRequiredTip(ctx, header)
-	}
-
 	f.cache.Add(header.Number.Uint64(), feeInfo)
-	return feeInfo, err
+	return feeInfo, nil
 }
 
 // get returns the feeInfo for block with [number] if present in the cache
@@ -132,11 +125,11 @@ func (f *feeInfoProvider) populateCache(size int) error {
 	}
 
 	for i := lowerBlockNumber; i <= lastAccepted; i++ {
-		header, err := f.backend.HeaderByNumber(context.Background(), rpc.BlockNumber(i))
+		block, err := f.backend.BlockByNumber(context.Background(), rpc.BlockNumber(i))
 		if err != nil {
 			return err
 		}
-		_, err = f.addHeader(context.Background(), header)
+		_, err = f.addHeader(context.Background(), block.Header(), block.Transactions())
 		if err != nil {
 			return err
 		}

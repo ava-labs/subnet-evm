@@ -1,4 +1,4 @@
-// (c) 2019-2020, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package core
@@ -7,11 +7,13 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/core/types"
-
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/core/types"
 	"github.com/stretchr/testify/assert"
 )
+
+// Default state history size
+const tipBufferSize = 32
 
 type MockTrieDB struct {
 	LastDereference common.Hash
@@ -22,20 +24,23 @@ func (t *MockTrieDB) Dereference(root common.Hash) error {
 	t.LastDereference = root
 	return nil
 }
-func (t *MockTrieDB) Commit(root common.Hash, report bool) error {
+
+func (t *MockTrieDB) Commit(root common.Hash, _ bool) error {
 	t.LastCommit = root
 	return nil
 }
-func (t *MockTrieDB) Size() (common.StorageSize, common.StorageSize, common.StorageSize) {
+
+func (*MockTrieDB) Size() (common.StorageSize, common.StorageSize, common.StorageSize) {
 	return 0, 0, 0
 }
-func (t *MockTrieDB) Cap(limit common.StorageSize) error {
+
+func (*MockTrieDB) Cap(common.StorageSize) error {
 	return nil
 }
 
 func TestCappedMemoryTrieWriter(t *testing.T) {
 	m := &MockTrieDB{}
-	cacheConfig := &CacheConfig{Pruning: true, CommitInterval: 4096}
+	cacheConfig := &CacheConfig{Pruning: true, CommitInterval: 4096, StateHistory: uint64(tipBufferSize)}
 	w := NewTrieWriter(m, cacheConfig)
 	assert := assert.New(t)
 	for i := 0; i < int(cacheConfig.CommitInterval)+1; i++ {
