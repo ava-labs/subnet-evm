@@ -15,37 +15,17 @@ import (
 	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/libevm/crypto"
 	"github.com/ava-labs/libevm/ethclient/simulated"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
 )
 
-var _ bind.ContractBackend = (simulated.Client)(nil)
+const simulatedBackendChainID = 1337
 
-// TestBackend wraps a simulated backend with common test utilities
-type TestBackend struct {
-	*simulated.Backend
-	Accounts
-}
-
-// Common test accounts matching the TypeScript test setup
-type Accounts struct {
-	Admin      *TestAccount
-	OtherAddr  *TestAccount
-	FundedKeys []*TestAccount
-}
-
-// TestAccount represents a funded test account
-type TestAccount struct {
-	Key     *ecdsa.PrivateKey
-	Address common.Address
-	Auth    *bind.TransactOpts
-}
-
-// Common addresses from TypeScript tests
 var (
 	// AdminAddress is the primary admin account
 	AdminAddress = common.HexToAddress("0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC")
-	// OtherAddress is a secondary account for testing
-	OtherAddress = common.HexToAddress("0x0Fa8EA536Be85F32724D57A37758761B86416123")
+	// UnprivilegedAddress is an unprivileged account for testing (has no special roles)
+	UnprivilegedAddress = common.HexToAddress("0x0Fa8EA536Be85F32724D57A37758761B86416123")
 )
 
 // Keys for test accounts
@@ -62,17 +42,37 @@ var testPrivateKeys = []string{
 	"750839e9dbbd2a0910efe40f50b2f3b2f2f59f5580bb4b83bd8c1201cf9a010a",
 }
 
+// Account represents a funded test account
+type Account struct {
+	Key     *ecdsa.PrivateKey
+	Address common.Address
+	Auth    *bind.TransactOpts
+}
+
+// Accounts provides convenient access to test accounts.
+// Admin and Unprivileged are convenience pointers to specific accounts in AllAccounts.
+type Accounts struct {
+	Admin        *Account   // Points to admin account in AllAccounts
+	Unprivileged *Account   // Points to unprivileged test account in AllAccounts (has no special roles)
+	AllAccounts  []*Account // All funded test accounts (includes Admin and Unprivileged)
+}
+
+type Backend struct {
+	*simulated.Backend
+	Accounts
+}
+
 // NewTestBackend creates a simulated backend with funded test accounts
-func NewTestBackend(t testing.TB) *TestBackend {
+func NewTestBackend(t testing.TB) *Backend {
 	require := require.New(t)
 
 	// Create test accounts
 	var fundedAccounts Accounts
-	fundedAccounts.FundedKeys = make([]*TestAccount, len(testPrivateKeys))
+	fundedAccounts.AllAccounts = make([]*Account, len(testPrivateKeys))
 
 	// Set up genesis allocation with funded accounts
 	alloc := types.GenesisAlloc{}
-	balance := new(big.Int).Mul(big.NewInt(1000), big.NewInt(1e18)) // 1000 ETH each
+	balance := new(uint256.Int).SetAllOne().ToBig()
 
 	for i, keyHex := range testPrivateKeys {
 		key, err := crypto.HexToECDSA(keyHex)
@@ -81,38 +81,36 @@ func NewTestBackend(t testing.TB) *TestBackend {
 		addr := crypto.PubkeyToAddress(key.PublicKey)
 		alloc[addr] = types.Account{Balance: balance}
 
-		chainID := big.NewInt(1337) // simulated backend uses chainID 1337
-		auth, err := bind.NewKeyedTransactorWithChainID(key, chainID)
+		auth, err := bind.NewKeyedTransactorWithChainID(key, big.NewInt(simulatedBackendChainID))
 		require.NoError(err)
 
-		account := &TestAccount{
+		account := &Account{
 			Key:     key,
 			Address: addr,
 			Auth:    auth,
 		}
-		fundedAccounts.FundedKeys[i] = account
+		fundedAccounts.AllAccounts[i] = account
 
-		// Set up special accounts
+		// Set up special accounts as convenience pointers
 		switch addr {
 		case AdminAddress:
 			fundedAccounts.Admin = account
-		case OtherAddress:
-			fundedAccounts.OtherAddr = account
+		case UnprivilegedAddress:
+			fundedAccounts.Unprivileged = account
 		}
 	}
 
 	// Create simulated backend from libevm (uses AllDevChainProtocolChanges by default)
-	backend := simulated.NewBackend(alloc)
 
-	return &TestBackend{
-		Backend:  backend,
+	return &Backend{
+		Backend:  simulated.NewBackend(alloc),
 		Accounts: fundedAccounts,
 	}
 }
 
 // GetAccount returns a TestAccount by address, or nil if not found
-func (tb *TestBackend) GetAccount(addr common.Address) *TestAccount {
-	for _, account := range tb.FundedKeys {
+func (tb *Backend) GetAccount(addr common.Address) *Account {
+	for _, account := range tb.AllAccounts {
 		if account.Address == addr {
 			return account
 		}
@@ -121,7 +119,7 @@ func (tb *TestBackend) GetAccount(addr common.Address) *TestAccount {
 }
 
 // WaitForReceipt waits for a transaction receipt and commits a block if needed
-func WaitForReceipt(t testing.TB, tb *TestBackend, tx *types.Transaction) *types.Receipt {
+func WaitForReceipt(t testing.TB, tb *Backend, tx *types.Transaction) *types.Receipt {
 	require := require.New(t)
 
 	// Commit the transaction (mines a block)

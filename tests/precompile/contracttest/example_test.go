@@ -53,5 +53,5 @@ func TestAllowListRoles(t *testing.T) {
 
 	// Verify other address has no role
 	RequireRole(t, backend, ContractDeployerAllowListAddress,
-		backend.OtherAddr.Address, RoleNone)
+		backend.Unprivileged.Address, RoleNone)
 }

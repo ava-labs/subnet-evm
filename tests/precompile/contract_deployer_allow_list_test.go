@@ -36,7 +36,7 @@ func init() {
 			blockchainID := solidity.SubnetsSuite.GetBlockchainID("contract_deployer_allow_list")
 			rpcURL := utils.GetDefaultChainURI(blockchainID)
 
-			backend = contracttest.NewTmpnetBackendSimple(rpcURL)
+			backend = contracttest.NewTmpnetBackend(ginkgo.GinkgoTB(), rpcURL)
 			require.NotNil(backend, "failed to create tmpnet backend")
 
 			var err error
@@ -209,8 +209,8 @@ func init() {
 			receipt := waitForReceipt(tx)
 			require.Equal(types.ReceiptStatusSuccessful, receipt.Status)
 
-			require.NotNil(backend.OtherAddr, "missing other test account")
-			otherAuth := *backend.OtherAddr.Auth
+			require.NotNil(backend.Unprivileged, "missing other test account")
+			otherAuth := *backend.Unprivileged.Auth
 			// Override the gas limit so bind skips preflight estimation; otherwise the call
 			// reverts during estimation and no transaction is sent, which would hide the
 			// failure status we expect from the mined receipt.

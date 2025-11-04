@@ -5,16 +5,14 @@ package contracttest
 
 import (
 	"context"
+	"math/big"
 	"testing"
 
 	"github.com/ava-labs/libevm/accounts/abi/bind"
-	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/libevm/crypto"
 	"github.com/ava-labs/libevm/ethclient"
 	"github.com/stretchr/testify/require"
-
-	"github.com/ava-labs/subnet-evm/contracts/bindings"
 )
 
 // TmpnetBackend wraps an ethclient connection to a tmpnet subnet
@@ -24,100 +22,60 @@ type TmpnetBackend struct {
 	Accounts
 }
 
-// NewTmpnetBackendSimple creates a test backend connected to a tmpnet subnet via RPC
-// This version doesn't require a testing.TB interface, suitable for use in Ginkgo tests
-func NewTmpnetBackendSimple(rpcURL string) *TmpnetBackend {
-	// Connect to the subnet
-	client, err := ethclient.Dial(rpcURL)
-	if err != nil {
-		panic("failed to connect to tmpnet subnet: " + err.Error())
-	}
-
-	// Create test accounts (same keys as simulated backend)
-	var fundedAccounts Accounts
-	fundedAccounts.FundedKeys = make([]*TestAccount, len(testPrivateKeys))
-
-	// Get chainID from the connected chain
-	chainID, err := client.ChainID(context.Background())
-	if err != nil {
-		panic("failed to get chain ID: " + err.Error())
-	}
-
-	for i, keyHex := range testPrivateKeys {
-		key, err := crypto.HexToECDSA(keyHex)
-		if err != nil {
-			panic("failed to parse private key: " + err.Error())
-		}
-
-		addr := crypto.PubkeyToAddress(key.PublicKey)
-
-		auth, err := bind.NewKeyedTransactorWithChainID(key, chainID)
-		if err != nil {
-			panic("failed to create transactor: " + err.Error())
-		}
-
-		account := &TestAccount{
-			Key:     key,
-			Address: addr,
-			Auth:    auth,
-		}
-		fundedAccounts.FundedKeys[i] = account
-
-		// Set up special accounts
-		switch addr {
-		case AdminAddress:
-			fundedAccounts.Admin = account
-		case OtherAddress:
-			fundedAccounts.OtherAddr = account
-		}
-	}
-
-	return &TmpnetBackend{
-		Client:   client,
-		Accounts: fundedAccounts,
-	}
-}
-
 // NewTmpnetBackend creates a test backend connected to a tmpnet subnet via RPC
 func NewTmpnetBackend(t testing.TB, rpcURL string) *TmpnetBackend {
-	require := require.New(t)
-
 	// Connect to the subnet
 	client, err := ethclient.Dial(rpcURL)
-	require.NoError(err, "failed to connect to tmpnet subnet")
+	require.NoError(t, err, "failed to connect to tmpnet subnet")
 
 	// Create test accounts (same keys as simulated backend)
 	var fundedAccounts Accounts
-	fundedAccounts.FundedKeys = make([]*TestAccount, len(testPrivateKeys))
+	fundedAccounts.AllAccounts = make([]*Account, len(testPrivateKeys))
 
 	// Get chainID from the connected chain
 	chainID, err := client.ChainID(context.Background())
-	require.NoError(err, "failed to get chain ID")
+	require.NoError(t, err, "failed to get chain ID")
 
 	for i, keyHex := range testPrivateKeys {
 		key, err := crypto.HexToECDSA(keyHex)
-		require.NoError(err)
+		require.NoError(t, err, "failed to parse private key at index %d", i)
 
 		addr := crypto.PubkeyToAddress(key.PublicKey)
 
 		auth, err := bind.NewKeyedTransactorWithChainID(key, chainID)
-		require.NoError(err)
+		require.NoError(t, err, "failed to create transactor for address %s", addr.Hex())
 
-		account := &TestAccount{
+		account := &Account{
 			Key:     key,
 			Address: addr,
 			Auth:    auth,
 		}
-		fundedAccounts.FundedKeys[i] = account
+		fundedAccounts.AllAccounts[i] = account
 
-		// Set up special accounts
+		// Set up special accounts as convenience pointers
 		switch addr {
 		case AdminAddress:
 			fundedAccounts.Admin = account
-		case OtherAddress:
-			fundedAccounts.OtherAddr = account
+		case UnprivilegedAddress:
+			fundedAccounts.Unprivileged = account
 		}
 	}
+
+	// Validate that required accounts were found
+	require.NotNil(t, fundedAccounts.Admin, "Admin account not found - AdminAddress must match one of testPrivateKeys")
+	require.NotNil(t, fundedAccounts.Unprivileged, "Unprivileged account not found - UnprivilegedAddress must match one of testPrivateKeys")
+
+	// Verify that accounts are funded in genesis (at least Admin account needs balance for transactions)
+	// This prevents silent failures later when trying to send transactions
+	adminBalance, err := client.BalanceAt(t.Context(), fundedAccounts.Admin.Address, nil)
+	require.NoError(t, err, "failed to check Admin account balance")
+	require.NotNil(t, adminBalance, "Admin account balance is nil")
+	require.Greater(t, adminBalance.Cmp(big.NewInt(0)), 0, "Admin account (%s) has zero balance - account must be funded in genesis file", fundedAccounts.Admin.Address.Hex())
+
+	unprivilegedBalance, err := client.BalanceAt(t.Context(), fundedAccounts.Unprivileged.Address, nil)
+	require.NoError(t, err, "failed to check Unprivileged account balance")
+	require.NotNil(t, unprivilegedBalance, "Unprivileged account balance is nil")
+	require.Greater(t, unprivilegedBalance.Cmp(big.NewInt(0)), 0, "Unprivileged account (%s) has zero balance - account must be funded in genesis file", fundedAccounts.Unprivileged.Address.Hex())
 
 	return &TmpnetBackend{
 		Client:   client,
@@ -132,16 +90,6 @@ func (tb *TmpnetBackend) Close() {
 	}
 }
 
-// GetAccount returns a TestAccount by address, or nil if not found
-func (tb *TmpnetBackend) GetAccount(addr common.Address) *TestAccount {
-	for _, account := range tb.FundedKeys {
-		if account.Address == addr {
-			return account
-		}
-	}
-	return nil
-}
-
 // WaitForTxReceipt waits for a transaction receipt from the RPC endpoint
 func WaitForTxReceipt(t testing.TB, client *ethclient.Client, tx *types.Transaction) *types.Receipt {
 	require := require.New(t)
@@ -152,72 +100,4 @@ func WaitForTxReceipt(t testing.TB, client *ethclient.Client, tx *types.Transact
 	require.NotNil(receipt, "receipt is nil")
 
 	return receipt
-}
-
-// DeployContractToTmpnet deploys a contract to a tmpnet subnet
-// Example usage:
-//
-//	addr, tx, contract, err := bindings.DeployExampleDeployerList(auth, client)
-//	receipt := WaitForTxReceipt(t, client, tx)
-func DeployContractToTmpnet(
-	t testing.TB,
-	client *ethclient.Client,
-	tx *types.Transaction,
-) *types.Receipt {
-	return WaitForTxReceipt(t, client, tx)
-}
-
-// SetupAllowListRoleOnTmpnet configures an address with a specific role on a tmpnet subnet
-func SetupAllowListRoleOnTmpnet(
-	t testing.TB,
-	client *ethclient.Client,
-	allowListAddress common.Address,
-	targetAddress common.Address,
-	role uint8,
-	fromAccount *TestAccount,
-) {
-	require := require.New(t)
-
-	// Get the IAllowList interface at the precompile address
-	allowList, err := bindings.NewIAllowList(allowListAddress, client)
-	require.NoError(err, "failed to create allowlist interface")
-
-	var tx *types.Transaction
-	switch role {
-	case RoleAdmin:
-		tx, err = allowList.SetAdmin(fromAccount.Auth, targetAddress)
-	case RoleManager:
-		tx, err = allowList.SetManager(fromAccount.Auth, targetAddress)
-	case RoleEnabled:
-		tx, err = allowList.SetEnabled(fromAccount.Auth, targetAddress)
-	case RoleNone:
-		tx, err = allowList.SetNone(fromAccount.Auth, targetAddress)
-	default:
-		require.Fail("invalid role")
-	}
-
-	require.NoError(err, "failed to set role")
-
-	// Wait for transaction and verify
-	receipt := WaitForTxReceipt(t, client, tx)
-	RequireSuccessReceipt(t, receipt)
-}
-
-// GetAllowListRoleOnTmpnet returns the role of an address on a tmpnet subnet
-func GetAllowListRoleOnTmpnet(
-	t testing.TB,
-	client *ethclient.Client,
-	allowListAddress common.Address,
-	targetAddress common.Address,
-) uint8 {
-	require := require.New(t)
-
-	// Get the IAllowList interface at the precompile address
-	allowList, err := bindings.NewIAllowList(allowListAddress, client)
-	require.NoError(err, "failed to create allowlist interface")
-
-	role, err := allowList.ReadAllowList(&bind.CallOpts{}, targetAddress)
-	require.NoError(err, "failed to read allowlist role")
-
-	return uint8(role.Uint64())
 }

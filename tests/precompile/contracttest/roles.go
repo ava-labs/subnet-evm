@@ -35,11 +35,11 @@ var (
 // SetupAllowListRole configures an address with a specific role on an allowlist precompile
 func SetupAllowListRole(
 	t testing.TB,
-	backend *TestBackend,
+	backend *Backend,
 	allowListAddress common.Address,
 	targetAddress common.Address,
 	role uint8,
-	fromAccount *TestAccount,
+	fromAccount *Account,
 ) {
 	require := require.New(t)
 
@@ -71,7 +71,7 @@ func SetupAllowListRole(
 // GetAllowListRole returns the role of an address on an allowlist precompile
 func GetAllowListRole(
 	t testing.TB,
-	backend *TestBackend,
+	backend *Backend,
 	allowListAddress common.Address,
 	targetAddress common.Address,
 ) uint8 {
@@ -90,7 +90,7 @@ func GetAllowListRole(
 // RequireRole asserts that an address has the expected role
 func RequireRole(
 	t testing.TB,
-	backend *TestBackend,
+	backend *Backend,
 	allowListAddress common.Address,
 	targetAddress common.Address,
 	expectedRole uint8,
