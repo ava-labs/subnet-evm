@@ -77,10 +77,14 @@ func NewTmpnetBackend(t testing.TB, rpcURL string) *TmpnetBackend {
 	require.NotNil(t, unprivilegedBalance, "Unprivileged account balance is nil")
 	require.Greater(t, unprivilegedBalance.Cmp(big.NewInt(0)), 0, "Unprivileged account (%s) has zero balance - account must be funded in genesis file", fundedAccounts.Unprivileged.Address.Hex())
 
-	return &TmpnetBackend{
+	backend := &TmpnetBackend{
 		Client:   client,
 		Accounts: fundedAccounts,
 	}
+
+	t.Cleanup(backend.Close)
+
+	return backend
 }
 
 // Close closes the client connection
@@ -90,14 +94,13 @@ func (tb *TmpnetBackend) Close() {
 	}
 }
 
-// WaitForTxReceipt waits for a transaction receipt from the RPC endpoint
-func WaitForTxReceipt(t testing.TB, client *ethclient.Client, tx *types.Transaction) *types.Receipt {
-	require := require.New(t)
+// WaitForReceipt waits for a transaction receipt from the RPC endpoint
+func (be *TmpnetBackend) WaitForReceipt(t testing.TB, tx *types.Transaction) *types.Receipt {
+	t.Helper()
 
-	// Wait for the transaction to be mined
-	receipt, err := bind.WaitMined(context.Background(), client, tx)
-	require.NoError(err, "failed to wait for transaction")
-	require.NotNil(receipt, "receipt is nil")
+	receipt, err := bind.WaitMined(context.Background(), be.Client, tx)
+	require.NoError(t, err, "failed to wait for transaction")
+	require.NotNil(t, receipt, "receipt is nil")
 
 	return receipt
 }
