@@ -6,7 +6,7 @@
 
 ## [v0.8.0](https://github.com/ava-labs/subnet-evm/releases/tag/v0.8.0)
 
-This version is compatible with the AvalancheGo Granite release. All nodes **MUST** update to a Granite compatible version prior to the upgrade activation time: November 19th, 2025 16:00 UTC.
+This version is compatible with the Avalanche Granite upgrade. All mainnet nodes **MUST** update to a Granite compatible version prior to the upgrade activation time: November 19th, 2025 16:00 UTC.
 
 ### AvalancheGo Compatibility
 
