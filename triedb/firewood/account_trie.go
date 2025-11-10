@@ -24,6 +24,8 @@ import (
 //  2. The `Hash` method actually creates the proposal, since Firewood cannot calculate
 //     the hash of the trie without committing it. It is immediately dropped, and this
 //     can likely be optimized.
+//
+// Note this is not concurrent safe.
 type AccountTrie struct {
 	fw           *Database
 	parentRoot   common.Hash
@@ -49,13 +51,15 @@ func NewAccountTrie(root common.Hash, db *Database) (*AccountTrie, error) {
 	}, nil
 }
 
-// GetAccount implements state.Trie.
+// GetAccount returns the state account associated with an address.
+// - If the account has been updated, the new value is returned.
+// - If the account has been deleted, (nil, nil) is returned.
+// - If the account does not exist, (nil, nil) is returned.
 func (a *AccountTrie) GetAccount(addr common.Address) (*types.StateAccount, error) {
 	key := crypto.Keccak256Hash(addr.Bytes()).Bytes()
 
 	// First check if there's a pending update for this account
-	keyStr := string(key)
-	if updateValue, exists := a.dirtyKeys[keyStr]; exists {
+	if updateValue, exists := a.dirtyKeys[string(key)]; exists {
 		// If the value is empty, it indicates deletion
 		// Invariant: All encoded values have length > 0
 		if len(updateValue) == 0 {
@@ -83,7 +87,10 @@ func (a *AccountTrie) GetAccount(addr common.Address) (*types.StateAccount, erro
 	return account, err
 }
 
-// GetStorage implements state.Trie.
+// GetStorage returns the value associated with a storage key for a given account address.
+// - If the storage slot has been updated, the new value is returned.
+// - If the storage slot has been deleted, (nil, nil) is returned.
+// - If the storage slot does not exist, (nil, nil) is returned.
 func (a *AccountTrie) GetStorage(addr common.Address, key []byte) ([]byte, error) {
 	// If the account has been deleted, we should return nil
 	accountKey := crypto.Keccak256Hash(addr.Bytes()).Bytes()
@@ -97,8 +104,7 @@ func (a *AccountTrie) GetStorage(addr common.Address, key []byte) ([]byte, error
 	copy(combinedKey[common.HashLength:], storageKey)
 
 	// Check if there's a pending update for this storage slot
-	keyStr := string(combinedKey[:])
-	if updateValue, exists := a.dirtyKeys[keyStr]; exists {
+	if updateValue, exists := a.dirtyKeys[string(combinedKey[:])]; exists {
 		// If the value is empty, it indicates deletion
 		if len(updateValue) == 0 {
 			return nil, nil
@@ -119,7 +125,8 @@ func (a *AccountTrie) GetStorage(addr common.Address, key []byte) ([]byte, error
 	return decoded, err
 }
 
-// UpdateAccount implements state.Trie.
+// UpdateAccount replaces or creates the state account associated with an address.
+// This new value will be returned for subsequent `GetAccount` calls.
 func (a *AccountTrie) UpdateAccount(addr common.Address, account *types.StateAccount) error {
 	// Queue the keys and values for later commit
 	key := crypto.Keccak256Hash(addr.Bytes()).Bytes()
@@ -134,7 +141,8 @@ func (a *AccountTrie) UpdateAccount(addr common.Address, account *types.StateAcc
 	return nil
 }
 
-// UpdateStorage implements state.Trie.
+// UpdateStorage replaces or creates the value associated with a storage key for a given account address.
+// This new value will be returned for subsequent `GetStorage` calls.
 func (a *AccountTrie) UpdateStorage(addr common.Address, key []byte, value []byte) error {
 	var combinedKey [2 * common.HashLength]byte
 	accountKey := crypto.Keccak256Hash(addr.Bytes()).Bytes()
@@ -155,7 +163,7 @@ func (a *AccountTrie) UpdateStorage(addr common.Address, key []byte, value []byt
 	return nil
 }
 
-// DeleteAccount implements state.Trie.
+// DeleteAccount removes the state account associated with an address.
 func (a *AccountTrie) DeleteAccount(addr common.Address) error {
 	key := crypto.Keccak256Hash(addr.Bytes()).Bytes()
 	// Queue the key for deletion
@@ -166,7 +174,7 @@ func (a *AccountTrie) DeleteAccount(addr common.Address) error {
 	return nil
 }
 
-// DeleteStorage implements state.Trie.
+// DeleteStorage removes the value associated with a storage key for a given account address.
 func (a *AccountTrie) DeleteStorage(addr common.Address, key []byte) error {
 	var combinedKey [2 * common.HashLength]byte
 	accountKey := crypto.Keccak256Hash(addr.Bytes()).Bytes()
@@ -182,7 +190,9 @@ func (a *AccountTrie) DeleteStorage(addr common.Address, key []byte) error {
 	return nil
 }
 
-// Hash implements state.Trie.
+// Hash returns the current hash of the state trie.
+// This will create a proposal and drop it, so it is not efficient to call for each transaction.
+// If there are no changes since the last call, the cached root is returned.
 func (a *AccountTrie) Hash() common.Hash {
 	hash, err := a.hash()
 	if err != nil {
@@ -205,8 +215,10 @@ func (a *AccountTrie) hash() (common.Hash, error) {
 	return a.root, nil
 }
 
-// Commit implements state.Trie.
-func (a *AccountTrie) Commit(collectLeaf bool) (common.Hash, *trienode.NodeSet, error) {
+// Commit returns the new root hash of the trie and a NodeSet containing all modified accounts and storage slots.
+// The format of the NodeSet is different than in go-ethereum's trie implementation due to Firewood's design.
+// This boolean is ignored, as it is a relic of the StateTrie implementation.
+func (a *AccountTrie) Commit(bool) (common.Hash, *trienode.NodeSet, error) {
 	// Get the hash of the trie.
 	hash, err := a.hash()
 	if err != nil {
@@ -214,7 +226,7 @@ func (a *AccountTrie) Commit(collectLeaf bool) (common.Hash, *trienode.NodeSet, 
 	}
 
 	// Create the NodeSet. This will be sent to `triedb.Update` later.
-	nodeset := trienode.NewNodeSet(a.parentRoot)
+	nodeset := trienode.NewNodeSet(common.Hash{})
 	for i, key := range a.updateKeys {
 		nodeset.AddNode(key, &trienode.Node{
 			Blob: a.updateValues[i],
@@ -226,22 +238,25 @@ func (a *AccountTrie) Commit(collectLeaf bool) (common.Hash, *trienode.NodeSet, 
 
 // UpdateContractCode implements state.Trie.
 // Contract code is controlled by rawdb, so we don't need to do anything here.
-func (a *AccountTrie) UpdateContractCode(_ common.Address, _ common.Hash, _ []byte) error {
+func (*AccountTrie) UpdateContractCode(_ common.Address, _ common.Hash, _ []byte) error {
 	return nil
 }
 
 // GetKey implements state.Trie.
-func (a *AccountTrie) GetKey(_ []byte) []byte {
-	return nil // Not implemented, as this is only used in APIs
+// This should not be used, since any user should not be accessing by raw key.
+func (*AccountTrie) GetKey([]byte) []byte {
+	return nil
 }
 
 // NodeIterator implements state.Trie.
-func (a *AccountTrie) NodeIterator(_ []byte) (trie.NodeIterator, error) {
+// Firewood does not support iterating over internal nodes.
+func (*AccountTrie) NodeIterator([]byte) (trie.NodeIterator, error) {
 	return nil, errors.New("NodeIterator not implemented for Firewood")
 }
 
 // Prove implements state.Trie.
-func (a *AccountTrie) Prove(_ []byte, _ ethdb.KeyValueWriter) error {
+// Firewood does not yet support providing key proofs.
+func (*AccountTrie) Prove([]byte, ethdb.KeyValueWriter) error {
 	return errors.New("Prove not implemented for Firewood")
 }
 

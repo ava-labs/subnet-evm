@@ -73,7 +73,7 @@ func DistributeFunds(ctx context.Context, client ethclient.Client, keys []*key.K
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch chainID: %w", err)
 	}
-	gasFeeCap, err := client.EstimateBaseFee(ctx)
+	baseFee, err := client.EstimateBaseFee(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch estimated base fee: %w", err)
 	}
@@ -91,7 +91,7 @@ func DistributeFunds(ctx context.Context, client ethclient.Client, keys []*key.K
 			ChainID:   chainID,
 			Nonce:     nonce,
 			GasTipCap: gasTipCap,
-			GasFeeCap: gasFeeCap,
+			GasFeeCap: new(big.Int).Add(baseFee, gasTipCap),
 			Gas:       ethparams.TxGas,
 			To:        &needFundsAddrs[i],
 			Data:      nil,
@@ -109,7 +109,7 @@ func DistributeFunds(ctx context.Context, client ethclient.Client, keys []*key.K
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate fund distribution sequence from %s of length %d", maxFundsKey.Address, len(needFundsAddrs))
 	}
-	worker := NewSingleAddressTxWorker(ctx, client, maxFundsKey.Address)
+	worker := NewSingleAddressTxWorker(client, maxFundsKey.Address)
 	txFunderAgent := txs.NewIssueNAgent[*types.Transaction](txSequence, worker, numTxs, m)
 
 	if err := txFunderAgent.Execute(ctx); err != nil {

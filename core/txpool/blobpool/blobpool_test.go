@@ -41,6 +41,7 @@ import (
 	"time"
 
 	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/consensus/misc/eip4844"
 	"github.com/ava-labs/libevm/core/rawdb"
 	"github.com/ava-labs/libevm/core/state"
 	"github.com/ava-labs/libevm/core/types"
@@ -51,11 +52,11 @@ import (
 	ethparams "github.com/ava-labs/libevm/params"
 	"github.com/ava-labs/libevm/rlp"
 	"github.com/ava-labs/subnet-evm/commontype"
-	"github.com/ava-labs/subnet-evm/consensus/misc/eip4844"
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/txpool"
 	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/plugin/evm/header"
+	"github.com/ava-labs/subnet-evm/plugin/evm/customheader"
+	"github.com/ava-labs/subnet-evm/plugin/evm/customtypes"
 	"github.com/ava-labs/subnet-evm/plugin/evm/upgrade/legacy"
 	"github.com/ava-labs/subnet-evm/plugin/evm/upgrade/subnetevm"
 	"github.com/holiman/billy"
@@ -75,6 +76,9 @@ var (
 var testChainConfig *params.ChainConfig
 
 func init() {
+	params.RegisterExtras()
+	customtypes.Register()
+
 	testChainConfig = new(params.ChainConfig)
 	*testChainConfig = params.Copy(params.TestChainConfig)
 	params.GetExtra(testChainConfig).FeeConfig.MinBaseFee = new(big.Int).SetUint64(1)
@@ -121,8 +125,12 @@ func (bc *testBlockChain) CurrentBlock() *types.Header {
 			Extra:    make([]byte, subnetevm.WindowSize),
 		}
 		config := params.GetExtra(bc.config)
-		baseFee, err := header.BaseFee(
-			config, config.FeeConfig, parent, blockTime,
+		timeMS := blockTime * 1000
+		if config.IsGranite(blockTime) {
+			customtypes.GetHeaderExtra(parent).TimeMilliseconds = &timeMS
+		}
+		baseFee, err := customheader.BaseFee(
+			config, config.FeeConfig, parent, timeMS,
 		)
 		if err != nil {
 			panic(err)
@@ -152,7 +160,7 @@ func (bc *testBlockChain) CurrentBlock() *types.Header {
 	}
 	excessBlobGas := lo.Uint64()
 
-	return &types.Header{
+	head := &types.Header{
 		Number:        blockNumber,
 		Time:          blockTime,
 		GasLimit:      gasLimit,
@@ -160,6 +168,11 @@ func (bc *testBlockChain) CurrentBlock() *types.Header {
 		ExcessBlobGas: &excessBlobGas,
 		Extra:         make([]byte, subnetevm.WindowSize),
 	}
+	if params.GetExtra(bc.config).IsGranite(blockTime) {
+		timeMS := blockTime * 1000
+		customtypes.GetHeaderExtra(head).TimeMilliseconds = &timeMS
+	}
+	return head
 }
 
 func (bc *testBlockChain) CurrentFinalBlock() *types.Header {

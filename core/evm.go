@@ -32,22 +32,40 @@ import (
 	"math/big"
 
 	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/consensus/misc/eip4844"
 	"github.com/ava-labs/libevm/core/state"
 	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/libevm/core/vm"
+	"github.com/ava-labs/libevm/libevm"
 	"github.com/ava-labs/libevm/log"
 	"github.com/ava-labs/subnet-evm/consensus"
-	"github.com/ava-labs/subnet-evm/consensus/misc/eip4844"
 	"github.com/ava-labs/subnet-evm/core/extstate"
 	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/plugin/evm/customheader"
 
 	"github.com/ava-labs/avalanchego/vms/evm/predicate"
-	customheader "github.com/ava-labs/subnet-evm/plugin/evm/header"
 	"github.com/holiman/uint256"
 )
 
-func init() {
+// RegisterExtras registers hooks with libevm to achieve Avalanche behaviour of
+// the EVM. It MUST NOT be called more than once and therefore is only allowed
+// to be used in tests and `package main`, to avoid polluting other packages
+// that transitively depend on this one but don't need registration.
+func RegisterExtras() {
+	// Although the registration function refers to just Hooks (not Extras) this
+	// will be changed in the future to standardise across libevm, hence the
+	// name of the function we're in.
 	vm.RegisterHooks(hooks{})
+}
+
+// WithTempRegisteredExtras runs `fn` with temporary registration otherwise
+// equivalent to a call to [RegisterExtras], but limited to the life of `fn`.
+//
+// This function is not intended for direct use. Use
+// `evm.WithTempRegisteredLibEVMExtras()` instead as it calls this along with
+// all other temporary-registration functions.
+func WithTempRegisteredExtras(lock libevm.ExtrasLock, fn func() error) error {
+	return vm.WithTempRegisteredHooks(lock, hooks{}, fn)
 }
 
 type hooks struct{}

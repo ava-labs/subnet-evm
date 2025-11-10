@@ -55,6 +55,8 @@ Configuration is provided as a JSON object. All fields are optional unless other
 | `api-max-duration` | duration | Maximum duration for API calls (0 = no limit) | `0` |
 | `api-max-blocks-per-request` | int64 | Maximum number of blocks per getLogs request (0 = no limit) | `0` |
 | `http-body-limit` | uint64 | Maximum size of HTTP request bodies | - |
+| `batch-request-limit` | uint64 | Maximum number of requests that can be batched in an RPC call. For no limit, set either this or `batch-response-max-size` to 0 | `1000` | 
+| `batch-response-max-size` | uint64 | Maximum size (in bytes) of response that can be returned from a batched RPC call. For no limit, set either this or `batch-request-limit` to 0. Defaults to `25 MB`| `1000` |
 
 ### WebSocket Settings
 
@@ -232,6 +234,14 @@ Configuration is provided as a JSON object. All fields are optional unless other
 
 ## Database Configuration
 
+> **WARNING**: `firewood` and `path` schemes are untested in production. Using `path` is strongly discouraged. To use `firewood`, you must also set the following config options:
+>
+> - `pruning-enabled: true` (enabled by default)
+> - `state-sync-enabled: false`
+> - `snapshot-cache: 0`
+
+Failing to set these options will result in errors on VM initialization. Additionally, not all APIs are available - see these portions of the config documentation for more details.
+
 | Option | Type | Description | Default |
 |--------|------|-------------|---------|
 | `database-type` | string | Type of database to use | `"pebbledb"` |
@@ -264,6 +274,7 @@ Configuration is provided as a JSON object. All fields are optional unless other
 |--------|------|-------------|---------|
 | `airdrop` | string | Path to airdrop file | - |
 | `skip-upgrade-check` | bool | Skip checking that upgrades occur before last accepted block ⚠️ **Warning**: Only use when you understand the implications | `false` |
+| `min-delay-target` | integer | The minimum delay between blocks (in milliseconds) that this node will attempt to use when creating blocks | Parent block's target |
 
 ## Gossip Constants
 

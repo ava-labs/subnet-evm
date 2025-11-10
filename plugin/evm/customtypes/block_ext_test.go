@@ -9,14 +9,61 @@ import (
 	"testing"
 	"unsafe"
 
+	"github.com/ava-labs/avalanchego/vms/evm/acp226"
 	"github.com/ava-labs/libevm/common"
 	"github.com/stretchr/testify/assert"
 
-	// TODO(arr4n) These tests were originally part of the `subnet-evm/core/types`
-	// package so assume the presence of identifiers. A dot-import reduces PR
-	// noise during the refactoring.
-	. "github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/subnet-evm/internal/blocktest"
+	"github.com/ava-labs/subnet-evm/utils"
+	"github.com/ava-labs/subnet-evm/utils/utilstest"
 )
+
+func TestBlockGetters(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name                 string
+		headerExtra          *HeaderExtra
+		wantBlockGasCost     *big.Int
+		wantTimeMilliseconds *uint64
+		wantMinDelayExcess   *acp226.DelayExcess
+	}{
+		{
+			name:                 "empty",
+			headerExtra:          &HeaderExtra{},
+			wantTimeMilliseconds: nil,
+			wantMinDelayExcess:   nil,
+		},
+		{
+			name: "fields_set",
+			headerExtra: &HeaderExtra{
+				BlockGasCost:     big.NewInt(2),
+				TimeMilliseconds: utils.NewUint64(3),
+				MinDelayExcess:   utilstest.PointerTo(acp226.DelayExcess(4)),
+			},
+			wantBlockGasCost:     big.NewInt(2),
+			wantTimeMilliseconds: utils.NewUint64(3),
+			wantMinDelayExcess:   utilstest.PointerTo(acp226.DelayExcess(4)),
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			header := WithHeaderExtra(&Header{}, test.headerExtra)
+
+			block := NewBlock(header, nil, nil, nil, blocktest.NewHasher())
+
+			blockGasCost := BlockGasCost(block)
+			assert.Equal(t, test.wantBlockGasCost, blockGasCost, "BlockGasCost()")
+
+			timeMilliseconds := BlockTimeMilliseconds(block)
+			assert.Equal(t, test.wantTimeMilliseconds, timeMilliseconds, "BlockTimeMilliseconds()")
+
+			minDelayExcess := BlockMinDelayExcess(block)
+			assert.Equal(t, test.wantMinDelayExcess, minDelayExcess, "BlockMinDelayExcess()")
+		})
+	}
+}
 
 func TestCopyHeader(t *testing.T) {
 	t.Parallel()
@@ -84,6 +131,8 @@ func exportedFieldsPointToDifferentMemory[T interface {
 			case *big.Int:
 				assertDifferentPointers(t, f, fieldCp)
 			case *common.Hash:
+				assertDifferentPointers(t, f, fieldCp)
+			case *acp226.DelayExcess:
 				assertDifferentPointers(t, f, fieldCp)
 			case *uint64:
 				assertDifferentPointers(t, f, fieldCp)

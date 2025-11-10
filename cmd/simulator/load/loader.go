@@ -165,7 +165,7 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 		clients = append(clients, client)
 	}
 
-	keys, err := key.LoadAll(ctx, config.KeyDir)
+	keys, err := key.LoadAll(config.KeyDir)
 	if err != nil {
 		return err
 	}
@@ -196,10 +196,8 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 	log.Info("Distributed funds successfully", "time", time.Since(fundStart))
 
 	pks := make([]*ecdsa.PrivateKey, 0, len(keys))
-	senders := make([]common.Address, 0, len(keys))
 	for _, key := range keys {
 		pks = append(pks, key.PrivKey)
-		senders = append(senders, key.Address)
 	}
 
 	bigGwei := big.NewInt(params.GWei)
@@ -235,7 +233,7 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 
 	workers := make([]txs.Worker[*types.Transaction], 0, len(clients))
 	for i, client := range clients {
-		workers = append(workers, NewSingleAddressTxWorker(ctx, client, ethcrypto.PubkeyToAddress(pks[i].PublicKey)))
+		workers = append(workers, NewSingleAddressTxWorker(client, ethcrypto.PubkeyToAddress(pks[i].PublicKey)))
 	}
 	loader := New(workers, txSequences, config.BatchSize, m)
 	err = loader.Execute(ctx)

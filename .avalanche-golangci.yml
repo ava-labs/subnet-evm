@@ -59,7 +59,7 @@ linters:
     - errorlint
     # - forbidigo
     - goconst
-    # - gocritic
+    - gocritic
     - goprintffuncname
     # - gosec
     - govet
@@ -67,15 +67,15 @@ linters:
     - ineffassign
     - misspell
     - nakedret
-    # - nilerr
+    - nilerr
     - noctx
     - nolintlint
     - perfsprint
-    # - prealloc
-    # - predeclared
-    # - revive
+    - prealloc
+    - predeclared
+    - revive
     - spancheck
-    # - staticcheck
+    - staticcheck
     - tagalign
     # - testifylint
     - unconvert
@@ -137,6 +137,9 @@ linters:
           disabled: false
         # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#empty-lines
         - name: empty-lines
+          disabled: false
+        # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#redundant-import-alias
+        - name: redundant-import-alias
           disabled: false
         # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#string-format
         - name: string-format

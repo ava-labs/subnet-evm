@@ -42,6 +42,7 @@ import (
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/params/extras"
 	"github.com/ava-labs/subnet-evm/params/paramstest"
+	"github.com/ava-labs/subnet-evm/plugin/evm/customheader"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ava-labs/subnet-evm/warp"
@@ -49,7 +50,6 @@ import (
 	commonEng "github.com/ava-labs/avalanchego/snow/engine/common"
 	avagoUtils "github.com/ava-labs/avalanchego/utils"
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
-	customheader "github.com/ava-labs/subnet-evm/plugin/evm/header"
 	warpcontract "github.com/ava-labs/subnet-evm/precompile/contracts/warp"
 )
 
@@ -139,7 +139,7 @@ func testSendWarpMessage(t *testing.T, scheme string) {
 	require.NoError(blk.Verify(context.Background()))
 
 	// Verify that the constructed block contains the expected log with an unsigned warp message in the log data
-	ethBlock1 := blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
+	ethBlock1 := blk.(*chain.BlockWrapper).Block.(*wrappedBlock).ethBlock
 	require.Len(ethBlock1.Transactions(), 1)
 	receipts := rawdb.ReadReceipts(tvm.vm.chaindb, ethBlock1.Hash(), ethBlock1.NumberU64(), ethBlock1.Time(), tvm.vm.chainConfig)
 	require.Len(receipts, 1)
@@ -168,7 +168,7 @@ func testSendWarpMessage(t *testing.T, scheme string) {
 	// Verify the message signature after accepting the block.
 	rawSignatureBytes, err := tvm.vm.warpBackend.GetMessageSignature(context.TODO(), unsignedMessage)
 	require.NoError(err)
-	blsSignature, err := bls.SignatureFromBytes(rawSignatureBytes[:])
+	blsSignature, err := bls.SignatureFromBytes(rawSignatureBytes)
 	require.NoError(err)
 
 	select {
@@ -185,7 +185,7 @@ func testSendWarpMessage(t *testing.T, scheme string) {
 	// Verify the blockID will now be signed by the backend and produces a valid signature.
 	rawSignatureBytes, err = tvm.vm.warpBackend.GetBlockSignature(context.TODO(), blk.ID())
 	require.NoError(err)
-	blsSignature, err = bls.SignatureFromBytes(rawSignatureBytes[:])
+	blsSignature, err = bls.SignatureFromBytes(rawSignatureBytes)
 	require.NoError(err)
 
 	blockHashPayload, err := payload.NewHash(blk.ID())
@@ -362,25 +362,32 @@ func testWarpVMTransaction(t *testing.T, scheme string, unsignedMessage *avalanc
 
 	tvm.vm.ctx.ValidatorState = &validatorstest.State{
 		// TODO: test both Primary Network / C-Chain and non-Primary Network
-		GetSubnetIDF: func(ctx context.Context, chainID ids.ID) (ids.ID, error) {
+		GetSubnetIDF: func(context.Context, ids.ID) (ids.ID, error) {
 			return ids.Empty, nil
 		},
-		GetValidatorSetF: func(ctx context.Context, height uint64, subnetID ids.ID) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
+		GetWarpValidatorSetF: func(_ context.Context, height uint64, _ ids.ID) (validators.WarpSet, error) {
 			if height < minimumValidPChainHeight {
-				return nil, getValidatorSetTestErr
+				return validators.WarpSet{}, getValidatorSetTestErr
 			}
-			return map[ids.NodeID]*validators.GetValidatorOutput{
-				nodeID1: {
-					NodeID:    nodeID1,
-					PublicKey: blsPublicKey1,
-					Weight:    50,
+			vdrs := validators.WarpSet{
+				Validators: []*validators.Warp{
+					{
+						PublicKey:      blsPublicKey1,
+						PublicKeyBytes: bls.PublicKeyToUncompressedBytes(blsPublicKey1),
+						Weight:         50,
+						NodeIDs:        []ids.NodeID{nodeID1},
+					},
+					{
+						PublicKey:      blsPublicKey2,
+						PublicKeyBytes: bls.PublicKeyToUncompressedBytes(blsPublicKey2),
+						Weight:         50,
+						NodeIDs:        []ids.NodeID{nodeID2},
+					},
 				},
-				nodeID2: {
-					NodeID:    nodeID2,
-					PublicKey: blsPublicKey2,
-					Weight:    50,
-				},
-			}, nil
+				TotalWeight: 100,
+			}
+			avagoUtils.Sort(vdrs.Validators)
+			return vdrs, nil
 		},
 	}
 
@@ -459,7 +466,7 @@ func testWarpVMTransaction(t *testing.T, scheme string, unsignedMessage *avalanc
 	require.NoError(warpBlock.Accept(context.Background()))
 	tvm.vm.blockChain.DrainAcceptorQueue()
 
-	ethBlock := warpBlock.(*chain.BlockWrapper).Block.(*Block).ethBlock
+	ethBlock := warpBlock.(*chain.BlockWrapper).Block.(*wrappedBlock).ethBlock
 	verifiedMessageReceipts := tvm.vm.blockChain.GetReceiptsByHash(ethBlock.Hash())
 	require.Len(verifiedMessageReceipts, 2)
 	for i, receipt := range verifiedMessageReceipts {
@@ -660,30 +667,34 @@ func testReceiveWarpMessage(
 	getValidatorSetTestErr := errors.New("can't get validator set test error")
 
 	vm.ctx.ValidatorState = &validatorstest.State{
-		GetSubnetIDF: func(ctx context.Context, chainID ids.ID) (ids.ID, error) {
+		GetSubnetIDF: func(context.Context, ids.ID) (ids.ID, error) {
 			if msgFrom == fromPrimary {
 				return constants.PrimaryNetworkID, nil
 			}
 			return vm.ctx.SubnetID, nil
 		},
-		GetValidatorSetF: func(ctx context.Context, height uint64, subnetID ids.ID) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
+		GetWarpValidatorSetF: func(_ context.Context, height uint64, subnetID ids.ID) (validators.WarpSet, error) {
 			if height < minimumValidPChainHeight {
-				return nil, getValidatorSetTestErr
+				return validators.WarpSet{}, getValidatorSetTestErr
 			}
 			signers := subnetSigners
 			if subnetID == constants.PrimaryNetworkID {
 				signers = primarySigners
 			}
 
-			vdrOutput := make(map[ids.NodeID]*validators.GetValidatorOutput)
+			vdrs := validators.WarpSet{}
 			for _, s := range signers {
-				vdrOutput[s.nodeID] = &validators.GetValidatorOutput{
-					NodeID:    s.nodeID,
-					PublicKey: s.secret.PublicKey(),
-					Weight:    s.weight,
-				}
+				pk := s.secret.PublicKey()
+				vdrs.Validators = append(vdrs.Validators, &validators.Warp{
+					PublicKey:      pk,
+					PublicKeyBytes: bls.PublicKeyToUncompressedBytes(pk),
+					Weight:         s.weight,
+					NodeIDs:        []ids.NodeID{s.nodeID},
+				})
+				vdrs.TotalWeight += s.weight
 			}
-			return vdrOutput, nil
+			avagoUtils.Sort(vdrs.Validators)
+			return vdrs, nil
 		},
 	}
 
@@ -745,7 +756,7 @@ func testReceiveWarpMessage(
 	require.NoError(err)
 
 	// Require the block was built with a successful predicate result
-	ethBlock := block2.(*chain.BlockWrapper).Block.(*Block).ethBlock
+	ethBlock := block2.(*chain.BlockWrapper).Block.(*wrappedBlock).ethBlock
 	headerPredicateResultsBytes := customheader.PredicateBytesFromExtra(ethBlock.Extra())
 	blockResults, err := predicate.ParseBlockResults(headerPredicateResultsBytes)
 	require.NoError(err)
@@ -898,7 +909,7 @@ func testSignatureRequestsToVM(t *testing.T, scheme string) {
 			calledSendAppResponseFn := false
 			calledSendAppErrorFn := false
 
-			tvm.appSender.SendAppResponseF = func(ctx context.Context, nodeID ids.NodeID, requestID uint32, responseBytes []byte) error {
+			tvm.appSender.SendAppResponseF = func(_ context.Context, _ ids.NodeID, _ uint32, responseBytes []byte) error {
 				calledSendAppResponseFn = true
 				var response sdk.SignatureResponse
 				if err := proto.Unmarshal(responseBytes, &response); err != nil {
@@ -908,7 +919,7 @@ func testSignatureRequestsToVM(t *testing.T, scheme string) {
 				return nil
 			}
 
-			tvm.appSender.SendAppErrorF = func(ctx context.Context, nodeID ids.NodeID, requestID uint32, errCode int32, errString string) error {
+			tvm.appSender.SendAppErrorF = func(context.Context, ids.NodeID, uint32, int32, string) error {
 				calledSendAppErrorFn = true
 				require.ErrorIs(t, test.err, test.err)
 				return nil

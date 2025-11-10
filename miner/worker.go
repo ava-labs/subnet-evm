@@ -41,6 +41,7 @@ import (
 	"github.com/ava-labs/avalanchego/utils/units"
 	"github.com/ava-labs/avalanchego/vms/evm/predicate"
 	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/consensus/misc/eip4844"
 	"github.com/ava-labs/libevm/core/state"
 	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/libevm/core/vm"
@@ -49,12 +50,12 @@ import (
 	ethparams "github.com/ava-labs/libevm/params"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/consensus"
-	"github.com/ava-labs/subnet-evm/consensus/misc/eip4844"
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/extstate"
 	"github.com/ava-labs/subnet-evm/core/txpool"
 	"github.com/ava-labs/subnet-evm/params"
-	customheader "github.com/ava-labs/subnet-evm/plugin/evm/header"
+	"github.com/ava-labs/subnet-evm/plugin/evm/customheader"
+	"github.com/ava-labs/subnet-evm/plugin/evm/customtypes"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/holiman/uint256"
 )
@@ -137,15 +138,23 @@ func (w *worker) setEtherbase(addr common.Address) {
 func (w *worker) commitNewWork(predicateContext *precompileconfig.PredicateContext) (*types.Block, error) {
 	w.mu.RLock()
 	defer w.mu.RUnlock()
+	var (
+		parent      = w.chain.CurrentBlock()
+		chainExtra  = params.GetExtra(w.chainConfig)
+		tstart      = customheader.GetNextTimestamp(parent, w.clock.Time())
+		timestamp   = uint64(tstart.Unix())
+		timestampMS = uint64(tstart.UnixMilli())
+	)
 
-	tstart := w.clock.Time()
-	timestamp := uint64(tstart.Unix())
-	parent := w.chain.CurrentBlock()
-	// Note: in order to support asynchronous block production, blocks are allowed to have
-	// the same timestamp as their parent. This allows more than one block to be produced
-	// per second.
-	if parent.Time >= timestamp {
-		timestamp = parent.Time
+	header := &types.Header{
+		ParentHash: parent.Hash(),
+		Number:     new(big.Int).Add(parent.Number, common.Big1),
+		Time:       timestamp,
+	}
+
+	if chainExtra.IsGranite(timestamp) {
+		headerExtra := customtypes.GetHeaderExtra(header)
+		headerExtra.TimeMilliseconds = &timestampMS
 	}
 
 	// The fee manager relies on the state of the parent block to set the fee config
@@ -154,23 +163,17 @@ func (w *worker) commitNewWork(predicateContext *precompileconfig.PredicateConte
 	if err != nil {
 		return nil, err
 	}
-	chainConfig := params.GetExtra(w.chainConfig)
-	gasLimit, err := customheader.GasLimit(chainConfig, feeConfig, parent, timestamp)
+	gasLimit, err := customheader.GasLimit(chainExtra, feeConfig, parent, timestampMS)
 	if err != nil {
 		return nil, fmt.Errorf("calculating new gas limit: %w", err)
 	}
-	baseFee, err := customheader.BaseFee(chainConfig, feeConfig, parent, timestamp)
+	header.GasLimit = gasLimit
+
+	baseFee, err := customheader.BaseFee(chainExtra, feeConfig, parent, timestampMS)
 	if err != nil {
 		return nil, fmt.Errorf("failed to calculate new base fee: %w", err)
 	}
-
-	header := &types.Header{
-		ParentHash: parent.Hash(),
-		Number:     new(big.Int).Add(parent.Number, common.Big1),
-		GasLimit:   gasLimit,
-		Time:       timestamp,
-		BaseFee:    baseFee,
-	}
+	header.BaseFee = baseFee
 
 	// Apply EIP-4844, EIP-4788.
 	if w.chainConfig.IsCancun(header.Number, header.Time) {
@@ -284,7 +287,8 @@ func (w *worker) createCurrentEnvironment(predicateContext *precompileconfig.Pre
 		return nil, err
 	}
 	chainConfig := params.GetExtra(w.chainConfig)
-	capacity, err := customheader.GasCapacity(chainConfig, feeConfig, parent, header.Time)
+	timeMS := customtypes.HeaderTimeMilliseconds(header)
+	capacity, err := customheader.GasCapacity(chainConfig, feeConfig, parent, timeMS)
 	if err != nil {
 		return nil, fmt.Errorf("calculating gas capacity: %w", err)
 	}
@@ -350,8 +354,9 @@ func (w *worker) applyTransaction(env *environment, tx *types.Transaction, coinb
 		blockContext vm.BlockContext
 	)
 
-	if params.GetRulesExtra(env.rules).IsDurango {
-		results, err := core.CheckPredicates(env.rules, env.predicateContext, tx)
+	rulesExtra := params.GetRulesExtra(env.rules)
+	if rulesExtra.IsDurango {
+		results, err := core.CheckTxPredicates(env.rules, env.predicateContext, tx)
 		if err != nil {
 			log.Debug("Transaction predicate failed verification in miner", "tx", tx.Hash(), "err", err)
 			return nil, err

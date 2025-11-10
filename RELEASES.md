@@ -1,12 +1,47 @@
 # Release Notes
 
-## Pending Release
-- Disable incompatible APIs for Firewood
-  - `StorageRangeAt` 
-  - `GetModifiedAccountsByNumber`
-  - `GetModifiedAccountsByHash`
+## [v0.8.1](https://github.com/ava-labs/subnet-evm/releases/tag/v0.8.1)
+
 - Add pending releases here
 
+## [v0.8.0](https://github.com/ava-labs/subnet-evm/releases/tag/v0.8.0)
+
+This version is compatible with the Avalanche Granite upgrade. All mainnet nodes **MUST** update to a Granite compatible version prior to the upgrade activation time: November 19th, 2025 16:00 UTC.
+
+### AvalancheGo Compatibility
+
+The plugin version is **updated** to 44 and is compatible with AvalancheGo version v1.14.0.
+
+### Updates
+
+- Upgrade to Go version 1.24
+- ACP-226:
+  - Set expected block gas cost to 0 in Granite network upgrade, removing block gas cost requirements for block building.
+  - Add `timeMilliseconds` (Unix uint64) timestamp to block header for Granite upgrade.
+  - Add `min-delay-target` (uint64) flag to node configs.
+  - Add `minDelayExcess` (uint64) to block header for Granite upgrade.
+  - Add minimum block building delays to conform the block builder to ACP-226 requirements.
+  - Add minimum delay verification.
+- Updated gas price estimation to use median of transactions in the last 20 seconds/40 blocks instead of estimation with block gas cost:
+  - Changed default percentile from 60 to 40
+  - This impacts `eth_suggestGasPrice` and `eth_suggestGasTipCap` , `eth_suggestPriceOptions`, `eth_maxPriorityFeePerGas`, `eth_gasPrice` APIs
+
+## [v0.7.9](https://github.com/ava-labs/subnet-evm/releases/tag/v0.7.9)
+
+This version is backwards compatible to v0.7.0. It is optional, but encouraged.
+
+### AvalancheGo Compatibility
+
+The plugin version is unchanged at 43 and is compatible with AvalancheGo version v1.13.5.
+
+### Updates
+
+- Disable incompatible APIs for Firewood
+  - `StorageRangeAt`
+  - `GetModifiedAccountsByNumber`
+  - `GetModifiedAccountsByHash`
+- Removed deprecated flag `tx-lookup-limit`. Use `transaction-history` instead.
+- Enabled RPC batch limits by default, and configurable with `batch-request-limit` and `batch-max-response-size`.
 
 ## [v0.7.8](https://github.com/ava-labs/subnet-evm/releases/tag/v0.7.8)
 
@@ -35,7 +70,6 @@ The plugin version is **updated** to 42 and is compatible with AvalancheGo versi
 - Added maximum number of addresses (1000) to be queried in a single filter
 - Use state-history eth config flag to designate the number of recent states queryable
 
-
 ## [v0.7.6](https://github.com/ava-labs/subnet-evm/releases/tag/v0.7.6)
 
 _This release should be skipped entirely in favor of 0.7.7 due to the use of a AvalancheGo release candidate version._
@@ -58,7 +92,6 @@ The plugin version is **updated** to 41 and is compatible with AvalancheGo versi
 - Updated libevm dependency to v1.13.14-0.3.0.rc.1
 - Reduced custom types and simplified VM tests
 - Fixed log structuring and removed handler special cases
-
 
 ## [v0.7.4](https://github.com/ava-labs/subnet-evm/releases/tag/v0.7.4)
 
@@ -115,9 +148,9 @@ The plugin version is unchanged at 39 and is compatible with AvalancheGo version
 
 ### Updates
 
-* Fixed concurrency issue in validators/uptime manager
-* Bump golang version to v1.23.6
-* Bump golangci-lint to v1.63 and add linters
+- Fixed concurrency issue in validators/uptime manager
+- Bump golang version to v1.23.6
+- Bump golangci-lint to v1.63 and add linters
 
 ## [v0.7.1](https://github.com/ava-labs/subnet-evm/releases/tag/v0.7.1)
 
@@ -129,22 +162,22 @@ The plugin version is **updated** to 39 and is compatible with AvalancheGo versi
 
 ### Updates
 
-* Moved client type and structs to new `plugin/evm/client` package
-* Fixed statedb improper copy issue
-* Limited the maximum number of query-able rewardPercentile by 100 in `eth_feeHistory` API
-* Refactored `trie_prefetcher.go` to be structurally similar to upstream
-* Removed deprecated legacy gossip handler and metrics
-* Removed unnecessary locks in mempool
+- Moved client type and structs to new `plugin/evm/client` package
+- Fixed statedb improper copy issue
+- Limited the maximum number of query-able rewardPercentile by 100 in `eth_feeHistory` API
+- Refactored `trie_prefetcher.go` to be structurally similar to upstream
+- Removed deprecated legacy gossip handler and metrics
+- Removed unnecessary locks in mempool
 
 ## [v0.7.0](https://github.com/ava-labs/subnet-evm/releases/tag/v0.7.0)
 
 ### Updates
 
-* Changed default write option from `Sync` to `NoSync` in PebbleDB
+- Changed default write option from `Sync` to `NoSync` in PebbleDB
 
 ### Fixes
 
-* Fixed database close on shutdown
+- Fixed database close on shutdown
 
 ## [v0.6.11](https://github.com/ava-labs/subnet-evm/releases/tag/v0.6.11)
 
@@ -156,24 +189,24 @@ The plugin version is unchanged at 37 and is compatible with AvalancheGo version
 
 ### Updates
 
-* Added Standalone DB creation in chain data directory (`~/.avalanchego/chainData/{chain-ID}/db/`). Subnet-EVM will create seperate databases for chains by default if there is no accepted blocks previously
-* Refactored Warp Backend to support new payload types
-* Refactored TrieDB reference root configuration
-* Bumped AvalancheGo dependency to v1.11.12
-* Bumped minimum Golang version to v1.22.8
+- Added Standalone DB creation in chain data directory (`~/.avalanchego/chainData/{chain-ID}/db/`). Subnet-EVM will create seperate databases for chains by default if there is no accepted blocks previously
+- Refactored Warp Backend to support new payload types
+- Refactored TrieDB reference root configuration
+- Bumped AvalancheGo dependency to v1.11.12
+- Bumped minimum Golang version to v1.22.8
 
 ### Configs
 
-* Added following new database options:
-  * `"use-standalone-database"` (`bool`): If true it enables creation of standalone database. If false it uses the GRPC Database provided by AvalancheGo. Default is nil and creates the standalone database only if there is no accepted block in the AvalancheGo database (node has not accepted any blocks for this chain)
-  * `"database-type"` (`string`): Specifies the type of database to use. Must be one of `pebbledb`, `leveldb` or `memdb`. memdb is an in-memory, non-persisted database. Default is `pebbledb`
-  * `"database-config-file"` (`string`): Path to the database config file. Config file is changed for every database type. See [docs](https://docs.avax.network/api-reference/avalanche-go-configs-flags#database-config) for available configs per database type. Ignored if --config-file-content is specified
-  * `"database-config-file-content"` (`string`): As an alternative to `database-config-file`, it allows specifying base64 encoded database config content
-  * `"database-path"` (`string`): Specifies the directory to which the standalone database is persisted. Defaults to "`$HOME/.avalanchego/chainData/{chainID}`"
-  * `"database-read-only"` (`bool`) : Specifies if the standalone database should be a read-only type. Defaults to false
+- Added following new database options:
+  - `"use-standalone-database"` (`bool`): If true it enables creation of standalone database. If false it uses the GRPC Database provided by AvalancheGo. Default is nil and creates the standalone database only if there is no accepted block in the AvalancheGo database (node has not accepted any blocks for this chain)
+  - `"database-type"` (`string`): Specifies the type of database to use. Must be one of `pebbledb`, `leveldb` or `memdb`. memdb is an in-memory, non-persisted database. Default is `pebbledb`
+  - `"database-config-file"` (`string`): Path to the database config file. Config file is changed for every database type. See [docs](https://docs.avax.network/api-reference/avalanche-go-configs-flags#database-config) for available configs per database type. Ignored if --config-file-content is specified
+  - `"database-config-file-content"` (`string`): As an alternative to `database-config-file`, it allows specifying base64 encoded database config content
+  - `"database-path"` (`string`): Specifies the directory to which the standalone database is persisted. Defaults to "`$HOME/.avalanchego/chainData/{chainID}`"
+  - `"database-read-only"` (`bool`) : Specifies if the standalone database should be a read-only type. Defaults to false
 
 ### Fixes
 
-* Fixed Eth upgrade mapping with Avalanche upgrades in genesis
-* Fixed transaction size tracking in worker environment
-* Fixed a rare case of VM's shutting down ends up panicking in RPC server
+- Fixed Eth upgrade mapping with Avalanche upgrades in genesis
+- Fixed transaction size tracking in worker environment
+- Fixed a rare case of VM's shutting down ends up panicking in RPC server

@@ -79,7 +79,7 @@ func UnpackMintNativeCoinInput(input []byte, useStrictMode bool) (common.Address
 
 // mintNativeCoin checks if the caller is permissioned for minting operation.
 // The execution function parses the [input] into native coin amount and receiver address.
-func mintNativeCoin(accessibleState contract.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
+func mintNativeCoin(accessibleState contract.AccessibleState, caller common.Address, _ common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
 	if remainingGas, err = contract.DeductGas(suppliedGas, MintGasCost); err != nil {
 		return nil, 0, err
 	}
@@ -130,12 +130,11 @@ func mintNativeCoin(accessibleState contract.AccessibleState, caller common.Addr
 // createNativeMinterPrecompile returns a StatefulPrecompiledContract with getters and setters for the precompile.
 // Access to the getters/setters is controlled by an allow list for ContractAddress.
 func createNativeMinterPrecompile() contract.StatefulPrecompiledContract {
-	var functions []*contract.StatefulPrecompileFunction
-	functions = append(functions, allowlist.CreateAllowListFunctions(ContractAddress)...)
-
 	abiFunctionMap := map[string]contract.RunStatefulPrecompileFunc{
 		"mintNativeCoin": mintNativeCoin,
 	}
+	functions := make([]*contract.StatefulPrecompileFunction, 0, len(abiFunctionMap)+len(allowlist.AllowListABI.Methods))
+	functions = append(functions, allowlist.CreateAllowListFunctions(ContractAddress)...)
 
 	for name, function := range abiFunctionMap {
 		method, ok := NativeMinterABI.Methods[name]

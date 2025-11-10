@@ -51,7 +51,7 @@ func (m *mainTrieTask) IterateLeafs(seek common.Hash) ethdb.Iterator {
 }
 
 // OnStart always returns false since the main trie task cannot be skipped.
-func (m *mainTrieTask) OnStart() (bool, error) {
+func (*mainTrieTask) OnStart() (bool, error) {
 	return false, nil
 }
 
@@ -117,7 +117,7 @@ func (s *storageTrieTask) OnStart() (bool, error) {
 	}
 	storageTrie, err := trie.New(trie.StorageTrieID(s.sync.root, s.root, firstAccount), s.sync.trieDB)
 	if err != nil {
-		return false, nil
+		return false, nil //nolint:nilerr // the storage trie does not exist, so it should be rerequested
 	}
 
 	// If the storage trie is already on disk, we only need to populate the storage snapshot for [accountHash]

@@ -6,6 +6,9 @@ package core
 import (
 	"fmt"
 	"math/big"
+	"os"
+	"path/filepath"
+	"slices"
 	"testing"
 
 	"github.com/ava-labs/libevm/common"
@@ -22,6 +25,7 @@ import (
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/params/extras"
+	"github.com/ava-labs/subnet-evm/plugin/evm/customheader"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/deployerallowlist"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/feemanager"
@@ -118,6 +122,10 @@ var reexecTests = []ReexecTest{
 		"ReexecMaxBlocks",
 		ReexecMaxBlocks,
 	},
+	{
+		"ReexecCorruptedState",
+		ReexecCorruptedStateTest,
+	},
 }
 
 func copyMemDB(db ethdb.Database) (ethdb.Database, error) {
@@ -131,6 +139,30 @@ func copyMemDB(db ethdb.Database) (ethdb.Database, error) {
 	}
 
 	return newDB, nil
+}
+
+// This copies all files from a flat directory [src] to a new temporary directory and returns
+// the path to the new directory.
+func copyFlatDir(t *testing.T, src string) string {
+	t.Helper()
+	if src == "" {
+		return ""
+	}
+
+	dst := t.TempDir()
+	ents, err := os.ReadDir(src)
+	require.NoError(t, err)
+
+	for _, e := range ents {
+		require.False(t, e.IsDir(), "expected flat directory")
+		name := e.Name()
+		data, err := os.ReadFile(filepath.Join(src, name))
+		require.NoError(t, err)
+		info, err := e.Info()
+		require.NoError(t, err)
+		require.NoError(t, os.WriteFile(filepath.Join(dst, name), data, info.Mode().Perm()))
+	}
+	return dst
 }
 
 // checkBlockChainState creates a new BlockChain instance and checks that exporting each block from
@@ -199,7 +231,8 @@ func checkBlockChainState(
 	if err != nil {
 		t.Fatal(err)
 	}
-	restartedChain, err := create(originalDB, gspec, lastAcceptedBlock.Hash(), oldChainDataDir)
+	newChainDataDir := copyFlatDir(t, oldChainDataDir)
+	restartedChain, err := create(originalDB, gspec, lastAcceptedBlock.Hash(), newChainDataDir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -236,7 +269,7 @@ func InsertChainAcceptSingleBlock(t *testing.T, create createFunc) {
 	genesisBalance := big.NewInt(1000000)
 	gspec := &Genesis{
 		Config: &params.ChainConfig{HomesteadBlock: new(big.Int)},
-		Alloc:  GenesisAlloc{addr1: {Balance: genesisBalance}},
+		Alloc:  types.GenesisAlloc{addr1: {Balance: genesisBalance}},
 	}
 	blockchain, err := create(chainDB, gspec, common.Hash{}, t.TempDir())
 	if err != nil {
@@ -246,7 +279,7 @@ func InsertChainAcceptSingleBlock(t *testing.T, create createFunc) {
 
 	// This call generates a chain of 3 blocks.
 	signer := types.HomesteadSigner{}
-	_, chain, _, err := GenerateChainWithGenesis(gspec, blockchain.engine, 3, 10, func(i int, gen *BlockGen) {
+	_, chain, _, err := GenerateChainWithGenesis(gspec, blockchain.engine, 3, 10, func(_ int, gen *BlockGen) {
 		tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr1), addr2, big.NewInt(10000), ethparams.TxGas, nil, nil), signer, key1)
 		gen.AddTx(tx)
 	})
@@ -317,7 +350,7 @@ func InsertLongForkedChain(t *testing.T, create createFunc) {
 
 	numBlocks := 129
 	signer := types.HomesteadSigner{}
-	_, chain1, _, err := GenerateChainWithGenesis(gspec, blockchain.engine, numBlocks, 10, func(i int, gen *BlockGen) {
+	_, chain1, _, err := GenerateChainWithGenesis(gspec, blockchain.engine, numBlocks, 10, func(_ int, gen *BlockGen) {
 		// Generate a transaction to create a unique block
 		tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr1), addr2, big.NewInt(10000), ethparams.TxGas, nil, nil), signer, key1)
 		gen.AddTx(tx)
@@ -327,7 +360,7 @@ func InsertLongForkedChain(t *testing.T, create createFunc) {
 	}
 	// Generate the forked chain to be longer than the original chain to check for a regression where
 	// a longer chain can trigger a reorg.
-	_, chain2, _, err := GenerateChainWithGenesis(gspec, blockchain.engine, numBlocks+1, 10, func(i int, gen *BlockGen) {
+	_, chain2, _, err := GenerateChainWithGenesis(gspec, blockchain.engine, numBlocks+1, 10, func(_ int, gen *BlockGen) {
 		// Generate a transaction with a different amount to ensure [chain2] is different than [chain1].
 		tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr1), addr2, big.NewInt(5000), ethparams.TxGas, nil, nil), signer, key1)
 		gen.AddTx(tx)
@@ -481,7 +514,7 @@ func AcceptNonCanonicalBlock(t *testing.T, create createFunc) {
 
 	numBlocks := 3
 	signer := types.HomesteadSigner{}
-	_, chain1, _, err := GenerateChainWithGenesis(gspec, blockchain.engine, numBlocks, 10, func(i int, gen *BlockGen) {
+	_, chain1, _, err := GenerateChainWithGenesis(gspec, blockchain.engine, numBlocks, 10, func(_ int, gen *BlockGen) {
 		// Generate a transaction to create a unique block
 		tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr1), addr2, big.NewInt(10000), ethparams.TxGas, nil, nil), signer, key1)
 		gen.AddTx(tx)
@@ -489,7 +522,7 @@ func AcceptNonCanonicalBlock(t *testing.T, create createFunc) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, chain2, _, err := GenerateChainWithGenesis(gspec, blockchain.engine, numBlocks, 10, func(i int, gen *BlockGen) {
+	_, chain2, _, err := GenerateChainWithGenesis(gspec, blockchain.engine, numBlocks, 10, func(_ int, gen *BlockGen) {
 		// Generate a transaction with a different amount to create a chain of blocks different from [chain1]
 		tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr1), addr2, big.NewInt(5000), ethparams.TxGas, nil, nil), signer, key1)
 		gen.AddTx(tx)
@@ -590,7 +623,7 @@ func SetPreferenceRewind(t *testing.T, create createFunc) {
 
 	numBlocks := 3
 	signer := types.HomesteadSigner{}
-	_, chain, _, err := GenerateChainWithGenesis(gspec, blockchain.engine, numBlocks, 10, func(i int, gen *BlockGen) {
+	_, chain, _, err := GenerateChainWithGenesis(gspec, blockchain.engine, numBlocks, 10, func(_ int, gen *BlockGen) {
 		// Generate a transaction to create a unique block
 		tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr1), addr2, big.NewInt(10000), ethparams.TxGas, nil, nil), signer, key1)
 		gen.AddTx(tx)
@@ -713,7 +746,7 @@ func BuildOnVariousStages(t *testing.T, create createFunc) {
 	genesisBalance := big.NewInt(1000000)
 	gspec := &Genesis{
 		Config: &params.ChainConfig{HomesteadBlock: new(big.Int)},
-		Alloc: GenesisAlloc{
+		Alloc: types.GenesisAlloc{
 			addr1: {Balance: genesisBalance},
 			addr3: {Balance: genesisBalance},
 		},
@@ -870,7 +903,7 @@ func EmptyBlocks(t *testing.T, create createFunc) {
 
 	gspec := &Genesis{
 		Config: &params.ChainConfig{HomesteadBlock: new(big.Int)},
-		Alloc:  GenesisAlloc{},
+		Alloc:  types.GenesisAlloc{},
 	}
 
 	blockchain, err := create(chainDB, gspec, common.Hash{}, t.TempDir())
@@ -879,7 +912,7 @@ func EmptyBlocks(t *testing.T, create createFunc) {
 	}
 	defer blockchain.Stop()
 
-	_, chain, _, err := GenerateChainWithGenesis(gspec, blockchain.engine, 3, 10, func(i int, gen *BlockGen) {})
+	_, chain, _, err := GenerateChainWithGenesis(gspec, blockchain.engine, 3, 10, func(int, *BlockGen) {})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -896,7 +929,7 @@ func EmptyBlocks(t *testing.T, create createFunc) {
 	blockchain.DrainAcceptorQueue()
 
 	// Nothing to assert about the state
-	checkState := func(sdb *state.StateDB) error {
+	checkState := func(*state.StateDB) error {
 		return nil
 	}
 
@@ -997,7 +1030,7 @@ func ReorgReInsert(t *testing.T, create createFunc) {
 
 	signer := types.HomesteadSigner{}
 	numBlocks := 3
-	_, chain, _, err := GenerateChainWithGenesis(gspec, blockchain.engine, numBlocks, 10, func(i int, gen *BlockGen) {
+	_, chain, _, err := GenerateChainWithGenesis(gspec, blockchain.engine, numBlocks, 10, func(_ int, gen *BlockGen) {
 		// Generate a transaction to create a unique block
 		tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr1), addr2, big.NewInt(10000), ethparams.TxGas, nil, nil), signer, key1)
 		gen.AddTx(tx)
@@ -1390,8 +1423,8 @@ func GenerateChainInvalidBlockFee(t *testing.T, create createFunc) {
 	// Ensure that key1 has some funds in the genesis block.
 	genesisBalance := new(big.Int).Mul(big.NewInt(1000000), big.NewInt(params.Ether))
 	gspec := &Genesis{
-		Config: params.TestChainConfig,
-		Alloc:  GenesisAlloc{addr1: {Balance: genesisBalance}},
+		Config: params.TestFortunaChainConfig,
+		Alloc:  types.GenesisAlloc{addr1: {Balance: genesisBalance}},
 	}
 
 	blockchain, err := create(chainDB, gspec, common.Hash{}, t.TempDir())
@@ -1399,10 +1432,10 @@ func GenerateChainInvalidBlockFee(t *testing.T, create createFunc) {
 	t.Cleanup(blockchain.Stop)
 
 	// This call generates a chain of 3 blocks.
-	signer := types.LatestSigner(params.TestChainConfig)
-	_, _, _, err = GenerateChainWithGenesis(gspec, blockchain.engine, 3, extras.TestChainConfig.FeeConfig.TargetBlockRate-1, func(i int, gen *BlockGen) {
+	signer := types.LatestSigner(params.TestFortunaChainConfig)
+	_, _, _, err = GenerateChainWithGenesis(gspec, blockchain.engine, 3, extras.TestChainConfig.FeeConfig.TargetBlockRate-1, func(_ int, gen *BlockGen) {
 		tx := types.NewTx(&types.DynamicFeeTx{
-			ChainID:   params.TestChainConfig.ChainID,
+			ChainID:   params.TestFortunaChainConfig.ChainID,
 			Nonce:     gen.TxNonce(addr1),
 			To:        &addr2,
 			Gas:       ethparams.TxGas,
@@ -1415,7 +1448,7 @@ func GenerateChainInvalidBlockFee(t *testing.T, create createFunc) {
 		require.NoError(err)
 		gen.AddTx(signedTx)
 	})
-	require.ErrorIs(err, dummy.ErrInsufficientBlockGas)
+	require.ErrorIs(err, customheader.ErrInsufficientBlockGas)
 }
 
 func InsertChainInvalidBlockFee(t *testing.T, create createFunc) {
@@ -1431,8 +1464,8 @@ func InsertChainInvalidBlockFee(t *testing.T, create createFunc) {
 	// Ensure that key1 has some funds in the genesis block.
 	genesisBalance := new(big.Int).Mul(big.NewInt(1000000), big.NewInt(params.Ether))
 	gspec := &Genesis{
-		Config: params.TestChainConfig,
-		Alloc:  GenesisAlloc{addr1: {Balance: genesisBalance}},
+		Config: params.TestFortunaChainConfig,
+		Alloc:  types.GenesisAlloc{addr1: {Balance: genesisBalance}},
 	}
 
 	blockchain, err := create(chainDB, gspec, common.Hash{}, t.TempDir())
@@ -1440,11 +1473,11 @@ func InsertChainInvalidBlockFee(t *testing.T, create createFunc) {
 	t.Cleanup(blockchain.Stop)
 
 	// This call generates a chain of 3 blocks.
-	signer := types.LatestSigner(params.TestChainConfig)
+	signer := types.LatestSigner(params.TestFortunaChainConfig)
 	eng := dummy.NewFakerWithMode(dummy.Mode{ModeSkipBlockFee: true, ModeSkipCoinbase: true})
-	_, chain, _, err := GenerateChainWithGenesis(gspec, eng, 3, extras.TestChainConfig.FeeConfig.TargetBlockRate-1, func(i int, gen *BlockGen) {
+	_, chain, _, err := GenerateChainWithGenesis(gspec, eng, 3, extras.TestChainConfig.FeeConfig.TargetBlockRate-1, func(_ int, gen *BlockGen) {
 		tx := types.NewTx(&types.DynamicFeeTx{
-			ChainID:   params.TestChainConfig.ChainID,
+			ChainID:   params.TestFortunaChainConfig.ChainID,
 			Nonce:     gen.TxNonce(addr1),
 			To:        &addr2,
 			Gas:       ethparams.TxGas,
@@ -1459,7 +1492,7 @@ func InsertChainInvalidBlockFee(t *testing.T, create createFunc) {
 	})
 	require.NoError(err)
 	_, err = blockchain.InsertChain(chain)
-	require.ErrorIs(err, dummy.ErrInsufficientBlockGas)
+	require.ErrorIs(err, customheader.ErrInsufficientBlockGas)
 }
 
 func InsertChainValidBlockFee(t *testing.T, create createFunc) {
@@ -1487,7 +1520,7 @@ func InsertChainValidBlockFee(t *testing.T, create createFunc) {
 	signer := types.LatestSigner(params.TestChainConfig)
 	tip := big.NewInt(50000 * params.GWei)
 	transfer := big.NewInt(10000)
-	_, chain, _, err := GenerateChainWithGenesis(gspec, blockchain.engine, 3, extras.TestChainConfig.FeeConfig.TargetBlockRate-1, func(i int, gen *BlockGen) {
+	_, chain, _, err := GenerateChainWithGenesis(gspec, blockchain.engine, 3, extras.TestChainConfig.FeeConfig.TargetBlockRate-1, func(_ int, gen *BlockGen) {
 		feeCap := new(big.Int).Add(gen.BaseFee(), tip)
 		tx := types.NewTx(&types.DynamicFeeTx{
 			ChainID:   params.TestChainConfig.ChainID,
@@ -1565,7 +1598,7 @@ func StatefulPrecompiles(t *testing.T, create createFunc) {
 	}
 	gspec := &Genesis{
 		Config: &config,
-		Alloc:  GenesisAlloc{addr1: {Balance: genesisBalance}},
+		Alloc:  types.GenesisAlloc{addr1: {Balance: genesisBalance}},
 	}
 
 	blockchain, err := create(chainDB, gspec, common.Hash{}, t.TempDir())
@@ -1692,7 +1725,7 @@ func StatefulPrecompiles(t *testing.T, create createFunc) {
 
 	// Generate chain of blocks using [genDB] instead of [chainDB] to avoid writing
 	// to the BlockChain's database while generating blocks.
-	_, chain, _, err := GenerateChainWithGenesis(gspec, blockchain.engine, 1, 0, func(i int, gen *BlockGen) {
+	_, chain, _, err := GenerateChainWithGenesis(gspec, blockchain.engine, 1, 0, func(_ int, gen *BlockGen) {
 		for _, test := range tests {
 			test.addTx(gen)
 		}
@@ -1759,7 +1792,7 @@ func ReexecBlocks(t *testing.T, create ReexecTestFunc) {
 
 	// This call generates a chain of 10 blocks.
 	signer := types.HomesteadSigner{}
-	_, chain, _, err := GenerateChainWithGenesis(gspec, blockchain.engine, 10, 10, func(i int, gen *BlockGen) {
+	_, chain, _, err := GenerateChainWithGenesis(gspec, blockchain.engine, 10, 10, func(_ int, gen *BlockGen) {
 		tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr1), addr2, big.NewInt(10000), ethparams.TxGas, nil, nil), signer, key1)
 		gen.AddTx(tx)
 	})
@@ -1848,7 +1881,7 @@ func ReexecBlocks(t *testing.T, create ReexecTestFunc) {
 
 	newChain, restartedChain := checkBlockChainState(t, blockchain, gspec, chainDB, checkCreate, checkState)
 
-	allTxs := append(foundTxs, missingTxs...)
+	allTxs := slices.Concat(foundTxs, missingTxs)
 	for _, bc := range []*BlockChain{newChain, restartedChain} {
 		// We should confirm that snapshots were properly initialized
 		if bc.snaps == nil && bc.cacheConfig.SnapshotLimit > 0 {
@@ -1893,7 +1926,7 @@ func ReexecMaxBlocks(t *testing.T, create ReexecTestFunc) {
 	numAcceptedBlocks := 2*newCommitInterval - 1
 
 	signer := types.HomesteadSigner{}
-	_, chain, _, err := GenerateChainWithGenesis(gspec, blockchain.engine, genNumBlocks, 10, func(i int, gen *BlockGen) {
+	_, chain, _, err := GenerateChainWithGenesis(gspec, blockchain.engine, genNumBlocks, 10, func(_ int, gen *BlockGen) {
 		tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr1), addr2, big.NewInt(10000), ethparams.TxGas, nil, nil), signer, key1)
 		gen.AddTx(tx)
 	})
@@ -1980,7 +2013,7 @@ func ReexecMaxBlocks(t *testing.T, create ReexecTestFunc) {
 	}
 	newChain, restartedChain := checkBlockChainState(t, blockchain, gspec, chainDB, checkCreate, checkState)
 
-	allTxs := append(foundTxs, missingTxs...)
+	allTxs := slices.Concat(foundTxs, missingTxs)
 	for _, bc := range []*BlockChain{newChain, restartedChain} {
 		// We should confirm that snapshots were properly initialized
 		if bc.snaps == nil && bc.cacheConfig.SnapshotLimit > 0 {
@@ -1995,4 +2028,101 @@ func ReexecMaxBlocks(t *testing.T, create ReexecTestFunc) {
 			}
 		}
 	}
+}
+
+func ReexecCorruptedStateTest(t *testing.T, create ReexecTestFunc) {
+	var (
+		key1, _        = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
+		key2, _        = crypto.HexToECDSA("8a1f9a8f95be41cd7ccb6168179afb4504aefe388d1e14474d32c45c72ce7b7a")
+		addr1          = crypto.PubkeyToAddress(key1.PublicKey)
+		addr2          = crypto.PubkeyToAddress(key2.PublicKey)
+		chainDB        = rawdb.NewMemoryDatabase()
+		genesisBalance = big.NewInt(1000000)
+		tempDir        = t.TempDir()
+	)
+
+	// Ensure that key1 has some funds in the genesis block.
+	gspec := &Genesis{
+		Config: &params.ChainConfig{HomesteadBlock: new(big.Int)},
+		Alloc:  types.GenesisAlloc{addr1: {Balance: genesisBalance}},
+	}
+
+	blockchain, err := create(chainDB, gspec, common.Hash{}, tempDir, 4096)
+	if err != nil {
+		t.Fatalf("failed to create blockchain: %v", err)
+	}
+
+	// Check that we are generating enough blocks to test the reexec functionality.
+	signer := types.HomesteadSigner{}
+	_, chain, _, err := GenerateChainWithGenesis(gspec, blockchain.engine, 10, 10, func(_ int, gen *BlockGen) {
+		tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr1), addr2, big.NewInt(10000), ethparams.TxGas, nil, nil), signer, key1)
+		gen.AddTx(tx)
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Insert three blocks into the chain and accept only the first block.
+	if _, err := blockchain.InsertChain(chain); err != nil {
+		t.Fatal(err)
+	}
+	// Accept only the first block.
+	if err := blockchain.Accept(chain[0]); err != nil {
+		t.Fatal(err)
+	}
+
+	// Simulate a crash by updating the acceptor tip
+	blockchain.writeBlockAcceptedIndices(chain[1])
+	blockchain.Stop()
+
+	// Restart blockchain with existing state
+	restartedBlockchain, err := create(chainDB, gspec, chain[1].Hash(), tempDir, 4096)
+	if err != nil {
+		t.Fatalf("failed to restart blockchain: %v", err)
+	}
+	defer restartedBlockchain.Stop()
+
+	// We should be able to accept the remaining blocks
+	for _, block := range chain[2:] {
+		if err := restartedBlockchain.InsertBlock(block); err != nil {
+			t.Fatalf("failed to insert block %d: %v", block.NumberU64(), err)
+		}
+		if err := restartedBlockchain.Accept(block); err != nil {
+			t.Fatalf("failed to accept block %d: %v", block.NumberU64(), err)
+		}
+	}
+
+	// check the state of the last accepted block
+	checkState := func(sdb *state.StateDB) error {
+		nonce := sdb.GetNonce(addr1)
+		if nonce != 10 {
+			return fmt.Errorf("expected nonce addr1: 10, found nonce: %d", nonce)
+		}
+		transferredFunds := uint256.MustFromBig(big.NewInt(100000))
+		balance1 := sdb.GetBalance(addr1)
+		genesisBalance := uint256.MustFromBig(genesisBalance)
+		expectedBalance1 := new(uint256.Int).Sub(genesisBalance, transferredFunds)
+		if balance1.Cmp(expectedBalance1) != 0 {
+			return fmt.Errorf("expected addr1 balance: %d, found balance: %d", expectedBalance1, balance1)
+		}
+
+		balance2 := sdb.GetBalance(addr2)
+		expectedBalance2 := transferredFunds
+		if balance2.Cmp(expectedBalance2) != 0 {
+			return fmt.Errorf("expected addr2 balance: %d, found balance: %d", expectedBalance2, balance2)
+		}
+
+		nonce = sdb.GetNonce(addr2)
+		if nonce != 0 {
+			return fmt.Errorf("expected addr2 nonce: 0, found nonce: %d", nonce)
+		}
+		return nil
+	}
+
+	// wrap the create function to set the commit interval
+	checkCreate := func(db ethdb.Database, gspec *Genesis, lastAcceptedHash common.Hash, dataPath string) (*BlockChain, error) {
+		return create(db, gspec, lastAcceptedHash, dataPath, blockchain.cacheConfig.CommitInterval)
+	}
+
+	checkBlockChainState(t, restartedBlockchain, gspec, chainDB, checkCreate, checkState)
 }

@@ -33,6 +33,7 @@ import (
 	"sync"
 
 	"github.com/ava-labs/avalanchego/utils/timer/mockable"
+	"github.com/ava-labs/avalanchego/vms/evm/acp176"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/common/lru"
 	"github.com/ava-labs/libevm/core/types"
@@ -41,9 +42,8 @@ import (
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/params"
-	customheader "github.com/ava-labs/subnet-evm/plugin/evm/header"
+	"github.com/ava-labs/subnet-evm/plugin/evm/customheader"
 	"github.com/ava-labs/subnet-evm/plugin/evm/upgrade/legacy"
-	"github.com/ava-labs/subnet-evm/precompile/contracts/feemanager"
 	"github.com/ava-labs/subnet-evm/rpc"
 	"golang.org/x/exp/slices"
 )
@@ -66,7 +66,7 @@ const (
 
 var (
 	DefaultMaxPrice           = big.NewInt(150 * params.GWei)
-	DefaultMinPrice           = big.NewInt(0 * params.GWei)
+	DefaultMinPrice           = big.NewInt(acp176.MinGasPrice)
 	DefaultMinBaseFee         = big.NewInt(legacy.BaseFee)
 	DefaultMinGasUsed         = big.NewInt(6_000_000) // block gas limit is 8,000,000
 	DefaultMaxLookbackSeconds = uint64(80)
@@ -100,7 +100,6 @@ type OracleBackend interface {
 	ChainConfig() *params.ChainConfig
 	SubscribeChainHeadEvent(ch chan<- core.ChainHeadEvent) event.Subscription
 	SubscribeChainAcceptedEvent(ch chan<- core.ChainEvent) event.Subscription
-	MinRequiredTip(ctx context.Context, header *types.Header) (*big.Int, error)
 	LastAcceptedBlock() *types.Block
 	GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig, *big.Int, error)
 }
@@ -190,7 +189,7 @@ func NewOracle(backend OracleBackend, config Config) (*Oracle, error) {
 			lastHead = ev.Block.Hash()
 		}
 	}()
-	feeInfoProvider, err := newFeeInfoProvider(backend, minGasUsed.Uint64(), config.Blocks)
+	feeInfoProvider, err := newFeeInfoProvider(backend, config.Blocks)
 	if err != nil {
 		return nil, err
 	}
@@ -240,7 +239,7 @@ func (oracle *Oracle) estimateNextBaseFee(ctx context.Context) (*big.Int, error)
 	// based on the current time and add it to the tip to estimate the
 	// total gas price estimate.
 	chainConfig := params.GetExtra(oracle.backend.ChainConfig())
-	return customheader.EstimateNextBaseFee(chainConfig, feeConfig, header, oracle.clock.Unix())
+	return customheader.EstimateNextBaseFee(chainConfig, feeConfig, header, uint64(oracle.clock.Time().UnixMilli()))
 }
 
 // SuggestPrice returns an estimated price for legacy transactions.
@@ -282,15 +281,6 @@ func (oracle *Oracle) suggestTip(ctx context.Context) (*big.Int, error) {
 		return nil, err
 	}
 
-	chainConfig := params.GetExtra(oracle.backend.ChainConfig())
-	var feeLastChangedAt *big.Int
-	if chainConfig.IsPrecompileEnabled(feemanager.ContractAddress, head.Time) {
-		_, feeLastChangedAt, err = oracle.backend.GetFeeConfigAt(head)
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	headHash := head.Hash()
 
 	// If the latest gasprice is still available, return it.
@@ -321,13 +311,6 @@ func (oracle *Oracle) suggestTip(ctx context.Context) (*big.Int, error) {
 		lowerBlockNumberLimit = latestBlockNumber - uint64(oracle.checkBlocks)
 	}
 
-	// if fee config has changed at a more recent block, it should be the lower limit
-	if feeLastChangedAt != nil {
-		if lowerBlockNumberLimit < feeLastChangedAt.Uint64() {
-			lowerBlockNumberLimit = feeLastChangedAt.Uint64()
-		}
-	}
-
 	// Process block headers in the range calculated for this gas price estimation.
 	for i := latestBlockNumber; i > lowerBlockNumberLimit; i-- {
 		feeInfo, err := oracle.getFeeInfo(ctx, i)
@@ -339,11 +322,7 @@ func (oracle *Oracle) suggestTip(ctx context.Context) (*big.Int, error) {
 			break
 		}
 
-		if feeInfo.tip != nil {
-			tipResults = append(tipResults, feeInfo.tip)
-		} else {
-			tipResults = append(tipResults, new(big.Int).Set(common.Big0))
-		}
+		tipResults = append(tipResults, feeInfo.tips...)
 	}
 
 	price := lastPrice
@@ -375,9 +354,9 @@ func (oracle *Oracle) getFeeInfo(ctx context.Context, number uint64) (*feeInfo, 
 	}
 
 	// on cache miss, read from database
-	header, err := oracle.backend.HeaderByNumber(ctx, rpc.BlockNumber(number))
+	block, err := oracle.backend.BlockByNumber(ctx, rpc.BlockNumber(number))
 	if err != nil {
 		return nil, err
 	}
-	return oracle.feeInfoProvider.addHeader(ctx, header)
+	return oracle.feeInfoProvider.addHeader(ctx, block.Header(), block.Transactions())
 }

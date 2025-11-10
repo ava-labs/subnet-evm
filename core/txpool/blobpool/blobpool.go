@@ -41,6 +41,7 @@ import (
 	"time"
 
 	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/consensus/misc/eip4844"
 	"github.com/ava-labs/libevm/core/state"
 	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/libevm/event"
@@ -48,11 +49,10 @@ import (
 	"github.com/ava-labs/libevm/metrics"
 	ethparams "github.com/ava-labs/libevm/params"
 	"github.com/ava-labs/libevm/rlp"
-	"github.com/ava-labs/subnet-evm/consensus/misc/eip4844"
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/txpool"
 	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/plugin/evm/header"
+	"github.com/ava-labs/subnet-evm/plugin/evm/customheader"
 	"github.com/holiman/billy"
 	"github.com/holiman/uint256"
 )
@@ -417,11 +417,11 @@ func (p *BlobPool) Init(gasTip uint64, head *types.Header, reserve txpool.Addres
 		p.Close()
 		return err
 	}
-	baseFee, err := header.EstimateNextBaseFee(
+	baseFee, err := customheader.EstimateNextBaseFee(
 		params.GetExtra(p.chain.Config()),
 		feeConfig,
 		p.head,
-		uint64(time.Now().Unix()),
+		uint64(time.Now().UnixMilli()),
 	)
 	if err != nil {
 		p.Close()
@@ -853,11 +853,11 @@ func (p *BlobPool) Reset(oldHead, newHead *types.Header) {
 		log.Error("Failed to get fee config to reset blobpool fees", "err", err)
 		return
 	}
-	baseFeeBig, err := header.EstimateNextBaseFee(
+	baseFeeBig, err := customheader.EstimateNextBaseFee(
 		params.GetExtra(p.chain.Config()),
 		feeConfig,
 		p.head,
-		uint64(time.Now().Unix()),
+		uint64(time.Now().UnixMilli()),
 	)
 	if err != nil {
 		log.Error("Failed to estimate next base fee to reset blobpool fees", "err", err)

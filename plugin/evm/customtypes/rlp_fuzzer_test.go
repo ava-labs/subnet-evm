@@ -35,17 +35,11 @@ import (
 
 	"github.com/ava-labs/libevm/rlp"
 	"github.com/holiman/uint256"
-
-	// TODO(arr4n) These tests were originally part of the `subnet-evm/core/types`
-	// package so assume the presence of identifiers. A dot-import reduces PR
-	// noise during the refactoring.
-	. "github.com/ava-labs/libevm/core/types"
 )
 
 func decodeEncode(input []byte, val interface{}) error {
 	if err := rlp.DecodeBytes(input, val); err != nil {
-		// not valid rlp, nothing to do
-		return nil
+		return nil //nolint:nilerr // not valid rlp, nothing to do
 	}
 	// If it _were_ valid rlp, we can encode it again
 	output, err := rlp.EncodeToBytes(val)

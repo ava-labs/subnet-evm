@@ -30,15 +30,37 @@ package params
 import (
 	"math/big"
 
+	"github.com/ava-labs/libevm/libevm"
 	ethparams "github.com/ava-labs/libevm/params"
 	"github.com/ava-labs/subnet-evm/params/extras"
 	"github.com/ava-labs/subnet-evm/utils"
 )
 
-// Guarantees extras initialisation before a call to [params.ChainConfig.Rules].
-var _ = libevmInit()
+func init() {
+	libevm.WithTemporaryExtrasLock(func(l libevm.ExtrasLock) error {
+		return WithTempRegisteredExtras(l, func() error {
+			initialiseChainConfigs()
+			return nil
+		})
+	})
+}
 
 var (
+	SubnetEVMDefaultChainConfig,
+	TestChainConfig,
+	TestPreSubnetEVMChainConfig,
+	TestSubnetEVMChainConfig,
+	TestDurangoChainConfig,
+	TestEtnaChainConfig,
+	TestFortunaChainConfig,
+	TestGraniteChainConfig *ChainConfig
+
+	TestRules Rules
+)
+
+// initialiseChainConfigs MUST be called inside [WithTempRegisteredExtras] to
+// allow [WithExtra] to work without global registration of libevm extras.
+func initialiseChainConfigs() {
 	// SubnetEVMDefaultConfig is the default configuration
 	// without any network upgrades.
 	SubnetEVMDefaultChainConfig = WithExtra(
@@ -196,7 +218,7 @@ var (
 	)
 
 	TestRules = TestChainConfig.Rules(new(big.Int), IsMergeTODO, 0)
-)
+}
 
 // ChainConfig is the core config which determines the blockchain settings.
 //

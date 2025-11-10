@@ -44,7 +44,7 @@ import (
 	"github.com/ava-labs/libevm/log"
 	"github.com/ava-labs/subnet-evm/eth/tracers"
 	"github.com/ava-labs/subnet-evm/params"
-	customheader "github.com/ava-labs/subnet-evm/plugin/evm/header"
+	"github.com/ava-labs/subnet-evm/plugin/evm/customheader"
 	"github.com/ava-labs/subnet-evm/plugin/evm/upgrade/subnetevm"
 	"github.com/ava-labs/subnet-evm/tests"
 	"github.com/urfave/cli/v2"
@@ -232,7 +232,7 @@ func applyLondonChecks(env *stEnv, chainConfig *params.ChainConfig) error {
 	}
 	configExtra := params.GetExtra(chainConfig)
 	var err error
-	env.BaseFee, err = customheader.BaseFee(configExtra, feeConfig, parent, env.Timestamp)
+	env.BaseFee, err = customheader.BaseFee(configExtra, feeConfig, parent, env.Timestamp*1000)
 	if err != nil {
 		return NewError(ErrorConfig, fmt.Errorf("failed calculating base fee: %v", err))
 	}

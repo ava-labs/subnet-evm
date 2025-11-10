@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ava-labs/firewood-go-ethhash/ffi"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/rawdb"
 	"github.com/ava-labs/libevm/core/types"
@@ -22,8 +23,6 @@ import (
 	"github.com/ava-labs/libevm/trie/triestate"
 	"github.com/ava-labs/libevm/triedb"
 	"github.com/ava-labs/libevm/triedb/database"
-
-	ffi "github.com/ava-labs/firewood-go-ethhash/ffi"
 )
 
 var (
@@ -69,16 +68,20 @@ type Config struct {
 	ReadCacheStrategy    ffi.CacheStrategy
 }
 
-// Note that `FilePath` is not specificied, and must always be set by the user.
-var Defaults = &Config{
+// Note that `FilePath` is not specified, and must always be set by the user.
+var Defaults = Config{
 	CleanCacheSize:       1024 * 1024, // 1MB
 	FreeListCacheEntries: 40_000,
 	Revisions:            100,
 	ReadCacheStrategy:    ffi.CacheAllReads,
 }
 
-func (c Config) BackendConstructor(_ ethdb.Database) triedb.DBOverride {
-	return New(&c)
+func (c Config) BackendConstructor(ethdb.Database) triedb.DBOverride {
+	db, err := New(c)
+	if err != nil {
+		log.Crit("firewood: error creating database", "error", err)
+	}
+	return db
 }
 
 type Database struct {
@@ -95,24 +98,24 @@ type Database struct {
 
 // New creates a new Firewood database with the given disk database and configuration.
 // Any error during creation will cause the program to exit.
-func New(config *Config) *Database {
-	if config == nil {
-		config = Defaults
+func New(config Config) (*Database, error) {
+	if err := validatePath(config.FilePath); err != nil {
+		return nil, err
 	}
 
-	fwConfig, err := validatePath(config)
+	fw, err := ffi.New(config.FilePath, &ffi.Config{
+		NodeCacheEntries:     uint(config.CleanCacheSize) / 256, // TODO: estimate 256 bytes per node
+		FreeListCacheEntries: config.FreeListCacheEntries,
+		Revisions:            config.Revisions,
+		ReadCacheStrategy:    config.ReadCacheStrategy,
+	})
 	if err != nil {
-		log.Crit("firewood: error validating config", "error", err)
-	}
-
-	fw, err := ffi.New(config.FilePath, fwConfig)
-	if err != nil {
-		log.Crit("firewood: error creating firewood database", "error", err)
+		return nil, err
 	}
 
 	currentRoot, err := fw.Root()
 	if err != nil {
-		log.Crit("firewood: error getting current root", "error", err)
+		return nil, err
 	}
 
 	return &Database{
@@ -121,37 +124,30 @@ func New(config *Config) *Database {
 		proposalTree: &ProposalContext{
 			Root: common.Hash(currentRoot),
 		},
-	}
+	}, nil
 }
 
-func validatePath(trieConfig *Config) (*ffi.Config, error) {
-	if trieConfig.FilePath == "" {
-		return nil, errors.New("firewood database file path must be set")
+func validatePath(path string) error {
+	if path == "" {
+		return errors.New("firewood database file path must be set")
 	}
 
 	// Check that the directory exists
-	dir := filepath.Dir(trieConfig.FilePath)
-	_, err := os.Stat(dir)
-	if err != nil {
-		if os.IsNotExist(err) {
-			log.Info("Database directory not found, creating", "path", dir)
-			if err := os.MkdirAll(dir, 0o755); err != nil {
-				return nil, fmt.Errorf("error creating database directory: %w", err)
-			}
-		} else {
-			return nil, fmt.Errorf("error checking database directory: %w", err)
+	dir := filepath.Dir(path)
+	switch info, err := os.Stat(dir); {
+	case os.IsNotExist(err):
+		log.Info("Database directory not found, creating", "path", dir)
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			return fmt.Errorf("error creating database directory: %w", err)
 		}
+		return nil
+	case err != nil:
+		return fmt.Errorf("error checking database directory: %w", err)
+	case !info.IsDir():
+		return fmt.Errorf("database directory path is not a directory: %s", dir)
 	}
 
-	// Create the Firewood config from the provided config.
-	config := &ffi.Config{
-		NodeCacheEntries:     uint(trieConfig.CleanCacheSize) / 256, // TODO: estimate 256 bytes per node
-		FreeListCacheEntries: trieConfig.FreeListCacheEntries,
-		Revisions:            trieConfig.Revisions,
-		ReadCacheStrategy:    trieConfig.ReadCacheStrategy,
-	}
-
-	return config, nil
+	return nil
 }
 
 // Scheme returns the scheme of the database.
@@ -161,12 +157,12 @@ func validatePath(trieConfig *Config) (*ffi.Config, error) {
 // it must be overwritten to use something like:
 // `_, ok := db.(*Database); if !ok { return "" }`
 // to recognize the Firewood database.
-func (db *Database) Scheme() string {
+func (*Database) Scheme() string {
 	return rawdb.HashScheme
 }
 
 // Initialized checks whether a non-empty genesis block has been written.
-func (db *Database) Initialized(_ common.Hash) bool {
+func (db *Database) Initialized(common.Hash) bool {
 	rootBytes, err := db.fwDisk.Root()
 	if err != nil {
 		log.Error("firewood: error getting current root", "error", err)
@@ -236,7 +232,7 @@ func (db *Database) propose(root common.Hash, parentRoot common.Hash, hash commo
 			continue
 		}
 		log.Debug("firewood: proposing from parent proposal", "parent", parentProposal.Root.Hex(), "root", root.Hex(), "height", block)
-		p, err := db.createProposal(parentProposal.Proposal, root, keys, values)
+		p, err := createProposal(parentProposal.Proposal, root, keys, values)
 		if err != nil {
 			return err
 		}
@@ -263,7 +259,7 @@ func (db *Database) propose(root common.Hash, parentRoot common.Hash, hash commo
 	}
 
 	log.Debug("firewood: proposing from database root", "root", root.Hex(), "height", block)
-	p, err := db.createProposal(db.fwDisk, root, keys, values)
+	p, err := createProposal(db.fwDisk, root, keys, values)
 	if err != nil {
 		return err
 	}
@@ -351,12 +347,12 @@ func (db *Database) Commit(root common.Hash, report bool) (err error) {
 // Only used for metrics and Commit intervals in APIs.
 // This will be implemented in the firewood database eventually.
 // Currently, Firewood stores all revisions in disk and proposals in memory.
-func (db *Database) Size() (common.StorageSize, common.StorageSize) {
+func (*Database) Size() (common.StorageSize, common.StorageSize) {
 	return 0, 0
 }
 
-// This isn't called anywhere in subnet-evm.
-func (db *Database) Reference(_ common.Hash, _ common.Hash) {
+// This isn't called anywhere in subnet-evm
+func (*Database) Reference(common.Hash, common.Hash) {
 	log.Error("firewood: Reference not implemented")
 }
 
@@ -368,11 +364,11 @@ func (db *Database) Reference(_ common.Hash, _ common.Hash) {
 // We commit root A, and immediately dereference root B and its child.
 // Root C is Rejected, (which is intended to be 2C) but there's now only one record of root C in the proposal map.
 // Thus, we recognize the single root C as the only proposal, and dereference it.
-func (db *Database) Dereference(root common.Hash) {
+func (*Database) Dereference(common.Hash) {
 }
 
 // Firewood does not support this.
-func (db *Database) Cap(limit common.StorageSize) error {
+func (*Database) Cap(common.StorageSize) error {
 	return nil
 }
 
@@ -380,17 +376,22 @@ func (db *Database) Close() error {
 	db.proposalLock.Lock()
 	defer db.proposalLock.Unlock()
 
-	// We don't need to explicitly dereference the proposals, since they will be cleaned up
-	// within the firewood close method.
+	// before closing, we must deference any outstanding proposals to free the
+	// memory owned by firewood (outside of go's memory management)
+	for _, pCtx := range db.proposalTree.Children {
+		db.dereference(pCtx)
+	}
+
 	db.proposalMap = nil
 	db.proposalTree.Children = nil
+
 	// Close the database
 	return db.fwDisk.Close()
 }
 
 // createProposal creates a new proposal from the given layer
 // If there are no changes, it will return nil.
-func (db *Database) createProposal(layer proposable, root common.Hash, keys, values [][]byte) (p *ffi.Proposal, err error) {
+func createProposal(layer proposable, root common.Hash, keys, values [][]byte) (p *ffi.Proposal, err error) {
 	// If there's an error after creating the proposal, we must drop it.
 	defer func() {
 		if err != nil && p != nil {
@@ -589,7 +590,5 @@ func arrangeKeyValuePairs(nodes *trienode.MergedNodeSet) ([][]byte, [][]byte) {
 	}
 
 	// We need to do all storage operations first, so prefix-deletion works for accounts.
-	keys := append(storageKeys, acctKeys...)
-	values := append(storageValues, acctValues...)
-	return keys, values
+	return append(storageKeys, acctKeys...), append(storageValues, acctValues...)
 }

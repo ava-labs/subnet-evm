@@ -34,6 +34,7 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/ava-labs/avalanchego/vms/evm/acp226"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/common/hexutil"
 	"github.com/ava-labs/libevm/common/math"
@@ -358,6 +359,14 @@ func (g *Genesis) toBlock(db ethdb.Database, triedb *triedb.Database) *types.Blo
 				head.BlobGasUsed = new(uint64)
 			}
 		}
+		// Granite: set TimeMilliseconds
+		if confExtra.IsGranite(g.Timestamp) {
+			headerExtra.TimeMilliseconds = new(uint64)
+			*headerExtra.TimeMilliseconds = g.Timestamp * 1000
+
+			headerExtra.MinDelayExcess = new(acp226.DelayExcess)
+			*headerExtra.MinDelayExcess = acp226.InitialDelayExcess
+		}
 	}
 
 	// Create the genesis block to use the block hash
@@ -434,7 +443,7 @@ func (g *Genesis) Verify() error {
 func GenesisBlockForTesting(db ethdb.Database, addr common.Address, balance *big.Int) *types.Block {
 	g := Genesis{
 		Config:  params.TestChainConfig,
-		Alloc:   GenesisAlloc{addr: {Balance: balance}},
+		Alloc:   types.GenesisAlloc{addr: {Balance: balance}},
 		BaseFee: big.NewInt(legacy.BaseFee),
 	}
 	return g.MustCommit(db, triedb.NewDatabase(db, triedb.HashDefaults))

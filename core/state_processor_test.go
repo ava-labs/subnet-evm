@@ -34,6 +34,7 @@ import (
 
 	"github.com/ava-labs/avalanchego/upgrade"
 	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/consensus/misc/eip4844"
 	"github.com/ava-labs/libevm/core/rawdb"
 	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/libevm/core/vm"
@@ -42,12 +43,12 @@ import (
 	"github.com/ava-labs/libevm/trie"
 	"github.com/ava-labs/subnet-evm/consensus"
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
-	"github.com/ava-labs/subnet-evm/consensus/misc/eip4844"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/params/extras"
+	"github.com/ava-labs/subnet-evm/plugin/evm/customheader"
 	"github.com/ava-labs/subnet-evm/plugin/evm/customtypes"
-	customheader "github.com/ava-labs/subnet-evm/plugin/evm/header"
 	"github.com/ava-labs/subnet-evm/plugin/evm/upgrade/legacy"
+	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/holiman/uint256"
 	"golang.org/x/crypto/sha3"
 )
@@ -357,14 +358,16 @@ func TestStateProcessorErrors(t *testing.T) {
 // - valid pow (fake), ancestry, difficulty, gaslimit etc
 func GenerateBadBlock(parent *types.Block, engine consensus.Engine, txs types.Transactions, config *params.ChainConfig) *types.Block {
 	fakeChainReader := newChainMaker(nil, config, engine)
-	time := parent.Time() + 10
 	feeConfig, _, err := fakeChainReader.GetFeeConfigAt(parent.Header())
 	if err != nil {
 		panic(err)
 	}
 	configExtra := params.GetExtra(config)
-	gasLimit, _ := customheader.GasLimit(configExtra, feeConfig, parent.Header(), time)
-	baseFee, _ := customheader.BaseFee(configExtra, feeConfig, parent.Header(), time)
+	gap := uint64(10) // 10 seconds
+	time := parent.Time() + gap
+	timeMS := customtypes.HeaderTimeMilliseconds(parent.Header()) + gap*1000
+	gasLimit, _ := customheader.GasLimit(configExtra, feeConfig, parent.Header(), timeMS)
+	baseFee, _ := customheader.BaseFee(configExtra, feeConfig, parent.Header(), timeMS)
 	header := &types.Header{
 		ParentHash: parent.Hash(),
 		Coinbase:   parent.Coinbase(),
@@ -379,6 +382,10 @@ func GenerateBadBlock(parent *types.Block, engine consensus.Engine, txs types.Tr
 		Time:      time,
 		UncleHash: types.EmptyUncleHash,
 		BaseFee:   baseFee,
+	}
+	if configExtra.IsGranite(header.Time) {
+		headerExtra := customtypes.GetHeaderExtra(header)
+		headerExtra.TimeMilliseconds = utils.NewUint64(timeMS)
 	}
 
 	if params.GetExtra(config).IsSubnetEVM(header.Time) {
@@ -417,6 +424,7 @@ func GenerateBadBlock(parent *types.Block, engine consensus.Engine, txs types.Tr
 
 		header.ParentBeaconRoot = new(common.Hash)
 	}
+
 	// Assemble and return the final block for sealing
 	return types.NewBlock(header, txs, nil, receipts, trie.NewStackTrie(nil))
 }

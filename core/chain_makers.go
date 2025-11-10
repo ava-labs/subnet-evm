@@ -32,6 +32,7 @@ import (
 	"math/big"
 
 	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/consensus/misc/eip4844"
 	"github.com/ava-labs/libevm/core/rawdb"
 	"github.com/ava-labs/libevm/core/state"
 	"github.com/ava-labs/libevm/core/types"
@@ -40,11 +41,11 @@ import (
 	"github.com/ava-labs/libevm/triedb"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/consensus"
-	"github.com/ava-labs/subnet-evm/consensus/misc/eip4844"
 	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/core/extstate"
 	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/plugin/evm/header"
+	"github.com/ava-labs/subnet-evm/plugin/evm/customheader"
+	"github.com/ava-labs/subnet-evm/plugin/evm/customtypes"
 	"github.com/holiman/uint256"
 )
 
@@ -377,16 +378,18 @@ func GenerateChainWithGenesis(genesis *Genesis, engine consensus.Engine, n int, 
 
 func (cm *chainMaker) makeHeader(parent *types.Block, gap uint64, state *state.StateDB, engine consensus.Engine) *types.Header {
 	time := parent.Time() + gap // block time is fixed at [gap] seconds
+	timeMS := customtypes.HeaderTimeMilliseconds(parent.Header()) + gap*1000
+
 	feeConfig, _, err := cm.GetFeeConfigAt(parent.Header())
 	if err != nil {
 		panic(err)
 	}
 	config := params.GetExtra(cm.config)
-	gasLimit, err := header.GasLimit(config, feeConfig, parent.Header(), time)
+	gasLimit, err := customheader.GasLimit(config, feeConfig, parent.Header(), timeMS)
 	if err != nil {
 		panic(err)
 	}
-	baseFee, err := header.BaseFee(config, feeConfig, parent.Header(), time)
+	baseFee, err := customheader.BaseFee(config, feeConfig, parent.Header(), timeMS)
 	if err != nil {
 		panic(err)
 	}
@@ -415,6 +418,11 @@ func (cm *chainMaker) makeHeader(parent *types.Block, gap uint64, state *state.S
 		header.ExcessBlobGas = &excessBlobGas
 		header.BlobGasUsed = new(uint64)
 		header.ParentBeaconRoot = new(common.Hash)
+	}
+
+	if config.IsGranite(header.Time) {
+		headerExtra := customtypes.GetHeaderExtra(header)
+		headerExtra.TimeMilliseconds = &timeMS
 	}
 	return header
 }
