@@ -18,6 +18,7 @@ import (
 	"github.com/ava-labs/avalanchego/proto/pb/sdk"
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/avalanchego/snow/engine/enginetest"
+	"github.com/ava-labs/avalanchego/snow/snowtest"
 	"github.com/ava-labs/avalanchego/snow/validators"
 	"github.com/ava-labs/avalanchego/upgrade/upgradetest"
 	"github.com/ava-labs/avalanchego/utils/logging"
@@ -36,8 +37,8 @@ import (
 
 func TestEthTxGossip(t *testing.T) {
 	require := require.New(t)
-	ctx := context.Background()
-	snowCtx := utilstest.NewTestSnowContext(t)
+	ctx := t.Context()
+	snowCtx := snowtest.Context(t, snowtest.CChainID)
 	validatorState := utilstest.NewTestValidatorState()
 	snowCtx.ValidatorState = validatorState
 
