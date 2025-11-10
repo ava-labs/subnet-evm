@@ -2719,7 +2719,9 @@ func TestStandaloneDB(t *testing.T) {
 		[]*commonEng.Fx{},
 		appSender,
 	)
-	defer vm.Shutdown(t.Context())
+	defer func() {
+		require.NoError(t, vm.Shutdown(t.Context()))
+	}()
 	require.NoError(t, err, "error initializing VM")
 	require.NoError(t, vm.SetState(t.Context(), snow.Bootstrapping))
 	require.NoError(t, vm.SetState(t.Context(), snow.NormalOp))
@@ -3166,7 +3168,7 @@ func TestWaitForEvent(t *testing.T) {
 				fork: &fork,
 			}).vm
 			testCase.testCase(t, tvm)
-			tvm.Shutdown(t.Context())
+			require.NoError(t, tvm.Shutdown(t.Context()))
 		})
 	}
 }
@@ -3533,7 +3535,9 @@ func TestDelegatePrecompile_BehaviorAcrossUpgrades(t *testing.T) {
 				genesisJSON: string(genesisJSON),
 				fork:        &tt.fork,
 			}).vm
-			defer vm.Shutdown(ctx)
+			defer func() {
+				require.NoError(t, vm.Shutdown(ctx))
+			}()
 
 			if tt.preDeployTime != 0 {
 				vm.clock.Set(time.Unix(tt.preDeployTime, 0))
@@ -3704,6 +3708,6 @@ func TestInspectDatabases(t *testing.T) {
 		db = memdb.New()
 	)
 
-	vm.initializeDBs(db)
+	require.NoError(t, vm.initializeDBs(db))
 	require.NoError(t, vm.inspectDatabases())
 }
