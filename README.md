@@ -44,7 +44,7 @@ The Subnet EVM supports the following API namespaces:
 
 Only the `eth` namespace is enabled by default.
 Subnet EVM is a simplified version of [Coreth VM (C-Chain)](https://github.com/ava-labs/coreth).
-Full documentation for the C-Chain's API can be found [here](https://build.avax.network/docs/api-reference/c-chain/api).
+Full documentation for the C-Chain's API can be found [in the builder docs](https://build.avax.network/docs/rpcs/c-chain).
 
 ## Compatibility
 
@@ -70,7 +70,7 @@ To support these changes, there have been a number of changes to the SubnetEVM b
 
 ### Clone Subnet-evm
 
-First install Go 1.24.9 or later. Follow the instructions [here](https://go.dev/doc/install). You can verify by running `go version`.
+First install Go 1.24.9 or later. Follow the instructions [here]. You can verify by running `go version`.
 
 Set `$GOPATH` environment variable properly for Go to look for Go Workspaces. Please read [this](https://go.dev/doc/code) for details. You can verify by running `echo $GOPATH`.
 

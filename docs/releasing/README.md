@@ -18,7 +18,7 @@ export VERSION_RC=v0.7.3-rc.0
 export VERSION=v0.7.3
 ```
 
-Remember to use the appropriate versioning for your release. 
+Remember to use the appropriate versioning for your release.
 
 1. Create your branch, usually from the tip of the `master` branch:
 
@@ -31,10 +31,12 @@ Remember to use the appropriate versioning for your release.
 2. Update the [RELEASES.md](../../RELEASES.md) file with the new release version `$VERSION`.
 3. Modify the [plugin/evm/version.go](../../plugin/evm/version.go) `Version` global string variable and set it to the desired `$VERSION`.
 4. Ensure the AvalancheGo version used in [go.mod](../../go.mod) is [its last release](https://github.com/ava-labs/avalanchego/releases). If not, upgrade it with, for example:
+
     ```bash
       go get github.com/ava-labs/avalanchego@v1.13.0
       go mod tidy
     ```
+
     And fix any errors that may arise from the upgrade. If it requires significant changes, you may want to create a separate PR for the upgrade and wait for it to be merged before continuing with this procedure.
 
 5. Add an entry in the object in [compatibility.json](../../compatibility.json), adding the target release `$VERSION` as key and the AvalancheGo RPC chain VM protocol version as value, to the `"rpcChainVMProtocolVersion"` JSON object. For example, we would add:
@@ -382,20 +384,26 @@ Following the previous example in the [Release candidate section](#release-candi
 5. Finally, [create a release for precompile-evm](https://github.com/ava-labs/precompile-evm/blob/main/docs/releasing/README.md)
 
 ### Post-release
+
 After you have successfully released a new subnet-evm version, you need to bump all of the versions again in preperation for the next release. Note that the release here is not final, and will be reassessed, and possibly changer prior to release. Some releases require a major version update, but this will usually be `$VERSION` + `0.0.1`. For example:
+
 ```bash
 export P_VERSION=v0.7.4
 ```
-1. Create a branch, from the tip of the `master` branch after the release PR has been merged:
+
+1. Create a branch, from the tip of the `master` branch after the release PR has been merged
+
     ```bash
     git fetch origin master
     git checkout master
     git checkout -b "prep-$P_VERSION-release"
     ```
+
 1. Bump the version number to the next pending release version, `$P_VERSION`
-  - Update the [RELEASES.md](../../RELEASES.md) file with `$P_VERSION`, creating a space for maintainers to place their changes as they make them. 
-  - Modify the [plugin/evm/version.go](../../plugin/evm/version.go) `Version` global string variable and set it to `$P_VERSION`.
-1. Add an entry in the object in [compatibility.json](../../compatibility.json), adding the next pending release versionas key and the AvalancheGo RPC chain VM protocol version as value, to the `"rpcChainVMProtocolVersion"` JSON object. For example, we would add:
+  
+- Update the [RELEASES.md](../../RELEASES.md) file with `$P_VERSION`, creating a space for maintainers to place their changes as they make them.
+- Modify the [plugin/evm/version.go](../../plugin/evm/version.go) `Version` global string variable and set it to `$P_VERSION`.
+- Add an entry in the object in [compatibility.json](../../compatibility.json), adding the next pending release versionas key and the AvalancheGo RPC chain VM protocol version as value, to the `"rpcChainVMProtocolVersion"` JSON object. For example, we would add:
 
     ```json
     "v0.7.4": 39,
@@ -422,15 +430,21 @@ export P_VERSION=v0.7.4
     git push -u origin "prep-$P_VERSION-release"
     ```
 1. Create a pull request (PR) from your branch targeting master, for example using [`gh`](https://cli.github.com/):
+
     ```bash
     gh pr create --repo github.com/ava-labs/subnet-evm --base master --title "chore: prep next release $P_VERSION"
     ```
+
 1. Wait for the PR checks to pass with
+
     ```bash
     gh pr checks --watch
     ```
+
 1. Squash and merge your branch into `master`, for example:
+
     ```bash
     gh pr merge "prep-$P_VERSION-release" --squash --subject "chore: prep next release $P_VERSION"
     ```
+
 1. Pat yourself on the back for a job well done.
