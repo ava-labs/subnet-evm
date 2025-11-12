@@ -679,9 +679,6 @@ func (vm *VM) initializeStateSync(lastAcceptedHeight uint64) error {
 
 	leafHandlers := make(LeafHandlers)
 	leafHandlers[stateLeafRequestConfig.LeafType] = stateLeafRequestConfig.Handler
-	// TODO(JonathanOppenheimer): Register handler for NodeType 0 (legacy/unspecified) for
-	// backward compatibility while NodeType is not serialized
-	leafHandlers[0] = stateLeafRequestConfig.Handler
 
 	networkHandler := newNetworkHandler(
 		vm.blockChain,

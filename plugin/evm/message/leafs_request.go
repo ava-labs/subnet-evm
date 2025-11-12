@@ -33,7 +33,7 @@ type LeafsRequest struct {
 	Start    []byte      `serialize:"true"`
 	End      []byte      `serialize:"true"`
 	Limit    uint16      `serialize:"true"`
-	NodeType NodeType    `serialize:"false"`
+	NodeType NodeType    // TODO(JonathanOppenheimer): Not serialized to avoid breaking changes. We rely on the single used node type (StateTrieNode).
 }
 
 func (l LeafsRequest) String() string {
