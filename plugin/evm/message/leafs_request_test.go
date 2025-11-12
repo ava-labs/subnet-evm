@@ -102,3 +102,54 @@ func TestMarshalLeafsResponse(t *testing.T) {
 	assert.False(t, l.More) // make sure it is not serialized
 	assert.Equal(t, leafsResponse.ProofVals, l.ProofVals)
 }
+
+// TestLeafsRequestNodeTypeNotSerialized verifies that NodeType is not serialized
+// and does not affect the encoded output. This ensures backward compatibility.
+func TestLeafsRequestNodeTypeNotSerialized(t *testing.T) {
+	// set random seed for deterministic random
+	rand := rand.New(rand.NewSource(1))
+
+	startBytes := make([]byte, common.HashLength)
+	endBytes := make([]byte, common.HashLength)
+
+	_, err := rand.Read(startBytes)
+	assert.NoError(t, err)
+
+	_, err = rand.Read(endBytes)
+	assert.NoError(t, err)
+
+	// Create request without explicit NodeType (defaults to 0)
+	leafsRequestDefault := LeafsRequest{
+		Root:  common.BytesToHash([]byte("test root")),
+		Start: startBytes,
+		End:   endBytes,
+		Limit: 512,
+	}
+
+	// Create request with explicit NodeType
+	leafsRequestWithNodeType := LeafsRequest{
+		Root:     common.BytesToHash([]byte("test root")),
+		Start:    startBytes,
+		End:      endBytes,
+		Limit:    512,
+		NodeType: StateTrieNode,
+	}
+
+	bytesDefault, err := Codec.Marshal(Version, leafsRequestDefault)
+	assert.NoError(t, err)
+
+	bytesWithNodeType, err := Codec.Marshal(Version, leafsRequestWithNodeType)
+	assert.NoError(t, err)
+
+	assert.Equal(t, bytesDefault, bytesWithNodeType, "NodeType should not affect serialization")
+
+	var unmarshaled LeafsRequest
+	_, err = Codec.Unmarshal(bytesWithNodeType, &unmarshaled)
+	assert.NoError(t, err)
+
+	assert.Equal(t, NodeType(0), unmarshaled.NodeType, "NodeType should not be serialized")
+	assert.Equal(t, leafsRequestDefault.Root, unmarshaled.Root)
+	assert.Equal(t, leafsRequestDefault.Start, unmarshaled.Start)
+	assert.Equal(t, leafsRequestDefault.End, unmarshaled.End)
+	assert.Equal(t, leafsRequestDefault.Limit, unmarshaled.Limit)
+}
