@@ -324,7 +324,7 @@ func (vm *VM) Initialize(
 	}
 
 	// Initialize the database
-	if err := vm.initializeDBs(db); err != nil {
+	if err := vm.initializeDBs(vm.ctx.NodeID, db); err != nil {
 		return fmt.Errorf("failed to initialize databases: %w", err)
 	}
 

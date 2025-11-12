@@ -17,6 +17,7 @@ import (
 	"github.com/ava-labs/avalanchego/database/pebbledb"
 	"github.com/ava-labs/avalanchego/database/prefixdb"
 	"github.com/ava-labs/avalanchego/database/versiondb"
+	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/constants"
 	"github.com/ava-labs/avalanchego/utils/logging"
 	"github.com/ava-labs/libevm/common"
@@ -52,7 +53,7 @@ type DatabaseConfig struct {
 // initializeDBs initializes the databases used by the VM.
 // If [useStandaloneDB] is true, the chain will use a standalone database for its state.
 // Otherwise, the chain will use the provided [avaDB] for its state.
-func (vm *VM) initializeDBs(avaDB avalanchedatabase.Database) error {
+func (vm *VM) initializeDBs(nodeID ids.NodeID, avaDB avalanchedatabase.Database) error {
 	db := avaDB
 	// skip standalone database initialization if we are running in unit tests
 	if vm.ctx.NetworkID != constants.UnitTestID {
@@ -70,7 +71,7 @@ func (vm *VM) initializeDBs(avaDB avalanchedatabase.Database) error {
 				return err
 			}
 			log.Info("Using standalone database for the chain state", "DatabaseConfig", dbConfig)
-			db, err = newStandaloneDatabase(dbConfig, vm.ctx.Metrics, vm.ctx.Log)
+			db, err = newStandaloneDatabase(nodeID, dbConfig, vm.ctx.Metrics, vm.ctx.Log)
 			if err != nil {
 				return err
 			}
@@ -200,7 +201,7 @@ func inspectDB(db avalanchedatabase.Database, label string) error {
 	return nil
 }
 
-func newStandaloneDatabase(dbConfig DatabaseConfig, gatherer metrics.MultiGatherer, logger logging.Logger) (avalanchedatabase.Database, error) {
+func newStandaloneDatabase(nodeID ids.NodeID, dbConfig DatabaseConfig, gatherer metrics.MultiGatherer, logger logging.Logger) (avalanchedatabase.Database, error) {
 	dbPath := filepath.Join(dbConfig.Path, dbConfig.Name)
 
 	dbConfigBytes := dbConfig.Config
@@ -232,6 +233,7 @@ func newStandaloneDatabase(dbConfig DatabaseConfig, gatherer metrics.MultiGather
 	}
 
 	db, err := factory.New(
+		nodeID,
 		dbConfig.Name,
 		dbPath,
 		dbConfig.ReadOnly,
