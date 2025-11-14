@@ -48,6 +48,7 @@ func TestMarshalLeafsRequest(t *testing.T) {
 	assert.Equal(t, leafsRequest.Start, l.Start)
 	assert.Equal(t, leafsRequest.End, l.End)
 	assert.Equal(t, leafsRequest.Limit, l.Limit)
+	assert.Equal(t, NodeType(0), l.NodeType) // make sure it is not serialized
 }
 
 // TestMarshalLeafsResponse asserts that the structure or serialization logic hasn't changed, primarily to
