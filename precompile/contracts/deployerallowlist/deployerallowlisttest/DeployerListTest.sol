@@ -1,7 +1,7 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "precompile/allowlist/IAllowList.sol";
+import "precompile/allowlist/allowlisttest/IAllowList.sol";
 import "precompile/allowlist/allowlisttest/AllowList.sol";
 import "precompile/allowlist/allowlisttest/AllowListTest.sol";
 

@@ -263,8 +263,7 @@ func TestIAllowList_Events(t *testing.T) {
 			require.NoError(err)
 
 			if tc.setup != nil {
-				err := tc.setup(allowList, admin, backend, t, testAddress)
-				require.NoError(err)
+				require.NoError(tc.setup(allowList, admin, backend, t, testAddress))
 			}
 
 			tx, err := tc.runMethod(allowList, admin, testAddress)
