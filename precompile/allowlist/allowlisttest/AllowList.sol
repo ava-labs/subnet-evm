@@ -1,7 +1,7 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "../IAllowList.sol";
+import "precompile/allowlist/IAllowList.sol";
 
 // AllowList is a base contract to use AllowList precompile capabilities.
 contract AllowList {

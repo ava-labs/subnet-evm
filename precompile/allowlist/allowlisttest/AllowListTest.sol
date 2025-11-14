@@ -1,8 +1,9 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "./AllowList.sol";
-import "../../precompiletest/test.sol";
+import "precompile/allowlist/IAllowList.sol";
+import "precompile/allowlist/allowlisttest/AllowList.sol";
+import "precompile/precompiletest/DSTest.sol";
 
 contract AllowListTestHelper is DSTest {
     function assertRole(uint result, AllowList.Role role) internal {
