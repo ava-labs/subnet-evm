@@ -48,7 +48,7 @@ func TestMarshalLeafsRequest(t *testing.T) {
 	require.Equal(t, leafsRequest.Start, l.Start)
 	require.Equal(t, leafsRequest.End, l.End)
 	require.Equal(t, leafsRequest.Limit, l.Limit)
-  require.Equal(t, NodeType(0), l.NodeType) // make sure it is not serialized
+	require.Equal(t, NodeType(0), l.NodeType) // make sure it is not serialized
 }
 
 // TestMarshalLeafsResponse requires that the structure or serialization logic hasn't changed, primarily to
