@@ -94,6 +94,7 @@ func TestWebsocketOriginCheck(t *testing.T) {
 // These differences are not critical, so this test can simply be skipped.
 func TestWebsocketLargeCall(t *testing.T) {
 	t.Skip("Flaky")
+	t.Parallel()
 
 	var (
 		srv     = newTestServer()
@@ -133,6 +134,7 @@ func TestWebsocketLargeCall(t *testing.T) {
 // These differences are not critical, so this test can simply be skipped.
 func TestWebsocketLargeRead(t *testing.T) {
 	t.Skip("Flaky")
+	t.Parallel()
 
 	var (
 		srv     = newTestServer()
