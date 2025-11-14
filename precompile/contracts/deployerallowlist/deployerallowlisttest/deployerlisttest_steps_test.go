@@ -13,17 +13,19 @@ import (
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/libevm/crypto"
+	"github.com/stretchr/testify/require"
+
 	"github.com/ava-labs/subnet-evm/accounts/abi/bind"
 	"github.com/ava-labs/subnet-evm/core"
-	"github.com/ava-labs/subnet-evm/plugin/evm/customtypes"
-
-	sim "github.com/ava-labs/subnet-evm/ethclient/simulated"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/params/extras"
+	"github.com/ava-labs/subnet-evm/plugin/evm/customtypes"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
+	"github.com/ava-labs/subnet-evm/precompile/allowlist/allowlisttest"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/deployerallowlist"
 	"github.com/ava-labs/subnet-evm/utils"
-	"github.com/stretchr/testify/require"
+
+	sim "github.com/ava-labs/subnet-evm/ethclient/simulated"
 )
 
 // Test keys matching the Hardhat suite identities.
@@ -142,7 +144,7 @@ func TestDeployerAllowList_Steps(t *testing.T) {
 			require.NoError(err)
 			require.Equal(types.ReceiptStatusSuccessful, waitReceipt(t, backend, tx).Status)
 
-			allowList, err := allowlist.NewIAllowList(deployerallowlist.ContractAddress, backend.Client())
+			allowList, err := allowlisttest.NewIAllowList(deployerallowlist.ContractAddress, backend.Client())
 			require.NoError(err)
 			// Set the contract address as admin in the deployer allow list precompile to enable the contract to deploy and
 			// modify the allow list.
@@ -171,18 +173,18 @@ func TestIAllowList_Events(t *testing.T) {
 
 	type testCase struct {
 		name           string
-		setup          func(*allowlist.IAllowList, *bind.TransactOpts, *sim.Backend, *testing.T, common.Address) error
-		runMethod      func(*allowlist.IAllowList, *bind.TransactOpts, common.Address) (*types.Transaction, error)
-		expectedEvents []allowlist.IAllowListRoleSet
+		setup          func(*allowlisttest.IAllowList, *bind.TransactOpts, *sim.Backend, *testing.T, common.Address) error
+		runMethod      func(*allowlisttest.IAllowList, *bind.TransactOpts, common.Address) (*types.Transaction, error)
+		expectedEvents []allowlisttest.IAllowListRoleSet
 	}
 
 	testCases := []testCase{
 		{
 			name: "should emit event after set admin",
-			runMethod: func(allowList *allowlist.IAllowList, auth *bind.TransactOpts, addr common.Address) (*types.Transaction, error) {
+			runMethod: func(allowList *allowlisttest.IAllowList, auth *bind.TransactOpts, addr common.Address) (*types.Transaction, error) {
 				return allowList.SetAdmin(auth, addr)
 			},
-			expectedEvents: []allowlist.IAllowListRoleSet{
+			expectedEvents: []allowlisttest.IAllowListRoleSet{
 				{
 					Role:    allowlist.AdminRole.Big(),
 					Account: testAddress,
@@ -193,10 +195,10 @@ func TestIAllowList_Events(t *testing.T) {
 		},
 		{
 			name: "should emit event after set manager",
-			runMethod: func(allowList *allowlist.IAllowList, auth *bind.TransactOpts, addr common.Address) (*types.Transaction, error) {
+			runMethod: func(allowList *allowlisttest.IAllowList, auth *bind.TransactOpts, addr common.Address) (*types.Transaction, error) {
 				return allowList.SetManager(auth, addr)
 			},
-			expectedEvents: []allowlist.IAllowListRoleSet{
+			expectedEvents: []allowlisttest.IAllowListRoleSet{
 				{
 					Role:    allowlist.ManagerRole.Big(),
 					Account: testAddress,
@@ -207,10 +209,10 @@ func TestIAllowList_Events(t *testing.T) {
 		},
 		{
 			name: "should emit event after set enabled",
-			runMethod: func(allowList *allowlist.IAllowList, auth *bind.TransactOpts, addr common.Address) (*types.Transaction, error) {
+			runMethod: func(allowList *allowlisttest.IAllowList, auth *bind.TransactOpts, addr common.Address) (*types.Transaction, error) {
 				return allowList.SetEnabled(auth, addr)
 			},
-			expectedEvents: []allowlist.IAllowListRoleSet{
+			expectedEvents: []allowlisttest.IAllowListRoleSet{
 				{
 					Role:    allowlist.EnabledRole.Big(),
 					Account: testAddress,
@@ -221,7 +223,7 @@ func TestIAllowList_Events(t *testing.T) {
 		},
 		{
 			name: "should emit event after set none",
-			setup: func(allowList *allowlist.IAllowList, auth *bind.TransactOpts, backend *sim.Backend, t *testing.T, addr common.Address) error {
+			setup: func(allowList *allowlisttest.IAllowList, auth *bind.TransactOpts, backend *sim.Backend, t *testing.T, addr common.Address) error {
 				// First set the address to Enabled so we can test setting it to None
 				tx, err := allowList.SetEnabled(auth, addr)
 				if err != nil {
@@ -230,10 +232,10 @@ func TestIAllowList_Events(t *testing.T) {
 				waitReceipt(t, backend, tx)
 				return nil
 			},
-			runMethod: func(allowList *allowlist.IAllowList, auth *bind.TransactOpts, addr common.Address) (*types.Transaction, error) {
+			runMethod: func(allowList *allowlisttest.IAllowList, auth *bind.TransactOpts, addr common.Address) (*types.Transaction, error) {
 				return allowList.SetNone(auth, addr)
 			},
-			expectedEvents: []allowlist.IAllowListRoleSet{
+			expectedEvents: []allowlisttest.IAllowListRoleSet{
 				{
 					Role:    allowlist.EnabledRole.Big(),
 					Account: testAddress,
@@ -257,7 +259,7 @@ func TestIAllowList_Events(t *testing.T) {
 			backend := newBackendWithDeployerAllowList(t)
 			defer backend.Close()
 
-			allowList, err := allowlist.NewIAllowList(deployerallowlist.ContractAddress, backend.Client())
+			allowList, err := allowlisttest.NewIAllowList(deployerallowlist.ContractAddress, backend.Client())
 			require.NoError(err)
 
 			if tc.setup != nil {
