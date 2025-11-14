@@ -19,6 +19,10 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: "go.mod"
+          cache-dependency-path: |
+            go.sum
+            tools/go.sum
+            tools/legacy-golangci-lint.sum
       - name: Run all lint checks
         run: ./scripts/run_task.sh lint-all-ci
       - name: Check go.mod and go.sum are up-to-date
@@ -40,6 +44,9 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: "go.mod"
+          cache-dependency-path: |
+            go.sum
+            tools/go.sum
       - run: go mod download
       - name: Check generated codec files are up to date
         run: ./scripts/run_task.sh check-generate-codec
@@ -60,10 +67,6 @@ jobs:
         with:
           fetch-depth: 0
           submodules: recursive
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: "go.mod"
       - name: Set up solc
         uses: ARR4N/setup-solc@v0.2.0
         with:
@@ -104,7 +107,7 @@ jobs:
       - name: Setup Contracts
         run: ./scripts/run_task.sh setup-contracts
       - name: Run Warp E2E Tests
-        uses: ava-labs/avalanchego/.github/actions/run-monitored-tmpnet-cmd@edff59906ed4d6334d9e591dcb9c85a144520600
+        uses: ava-labs/avalanchego/.github/actions/run-monitored-tmpnet-cmd@29b4e6bc541bcd913da6c51c1c5403fff2e377a4
         with:
           run: ./scripts/run_task.sh test-e2e-warp-ci
           artifact_prefix: warp
@@ -126,7 +129,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Run E2E Load Tests
-        uses: ava-labs/avalanchego/.github/actions/run-monitored-tmpnet-cmd@edff59906ed4d6334d9e591dcb9c85a144520600
+        uses: ava-labs/avalanchego/.github/actions/run-monitored-tmpnet-cmd@29b4e6bc541bcd913da6c51c1c5403fff2e377a4
         with:
           run: ./scripts/run_task.sh test-e2e-load-ci
           artifact_prefix: load
