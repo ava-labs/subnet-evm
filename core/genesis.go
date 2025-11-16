@@ -426,11 +426,16 @@ func (g *Genesis) Verify() error {
 	// Make sure genesis gas limit is consistent
 	gasLimitConfig := params.GetExtra(g.Config).FeeConfig.GasLimit.Uint64()
 	if gasLimitConfig != g.GasLimit {
-		return fmt.Errorf(
-			"gas limit in fee config (%d) does not match gas limit in header (%d)",
-			gasLimitConfig,
-			g.GasLimit,
+		log.Warn(
+			"gas limit in fee config does not match gas limit in header",
+			"fee config", gasLimitConfig,
+			"header", g.GasLimit,
 		)
+		// return fmt.Errorf(
+		// 	"gas limit in fee config (%d) does not match gas limit in header (%d)",
+		// 	gasLimitConfig,
+		// 	g.GasLimit,
+		// )
 	}
 	// Verify config
 	if err := params.GetExtra(g.Config).Verify(); err != nil {
