@@ -556,7 +556,7 @@ func assertDBConsistency(t testing.TB, root common.Hash, clientDB ethdb.Database
 			codeHash := common.BytesToHash(acc.CodeHash)
 			code := rawdb.ReadCode(clientDB, codeHash)
 			actualHash := crypto.Keccak256Hash(code)
-			assert.NotZero(t, len(code))
+			assert.NotEmpty(t, code)
 			assert.Equal(t, codeHash, actualHash)
 		}
 		if acc.Root == types.EmptyRootHash {
