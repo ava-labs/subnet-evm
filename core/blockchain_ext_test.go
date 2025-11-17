@@ -1705,11 +1705,11 @@ func StatefulPrecompiles(t *testing.T, create createFunc) {
 				assert.Equal(allowlist.AdminRole, res)
 
 				storedConfig := feemanager.GetStoredFeeConfig(sdb)
-				assert.EqualValues(testFeeConfig, storedConfig)
+				assert.Equal(testFeeConfig, storedConfig)
 
 				feeConfig, _, err := blockchain.GetFeeConfigAt(blockchain.CurrentHeader())
-				assert.NoError(err)
-				assert.EqualValues(testFeeConfig, feeConfig)
+				require.NoError(t, err)
+				assert.Equal(testFeeConfig, feeConfig)
 				return nil
 			},
 			verifyGenesis: func(sdb *state.StateDB) {
@@ -1717,8 +1717,8 @@ func StatefulPrecompiles(t *testing.T, create createFunc) {
 				assert.Equal(allowlist.AdminRole, res)
 
 				feeConfig, _, err := blockchain.GetFeeConfigAt(blockchain.Genesis().Header())
-				assert.NoError(err)
-				assert.EqualValues(params.GetExtra(&config).FeeConfig, feeConfig)
+				require.NoError(t, err)
+				assert.Equal(params.GetExtra(&config).FeeConfig, feeConfig)
 			},
 		},
 	}
@@ -2076,10 +2076,9 @@ func ReexecCorruptedStateTest(t *testing.T, create ReexecTestFunc) {
 	blockchain.Stop()
 
 	// Restart blockchain with existing state
-	restartedBlockchain, err := create(chainDB, gspec, chain[1].Hash(), tempDir, 4096)
-	if err != nil {
-		t.Fatalf("failed to restart blockchain: %v", err)
-	}
+	newDir := copyFlatDir(t, tempDir) // avoid file lock
+	restartedBlockchain, err := create(chainDB, gspec, chain[1].Hash(), newDir, 4096)
+	require.NoError(t, err)
 	defer restartedBlockchain.Stop()
 
 	// We should be able to accept the remaining blocks
