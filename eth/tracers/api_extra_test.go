@@ -133,11 +133,10 @@ func testTraceBlockPrecompileActivation(t *testing.T, scheme string) {
 	}
 	for i, tc := range testSuite {
 		result, err := api.TraceBlockByNumber(context.Background(), tc.blockNumber, tc.config)
+		require.ErrorIs(t, err, tc.expectErr, "test %d", i)
 		if tc.expectErr != nil {
-			require.ErrorIs(t, err, tc.expectErr, "test %d", i)
 			continue
 		}
-		require.NoError(t, err, "test %d", i)
 		have, _ := json.Marshal(result)
 		require.Equal(t, tc.want, string(have), "test %d", i)
 	}
