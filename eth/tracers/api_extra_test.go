@@ -423,16 +423,14 @@ func testTraceCallWithOverridesStateUpgrade(t *testing.T, scheme string) {
 	}
 	for i, testspec := range testSuite {
 		result, err := api.TraceCall(context.Background(), testspec.call, rpc.BlockNumberOrHash{BlockNumber: &testspec.blockNumber}, testspec.config)
-		if testspec.expectErr != nil {
-			require.ErrorIs(t, err, testspec.expectErr, "test %d", i)
+		require.ErrorIs(t, err, testspec.expectErr, "test %d", i)
+		if err != nil {
 			continue
-		} else {
-			require.NoError(t, err, "test %d: expect no error", i)
-			var have *logger.ExecutionResult
-			require.NoError(t, json.Unmarshal(result.(json.RawMessage), &have), "test %d: failed to unmarshal result", i)
-			var want *logger.ExecutionResult
-			require.NoError(t, json.Unmarshal([]byte(testspec.expect), &want), "test %d: failed to unmarshal result", i)
-			require.Equal(t, want, have, "test %d: result mismatch", i)
 		}
+		var have *logger.ExecutionResult
+		require.NoError(t, json.Unmarshal(result.(json.RawMessage), &have), "test %d: failed to unmarshal result", i)
+		var want *logger.ExecutionResult
+		require.NoError(t, json.Unmarshal([]byte(testspec.expect), &want), "test %d: failed to unmarshal result", i)
+		require.Equal(t, want, have, "test %d: result mismatch", i)
 	}
 }
