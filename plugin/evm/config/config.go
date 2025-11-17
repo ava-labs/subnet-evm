@@ -130,7 +130,7 @@ type Config struct {
 	MaxOutboundActiveRequests int64 `json:"max-outbound-active-requests"`
 
 	// Sync settings
-	StateSyncEnabled         *bool  `json:"state-sync-enabled"`     // Pointer distinguishes false (no state sync) and not set (state sync only at genesis).
+	StateSyncEnabled         bool   `json:"state-sync-enabled"`
 	StateSyncSkipResume      bool   `json:"state-sync-skip-resume"` // Forces state sync to use the highest available summary block
 	StateSyncServerTrieCache int    `json:"state-sync-server-trie-cache"`
 	StateSyncIDs             string `json:"state-sync-ids"`
@@ -174,7 +174,7 @@ type Config struct {
 	WarpOffChainMessages []hexutil.Bytes `json:"warp-off-chain-messages"`
 
 	// RPC settings
-	HttpBodyLimit        uint64 `json:"http-body-limit"`
+	HTTPBodyLimit        uint64 `json:"http-body-limit"`
 	BatchRequestLimit    uint64 `json:"batch-request-limit"`
 	BatchResponseMaxSize uint64 `json:"batch-response-max-size"`
 

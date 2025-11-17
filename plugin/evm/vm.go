@@ -34,6 +34,7 @@ import (
 	"github.com/ava-labs/avalanchego/utils/units"
 	"github.com/ava-labs/avalanchego/vms/components/chain"
 	"github.com/ava-labs/avalanchego/vms/evm/acp226"
+	"github.com/ava-labs/avalanchego/vms/evm/uptimetracker"
 	"github.com/ava-labs/firewood-go-ethhash/ffi"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/rawdb"
@@ -71,8 +72,6 @@ import (
 	"github.com/ava-labs/subnet-evm/plugin/evm/extension"
 	"github.com/ava-labs/subnet-evm/plugin/evm/gossip"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
-	"github.com/ava-labs/subnet-evm/plugin/evm/validators"
-	"github.com/ava-labs/subnet-evm/plugin/evm/validators/interfaces"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/rpc"
 	"github.com/ava-labs/subnet-evm/sync/client/stats"
@@ -109,6 +108,8 @@ const (
 	unverifiedCacheSize    = 5 * units.MiB
 	bytesToIDCacheSize     = 5 * units.MiB
 	warpSignatureCacheSize = 500
+
+	syncFrequency = 1 * time.Minute
 
 	// Prefixes for metrics gatherers
 	ethMetricsPrefix        = "eth"
@@ -157,7 +158,7 @@ var originalStderr *os.File
 
 // legacyApiNames maps pre geth v1.10.20 api names to their updated counterparts.
 // used in attachEthService for backward configuration compatibility.
-var legacyApiNames = map[string]string{
+var legacyAPINames = map[string]string{
 	"internal-public-eth":              "internal-eth",
 	"internal-public-blockchain":       "internal-blockchain",
 	"internal-public-transaction-pool": "internal-transaction",
@@ -263,7 +264,7 @@ type VM struct {
 	ethTxPushGossiper  avalancheUtils.Atomic[*avalanchegossip.PushGossiper[*GossipEthTx]]
 	ethTxPullGossiper  avalanchegossip.Gossiper
 
-	validatorsManager interfaces.Manager
+	uptimeTracker *uptimetracker.UptimeTracker
 
 	chainAlias string
 	// RPC handlers (should be stopped before closing chaindb)
@@ -412,7 +413,7 @@ func (vm *VM) Initialize(
 	vm.ethConfig.PopulateMissingTries = vm.config.PopulateMissingTries
 	vm.ethConfig.PopulateMissingTriesParallelism = vm.config.PopulateMissingTriesParallelism
 	vm.ethConfig.AllowMissingTries = vm.config.AllowMissingTries
-	vm.ethConfig.SnapshotDelayInit = vm.stateSyncEnabled(lastAcceptedHeight)
+	vm.ethConfig.SnapshotDelayInit = vm.config.StateSyncEnabled
 	vm.ethConfig.SnapshotWait = vm.config.SnapshotWait
 	vm.ethConfig.SnapshotVerify = vm.config.SnapshotVerify
 	vm.ethConfig.HistoricalProofQueryWindow = vm.config.HistoricalProofQueryWindow
@@ -476,9 +477,9 @@ func (vm *VM) Initialize(
 		return fmt.Errorf("failed to create network: %w", err)
 	}
 
-	vm.validatorsManager, err = validators.NewManager(vm.ctx, vm.validatorsDB, vm.clock)
+	vm.uptimeTracker, err = uptimetracker.New(vm.ctx.ValidatorState, vm.ctx.SubnetID, vm.validatorsDB, vm.clock)
 	if err != nil {
-		return fmt.Errorf("failed to initialize validators manager: %w", err)
+		return fmt.Errorf("failed to initialize uptime tracker: %w", err)
 	}
 
 	// Initialize warp backend
@@ -504,7 +505,7 @@ func (vm *VM) Initialize(
 		vm.ctx.ChainID,
 		vm.ctx.WarpSigner,
 		vm,
-		validators.NewLockedValidatorReader(vm.validatorsManager, &vm.vmLock),
+		vm.uptimeTracker,
 		vm.warpDB,
 		meteredCache,
 		offchainWarpMessages,
@@ -705,11 +706,10 @@ func (vm *VM) initializeStateSync(lastAcceptedHeight uint64) error {
 	)
 	vm.Network.SetRequestHandler(networkHandler)
 
-	vm.Server = vmsync.NewServer(vm.blockChain, vm.extensionConfig.SyncSummaryProvider, vm.config.StateSyncCommitInterval)
-	stateSyncEnabled := vm.stateSyncEnabled(lastAcceptedHeight)
+	vm.Server = vmsync.NewServer(vm.blockChain, vm.extensionConfig.SyncSummaryProvider, vm.config.StateSyncCommitInterval) // parse nodeIDs from state sync IDs in vm config
 	// parse nodeIDs from state sync IDs in vm config
 	var stateSyncIDs []ids.NodeID
-	if stateSyncEnabled && len(vm.config.StateSyncIDs) > 0 {
+	if vm.config.StateSyncEnabled && len(vm.config.StateSyncIDs) > 0 {
 		nodeIDs := strings.Split(vm.config.StateSyncIDs, ",")
 		stateSyncIDs = make([]ids.NodeID, len(nodeIDs))
 		for i, nodeIDString := range nodeIDs {
@@ -738,7 +738,7 @@ func (vm *VM) initializeStateSync(lastAcceptedHeight uint64) error {
 				BlockParser:      vm,
 			},
 		),
-		Enabled:            stateSyncEnabled,
+		Enabled:            vm.config.StateSyncEnabled,
 		SkipResume:         vm.config.StateSyncSkipResume,
 		MinBlocks:          vm.config.StateSyncMinBlocks,
 		RequestSize:        vm.config.StateSyncRequestSize,
@@ -753,7 +753,7 @@ func (vm *VM) initializeStateSync(lastAcceptedHeight uint64) error {
 
 	// If StateSync is disabled, clear any ongoing summary so that we will not attempt to resume
 	// sync using a snapshot that has been modified by the node running normal operations.
-	if !stateSyncEnabled {
+	if !vm.config.StateSyncEnabled {
 		return vm.Client.ClearOngoingSummary()
 	}
 
@@ -835,16 +835,26 @@ func (vm *VM) onNormalOperationsStarted() error {
 	ctx, cancel := context.WithCancel(context.TODO())
 	vm.cancel = cancel
 
-	// Start the validators manager
-	if err := vm.validatorsManager.Initialize(ctx); err != nil {
-		return fmt.Errorf("failed to initialize validators manager: %w", err)
-	}
+	// Initially sync the uptime tracker so that APIs expose recent data even if
+	// called immediately after bootstrapping.
+	vm.uptimeTracker.Sync(ctx)
 
-	// dispatch validator set update
 	vm.shutdownWg.Add(1)
 	go func() {
-		vm.validatorsManager.DispatchSync(ctx, &vm.vmLock)
-		vm.shutdownWg.Done()
+		defer vm.shutdownWg.Done()
+		ticker := time.NewTicker(syncFrequency)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				if err := vm.uptimeTracker.Sync(ctx); err != nil {
+					log.Error("failed to sync uptime tracker", "err", err)
+				}
+			}
+		}
 	}()
 
 	// Initialize goroutines related to block building
@@ -985,8 +995,8 @@ func (vm *VM) Shutdown(context.Context) error {
 		vm.cancel()
 	}
 	if vm.bootstrapped.Get() {
-		if err := vm.validatorsManager.Shutdown(); err != nil {
-			return fmt.Errorf("failed to shutdown validators manager: %w", err)
+		if err := vm.uptimeTracker.Shutdown(); err != nil {
+			return fmt.Errorf("failed to shutdown uptime tracker: %w", err)
 		}
 	}
 	vm.Network.Shutdown()
@@ -1178,8 +1188,8 @@ func (vm *VM) CreateHandlers(context.Context) (map[string]http.Handler, error) {
 	if vm.config.BatchRequestLimit > 0 && vm.config.BatchResponseMaxSize > 0 {
 		handler.SetBatchLimits(int(vm.config.BatchRequestLimit), int(vm.config.BatchResponseMaxSize))
 	}
-	if vm.config.HttpBodyLimit > 0 {
-		handler.SetHTTPBodyLimit(int(vm.config.HttpBodyLimit))
+	if vm.config.HTTPBodyLimit > 0 {
+		handler.SetHTTPBodyLimit(int(vm.config.HTTPBodyLimit))
 	}
 
 	enabledAPIs := vm.config.EthAPIs()
@@ -1286,7 +1296,7 @@ func (vm *VM) startContinuousProfiler() {
 		return
 	}
 	vm.profiler = profiler.NewContinuous(
-		filepath.Join(vm.config.ContinuousProfilerDir),
+		filepath.Clean(vm.config.ContinuousProfilerDir),
 		vm.config.ContinuousProfilerFrequency.Duration,
 		vm.config.ContinuousProfilerMaxFiles,
 	)
@@ -1347,7 +1357,7 @@ func attachEthService(handler *rpc.Server, apis []rpc.API, names []string) error
 	for _, ns := range names {
 		// handle pre geth v1.10.20 api names as aliases for their updated values
 		// to allow configurations to be backwards compatible.
-		if newName, isLegacy := legacyApiNames[ns]; isLegacy {
+		if newName, isLegacy := legacyAPINames[ns]; isLegacy {
 			log.Info("deprecated api name referenced in configuration.", "deprecated", ns, "new", newName)
 			enabledServicesSet[newName] = struct{}{}
 			continue
@@ -1375,16 +1385,6 @@ func attachEthService(handler *rpc.Server, apis []rpc.API, names []string) error
 	}
 
 	return nil
-}
-
-func (vm *VM) stateSyncEnabled(lastAcceptedHeight uint64) bool {
-	if vm.config.StateSyncEnabled != nil {
-		// if the config is set, use that
-		return *vm.config.StateSyncEnabled
-	}
-
-	// enable state sync by default if the chain is empty.
-	return lastAcceptedHeight == 0
 }
 
 func (vm *VM) PutLastAcceptedID(id ids.ID) error {

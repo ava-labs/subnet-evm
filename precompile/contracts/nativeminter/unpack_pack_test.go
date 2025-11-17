@@ -32,13 +32,10 @@ func FuzzPackMintNativeCoinEqualTest(f *testing.F) {
 	f.Add(constants.BlackholeAddr.Bytes(), common.Big2.Bytes())
 	f.Fuzz(func(t *testing.T, b []byte, bigIntBytes []byte) {
 		bigIntVal := new(big.Int).SetBytes(bigIntBytes)
-		doCheckOutputs := true
 		// we can only check if outputs are correct if the value is less than MaxUint256
 		// otherwise the value will be truncated when packed,
 		// and thus unpacked output will not be equal to the value
-		if bigIntVal.Cmp(abi.MaxUint256) > 0 {
-			doCheckOutputs = false
-		}
+		doCheckOutputs := bigIntVal.Cmp(abi.MaxUint256) <= 0
 		testOldPackMintNativeCoinEqual(t, common.BytesToAddress(b), bigIntVal, doCheckOutputs)
 	})
 }
@@ -111,7 +108,7 @@ func TestUnpackMintNativeCoinInput(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 				require.Equal(t, test.expectedAddr, unpackedAddress)
-				require.True(t, test.expectedAmount.Cmp(unpackedAmount) == 0, "expected %s, got %s", test.expectedAmount.String(), unpackedAmount.String())
+				require.Equal(t, test.expectedAmount, unpackedAmount, "expected %s, got %s", test.expectedAmount.String(), unpackedAmount.String())
 			}
 			oldUnpackedAddress, oldUnpackedAmount, oldErr := OldUnpackMintNativeCoinInput(test.input)
 			if test.expectedOldErr != "" {
@@ -119,7 +116,7 @@ func TestUnpackMintNativeCoinInput(t *testing.T) {
 			} else {
 				require.NoError(t, oldErr)
 				require.Equal(t, test.expectedAddr, oldUnpackedAddress)
-				require.True(t, test.expectedAmount.Cmp(oldUnpackedAmount) == 0, "expected %s, got %s", test.expectedAmount.String(), oldUnpackedAmount.String())
+				require.Equal(t, test.expectedAmount, oldUnpackedAmount, "expected %s, got %s", test.expectedAmount.String(), oldUnpackedAmount.String())
 			}
 		})
 	}

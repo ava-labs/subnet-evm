@@ -44,13 +44,13 @@ type TestClient struct {
 
 func NewTestClient(
 	codec codec.Manager,
-	leafHandler handlers.LeafRequestHandler,
+	leafsHandler handlers.LeafRequestHandler,
 	codesHandler *handlers.CodeRequestHandler,
 	blocksHandler *handlers.BlockRequestHandler,
 ) *TestClient {
 	return &TestClient{
 		codec:         codec,
-		leafsHandler:  leafHandler,
+		leafsHandler:  leafsHandler,
 		codesHandler:  codesHandler,
 		blocksHandler: blocksHandler,
 	}

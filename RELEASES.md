@@ -1,14 +1,30 @@
 # Release Notes
 
-## [v0.7.10](https://github.com/ava-labs/subnet-evm/releases/tag/v0.7.10)
+## [v0.8.1](https://github.com/ava-labs/subnet-evm/releases/tag/v0.8.1)
 
 - Add pending releases here
+
+## [v0.8.0](https://github.com/ava-labs/subnet-evm/releases/tag/v0.8.0)
+
+This version is compatible with the Avalanche Granite upgrade. All mainnet nodes **MUST** update to a Granite compatible version prior to the upgrade activation time: November 19th, 2025 16:00 UTC.
+
+### AvalancheGo Compatibility
+
+The plugin version is **updated** to 44 and is compatible with AvalancheGo version v1.14.0.
+
+### Updates
+
 - Upgrade to Go version 1.24
 - ACP-226:
   - Set expected block gas cost to 0 in Granite network upgrade, removing block gas cost requirements for block building.
   - Add `timeMilliseconds` (Unix uint64) timestamp to block header for Granite upgrade.
+  - Add `min-delay-target` (uint64) flag to node configs.
   - Add `minDelayExcess` (uint64) to block header for Granite upgrade.
   - Add minimum block building delays to conform the block builder to ACP-226 requirements.
+  - Add minimum delay verification.
+- Updated gas price estimation to use median of transactions in the last 20 seconds/40 blocks instead of estimation with block gas cost:
+  - Changed default percentile from 60 to 40
+  - This impacts `eth_suggestGasPrice` and `eth_suggestGasTipCap` , `eth_suggestPriceOptions`, `eth_maxPriorityFeePerGas`, `eth_gasPrice` APIs
 
 ## [v0.7.9](https://github.com/ava-labs/subnet-evm/releases/tag/v0.7.9)
 
