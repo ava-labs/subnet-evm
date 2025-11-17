@@ -175,7 +175,7 @@ func allFieldsSet[T interface {
 			case []uint8, []*Header, Transactions, []*Transaction, Withdrawals, []*Withdrawal:
 				assert.NotEmpty(t, f)
 			default:
-				assert.Failf(t, "Field %q has unsupported type %T", field.Name, f)
+				assert.Failf(t, "invalid type", "Field %q has unsupported type %T", field.Name, f)
 			}
 		})
 	}
