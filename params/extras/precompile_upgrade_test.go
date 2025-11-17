@@ -288,9 +288,7 @@ func (tt *upgradeCompatibilityTest) run(t *testing.T, chainConfig ChainConfig) {
 		// if this is not the final upgradeBytes, continue applying
 		// the next upgradeBytes. (only check the result on the last apply)
 		if i != len(tt.configs)-1 {
-			if err != nil {
-				t.Fatalf("expecting checkConfigCompatible call %d to return nil, got %s", i+1, err)
-			}
+			require.NoError(t, err, "expecting checkConfigCompatible call %d to return nil", i+1)
 			chainConfig = newCfg
 			continue
 		}

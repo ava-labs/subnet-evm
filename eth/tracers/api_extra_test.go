@@ -135,23 +135,16 @@ func testTraceBlockPrecompileActivation(t *testing.T, scheme string) {
 		result, err := api.TraceBlockByNumber(context.Background(), tc.blockNumber, tc.config)
 		if tc.expectErr != nil {
 			if err == nil {
-				t.Errorf("test %d, want error %v", i, tc.expectErr)
+				require.Fail(t, fmt.Sprintf("test %d, want error %v", i, tc.expectErr))
 				continue
 			}
-			if !reflect.DeepEqual(err, tc.expectErr) {
-				t.Errorf("test %d: error mismatch, want %v, get %v", i, tc.expectErr, err)
-			}
+			require.Equal(t, tc.expectErr, err, "test %d: error mismatch", i)
 			continue
 		}
-		if err != nil {
-			t.Errorf("test %d, want no error, have %v", i, err)
-			continue
-		}
+		require.NoError(t, err, "test %d, want no error", i)
 		have, _ := json.Marshal(result)
 		want := tc.want
-		if string(have) != want {
-			t.Errorf("test %d, result mismatch, have\n%v\n, want\n%v\n", i, string(have), want)
-		}
+		require.Equal(t, want, string(have), "test %d, result mismatch", i)
 	}
 }
 
@@ -306,28 +299,19 @@ func testTraceChainPrecompileActivation(t *testing.T, scheme string) {
 
 		next := c.start + 1
 		for result := range resCh {
-			if have, want := uint64(result.Block), next; have != want {
-				t.Fatalf("unexpected tracing block, have %d want %d", have, want)
-			}
-			if have, want := len(result.Traces), int(next); have != want {
-				t.Fatalf("unexpected result length, have %d want %d", have, want)
-			}
+			require.Equal(t, next, uint64(result.Block), "unexpected tracing block")
+			require.Len(t, result.Traces, int(next), "unexpected result length")
 			for _, trace := range result.Traces {
 				trace.TxHash = common.Hash{}
 				blob, _ := json.Marshal(trace)
-				if have, want := string(blob), single; have != want {
-					t.Fatalf("unexpected tracing result, have\n%v\nwant:\n%v", have, want)
-				}
+				require.Equal(t, single, string(blob), "unexpected tracing result")
 			}
 			next += 1
 		}
-		if next != c.end+1 {
-			t.Error("Missing tracing block")
-		}
+		require.Equal(t, c.end+1, next, "Missing tracing block")
 
-		if nref, nrel := ref.Load(), rel.Load(); nref != nrel {
-			t.Errorf("Ref and deref actions are not equal, ref %d rel %d", nref, nrel)
-		}
+		nref, nrel := ref.Load(), rel.Load()
+		require.Equal(t, nrel, nref, "Ref and deref actions are not equal")
 	}
 }
 
@@ -448,21 +432,14 @@ func testTraceCallWithOverridesStateUpgrade(t *testing.T, scheme string) {
 			require.ErrorIs(t, err, testspec.expectErr, "test %d", i)
 			continue
 		} else {
-			if err != nil {
-				t.Errorf("test %d: expect no error, got %v", i, err)
-				continue
-			}
+			require.NoError(t, err, "test %d: expect no error", i)
 			var have *logger.ExecutionResult
-			if err := json.Unmarshal(result.(json.RawMessage), &have); err != nil {
-				t.Errorf("test %d: failed to unmarshal result %v", i, err)
-			}
+			err = json.Unmarshal(result.(json.RawMessage), &have)
+			require.NoError(t, err, "test %d: failed to unmarshal result", i)
 			var want *logger.ExecutionResult
-			if err := json.Unmarshal([]byte(testspec.expect), &want); err != nil {
-				t.Errorf("test %d: failed to unmarshal result %v", i, err)
-			}
-			if !reflect.DeepEqual(have, want) {
-				t.Errorf("test %d: result mismatch, want %v, got %v", i, testspec.expect, string(result.(json.RawMessage)))
-			}
+			err = json.Unmarshal([]byte(testspec.expect), &want)
+			require.NoError(t, err, "test %d: failed to unmarshal result", i)
+			require.Equal(t, want, have, "test %d: result mismatch", i)
 		}
 	}
 }

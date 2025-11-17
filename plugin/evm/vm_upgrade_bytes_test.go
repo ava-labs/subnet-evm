@@ -6,7 +6,6 @@ package evm
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"math/big"
 	"testing"
@@ -48,9 +47,7 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 		},
 	}
 	upgradeBytesJSON, err := json.Marshal(upgradeConfig)
-	if err != nil {
-		t.Fatalf("could not marshal upgradeConfig to json: %s", err)
-	}
+	require.NoError(t, err, "could not marshal upgradeConfig to json")
 
 	// initialize the VM with these upgrade bytes
 	tvm := newVM(t, testVMConfig{
@@ -58,9 +55,7 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 		upgradeJSON: string(upgradeBytesJSON),
 	})
 	defer func() {
-		if err := tvm.vm.Shutdown(context.Background()); err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, tvm.vm.Shutdown(context.Background()))
 	}()
 
 	tvm.vm.clock.Set(enableAllowListTimestamp)
@@ -71,20 +66,14 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 	require.NoError(t, err)
 
 	errs := tvm.vm.txPool.AddRemotesSync([]*types.Transaction{signedTx0})
-	if err := errs[0]; err != nil {
-		t.Fatalf("Failed to add tx at index: %s", err)
-	}
+	require.NoError(t, errs[0], "Failed to add tx at index")
 
 	// Submit a rejected transaction, should throw an error
 	tx1 := types.NewTransaction(uint64(0), testEthAddrs[1], big.NewInt(2), 21000, big.NewInt(testMinGasPrice), nil)
 	signedTx1, err := types.SignTx(tx1, types.NewEIP155Signer(tvm.vm.chainConfig.ChainID), testKeys[1].ToECDSA())
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	errs = tvm.vm.txPool.AddRemotesSync([]*types.Transaction{signedTx1})
-	if err := errs[0]; !errors.Is(err, vmerrors.ErrSenderAddressNotAllowListed) {
-		t.Fatalf("expected ErrSenderAddressNotAllowListed, got: %s", err)
-	}
+	require.ErrorIs(t, errs[0], vmerrors.ErrSenderAddressNotAllowListed, "expected ErrSenderAddressNotAllowListed")
 
 	// prepare the new upgrade bytes to disable the TxAllowList
 	disableAllowListTimestamp := tvm.vm.clock.Time().Add(10 * time.Hour) // arbitrary choice
@@ -95,32 +84,22 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 		},
 	)
 	upgradeBytesJSON, err = json.Marshal(upgradeConfig)
-	if err != nil {
-		t.Fatalf("could not marshal upgradeConfig to json: %s", err)
-	}
+	require.NoError(t, err, "could not marshal upgradeConfig to json")
 
 	// Reset metrics to allow re-initialization
 	tvm.vm.ctx.Metrics = metrics.NewPrefixGatherer()
 
 	// restart the vm with the same stateful params
 	newVM := &VM{}
-	if err := newVM.Initialize(
+	require.NoError(t, newVM.Initialize(
 		context.Background(), tvm.vm.ctx, tvm.db, []byte(genesisJSONSubnetEVM), upgradeBytesJSON, []byte{}, []*commonEng.Fx{}, tvm.appSender,
-	); err != nil {
-		t.Fatal(err)
-	}
+	))
 	defer func() {
-		if err := newVM.Shutdown(context.Background()); err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, newVM.Shutdown(context.Background()))
 	}()
 	// Set the VM's state to NormalOp to initialize the tx pool.
-	if err := newVM.SetState(context.Background(), snow.Bootstrapping); err != nil {
-		t.Fatal(err)
-	}
-	if err := newVM.SetState(context.Background(), snow.NormalOp); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, newVM.SetState(context.Background(), snow.Bootstrapping))
+	require.NoError(t, newVM.SetState(context.Background(), snow.NormalOp))
 	newTxPoolHeadChan := make(chan core.NewTxPoolReorgEvent, 1)
 	newVM.txPool.SubscribeNewReorgEvent(newTxPoolHeadChan)
 	newVM.clock.Set(disableAllowListTimestamp)
@@ -128,24 +107,18 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 	// Make a block, previous rules still apply (TxAllowList is active)
 	// Submit a successful transaction
 	errs = newVM.txPool.AddRemotesSync([]*types.Transaction{signedTx0})
-	if err := errs[0]; err != nil {
-		t.Fatalf("Failed to add tx at index: %s", err)
-	}
+	require.NoError(t, errs[0], "Failed to add tx at index")
 
 	// Submit a rejected transaction, should throw an error
 	errs = newVM.txPool.AddRemotesSync([]*types.Transaction{signedTx1})
-	if err := errs[0]; !errors.Is(err, vmerrors.ErrSenderAddressNotAllowListed) {
-		t.Fatalf("expected ErrSenderAddressNotAllowListed, got: %s", err)
-	}
+	require.ErrorIs(t, errs[0], vmerrors.ErrSenderAddressNotAllowListed, "expected ErrSenderAddressNotAllowListed")
 
 	blk := issueAndAccept(t, newVM)
 
 	// Verify that the constructed block only has the whitelisted tx
 	block := blk.(*chain.BlockWrapper).Block.(*wrappedBlock).ethBlock
 	txs := block.Transactions()
-	if txs.Len() != 1 {
-		t.Fatalf("Expected number of txs to be %d, but found %d", 1, txs.Len())
-	}
+	require.Equal(t, 1, txs.Len(), "Expected number of txs to be %d, but found %d", 1, txs.Len())
 	assert.Equal(t, signedTx0.Hash(), txs[0].Hash())
 
 	// verify the issued block is after the network upgrade
@@ -155,9 +128,7 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 
 	// retry the rejected Tx, which should now succeed
 	errs = newVM.txPool.AddRemotesSync([]*types.Transaction{signedTx1})
-	if err := errs[0]; err != nil {
-		t.Fatalf("Failed to add tx at index: %s", err)
-	}
+	require.NoError(t, errs[0], "Failed to add tx at index")
 
 	newVM.clock.Set(newVM.clock.Time().Add(2 * time.Second)) // add 2 seconds for gas fee to adjust
 	blk = issueAndAccept(t, newVM)
@@ -165,9 +136,7 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 	// Verify that the constructed block only has the previously rejected tx
 	block = blk.(*chain.BlockWrapper).Block.(*wrappedBlock).ethBlock
 	txs = block.Transactions()
-	if txs.Len() != 1 {
-		t.Fatalf("Expected number of txs to be %d, but found %d", 1, txs.Len())
-	}
+	require.Equal(t, 1, txs.Len(), "Expected number of txs to be %d, but found %d", 1, txs.Len())
 	assert.Equal(t, signedTx1.Hash(), txs[0].Hash())
 }
 
@@ -222,9 +191,7 @@ func TestNetworkUpgradesOverridden(t *testing.T) {
 	signedTx0, err := types.SignTx(tx0, types.NewEIP155Signer(restartedVM.chainConfig.ChainID), testKeys[0].ToECDSA())
 	require.NoError(t, err)
 	errs := restartedVM.txPool.AddRemotesSync([]*types.Transaction{signedTx0})
-	if err := errs[0]; err != nil {
-		t.Fatalf("Failed to add tx at index: %s", err)
-	}
+	require.NoError(t, errs[0], "Failed to add tx at index")
 
 	blk := issueAndAccept(t, restartedVM)
 	require.NotNil(t, blk)

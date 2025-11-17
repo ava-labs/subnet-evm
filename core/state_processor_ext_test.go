@@ -4,6 +4,7 @@
 package core
 
 import (
+	"fmt"
 	"math/big"
 	"testing"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/libevm/core/vm"
 	"github.com/ava-labs/libevm/crypto"
+	"github.com/stretchr/testify/require"
 
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
 	"github.com/ava-labs/subnet-evm/params"
@@ -98,11 +100,9 @@ func TestBadTxAllowListBlock(t *testing.T) {
 	} {
 		block := GenerateBadBlock(gspec.ToBlock(), dummy.NewCoinbaseFaker(), tt.txs, gspec.Config)
 		_, err := blockchain.InsertChain(types.Blocks{block})
-		if err == nil {
-			t.Fatal("block imported without errors")
-		}
+		require.Error(t, err, "block imported without errors")
 		if have, want := err.Error(), tt.want; have != want {
-			t.Errorf("test %d:\nhave \"%v\"\nwant \"%v\"\n", i, have, want)
+			require.Fail(t, fmt.Sprintf("test %d:\nhave \"%v\"\nwant \"%v\"\n", i, have, want))
 		}
 	}
 }

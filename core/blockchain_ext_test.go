@@ -6,8 +6,6 @@ package core
 import (
 	"fmt"
 	"math/big"
-	"os"
-	"path/filepath"
 	"slices"
 	"testing"
 
@@ -139,30 +137,6 @@ func copyMemDB(db ethdb.Database) (ethdb.Database, error) {
 	}
 
 	return newDB, nil
-}
-
-// This copies all files from a flat directory [src] to a new temporary directory and returns
-// the path to the new directory.
-func copyFlatDir(t *testing.T, src string) string {
-	t.Helper()
-	if src == "" {
-		return ""
-	}
-
-	dst := t.TempDir()
-	ents, err := os.ReadDir(src)
-	require.NoError(t, err)
-
-	for _, e := range ents {
-		require.False(t, e.IsDir(), "expected flat directory")
-		name := e.Name()
-		data, err := os.ReadFile(filepath.Join(src, name))
-		require.NoError(t, err)
-		info, err := e.Info()
-		require.NoError(t, err)
-		require.NoError(t, os.WriteFile(filepath.Join(dst, name), data, info.Mode().Perm()))
-	}
-	return dst
 }
 
 // checkBlockChainState creates a new BlockChain instance and checks that exporting each block from
@@ -1397,9 +1371,7 @@ func StatefulPrecompiles(t *testing.T, create createFunc) {
 	}
 
 	blockchain, err := create(chainDB, gspec, common.Hash{}, t.TempDir())
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	defer blockchain.Stop()
 
 	signer := types.LatestSigner(params.TestChainConfig)
@@ -1429,9 +1401,7 @@ func StatefulPrecompiles(t *testing.T, create createFunc) {
 			addTx: func(gen *BlockGen) {
 				feeCap := new(big.Int).Add(gen.BaseFee(), tip)
 				input, err := allowlist.PackModifyAllowList(addr2, allowlist.AdminRole)
-				if err != nil {
-					t.Fatal(err)
-				}
+				require.NoError(t, err)
 				tx := types.NewTx(&types.DynamicFeeTx{
 					ChainID:   params.TestChainConfig.ChainID,
 					Nonce:     gen.TxNonce(addr1),
@@ -1444,9 +1414,7 @@ func StatefulPrecompiles(t *testing.T, create createFunc) {
 				})
 
 				signedTx, err := types.SignTx(tx, signer, key1)
-				if err != nil {
-					t.Fatal(err)
-				}
+				require.NoError(t, err)
 				gen.AddTx(signedTx)
 			},
 			verifyState: func(sdb *state.StateDB) error {
@@ -1462,22 +1430,16 @@ func StatefulPrecompiles(t *testing.T, create createFunc) {
 			},
 			verifyGenesis: func(sdb *state.StateDB) {
 				res := deployerallowlist.GetContractDeployerAllowListStatus(sdb, addr1)
-				if allowlist.AdminRole != res {
-					t.Fatalf("unexpected allow list status for addr1 %s, expected %s", res, allowlist.AdminRole)
-				}
+				require.Equal(t, allowlist.AdminRole, res, "unexpected allow list status for addr1 %s, expected %s", res, allowlist.AdminRole)
 				res = deployerallowlist.GetContractDeployerAllowListStatus(sdb, addr2)
-				if allowlist.NoRole != res {
-					t.Fatalf("unexpected allow list status for addr2 %s, expected %s", res, allowlist.NoRole)
-				}
+				require.Equal(t, allowlist.NoRole, res, "unexpected allow list status for addr2 %s, expected %s", res, allowlist.NoRole)
 			},
 		},
 		"fee manager set config": {
 			addTx: func(gen *BlockGen) {
 				feeCap := new(big.Int).Add(gen.BaseFee(), tip)
 				input, err := feemanager.PackSetFeeConfig(testFeeConfig)
-				if err != nil {
-					t.Fatal(err)
-				}
+				require.NoError(t, err)
 				tx := types.NewTx(&types.DynamicFeeTx{
 					ChainID:   params.TestChainConfig.ChainID,
 					Nonce:     gen.TxNonce(addr1),
@@ -1490,9 +1452,7 @@ func StatefulPrecompiles(t *testing.T, create createFunc) {
 				})
 
 				signedTx, err := types.SignTx(tx, signer, key1)
-				if err != nil {
-					t.Fatal(err)
-				}
+				require.NoError(t, err)
 				gen.AddTx(signedTx)
 			},
 			verifyState: func(sdb *state.StateDB) error {
@@ -1525,23 +1485,16 @@ func StatefulPrecompiles(t *testing.T, create createFunc) {
 			test.addTx(gen)
 		}
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	// Insert three blocks into the chain and accept only the first block.
-	if _, err := blockchain.InsertChain(chain); err != nil {
-		t.Fatal(err)
-	}
-	if err := blockchain.Accept(chain[0]); err != nil {
-		t.Fatal(err)
-	}
+	_, err = blockchain.InsertChain(chain)
+	require.NoError(t, err)
+	require.NoError(t, blockchain.Accept(chain[0]))
 	blockchain.DrainAcceptorQueue()
 
 	genesisState, err := blockchain.StateAt(blockchain.Genesis().Root())
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	for _, test := range tests {
 		if test.verifyGenesis == nil {
 			continue

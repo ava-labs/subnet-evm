@@ -17,6 +17,7 @@ import (
 	"github.com/ava-labs/libevm/crypto"
 	"github.com/ava-labs/libevm/eth/tracers/logger"
 	"github.com/ava-labs/libevm/ethdb"
+	"github.com/stretchr/testify/require"
 
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
 	"github.com/ava-labs/subnet-evm/core/state/pruner"
@@ -354,7 +355,7 @@ func testRepopulateMissingTriesParallel(t *testing.T, parallelism int) {
 
 	blockchain, err := createBlockChain(chainDB, pruningConfig, gspec, common.Hash{})
 	if err != nil {
-		t.Fatal(err)
+		require.NoError(t, err)
 	}
 	defer blockchain.Stop()
 
@@ -365,16 +366,14 @@ func testRepopulateMissingTriesParallel(t *testing.T, parallelism int) {
 		gen.AddTx(tx)
 	})
 	if err != nil {
-		t.Fatal(err)
+		require.NoError(t, err)
 	}
 
 	if _, err := blockchain.InsertChain(chain); err != nil {
-		t.Fatal(err)
+		require.NoError(t, err)
 	}
 	for _, block := range chain {
-		if err := blockchain.Accept(block); err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, blockchain.Accept(block))
 	}
 	blockchain.DrainAcceptorQueue()
 
@@ -383,13 +382,13 @@ func testRepopulateMissingTriesParallel(t *testing.T, parallelism int) {
 
 	blockchain, err = createBlockChain(chainDB, pruningConfig, gspec, lastAcceptedHash)
 	if err != nil {
-		t.Fatal(err)
+		require.NoError(t, err)
 	}
 
 	// Confirm that the node does not have the state for intermediate nodes (exclude the last accepted block)
 	for _, block := range chain[:len(chain)-1] {
 		if blockchain.HasState(block.Root()) {
-			t.Fatalf("Expected blockchain to be missing state for intermediate block %d with pruning enabled", block.NumberU64())
+			require.Fail(t, fmt.Sprintf("Expected blockchain to be missing state for intermediate block %d with pruning enabled", block.NumberU64()))
 		}
 	}
 	blockchain.Stop()
@@ -413,13 +412,13 @@ func testRepopulateMissingTriesParallel(t *testing.T, parallelism int) {
 		lastAcceptedHash,
 	)
 	if err != nil {
-		t.Fatal(err)
+		require.NoError(t, err)
 	}
 	defer blockchain.Stop()
 
 	for _, block := range chain {
 		if !blockchain.HasState(block.Root()) {
-			t.Fatalf("failed to re-generate state for block %d", block.NumberU64())
+			require.Fail(t, fmt.Sprintf("failed to re-generate state for block %d", block.NumberU64()))
 		}
 	}
 }
@@ -536,11 +535,11 @@ func testCanonicalHashMarker(t *testing.T, scheme string) {
 		)
 		_, forkA, _, err := GenerateChainWithGenesis(gspec, engine, c.forkA, 10, func(int, *BlockGen) {})
 		if err != nil {
-			t.Fatal(err)
+			require.NoError(t, err)
 		}
 		_, forkB, _, err := GenerateChainWithGenesis(gspec, engine, c.forkB, 10, func(int, *BlockGen) {})
 		if err != nil {
-			t.Fatal(err)
+			require.NoError(t, err)
 		}
 
 		// Initialize test chain
@@ -549,25 +548,25 @@ func testCanonicalHashMarker(t *testing.T, scheme string) {
 		cacheConfig.ChainDataDir = t.TempDir()
 		chain, err := NewBlockChain(db, cacheConfig, gspec, engine, vm.Config{}, common.Hash{}, false)
 		if err != nil {
-			t.Fatalf("failed to create tester chain: %v", err)
+			require.Fail(t, fmt.Sprintf("failed to create tester chain: %v", err))
 		}
 		// Insert forkA and forkB, the canonical should on forkA still
 		if n, err := chain.InsertChain(forkA); err != nil {
-			t.Fatalf("block %d: failed to insert into chain: %v", n, err)
+			require.Fail(t, fmt.Sprintf("block %d: failed to insert into chain: %v", n, err))
 		}
 		if n, err := chain.InsertChain(forkB); err != nil {
-			t.Fatalf("block %d: failed to insert into chain: %v", n, err)
+			require.Fail(t, fmt.Sprintf("block %d: failed to insert into chain: %v", n, err))
 		}
 
 		verify := func(head *types.Block) {
 			if chain.CurrentBlock().Hash() != head.Hash() {
-				t.Fatalf("Unexpected block hash, want %x, got %x", head.Hash(), chain.CurrentBlock().Hash())
+				require.Fail(t, fmt.Sprintf("Unexpected block hash, want %x, got %x", head.Hash(), chain.CurrentBlock().Hash()))
 			}
 			if chain.CurrentHeader().Hash() != head.Hash() {
-				t.Fatalf("Unexpected head header, want %x, got %x", head.Hash(), chain.CurrentHeader().Hash())
+				require.Fail(t, fmt.Sprintf("Unexpected head header, want %x, got %x", head.Hash(), chain.CurrentHeader().Hash()))
 			}
 			if !chain.HasState(head.Root()) {
-				t.Fatalf("Lost block state %v %x", head.Number(), head.Hash())
+				require.Fail(t, fmt.Sprintf("Lost block state %v %x", head.Number(), head.Hash()))
 			}
 		}
 
@@ -576,9 +575,7 @@ func testCanonicalHashMarker(t *testing.T, scheme string) {
 			verify(forkB[len(forkB)-1])
 		} else {
 			verify(forkA[len(forkA)-1])
-			if err := chain.SetPreference(forkB[len(forkB)-1]); err != nil {
-				t.Fatal(err)
-			}
+			require.NoError(t, chain.SetPreference(forkB[len(forkB)-1]))
 			verify(forkB[len(forkB)-1])
 		}
 
@@ -587,14 +584,14 @@ func testCanonicalHashMarker(t *testing.T, scheme string) {
 			block := forkB[i]
 			hash := chain.GetCanonicalHash(block.NumberU64())
 			if hash != block.Hash() {
-				t.Fatalf("Unexpected canonical hash %d", block.NumberU64())
+				require.Fail(t, fmt.Sprintf("Unexpected canonical hash %d", block.NumberU64()))
 			}
 		}
 		if c.forkA > c.forkB {
 			for i := uint64(c.forkB) + 1; i <= uint64(c.forkA); i++ {
 				hash := chain.GetCanonicalHash(i)
 				if hash != (common.Hash{}) {
-					t.Fatalf("Unexpected canonical hash %d", i)
+					require.Fail(t, fmt.Sprintf("Unexpected canonical hash %d", i))
 				}
 			}
 		}
@@ -737,13 +734,13 @@ func testCreateThenDelete(t *testing.T, config *params.ChainConfig) {
 		// Tracer: logger.NewJSONLogger(nil, os.Stdout),
 	}, common.Hash{}, false)
 	if err != nil {
-		t.Fatalf("failed to create tester chain: %v", err)
+		require.Fail(t, fmt.Sprintf("failed to create tester chain: %v", err))
 	}
 	defer chain.Stop()
 	// Import the blocks
 	for _, block := range blocks {
 		if _, err := chain.InsertChain([]*types.Block{block}); err != nil {
-			t.Fatalf("block %d: failed to insert into chain: %v", block.NumberU64(), err)
+			require.Fail(t, fmt.Sprintf("block %d: failed to insert into chain: %v", block.NumberU64(), err))
 		}
 	}
 }
@@ -847,17 +844,17 @@ func TestDeleteThenCreate(t *testing.T) {
 		}
 	})
 	if err != nil {
-		t.Fatal(err)
+		require.NoError(t, err)
 	}
 	// Import the canonical chain
 	chain, err := NewBlockChain(rawdb.NewMemoryDatabase(), DefaultCacheConfig, gspec, engine, vm.Config{}, common.Hash{}, false)
 	if err != nil {
-		t.Fatalf("failed to create tester chain: %v", err)
+		require.Fail(t, fmt.Sprintf("failed to create tester chain: %v", err))
 	}
 	defer chain.Stop()
 	for _, block := range blocks {
 		if _, err := chain.InsertChain([]*types.Block{block}); err != nil {
-			t.Fatalf("block %d: failed to insert into chain: %v", block.NumberU64(), err)
+			require.Fail(t, fmt.Sprintf("block %d: failed to insert into chain: %v", block.NumberU64(), err))
 		}
 	}
 }
@@ -939,23 +936,21 @@ func TestTransientStorageReset(t *testing.T) {
 	// Initialize the blockchain with 1153 enabled.
 	chain, err := NewBlockChain(rawdb.NewMemoryDatabase(), DefaultCacheConfig, gspec, engine, vmConfig, common.Hash{}, false)
 	if err != nil {
-		t.Fatalf("failed to create tester chain: %v", err)
+		require.Fail(t, fmt.Sprintf("failed to create tester chain: %v", err))
 	}
 	defer chain.Stop()
 	// Import the blocks
 	if _, err := chain.InsertChain(blocks); err != nil {
-		t.Fatalf("failed to insert into chain: %v", err)
+		require.Fail(t, fmt.Sprintf("failed to insert into chain: %v", err))
 	}
 	// Check the storage
 	state, err := chain.StateAt(chain.CurrentHeader().Root)
 	if err != nil {
-		t.Fatalf("Failed to load state %v", err)
+		require.Fail(t, fmt.Sprintf("Failed to load state %v", err))
 	}
 	loc := common.BytesToHash([]byte{1})
 	slot := state.GetState(destAddress, loc)
-	if slot != (common.Hash{}) {
-		t.Fatalf("Unexpected dirty storage slot")
-	}
+	require.Equal(t, common.Hash{}, slot, "Unexpected dirty storage slot")
 }
 
 func TestEIP3651(t *testing.T) {
@@ -1029,11 +1024,11 @@ func TestEIP3651(t *testing.T) {
 	})
 	chain, err := NewBlockChain(rawdb.NewMemoryDatabase(), DefaultCacheConfig, gspec, engine, vm.Config{Tracer: logger.NewMarkdownLogger(&logger.Config{}, os.Stderr)}, common.Hash{}, false)
 	if err != nil {
-		t.Fatalf("failed to create tester chain: %v", err)
+		require.Fail(t, fmt.Sprintf("failed to create tester chain: %v", err))
 	}
 	defer chain.Stop()
 	if n, err := chain.InsertChain(blocks); err != nil {
-		t.Fatalf("block %d: failed to insert into chain: %v", n, err)
+		require.Fail(t, fmt.Sprintf("block %d: failed to insert into chain: %v", n, err))
 	}
 
 	block := chain.GetBlockByNumber(1)
@@ -1042,7 +1037,7 @@ func TestEIP3651(t *testing.T) {
 	innerGas := vm.GasQuickStep*2 + ethparams.ColdSloadCostEIP2929*2
 	expectedGas := ethparams.TxGas + 5*vm.GasFastestStep + vm.GasQuickStep + 100 + innerGas // 100 because 0xaaaa is in access list
 	if block.GasUsed() != expectedGas {
-		t.Fatalf("incorrect amount of gas spent: expected %d, got %d", expectedGas, block.GasUsed())
+		require.Fail(t, fmt.Sprintf("incorrect amount of gas spent: expected %d, got %d", expectedGas, block.GasUsed()))
 	}
 
 	state, _ := chain.State()
@@ -1056,7 +1051,7 @@ func TestEIP3651(t *testing.T) {
 	gasPrice := new(big.Int).Add(block.BaseFee(), tx.EffectiveGasTipValue(block.BaseFee()))
 	expected := new(big.Int).SetUint64(block.GasUsed() * gasPrice.Uint64())
 	if actual.Cmp(expected) != 0 {
-		t.Fatalf("miner balance incorrect: expected %d, got %d", expected, actual)
+		require.Fail(t, fmt.Sprintf("miner balance incorrect: expected %d, got %d", expected, actual))
 	}
 
 	// 4: Ensure the tx sender paid for the gasUsed * (block baseFee + effectiveGasTip).
@@ -1064,6 +1059,6 @@ func TestEIP3651(t *testing.T) {
 	// as our handling of the coinbase payment is different.
 	actual = new(big.Int).Sub(funds, state.GetBalance(addr1).ToBig())
 	if actual.Cmp(expected) != 0 {
-		t.Fatalf("sender balance incorrect: expected %d, got %d", expected, actual)
+		require.Fail(t, fmt.Sprintf("sender balance incorrect: expected %d, got %d", expected, actual))
 	}
 }

@@ -126,7 +126,7 @@ func BenchmarkPrefetcherDatabase(b *testing.B) {
 		if previous != root {
 			require.NoError(db.TrieDB().Dereference(previous))
 		} else {
-			b.Fatal("root did not change")
+			b.Fail()
 		}
 	}
 	require.NoError(levelDB.Close())
