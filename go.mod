@@ -1,11 +1,22 @@
 module github.com/ava-labs/subnet-evm
 
+// CLI tools intended for invocation with `go tool` should be added to
+// tools/go.mod to avoid polluting the main module's dependencies. See
+// CONTRIBUTING.md for more details.
+
+// - Changes to the minimum golang version must also be replicated in:
+//   - go.mod (here)
+//   - tools/go.mod
+//   - tools/legacy-golangci-lint.mod
+//
+// - If updating between minor versions (e.g. 1.24.x -> 1.25.x):
+//   - Consider updating the version of golangci-lint (see tools/go.mod)
 go 1.24.9
 
 require (
 	github.com/VictoriaMetrics/fastcache v1.12.1
 	github.com/antithesishq/antithesis-sdk-go v0.3.8
-	github.com/ava-labs/avalanchego v1.13.6-0.20251028173723-edff59906ed4
+	github.com/ava-labs/avalanchego v1.14.1-0.20251111165133-29b4e6bc541b
 	github.com/ava-labs/firewood-go-ethhash/ffi v0.0.13
 	github.com/ava-labs/libevm v1.13.15-0.20251016142715-1bccf4f2ddb2
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
@@ -47,10 +58,10 @@ require (
 	connectrpc.com/grpcreflect v1.3.0 // indirect
 	github.com/DataDog/zstd v1.5.2 // indirect
 	github.com/Microsoft/go-winio v0.6.1 // indirect
-	github.com/StephenButtolph/canoto v0.17.2 // indirect
-	github.com/ava-labs/coreth v0.15.4-rc.4 // indirect
+	github.com/StephenButtolph/canoto v0.17.3 // indirect
+	github.com/ava-labs/coreth v0.16.0-rc.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/bits-and-blooms/bitset v1.10.0 // indirect
+	github.com/bits-and-blooms/bitset v1.20.0 // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.3.5 // indirect
 	github.com/btcsuite/btcd/btcutil v1.1.3 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
@@ -62,11 +73,10 @@ require (
 	github.com/cockroachdb/redact v1.1.3 // indirect
 	github.com/cockroachdb/tokenbucket v0.0.0-20230807174530-cc333fc44b06 // indirect
 	github.com/compose-spec/compose-go v1.20.2 // indirect
-	github.com/consensys/bavard v0.1.13 // indirect
-	github.com/consensys/gnark-crypto v0.12.1 // indirect
+	github.com/consensys/gnark-crypto v0.18.1 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.6 // indirect
 	github.com/crate-crypto/go-ipa v0.0.0-20231025140028-3c0104f4b233 // indirect
-	github.com/crate-crypto/go-kzg-4844 v1.0.0 // indirect
+	github.com/crate-crypto/go-kzg-4844 v1.1.0 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.0 // indirect
 	github.com/deepmap/oapi-codegen v1.6.0 // indirect
 	github.com/distribution/reference v0.5.0 // indirect
@@ -124,7 +134,6 @@ require (
 	github.com/minio/sha256-simd v1.0.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/mitchellh/pointerstructure v1.2.0 // indirect
-	github.com/mmcloughlin/addchain v0.4.0 // indirect
 	github.com/moby/spdystream v0.2.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
@@ -187,8 +196,14 @@ require (
 	k8s.io/klog/v2 v2.110.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20231010175941-2dd684a91f00 // indirect
 	k8s.io/utils v0.0.0-20230726121419-3b25d923346b // indirect
-	rsc.io/tmplfunc v0.0.3 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.1 // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect
+)
+
+// The following tools are managed here instead of in tools/go.mod
+// because they are already direct dependencies of the main module.
+tool (
+	github.com/ava-labs/libevm/rlp/rlpgen
+	github.com/onsi/ginkgo/v2/ginkgo
 )
