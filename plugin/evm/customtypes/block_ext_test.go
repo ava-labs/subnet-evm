@@ -4,7 +4,6 @@
 package customtypes
 
 import (
-	"fmt"
 	"math/big"
 	"reflect"
 	"testing"
@@ -151,14 +150,9 @@ func exportedFieldsPointToDifferentMemory[T interface {
 // pointers pointing to different memory locations.
 func assertDifferentPointers[T any](t *testing.T, a *T, b any) {
 	t.Helper()
-	switch {
-	case a == nil:
-		require.Fail(t, fmt.Sprintf("a (%T) cannot be nil", a))
-	case b == nil:
-		require.Fail(t, fmt.Sprintf("b (%T) cannot be nil", b))
-	case a == b:
-		require.Fail(t, "pointers to same memory")
-	}
+	require.NotNil(t, a, "a (%T) cannot be nil", a)
+	require.NotNil(t, b, "b (%T) cannot be nil", b)
+	require.NotSame(t, a, b, "pointers to same memory")
 	// Note: no need to check `b` is of the same type as `a`, otherwise
 	// the memory address would be different as well.
 }

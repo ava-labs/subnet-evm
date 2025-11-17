@@ -434,11 +434,9 @@ func testTraceCallWithOverridesStateUpgrade(t *testing.T, scheme string) {
 		} else {
 			require.NoError(t, err, "test %d: expect no error", i)
 			var have *logger.ExecutionResult
-			err = json.Unmarshal(result.(json.RawMessage), &have)
-			require.NoError(t, err, "test %d: failed to unmarshal result", i)
+			require.NoError(t, json.Unmarshal(result.(json.RawMessage), &have), "test %d: failed to unmarshal result", i)
 			var want *logger.ExecutionResult
-			err = json.Unmarshal([]byte(testspec.expect), &want)
-			require.NoError(t, err, "test %d: failed to unmarshal result", i)
+			require.NoError(t, json.Unmarshal([]byte(testspec.expect), &want), "test %d: failed to unmarshal result", i)
 			require.Equal(t, want, have, "test %d: result mismatch", i)
 		}
 	}

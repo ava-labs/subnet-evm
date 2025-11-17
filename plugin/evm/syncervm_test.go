@@ -124,9 +124,7 @@ func TestStateSyncToggleEnabledToDisabled(t *testing.T) {
 	appSender.SendAppGossipF = func(context.Context, commonEng.SendConfig, []byte) error { return nil }
 	appSender.SendAppRequestF = func(ctx context.Context, nodeSet set.Set[ids.NodeID], requestID uint32, request []byte) error {
 		nodeID, hasItem := nodeSet.Pop()
-		if !hasItem {
-			require.Fail(t, "expected nodeSet to contain at least 1 nodeID")
-		}
+		require.True(t, hasItem, "expected nodeSet to contain at least 1 nodeID")
 		go vmSetup.serverVM.AppRequest(ctx, nodeID, requestID, time.Now().Add(1*time.Second), request)
 		return nil
 	}
