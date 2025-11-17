@@ -899,23 +899,20 @@ func ReorgReInsert(t *testing.T, create createFunc) {
 	require.NoError(err)
 
 	// Insert and accept first block
-	err = blockchain.InsertBlock(chain[0])
-	require.NoError(err)
+
+	require.NoError(blockchain.InsertBlock(chain[0]))
 	require.NoError(blockchain.Accept(chain[0]))
 
 	// Insert block and then set preference back (rewind) to last accepted blck
-	err = blockchain.InsertBlock(chain[1])
-	require.NoError(err)
+	require.NoError(blockchain.InsertBlock(chain[1]))
 	require.NoError(blockchain.SetPreference(chain[0]))
 
 	// Re-insert and accept block
-	err = blockchain.InsertBlock(chain[1])
-	require.NoError(err)
+	require.NoError(blockchain.InsertBlock(chain[1]))
 	require.NoError(blockchain.Accept(chain[1]))
 
 	// Build on top of the re-inserted block and accept
-	err = blockchain.InsertBlock(chain[2])
-	require.NoError(err)
+	require.NoError(blockchain.InsertBlock(chain[2]))
 	require.NoError(blockchain.Accept(chain[2]))
 	blockchain.DrainAcceptorQueue()
 
