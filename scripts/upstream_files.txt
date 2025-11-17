@@ -53,5 +53,3 @@ triedb/*
 !internal/ethapi/api_extra.go
 !internal/ethapi/api_extra_test.go
 !triedb/firewood/*
-
-
