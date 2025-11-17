@@ -3,13 +3,6 @@ pragma solidity ^0.8.24;
 
 import "precompile/allowlist/IAllowList.sol";
 import "precompile/allowlist/allowlisttest/AllowList.sol";
-import "precompile/precompiletest/DSTest.sol";
-
-contract AllowListTestHelper is DSTest {
-    function assertRole(uint result, AllowList.Role role) internal {
-        assertEq(result, uint(role));
-    }
-}
 
 contract AllowListTest is AllowList {
     // Precompiled Allow List Contract Address
