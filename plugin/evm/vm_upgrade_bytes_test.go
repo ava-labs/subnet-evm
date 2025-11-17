@@ -22,7 +22,6 @@ import (
 	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/libevm/crypto"
 	"github.com/holiman/uint256"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/ava-labs/subnet-evm/core"
@@ -118,11 +117,11 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 	// Verify that the constructed block only has the whitelisted tx
 	block := blk.(*chain.BlockWrapper).Block.(*wrappedBlock).ethBlock
 	txs := block.Transactions()
-	require.Equal(t, 1, txs.Len(), "Expected number of txs to be %d, but found %d", 1, txs.Len())
-	assert.Equal(t, signedTx0.Hash(), txs[0].Hash())
+	require.Len(t, txs, 1, "Expected number of txs to be %d, but found %d", 1, txs.Len())
+	require.Equal(t, signedTx0.Hash(), txs[0].Hash())
 
 	// verify the issued block is after the network upgrade
-	assert.GreaterOrEqual(t, int64(block.Time()), disableAllowListTimestamp.Unix())
+	require.GreaterOrEqual(t, int64(block.Time()), disableAllowListTimestamp.Unix())
 
 	<-newTxPoolHeadChan // wait for new head in tx pool
 
@@ -136,8 +135,8 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 	// Verify that the constructed block only has the previously rejected tx
 	block = blk.(*chain.BlockWrapper).Block.(*wrappedBlock).ethBlock
 	txs = block.Transactions()
-	require.Equal(t, 1, txs.Len(), "Expected number of txs to be %d, but found %d", 1, txs.Len())
-	assert.Equal(t, signedTx1.Hash(), txs[0].Hash())
+	require.Len(t, txs, 1, "Expected number of txs to be %d, but found %d", 1, txs.Len())
+	require.Equal(t, signedTx1.Hash(), txs[0].Hash())
 }
 
 func TestNetworkUpgradesOverridden(t *testing.T) {
@@ -195,7 +194,7 @@ func TestNetworkUpgradesOverridden(t *testing.T) {
 
 	blk := issueAndAccept(t, restartedVM)
 	require.NotNil(t, blk)
-	require.EqualValues(t, 1, blk.Height())
+	require.Equal(t, uint64(1), blk.Height())
 
 	// verify upgrade overrides
 	require.True(t, restartedVM.currentRules().IsDurango)
@@ -303,7 +302,7 @@ func TestVMStateUpgrade(t *testing.T) {
 
 	blk := issueAndAccept(t, tvm.vm)
 	require.NotNil(t, blk)
-	require.EqualValues(t, 1, blk.Height())
+	require.Equal(t, uint64(1), blk.Height())
 
 	// Verify the state upgrade was applied
 	state, err := tvm.vm.blockChain.State()

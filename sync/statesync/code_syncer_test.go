@@ -70,13 +70,11 @@ func testCodeSyncer(t *testing.T, test codeSyncerTest) {
 
 	err := <-codeSyncer.Done()
 	if test.err != nil {
-		if err == nil {
-			require.Fail(t, "expected non-nil error", "error: %s", test.err)
+		require.ErrorIs(t, err, test.err)
+		if err != nil {
+			return
 		}
-		assert.ErrorIs(t, err, test.err)
-		return
 	}
-	require.NoError(t, err)
 
 	// Assert that the client synced the code correctly.
 	for i, codeHash := range codeHashes {

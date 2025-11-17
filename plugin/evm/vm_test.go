@@ -1829,7 +1829,7 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 
 	txs := block.Transactions()
 
-	require.Equal(t, 1, txs.Len(), "Expected number of txs to be %d, but found %d", 1, txs.Len())
+	require.Len(t, txs, 1, "Expected number of txs to be %d, but found %d", 1, txs.Len())
 
 	require.Equal(t, signedTx0.Hash(), txs[0].Hash())
 
@@ -2012,7 +2012,7 @@ func TestTxAllowListDisablePrecompile(t *testing.T) {
 	// Verify that the constructed block only has the whitelisted tx
 	block := blk.(*chain.BlockWrapper).Block.(*wrappedBlock).ethBlock
 	txs := block.Transactions()
-	require.Equal(t, 1, txs.Len(), "Expected number of txs to be %d, but found %d", 1, txs.Len())
+	require.Len(t, txs, 1, "Expected number of txs to be %d, but found %d", 1, txs.Len())
 	require.Equal(t, signedTx0.Hash(), txs[0].Hash())
 
 	// verify the issued block is after the network upgrade
@@ -2030,7 +2030,7 @@ func TestTxAllowListDisablePrecompile(t *testing.T) {
 	// Verify that the constructed block only has the previously rejected tx
 	block = blk.(*chain.BlockWrapper).Block.(*wrappedBlock).ethBlock
 	txs = block.Transactions()
-	require.Equal(t, 1, txs.Len(), "Expected number of txs to be %d, but found %d", 1, txs.Len())
+	require.Len(t, txs, 1, "Expected number of txs to be %d, but found %d", 1, txs.Len())
 	require.Equal(t, signedTx1.Hash(), txs[0].Hash())
 }
 
