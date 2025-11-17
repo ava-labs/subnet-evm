@@ -1538,10 +1538,7 @@ func TestTimeSemanticVerify(t *testing.T) {
 
 			blk, err := tvm.vm.BuildBlock(context.Background())
 			require.NoError(t, err, "Failed to build block with import transaction")
-
-			if err := blk.Verify(context.Background()); err != nil {
-				require.NoError(t, err, "Block failed verification on VM")
-			}
+			require.NoError(t, blk.Verify(context.Background()), "Block failed verification on VM")
 
 			// Create empty block from blkA
 			ethBlk := blk.(*chain.BlockWrapper).Block.(*wrappedBlock).ethBlock
