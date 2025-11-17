@@ -55,6 +55,7 @@ import (
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/plugin/evm/customrawdb"
 	"github.com/ava-labs/subnet-evm/rpc"
+	"github.com/stretchr/testify/require"
 	"golang.org/x/exp/slices"
 )
 
@@ -438,8 +439,8 @@ func testTraceCall(t *testing.T, scheme string) {
 				t.Errorf("test %d: error mismatch, want '%v', got '%v'", i, testspec.expectErr, err)
 			}
 		} else {
+			require.ErrorIs(t, err, testspec.expectErr, "test %d", i)
 			if err != nil {
-				t.Errorf("test %d: expect no error, got %v", i, err)
 				continue
 			}
 			var have *logger.ExecutionResult
