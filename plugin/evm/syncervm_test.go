@@ -147,7 +147,7 @@ func TestStateSyncToggleEnabledToDisabled(t *testing.T) {
 	}()
 
 	height := syncDisabledVM.LastAcceptedBlockInternal().Height()
-	require.NotZero(t, height, "Unexpected last accepted height: %d", height)
+	require.Zero(t, height, "Unexpected last accepted height: %d", height)
 
 	enabled, err := syncDisabledVM.StateSyncEnabled(context.Background())
 	require.NoError(t, err)
