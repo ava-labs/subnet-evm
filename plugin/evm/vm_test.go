@@ -1245,11 +1245,14 @@ func testUncleBlock(t *testing.T, scheme string) {
 	)
 	uncleBlock, _ := wrapBlock(uncleEthBlock, tvm2.vm)
 
-	require.ErrorIs(t, uncleBlock.Verify(context.Background()), errUnclesUnsupported, "VM2 should have failed with %q but got %q", errUnclesUnsupported, err.Error())
+	verifyErr := uncleBlock.Verify(context.Background())
+	errStr := err.Error()
+	require.ErrorIs(t, verifyErr, errUnclesUnsupported, "VM2 should have failed with %q but got %q", errUnclesUnsupported, errStr)
 	_, err = vm1.ParseBlock(context.Background(), vm2BlkC.Bytes())
 	require.NoError(t, err, "VM1 errored parsing blkC")
 	_, err = vm1.ParseBlock(context.Background(), uncleBlock.Bytes())
-	require.ErrorIs(t, err, errUnclesUnsupported, "VM1 should have failed with %q but got %q", errUnclesUnsupported, err.Error())
+	errStr = err.Error()
+	require.ErrorIs(t, err, errUnclesUnsupported, "VM1 should have failed with %q but got %q", errUnclesUnsupported, errStr)
 }
 
 // Regression test to ensure that a VM that is not able to parse a block that
@@ -1303,8 +1306,11 @@ func testEmptyBlock(t *testing.T, scheme string) {
 	require.NoError(t, err)
 
 	_, err = tvm.vm.ParseBlock(context.Background(), emptyBlock.Bytes())
-	require.ErrorIs(t, err, errEmptyBlock, "VM should have failed with errEmptyBlock but got "+err.Error())
-	require.ErrorIs(t, emptyBlock.Verify(context.Background()), errEmptyBlock, "block should have failed verification with errEmptyBlock but got "+err.Error())
+	errStr := err.Error()
+	require.ErrorIs(t, err, errEmptyBlock, "VM should have failed with errEmptyBlock but got "+errStr)
+	verifyErr := emptyBlock.Verify(context.Background())
+	errStr = err.Error()
+	require.ErrorIs(t, verifyErr, errEmptyBlock, "block should have failed verification with errEmptyBlock but got "+errStr)
 }
 
 // Regression test to ensure that a VM that verifies block B, C, then
@@ -1810,7 +1816,9 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 	require.NoError(t, err)
 
 	errs = tvm.vm.txPool.AddRemotesSync([]*types.Transaction{signedTx1})
-	require.ErrorIs(t, errs[0], vmerrors.ErrSenderAddressNotAllowListed, "want %s, got %s", vmerrors.ErrSenderAddressNotAllowListed.Error(), errs[0].Error())
+	expectedErrStr := vmerrors.ErrSenderAddressNotAllowListed.Error()
+	gotErrStr := errs[0].Error()
+	require.ErrorIs(t, errs[0], vmerrors.ErrSenderAddressNotAllowListed, "want %s, got %s", expectedErrStr, gotErrStr)
 
 	// Submit a rejected transaction, should throw an error because manager is not activated
 	tx2 := types.NewTransaction(uint64(0), managerAddress, big.NewInt(2), 21000, big.NewInt(testMinGasPrice), nil)
@@ -1818,7 +1826,9 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 	require.NoError(t, err)
 
 	errs = tvm.vm.txPool.AddRemotesSync([]*types.Transaction{signedTx2})
-	require.ErrorIs(t, errs[0], vmerrors.ErrSenderAddressNotAllowListed, "want %s, got %s", vmerrors.ErrSenderAddressNotAllowListed.Error(), errs[0].Error())
+	expectedErrStr = vmerrors.ErrSenderAddressNotAllowListed.Error()
+	gotErrStr = errs[0].Error()
+	require.ErrorIs(t, errs[0], vmerrors.ErrSenderAddressNotAllowListed, "want %s, got %s", expectedErrStr, gotErrStr)
 
 	blk := issueAndAccept(t, tvm.vm)
 	newHead := <-newTxPoolHeadChan
