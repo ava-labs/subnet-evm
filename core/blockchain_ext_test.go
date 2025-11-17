@@ -772,7 +772,7 @@ func BuildOnVariousStages(t *testing.T, create createFunc) {
 	checkBlockChainState(t, blockchain, gspec, chainDB, create, checkState)
 }
 
-func EmptyBlocksTest(t *testing.T, create createFunc) {
+func EmptyBlocks(t *testing.T, create createFunc) {
 	require := require.New(t)
 	chainDB := rawdb.NewMemoryDatabase()
 	// Ensure that key1 has some funds in the genesis block.
