@@ -284,20 +284,6 @@ func (vm *VM) Initialize(
 ) error {
 	vm.ctx = chainCtx
 
-	// Initialize extension config if not already set
-	if vm.extensionConfig == nil {
-		// Initialize clock if not already set
-		if vm.clock == nil {
-			vm.clock = &mockable.Clock{}
-		}
-		vm.extensionConfig = &extension.Config{
-			SyncSummaryProvider: &message.BlockSyncSummaryProvider{},
-			SyncableParser:      message.NewBlockSyncSummaryParser(),
-		}
-		// Provide a clock to the extension config before validation
-		vm.extensionConfig.Clock = vm.clock
-	}
-
 	cfg, deprecateMsg, err := config.GetConfig(configBytes, vm.ctx.NetworkID)
 	if err != nil {
 		return fmt.Errorf("failed to get config: %w", err)
