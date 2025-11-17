@@ -61,18 +61,15 @@ func testCodeSyncer(t *testing.T, test codeSyncerTest) {
 	codeSyncer.start(context.Background())
 
 	for _, codeHashes := range test.codeRequestHashes {
-		if err := codeSyncer.addCode(codeHashes); err != nil {
-			require.ErrorIs(t, err, test.err)
-		}
+		require.ErrorIs(t, codeSyncer.addCode(codeHashes), test.err)
 	}
 	codeSyncer.notifyAccountTrieCompleted()
 
 	err := <-codeSyncer.Done()
+	require.ErrorIs(t, err, test.err)
 	if test.err != nil {
-		require.ErrorIs(t, err, test.err)
 		return
 	}
-	require.NoError(t, err)
 
 	// Assert that the client synced the code correctly.
 	for i, codeHash := range codeHashes {
