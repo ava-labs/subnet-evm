@@ -1025,7 +1025,8 @@ func testStickyPreference(t *testing.T, scheme string) {
 
 	blkBHeight := vm1BlkB.Height()
 	blkBHash := vm1BlkB.(*chain.BlockWrapper).Block.(*wrappedBlock).ethBlock.Hash()
-	require.Equal(t, blkBHash, vm1.blockChain.GetBlockByNumber(blkBHeight).Hash(), "expected block at %d to have hash %s but got %s", blkBHeight, blkBHash.Hex(), vm1.blockChain.GetBlockByNumber(blkBHeight).Hash().Hex())
+    foundBlkBHash := vm1.blockChain.GetBlockByNumber(blkBHeight).Hash()
+  	require.Equal(t, blkBHash, foundBlkBHash, "expected block at %d to have hash %s but got %s", blkBHeight, blkBHash.Hex(), vm1.blockChain.GetBlockByNumber(blkBHeight).Hash().Hex())
 
 	errs = vm2.txPool.AddRemotesSync(txs[0:5])
 	for i, err := range errs {
