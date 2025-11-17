@@ -102,12 +102,8 @@ func TestStateSyncToggleEnabledToDisabled(t *testing.T) {
 			reqCount++
 			// Fail all requests after number 50 to interrupt the sync
 			if reqCount > 50 {
-				if err := syncerVM.AppRequestFailed(context.Background(), nodeID, requestID, commonEng.ErrTimeout); err != nil {
-					panic(err)
-				}
-				if err := syncerVM.Client.Shutdown(); err != nil {
-					panic(err)
-				}
+				require.NoError(t, syncerVM.AppRequestFailed(context.Background(), nodeID, requestID, commonEng.ErrTimeout))
+				require.NoError(t, syncerVM.Client.Shutdown())
 			} else {
 				syncerVM.AppResponse(context.Background(), nodeID, requestID, response)
 			}
@@ -271,14 +267,12 @@ func createSyncServerAndClientVMs(t *testing.T, test syncTest, numBlocks int) *s
 	generateAndAcceptBlocks(t, serverVM.vm, numBlocks, func(_ int, gen *core.BlockGen) {
 		br := predicate.BlockResults{}
 		b, err := br.Bytes()
-		if err != nil {
-			panic(err)
-		}
+		require.NoError(err)
 		gen.AppendExtra(b)
 
 		tx := types.NewTransaction(gen.TxNonce(testEthAddrs[0]), testEthAddrs[1], common.Big1, ethparams.TxGas, big.NewInt(testMinGasPrice), nil)
 		signedTx, err := types.SignTx(tx, types.NewEIP155Signer(serverVM.vm.chainConfig.ChainID), testKeys[0].ToECDSA())
-		require.NoError(err)
+		require.NoError(err, "failed to sign transaction")
 		gen.AddTx(signedTx)
 	}, nil)
 
@@ -458,15 +452,13 @@ func testSyncerVM(t *testing.T, vmSetup *syncVMSetup, test syncTest) {
 	generateAndAcceptBlocks(t, syncerVM, blocksToBuild, func(_ int, gen *core.BlockGen) {
 		br := predicate.BlockResults{}
 		b, err := br.Bytes()
-		if err != nil {
-			panic(err)
-		}
+		require.NoError(err)
 		gen.AppendExtra(b)
 		i := 0
 		for k := range fundedAccounts {
 			tx := types.NewTransaction(gen.TxNonce(k.Address), toAddress, big.NewInt(1), 21000, big.NewInt(testMinGasPrice), nil)
 			signedTx, err := types.SignTx(tx, types.NewEIP155Signer(serverVM.chainConfig.ChainID), k.PrivateKey)
-			require.NoError(err)
+			require.NoError(err, "failed to sign transaction")
 			gen.AddTx(signedTx)
 			i++
 			if i >= txsPerBlock {

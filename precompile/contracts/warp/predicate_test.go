@@ -150,7 +150,7 @@ func (g GasConfig) PredicateGasCost(chunks int, signers int) uint64 {
 
 // createWarpMessage constructs a signed warp message using the global variable [unsignedMsg]
 // and the first [numKeys] signatures from [blsSignatures]
-func createWarpMessage(numKeys int) *avalancheWarp.Message {
+func createWarpMessage(tb testing.TB, numKeys int) *avalancheWarp.Message {
 	bitSet := set.NewBits()
 	for i := 0; i < numKeys; i++ {
 		bitSet.Add(i)
@@ -181,16 +181,14 @@ func createWarpMessage(numKeys int) *avalancheWarp.Message {
 	copy(warpSignature.Signature[:], bls.SignatureToBytes(sig))
 
 	warpMsg, err := avalancheWarp.NewMessage(unsignedMsg, warpSignature)
-	if err != nil {
-		panic(err)
-	}
+	require.NoError(tb, err)
 	return warpMsg
 }
 
 // createPredicate constructs a warp message using createWarpMessage with numKeys signers
 // and packs it into predicate encoding.
-func createPredicate(numKeys int) predicate.Predicate {
-	warpMsg := createWarpMessage(numKeys)
+func createPredicate(tb testing.TB, numKeys int) predicate.Predicate {
+	warpMsg := createWarpMessage(t, numKeys)
 	return predicate.New(warpMsg.Bytes())
 }
 

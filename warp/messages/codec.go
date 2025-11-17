@@ -9,6 +9,7 @@ import (
 	"github.com/ava-labs/avalanchego/codec"
 	"github.com/ava-labs/avalanchego/codec/linearcodec"
 	"github.com/ava-labs/avalanchego/utils/units"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -27,7 +28,5 @@ func init() {
 		lc.RegisterType(&ValidatorUptime{}),
 		Codec.RegisterCodec(CodecVersion, lc),
 	)
-	if err != nil {
-		panic(err)
-	}
+	require.NoError(t, err)
 }
