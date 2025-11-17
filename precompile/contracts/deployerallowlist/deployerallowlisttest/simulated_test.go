@@ -116,7 +116,7 @@ func TestDeployerAllowList(t *testing.T) {
 	testCases := []testCase{
 		{
 			name: "should verify sender is admin",
-			test: func(t *testing.T, backend *sim.Backend, allowList *allowlisttest.IAllowList) {
+			test: func(t *testing.T, _ *sim.Backend, allowList *allowlisttest.IAllowList) {
 				verifyRole(t, allowList, adminAddress, allowlist.AdminRole)
 			},
 		},
@@ -164,7 +164,6 @@ func TestDeployerAllowList(t *testing.T) {
 				allowListTestAddr, allowListTest := deployAllowListTestContract(t, backend, admin)
 
 				verifyRole(t, allowList, allowListTestAddr, allowlist.NoRole)
-
 				setAsAdmin(t, backend, allowList, admin, allowListTestAddr)
 				verifyRole(t, allowList, allowListTestAddr, allowlist.AdminRole)
 
