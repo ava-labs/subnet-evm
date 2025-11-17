@@ -4,7 +4,6 @@
 package core
 
 import (
-	"fmt"
 	"math/big"
 	"testing"
 
@@ -100,9 +99,6 @@ func TestBadTxAllowListBlock(t *testing.T) {
 	} {
 		block := GenerateBadBlock(gspec.ToBlock(), dummy.NewCoinbaseFaker(), tt.txs, gspec.Config)
 		_, err := blockchain.InsertChain(types.Blocks{block})
-		require.Error(t, err, "block imported without errors")
-		if have, want := err.Error(), tt.want; have != want {
-			require.Fail(t, fmt.Sprintf("test %d:\nhave \"%v\"\nwant \"%v\"\n", i, have, want))
-		}
+		require.EqualError(t, err, tt.want, "test %d: unexpected error message", i)
 	}
 }

@@ -152,9 +152,8 @@ func TestStateSyncToggleEnabledToDisabled(t *testing.T) {
 		require.NoError(t, syncDisabledVM.Shutdown(context.Background()))
 	}()
 
-	if height := syncDisabledVM.LastAcceptedBlockInternal().Height(); height != 0 {
-		require.Fail(t, fmt.Sprintf("Unexpected last accepted height: %d", height))
-	}
+	height := syncDisabledVM.LastAcceptedBlockInternal().Height()
+	require.NotZero(t, height, "Unexpected last accepted height: %d", height)
 
 	enabled, err := syncDisabledVM.StateSyncEnabled(context.Background())
 	require.NoError(t, err)
@@ -163,9 +162,7 @@ func TestStateSyncToggleEnabledToDisabled(t *testing.T) {
 	// Process the first 10 blocks from the serverVM
 	for i := uint64(1); i < 10; i++ {
 		ethBlock := vmSetup.serverVM.blockChain.GetBlockByNumber(i)
-		if ethBlock == nil {
-			require.Fail(t, fmt.Sprintf("VM Server did not have a block available at height %d", i))
-		}
+		require.NotNil(t, ethBlock, "VM Server did not have a block available at height %d", i)
 		b, err := rlp.EncodeToBytes(ethBlock)
 		require.NoError(t, err)
 		blk, err := syncDisabledVM.ParseBlock(context.Background(), b)

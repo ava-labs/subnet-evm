@@ -212,9 +212,8 @@ func VerifyPrecompileWithAllowListTests(t *testing.T, module modules.Module, ver
 	tests := AllowListConfigVerifyTests(t, module)
 	// Add the contract specific tests to the map of tests to run.
 	for name, test := range verifyTests {
-		if _, exists := tests[name]; exists {
-			require.Failf(t, "duplicate test name", "name: %s", name)
-		}
+		_, exists := tests[name]
+		require.False(t, exists, "duplicate test name: %s", name)
 		tests[name] = test
 	}
 
@@ -226,9 +225,8 @@ func EqualPrecompileWithAllowListTests(t *testing.T, module modules.Module, equa
 	tests := AllowListConfigEqualTests(t, module)
 	// Add the contract specific tests to the map of tests to run.
 	for name, test := range equalTests {
-		if _, exists := tests[name]; exists {
-			require.Failf(t, "duplicate test name", "name: %s", name)
-		}
+		_, exists := tests[name]
+		require.False(t, exists, "duplicate test name: %s", name)
 		tests[name] = test
 	}
 
