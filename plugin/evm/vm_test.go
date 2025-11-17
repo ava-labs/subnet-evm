@@ -11,7 +11,6 @@ import (
 	"math/big"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -766,13 +765,11 @@ func testReorgProtection(t *testing.T, scheme string) {
 	// with the preferred chain lower than the last finalized block)
 	// should NEVER happen. However, the VM defends against this
 	// just in case.
-	if err := vm1.SetPreference(context.Background(), vm1BlkC.ID()); !strings.Contains(err.Error(), "cannot orphan finalized block") {
-		require.NoError(t, err, "Unexpected error when setting preference that would trigger reorg")
-	}
+	err = vm1.SetPreference(context.Background(), vm1BlkC.ID())
+	require.ErrorContains(t, err, "cannot orphan finalized block", "Expected error when setting preference that would orphan finalized block")
 
-	if err := vm1BlkC.Accept(context.Background()); !strings.Contains(err.Error(), "expected accepted block to have parent") {
-		require.NoError(t, err, "Unexpected error when setting block at finalized height")
-	}
+	err = vm1BlkC.Accept(context.Background())
+	require.ErrorContains(t, err, "expected accepted block to have parent", "Expected error when accepting orphaned block")
 }
 
 // Regression test to ensure that a VM that accepts block C while preferring
@@ -1025,8 +1022,8 @@ func testStickyPreference(t *testing.T, scheme string) {
 
 	blkBHeight := vm1BlkB.Height()
 	blkBHash := vm1BlkB.(*chain.BlockWrapper).Block.(*wrappedBlock).ethBlock.Hash()
-    foundBlkBHash := vm1.blockChain.GetBlockByNumber(blkBHeight).Hash()
-  	require.Equal(t, blkBHash, foundBlkBHash, "expected block at %d to have hash %s but got %s", blkBHeight, blkBHash.Hex(), vm1.blockChain.GetBlockByNumber(blkBHeight).Hash().Hex())
+	foundBlkBHash := vm1.blockChain.GetBlockByNumber(blkBHeight).Hash()
+	require.Equal(t, blkBHash, foundBlkBHash, "expected block at %d to have hash %s but got %s", blkBHeight, blkBHash.Hex(), vm1.blockChain.GetBlockByNumber(blkBHeight).Hash().Hex())
 
 	errs = vm2.txPool.AddRemotesSync(txs[0:5])
 	for i, err := range errs {
