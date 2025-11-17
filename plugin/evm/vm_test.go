@@ -1072,14 +1072,14 @@ func testStickyPreference(t *testing.T, scheme string) {
 	require.NoError(t, vm1BlkC.Verify(context.Background()), "Block failed verification on VM1")
 	require.NoError(t, vm1BlkD.Verify(context.Background()), "Block failed verification on VM1")
 	require.Equal(t, blkBHash, vm1.blockChain.GetBlockByNumber(blkBHeight).Hash(), "expected block at %d to have hash %s but got %s", blkBHeight, blkBHash.Hex(), vm1.blockChain.GetBlockByNumber(blkBHeight).Hash().Hex())
-	require.Nil(t, vm1.blockChain.GetBlockByNumber(blkDHeight), "expected block at %d to be nil but got %s", blkDHeight, vm1.blockChain.GetBlockByNumber(blkDHeight).Hash().Hex())
+	require.Nil(t, vm1.blockChain.GetBlockByNumber(blkDHeight), "expected block at %d to be nil", blkDHeight)
 	require.Equal(t, blkBHash, vm1.blockChain.CurrentBlock().Hash(), "expected current block to have hash %s but got %s", blkBHash.Hex(), vm1.blockChain.CurrentBlock().Hash().Hex())
 
 	// Should still be no-ops on re-verify
 	require.NoError(t, vm1BlkC.Verify(context.Background()), "Block failed verification on VM1")
 	require.NoError(t, vm1BlkD.Verify(context.Background()), "Block failed verification on VM1")
 	require.Equal(t, blkBHash, vm1.blockChain.GetBlockByNumber(blkBHeight).Hash(), "expected block at %d to have hash %s but got %s", blkBHeight, blkBHash.Hex(), vm1.blockChain.GetBlockByNumber(blkBHeight).Hash().Hex())
-	require.Nil(t, vm1.blockChain.GetBlockByNumber(blkDHeight), "expected block at %d to be nil but got %s", blkDHeight, vm1.blockChain.GetBlockByNumber(blkDHeight).Hash().Hex())
+	require.Nil(t, vm1.blockChain.GetBlockByNumber(blkDHeight), "expected block at %d to be nil", blkDHeight)
 	require.Equal(t, blkBHash, vm1.blockChain.CurrentBlock().Hash(), "expected current block to have hash %s but got %s", blkBHash.Hex(), vm1.blockChain.CurrentBlock().Hash().Hex())
 
 	// Should be queryable after setting preference to side chain
