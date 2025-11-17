@@ -1246,13 +1246,11 @@ func testUncleBlock(t *testing.T, scheme string) {
 	uncleBlock, _ := wrapBlock(uncleEthBlock, tvm2.vm)
 
 	verifyErr := uncleBlock.Verify(context.Background())
-	errStr := err.Error()
-	require.ErrorIs(t, verifyErr, errUnclesUnsupported, "VM2 should have failed with %q but got %q", errUnclesUnsupported, errStr)
+	require.ErrorIs(t, verifyErr, errUnclesUnsupported)
 	_, err = vm1.ParseBlock(context.Background(), vm2BlkC.Bytes())
 	require.NoError(t, err, "VM1 errored parsing blkC")
 	_, err = vm1.ParseBlock(context.Background(), uncleBlock.Bytes())
-	errStr = err.Error()
-	require.ErrorIs(t, err, errUnclesUnsupported, "VM1 should have failed with %q but got %q", errUnclesUnsupported, errStr)
+	require.ErrorIs(t, err, errUnclesUnsupported)
 }
 
 // Regression test to ensure that a VM that is not able to parse a block that
