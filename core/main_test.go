@@ -4,10 +4,12 @@
 package core
 
 import (
+	"os"
 	"testing"
 
 	"go.uber.org/goleak"
 
+	"github.com/ava-labs/libevm/log"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/plugin/evm/customtypes"
 )
@@ -19,6 +21,9 @@ func TestMain(m *testing.M) {
 
 	customtypes.Register()
 	params.RegisterExtras()
+
+	// May of these tests are likely to fail due to `log.Crit` in goroutines.
+	log.SetDefault(log.NewLogger(log.NewTerminalHandlerWithLevel(os.Stderr, log.LevelCrit, true)))
 
 	opts := []goleak.Option{
 		// No good way to shut down these goroutines:
