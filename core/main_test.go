@@ -7,9 +7,9 @@ import (
 	"os"
 	"testing"
 
+	"github.com/ava-labs/libevm/log"
 	"go.uber.org/goleak"
 
-	"github.com/ava-labs/libevm/log"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/plugin/evm/customtypes"
 )
