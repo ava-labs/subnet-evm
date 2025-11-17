@@ -67,7 +67,7 @@ var tests = []ChainTest{
 	},
 	{
 		"EmptyBlocks",
-		EmptyBlocksTest,
+		EmptyBlocks,
 	},
 	{
 		"EmptyAndNonEmptyBlocks",

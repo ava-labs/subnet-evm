@@ -354,9 +354,7 @@ func testRepopulateMissingTriesParallel(t *testing.T, parallelism int) {
 	}
 
 	blockchain, err := createBlockChain(chainDB, pruningConfig, gspec, common.Hash{})
-	if err != nil {
-		require.NoError(t, err)
-	}
+	require.NoError(t, err)
 	defer blockchain.Stop()
 
 	// This call generates a chain of 3 blocks.
@@ -365,15 +363,12 @@ func testRepopulateMissingTriesParallel(t *testing.T, parallelism int) {
 		tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr1), addr2, big.NewInt(10000), ethparams.TxGas, nil, nil), signer, key1)
 		gen.AddTx(tx)
 	})
-	if err != nil {
-		require.NoError(t, err)
-	}
+	require.NoError(t, err)
 
-	if _, err := blockchain.InsertChain(chain); err != nil {
-		require.NoError(t, err)
-	}
+	_, err = blockchain.InsertChain(chain)
+	require.NoError(t, err)
 	for _, block := range chain {
-		require.NoError(t, blockchain.Accept(block))
+		require.NoError(t, blockchain.Accept(block), "failed to accept block %d", block.NumberU64())
 	}
 	blockchain.DrainAcceptorQueue()
 
@@ -381,9 +376,7 @@ func testRepopulateMissingTriesParallel(t *testing.T, parallelism int) {
 	blockchain.Stop()
 
 	blockchain, err = createBlockChain(chainDB, pruningConfig, gspec, lastAcceptedHash)
-	if err != nil {
-		require.NoError(t, err)
-	}
+	require.NoError(t, err, "failed to create blockchain")
 
 	// Confirm that the node does not have the state for intermediate nodes (exclude the last accepted block)
 	for _, block := range chain[:len(chain)-1] {
@@ -409,7 +402,7 @@ func testRepopulateMissingTriesParallel(t *testing.T, parallelism int) {
 		gspec,
 		lastAcceptedHash,
 	)
-	require.NoError(t, err, "testRepopulateMissingTriesParallel: failed to create blockchain")
+	require.NoError(t, err, "failed to create blockchain")
 	defer blockchain.Stop()
 
 	for _, block := range chain {
@@ -528,13 +521,9 @@ func testCanonicalHashMarker(t *testing.T, scheme string) {
 			engine = dummy.NewCoinbaseFaker()
 		)
 		_, forkA, _, err := GenerateChainWithGenesis(gspec, engine, c.forkA, 10, func(int, *BlockGen) {})
-		if err != nil {
-			require.NoError(t, err)
-		}
+		require.NoError(t, err, "failed to generate chain A")
 		_, forkB, _, err := GenerateChainWithGenesis(gspec, engine, c.forkB, 10, func(int, *BlockGen) {})
-		if err != nil {
-			require.NoError(t, err)
-		}
+		require.NoError(t, err, "failed to generate chain B")
 
 		// Initialize test chain
 		db := rawdb.NewMemoryDatabase()
