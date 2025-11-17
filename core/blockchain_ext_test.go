@@ -775,7 +775,6 @@ func BuildOnVariousStages(t *testing.T, create createFunc) {
 func EmptyBlocks(t *testing.T, create createFunc) {
 	require := require.New(t)
 	chainDB := rawdb.NewMemoryDatabase()
-	// Ensure that key1 has some funds in the genesis block.
 	gspec := &Genesis{
 		Config: &params.ChainConfig{HomesteadBlock: new(big.Int)},
 		Alloc:  types.GenesisAlloc{},
