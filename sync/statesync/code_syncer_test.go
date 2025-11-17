@@ -61,19 +61,23 @@ func testCodeSyncer(t *testing.T, test codeSyncerTest) {
 	codeSyncer.start(context.Background())
 
 	for _, codeHashes := range test.codeRequestHashes {
-		require.NoError(t, codeSyncer.addCode(codeHashes))
+		if err := codeSyncer.addCode(codeHashes); err != nil {
+			require.ErrorIs(t, err, test.err)
+		}
 	}
 	codeSyncer.notifyAccountTrieCompleted()
 
 	err := <-codeSyncer.Done()
-	require.ErrorIs(t, err, test.err)
+	if test.err != nil {
+		require.ErrorIs(t, err, test.err)
+		return
+	}
+	require.NoError(t, err)
 
-	// Assert that the client synced the code correctly only if no error was expected.
-	if test.err == nil {
-		for i, codeHash := range codeHashes {
-			codeBytes := rawdb.ReadCode(clientDB, codeHash)
-			require.Equal(t, test.codeByteSlices[i], codeBytes)
-		}
+	// Assert that the client synced the code correctly.
+	for i, codeHash := range codeHashes {
+		codeBytes := rawdb.ReadCode(clientDB, codeHash)
+		require.Equal(t, test.codeByteSlices[i], codeBytes)
 	}
 }
 
