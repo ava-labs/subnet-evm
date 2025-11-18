@@ -92,7 +92,7 @@ function test_require_no_error_inline_func {
   local -r pattern='^\s*([A-Za-z_][A-Za-z0-9_]*[eE]rr[A-Za-z0-9_]*)\s*:?=\s*[^,\n]*\([^)]*\).*\n(?:(?!^\s*(?:if|require)).*\n)*^\s*require\.NoError\((?:t,\s*)?\1\)'
   if grep -R -zo -P "$pattern" "${AVALANCHE_FILES[@]}"; then
     echo ""
-    echo "Checking that a function with a single error return doesn't error should be done in-line."
+    echo "Checking that a function with a single error return doesn't error should be done in-line (single LHS var containing 'err')."
     echo ""
     return 1
   fi
@@ -112,7 +112,7 @@ function test_interface_compliance_nil {
 function test_import_testing_only_in_tests {
   local files=("$@")
   NON_TEST_GO_FILES=$(
-    echo "${AVALANCHE_FILES[@]}" | tr ' ' '\n' |
+    echo "${files[@]}" | tr ' ' '\n' |
       grep -i '\.go$' |
       grep -vi '_test\.go$' |
       grep -v '^./tests/'
@@ -120,8 +120,8 @@ function test_import_testing_only_in_tests {
 
   IMPORT_TESTING=$(echo "${NON_TEST_GO_FILES}" | xargs grep -lP '^\s*(import\s+)?"testing"')
   IMPORT_TESTIFY=$(echo "${NON_TEST_GO_FILES}" | xargs grep -l '"github.com/stretchr/testify')
-  IMPORT_FROM_TESTS=$(echo "${NON_TEST_GO_FILES}" | xargs grep -l '"github.com/ava-labs/coreth/tests/')
-  IMPORT_TEST_PKG=$(echo "${NON_TEST_GO_FILES}" | xargs grep -lP '"github.com/ava-labs/coreth/.*?test"')
+  IMPORT_FROM_TESTS=$(echo "${NON_TEST_GO_FILES}" | xargs grep -lP '"github.com/ava-labs/(?:avalanchego|subnet-evm)/tests/')
+  IMPORT_TEST_PKG=$(echo "${NON_TEST_GO_FILES}" | xargs grep -lP '"github.com/ava-labs/(?:avalanchego|subnet-evm)/.*?test"')
 
   # TODO(arr4n): send a PR to add support for build tags in `mockgen` and then enable this.
   # IMPORT_GOMOCK=$( echo "${NON_TEST_GO_FILES}" | xargs grep -l '"go.uber.org/mock');
@@ -150,7 +150,7 @@ function run {
 
   # Filter out files that have skiplint comments for this specific test
   local filtered_files=()
-  for file in "${DEFAULT_FILES[@]}"; do
+  for file in "${UPSTREAM_FILES[@]}"; do
     # Check if file has skiplint comment for this test
     if ! grep -q "// #skiplint: ${test}" "$file" 2>/dev/null; then
       filtered_files+=("$file")
