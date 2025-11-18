@@ -34,6 +34,7 @@ import (
 	"github.com/ava-labs/avalanchego/version"
 	"github.com/ava-labs/avalanchego/vms/components/chain"
 	"github.com/ava-labs/avalanchego/vms/evm/acp226"
+	"github.com/ava-labs/avalanchego/vms/evm/uptimetracker"
 	"github.com/ava-labs/firewood-go-ethhash/ffi"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/rawdb"
@@ -71,11 +72,10 @@ import (
 	"github.com/ava-labs/subnet-evm/plugin/evm/extension"
 	"github.com/ava-labs/subnet-evm/plugin/evm/gossip"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
-	"github.com/ava-labs/subnet-evm/plugin/evm/validators"
-	"github.com/ava-labs/subnet-evm/plugin/evm/validators/interfaces"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/rpc"
 	"github.com/ava-labs/subnet-evm/sync/client/stats"
+	"github.com/ava-labs/subnet-evm/sync/handlers"
 	"github.com/ava-labs/subnet-evm/triedb/hashdb"
 	"github.com/ava-labs/subnet-evm/warp"
 
@@ -88,6 +88,7 @@ import (
 	subnetevmlog "github.com/ava-labs/subnet-evm/plugin/evm/log"
 	vmsync "github.com/ava-labs/subnet-evm/plugin/evm/sync"
 	statesyncclient "github.com/ava-labs/subnet-evm/sync/client"
+	handlerstats "github.com/ava-labs/subnet-evm/sync/handlers/stats"
 	avalancheRPC "github.com/gorilla/rpc/v2"
 )
 
@@ -107,6 +108,8 @@ const (
 	unverifiedCacheSize    = 5 * units.MiB
 	bytesToIDCacheSize     = 5 * units.MiB
 	warpSignatureCacheSize = 500
+
+	syncFrequency = 1 * time.Minute
 
 	// Prefixes for metrics gatherers
 	ethMetricsPrefix        = "eth"
@@ -134,21 +137,26 @@ var (
 )
 
 var (
-	errEmptyBlock                    = errors.New("empty block")
-	errUnsupportedFXs                = errors.New("unsupported feature extensions")
-	errInvalidBlock                  = errors.New("invalid block")
-	errInvalidNonce                  = errors.New("invalid nonce")
-	errUnclesUnsupported             = errors.New("uncles unsupported")
-	errNilBaseFeeSubnetEVM           = errors.New("nil base fee is invalid after subnetEVM")
-	errNilBlockGasCostSubnetEVM      = errors.New("nil blockGasCost is invalid after subnetEVM")
-	errInvalidHeaderPredicateResults = errors.New("invalid header predicate results")
-	errInitializingLogger            = errors.New("failed to initialize logger")
-	errShuttingDownVM                = errors.New("shutting down VM")
+	errEmptyBlock                        = errors.New("empty block")
+	errUnsupportedFXs                    = errors.New("unsupported feature extensions")
+	errNilBaseFeeSubnetEVM               = errors.New("nil base fee is invalid after subnetEVM")
+	errNilBlockGasCostSubnetEVM          = errors.New("nil blockGasCost is invalid after subnetEVM")
+	errInvalidBlock                      = errors.New("invalid block")
+	errInvalidNonce                      = errors.New("invalid nonce")
+	errUnclesUnsupported                 = errors.New("uncles unsupported")
+	errInvalidHeaderPredicateResults     = errors.New("invalid header predicate results")
+	errInitializingLogger                = errors.New("failed to initialize logger")
+	errShuttingDownVM                    = errors.New("shutting down VM")
+	errFirewoodPruningRequired           = errors.New("pruning must be enabled for Firewood")
+	errFirewoodSnapshotCacheDisabled     = errors.New("snapshot cache must be disabled for Firewood")
+	errFirewoodOfflinePruningUnsupported = errors.New("offline pruning is not supported for Firewood")
+	errFirewoodStateSyncUnsupported      = errors.New("state sync is not yet supported for Firewood")
+	errPathStateUnsupported              = errors.New("path state scheme is not supported")
 )
 
 // legacyApiNames maps pre geth v1.10.20 api names to their updated counterparts.
 // used in attachEthService for backward configuration compatibility.
-var legacyApiNames = map[string]string{
+var legacyAPINames = map[string]string{
 	"internal-public-eth":              "internal-eth",
 	"internal-public-blockchain":       "internal-blockchain",
 	"internal-public-transaction-pool": "internal-transaction",
@@ -252,7 +260,7 @@ type VM struct {
 	ethTxPushGossiper  avalancheUtils.Atomic[*avalanchegossip.PushGossiper[*GossipEthTx]]
 	ethTxPullGossiper  avalanchegossip.Gossiper
 
-	validatorsManager interfaces.Manager
+	uptimeTracker *uptimetracker.UptimeTracker
 
 	chainAlias string
 	// RPC handlers (should be stopped before closing chaindb)
@@ -395,22 +403,22 @@ func (vm *VM) Initialize(
 		log.Warn("This is untested in production, use at your own risk")
 		// Firewood only supports pruning for now.
 		if !vm.config.Pruning {
-			return errors.New("Pruning must be enabled for Firewood")
+			return errFirewoodPruningRequired
 		}
 		// Firewood does not support iterators, so the snapshot cannot be constructed
 		if vm.config.SnapshotCache > 0 {
-			return errors.New("Snapshot cache must be disabled for Firewood")
+			return errFirewoodSnapshotCacheDisabled
 		}
 		if vm.config.OfflinePruning {
-			return errors.New("Offline pruning is not supported for Firewood")
+			return errFirewoodOfflinePruningUnsupported
 		}
 		if vm.config.StateSyncEnabled {
-			return errors.New("State sync is not yet supported for Firewood")
+			return errFirewoodStateSyncUnsupported
 		}
 	}
 	if vm.ethConfig.StateScheme == rawdb.PathScheme {
 		log.Error("Path state scheme is not supported. Please use HashDB or Firewood state schemes instead")
-		return errors.New("Path state scheme is not supported")
+		return errPathStateUnsupported
 	}
 
 	// Create directory for offline pruning
@@ -451,9 +459,9 @@ func (vm *VM) Initialize(
 		return fmt.Errorf("failed to create network: %w", err)
 	}
 
-	vm.validatorsManager, err = validators.NewManager(vm.ctx, vm.validatorsDB, vm.clock)
+	vm.uptimeTracker, err = uptimetracker.New(vm.ctx.ValidatorState, vm.ctx.SubnetID, vm.validatorsDB, vm.clock)
 	if err != nil {
-		return fmt.Errorf("failed to initialize validators manager: %w", err)
+		return fmt.Errorf("failed to initialize uptime tracker: %w", err)
 	}
 
 	// Initialize warp backend
@@ -479,7 +487,7 @@ func (vm *VM) Initialize(
 		vm.ctx.ChainID,
 		vm.ctx.WarpSigner,
 		vm,
-		validators.NewLockedValidatorReader(vm.validatorsManager, &vm.vmLock),
+		vm.uptimeTracker,
 		vm.warpDB,
 		meteredCache,
 		offchainWarpMessages,
@@ -498,11 +506,9 @@ func (vm *VM) Initialize(
 	warpHandler := acp118.NewCachedHandler(meteredCache, vm.warpBackend, vm.ctx.WarpSigner)
 	vm.Network.AddHandler(p2p.SignatureRequestHandlerID, warpHandler)
 
-	vm.setAppRequestHandlers()
-
 	vm.stateSyncDone = make(chan struct{})
 
-	return vm.initializeStateSyncClient(lastAcceptedHeight)
+	return vm.initializeStateSync(lastAcceptedHeight)
 }
 
 func parseGenesis(ctx *snow.Context, genesisBytes []byte, upgradeBytes []byte, airdropFile string) (*core.Genesis, error) {
@@ -646,7 +652,44 @@ func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.
 // initializeStateSyncClient initializes the client for performing state sync.
 // If state sync is disabled, this function will wipe any ongoing summary from
 // disk to ensure that we do not continue syncing from an invalid snapshot.
-func (vm *VM) initializeStateSyncClient(lastAcceptedHeight uint64) error {
+func (vm *VM) initializeStateSync(lastAcceptedHeight uint64) error {
+	// Create standalone EVM TrieDB (read only) for serving leafs requests.
+	// We create a standalone TrieDB here, so that it has a standalone cache from the one
+	// used by the node when processing blocks.
+	evmTrieDB := triedb.NewDatabase(
+		vm.chaindb,
+		&triedb.Config{
+			DBOverride: hashdb.Config{
+				CleanCacheSize: vm.config.StateSyncServerTrieCache * units.MiB,
+			}.BackendConstructor,
+		},
+	)
+
+	// register default leaf request handler for state trie
+	syncStats := handlerstats.GetOrRegisterHandlerStats(metrics.Enabled)
+	stateLeafRequestConfig := &extension.LeafRequestConfig{
+		LeafType:   message.StateTrieNode,
+		MetricName: "sync_state_trie_leaves",
+		Handler: handlers.NewLeafsRequestHandler(evmTrieDB,
+			message.StateTrieKeyLength,
+			vm.blockChain, vm.networkCodec,
+			syncStats,
+		),
+	}
+
+	leafHandlers := make(LeafHandlers)
+	leafHandlers[stateLeafRequestConfig.LeafType] = stateLeafRequestConfig.Handler
+
+	networkHandler := newNetworkHandler(
+		vm.blockChain,
+		vm.chaindb,
+		vm.networkCodec,
+		leafHandlers,
+		syncStats,
+	)
+	vm.Network.SetRequestHandler(networkHandler)
+
+	vm.Server = vmsync.NewServer(vm.blockChain, vm.extensionConfig.SyncSummaryProvider, vm.config.StateSyncCommitInterval) // parse nodeIDs from state sync IDs in vm config
 	// parse nodeIDs from state sync IDs in vm config
 	var stateSyncIDs []ids.NodeID
 	if vm.config.StateSyncEnabled && len(vm.config.StateSyncIDs) > 0 {
@@ -661,15 +704,19 @@ func (vm *VM) initializeStateSyncClient(lastAcceptedHeight uint64) error {
 		}
 	}
 
+	// Initialize the state sync client
+	leafMetricsNames := make(map[message.NodeType]string)
+	leafMetricsNames[stateLeafRequestConfig.LeafType] = stateLeafRequestConfig.MetricName
+
 	vm.Client = vmsync.NewClient(&vmsync.ClientConfig{
+		StateSyncDone: vm.stateSyncDone,
 		Chain:         vm.eth,
 		State:         vm.State,
-		StateSyncDone: vm.stateSyncDone,
 		Client: statesyncclient.NewClient(
 			&statesyncclient.ClientConfig{
 				NetworkClient:    vm.Network,
 				Codec:            vm.networkCodec,
-				Stats:            stats.NewClientSyncerStats(),
+				Stats:            stats.NewClientSyncerStats(leafMetricsNames),
 				StateSyncNodeIDs: stateSyncIDs,
 				BlockParser:      vm,
 			},
@@ -771,16 +818,26 @@ func (vm *VM) onNormalOperationsStarted() error {
 	ctx, cancel := context.WithCancel(context.TODO())
 	vm.cancel = cancel
 
-	// Start the validators manager
-	if err := vm.validatorsManager.Initialize(ctx); err != nil {
-		return fmt.Errorf("failed to initialize validators manager: %w", err)
-	}
+	// Initially sync the uptime tracker so that APIs expose recent data even if
+	// called immediately after bootstrapping.
+	vm.uptimeTracker.Sync(ctx)
 
-	// dispatch validator set update
 	vm.shutdownWg.Add(1)
 	go func() {
-		vm.validatorsManager.DispatchSync(ctx, &vm.vmLock)
-		vm.shutdownWg.Done()
+		defer vm.shutdownWg.Done()
+		ticker := time.NewTicker(syncFrequency)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				if err := vm.uptimeTracker.Sync(ctx); err != nil {
+					log.Error("failed to sync uptime tracker", "err", err)
+				}
+			}
+		}
 	}()
 
 	// Initialize goroutines related to block building
@@ -890,27 +947,6 @@ func (vm *VM) onNormalOperationsStarted() error {
 	return nil
 }
 
-// setAppRequestHandlers sets the request handlers for the VM to serve state sync
-// requests.
-func (vm *VM) setAppRequestHandlers() {
-	// Create standalone EVM TrieDB (read only) for serving leafs requests.
-	// We create a standalone TrieDB here, so that it has a standalone cache from the one
-	// used by the node when processing blocks.
-	evmTrieDB := triedb.NewDatabase(
-		vm.chaindb,
-		&triedb.Config{
-			DBOverride: hashdb.Config{
-				CleanCacheSize: vm.config.StateSyncServerTrieCache * units.MiB,
-			}.BackendConstructor,
-		},
-	)
-
-	networkHandler := newNetworkHandler(vm.blockChain, vm.chaindb, evmTrieDB, vm.networkCodec)
-	vm.Network.SetRequestHandler(networkHandler)
-
-	vm.Server = vmsync.NewServer(vm.blockChain, vm.extensionConfig.SyncSummaryProvider, vm.config.StateSyncCommitInterval)
-}
-
 func (vm *VM) WaitForEvent(ctx context.Context) (commonEng.Message, error) {
 	vm.builderLock.Lock()
 	builder := vm.builder
@@ -942,8 +978,8 @@ func (vm *VM) Shutdown(context.Context) error {
 		vm.cancel()
 	}
 	if vm.bootstrapped.Get() {
-		if err := vm.validatorsManager.Shutdown(); err != nil {
-			return fmt.Errorf("failed to shutdown validators manager: %w", err)
+		if err := vm.uptimeTracker.Shutdown(); err != nil {
+			return fmt.Errorf("failed to shutdown uptime tracker: %w", err)
 		}
 	}
 	vm.Network.Shutdown()
@@ -1135,8 +1171,8 @@ func (vm *VM) CreateHandlers(context.Context) (map[string]http.Handler, error) {
 	if vm.config.BatchRequestLimit > 0 && vm.config.BatchResponseMaxSize > 0 {
 		handler.SetBatchLimits(int(vm.config.BatchRequestLimit), int(vm.config.BatchResponseMaxSize))
 	}
-	if vm.config.HttpBodyLimit > 0 {
-		handler.SetHTTPBodyLimit(int(vm.config.HttpBodyLimit))
+	if vm.config.HTTPBodyLimit > 0 {
+		handler.SetHTTPBodyLimit(int(vm.config.HTTPBodyLimit))
 	}
 
 	enabledAPIs := vm.config.EthAPIs()
@@ -1243,7 +1279,7 @@ func (vm *VM) startContinuousProfiler() {
 		return
 	}
 	vm.profiler = profiler.NewContinuous(
-		filepath.Join(vm.config.ContinuousProfilerDir),
+		filepath.Clean(vm.config.ContinuousProfilerDir),
 		vm.config.ContinuousProfilerFrequency.Duration,
 		vm.config.ContinuousProfilerMaxFiles,
 	)
@@ -1304,7 +1340,7 @@ func attachEthService(handler *rpc.Server, apis []rpc.API, names []string) error
 	for _, ns := range names {
 		// handle pre geth v1.10.20 api names as aliases for their updated values
 		// to allow configurations to be backwards compatible.
-		if newName, isLegacy := legacyApiNames[ns]; isLegacy {
+		if newName, isLegacy := legacyAPINames[ns]; isLegacy {
 			log.Info("deprecated api name referenced in configuration.", "deprecated", ns, "new", newName)
 			enabledServicesSet[newName] = struct{}{}
 			continue
@@ -1338,9 +1374,10 @@ func (vm *VM) Connected(ctx context.Context, nodeID ids.NodeID, version *version
 	vm.vmLock.Lock()
 	defer vm.vmLock.Unlock()
 
-	if err := vm.validatorsManager.Connect(nodeID); err != nil {
-		return fmt.Errorf("uptime manager failed to connect node %s: %w", nodeID, err)
+	if err := vm.uptimeTracker.Connect(nodeID); err != nil {
+		return fmt.Errorf("uptime tracker failed to connect node %s: %w", nodeID, err)
 	}
+
 	return vm.Network.Connected(ctx, nodeID, version)
 }
 
@@ -1348,8 +1385,8 @@ func (vm *VM) Disconnected(ctx context.Context, nodeID ids.NodeID) error {
 	vm.vmLock.Lock()
 	defer vm.vmLock.Unlock()
 
-	if err := vm.validatorsManager.Disconnect(nodeID); err != nil {
-		return fmt.Errorf("uptime manager failed to disconnect node %s: %w", nodeID, err)
+	if err := vm.uptimeTracker.Disconnect(nodeID); err != nil {
+		return fmt.Errorf("uptime tracker failed to disconnect node %s: %w", nodeID, err)
 	}
 
 	return vm.Network.Disconnected(ctx, nodeID)

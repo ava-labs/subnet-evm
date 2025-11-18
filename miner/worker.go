@@ -139,12 +139,12 @@ func (w *worker) commitNewWork(predicateContext *precompileconfig.PredicateConte
 	w.mu.RLock()
 	defer w.mu.RUnlock()
 	var (
-		parent     = w.chain.CurrentBlock()
-		tstart     = w.clock.Time()
-		chainExtra = params.GetExtra(w.chainConfig)
+		parent      = w.chain.CurrentBlock()
+		chainExtra  = params.GetExtra(w.chainConfig)
+		tstart      = customheader.GetNextTimestamp(parent, w.clock.Time())
+		timestamp   = uint64(tstart.Unix())
+		timestampMS = uint64(tstart.UnixMilli())
 	)
-
-	timestamp, timestampMS := customheader.GetNextTimestamp(parent, tstart)
 
 	header := &types.Header{
 		ParentHash: parent.Hash(),
@@ -163,13 +163,13 @@ func (w *worker) commitNewWork(predicateContext *precompileconfig.PredicateConte
 	if err != nil {
 		return nil, err
 	}
-	gasLimit, err := customheader.GasLimit(chainExtra, feeConfig, parent, header.Time)
+	gasLimit, err := customheader.GasLimit(chainExtra, feeConfig, parent, timestampMS)
 	if err != nil {
 		return nil, fmt.Errorf("calculating new gas limit: %w", err)
 	}
 	header.GasLimit = gasLimit
 
-	baseFee, err := customheader.BaseFee(chainExtra, feeConfig, parent, header.Time)
+	baseFee, err := customheader.BaseFee(chainExtra, feeConfig, parent, timestampMS)
 	if err != nil {
 		return nil, fmt.Errorf("failed to calculate new base fee: %w", err)
 	}
@@ -287,7 +287,8 @@ func (w *worker) createCurrentEnvironment(predicateContext *precompileconfig.Pre
 		return nil, err
 	}
 	chainConfig := params.GetExtra(w.chainConfig)
-	capacity, err := customheader.GasCapacity(chainConfig, feeConfig, parent, header.Time)
+	timeMS := customtypes.HeaderTimeMilliseconds(header)
+	capacity, err := customheader.GasCapacity(chainConfig, feeConfig, parent, timeMS)
 	if err != nil {
 		return nil, fmt.Errorf("calculating gas capacity: %w", err)
 	}
@@ -514,7 +515,6 @@ func (w *worker) handleResult(env *environment, block *types.Block, createdAt ti
 	var (
 		hash     = block.Hash()
 		receipts = make([]*types.Receipt, len(unfinishedReceipts))
-		logs     []*types.Log
 	)
 	for i, unfinishedReceipt := range unfinishedReceipts {
 		receipt := new(types.Receipt)
@@ -535,7 +535,6 @@ func (w *worker) handleResult(env *environment, block *types.Block, createdAt ti
 			*log = *unfinishedLog
 			log.BlockHash = hash
 		}
-		logs = append(logs, receipt.Logs...)
 	}
 
 	feesInEther, err := core.TotalFeesFloat(block, receipts)

@@ -376,10 +376,15 @@ func (db *Database) Close() error {
 	db.proposalLock.Lock()
 	defer db.proposalLock.Unlock()
 
-	// We don't need to explicitly dereference the proposals, since they will be cleaned up
-	// within the firewood close method.
+	// before closing, we must deference any outstanding proposals to free the
+	// memory owned by firewood (outside of go's memory management)
+	for _, pCtx := range db.proposalTree.Children {
+		db.dereference(pCtx)
+	}
+
 	db.proposalMap = nil
 	db.proposalTree.Children = nil
+
 	// Close the database
 	return db.fwDisk.Close()
 }
@@ -585,7 +590,5 @@ func arrangeKeyValuePairs(nodes *trienode.MergedNodeSet) ([][]byte, [][]byte) {
 	}
 
 	// We need to do all storage operations first, so prefix-deletion works for accounts.
-	keys := append(storageKeys, acctKeys...)
-	values := append(storageValues, acctValues...)
-	return keys, values
+	return append(storageKeys, acctKeys...), append(storageValues, acctValues...)
 }
