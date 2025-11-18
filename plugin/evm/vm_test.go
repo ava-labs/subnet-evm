@@ -4235,6 +4235,7 @@ func IssueTxsAndSetPreference(txs []*types.Transaction, vm *VM) (snowman.Block, 
 
 	return block, nil
 }
+
 func TestInspectDatabases(t *testing.T) {
 	var (
 		vm = newVM(t, testVMConfig{}).vm
