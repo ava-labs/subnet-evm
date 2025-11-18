@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"math/big"
 	"net/http"
 	"os"
@@ -154,8 +153,6 @@ var (
 	errPathStateUnsupported              = errors.New("path state scheme is not supported")
 )
 
-var originalStderr *os.File
-
 // legacyApiNames maps pre geth v1.10.20 api names to their updated counterparts.
 // used in attachEthService for backward configuration compatibility.
 var legacyAPINames = map[string]string{
@@ -246,7 +243,6 @@ type VM struct {
 	sdkMetrics *prometheus.Registry
 
 	bootstrapped avalancheUtils.Atomic[bool]
-	IsPlugin     bool
 
 	stateSyncDone chan struct{}
 
@@ -304,12 +300,7 @@ func (vm *VM) Initialize(
 	}
 	vm.chainAlias = alias
 
-	var writer io.Writer = vm.ctx.Log
-	if vm.IsPlugin {
-		writer = originalStderr
-	}
-
-	subnetEVMLogger, err := subnetevmlog.InitLogger(vm.chainAlias, vm.config.LogLevel, vm.config.LogJSONFormat, writer)
+	subnetEVMLogger, err := subnetevmlog.InitLogger(vm.chainAlias, vm.config.LogLevel, vm.config.LogJSONFormat, vm.ctx.Log)
 	if err != nil {
 		return fmt.Errorf("%w: %w ", errInitializingLogger, err)
 	}
@@ -454,8 +445,6 @@ func (vm *VM) Initialize(
 		log.Info("Config has not specified any coinbase address. Defaulting to the blackhole address.")
 		vm.ethConfig.Miner.Etherbase = constants.BlackholeAddr
 	}
-
-	vm.chainConfig = g.Config
 
 	vm.networkCodec = message.Codec
 	vm.Network, err = network.NewNetwork(vm.ctx, appSender, vm.networkCodec, vm.config.MaxOutboundActiveRequests, vm.sdkMetrics)
