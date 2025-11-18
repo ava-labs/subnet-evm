@@ -28,6 +28,9 @@ import (
 	sim "github.com/ava-labs/subnet-evm/ethclient/simulated"
 )
 
+// Test keys matching the Hardhat suite identities.
+const ()
+
 var (
 	adminKey, _        = crypto.GenerateKey()
 	unprivilegedKey, _ = crypto.GenerateKey()
@@ -73,180 +76,91 @@ func waitReceipt(t *testing.T, b *sim.Backend, tx *types.Transaction) *types.Rec
 	t.Helper()
 	b.Commit(true)
 	receipt, err := b.Client().TransactionReceipt(t.Context(), tx.Hash())
-	require.NoError(t, err, "failed to get transaction receipt")
+	require.NoError(t, err)
 	return receipt
 }
 
-// Helper functions to reduce test boilerplate
-
-func deployAllowListTestContract(t *testing.T, b *sim.Backend, auth *bind.TransactOpts) (common.Address, *allowlisttest.AllowListTest) {
-	t.Helper()
-	addr, tx, contract, err := allowlisttest.DeployAllowListTest(auth, b.Client(), deployerallowlist.ContractAddress)
-	require.NoError(t, err)
-	receipt := waitReceipt(t, b, tx)
-	require.Equal(t, types.ReceiptStatusSuccessful, receipt.Status)
-	return addr, contract
-}
-
-func verifyRole(t *testing.T, allowList *allowlisttest.IAllowList, address common.Address, expectedRole allowlist.Role) {
-	t.Helper()
-	role, err := allowList.ReadAllowList(nil, address)
-	require.NoError(t, err)
-	require.Equal(t, expectedRole.Big(), role)
-}
-
-func setAsAdmin(t *testing.T, b *sim.Backend, allowList *allowlisttest.IAllowList, auth *bind.TransactOpts, address common.Address) {
-	t.Helper()
-	tx, err := allowList.SetAdmin(auth, address)
-	require.NoError(t, err)
-	receipt := waitReceipt(t, b, tx)
-	require.Equal(t, types.ReceiptStatusSuccessful, receipt.Status)
-}
-
-func TestDeployerAllowList(t *testing.T) {
+func TestDeployerAllowList_Steps(t *testing.T) {
 	chainID := big.NewInt(1337)
 	admin := newAuth(t, adminKey, chainID)
-	unprivileged := newAuth(t, unprivilegedKey, chainID)
+
+	backend := newBackendWithDeployerAllowList(t)
+	defer backend.Close()
 
 	type testCase struct {
-		name string
-		test func(t *testing.T, backend *sim.Backend, allowList *allowlisttest.IAllowList)
+		name           string
+		runStep        func(*DeployerListTest, *bind.TransactOpts) (*types.Transaction, error)
+		expectedStatus uint64
 	}
 
 	testCases := []testCase{
 		{
-			name: "should verify sender is admin",
-			test: func(t *testing.T, _ *sim.Backend, allowList *allowlisttest.IAllowList) {
-				verifyRole(t, allowList, adminAddress, allowlist.AdminRole)
-			},
+			name:           "step_verifySenderIsAdmin",
+			runStep:        (*DeployerListTest).StepVerifySenderIsAdmin,
+			expectedStatus: types.ReceiptStatusSuccessful,
 		},
 		{
-			name: "should verify new address has no role",
-			test: func(t *testing.T, backend *sim.Backend, allowList *allowlisttest.IAllowList) {
-				allowListTestAddr, _ := deployAllowListTestContract(t, backend, admin)
-				verifyRole(t, allowList, allowListTestAddr, allowlist.NoRole)
-			},
+			name:           "step_newAddressHasNoRole",
+			runStep:        (*DeployerListTest).StepNewAddressHasNoRole,
+			expectedStatus: types.ReceiptStatusSuccessful,
 		},
 		{
-			name: "should verify contract correctly reports admin status",
-			test: func(t *testing.T, backend *sim.Backend, allowList *allowlisttest.IAllowList) {
-				allowListTestAddr, allowListTest := deployAllowListTestContract(t, backend, admin)
-
-				verifyRole(t, allowList, allowListTestAddr, allowlist.NoRole)
-
-				isAdmin, err := allowListTest.IsAdmin(nil, allowListTestAddr)
-				require.NoError(t, err)
-				require.False(t, isAdmin)
-
-				isAdmin, err = allowListTest.IsAdmin(nil, adminAddress)
-				require.NoError(t, err)
-				require.True(t, isAdmin)
-			},
+			name:           "step_noRoleIsNotAdmin",
+			runStep:        (*DeployerListTest).StepNoRoleIsNotAdmin,
+			expectedStatus: types.ReceiptStatusSuccessful,
 		},
 		{
-			name: "should not let address with no role deploy contracts",
-			test: func(t *testing.T, backend *sim.Backend, allowList *allowlisttest.IAllowList) {
-				verifyRole(t, allowList, unprivilegedAddress, allowlist.NoRole)
-
-				_, allowListTest := deployAllowListTestContract(t, backend, admin)
-
-				// Try to deploy via unprivileged user - should fail
-				tx, err := allowListTest.DeployContract(unprivileged)
-				if err == nil {
-					receipt := waitReceipt(t, backend, tx)
-					require.Equal(t, types.ReceiptStatusFailed, receipt.Status)
-				}
-			},
+			name:           "step_noRoleCannotDeploy",
+			runStep:        (*DeployerListTest).StepNoRoleCannotDeploy,
+			expectedStatus: types.ReceiptStatusSuccessful,
 		},
 		{
-			name: "should allow admin to add contract as admin via precompile",
-			test: func(t *testing.T, backend *sim.Backend, allowList *allowlisttest.IAllowList) {
-				allowListTestAddr, allowListTest := deployAllowListTestContract(t, backend, admin)
-
-				verifyRole(t, allowList, allowListTestAddr, allowlist.NoRole)
-				setAsAdmin(t, backend, allowList, admin, allowListTestAddr)
-				verifyRole(t, allowList, allowListTestAddr, allowlist.AdminRole)
-
-				isAdmin, err := allowListTest.IsAdmin(nil, allowListTestAddr)
-				require.NoError(t, err)
-				require.True(t, isAdmin)
-			},
+			name:           "step_adminAddContractAsAdmin",
+			runStep:        (*DeployerListTest).StepAdminAddContractAsAdmin,
+			expectedStatus: types.ReceiptStatusSuccessful,
 		},
 		{
-			name: "should allow admin to add deployer via contract",
-			test: func(t *testing.T, backend *sim.Backend, allowList *allowlisttest.IAllowList) {
-				allowListTestAddr, allowListTest := deployAllowListTestContract(t, backend, admin)
-				otherContractAddr, _ := deployAllowListTestContract(t, backend, admin)
-
-				verifyRole(t, allowList, allowListTestAddr, allowlist.NoRole)
-				setAsAdmin(t, backend, allowList, admin, allowListTestAddr)
-				verifyRole(t, allowList, allowListTestAddr, allowlist.AdminRole)
-
-				tx, err := allowListTest.SetEnabled(admin, otherContractAddr)
-				require.NoError(t, err)
-				waitReceipt(t, backend, tx)
-
-				isEnabled, err := allowListTest.IsEnabled(nil, otherContractAddr)
-				require.NoError(t, err)
-				require.True(t, isEnabled)
-			},
+			name:           "step_addDeployerThroughContract",
+			runStep:        (*DeployerListTest).StepAddDeployerThroughContract,
+			expectedStatus: types.ReceiptStatusSuccessful,
 		},
 		{
-			name: "should allow enabled address to deploy contracts",
-			test: func(t *testing.T, backend *sim.Backend, allowList *allowlisttest.IAllowList) {
-				allowListTestAddr, allowListTest := deployAllowListTestContract(t, backend, admin)
-				deployerContractAddr, deployerContract := deployAllowListTestContract(t, backend, admin)
-
-				setAsAdmin(t, backend, allowList, admin, allowListTestAddr)
-
-				tx, err := allowListTest.SetEnabled(admin, deployerContractAddr)
-				require.NoError(t, err)
-				waitReceipt(t, backend, tx)
-
-				isEnabled, err := allowListTest.IsEnabled(nil, deployerContractAddr)
-				require.NoError(t, err)
-				require.True(t, isEnabled)
-
-				tx, err = deployerContract.DeployContract(admin)
-				require.NoError(t, err)
-				receipt := waitReceipt(t, backend, tx)
-				require.Equal(t, types.ReceiptStatusSuccessful, receipt.Status)
-			},
+			name:           "step_deployerCanDeploy",
+			runStep:        (*DeployerListTest).StepDeployerCanDeploy,
+			expectedStatus: types.ReceiptStatusSuccessful,
 		},
 		{
-			name: "should allow admin to revoke deployer",
-			test: func(t *testing.T, backend *sim.Backend, allowList *allowlisttest.IAllowList) {
-				allowListTestAddr, allowListTest := deployAllowListTestContract(t, backend, admin)
-				deployerContractAddr, _ := deployAllowListTestContract(t, backend, admin)
-
-				setAsAdmin(t, backend, allowList, admin, allowListTestAddr)
-
-				tx, err := allowListTest.SetEnabled(admin, deployerContractAddr)
-				require.NoError(t, err)
-				waitReceipt(t, backend, tx)
-
-				isEnabled, err := allowListTest.IsEnabled(nil, deployerContractAddr)
-				require.NoError(t, err)
-				require.True(t, isEnabled)
-
-				tx, err = allowListTest.Revoke(admin, deployerContractAddr)
-				require.NoError(t, err)
-				waitReceipt(t, backend, tx)
-
-				verifyRole(t, allowList, deployerContractAddr, allowlist.NoRole)
-			},
+			name:           "step_adminCanRevokeDeployer",
+			runStep:        (*DeployerListTest).StepAdminCanRevokeDeployer,
+			expectedStatus: types.ReceiptStatusSuccessful,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			backend := newBackendWithDeployerAllowList(t)
-			defer backend.Close()
+			require := require.New(t)
+
+			testContractAddr, tx, testContract, err := DeployDeployerListTest(admin, backend.Client())
+			require.NoError(err)
+			require.Equal(types.ReceiptStatusSuccessful, waitReceipt(t, backend, tx).Status)
 
 			allowList, err := allowlisttest.NewIAllowList(deployerallowlist.ContractAddress, backend.Client())
-			require.NoError(t, err)
+			require.NoError(err)
+			// Set the contract address as admin in the deployer allow list precompile to enable the contract to deploy and
+			// modify the allow list.
+			tx, err = allowList.SetAdmin(admin, testContractAddr)
+			require.NoError(err)
+			require.Equal(types.ReceiptStatusSuccessful, waitReceipt(t, backend, tx).Status)
 
-			tc.test(t, backend, allowList)
+			// Run the setup method to initialize the test contract.
+			tx, err = testContract.SetUp(admin)
+			require.NoError(err)
+			require.Equal(types.ReceiptStatusSuccessful, waitReceipt(t, backend, tx).Status)
+
+			auth := newAuth(t, adminKey, chainID)
+			tx, err = tc.runStep(testContract, auth)
+			require.NoError(err)
+			require.Equal(tc.expectedStatus, waitReceipt(t, backend, tx).Status)
 		})
 	}
 }
@@ -340,20 +254,22 @@ func TestIAllowList_Events(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			require := require.New(t)
+
 			backend := newBackendWithDeployerAllowList(t)
 			defer backend.Close()
 
 			allowList, err := allowlisttest.NewIAllowList(deployerallowlist.ContractAddress, backend.Client())
-			require.NoError(t, err)
+			require.NoError(err)
 
 			if tc.setup != nil {
-				require.NoError(t, tc.setup(allowList, admin, backend, t, testAddress))
+				require.NoError(tc.setup(allowList, admin, backend, t, testAddress))
 			}
 
 			tx, err := tc.runMethod(allowList, admin, testAddress)
-			require.NoError(t, err)
+			require.NoError(err)
 			receipt := waitReceipt(t, backend, tx)
-			require.Equal(t, types.ReceiptStatusSuccessful, receipt.Status)
+			require.Equal(types.ReceiptStatusSuccessful, receipt.Status)
 
 			// Filter for RoleSet events using FilterRoleSet
 			// This will filter for all RoleSet events.
@@ -363,22 +279,22 @@ func TestIAllowList_Events(t *testing.T) {
 				nil,
 				nil,
 			)
-			require.NoError(t, err)
+			require.NoError(err)
 			defer iter.Close()
 
 			// Verify event fields match expected values
 			for _, expectedEvent := range tc.expectedEvents {
-				require.True(t, iter.Next(), "expected to find RoleSet event")
+				require.True(iter.Next(), "expected to find RoleSet event")
 				event := iter.Event
-				require.Equal(t, 0, expectedEvent.Role.Cmp(event.Role), "role mismatch")
-				require.Equal(t, expectedEvent.Account, event.Account, "account mismatch")
-				require.Equal(t, expectedEvent.Sender, event.Sender, "sender mismatch")
-				require.Equal(t, 0, expectedEvent.OldRole.Cmp(event.OldRole), "oldRole mismatch")
+				require.Equal(0, expectedEvent.Role.Cmp(event.Role), "role mismatch")
+				require.Equal(expectedEvent.Account, event.Account, "account mismatch")
+				require.Equal(expectedEvent.Sender, event.Sender, "sender mismatch")
+				require.Equal(0, expectedEvent.OldRole.Cmp(event.OldRole), "oldRole mismatch")
 			}
 
 			// Verify there are no more events
-			require.False(t, iter.Next(), "expected no more RoleSet events")
-			require.NoError(t, iter.Error())
+			require.False(iter.Next(), "expected no more RoleSet events")
+			require.NoError(iter.Error())
 		})
 	}
 }
