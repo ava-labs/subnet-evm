@@ -61,8 +61,7 @@ func testCodeSyncer(t *testing.T, test codeSyncerTest) {
 	codeSyncer.start(context.Background())
 
 	for _, codeHashes := range test.codeRequestHashes {
-		err := codeSyncer.addCode(codeHashes)
-		require.NoError(t, err)
+		require.NoError(t, codeSyncer.addCode(codeHashes))
 	}
 	codeSyncer.notifyAccountTrieCompleted()
 

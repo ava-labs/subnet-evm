@@ -215,6 +215,8 @@ func checkBlockChainState(
 	newChainDataDir := copyFlatDir(t, oldChainDataDir)
 	restartedChain, err := create(originalDB, gspec, lastAcceptedBlock.Hash(), newChainDataDir)
 	require.NoError(err)
+	defer restartedChain.Stop()
+
 	currentBlock := restartedChain.CurrentBlock()
 	require.Equal(lastAcceptedBlock.Hash(), currentBlock.Hash(), "Restarted chain's current block does not match last accepted block")
 	restartedLastAcceptedBlock := restartedChain.LastConsensusAcceptedBlock()
