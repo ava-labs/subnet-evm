@@ -1003,11 +1003,11 @@ func TestEIP3651(t *testing.T) {
 	tx := block.Transactions()[0]
 	gasPrice := new(big.Int).Add(block.BaseFee(), tx.EffectiveGasTipValue(block.BaseFee()))
 	expected := new(big.Int).SetUint64(block.GasUsed() * gasPrice.Uint64())
-	require.Equal(t, expected, actual, "miner balance incorrect: expected %d, got %d", expected, actual)
+	require.Zero(t, actual.Cmp(expected), "miner balance incorrect: expected %d, got %d", expected, actual)
 
 	// 4: Ensure the tx sender paid for the gasUsed * (block baseFee + effectiveGasTip).
 	// Note this differs from go-ethereum where the miner receives the gasUsed * block baseFee,
 	// as our handling of the coinbase payment is different.
 	actual = new(big.Int).Sub(funds, state.GetBalance(addr1).ToBig())
-	require.Equal(t, expected, actual, "sender balance incorrect: expected %d, got %d", expected, actual)
+	require.Zero(t, actual.Cmp(expected), "sender balance incorrect: expected %d, got %d", expected, actual)
 }
