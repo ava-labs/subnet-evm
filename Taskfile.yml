@@ -67,11 +67,13 @@ tasks:
       - task: check-clean-branch
 
   check-generate-bindings:
-    desc: Checks that generated Go bindings from Solidity contracts are up-to-date (requires a clean git working tree)
+    desc: Checks that generated Go bindings from Solidity contracts in precompile are up-to-date (requires a clean git working tree)
     cmds:
-      - task: setup-contracts
       - cmd: |
-          # Generate bindings for precompile packages (outside contracts/)
+          # Find and remove generated binding files in precompile directories only
+          find ./precompile -type f -name 'gen_*binding.go' -exec grep -l '^// Code generated - DO NOT EDIT\.$' {} \; | xargs -r rm
+      - cmd: |
+          # Generate bindings for precompile packages (contracts/ bindings are handled by setup-contracts separately)
           grep -l '//go:generate.*abigen' $(find ./precompile -name 'compile.go' -type f 2>/dev/null) | while read -r file; do
             dir=$(dirname "$file")
             echo "Generating bindings in $dir"
