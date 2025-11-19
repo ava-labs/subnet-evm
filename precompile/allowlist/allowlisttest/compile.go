@@ -6,7 +6,7 @@ package allowlisttest
 // Step 1: Compile Solidity contracts to generate ABI and bin files
 //go:generate solc -o artifacts --overwrite --abi --bin --base-path . precompile/=../../ --evm-version paris IAllowList.sol AllowListTest.sol
 // Step 2: Generate Go bindings from the compiled artifacts
-//go:generate go run github.com/ava-labs/libevm/cmd/abigen --pkg allowlisttest --type IAllowList --abi artifacts/IAllowList.abi --bin artifacts/IAllowList.bin --out allowlist_binding.go
-//go:generate go run github.com/ava-labs/libevm/cmd/abigen --pkg allowlisttest --type AllowListTest --abi artifacts/AllowListTest.abi --bin artifacts/AllowListTest.bin --out allowlisttest_binding.go
+//go:generate go run github.com/ava-labs/libevm/cmd/abigen --pkg allowlisttest --type IAllowList --abi artifacts/IAllowList.abi --bin artifacts/IAllowList.bin --out gen_allowlist_binding.go
+//go:generate go run github.com/ava-labs/libevm/cmd/abigen --pkg allowlisttest --type AllowListTest --abi artifacts/AllowListTest.abi --bin artifacts/AllowListTest.bin --out gen_allowlisttest_binding.go
 // Step 3: Replace import paths in generated binding to use subnet-evm instead of libevm
-//go:generate sh -c "sed -i '' -e 's|github.com/ava-labs/libevm/accounts/abi|github.com/ava-labs/subnet-evm/accounts/abi|g' -e 's|github.com/ava-labs/libevm/accounts/abi/bind|github.com/ava-labs/subnet-evm/accounts/abi/bind|g' allowlist_binding.go allowlisttest_binding.go"
+//go:generate sh -c "sed -i '' -e 's|github.com/ava-labs/libevm/accounts/abi|github.com/ava-labs/subnet-evm/accounts/abi|g' -e 's|github.com/ava-labs/libevm/accounts/abi/bind|github.com/ava-labs/subnet-evm/accounts/abi/bind|g' gen_allowlist_binding.go gen_allowlisttest_binding.go"

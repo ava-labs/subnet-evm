@@ -39,7 +39,6 @@ function read_dirs {
     ! -name 'gen_*.go'
     ! -path './**/*mock/*.go'
     ! -path './contracts/bindings/*.go'
-    ! -path './precompile/*/*/*_binding.go'
   )
 
   # Combined loop: build both upstream licensed find and exclude args

@@ -110,7 +110,7 @@ func TestDeployerAllowList(t *testing.T) {
 
 	type testCase struct {
 		name string
-		test func(t *testing.T, backend *sim.Backend, allowList *allowlisttest.IAllowList)
+		test func(t *testing.T, backend *sim.Backend, precompileIntf *allowlisttest.IAllowList)
 	}
 
 	testCases := []testCase{
@@ -189,6 +189,7 @@ func TestDeployerAllowList(t *testing.T) {
 				isEnabled, err := allowListTest.IsEnabled(nil, otherContractAddr)
 				require.NoError(t, err)
 				require.True(t, isEnabled)
+				verifyRole(t, allowList, otherContractAddr, allowlist.EnabledRole)
 			},
 		},
 		{
@@ -340,20 +341,22 @@ func TestIAllowList_Events(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			require := require.New(t)
+
 			backend := newBackendWithDeployerAllowList(t)
 			defer backend.Close()
 
 			allowList, err := allowlisttest.NewIAllowList(deployerallowlist.ContractAddress, backend.Client())
-			require.NoError(t, err)
+			require.NoError(err)
 
 			if tc.setup != nil {
-				require.NoError(t, tc.setup(allowList, admin, backend, t, testAddress))
+				require.NoError(tc.setup(allowList, admin, backend, t, testAddress))
 			}
 
 			tx, err := tc.runMethod(allowList, admin, testAddress)
-			require.NoError(t, err)
+			require.NoError(err)
 			receipt := waitReceipt(t, backend, tx)
-			require.Equal(t, types.ReceiptStatusSuccessful, receipt.Status)
+			require.Equal(types.ReceiptStatusSuccessful, receipt.Status)
 
 			// Filter for RoleSet events using FilterRoleSet
 			// This will filter for all RoleSet events.
@@ -363,22 +366,22 @@ func TestIAllowList_Events(t *testing.T) {
 				nil,
 				nil,
 			)
-			require.NoError(t, err)
+			require.NoError(err)
 			defer iter.Close()
 
 			// Verify event fields match expected values
 			for _, expectedEvent := range tc.expectedEvents {
-				require.True(t, iter.Next(), "expected to find RoleSet event")
+				require.True(iter.Next(), "expected to find RoleSet event")
 				event := iter.Event
-				require.Equal(t, 0, expectedEvent.Role.Cmp(event.Role), "role mismatch")
-				require.Equal(t, expectedEvent.Account, event.Account, "account mismatch")
-				require.Equal(t, expectedEvent.Sender, event.Sender, "sender mismatch")
-				require.Equal(t, 0, expectedEvent.OldRole.Cmp(event.OldRole), "oldRole mismatch")
+				require.Equal(0, expectedEvent.Role.Cmp(event.Role), "role mismatch")
+				require.Equal(expectedEvent.Account, event.Account, "account mismatch")
+				require.Equal(expectedEvent.Sender, event.Sender, "sender mismatch")
+				require.Equal(0, expectedEvent.OldRole.Cmp(event.OldRole), "oldRole mismatch")
 			}
 
 			// Verify there are no more events
-			require.False(t, iter.Next(), "expected no more RoleSet events")
-			require.NoError(t, iter.Error())
+			require.False(iter.Next(), "expected no more RoleSet events")
+			require.NoError(iter.Error())
 		})
 	}
 }
