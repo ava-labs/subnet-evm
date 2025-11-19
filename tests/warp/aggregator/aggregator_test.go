@@ -90,7 +90,7 @@ func TestAggregateSignatures(t *testing.T) {
 		{
 			name: "0/3 validators reply with signature",
 			contextWithCancelFunc: func() (context.Context, context.CancelFunc) {
-				return context.Background(), nil
+				return t.Context(), nil
 			},
 			aggregatorFunc: func(ctrl *gomock.Controller, _ context.CancelFunc) *Aggregator {
 				client := NewMockSignatureGetter(ctrl)
@@ -104,7 +104,7 @@ func TestAggregateSignatures(t *testing.T) {
 		{
 			name: "1/3 validators reply with signature; insufficient weight",
 			contextWithCancelFunc: func() (context.Context, context.CancelFunc) {
-				return context.Background(), nil
+				return t.Context(), nil
 			},
 			aggregatorFunc: func(ctrl *gomock.Controller, _ context.CancelFunc) *Aggregator {
 				client := NewMockSignatureGetter(ctrl)
@@ -120,7 +120,7 @@ func TestAggregateSignatures(t *testing.T) {
 		{
 			name: "2/3 validators reply with signature; insufficient weight",
 			contextWithCancelFunc: func() (context.Context, context.CancelFunc) {
-				return context.Background(), nil
+				return t.Context(), nil
 			},
 			aggregatorFunc: func(ctrl *gomock.Controller, _ context.CancelFunc) *Aggregator {
 				client := NewMockSignatureGetter(ctrl)
@@ -136,7 +136,7 @@ func TestAggregateSignatures(t *testing.T) {
 		{
 			name: "2/3 validators reply with signature; sufficient weight",
 			contextWithCancelFunc: func() (context.Context, context.CancelFunc) {
-				return context.Background(), nil
+				return t.Context(), nil
 			},
 			aggregatorFunc: func(ctrl *gomock.Controller, _ context.CancelFunc) *Aggregator {
 				client := NewMockSignatureGetter(ctrl)
@@ -153,7 +153,7 @@ func TestAggregateSignatures(t *testing.T) {
 		{
 			name: "3/3 validators reply with signature; sufficient weight",
 			contextWithCancelFunc: func() (context.Context, context.CancelFunc) {
-				return context.Background(), nil
+				return t.Context(), nil
 			},
 			aggregatorFunc: func(ctrl *gomock.Controller, _ context.CancelFunc) *Aggregator {
 				client := NewMockSignatureGetter(ctrl)
@@ -170,7 +170,7 @@ func TestAggregateSignatures(t *testing.T) {
 		{
 			name: "3/3 validators reply with signature; 1 invalid signature; sufficient weight",
 			contextWithCancelFunc: func() (context.Context, context.CancelFunc) {
-				return context.Background(), nil
+				return t.Context(), nil
 			},
 			aggregatorFunc: func(ctrl *gomock.Controller, _ context.CancelFunc) *Aggregator {
 				client := NewMockSignatureGetter(ctrl)
@@ -187,7 +187,7 @@ func TestAggregateSignatures(t *testing.T) {
 		{
 			name: "3/3 validators reply with signature; 3 invalid signatures; insufficient weight",
 			contextWithCancelFunc: func() (context.Context, context.CancelFunc) {
-				return context.Background(), nil
+				return t.Context(), nil
 			},
 			aggregatorFunc: func(ctrl *gomock.Controller, _ context.CancelFunc) *Aggregator {
 				client := NewMockSignatureGetter(ctrl)
@@ -203,7 +203,7 @@ func TestAggregateSignatures(t *testing.T) {
 		{
 			name: "3/3 validators reply with signature; 2 invalid signatures; insufficient weight",
 			contextWithCancelFunc: func() (context.Context, context.CancelFunc) {
-				return context.Background(), nil
+				return t.Context(), nil
 			},
 			aggregatorFunc: func(ctrl *gomock.Controller, _ context.CancelFunc) *Aggregator {
 				client := NewMockSignatureGetter(ctrl)
@@ -219,7 +219,7 @@ func TestAggregateSignatures(t *testing.T) {
 		{
 			name: "1/3 validators reply with signature; 1 invalid signature; 1 error; sufficient weight",
 			contextWithCancelFunc: func() (context.Context, context.CancelFunc) {
-				return context.Background(), nil
+				return t.Context(), nil
 			},
 			aggregatorFunc: func(ctrl *gomock.Controller, _ context.CancelFunc) *Aggregator {
 				client := NewMockSignatureGetter(ctrl)
@@ -236,7 +236,7 @@ func TestAggregateSignatures(t *testing.T) {
 		{
 			name: "early termination of signature fetching on parent context cancellation",
 			contextWithCancelFunc: func() (context.Context, context.CancelFunc) {
-				ctx, cancel := context.WithCancel(context.Background())
+				ctx, cancel := context.WithCancel(t.Context())
 				cancel()
 				return ctx, cancel
 			},
@@ -278,7 +278,7 @@ func TestAggregateSignatures(t *testing.T) {
 		{
 			name: "context cancels halfway through signature fetching",
 			contextWithCancelFunc: func() (context.Context, context.CancelFunc) {
-				ctx, cancel := context.WithCancel(context.Background())
+				ctx, cancel := context.WithCancel(t.Context())
 				return ctx, cancel
 			},
 			aggregatorFunc: func(ctrl *gomock.Controller, cancel context.CancelFunc) *Aggregator {
@@ -318,7 +318,7 @@ func TestAggregateSignatures(t *testing.T) {
 		{
 			name: "early termination of signature fetching on passing threshold",
 			contextWithCancelFunc: func() (context.Context, context.CancelFunc) {
-				return context.Background(), nil
+				return t.Context(), nil
 			},
 			aggregatorFunc: func(ctrl *gomock.Controller, _ context.CancelFunc) *Aggregator {
 				client := NewMockSignatureGetter(ctrl)
