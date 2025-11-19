@@ -159,22 +159,22 @@ var _ = ginkgo.Describe("[Warp]", func() {
 		tc := e2e.NewTestContext()
 		w := newWarpTest(tc.DefaultContext(), sendingSubnet, receivingSubnet)
 
-		ginkgo.GinkgoLogr.Info("Sending message from A to B")
+		log.Info("Sending message from A to B")
 		w.sendMessageFromSendingSubnet()
 
-		ginkgo.GinkgoLogr.Info("Aggregating signatures via API")
+		log.Info("Aggregating signatures via API")
 		w.aggregateSignaturesViaAPI()
 
-		ginkgo.GinkgoLogr.Info("Delivering addressed call payload to receiving subnet")
+		log.Info("Delivering addressed call payload to receiving subnet")
 		w.deliverAddressedCallToReceivingSubnet()
 
-		ginkgo.GinkgoLogr.Info("Delivering block hash payload to receiving subnet")
+		log.Info("Delivering block hash payload to receiving subnet")
 		w.deliverBlockHashPayload()
 
-		ginkgo.GinkgoLogr.Info("Executing HardHat test")
+		log.Info("Executing HardHat test")
 		w.executeHardHatTest()
 
-		ginkgo.GinkgoLogr.Info("Executing warp load test")
+		log.Info("Executing warp load test")
 		w.warpLoad()
 	}
 	ginkgo.It("SubnetA -> SubnetB", func() { testFunc(subnetA, subnetB) })
