@@ -111,7 +111,8 @@ tasks:
           # Find and remove generated binding files in precompile directories only
           find ./precompile -type f -name 'gen_*binding.go' -exec grep -l '^// Code generated - DO NOT EDIT\.$' {} \; | xargs -r rm
       - cmd: |
-  go generate ./precompile/...
+          # Generate bindings for precompile packages (contracts/ bindings are handled by setup-contracts separately)
+          go generate ./precompile/...
 
 
   install-avalanchego-release:
