@@ -1,9 +1,6 @@
 TestChainIndexerWithChildren
 TestClientCancelWebsocket
 TestClientWebsocketLargeMessage
-TestGolangBindings
-TestResumeSyncAccountsTrieInterrupted
-TestResyncNewRootAfterDeletes
 TestTransactionSkipIndexing
 TestVMShutdownWhileSyncing
 TestWaitDeployedCornerCases
