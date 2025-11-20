@@ -111,12 +111,7 @@ tasks:
           # Find and remove generated binding files in precompile directories only
           find ./precompile -type f -name 'gen_*binding.go' -exec grep -l '^// Code generated - DO NOT EDIT\.$' {} \; | xargs -r rm
       - cmd: |
-          # Generate bindings for precompile packages (contracts/ bindings are handled by setup-contracts separately)
-          grep -l '//go:generate.*abigen' $(find ./precompile -name 'compile.go' -type f 2>/dev/null) | while read -r file; do
-            dir=$(dirname "$file")
-            echo "Generating bindings in $dir"
-            (cd "$dir" && go generate .)
-          done
+  go generate ./precompile/...
 
 
   install-avalanchego-release:
