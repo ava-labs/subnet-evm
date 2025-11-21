@@ -571,7 +571,15 @@ func TestGetLeafs(t *testing.T) {
 				response, err := handler.OnLeafsRequest(t.Context(), ids.GenerateTestNodeID(), 1, request)
 				require.NoError(t, err)
 				require.NotEmpty(t, response)
-				return response
+				var leafResponse message.LeafsResponse
+				_, err = message.Codec.Unmarshal(response, &leafResponse)
+				require.NoError(t, err)
+				leafResponse.Keys = leafResponse.Keys[:len(leafResponse.Keys)-1]
+				leafResponse.Vals = leafResponse.Vals[:len(leafResponse.Vals)-1]
+
+				modifiedResponse, err := message.Codec.Marshal(message.Version, leafResponse)
+				require.NoError(t, err)
+				return modifiedResponse
 			},
 			expectedErr: errInvalidRangeProof,
 		},
