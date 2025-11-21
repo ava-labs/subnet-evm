@@ -124,6 +124,14 @@ var (
 	acceptedLogsCounter  = metrics.GetOrRegisterCounter("chain/logs/accepted", nil)
 	processedLogsCounter = metrics.GetOrRegisterCounter("chain/logs/processed", nil)
 
+	latestBaseFeeGauge     = metrics.NewRegisteredGauge("chain/latest/basefee", nil)
+	latestGasExcessGauge   = metrics.NewRegisteredGauge("chain/latest/gas/excess", nil)
+	latestGasCapacityGauge = metrics.NewRegisteredGauge("chain/latest/gas/capacity", nil)
+	latestGasTargetGauge   = metrics.NewRegisteredGauge("chain/latest/gas/target", nil)
+
+	latestMinDelayGauge       = metrics.NewRegisteredGauge("chain/latest/mindelay", nil)
+	latestMinDelayExcessGauge = metrics.NewRegisteredGauge("chain/latest/mindelay/excess", nil)
+
 	ErrRefuseToCorruptArchiver = errors.New("node has operated with pruning disabled, shutting down to prevent missing tries")
 
 	errFutureBlockUnsupported  = errors.New("future block insertion not supported")
@@ -1136,6 +1144,14 @@ func (bc *BlockChain) Accept(block *types.Block) error {
 		log.Error(fmt.Sprintf("TotalFees error: %s", err))
 	} else {
 		blockTotalFeesGauge.Update(total.Int64())
+	}
+	if params.GetExtra(bc.chainConfig).IsGranite(block.Time()) {
+		extraHeader := customtypes.GetHeaderExtra(block.Header())
+		if extraHeader.MinDelayExcess != nil {
+			delayExcess := *extraHeader.MinDelayExcess
+			latestMinDelayGauge.Update(int64(delayExcess.Delay()))
+			latestMinDelayExcessGauge.Update(int64(delayExcess))
+		}
 	}
 	return nil
 }
