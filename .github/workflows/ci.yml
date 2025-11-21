@@ -9,7 +9,8 @@ on:
   pull_request:
   merge_group:
     types: [checks_requested]
-
+env:
+  SOLC_VERSION: '0.8.30'
 jobs:
   lint_test:
     name: Lint
@@ -26,7 +27,7 @@ jobs:
       - name: Set up solc
         uses: ARR4N/setup-solc@v0.2.0
         with:
-          versions: '0.8.30'
+          version: ${{ env.SOLC_VERSION }}
       - name: Run all lint checks
         run: ./scripts/run_task.sh lint-all-ci
       - name: Check go.mod and go.sum are up-to-date
@@ -74,7 +75,7 @@ jobs:
       - name: Set up solc
         uses: ARR4N/setup-solc@v0.2.0
         with:
-          versions: '0.8.30'
+          version: ${{ env.SOLC_VERSION }}
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
@@ -103,7 +104,7 @@ jobs:
       - name: Set up solc
         uses: ARR4N/setup-solc@v0.2.0
         with:
-          versions: '0.8.30'
+          version: ${{ env.SOLC_VERSION }}
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
