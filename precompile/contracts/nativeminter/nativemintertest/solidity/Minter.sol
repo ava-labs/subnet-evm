@@ -1,7 +1,7 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "precompile/contracts/nativeminter/nativemintertest/ERC20NativeMinterTest.sol";
+import "./ERC20NativeMinterTest.sol";
 
 // Helper contract to test minting from another contract
 contract Minter {

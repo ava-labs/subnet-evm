@@ -3,8 +3,8 @@ pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "precompile/allowlist/allowlisttest/AllowList.sol";
-import "precompile/contracts/nativeminter/nativemintertest/INativeMinter.sol";
+import "precompile/allowlist/allowlisttest/solidity/AllowList.sol";
+import "./INativeMinter.sol";
 
 // Designated Blackhole Address
 address constant BLACKHOLE_ADDRESS = 0x0100000000000000000000000000000000000000;
