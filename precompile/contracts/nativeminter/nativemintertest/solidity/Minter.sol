@@ -1,14 +1,14 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "./ERC20NativeMinterTest.sol";
+import "./ERC20NativeMinter.sol";
 
 // Helper contract to test minting from another contract
 contract Minter {
-  ERC20NativeMinterTest token;
+  ERC20NativeMinter token;
 
   constructor(address tokenAddress) {
-    token = ERC20NativeMinterTest(tokenAddress);
+    token = ERC20NativeMinter(tokenAddress);
   }
 
   function mintdraw(uint amount) external {

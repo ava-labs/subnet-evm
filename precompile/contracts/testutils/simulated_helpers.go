@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/ava-labs/subnet-evm/accounts/abi/bind"
+
 	sim "github.com/ava-labs/subnet-evm/ethclient/simulated"
 )
 

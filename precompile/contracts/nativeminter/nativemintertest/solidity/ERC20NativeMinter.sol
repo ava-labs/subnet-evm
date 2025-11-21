@@ -9,7 +9,7 @@ import "./INativeMinter.sol";
 // Designated Blackhole Address
 address constant BLACKHOLE_ADDRESS = 0x0100000000000000000000000000000000000000;
 
-contract ERC20NativeMinterTest is ERC20, Ownable, AllowList {
+contract ERC20NativeMinter is ERC20, Ownable, AllowList {
   string private constant TOKEN_NAME = "ERC20NativeMinterToken";
   string private constant TOKEN_SYMBOL = "XMPL";
 

@@ -62,9 +62,9 @@ func newBackendWithNativeMinter(t *testing.T) *sim.Backend {
 
 // Helper functions to reduce test boilerplate
 
-func deployERC20NativeMinterTest(t *testing.T, b *sim.Backend, auth *bind.TransactOpts, initSupply *big.Int) (common.Address, *ERC20NativeMinterTest) {
+func deployERC20NativeMinter(t *testing.T, b *sim.Backend, auth *bind.TransactOpts, initSupply *big.Int) (common.Address, *ERC20NativeMinter) {
 	t.Helper()
-	addr, tx, contract, err := DeployERC20NativeMinterTest(auth, b.Client(), nativeminter.ContractAddress, initSupply)
+	addr, tx, contract, err := DeployERC20NativeMinter(auth, b.Client(), nativeminter.ContractAddress, initSupply)
 	require.NoError(t, err)
 	testutils.WaitReceiptSuccessful(t, b, tx)
 	return addr, contract
@@ -108,7 +108,7 @@ func TestNativeMinter(t *testing.T) {
 		{
 			name: "contract should not be able to mintdraw",
 			test: func(t *testing.T, backend *sim.Backend, nativeMinter *INativeMinter) {
-				tokenAddr, token := deployERC20NativeMinterTest(t, backend, admin, initSupply)
+				tokenAddr, token := deployERC20NativeMinter(t, backend, admin, initSupply)
 
 				verifyRole(t, nativeMinter, tokenAddr, allowlist.NoRole)
 
@@ -120,7 +120,7 @@ func TestNativeMinter(t *testing.T) {
 		{
 			name: "should be added to minter list",
 			test: func(t *testing.T, backend *sim.Backend, nativeMinter *INativeMinter) {
-				tokenAddr, _ := deployERC20NativeMinterTest(t, backend, admin, initSupply)
+				tokenAddr, _ := deployERC20NativeMinter(t, backend, admin, initSupply)
 
 				verifyRole(t, nativeMinter, tokenAddr, allowlist.NoRole)
 
@@ -132,7 +132,7 @@ func TestNativeMinter(t *testing.T) {
 		{
 			name: "admin should mintdraw",
 			test: func(t *testing.T, backend *sim.Backend, nativeMinter *INativeMinter) {
-				tokenAddr, token := deployERC20NativeMinterTest(t, backend, admin, initSupply)
+				tokenAddr, token := deployERC20NativeMinter(t, backend, admin, initSupply)
 
 				setAsEnabled(t, backend, nativeMinter, admin, tokenAddr)
 
@@ -155,7 +155,7 @@ func TestNativeMinter(t *testing.T) {
 		{
 			name: "minter should not mintdraw without tokens",
 			test: func(t *testing.T, backend *sim.Backend, nativeMinter *INativeMinter) {
-				tokenAddr, token := deployERC20NativeMinterTest(t, backend, admin, initSupply)
+				tokenAddr, token := deployERC20NativeMinter(t, backend, admin, initSupply)
 				minterAddr, minter := deployMinter(t, backend, admin, tokenAddr)
 
 				setAsEnabled(t, backend, nativeMinter, admin, tokenAddr)
@@ -173,7 +173,7 @@ func TestNativeMinter(t *testing.T) {
 		{
 			name: "should deposit for minter",
 			test: func(t *testing.T, backend *sim.Backend, nativeMinter *INativeMinter) {
-				tokenAddr, token := deployERC20NativeMinterTest(t, backend, admin, initSupply)
+				tokenAddr, token := deployERC20NativeMinter(t, backend, admin, initSupply)
 				minterAddr, minter := deployMinter(t, backend, admin, tokenAddr)
 
 				setAsEnabled(t, backend, nativeMinter, admin, tokenAddr)
@@ -209,7 +209,7 @@ func TestNativeMinter(t *testing.T) {
 		{
 			name: "minter should mintdraw",
 			test: func(t *testing.T, backend *sim.Backend, nativeMinter *INativeMinter) {
-				tokenAddr, token := deployERC20NativeMinterTest(t, backend, admin, initSupply)
+				tokenAddr, token := deployERC20NativeMinter(t, backend, admin, initSupply)
 				minterAddr, minter := deployMinter(t, backend, admin, tokenAddr)
 
 				setAsEnabled(t, backend, nativeMinter, admin, tokenAddr)
