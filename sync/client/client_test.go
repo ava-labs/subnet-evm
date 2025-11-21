@@ -97,7 +97,7 @@ func TestGetCode(t *testing.T) {
 		Codec:            message.Codec,
 		Stats:            clientstats.NewNoOpStats(),
 		StateSyncNodeIDs: nil,
-		BlockParser:      mockBlockParser,
+		BlockParser:      newTestBlockParser(),
 	})
 
 	for name, test := range tests {
@@ -164,7 +164,7 @@ func TestGetBlocks(t *testing.T) {
 		Codec:            message.Codec,
 		Stats:            clientstats.NewNoOpStats(),
 		StateSyncNodeIDs: nil,
-		BlockParser:      mockBlockParser,
+		BlockParser:      newTestBlockParser(),
 	})
 
 	blocksRequestHandler := handlers.NewBlockRequestHandler(buildGetter(blocks), message.Codec, handlerstats.NewNoopHandlerStats())
@@ -424,7 +424,7 @@ func TestGetLeafs(t *testing.T) {
 		Codec:            message.Codec,
 		Stats:            clientstats.NewNoOpStats(),
 		StateSyncNodeIDs: nil,
-		BlockParser:      mockBlockParser,
+		BlockParser:      newTestBlockParser(),
 	})
 
 	tests := map[string]struct {
@@ -789,7 +789,7 @@ func TestGetLeafsRetries(t *testing.T) {
 		Codec:            message.Codec,
 		Stats:            clientstats.NewNoOpStats(),
 		StateSyncNodeIDs: nil,
-		BlockParser:      mockBlockParser,
+		BlockParser:      newTestBlockParser(),
 	})
 
 	request := message.LeafsRequest{
@@ -849,7 +849,7 @@ func TestStateSyncNodes(t *testing.T) {
 		Codec:            message.Codec,
 		Stats:            clientstats.NewNoOpStats(),
 		StateSyncNodeIDs: stateSyncNodes,
-		BlockParser:      mockBlockParser,
+		BlockParser:      newTestBlockParser(),
 	})
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
