@@ -21,18 +21,18 @@ This project requires Go 1.21 or later. Install from [golang.org](https://golang
 The Solidity compiler version 0.8.30 is required to compile contracts. In CI, this is installed automatically via the [setup-solc](https://github.com/ARR4N/setup-solc) GitHub Action.
 
 For local development, install solc 0.8.30:
-- **macOS**: `brew install solidity`
+- **macOS**: `brew install solidity` 
 - **Linux**: Follow instructions at [solidity docs](https://docs.soliditylang.org/en/latest/installing-solidity.html)
 - **CI**: Automatically installed via GitHub Actions
 
 After installation, create a version-specific alias or symlink:
 ```bash
 # Option 1: Symlink (works in all contexts including go generate)
-sudo ln -sf $(which solc) /usr/local/bin/solc  # Linux
-sudo ln -sf $(which solc) /opt/homebrew/bin/solc  # macOS (Homebrew)
+sudo ln -sf $(which solc) /usr/local/bin/solc-v0.8.30  # Linux
+sudo ln -sf $(which solc) /opt/homebrew/bin/solc-v0.8.30  # macOS (Homebrew)
 
 # Option 2: Shell alias (interactive shells only)
-echo "alias solc='solc'" >> ~/.bashrc  # or ~/.zshrc
+echo "alias solc-v0.8.30='solc'" >> ~/.bashrc  # or ~/.zshrc
 ```
 
 ### Solidity and Avalanche
