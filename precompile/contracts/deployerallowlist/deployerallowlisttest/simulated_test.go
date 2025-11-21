@@ -376,7 +376,7 @@ func TestIAllowList_Events(t *testing.T) {
 				require.Equal(0, expectedEvent.Role.Cmp(event.Role), "role mismatch")
 				require.Equal(expectedEvent.Account, event.Account, "account mismatch")
 				require.Equal(expectedEvent.Sender, event.Sender, "sender mismatch")
-				require.Equal(0, expectedEvent.OldRole.Cmp(event.OldRole), "oldRole mismatch")
+				require.Zero(expectedEvent.OldRole.Cmp(event.OldRole), "oldRole mismatch")
 			}
 
 			// Verify there are no more events
