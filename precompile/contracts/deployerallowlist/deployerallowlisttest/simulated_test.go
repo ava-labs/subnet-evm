@@ -373,7 +373,7 @@ func TestIAllowList_Events(t *testing.T) {
 			for _, expectedEvent := range tc.expectedEvents {
 				require.True(iter.Next(), "expected to find RoleSet event")
 				event := iter.Event
-				require.Equal(0, expectedEvent.Role.Cmp(event.Role), "role mismatch")
+				require.Zero(expectedEvent.Role.Cmp(event.Role), "role mismatch")
 				require.Equal(expectedEvent.Account, event.Account, "account mismatch")
 				require.Equal(expectedEvent.Sender, event.Sender, "sender mismatch")
 				require.Zero(expectedEvent.OldRole.Cmp(event.OldRole), "oldRole mismatch")
