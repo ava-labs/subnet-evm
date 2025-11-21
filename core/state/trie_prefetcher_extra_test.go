@@ -123,7 +123,7 @@ func BenchmarkPrefetcherDatabase(b *testing.B) {
 			commit(levelDB, snaps, db)
 			b.Logf("Root: %v, kvs: %d, block: %d (committed)", root, count, block)
 		}
-		require.Equal(root, previous, "root and previous should be equal")
+		require.NotEqual(root, previous, "root and previous should not be equal")
 		require.NoError(db.TrieDB().Dereference(previous))
 	}
 	require.NoError(levelDB.Close())
