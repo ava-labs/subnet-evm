@@ -12,6 +12,7 @@ import (
 
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/core/vm"
 	"github.com/ava-labs/libevm/crypto"
 	"github.com/stretchr/testify/require"
 
@@ -151,11 +152,9 @@ func TestDeployerAllowList(t *testing.T) {
 				_, allowListTest := deployAllowListTestContract(t, backend, admin)
 
 				// Try to deploy via unprivileged user - should fail
-				tx, err := allowListTest.DeployContract(unprivileged)
-				if err == nil {
-					receipt := waitReceipt(t, backend, tx)
-					require.Equal(t, types.ReceiptStatusFailed, receipt.Status)
-				}
+				_, err := allowListTest.DeployContract(unprivileged)
+				// The error returned is a JSON Error rather than the vm.ErrExecutionReverted error
+				require.ErrorContains(t, err, vm.ErrExecutionReverted.Error())
 			},
 		},
 		{
@@ -260,16 +259,17 @@ func TestIAllowList_Events(t *testing.T) {
 
 	type testCase struct {
 		name           string
-		setup          func(*allowlisttest.IAllowList, *bind.TransactOpts, *sim.Backend, *testing.T, common.Address) error
-		runMethod      func(*allowlisttest.IAllowList, *bind.TransactOpts, common.Address) (*types.Transaction, error)
+		testRun        func(*allowlisttest.IAllowList, *bind.TransactOpts, *sim.Backend, *testing.T, common.Address)
 		expectedEvents []allowlisttest.IAllowListRoleSet
 	}
 
 	testCases := []testCase{
 		{
 			name: "should emit event after set admin",
-			runMethod: func(allowList *allowlisttest.IAllowList, auth *bind.TransactOpts, addr common.Address) (*types.Transaction, error) {
-				return allowList.SetAdmin(auth, addr)
+			testRun: func(allowList *allowlisttest.IAllowList, auth *bind.TransactOpts, backend *sim.Backend, t *testing.T, addr common.Address) {
+				tx, err := allowList.SetAdmin(auth, addr)
+				require.NoError(t, err)
+				waitReceipt(t, backend, tx)
 			},
 			expectedEvents: []allowlisttest.IAllowListRoleSet{
 				{
@@ -282,8 +282,10 @@ func TestIAllowList_Events(t *testing.T) {
 		},
 		{
 			name: "should emit event after set manager",
-			runMethod: func(allowList *allowlisttest.IAllowList, auth *bind.TransactOpts, addr common.Address) (*types.Transaction, error) {
-				return allowList.SetManager(auth, addr)
+			testRun: func(allowList *allowlisttest.IAllowList, auth *bind.TransactOpts, backend *sim.Backend, t *testing.T, addr common.Address) {
+				tx, err := allowList.SetManager(auth, addr)
+				require.NoError(t, err)
+				waitReceipt(t, backend, tx)
 			},
 			expectedEvents: []allowlisttest.IAllowListRoleSet{
 				{
@@ -296,8 +298,10 @@ func TestIAllowList_Events(t *testing.T) {
 		},
 		{
 			name: "should emit event after set enabled",
-			runMethod: func(allowList *allowlisttest.IAllowList, auth *bind.TransactOpts, addr common.Address) (*types.Transaction, error) {
-				return allowList.SetEnabled(auth, addr)
+			testRun: func(allowList *allowlisttest.IAllowList, auth *bind.TransactOpts, backend *sim.Backend, t *testing.T, addr common.Address) {
+				tx, err := allowList.SetEnabled(auth, addr)
+				require.NoError(t, err)
+				waitReceipt(t, backend, tx)
 			},
 			expectedEvents: []allowlisttest.IAllowListRoleSet{
 				{
@@ -310,17 +314,15 @@ func TestIAllowList_Events(t *testing.T) {
 		},
 		{
 			name: "should emit event after set none",
-			setup: func(allowList *allowlisttest.IAllowList, auth *bind.TransactOpts, backend *sim.Backend, t *testing.T, addr common.Address) error {
+			testRun: func(allowList *allowlisttest.IAllowList, auth *bind.TransactOpts, backend *sim.Backend, t *testing.T, addr common.Address) {
 				// First set the address to Enabled so we can test setting it to None
 				tx, err := allowList.SetEnabled(auth, addr)
-				if err != nil {
-					return err
-				}
+				require.NoError(t, err)
 				waitReceipt(t, backend, tx)
-				return nil
-			},
-			runMethod: func(allowList *allowlisttest.IAllowList, auth *bind.TransactOpts, addr common.Address) (*types.Transaction, error) {
-				return allowList.SetNone(auth, addr)
+
+				tx, err = allowList.SetNone(auth, addr)
+				require.NoError(t, err)
+				waitReceipt(t, backend, tx)
 			},
 			expectedEvents: []allowlisttest.IAllowListRoleSet{
 				{
@@ -349,14 +351,7 @@ func TestIAllowList_Events(t *testing.T) {
 			allowList, err := allowlisttest.NewIAllowList(deployerallowlist.ContractAddress, backend.Client())
 			require.NoError(err)
 
-			if tc.setup != nil {
-				require.NoError(tc.setup(allowList, admin, backend, t, testAddress))
-			}
-
-			tx, err := tc.runMethod(allowList, admin, testAddress)
-			require.NoError(err)
-			receipt := waitReceipt(t, backend, tx)
-			require.Equal(types.ReceiptStatusSuccessful, receipt.Status)
+			tc.testRun(allowList, admin, backend, t, testAddress)
 
 			// Filter for RoleSet events using FilterRoleSet
 			// This will filter for all RoleSet events.
