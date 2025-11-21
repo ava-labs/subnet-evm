@@ -1,12 +1,9 @@
 // Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
-//
-// This test suite migrates the Hardhat tests for the ContractDeployerAllowList
-// to Go using the simulated backend and the generated bindings in this package.
+
 package deployerallowlisttest
 
 import (
-	"crypto/ecdsa"
 	"math/big"
 	"testing"
 
@@ -24,6 +21,7 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist/allowlisttest"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/deployerallowlist"
+	"github.com/ava-labs/subnet-evm/precompile/contracts/testutils"
 	"github.com/ava-labs/subnet-evm/utils"
 
 	sim "github.com/ava-labs/subnet-evm/ethclient/simulated"
@@ -45,13 +43,6 @@ func TestMain(m *testing.M) {
 	m.Run()
 }
 
-func newAuth(t *testing.T, key *ecdsa.PrivateKey, chainID *big.Int) *bind.TransactOpts {
-	t.Helper()
-	auth, err := bind.NewKeyedTransactorWithChainID(key, chainID)
-	require.NoError(t, err)
-	return auth
-}
-
 func newBackendWithDeployerAllowList(t *testing.T) *sim.Backend {
 	t.Helper()
 	chainCfg := params.Copy(params.TestChainConfig)
@@ -70,22 +61,13 @@ func newBackendWithDeployerAllowList(t *testing.T) *sim.Backend {
 	)
 }
 
-func waitReceipt(t *testing.T, b *sim.Backend, tx *types.Transaction) *types.Receipt {
-	t.Helper()
-	b.Commit(true)
-	receipt, err := b.Client().TransactionReceipt(t.Context(), tx.Hash())
-	require.NoError(t, err, "failed to get transaction receipt")
-	return receipt
-}
-
 // Helper functions to reduce test boilerplate
 
 func deployAllowListTestContract(t *testing.T, b *sim.Backend, auth *bind.TransactOpts) (common.Address, *allowlisttest.AllowListTest) {
 	t.Helper()
 	addr, tx, contract, err := allowlisttest.DeployAllowListTest(auth, b.Client(), deployerallowlist.ContractAddress)
 	require.NoError(t, err)
-	receipt := waitReceipt(t, b, tx)
-	require.Equal(t, types.ReceiptStatusSuccessful, receipt.Status)
+	testutils.WaitReceiptSuccessful(t, b, tx)
 	return addr, contract
 }
 
@@ -100,14 +82,13 @@ func setAsAdmin(t *testing.T, b *sim.Backend, allowList *allowlisttest.IAllowLis
 	t.Helper()
 	tx, err := allowList.SetAdmin(auth, address)
 	require.NoError(t, err)
-	receipt := waitReceipt(t, b, tx)
-	require.Equal(t, types.ReceiptStatusSuccessful, receipt.Status)
+	testutils.WaitReceiptSuccessful(t, b, tx)
 }
 
 func TestDeployerAllowList(t *testing.T) {
 	chainID := big.NewInt(1337)
-	admin := newAuth(t, adminKey, chainID)
-	unprivileged := newAuth(t, unprivilegedKey, chainID)
+	admin := testutils.NewAuth(t, adminKey, chainID)
+	unprivileged := testutils.NewAuth(t, unprivilegedKey, chainID)
 
 	type testCase struct {
 		name string
@@ -183,7 +164,7 @@ func TestDeployerAllowList(t *testing.T) {
 
 				tx, err := allowListTest.SetEnabled(admin, otherContractAddr)
 				require.NoError(t, err)
-				waitReceipt(t, backend, tx)
+				testutils.WaitReceipt(t, backend, tx)
 
 				isEnabled, err := allowListTest.IsEnabled(nil, otherContractAddr)
 				require.NoError(t, err)
@@ -201,7 +182,7 @@ func TestDeployerAllowList(t *testing.T) {
 
 				tx, err := allowListTest.SetEnabled(admin, deployerContractAddr)
 				require.NoError(t, err)
-				waitReceipt(t, backend, tx)
+				testutils.WaitReceipt(t, backend, tx)
 
 				isEnabled, err := allowListTest.IsEnabled(nil, deployerContractAddr)
 				require.NoError(t, err)
@@ -209,8 +190,7 @@ func TestDeployerAllowList(t *testing.T) {
 
 				tx, err = deployerContract.DeployContract(admin)
 				require.NoError(t, err)
-				receipt := waitReceipt(t, backend, tx)
-				require.Equal(t, types.ReceiptStatusSuccessful, receipt.Status)
+				testutils.WaitReceiptSuccessful(t, backend, tx)
 			},
 		},
 		{
@@ -223,7 +203,7 @@ func TestDeployerAllowList(t *testing.T) {
 
 				tx, err := allowListTest.SetEnabled(admin, deployerContractAddr)
 				require.NoError(t, err)
-				waitReceipt(t, backend, tx)
+				testutils.WaitReceipt(t, backend, tx)
 
 				isEnabled, err := allowListTest.IsEnabled(nil, deployerContractAddr)
 				require.NoError(t, err)
@@ -231,7 +211,7 @@ func TestDeployerAllowList(t *testing.T) {
 
 				tx, err = allowListTest.Revoke(admin, deployerContractAddr)
 				require.NoError(t, err)
-				waitReceipt(t, backend, tx)
+				testutils.WaitReceipt(t, backend, tx)
 
 				verifyRole(t, allowList, deployerContractAddr, allowlist.NoRole)
 			},
@@ -253,7 +233,7 @@ func TestDeployerAllowList(t *testing.T) {
 
 func TestIAllowList_Events(t *testing.T) {
 	chainID := big.NewInt(1337)
-	admin := newAuth(t, adminKey, chainID)
+	admin := testutils.NewAuth(t, adminKey, chainID)
 	testKey, _ := crypto.GenerateKey()
 	testAddress := crypto.PubkeyToAddress(testKey.PublicKey)
 
@@ -269,7 +249,7 @@ func TestIAllowList_Events(t *testing.T) {
 			testRun: func(allowList *allowlisttest.IAllowList, auth *bind.TransactOpts, backend *sim.Backend, t *testing.T, addr common.Address) {
 				tx, err := allowList.SetAdmin(auth, addr)
 				require.NoError(t, err)
-				waitReceipt(t, backend, tx)
+				testutils.WaitReceipt(t, backend, tx)
 			},
 			expectedEvents: []allowlisttest.IAllowListRoleSet{
 				{
@@ -285,7 +265,7 @@ func TestIAllowList_Events(t *testing.T) {
 			testRun: func(allowList *allowlisttest.IAllowList, auth *bind.TransactOpts, backend *sim.Backend, t *testing.T, addr common.Address) {
 				tx, err := allowList.SetManager(auth, addr)
 				require.NoError(t, err)
-				waitReceipt(t, backend, tx)
+				testutils.WaitReceipt(t, backend, tx)
 			},
 			expectedEvents: []allowlisttest.IAllowListRoleSet{
 				{
@@ -301,7 +281,7 @@ func TestIAllowList_Events(t *testing.T) {
 			testRun: func(allowList *allowlisttest.IAllowList, auth *bind.TransactOpts, backend *sim.Backend, t *testing.T, addr common.Address) {
 				tx, err := allowList.SetEnabled(auth, addr)
 				require.NoError(t, err)
-				waitReceipt(t, backend, tx)
+				testutils.WaitReceipt(t, backend, tx)
 			},
 			expectedEvents: []allowlisttest.IAllowListRoleSet{
 				{
@@ -318,11 +298,11 @@ func TestIAllowList_Events(t *testing.T) {
 				// First set the address to Enabled so we can test setting it to None
 				tx, err := allowList.SetEnabled(auth, addr)
 				require.NoError(t, err)
-				waitReceipt(t, backend, tx)
+				testutils.WaitReceipt(t, backend, tx)
 
 				tx, err = allowList.SetNone(auth, addr)
 				require.NoError(t, err)
-				waitReceipt(t, backend, tx)
+				testutils.WaitReceipt(t, backend, tx)
 			},
 			expectedEvents: []allowlisttest.IAllowListRoleSet{
 				{
