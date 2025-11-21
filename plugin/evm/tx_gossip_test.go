@@ -38,8 +38,12 @@ import (
 func TestEthTxGossip(t *testing.T) {
 	require := require.New(t)
 	ctx := t.Context()
-	snowCtx := snowtest.Context(t, snowtest.CChainID)
+
 	validatorState := utilstest.NewTestValidatorState()
+	subnetID, err := validatorState.GetSubnetID(t.Context(), snowtest.CChainID)
+	require.NoError(err)
+
+	snowCtx := snowtest.Context(t, subnetID)
 	snowCtx.ValidatorState = validatorState
 
 	responseSender := &enginetest.SenderStub{
