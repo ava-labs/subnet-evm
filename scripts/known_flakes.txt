@@ -1,7 +1,3 @@
 TestChainIndexerWithChildren
-TestMempoolEthTxsAppGossipHandling
-TestResumeSyncAccountsTrieInterrupted
-TestResyncNewRootAfterDeletes
 TestTransactionSkipIndexing
 TestVMShutdownWhileSyncing
-TestWaitDeployedCornerCases

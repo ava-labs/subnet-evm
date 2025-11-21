@@ -7,7 +7,7 @@ module github.com/ava-labs/subnet-evm
 // - Changes to the minimum golang version must also be replicated in:
 //   - go.mod (here)
 //   - tools/go.mod
-//   - tools/legacy-golangci-lint.mod
+//   - RELEASES.md
 //
 // - If updating between minor versions (e.g. 1.24.x -> 1.25.x):
 //   - Consider updating the version of golangci-lint (see tools/go.mod)
@@ -17,7 +17,7 @@ require (
 	github.com/VictoriaMetrics/fastcache v1.12.1
 	github.com/antithesishq/antithesis-sdk-go v0.3.8
 	github.com/ava-labs/avalanchego v1.14.1-0.20251111165133-29b4e6bc541b
-	github.com/ava-labs/firewood-go-ethhash/ffi v0.0.13
+	github.com/ava-labs/firewood-go-ethhash/ffi v0.0.14
 	github.com/ava-labs/libevm v1.13.15-0.20251016142715-1bccf4f2ddb2
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/deckarep/golang-set/v2 v2.1.0
