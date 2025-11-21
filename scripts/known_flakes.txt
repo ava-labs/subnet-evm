@@ -2,5 +2,4 @@ TestChainIndexerWithChildren
 TestClientCancelWebsocket
 TestClientWebsocketLargeMessage
 TestVMShutdownWhileSyncing
-TestWaitDeployedCornerCases
 TestWebsocketLargeRead
