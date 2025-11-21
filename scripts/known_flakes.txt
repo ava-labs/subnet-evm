@@ -3,5 +3,4 @@ TestClientCancelWebsocket
 TestClientWebsocketLargeMessage
 TestTransactionSkipIndexing
 TestVMShutdownWhileSyncing
-TestWaitDeployedCornerCases
 TestWebsocketLargeRead
