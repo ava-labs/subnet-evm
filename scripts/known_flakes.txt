@@ -1,3 +1,2 @@
 TestChainIndexerWithChildren
-TestTransactionSkipIndexing
 TestVMShutdownWhileSyncing
