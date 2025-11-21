@@ -277,7 +277,11 @@ func TestClientWebsocketPing(t *testing.T) {
 }
 
 // This checks that the websocket transport can deal with large messages.
+//
+// This test is upstream from go-ethereum but is skipped because it is flaky.
+// Error message: call failed: websocket: close 1006 (abnormal closure): unexpected EOF
 func TestClientWebsocketLargeMessage(t *testing.T) {
+	t.Skip("Flaky")
 	var (
 		srv     = NewServer(0)
 		httpsrv = httptest.NewServer(srv.WebsocketHandler(nil))
