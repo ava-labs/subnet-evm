@@ -4,7 +4,6 @@
 package statesync
 
 import (
-	"context"
 	"errors"
 	"testing"
 
@@ -58,7 +57,7 @@ func testCodeSyncer(t *testing.T, test codeSyncerTest) {
 	if test.setupCodeSyncer != nil {
 		test.setupCodeSyncer(codeSyncer)
 	}
-	codeSyncer.start(context.Background())
+	codeSyncer.start(t.Context())
 
 	for _, codeHashes := range test.codeRequestHashes {
 		require.NoError(t, codeSyncer.addCode(codeHashes))

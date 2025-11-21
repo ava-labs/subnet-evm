@@ -4,7 +4,6 @@
 package evm
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"math/big"
@@ -54,7 +53,7 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 		upgradeJSON: string(upgradeBytesJSON),
 	})
 	defer func() {
-		require.NoError(t, tvm.vm.Shutdown(context.Background()))
+		require.NoError(t, tvm.vm.Shutdown(t.Context()))
 	}()
 
 	tvm.vm.clock.Set(enableAllowListTimestamp)
@@ -91,14 +90,14 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 	// restart the vm with the same stateful params
 	newVM := &VM{}
 	require.NoError(t, newVM.Initialize(
-		context.Background(), tvm.vm.ctx, tvm.db, []byte(genesisJSONSubnetEVM), upgradeBytesJSON, []byte{}, []*commonEng.Fx{}, tvm.appSender,
+		t.Context(), tvm.vm.ctx, tvm.db, []byte(genesisJSONSubnetEVM), upgradeBytesJSON, []byte{}, []*commonEng.Fx{}, tvm.appSender,
 	))
 	defer func() {
-		require.NoError(t, newVM.Shutdown(context.Background()))
+		require.NoError(t, newVM.Shutdown(t.Context()))
 	}()
 	// Set the VM's state to NormalOp to initialize the tx pool.
-	require.NoError(t, newVM.SetState(context.Background(), snow.Bootstrapping))
-	require.NoError(t, newVM.SetState(context.Background(), snow.NormalOp))
+	require.NoError(t, newVM.SetState(t.Context(), snow.Bootstrapping))
+	require.NoError(t, newVM.SetState(t.Context(), snow.NormalOp))
 	newTxPoolHeadChan := make(chan core.NewTxPoolReorgEvent, 1)
 	newVM.txPool.SubscribeNewReorgEvent(newTxPoolHeadChan)
 	newVM.clock.Set(disableAllowListTimestamp)
@@ -281,7 +280,7 @@ func TestVMStateUpgrade(t *testing.T) {
 		upgradeJSON: upgradeBytesJSON,
 	})
 
-	defer func() { require.NoError(t, tvm.vm.Shutdown(context.Background())) }()
+	defer func() { require.NoError(t, tvm.vm.Shutdown(t.Context())) }()
 
 	// Verify the new account doesn't exist yet
 	genesisState, err := tvm.vm.blockChain.State()
@@ -372,7 +371,7 @@ func TestVMEtnaActivatesCancun(t *testing.T) {
 				upgradeJSON: test.upgradeJSON,
 			})
 
-			defer func() { require.NoError(t, tvm.vm.Shutdown(context.Background())) }()
+			defer func() { require.NoError(t, tvm.vm.Shutdown(t.Context())) }()
 			test.check(t, tvm.vm)
 		})
 	}

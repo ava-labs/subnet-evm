@@ -182,7 +182,7 @@ func newVM(t *testing.T, config testVMConfig) *testVM {
 	appSender.SendAppGossipF = func(context.Context, commonEng.SendConfig, []byte) error { return nil }
 
 	err := vm.Initialize(
-		context.Background(),
+		t.Context(),
 		ctx,
 		prefixedDB,
 		[]byte(config.genesisJSON),
@@ -194,8 +194,8 @@ func newVM(t *testing.T, config testVMConfig) *testVM {
 	require.NoError(t, err, "error initializing vm")
 
 	if !config.isSyncing {
-		require.NoError(t, vm.SetState(context.Background(), snow.Bootstrapping))
-		require.NoError(t, vm.SetState(context.Background(), snow.NormalOp))
+		require.NoError(t, vm.SetState(t.Context(), snow.Bootstrapping))
+		require.NoError(t, vm.SetState(t.Context(), snow.NormalOp))
 	}
 
 	return &testVM{
@@ -257,7 +257,7 @@ func TestVMConfig(t *testing.T) {
 
 	require.Equal(t, vm.config.RPCTxFeeCap, txFeeCap, "Tx Fee Cap should be set")
 	require.Equal(t, vm.config.EthAPIs(), enabledEthAPIs, "EnabledEthAPIs should be set")
-	require.NoError(t, vm.Shutdown(context.Background()))
+	require.NoError(t, vm.Shutdown(t.Context()))
 }
 
 func TestVMContinuousProfiler(t *testing.T) {
@@ -273,7 +273,7 @@ func TestVMContinuousProfiler(t *testing.T) {
 	// Sleep for twice the frequency of the profiler to give it time
 	// to generate the first profile.
 	time.Sleep(2 * time.Second)
-	require.NoError(t, vm.Shutdown(context.Background()))
+	require.NoError(t, vm.Shutdown(t.Context()))
 
 	// Check that the first profile was generated
 	expectedFileName := filepath.Join(profilerDir, "cpu.profile.1")
@@ -317,21 +317,21 @@ func testExpectedGasPrice(t *testing.T, scheme string) {
 			}).vm
 
 			defer func() {
-				require.NoError(vm.Shutdown(context.Background()))
+				require.NoError(vm.Shutdown(t.Context()))
 			}()
 
 			require.Equal(test.expectedGasPrice, vm.txPool.GasTip())
 
 			// Verify that the genesis is correctly managed.
-			lastAcceptedID, err := vm.LastAccepted(context.Background())
+			lastAcceptedID, err := vm.LastAccepted(t.Context())
 			require.NoError(err)
 			require.Equal(ids.ID(vm.genesisHash), lastAcceptedID)
 
-			genesisBlk, err := vm.GetBlock(context.Background(), lastAcceptedID)
+			genesisBlk, err := vm.GetBlock(t.Context(), lastAcceptedID)
 			require.NoError(err)
 			require.Zero(genesisBlk.Height())
 
-			_, err = vm.ParseBlock(context.Background(), genesisBlk.Bytes())
+			_, err = vm.ParseBlock(t.Context(), genesisBlk.Bytes())
 			require.NoError(err)
 		})
 	}
@@ -340,18 +340,18 @@ func testExpectedGasPrice(t *testing.T, scheme string) {
 func issueAndAccept(t *testing.T, vm *VM) snowman.Block {
 	t.Helper()
 
-	msg, err := vm.WaitForEvent(context.Background())
+	msg, err := vm.WaitForEvent(t.Context())
 	require.NoError(t, err)
 	require.Equal(t, commonEng.PendingTxs, msg)
 
-	blk, err := vm.BuildBlock(context.Background())
+	blk, err := vm.BuildBlock(t.Context())
 	require.NoError(t, err)
 
-	require.NoError(t, blk.Verify(context.Background()))
+	require.NoError(t, blk.Verify(t.Context()))
 
-	require.NoError(t, vm.SetPreference(context.Background(), blk.ID()))
+	require.NoError(t, vm.SetPreference(t.Context(), blk.ID()))
 
-	require.NoError(t, blk.Accept(context.Background()))
+	require.NoError(t, blk.Accept(t.Context()))
 
 	return blk
 }
@@ -406,7 +406,7 @@ func testBuildEthTxBlock(t *testing.T, scheme string) {
 	newHead = <-newTxPoolHeadChan
 	require.Equal(t, common.Hash(blk2.ID()), newHead.Head.Hash(), "Expected new block to match")
 
-	lastAcceptedID, err := tvm.vm.LastAccepted(context.Background())
+	lastAcceptedID, err := tvm.vm.LastAccepted(t.Context())
 	require.NoError(t, err)
 	require.Equal(t, blk2.ID(), lastAcceptedID, "Expected last accepted blockID to be the accepted block: %s, but found %s", blk2.ID(), lastAcceptedID)
 
@@ -416,17 +416,17 @@ func testBuildEthTxBlock(t *testing.T, scheme string) {
 
 	// Clear the cache and ensure that GetBlock returns internal blocks with the correct status
 	tvm.vm.State.Flush()
-	blk2Refreshed, err := tvm.vm.GetBlockInternal(context.Background(), blk2.ID())
+	blk2Refreshed, err := tvm.vm.GetBlockInternal(t.Context(), blk2.ID())
 	require.NoError(t, err)
 
 	blk1RefreshedID := blk2Refreshed.Parent()
-	blk1Refreshed, err := tvm.vm.GetBlockInternal(context.Background(), blk1RefreshedID)
+	blk1Refreshed, err := tvm.vm.GetBlockInternal(t.Context(), blk1RefreshedID)
 	require.NoError(t, err)
 
 	require.Equal(t, blk1.ID(), blk1Refreshed.ID(), "Found unexpected blkID for parent of blk2")
 
 	// Close the vm and all databases
-	require.NoError(t, tvm.vm.Shutdown(context.Background()))
+	require.NoError(t, tvm.vm.Shutdown(t.Context()))
 
 	restartedVM := &VM{}
 	newCTX := snowtest.Context(t, snowtest.CChainID)
@@ -434,7 +434,7 @@ func testBuildEthTxBlock(t *testing.T, scheme string) {
 	newCTX.ChainDataDir = tvm.vm.ctx.ChainDataDir
 	conf := getConfig(scheme, "")
 	require.NoError(t, restartedVM.Initialize(
-		context.Background(),
+		t.Context(),
 		newCTX,
 		tvm.db,
 		[]byte(toGenesisJSON(paramstest.ForkToChainConfig[fork])),
@@ -451,7 +451,7 @@ func testBuildEthTxBlock(t *testing.T, scheme string) {
 	require.True(t, restartedVM.blockChain.HasState(blk2.(*chain.BlockWrapper).Block.(*wrappedBlock).ethBlock.Root()), "Expected blk2 state root to not be pruned after shutdown (last accepted tip should be committed)")
 
 	// Shutdown the newest VM
-	require.NoError(t, restartedVM.Shutdown(context.Background()))
+	require.NoError(t, restartedVM.Shutdown(t.Context()))
 }
 
 // Regression test to ensure that after accepting block A
@@ -486,9 +486,9 @@ func testSetPreferenceRace(t *testing.T, scheme string) {
 	vm2 := tvm2.vm
 
 	defer func() {
-		require.NoError(t, vm1.Shutdown(context.Background()))
+		require.NoError(t, vm1.Shutdown(t.Context()))
 
-		require.NoError(t, vm2.Shutdown(context.Background()))
+		require.NoError(t, vm2.Shutdown(t.Context()))
 	}()
 
 	newTxPoolHeadChan1 := make(chan core.NewTxPoolReorgEvent, 1)
@@ -505,24 +505,24 @@ func testSetPreferenceRace(t *testing.T, scheme string) {
 		require.NoError(t, err, "Failed to add tx at index %d: %s", i, err)
 	}
 
-	msg, err := vm1.WaitForEvent(context.Background())
+	msg, err := vm1.WaitForEvent(t.Context())
 	require.NoError(t, err)
 	require.Equal(t, commonEng.PendingTxs, msg)
 
-	vm1BlkA, err := vm1.BuildBlock(context.Background())
+	vm1BlkA, err := vm1.BuildBlock(t.Context())
 	require.NoError(t, err, "Failed to build block with import transaction")
 
-	require.NoError(t, vm1BlkA.Verify(context.Background()), "Block failed verification on VM1")
+	require.NoError(t, vm1BlkA.Verify(t.Context()), "Block failed verification on VM1")
 
-	require.NoError(t, vm1.SetPreference(context.Background(), vm1BlkA.ID()))
+	require.NoError(t, vm1.SetPreference(t.Context(), vm1BlkA.ID()))
 
-	vm2BlkA, err := vm2.ParseBlock(context.Background(), vm1BlkA.Bytes())
+	vm2BlkA, err := vm2.ParseBlock(t.Context(), vm1BlkA.Bytes())
 	require.NoError(t, err, "Unexpected error parsing block from vm2")
-	require.NoError(t, vm2BlkA.Verify(context.Background()), "Block failed verification on VM2")
-	require.NoError(t, vm2.SetPreference(context.Background(), vm2BlkA.ID()))
+	require.NoError(t, vm2BlkA.Verify(t.Context()), "Block failed verification on VM2")
+	require.NoError(t, vm2.SetPreference(t.Context(), vm2BlkA.ID()))
 
-	require.NoError(t, vm1BlkA.Accept(context.Background()), "VM1 failed to accept block")
-	require.NoError(t, vm2BlkA.Accept(context.Background()), "VM2 failed to accept block")
+	require.NoError(t, vm1BlkA.Accept(t.Context()), "VM1 failed to accept block")
+	require.NoError(t, vm2BlkA.Accept(t.Context()), "VM2 failed to accept block")
 
 	newHead := <-newTxPoolHeadChan1
 	require.Equal(t, common.Hash(vm1BlkA.ID()), newHead.Head.Hash(), "Expected new block to match")
@@ -547,16 +547,16 @@ func testSetPreferenceRace(t *testing.T, scheme string) {
 		require.NoError(t, err, "Failed to add transaction to VM1 at index %d: %s", i, err)
 	}
 
-	msg, err = vm1.WaitForEvent(context.Background())
+	msg, err = vm1.WaitForEvent(t.Context())
 	require.NoError(t, err)
 	require.Equal(t, commonEng.PendingTxs, msg)
 
-	vm1BlkB, err := vm1.BuildBlock(context.Background())
+	vm1BlkB, err := vm1.BuildBlock(t.Context())
 	require.NoError(t, err)
 
-	require.NoError(t, vm1BlkB.Verify(context.Background()))
+	require.NoError(t, vm1BlkB.Verify(t.Context()))
 
-	require.NoError(t, vm1.SetPreference(context.Background(), vm1BlkB.ID()))
+	require.NoError(t, vm1.SetPreference(t.Context(), vm1BlkB.ID()))
 
 	// Split the transactions over two blocks, and set VM2's preference to them in sequence
 	// after building each block
@@ -566,16 +566,16 @@ func testSetPreferenceRace(t *testing.T, scheme string) {
 		require.NoError(t, err, "Failed to add transaction to VM2 at index %d: %s", i, err)
 	}
 
-	msg, err = vm2.WaitForEvent(context.Background())
+	msg, err = vm2.WaitForEvent(t.Context())
 	require.NoError(t, err)
 	require.Equal(t, commonEng.PendingTxs, msg)
 
-	vm2BlkC, err := vm2.BuildBlock(context.Background())
+	vm2BlkC, err := vm2.BuildBlock(t.Context())
 	require.NoError(t, err, "Failed to build BlkC on VM2")
 
-	require.NoError(t, vm2BlkC.Verify(context.Background()), "BlkC failed verification on VM2")
+	require.NoError(t, vm2BlkC.Verify(t.Context()), "BlkC failed verification on VM2")
 
-	require.NoError(t, vm2.SetPreference(context.Background(), vm2BlkC.ID()))
+	require.NoError(t, vm2.SetPreference(t.Context(), vm2BlkC.ID()))
 
 	newHead = <-newTxPoolHeadChan2
 	require.Equal(t, common.Hash(vm2BlkC.ID()), newHead.Head.Hash(), "Expected new block to match")
@@ -586,15 +586,15 @@ func testSetPreferenceRace(t *testing.T, scheme string) {
 		require.NoError(t, err, "Failed to add transaction to VM2 at index %d: %s", i, err)
 	}
 
-	msg, err = vm2.WaitForEvent(context.Background())
+	msg, err = vm2.WaitForEvent(t.Context())
 	require.NoError(t, err)
 	require.Equal(t, commonEng.PendingTxs, msg)
-	vm2BlkD, err := vm2.BuildBlock(context.Background())
+	vm2BlkD, err := vm2.BuildBlock(t.Context())
 	require.NoError(t, err, "Failed to build BlkD on VM2")
 
-	require.NoError(t, vm2BlkD.Verify(context.Background()), "BlkD failed verification on VM2")
+	require.NoError(t, vm2BlkD.Verify(t.Context()), "BlkD failed verification on VM2")
 
-	require.NoError(t, vm2.SetPreference(context.Background(), vm2BlkD.ID()))
+	require.NoError(t, vm2.SetPreference(t.Context(), vm2BlkD.ID()))
 
 	// VM1 receives blkC and blkD from VM1
 	// and happens to call SetPreference on blkD without ever calling SetPreference
@@ -602,27 +602,27 @@ func testSetPreferenceRace(t *testing.T, scheme string) {
 	// Here we parse them in reverse order to simulate receiving a chain from the tip
 	// back to the last accepted block as would typically be the case in the consensus
 	// engine
-	vm1BlkD, err := vm1.ParseBlock(context.Background(), vm2BlkD.Bytes())
+	vm1BlkD, err := vm1.ParseBlock(t.Context(), vm2BlkD.Bytes())
 	require.NoError(t, err, "VM1 errored parsing blkD")
-	vm1BlkC, err := vm1.ParseBlock(context.Background(), vm2BlkC.Bytes())
+	vm1BlkC, err := vm1.ParseBlock(t.Context(), vm2BlkC.Bytes())
 	require.NoError(t, err, "VM1 errored parsing blkC")
 
 	// The blocks must be verified in order. This invariant is maintained
 	// in the consensus engine.
-	require.NoError(t, vm1BlkC.Verify(context.Background()), "VM1 BlkC failed verification")
-	require.NoError(t, vm1BlkD.Verify(context.Background()), "VM1 BlkD failed verification")
+	require.NoError(t, vm1BlkC.Verify(t.Context()), "VM1 BlkC failed verification")
+	require.NoError(t, vm1BlkD.Verify(t.Context()), "VM1 BlkD failed verification")
 
 	// Set VM1's preference to blockD, skipping blockC
-	require.NoError(t, vm1.SetPreference(context.Background(), vm1BlkD.ID()))
+	require.NoError(t, vm1.SetPreference(t.Context(), vm1BlkD.ID()))
 
 	// Accept the longer chain on both VMs and ensure there are no errors
 	// VM1 Accepts the blocks in order
-	require.NoError(t, vm1BlkC.Accept(context.Background()), "VM1 BlkC failed on accept")
-	require.NoError(t, vm1BlkD.Accept(context.Background()), "VM1 BlkC failed on accept")
+	require.NoError(t, vm1BlkC.Accept(t.Context()), "VM1 BlkC failed on accept")
+	require.NoError(t, vm1BlkD.Accept(t.Context()), "VM1 BlkC failed on accept")
 
 	// VM2 Accepts the blocks in order
-	require.NoError(t, vm2BlkC.Accept(context.Background()), "VM2 BlkC failed on accept")
-	require.NoError(t, vm2BlkD.Accept(context.Background()), "VM2 BlkC failed on accept")
+	require.NoError(t, vm2BlkC.Accept(t.Context()), "VM2 BlkC failed on accept")
+	require.NoError(t, vm2BlkD.Accept(t.Context()), "VM2 BlkC failed on accept")
 
 	log.Info("Validating canonical chain")
 	// Verify the Canonical Chain for Both VMs
@@ -664,9 +664,9 @@ func testReorgProtection(t *testing.T, scheme string) {
 	vm2 := tvm2.vm
 
 	defer func() {
-		require.NoError(t, vm1.Shutdown(context.Background()))
+		require.NoError(t, vm1.Shutdown(t.Context()))
 
-		require.NoError(t, vm2.Shutdown(context.Background()))
+		require.NoError(t, vm2.Shutdown(t.Context()))
 	}()
 
 	newTxPoolHeadChan1 := make(chan core.NewTxPoolReorgEvent, 1)
@@ -683,24 +683,24 @@ func testReorgProtection(t *testing.T, scheme string) {
 		require.NoError(t, err, "Failed to add tx at index %d: %s", i, err)
 	}
 
-	msg, err := vm1.WaitForEvent(context.Background())
+	msg, err := vm1.WaitForEvent(t.Context())
 	require.NoError(t, err)
 	require.Equal(t, commonEng.PendingTxs, msg)
 
-	vm1BlkA, err := vm1.BuildBlock(context.Background())
+	vm1BlkA, err := vm1.BuildBlock(t.Context())
 	require.NoError(t, err, "Failed to build block with import transaction")
 
-	require.NoError(t, vm1BlkA.Verify(context.Background()), "Block failed verification on VM1")
+	require.NoError(t, vm1BlkA.Verify(t.Context()), "Block failed verification on VM1")
 
-	require.NoError(t, vm1.SetPreference(context.Background(), vm1BlkA.ID()))
+	require.NoError(t, vm1.SetPreference(t.Context(), vm1BlkA.ID()))
 
-	vm2BlkA, err := vm2.ParseBlock(context.Background(), vm1BlkA.Bytes())
+	vm2BlkA, err := vm2.ParseBlock(t.Context(), vm1BlkA.Bytes())
 	require.NoError(t, err, "Unexpected error parsing block from vm2")
-	require.NoError(t, vm2BlkA.Verify(context.Background()), "Block failed verification on VM2")
-	require.NoError(t, vm2.SetPreference(context.Background(), vm2BlkA.ID()))
+	require.NoError(t, vm2BlkA.Verify(t.Context()), "Block failed verification on VM2")
+	require.NoError(t, vm2.SetPreference(t.Context(), vm2BlkA.ID()))
 
-	require.NoError(t, vm1BlkA.Accept(context.Background()), "VM1 failed to accept block")
-	require.NoError(t, vm2BlkA.Accept(context.Background()), "VM2 failed to accept block")
+	require.NoError(t, vm1BlkA.Accept(t.Context()), "VM1 failed to accept block")
+	require.NoError(t, vm2BlkA.Accept(t.Context()), "VM2 failed to accept block")
 
 	newHead := <-newTxPoolHeadChan1
 	require.Equal(t, common.Hash(vm1BlkA.ID()), newHead.Head.Hash(), "Expected new block to match")
@@ -725,16 +725,16 @@ func testReorgProtection(t *testing.T, scheme string) {
 		require.NoError(t, err, "Failed to add transaction to VM1 at index %d: %s", i, err)
 	}
 
-	msg, err = vm1.WaitForEvent(context.Background())
+	msg, err = vm1.WaitForEvent(t.Context())
 	require.NoError(t, err)
 	require.Equal(t, commonEng.PendingTxs, msg)
 
-	vm1BlkB, err := vm1.BuildBlock(context.Background())
+	vm1BlkB, err := vm1.BuildBlock(t.Context())
 	require.NoError(t, err)
 
-	require.NoError(t, vm1BlkB.Verify(context.Background()))
+	require.NoError(t, vm1BlkB.Verify(t.Context()))
 
-	require.NoError(t, vm1.SetPreference(context.Background(), vm1BlkB.ID()))
+	require.NoError(t, vm1.SetPreference(t.Context(), vm1BlkB.ID()))
 
 	// Split the transactions over two blocks, and set VM2's preference to them in sequence
 	// after building each block
@@ -744,31 +744,31 @@ func testReorgProtection(t *testing.T, scheme string) {
 		require.NoError(t, err, "Failed to add transaction to VM2 at index %d: %s", i, err)
 	}
 
-	msg, err = vm2.WaitForEvent(context.Background())
+	msg, err = vm2.WaitForEvent(t.Context())
 	require.NoError(t, err)
 	require.Equal(t, commonEng.PendingTxs, msg)
 
-	vm2BlkC, err := vm2.BuildBlock(context.Background())
+	vm2BlkC, err := vm2.BuildBlock(t.Context())
 	require.NoError(t, err, "Failed to build BlkC on VM2")
 
-	require.NoError(t, vm2BlkC.Verify(context.Background()), "Block failed verification on VM2")
+	require.NoError(t, vm2BlkC.Verify(t.Context()), "Block failed verification on VM2")
 
-	vm1BlkC, err := vm1.ParseBlock(context.Background(), vm2BlkC.Bytes())
+	vm1BlkC, err := vm1.ParseBlock(t.Context(), vm2BlkC.Bytes())
 	require.NoError(t, err, "Unexpected error parsing block from vm2")
 
-	require.NoError(t, vm1BlkC.Verify(context.Background()), "Block failed verification on VM1")
+	require.NoError(t, vm1BlkC.Verify(t.Context()), "Block failed verification on VM1")
 
 	// Accept B, such that block C should get Rejected.
-	require.NoError(t, vm1BlkB.Accept(context.Background()), "VM1 failed to accept block")
+	require.NoError(t, vm1BlkB.Accept(t.Context()), "VM1 failed to accept block")
 
 	// The below (setting preference blocks that have a common ancestor
 	// with the preferred chain lower than the last finalized block)
 	// should NEVER happen. However, the VM defends against this
 	// just in case.
-	err = vm1.SetPreference(context.Background(), vm1BlkC.ID())
+	err = vm1.SetPreference(t.Context(), vm1BlkC.ID())
 	require.ErrorContains(t, err, "cannot orphan finalized block", "Expected error when setting preference that would orphan finalized block")
 
-	err = vm1BlkC.Accept(context.Background())
+	err = vm1BlkC.Accept(t.Context())
 	require.ErrorContains(t, err, "expected accepted block to have parent", "Expected error when accepting orphaned block")
 }
 
@@ -798,9 +798,9 @@ func testNonCanonicalAccept(t *testing.T, scheme string) {
 	vm2 := tvm2.vm
 
 	defer func() {
-		require.NoError(t, vm1.Shutdown(context.Background()))
+		require.NoError(t, vm1.Shutdown(t.Context()))
 
-		require.NoError(t, vm2.Shutdown(context.Background()))
+		require.NoError(t, vm2.Shutdown(t.Context()))
 	}()
 
 	newTxPoolHeadChan1 := make(chan core.NewTxPoolReorgEvent, 1)
@@ -817,34 +817,34 @@ func testNonCanonicalAccept(t *testing.T, scheme string) {
 		require.NoError(t, err, "Failed to add tx at index %d: %s", i, err)
 	}
 
-	msg, err := vm1.WaitForEvent(context.Background())
+	msg, err := vm1.WaitForEvent(t.Context())
 	require.NoError(t, err)
 	require.Equal(t, commonEng.PendingTxs, msg)
 
-	vm1BlkA, err := vm1.BuildBlock(context.Background())
+	vm1BlkA, err := vm1.BuildBlock(t.Context())
 	require.NoError(t, err, "Failed to build block with import transaction")
 
-	require.NoError(t, vm1BlkA.Verify(context.Background()), "Block failed verification on VM1")
+	require.NoError(t, vm1BlkA.Verify(t.Context()), "Block failed verification on VM1")
 
-	_, err = vm1.GetBlockIDAtHeight(context.Background(), vm1BlkA.Height())
+	_, err = vm1.GetBlockIDAtHeight(t.Context(), vm1BlkA.Height())
 	require.ErrorIs(t, err, database.ErrNotFound, "Expected unaccepted block not to be indexed by height, but found %s", err)
 
-	require.NoError(t, vm1.SetPreference(context.Background(), vm1BlkA.ID()))
+	require.NoError(t, vm1.SetPreference(t.Context(), vm1BlkA.ID()))
 
-	vm2BlkA, err := vm2.ParseBlock(context.Background(), vm1BlkA.Bytes())
+	vm2BlkA, err := vm2.ParseBlock(t.Context(), vm1BlkA.Bytes())
 	require.NoError(t, err, "Unexpected error parsing block from vm2")
-	require.NoError(t, vm2BlkA.Verify(context.Background()), "Block failed verification on VM2")
-	_, err = vm2.GetBlockIDAtHeight(context.Background(), vm2BlkA.Height())
+	require.NoError(t, vm2BlkA.Verify(t.Context()), "Block failed verification on VM2")
+	_, err = vm2.GetBlockIDAtHeight(t.Context(), vm2BlkA.Height())
 	require.ErrorIs(t, err, database.ErrNotFound)
-	require.NoError(t, vm2.SetPreference(context.Background(), vm2BlkA.ID()))
+	require.NoError(t, vm2.SetPreference(t.Context(), vm2BlkA.ID()))
 
-	require.NoError(t, vm1BlkA.Accept(context.Background()), "VM1 failed to accept block")
-	blkID, err := vm1.GetBlockIDAtHeight(context.Background(), vm1BlkA.Height())
+	require.NoError(t, vm1BlkA.Accept(t.Context()), "VM1 failed to accept block")
+	blkID, err := vm1.GetBlockIDAtHeight(t.Context(), vm1BlkA.Height())
 	require.NoError(t, err, "Height lookuped failed on accepted block")
 	require.Equal(t, vm1BlkA.ID(), blkID, "Expected accepted block to be indexed by height, but found %s", blkID)
 
-	require.NoError(t, vm2BlkA.Accept(context.Background()), "VM2 failed to accept block")
-	blkID, err = vm2.GetBlockIDAtHeight(context.Background(), vm2BlkA.Height())
+	require.NoError(t, vm2BlkA.Accept(t.Context()), "VM2 failed to accept block")
+	blkID, err = vm2.GetBlockIDAtHeight(t.Context(), vm2BlkA.Height())
 	require.NoError(t, err, "Height lookuped failed on accepted block")
 	require.Equal(t, vm2BlkA.ID(), blkID, "Expected accepted block to be indexed by height, but found %s", blkID)
 
@@ -871,19 +871,19 @@ func testNonCanonicalAccept(t *testing.T, scheme string) {
 		require.NoError(t, err, "Failed to add transaction to VM1 at index %d: %s", i, err)
 	}
 
-	msg, err = vm1.WaitForEvent(context.Background())
+	msg, err = vm1.WaitForEvent(t.Context())
 	require.NoError(t, err)
 	require.Equal(t, commonEng.PendingTxs, msg)
 
-	vm1BlkB, err := vm1.BuildBlock(context.Background())
+	vm1BlkB, err := vm1.BuildBlock(t.Context())
 	require.NoError(t, err)
 
-	require.NoError(t, vm1BlkB.Verify(context.Background()))
+	require.NoError(t, vm1BlkB.Verify(t.Context()))
 
-	_, err = vm1.GetBlockIDAtHeight(context.Background(), vm1BlkB.Height())
+	_, err = vm1.GetBlockIDAtHeight(t.Context(), vm1BlkB.Height())
 	require.ErrorIs(t, err, database.ErrNotFound, "Expected unaccepted block not to be indexed by height, but found %s", err)
 
-	require.NoError(t, vm1.SetPreference(context.Background(), vm1BlkB.ID()))
+	require.NoError(t, vm1.SetPreference(t.Context(), vm1BlkB.ID()))
 
 	blkBHeight := vm1BlkB.Height()
 	blkBHash := vm1BlkB.(*chain.BlockWrapper).Block.(*wrappedBlock).ethBlock.Hash()
@@ -894,24 +894,24 @@ func testNonCanonicalAccept(t *testing.T, scheme string) {
 		require.NoError(t, err, "Failed to add transaction to VM2 at index %d: %s", i, err)
 	}
 
-	msg, err = vm2.WaitForEvent(context.Background())
+	msg, err = vm2.WaitForEvent(t.Context())
 	require.NoError(t, err)
 	require.Equal(t, commonEng.PendingTxs, msg)
 
-	vm2BlkC, err := vm2.BuildBlock(context.Background())
+	vm2BlkC, err := vm2.BuildBlock(t.Context())
 	require.NoError(t, err, "Failed to build BlkC on VM2")
 
-	vm1BlkC, err := vm1.ParseBlock(context.Background(), vm2BlkC.Bytes())
+	vm1BlkC, err := vm1.ParseBlock(t.Context(), vm2BlkC.Bytes())
 	require.NoError(t, err, "Unexpected error parsing block from vm2")
 
-	require.NoError(t, vm1BlkC.Verify(context.Background()), "Block failed verification on VM1")
+	require.NoError(t, vm1BlkC.Verify(t.Context()), "Block failed verification on VM1")
 
-	_, err = vm1.GetBlockIDAtHeight(context.Background(), vm1BlkC.Height())
+	_, err = vm1.GetBlockIDAtHeight(t.Context(), vm1BlkC.Height())
 	require.ErrorIs(t, err, database.ErrNotFound, "Expected unaccepted block not to be indexed by height, but found %s", err)
 
-	require.NoError(t, vm1BlkC.Accept(context.Background()), "VM1 failed to accept block")
+	require.NoError(t, vm1BlkC.Accept(t.Context()), "VM1 failed to accept block")
 
-	blkID, err = vm1.GetBlockIDAtHeight(context.Background(), vm1BlkC.Height())
+	blkID, err = vm1.GetBlockIDAtHeight(t.Context(), vm1BlkC.Height())
 	require.NoError(t, err, "Height lookuped failed on accepted block")
 	require.Equal(t, vm1BlkC.ID(), blkID, "Expected accepted block to be indexed by height, but found %s", blkID)
 
@@ -948,9 +948,9 @@ func testStickyPreference(t *testing.T, scheme string) {
 	vm2 := tvm2.vm
 
 	defer func() {
-		require.NoError(t, vm1.Shutdown(context.Background()))
+		require.NoError(t, vm1.Shutdown(t.Context()))
 
-		require.NoError(t, vm2.Shutdown(context.Background()))
+		require.NoError(t, vm2.Shutdown(t.Context()))
 	}()
 
 	newTxPoolHeadChan1 := make(chan core.NewTxPoolReorgEvent, 1)
@@ -967,24 +967,24 @@ func testStickyPreference(t *testing.T, scheme string) {
 		require.NoError(t, err, "Failed to add tx at index %d: %s", i, err)
 	}
 
-	msg, err := vm1.WaitForEvent(context.Background())
+	msg, err := vm1.WaitForEvent(t.Context())
 	require.NoError(t, err)
 	require.Equal(t, commonEng.PendingTxs, msg)
 
-	vm1BlkA, err := vm1.BuildBlock(context.Background())
+	vm1BlkA, err := vm1.BuildBlock(t.Context())
 	require.NoError(t, err, "Failed to build block with import transaction")
 
-	require.NoError(t, vm1BlkA.Verify(context.Background()), "Block failed verification on VM1")
+	require.NoError(t, vm1BlkA.Verify(t.Context()), "Block failed verification on VM1")
 
-	require.NoError(t, vm1.SetPreference(context.Background(), vm1BlkA.ID()))
+	require.NoError(t, vm1.SetPreference(t.Context(), vm1BlkA.ID()))
 
-	vm2BlkA, err := vm2.ParseBlock(context.Background(), vm1BlkA.Bytes())
+	vm2BlkA, err := vm2.ParseBlock(t.Context(), vm1BlkA.Bytes())
 	require.NoError(t, err, "Unexpected error parsing block from vm2")
-	require.NoError(t, vm2BlkA.Verify(context.Background()), "Block failed verification on VM2")
-	require.NoError(t, vm2.SetPreference(context.Background(), vm2BlkA.ID()))
+	require.NoError(t, vm2BlkA.Verify(t.Context()), "Block failed verification on VM2")
+	require.NoError(t, vm2.SetPreference(t.Context(), vm2BlkA.ID()))
 
-	require.NoError(t, vm1BlkA.Accept(context.Background()), "VM1 failed to accept block")
-	require.NoError(t, vm2BlkA.Accept(context.Background()), "VM2 failed to accept block")
+	require.NoError(t, vm1BlkA.Accept(t.Context()), "VM1 failed to accept block")
+	require.NoError(t, vm2BlkA.Accept(t.Context()), "VM2 failed to accept block")
 
 	newHead := <-newTxPoolHeadChan1
 	require.Equal(t, common.Hash(vm1BlkA.ID()), newHead.Head.Hash(), "Expected new block to match")
@@ -1009,16 +1009,16 @@ func testStickyPreference(t *testing.T, scheme string) {
 		require.NoError(t, err, "Failed to add transaction to VM1 at index %d: %s", i, err)
 	}
 
-	msg, err = vm1.WaitForEvent(context.Background())
+	msg, err = vm1.WaitForEvent(t.Context())
 	require.NoError(t, err)
 	require.Equal(t, commonEng.PendingTxs, msg)
 
-	vm1BlkB, err := vm1.BuildBlock(context.Background())
+	vm1BlkB, err := vm1.BuildBlock(t.Context())
 	require.NoError(t, err)
 
-	require.NoError(t, vm1BlkB.Verify(context.Background()))
+	require.NoError(t, vm1BlkB.Verify(t.Context()))
 
-	require.NoError(t, vm1.SetPreference(context.Background(), vm1BlkB.ID()))
+	require.NoError(t, vm1.SetPreference(t.Context(), vm1BlkB.ID()))
 
 	blkBHeight := vm1BlkB.Height()
 	blkBHash := vm1BlkB.(*chain.BlockWrapper).Block.(*wrappedBlock).ethBlock.Hash()
@@ -1030,16 +1030,16 @@ func testStickyPreference(t *testing.T, scheme string) {
 		require.NoError(t, err, "Failed to add transaction to VM2 at index %d: %s", i, err)
 	}
 
-	msg, err = vm2.WaitForEvent(context.Background())
+	msg, err = vm2.WaitForEvent(t.Context())
 	require.NoError(t, err)
 	require.Equal(t, commonEng.PendingTxs, msg)
 
-	vm2BlkC, err := vm2.BuildBlock(context.Background())
+	vm2BlkC, err := vm2.BuildBlock(t.Context())
 	require.NoError(t, err, "Failed to build BlkC on VM2")
 
-	require.NoError(t, vm2BlkC.Verify(context.Background()), "BlkC failed verification on VM2")
+	require.NoError(t, vm2BlkC.Verify(t.Context()), "BlkC failed verification on VM2")
 
-	require.NoError(t, vm2.SetPreference(context.Background(), vm2BlkC.ID()))
+	require.NoError(t, vm2.SetPreference(t.Context(), vm2BlkC.ID()))
 
 	newHead = <-newTxPoolHeadChan2
 	require.Equal(t, common.Hash(vm2BlkC.ID()), newHead.Head.Hash(), "Expected new block to match")
@@ -1049,50 +1049,50 @@ func testStickyPreference(t *testing.T, scheme string) {
 		require.NoError(t, err, "Failed to add transaction to VM2 at index %d: %s", i, err)
 	}
 
-	msg, err = vm2.WaitForEvent(context.Background())
+	msg, err = vm2.WaitForEvent(t.Context())
 	require.NoError(t, err)
 	require.Equal(t, commonEng.PendingTxs, msg)
 
-	vm2BlkD, err := vm2.BuildBlock(context.Background())
+	vm2BlkD, err := vm2.BuildBlock(t.Context())
 	require.NoError(t, err, "Failed to build BlkD on VM2")
 
 	// Parse blocks produced in vm2
-	vm1BlkC, err := vm1.ParseBlock(context.Background(), vm2BlkC.Bytes())
+	vm1BlkC, err := vm1.ParseBlock(t.Context(), vm2BlkC.Bytes())
 	require.NoError(t, err, "Unexpected error parsing block from vm2")
 	blkCHash := vm1BlkC.(*chain.BlockWrapper).Block.(*wrappedBlock).ethBlock.Hash()
 
-	vm1BlkD, err := vm1.ParseBlock(context.Background(), vm2BlkD.Bytes())
+	vm1BlkD, err := vm1.ParseBlock(t.Context(), vm2BlkD.Bytes())
 	require.NoError(t, err, "Unexpected error parsing block from vm2")
 	blkDHeight := vm1BlkD.Height()
 	blkDHash := vm1BlkD.(*chain.BlockWrapper).Block.(*wrappedBlock).ethBlock.Hash()
 
 	// Should be no-ops
-	require.NoError(t, vm1BlkC.Verify(context.Background()), "Block failed verification on VM1")
-	require.NoError(t, vm1BlkD.Verify(context.Background()), "Block failed verification on VM1")
+	require.NoError(t, vm1BlkC.Verify(t.Context()), "Block failed verification on VM1")
+	require.NoError(t, vm1BlkD.Verify(t.Context()), "Block failed verification on VM1")
 	require.Equal(t, blkBHash, vm1.blockChain.GetBlockByNumber(blkBHeight).Hash(), "expected block at %d to have hash %s but got %s", blkBHeight, blkBHash.Hex(), vm1.blockChain.GetBlockByNumber(blkBHeight).Hash().Hex())
 	require.Nil(t, vm1.blockChain.GetBlockByNumber(blkDHeight), "expected block at %d to be nil", blkDHeight)
 	require.Equal(t, blkBHash, vm1.blockChain.CurrentBlock().Hash(), "expected current block to have hash %s but got %s", blkBHash.Hex(), vm1.blockChain.CurrentBlock().Hash().Hex())
 
 	// Should still be no-ops on re-verify
-	require.NoError(t, vm1BlkC.Verify(context.Background()), "Block failed verification on VM1")
-	require.NoError(t, vm1BlkD.Verify(context.Background()), "Block failed verification on VM1")
+	require.NoError(t, vm1BlkC.Verify(t.Context()), "Block failed verification on VM1")
+	require.NoError(t, vm1BlkD.Verify(t.Context()), "Block failed verification on VM1")
 	require.Equal(t, blkBHash, vm1.blockChain.GetBlockByNumber(blkBHeight).Hash(), "expected block at %d to have hash %s but got %s", blkBHeight, blkBHash.Hex(), vm1.blockChain.GetBlockByNumber(blkBHeight).Hash().Hex())
 	require.Nil(t, vm1.blockChain.GetBlockByNumber(blkDHeight), "expected block at %d to be nil", blkDHeight)
 	require.Equal(t, blkBHash, vm1.blockChain.CurrentBlock().Hash(), "expected current block to have hash %s but got %s", blkBHash.Hex(), vm1.blockChain.CurrentBlock().Hash().Hex())
 
 	// Should be queryable after setting preference to side chain
-	require.NoError(t, vm1.SetPreference(context.Background(), vm1BlkD.ID()))
+	require.NoError(t, vm1.SetPreference(t.Context(), vm1BlkD.ID()))
 
 	require.Equal(t, blkCHash, vm1.blockChain.GetBlockByNumber(blkBHeight).Hash(), "expected block at %d to have hash %s but got %s", blkBHeight, blkCHash.Hex(), vm1.blockChain.GetBlockByNumber(blkBHeight).Hash().Hex())
 	require.Equal(t, blkDHash, vm1.blockChain.GetBlockByNumber(blkDHeight).Hash(), "expected block at %d to have hash %s but got %s", blkDHeight, blkDHash.Hex(), vm1.blockChain.GetBlockByNumber(blkDHeight).Hash().Hex())
 	require.Equal(t, blkDHash, vm1.blockChain.CurrentBlock().Hash(), "expected current block to have hash %s but got %s", blkDHash.Hex(), vm1.blockChain.CurrentBlock().Hash().Hex())
 
 	// Attempt to accept out of order
-	require.ErrorContains(t, vm1BlkD.Accept(context.Background()), "expected accepted block to have parent", "unexpected error when accepting out of order block")
+	require.ErrorContains(t, vm1BlkD.Accept(t.Context()), "expected accepted block to have parent", "unexpected error when accepting out of order block")
 
 	// Accept in order
-	require.NoError(t, vm1BlkC.Accept(context.Background()), "Block failed verification on VM1")
-	require.NoError(t, vm1BlkD.Accept(context.Background()), "Block failed acceptance on VM1")
+	require.NoError(t, vm1BlkC.Accept(t.Context()), "Block failed verification on VM1")
+	require.NoError(t, vm1BlkD.Accept(t.Context()), "Block failed acceptance on VM1")
 
 	// Ensure queryable after accepting
 	require.Equal(t, blkCHash, vm1.blockChain.GetBlockByNumber(blkBHeight).Hash(), "expected block at %d to have hash %s but got %s", blkBHeight, blkCHash.Hex(), vm1.blockChain.GetBlockByNumber(blkBHeight).Hash().Hex())
@@ -1129,8 +1129,8 @@ func testUncleBlock(t *testing.T, scheme string) {
 	vm2 := tvm2.vm
 
 	defer func() {
-		require.NoError(t, vm1.Shutdown(context.Background()))
-		require.NoError(t, vm2.Shutdown(context.Background()))
+		require.NoError(t, vm1.Shutdown(t.Context()))
+		require.NoError(t, vm2.Shutdown(t.Context()))
 	}()
 
 	newTxPoolHeadChan1 := make(chan core.NewTxPoolReorgEvent, 1)
@@ -1147,24 +1147,24 @@ func testUncleBlock(t *testing.T, scheme string) {
 		require.NoError(t, err, "Failed to add tx at index %d: %s", i, err)
 	}
 
-	msg, err := vm1.WaitForEvent(context.Background())
+	msg, err := vm1.WaitForEvent(t.Context())
 	require.NoError(t, err)
 	require.Equal(t, commonEng.PendingTxs, msg)
 
-	vm1BlkA, err := vm1.BuildBlock(context.Background())
+	vm1BlkA, err := vm1.BuildBlock(t.Context())
 	require.NoError(t, err, "Failed to build block with import transaction")
 
-	require.NoError(t, vm1BlkA.Verify(context.Background()), "Block failed verification on VM1")
+	require.NoError(t, vm1BlkA.Verify(t.Context()), "Block failed verification on VM1")
 
-	require.NoError(t, vm1.SetPreference(context.Background(), vm1BlkA.ID()))
+	require.NoError(t, vm1.SetPreference(t.Context(), vm1BlkA.ID()))
 
-	vm2BlkA, err := vm2.ParseBlock(context.Background(), vm1BlkA.Bytes())
+	vm2BlkA, err := vm2.ParseBlock(t.Context(), vm1BlkA.Bytes())
 	require.NoError(t, err, "Unexpected error parsing block from vm2")
-	require.NoError(t, vm2BlkA.Verify(context.Background()), "Block failed verification on VM2")
-	require.NoError(t, vm2.SetPreference(context.Background(), vm2BlkA.ID()))
+	require.NoError(t, vm2BlkA.Verify(t.Context()), "Block failed verification on VM2")
+	require.NoError(t, vm2.SetPreference(t.Context(), vm2BlkA.ID()))
 
-	require.NoError(t, vm1BlkA.Accept(context.Background()), "VM1 failed to accept block")
-	require.NoError(t, vm2BlkA.Accept(context.Background()), "VM2 failed to accept block")
+	require.NoError(t, vm1BlkA.Accept(t.Context()), "VM1 failed to accept block")
+	require.NoError(t, vm2BlkA.Accept(t.Context()), "VM2 failed to accept block")
 
 	newHead := <-newTxPoolHeadChan1
 	require.Equal(t, common.Hash(vm1BlkA.ID()), newHead.Head.Hash(), "Expected new block to match")
@@ -1186,32 +1186,32 @@ func testUncleBlock(t *testing.T, scheme string) {
 		require.NoError(t, err, "Failed to add transaction to VM1 at index %d: %s", i, err)
 	}
 
-	msg, err = vm1.WaitForEvent(context.Background())
+	msg, err = vm1.WaitForEvent(t.Context())
 	require.NoError(t, err)
 	require.Equal(t, commonEng.PendingTxs, msg)
 
-	vm1BlkB, err := vm1.BuildBlock(context.Background())
+	vm1BlkB, err := vm1.BuildBlock(t.Context())
 	require.NoError(t, err)
 
-	require.NoError(t, vm1BlkB.Verify(context.Background()))
+	require.NoError(t, vm1BlkB.Verify(t.Context()))
 
-	require.NoError(t, vm1.SetPreference(context.Background(), vm1BlkB.ID()))
+	require.NoError(t, vm1.SetPreference(t.Context(), vm1BlkB.ID()))
 
 	errs = vm2.txPool.AddRemotesSync(txs[0:5])
 	for i, err := range errs {
 		require.NoError(t, err, "Failed to add transaction to VM2 at index %d: %s", i, err)
 	}
 
-	msg, err = vm2.WaitForEvent(context.Background())
+	msg, err = vm2.WaitForEvent(t.Context())
 	require.NoError(t, err)
 	require.Equal(t, commonEng.PendingTxs, msg)
 
-	vm2BlkC, err := vm2.BuildBlock(context.Background())
+	vm2BlkC, err := vm2.BuildBlock(t.Context())
 	require.NoError(t, err, "Failed to build BlkC on VM2")
 
-	require.NoError(t, vm2BlkC.Verify(context.Background()), "BlkC failed verification on VM2")
+	require.NoError(t, vm2BlkC.Verify(t.Context()), "BlkC failed verification on VM2")
 
-	require.NoError(t, vm2.SetPreference(context.Background(), vm2BlkC.ID()))
+	require.NoError(t, vm2.SetPreference(t.Context(), vm2BlkC.ID()))
 
 	newHead = <-newTxPoolHeadChan2
 	require.Equal(t, common.Hash(vm2BlkC.ID()), newHead.Head.Hash(), "Expected new block to match")
@@ -1221,11 +1221,11 @@ func testUncleBlock(t *testing.T, scheme string) {
 		require.NoError(t, err, "Failed to add transaction to VM2 at index %d: %s", i, err)
 	}
 
-	msg, err = vm2.WaitForEvent(context.Background())
+	msg, err = vm2.WaitForEvent(t.Context())
 	require.NoError(t, err)
 	require.Equal(t, commonEng.PendingTxs, msg)
 
-	vm2BlkD, err := vm2.BuildBlock(context.Background())
+	vm2BlkD, err := vm2.BuildBlock(t.Context())
 	require.NoError(t, err, "Failed to build BlkD on VM2")
 
 	// Create uncle block from blkD
@@ -1243,11 +1243,11 @@ func testUncleBlock(t *testing.T, scheme string) {
 	)
 	uncleBlock, _ := wrapBlock(uncleEthBlock, tvm2.vm)
 
-	verifyErr := uncleBlock.Verify(context.Background())
+	verifyErr := uncleBlock.Verify(t.Context())
 	require.ErrorIs(t, verifyErr, errUnclesUnsupported)
-	_, err = vm1.ParseBlock(context.Background(), vm2BlkC.Bytes())
+	_, err = vm1.ParseBlock(t.Context(), vm2BlkC.Bytes())
 	require.NoError(t, err, "VM1 errored parsing blkC")
-	_, err = vm1.ParseBlock(context.Background(), uncleBlock.Bytes())
+	_, err = vm1.ParseBlock(t.Context(), uncleBlock.Bytes())
 	require.ErrorIs(t, err, errUnclesUnsupported)
 }
 
@@ -1268,7 +1268,7 @@ func testEmptyBlock(t *testing.T, scheme string) {
 	})
 
 	defer func() {
-		require.NoError(t, tvm.vm.Shutdown(context.Background()))
+		require.NoError(t, tvm.vm.Shutdown(t.Context()))
 	}()
 
 	tx := types.NewTransaction(uint64(0), testEthAddrs[1], firstTxAmount, 21000, big.NewInt(testMinGasPrice), nil)
@@ -1280,11 +1280,11 @@ func testEmptyBlock(t *testing.T, scheme string) {
 		require.NoError(t, err, "Failed to add tx at index %d: %s", i, err)
 	}
 
-	msg, err := tvm.vm.WaitForEvent(context.Background())
+	msg, err := tvm.vm.WaitForEvent(t.Context())
 	require.NoError(t, err)
 	require.Equal(t, commonEng.PendingTxs, msg)
 
-	blk, err := tvm.vm.BuildBlock(context.Background())
+	blk, err := tvm.vm.BuildBlock(t.Context())
 	require.NoError(t, err, "Failed to build block with import transaction")
 
 	// Create empty block from blkA
@@ -1301,9 +1301,9 @@ func testEmptyBlock(t *testing.T, scheme string) {
 	emptyBlock, err := wrapBlock(emptyEthBlock, tvm.vm)
 	require.NoError(t, err)
 
-	_, err = tvm.vm.ParseBlock(context.Background(), emptyBlock.Bytes())
+	_, err = tvm.vm.ParseBlock(t.Context(), emptyBlock.Bytes())
 	require.ErrorIs(t, err, errEmptyBlock)
-	verifyErr := emptyBlock.Verify(context.Background())
+	verifyErr := emptyBlock.Verify(t.Context())
 	require.ErrorIs(t, verifyErr, errEmptyBlock)
 }
 
@@ -1335,9 +1335,9 @@ func testAcceptReorg(t *testing.T, scheme string) {
 	vm2 := tvm2.vm
 
 	defer func() {
-		require.NoError(t, vm1.Shutdown(context.Background()))
+		require.NoError(t, vm1.Shutdown(t.Context()))
 
-		require.NoError(t, vm2.Shutdown(context.Background()))
+		require.NoError(t, vm2.Shutdown(t.Context()))
 	}()
 
 	newTxPoolHeadChan1 := make(chan core.NewTxPoolReorgEvent, 1)
@@ -1354,24 +1354,24 @@ func testAcceptReorg(t *testing.T, scheme string) {
 		require.NoError(t, err, "Failed to add tx at index %d: %s", i, err)
 	}
 
-	msg, err := vm1.WaitForEvent(context.Background())
+	msg, err := vm1.WaitForEvent(t.Context())
 	require.NoError(t, err)
 	require.Equal(t, commonEng.PendingTxs, msg)
 
-	vm1BlkA, err := vm1.BuildBlock(context.Background())
+	vm1BlkA, err := vm1.BuildBlock(t.Context())
 	require.NoError(t, err, "Failed to build block with import transaction")
 
-	require.NoError(t, vm1BlkA.Verify(context.Background()), "Block failed verification on VM1")
+	require.NoError(t, vm1BlkA.Verify(t.Context()), "Block failed verification on VM1")
 
-	require.NoError(t, vm1.SetPreference(context.Background(), vm1BlkA.ID()))
+	require.NoError(t, vm1.SetPreference(t.Context(), vm1BlkA.ID()))
 
-	vm2BlkA, err := vm2.ParseBlock(context.Background(), vm1BlkA.Bytes())
+	vm2BlkA, err := vm2.ParseBlock(t.Context(), vm1BlkA.Bytes())
 	require.NoError(t, err, "Unexpected error parsing block from vm2")
-	require.NoError(t, vm2BlkA.Verify(context.Background()), "Block failed verification on VM2")
-	require.NoError(t, vm2.SetPreference(context.Background(), vm2BlkA.ID()))
+	require.NoError(t, vm2BlkA.Verify(t.Context()), "Block failed verification on VM2")
+	require.NoError(t, vm2.SetPreference(t.Context(), vm2BlkA.ID()))
 
-	require.NoError(t, vm1BlkA.Accept(context.Background()), "VM1 failed to accept block")
-	require.NoError(t, vm2BlkA.Accept(context.Background()), "VM2 failed to accept block")
+	require.NoError(t, vm1BlkA.Accept(t.Context()), "VM1 failed to accept block")
+	require.NoError(t, vm2BlkA.Accept(t.Context()), "VM2 failed to accept block")
 
 	newHead := <-newTxPoolHeadChan1
 	require.Equal(t, common.Hash(vm1BlkA.ID()), newHead.Head.Hash(), "Expected new block to match")
@@ -1395,32 +1395,32 @@ func testAcceptReorg(t *testing.T, scheme string) {
 		require.NoError(t, err, "Failed to add transaction to VM1 at index %d: %s", i, err)
 	}
 
-	msg, err = vm1.WaitForEvent(context.Background())
+	msg, err = vm1.WaitForEvent(t.Context())
 	require.NoError(t, err)
 	require.Equal(t, commonEng.PendingTxs, msg)
 
-	vm1BlkB, err := vm1.BuildBlock(context.Background())
+	vm1BlkB, err := vm1.BuildBlock(t.Context())
 	require.NoError(t, err)
 
-	require.NoError(t, vm1BlkB.Verify(context.Background()))
+	require.NoError(t, vm1BlkB.Verify(t.Context()))
 
-	require.NoError(t, vm1.SetPreference(context.Background(), vm1BlkB.ID()))
+	require.NoError(t, vm1.SetPreference(t.Context(), vm1BlkB.ID()))
 
 	errs = vm2.txPool.AddRemotesSync(txs[0:5])
 	for i, err := range errs {
 		require.NoError(t, err, "Failed to add transaction to VM2 at index %d: %s", i, err)
 	}
 
-	msg, err = vm2.WaitForEvent(context.Background())
+	msg, err = vm2.WaitForEvent(t.Context())
 	require.NoError(t, err)
 	require.Equal(t, commonEng.PendingTxs, msg)
 
-	vm2BlkC, err := vm2.BuildBlock(context.Background())
+	vm2BlkC, err := vm2.BuildBlock(t.Context())
 	require.NoError(t, err, "Failed to build BlkC on VM2")
 
-	require.NoError(t, vm2BlkC.Verify(context.Background()), "BlkC failed verification on VM2")
+	require.NoError(t, vm2BlkC.Verify(t.Context()), "BlkC failed verification on VM2")
 
-	require.NoError(t, vm2.SetPreference(context.Background(), vm2BlkC.ID()))
+	require.NoError(t, vm2.SetPreference(t.Context(), vm2BlkC.ID()))
 
 	newHead = <-newTxPoolHeadChan2
 	require.Equal(t, common.Hash(vm2BlkC.ID()), newHead.Head.Hash(), "Expected new block to match")
@@ -1430,33 +1430,33 @@ func testAcceptReorg(t *testing.T, scheme string) {
 		require.NoError(t, err, "Failed to add transaction to VM2 at index %d: %s", i, err)
 	}
 
-	msg, err = vm2.WaitForEvent(context.Background())
+	msg, err = vm2.WaitForEvent(t.Context())
 	require.NoError(t, err)
 	require.Equal(t, commonEng.PendingTxs, msg)
 
-	vm2BlkD, err := vm2.BuildBlock(context.Background())
+	vm2BlkD, err := vm2.BuildBlock(t.Context())
 	require.NoError(t, err, "Failed to build BlkD on VM2")
 
 	// Parse blocks produced in vm2
-	vm1BlkC, err := vm1.ParseBlock(context.Background(), vm2BlkC.Bytes())
+	vm1BlkC, err := vm1.ParseBlock(t.Context(), vm2BlkC.Bytes())
 	require.NoError(t, err, "Unexpected error parsing block from vm2")
 
-	vm1BlkD, err := vm1.ParseBlock(context.Background(), vm2BlkD.Bytes())
+	vm1BlkD, err := vm1.ParseBlock(t.Context(), vm2BlkD.Bytes())
 	require.NoError(t, err, "Unexpected error parsing block from vm2")
 
-	require.NoError(t, vm1BlkC.Verify(context.Background()), "Block failed verification on VM1")
-	require.NoError(t, vm1BlkD.Verify(context.Background()), "Block failed verification on VM1")
+	require.NoError(t, vm1BlkC.Verify(t.Context()), "Block failed verification on VM1")
+	require.NoError(t, vm1BlkD.Verify(t.Context()), "Block failed verification on VM1")
 
 	blkBHash := vm1BlkB.(*chain.BlockWrapper).Block.(*wrappedBlock).ethBlock.Hash()
 	require.Equal(t, blkBHash, vm1.blockChain.CurrentBlock().Hash(), "expected current block to have hash %s but got %s", blkBHash.Hex(), vm1.blockChain.CurrentBlock().Hash().Hex())
 
-	require.NoError(t, vm1BlkC.Accept(context.Background()))
+	require.NoError(t, vm1BlkC.Accept(t.Context()))
 
 	blkCHash := vm1BlkC.(*chain.BlockWrapper).Block.(*wrappedBlock).ethBlock.Hash()
 	require.Equal(t, blkCHash, vm1.blockChain.CurrentBlock().Hash(), "expected current block to have hash %s but got %s", blkCHash.Hex(), vm1.blockChain.CurrentBlock().Hash().Hex())
-	require.NoError(t, vm1BlkB.Reject(context.Background()))
+	require.NoError(t, vm1BlkB.Reject(t.Context()))
 
-	require.NoError(t, vm1BlkD.Accept(context.Background()))
+	require.NoError(t, vm1BlkD.Accept(t.Context()))
 	blkDHash := vm1BlkD.(*chain.BlockWrapper).Block.(*wrappedBlock).ethBlock.Hash()
 	require.Equal(t, blkDHash, vm1.blockChain.CurrentBlock().Hash(), "expected current block to have hash %s but got %s", blkDHash.Hex(), vm1.blockChain.CurrentBlock().Hash().Hex())
 }
@@ -1520,7 +1520,7 @@ func TestTimeSemanticVerify(t *testing.T) {
 			})
 
 			defer func() {
-				require.NoError(t, tvm.vm.Shutdown(context.Background()))
+				require.NoError(t, tvm.vm.Shutdown(t.Context()))
 			}()
 
 			tx := types.NewTransaction(uint64(0), testEthAddrs[1], firstTxAmount, 21000, big.NewInt(testMinGasPrice), nil)
@@ -1532,13 +1532,13 @@ func TestTimeSemanticVerify(t *testing.T) {
 				require.NoError(t, err, "Failed to add tx at index %d: %s", i, err)
 			}
 
-			msg, err := tvm.vm.WaitForEvent(context.Background())
+			msg, err := tvm.vm.WaitForEvent(t.Context())
 			require.NoError(t, err)
 			require.Equal(t, commonEng.PendingTxs, msg)
 
-			blk, err := tvm.vm.BuildBlock(context.Background())
+			blk, err := tvm.vm.BuildBlock(t.Context())
 			require.NoError(t, err, "Failed to build block with import transaction")
-			require.NoError(t, blk.Verify(context.Background()), "Block failed verification on VM")
+			require.NoError(t, blk.Verify(t.Context()), "Block failed verification on VM")
 
 			// Create empty block from blkA
 			ethBlk := blk.(*chain.BlockWrapper).Block.(*wrappedBlock).ethBlock
@@ -1562,7 +1562,7 @@ func TestTimeSemanticVerify(t *testing.T) {
 			require.NoError(t, err)
 
 			tvm.vm.clock.Set(timestamp) // set current time to base for time checks
-			err = modifiedBlk.Verify(context.Background())
+			err = modifiedBlk.Verify(t.Context())
 			require.ErrorIs(t, err, test.expectedError)
 		})
 	}
@@ -1595,7 +1595,7 @@ func TestBuildTimeMilliseconds(t *testing.T) {
 			})
 
 			defer func() {
-				require.NoError(t, tvm.vm.Shutdown(context.Background()))
+				require.NoError(t, tvm.vm.Shutdown(t.Context()))
 			}()
 
 			tvm.vm.clock.Set(buildTime)
@@ -1608,11 +1608,11 @@ func TestBuildTimeMilliseconds(t *testing.T) {
 				require.NoError(t, err, "Failed to add tx at index %d: %s", i, err)
 			}
 
-			msg, err := tvm.vm.WaitForEvent(context.Background())
+			msg, err := tvm.vm.WaitForEvent(t.Context())
 			require.NoError(t, err)
 			require.Equal(t, commonEng.PendingTxs, msg)
 
-			blk, err := tvm.vm.BuildBlock(context.Background())
+			blk, err := tvm.vm.BuildBlock(t.Context())
 			require.NoError(t, err, "Failed to build block with import transaction")
 			require.NoError(t, err)
 			ethBlk := blk.(*chain.BlockWrapper).Block.(*wrappedBlock).ethBlock
@@ -1636,7 +1636,7 @@ func testLastAcceptedBlockNumberAllow(t *testing.T, scheme string) {
 	})
 
 	defer func() {
-		require.NoError(t, tvm.vm.Shutdown(context.Background()))
+		require.NoError(t, tvm.vm.Shutdown(t.Context()))
 	}()
 
 	tx := types.NewTransaction(uint64(0), testEthAddrs[1], firstTxAmount, 21000, big.NewInt(testMinGasPrice), nil)
@@ -1648,23 +1648,23 @@ func testLastAcceptedBlockNumberAllow(t *testing.T, scheme string) {
 		require.NoError(t, err, "Failed to add tx at index %d: %s", i, err)
 	}
 
-	msg, err := tvm.vm.WaitForEvent(context.Background())
+	msg, err := tvm.vm.WaitForEvent(t.Context())
 	require.NoError(t, err)
 	require.Equal(t, commonEng.PendingTxs, msg)
 
-	blk, err := tvm.vm.BuildBlock(context.Background())
+	blk, err := tvm.vm.BuildBlock(t.Context())
 	require.NoError(t, err, "Failed to build block with import transaction")
 
-	require.NoError(t, blk.Verify(context.Background()), "Block failed verification on VM")
+	require.NoError(t, blk.Verify(t.Context()), "Block failed verification on VM")
 
-	require.NoError(t, tvm.vm.SetPreference(context.Background(), blk.ID()))
+	require.NoError(t, tvm.vm.SetPreference(t.Context(), blk.ID()))
 
 	blkHeight := blk.Height()
 	blkHash := blk.(*chain.BlockWrapper).Block.(*wrappedBlock).ethBlock.Hash()
 
 	tvm.vm.eth.APIBackend.SetAllowUnfinalizedQueries(true)
 
-	ctx := context.Background()
+	ctx := t.Context()
 	b, err := tvm.vm.eth.APIBackend.BlockByNumber(ctx, rpc.BlockNumber(blkHeight))
 	require.NoError(t, err)
 	require.Equal(t, blkHash, b.Hash(), "expected block at %d to have hash %s but got %s", blkHeight, blkHash.Hex(), b.Hash().Hex())
@@ -1673,7 +1673,7 @@ func testLastAcceptedBlockNumberAllow(t *testing.T, scheme string) {
 
 	_, err = tvm.vm.eth.APIBackend.BlockByNumber(ctx, rpc.BlockNumber(blkHeight))
 	require.ErrorIs(t, err, eth.ErrUnfinalizedData, "expected ErrUnfinalizedData but got %s", err)
-	require.NoError(t, blk.Accept(context.Background()), "VM failed to accept block")
+	require.NoError(t, blk.Accept(t.Context()), "VM failed to accept block")
 
 	b = tvm.vm.blockChain.GetBlockByNumber(blkHeight)
 	require.Equal(t, blkHash, b.Hash(), "expected block at %d to have hash %s but got %s", blkHeight, blkHash.Hex(), b.Hash().Hex())
@@ -1702,7 +1702,7 @@ func testBuildAllowListActivationBlock(t *testing.T, scheme string) {
 	})
 
 	defer func() {
-		require.NoError(t, tvm.vm.Shutdown(context.Background()))
+		require.NoError(t, tvm.vm.Shutdown(t.Context()))
 	}()
 
 	newTxPoolHeadChan := make(chan core.NewTxPoolReorgEvent, 1)
@@ -1775,7 +1775,7 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 	})
 
 	defer func() {
-		require.NoError(t, tvm.vm.Shutdown(context.Background()))
+		require.NoError(t, tvm.vm.Shutdown(t.Context()))
 	}()
 
 	newTxPoolHeadChan := make(chan core.NewTxPoolReorgEvent, 1)
@@ -1894,7 +1894,7 @@ func TestVerifyManagerConfig(t *testing.T) {
 
 	vm := &VM{}
 	err = vm.Initialize(
-		context.Background(),
+		t.Context(),
 		ctx,
 		dbManager,
 		genesisJSON, // Manually set genesis bytes due to custom genesis
@@ -1924,7 +1924,7 @@ func TestVerifyManagerConfig(t *testing.T) {
 	vm = &VM{}
 	ctx, dbManager, _ = setupGenesis(t, upgradetest.Latest)
 	err = vm.Initialize(
-		context.Background(),
+		t.Context(),
 		ctx,
 		dbManager,
 		genesisJSON, // Manually set genesis bytes due to custom genesis
@@ -1973,7 +1973,7 @@ func TestTxAllowListDisablePrecompile(t *testing.T) {
 	tvm.vm.clock.Set(disableAllowListTimestamp) // upgrade takes effect after a block is issued, so we can set vm's clock here.
 
 	defer func() {
-		require.NoError(t, tvm.vm.Shutdown(context.Background()))
+		require.NoError(t, tvm.vm.Shutdown(t.Context()))
 	}()
 
 	newTxPoolHeadChan := make(chan core.NewTxPoolReorgEvent, 1)
@@ -2063,7 +2063,7 @@ func TestFeeManagerChangeFee(t *testing.T) {
 	})
 
 	defer func() {
-		require.NoError(t, tvm.vm.Shutdown(context.Background()))
+		require.NoError(t, tvm.vm.Shutdown(t.Context()))
 	}()
 
 	newTxPoolHeadChan := make(chan core.NewTxPoolReorgEvent, 1)
@@ -2159,7 +2159,7 @@ func testAllowFeeRecipientDisabled(t *testing.T, scheme string) {
 
 	tvm.vm.miner.SetEtherbase(common.HexToAddress("0x0123456789")) // set non-blackhole address by force
 	defer func() {
-		require.NoError(t, tvm.vm.Shutdown(context.Background()))
+		require.NoError(t, tvm.vm.Shutdown(t.Context()))
 	}()
 
 	newTxPoolHeadChan := make(chan core.NewTxPoolReorgEvent, 1)
@@ -2174,11 +2174,11 @@ func testAllowFeeRecipientDisabled(t *testing.T, scheme string) {
 		require.NoError(t, err, "Failed to add tx at index %d: %s", i, err)
 	}
 
-	msg, err := tvm.vm.WaitForEvent(context.Background())
+	msg, err := tvm.vm.WaitForEvent(t.Context())
 	require.NoError(t, err)
 	require.Equal(t, commonEng.PendingTxs, msg)
 
-	blk, err := tvm.vm.BuildBlock(context.Background())
+	blk, err := tvm.vm.BuildBlock(t.Context())
 	require.NoError(t, err) // this won't return an error since miner will set the etherbase to blackhole address
 
 	ethBlock := blk.(*chain.BlockWrapper).Block.(*wrappedBlock).ethBlock
@@ -2199,7 +2199,7 @@ func testAllowFeeRecipientDisabled(t *testing.T, scheme string) {
 	modifiedBlk, err := wrapBlock(modifiedBlock, tvm.vm)
 	require.NoError(t, err)
 
-	err = modifiedBlk.Verify(context.Background())
+	err = modifiedBlk.Verify(t.Context())
 	require.ErrorIs(t, err, vmerrors.ErrInvalidCoinbase)
 }
 
@@ -2221,7 +2221,7 @@ func TestAllowFeeRecipientEnabled(t *testing.T) {
 	})
 
 	defer func() {
-		require.NoError(t, tvm.vm.Shutdown(context.Background()))
+		require.NoError(t, tvm.vm.Shutdown(t.Context()))
 	}()
 
 	newTxPoolHeadChan := make(chan core.NewTxPoolReorgEvent, 1)
@@ -2291,7 +2291,7 @@ func TestRewardManagerPrecompileSetRewardAddress(t *testing.T) {
 	})
 
 	defer func() {
-		require.NoError(t, tvm.vm.Shutdown(context.Background()))
+		require.NoError(t, tvm.vm.Shutdown(t.Context()))
 	}()
 
 	newTxPoolHeadChan := make(chan core.NewTxPoolReorgEvent, 1)
@@ -2433,7 +2433,7 @@ func TestRewardManagerPrecompileAllowFeeRecipients(t *testing.T) {
 	})
 
 	defer func() {
-		require.NoError(t, tvm.vm.Shutdown(context.Background()))
+		require.NoError(t, tvm.vm.Shutdown(t.Context()))
 	}()
 
 	newTxPoolHeadChan := make(chan core.NewTxPoolReorgEvent, 1)
@@ -2539,7 +2539,7 @@ func TestSkipChainConfigCheckCompatible(t *testing.T) {
 	})
 
 	defer func() {
-		require.NoError(t, tvm.vm.Shutdown(context.Background()))
+		require.NoError(t, tvm.vm.Shutdown(t.Context()))
 	}()
 
 	newTxPoolHeadChan := make(chan core.NewTxPoolReorgEvent, 1)
@@ -2572,15 +2572,15 @@ func TestSkipChainConfigCheckCompatible(t *testing.T) {
 	tvm.vm.ctx.Metrics = metrics.NewPrefixGatherer()
 
 	// this will not be allowed
-	require.ErrorContains(t, reinitVM.Initialize(context.Background(), tvm.vm.ctx, tvm.db, genesisWithUpgradeBytes, []byte{}, []byte{}, []*commonEng.Fx{}, tvm.appSender), "mismatching Cancun fork timestamp in database")
+	require.ErrorContains(t, reinitVM.Initialize(t.Context(), tvm.vm.ctx, tvm.db, genesisWithUpgradeBytes, []byte{}, []byte{}, []*commonEng.Fx{}, tvm.appSender), "mismatching Cancun fork timestamp in database")
 
 	// Reset metrics to allow re-initialization
 	tvm.vm.ctx.Metrics = metrics.NewPrefixGatherer()
 
 	// try again with skip-upgrade-check
 	config := []byte(`{"skip-upgrade-check": true}`)
-	require.NoError(t, reinitVM.Initialize(context.Background(), tvm.vm.ctx, tvm.db, genesisWithUpgradeBytes, []byte{}, config, []*commonEng.Fx{}, tvm.appSender))
-	require.NoError(t, reinitVM.Shutdown(context.Background()))
+	require.NoError(t, reinitVM.Initialize(t.Context(), tvm.vm.ctx, tvm.db, genesisWithUpgradeBytes, []byte{}, config, []*commonEng.Fx{}, tvm.appSender))
+	require.NoError(t, reinitVM.Shutdown(t.Context()))
 }
 
 func TestParentBeaconRootBlock(t *testing.T) {
@@ -2639,7 +2639,7 @@ func TestParentBeaconRootBlock(t *testing.T) {
 			})
 
 			defer func() {
-				require.NoError(t, tvm.vm.Shutdown(context.Background()))
+				require.NoError(t, tvm.vm.Shutdown(t.Context()))
 			}()
 
 			tx := types.NewTransaction(uint64(0), testEthAddrs[1], firstTxAmount, 21000, big.NewInt(testMinGasPrice), nil)
@@ -2651,11 +2651,11 @@ func TestParentBeaconRootBlock(t *testing.T) {
 				require.NoError(t, err, "Failed to add tx at index %d: %s", i, err)
 			}
 
-			msg, err := tvm.vm.WaitForEvent(context.Background())
+			msg, err := tvm.vm.WaitForEvent(t.Context())
 			require.NoError(t, err)
 			require.Equal(t, commonEng.PendingTxs, msg)
 
-			blk, err := tvm.vm.BuildBlock(context.Background())
+			blk, err := tvm.vm.BuildBlock(t.Context())
 			require.NoError(t, err, "Failed to build block with import transaction")
 
 			// Modify the block to have a parent beacon root
@@ -2679,9 +2679,9 @@ func TestParentBeaconRootBlock(t *testing.T) {
 				}
 			}
 
-			_, err = tvm.vm.ParseBlock(context.Background(), parentBeaconBlock.Bytes())
+			_, err = tvm.vm.ParseBlock(t.Context(), parentBeaconBlock.Bytes())
 			errCheck(err)
-			err = parentBeaconBlock.Verify(context.Background())
+			err = parentBeaconBlock.Verify(t.Context())
 			errCheck(err)
 		})
 	}
@@ -2710,7 +2710,7 @@ func TestStandaloneDB(t *testing.T) {
 	require.True(t, isDBEmpty(baseDB))
 
 	err := vm.Initialize(
-		context.Background(),
+		t.Context(),
 		ctx,
 		sharedDB,
 		[]byte(toGenesisJSON(paramstest.ForkToChainConfig[upgradetest.Latest])),
@@ -2719,10 +2719,10 @@ func TestStandaloneDB(t *testing.T) {
 		[]*commonEng.Fx{},
 		appSender,
 	)
-	defer vm.Shutdown(context.Background())
+	defer vm.Shutdown(t.Context())
 	require.NoError(t, err, "error initializing VM")
-	require.NoError(t, vm.SetState(context.Background(), snow.Bootstrapping))
-	require.NoError(t, vm.SetState(context.Background(), snow.NormalOp))
+	require.NoError(t, vm.SetState(t.Context(), snow.Bootstrapping))
+	require.NoError(t, vm.SetState(t.Context(), snow.NormalOp))
 
 	// Issue a block
 	acceptedBlockEvent := make(chan core.ChainEvent, 1)
@@ -2929,7 +2929,7 @@ func TestWaitForEvent(t *testing.T) {
 		{
 			name: "WaitForEvent with context cancelled returns 0",
 			testCase: func(t *testing.T, vm *VM) {
-				ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*100)
+				ctx, cancel := context.WithTimeout(t.Context(), time.Millisecond*100)
 				defer cancel()
 
 				var wg sync.WaitGroup
@@ -2954,7 +2954,7 @@ func TestWaitForEvent(t *testing.T) {
 
 				go func() {
 					defer wg.Done()
-					msg, err := vm.WaitForEvent(context.Background())
+					msg, err := vm.WaitForEvent(t.Context())
 					assert.NoError(t, err)
 					assert.Equal(t, commonEng.PendingTxs, msg)
 				}()
@@ -2973,7 +2973,7 @@ func TestWaitForEvent(t *testing.T) {
 		{
 			name: "WaitForEvent doesn't return if mempool is empty",
 			testCase: func(t *testing.T, vm *VM) {
-				ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*100)
+				ctx, cancel := context.WithTimeout(t.Context(), time.Millisecond*100)
 				defer cancel()
 
 				var wg sync.WaitGroup
@@ -2998,14 +2998,14 @@ func TestWaitForEvent(t *testing.T) {
 				signedTx := newSignedLegacyTx(t, vm.chainConfig, testKeys[0].ToECDSA(), 0, &testEthAddrs[1], big.NewInt(1), 21000, big.NewInt(testMinGasPrice), nil)
 				blk, err := IssueTxsAndSetPreference([]*types.Transaction{signedTx}, vm)
 				require.NoError(t, err)
-				require.NoError(t, blk.Accept(context.Background()))
+				require.NoError(t, blk.Accept(t.Context()))
 				signedTx = newSignedLegacyTx(t, vm.chainConfig, testKeys[0].ToECDSA(), 1, &testEthAddrs[1], big.NewInt(1), 21000, big.NewInt(testMinGasPrice), nil)
 
 				for _, err := range vm.txPool.AddRemotesSync([]*types.Transaction{signedTx}) {
 					require.NoError(t, err)
 				}
 
-				ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*100)
+				ctx, cancel := context.WithTimeout(t.Context(), time.Millisecond*100)
 				defer cancel()
 
 				var wg sync.WaitGroup
@@ -3029,7 +3029,7 @@ func TestWaitForEvent(t *testing.T) {
 				for _, err := range vm.txPool.AddRemotesSync([]*types.Transaction{signedTx}) {
 					require.NoError(t, err)
 				}
-				_, err := vm.BuildBlock(context.Background())
+				_, err := vm.BuildBlock(t.Context())
 				require.NoError(t, err)
 				// we haven't advanced the tip to include the previous built block, so this is a retry
 				signedTx = newSignedLegacyTx(t, vm.chainConfig, testKeys[1].ToECDSA(), 0, &testEthAddrs[0], big.NewInt(2), 21000, big.NewInt(testMinGasPrice), nil)
@@ -3041,7 +3041,7 @@ func TestWaitForEvent(t *testing.T) {
 				wg.Add(1)
 				go func() {
 					defer wg.Done()
-					msg, err := vm.WaitForEvent(context.Background())
+					msg, err := vm.WaitForEvent(t.Context())
 					assert.NoError(t, err)
 					assert.Equal(t, commonEng.PendingTxs, msg)
 					assert.GreaterOrEqual(t, time.Since(lastBuildBlockTime), RetryDelay)
@@ -3059,7 +3059,7 @@ func TestWaitForEvent(t *testing.T) {
 				fork: &fork,
 			}).vm
 			testCase.testCase(t, tvm)
-			tvm.Shutdown(context.Background())
+			tvm.Shutdown(t.Context())
 		})
 	}
 }
@@ -3074,7 +3074,7 @@ func TestGenesisGasLimit(t *testing.T) {
 	require.NoError(t, err)
 
 	vm := &VM{}
-	err = vm.Initialize(context.Background(), ctx, db, genesisBytes, []byte{}, []byte{}, []*commonEng.Fx{}, &enginetest.Sender{})
+	err = vm.Initialize(t.Context(), ctx, db, genesisBytes, []byte{}, []byte{}, []*commonEng.Fx{}, &enginetest.Sender{})
 	// This should fail because the gas limit is different from the fee config
 	require.ErrorContains(t, err, "failed to verify genesis")
 
@@ -3084,8 +3084,8 @@ func TestGenesisGasLimit(t *testing.T) {
 	require.NoError(t, err)
 	ctx.Metrics = metrics.NewPrefixGatherer()
 
-	require.NoError(t, vm.Initialize(context.Background(), ctx, db, genesisBytes, []byte{}, []byte{}, []*commonEng.Fx{}, &enginetest.Sender{}))
-	require.NoError(t, vm.Shutdown(context.Background()))
+	require.NoError(t, vm.Initialize(t.Context(), ctx, db, genesisBytes, []byte{}, []byte{}, []*commonEng.Fx{}, &enginetest.Sender{}))
+	require.NoError(t, vm.Shutdown(t.Context()))
 }
 
 // Copied from rpc/testservice_test.go
@@ -3107,7 +3107,7 @@ func (*testService) Echo(str string, i int, args *echoArgs) echoResult {
 // emulates server test
 func TestCreateHandlers(t *testing.T) {
 	var (
-		ctx = context.Background()
+		ctx = t.Context()
 		vm  = newVM(t, testVMConfig{
 			genesisJSON: genesisJSONSubnetEVM,
 		}).vm
@@ -3176,7 +3176,7 @@ func TestBlockGasValidation(t *testing.T) {
 	) *types.Block {
 		require := require.New(t)
 
-		blk, err := vm.BuildBlock(context.Background())
+		blk, err := vm.BuildBlock(t.Context())
 		require.NoError(err)
 
 		callPayload, err := payload.NewAddressedCall(nil, nil)
@@ -3259,7 +3259,7 @@ func TestBlockGasValidation(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			require := require.New(t)
-			ctx := context.Background()
+			ctx := t.Context()
 
 			// Configure genesis with warp precompile enabled since test uses warp predicates
 			genesis := &core.Genesis{}
@@ -3369,7 +3369,7 @@ func deployContract(ctx context.Context, t *testing.T, vm *VM, gasPrice *big.Int
 }
 
 func TestDelegatePrecompile_BehaviorAcrossUpgrades(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	tests := []struct {
 		name                  string
 		fork                  upgradetest.Fork
@@ -3516,7 +3516,7 @@ func TestMinDelayExcessInHeader(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			require := require.New(t)
-			ctx := context.Background()
+			ctx := t.Context()
 			var configJSON string
 			if test.desiredMinDelay != nil {
 				// convert excess to delay
@@ -3589,4 +3589,14 @@ func IssueTxsAndSetPreference(txs []*types.Transaction, vm *VM) (snowman.Block, 
 	}
 
 	return block, nil
+}
+
+func TestInspectDatabases(t *testing.T) {
+	var (
+		vm = newVM(t, testVMConfig{}).vm
+		db = memdb.New()
+	)
+
+	vm.initializeDBs(db)
+	require.NoError(t, vm.inspectDatabases())
 }
