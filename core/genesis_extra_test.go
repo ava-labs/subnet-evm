@@ -88,6 +88,7 @@ func TestGenesisToBlockDecoding(t *testing.T) {
 		upgradetest.Etna:          common.HexToHash("0xa5de01cb7e5c6d721be62ab4b37878e863d65e0c1fe308e5df1f4c5b148650f9"),
 		upgradetest.Fortuna:       common.HexToHash("0xa5de01cb7e5c6d721be62ab4b37878e863d65e0c1fe308e5df1f4c5b148650f9"),
 		upgradetest.Granite:       common.HexToHash("0x4d5ff1b8509d30c6b7842b784a6cf8be78e34c78bc5de8559ea6f15ad18d6a10"),
+		upgradetest.Helicon:       common.HexToHash("0xe870dd86820001c7ca3f2fb9a2f31e1fcfdb17743874a061db8e75425ae7fd23"),
 	}
 	for fork, chainConfig := range paramstest.ForkToChainConfig {
 		t.Run(fork.String(), func(t *testing.T) {
