@@ -665,8 +665,8 @@ func TestGetLeafs(t *testing.T) {
 				return
 			}
 
-			leafsResponse, ok := response.(message.LeafsResponse)
-			require.True(t, ok, "expected leafs response")
+			leafsResponse := response.(message.LeafsResponse)
+			require.IsType(t, message.LeafsResponse{}, leafsResponse, "parseLeafsResponse returned incorrect type %T", leafsResponse)
 			test.requireResponse(t, leafsResponse)
 		})
 	}
