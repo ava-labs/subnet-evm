@@ -192,9 +192,6 @@ func CreateAllowListPrecompile(precompileAddr common.Address) contract.StatefulP
 
 func CreateAllowListFunctions(precompileAddr common.Address) []*contract.StatefulPrecompileFunction {
 	functions := make([]*contract.StatefulPrecompileFunction, 0, len(AllowListABI.Methods))
-	durangoActivationFunc := func(evm contract.AccessibleState) bool {
-		return evm.GetRules().IsDurangoActivated()
-	}
 
 	for name, method := range AllowListABI.Methods {
 		var fn *contract.StatefulPrecompileFunction
@@ -207,6 +204,9 @@ func CreateAllowListFunctions(precompileAddr common.Address) []*contract.Statefu
 		} else if noRoleFnName, _ := NoRole.GetSetterFunctionName(); name == noRoleFnName {
 			fn = contract.NewStatefulPrecompileFunction(method.ID, createAllowListRoleSetter(precompileAddr, NoRole))
 		} else if managerFnName, _ := ManagerRole.GetSetterFunctionName(); name == managerFnName {
+			durangoActivationFunc := func(evm contract.AccessibleState) bool {
+				return evm.GetRules().IsDurangoActivated()
+			}
 			fn = contract.NewStatefulPrecompileFunctionWithActivator(method.ID, createAllowListRoleSetter(precompileAddr, ManagerRole), durangoActivationFunc)
 		} else {
 			panic("unexpected method name: " + name)
