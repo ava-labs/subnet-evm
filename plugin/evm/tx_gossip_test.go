@@ -35,15 +35,16 @@ import (
 	agoUtils "github.com/ava-labs/avalanchego/utils"
 )
 
+// SubnetEVMTestChainID is a subnet-evm specific chain ID for testing
+var SubnetEVMTestChainID = ids.GenerateTestID()
+
 func TestEthTxGossip(t *testing.T) {
 	require := require.New(t)
 	ctx := t.Context()
 
 	validatorState := utilstest.NewTestValidatorState()
-	subnetID, err := validatorState.GetSubnetID(t.Context(), snowtest.CChainID)
-	require.NoError(err)
 
-	snowCtx := snowtest.Context(t, subnetID)
+	snowCtx := snowtest.Context(t, SubnetEVMTestChainID)
 	snowCtx.ValidatorState = validatorState
 
 	responseSender := &enginetest.SenderStub{
