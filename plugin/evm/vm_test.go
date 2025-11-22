@@ -7,11 +7,11 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/big"
 	"os"
 	"path/filepath"
-	"sync"
 	"testing"
 	"time"
 
