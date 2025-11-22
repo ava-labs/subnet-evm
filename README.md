@@ -5,11 +5,11 @@
 [![CodeQL](https://github.com/ava-labs/subnet-evm/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/ava-labs/subnet-evm/actions/workflows/codeql-analysis.yml)
 [![License](https://img.shields.io/github/license/ava-labs/subnet-evm)](https://github.com/ava-labs/subnet-evm/blob/master/LICENSE)
 
-[Avalanche](https://docs.avax.network/avalanche-l1s) is a network composed of multiple blockchains.
+[Avalanche](https://build.avax.network/docs/avalanche-l1s) is a network composed of multiple blockchains.
 Each blockchain is an instance of a Virtual Machine (VM), much like an object in an object-oriented language is an instance of a class.
 That is, the VM defines the behavior of the blockchain.
 
-Subnet EVM is the [Virtual Machine (VM)](https://docs.avax.network/learn/virtual-machines) that defines the Subnet Contract Chains. Subnet EVM is a simplified version of [Coreth VM (C-Chain)](https://github.com/ava-labs/coreth).
+Subnet EVM is the [Virtual Machine (VM)](https://build.avax.network/docs/quick-start/virtual-machines) that defines the Subnet Contract Chains. Subnet EVM is a simplified version of [Coreth VM (C-Chain)](https://github.com/ava-labs/coreth).
 
 This chain implements the Ethereum Virtual Machine and supports Solidity smart contracts as well as most other Ethereum client functionality.
 
@@ -94,8 +94,8 @@ To run a local network, it is recommended to use the [avalanche-cli](https://git
 
 There are two options when using the Avalanche-CLI:
 
-1. Use an official Subnet-EVM release: <https://docs.avax.network/subnets/build-first-subnet>
-2. Build and deploy a locally built (and optionally modified) version of Subnet-EVM: <https://docs.avax.network/subnets/create-custom-subnet>
+1. Use an official Subnet-EVM release: <https://build.avax.network/docs/tooling/avalanche-cli/create-avalanche-l1>
+1. Build and deploy a locally built (and optionally modified) version of Subnet-EVM: <https://build.avax.network/docs/tooling/avalanche-cli/create-deploy-avalanche-l1s/deploy-with-custom-vm>
 
 ## Releasing
 
