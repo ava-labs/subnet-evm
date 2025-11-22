@@ -19,8 +19,8 @@ _Note: nodes joining the network through state sync will not have historical sta
 
 The node needs the following data from its peers to continue processing blocks from a syncable block:
 
-- Accounts trie & storage tries for all accounts (at the state root corresponding to the syncable block),
-- Contract code referenced in the account trie,
+- Accounts trie & storage tries for all accounts (at the state root corresponding to the syncable block)
+- Contract code referenced in the account trie
 - 256 parents of the syncable block (required for the BLOCKHASH opcode)
 
 ## Code structure
@@ -49,10 +49,10 @@ When a new node wants to join the network via state sync, it will need a few pie
 
 The above information is called a _state summary_, and each syncable block corresponds to one such summary (see `message.SyncSummary`). The engine and VM interact as follows to find a syncable state summary:
 
-1. The engine calls `StateSyncEnabled`. The VM returns `true` to initiate state sync, or `false` to start  bootstrapping. In `coreth`, this is controlled by the `state-sync-enabled` flag.
-1. The engine calls `GetOngoingSyncStateSummary`. If the VM has a previously interrupted sync to resume it returns that summary. Otherwise, it returns `ErrNotFound`.  By default, `coreth` will resume an interrupted sync.
-1. The engine samples peers for their latest available summaries, then verifies the correctness and availability of each sampled summary with validators. The messaging flow is documented in the [block engine README](https://github.com/ava-labs/avalanchego/blob/master/snow/engine/snowman/block/README.md).
-1. The engine calls `Accept` on the chosen summary. The VM may return `false` to skip syncing to this summary (`coreth` skips state sync for less than `defaultStateSyncMinBlocks = 300_000` blocks). If the VM decides to perform the sync, it must return `true` without blocking and fetch the state from its peers asynchronously.
+1. The engine calls `StateSyncEnabled`. The VM returns `true` to initiate state sync, or `false` to start  bootstrapping. In `subnet-evm`, this is controlled by the `state-sync-enabled` flag.
+1. The engine calls `GetOngoingSyncStateSummary`. If the VM has a previously interrupted sync to resume it returns that summary. Otherwise, it returns `ErrNotFound`.  By default, `subnet-evm` will resume an interrupted sync.
+1. The engine samples peers for their latest available summaries, then verifies the correctness and availability of each sampled summary with validators. The messaging flow is documented in the [state sync readme](https://github.com/ava-labs/avalanchego/blob/master/snow/engine/snowman/block/README.md).
+1. The engine calls `Accept` on the chosen summary. The VM may return `false` to skip syncing to this summary (`subnet-evm` skips state sync for less than `defaultStateSyncMinBlocks = 300_000` blocks). If the VM decides to perform the sync, it must return `true` without blocking and fetch the state from its peers asynchronously.
 1. The VM sends `common.StateSyncDone` on the `toEngine` channel on completion.
 1. The engine calls `VM.SetState(Bootstrapping)`. Then, blocks after the syncable block are processed one by one.
 
@@ -61,24 +61,24 @@ The above information is called a _state summary_, and each syncable block corre
 The following steps are executed by the VM to sync its state from peers (see `stateSyncClient.StateSync`):
 
 1. Wipe snapshot data
-1. Sync 256 parents of the syncable block (see `BlockRequest`),
-1. Sync the EVM state: account trie, code, and storage tries,
-1. Update in-memory and on-disk pointers.
+1. Sync 256 parents of the syncable block (see `BlockRequest`)
+1. Sync the EVM state: account trie, code, and storage tries
+1. Update in-memory and on-disk pointers
 
 Steps 3 and 4 involve syncing tries. To sync trie data, the VM will send a series of `LeafRequests` to its peers. Each request specifies:
 
-- Type of trie (`NodeType`):
+- Type of trie (`NodeType`)
   - `statesync.StateTrieNode` (account trie and storage tries share the same database)
-- `Root` of the trie to sync,
-- `Start` and `End` specify a range of keys.
+- `Root` of the trie to sync
+- `Start` and `End` specify a range of keys
 
 Peers responding to these requests send back trie leafs (key/value pairs) beginning at `Start` and up to `End` (or a maximum number of leafs). The response must also contain include a merkle proof for the range of leafs it contains. Nodes serving state sync data are responsible for constructing these proofs (see `sync/handlers/leafs_request.go`)
 
 `client.GetLeafs` handles sending a single request and validating the response. This method will retry the request from a different peer up to `maxRetryAttempts` (= 32) times if the peer's response is:
 
-- malformed,
-- does not contain a valid merkle proof,
-- or is not received in time.
+- malformed
+- does not contain a valid merkle proof
+- not received in time
 
 If there are more leafs in a trie than can be returned in a single response,  the client will make successive requests to continue fetching data (with `Start` set to the last key received) until the trie is complete.  `CallbackLeafSyncer` manages this process and does a callback on each batch of received leafs.
 
@@ -102,10 +102,10 @@ When a storage trie leaf is received, it is stored in the account's storage snap
 `plugin/evm.stateSyncClient.StateSyncSetLastSummaryBlock` is the last step in state sync.
 Once the tries have been synced, this method:
 
-- Verifies the block the engine has received matches the expected block hash and block number in the summary,
-- Adds a checkpoint to the `core.ChainIndexer` (to avoid indexing missing blocks)
-- Resets in-memory and on disk pointers on the `core.BlockChain` struct.
-- Updates VM's last accepted block.
+1. Verifies the block the engine has received matches the expected block hash and block number in the summary,
+1. Adds a checkpoint to the `core.ChainIndexer` (to avoid indexing missing blocks)
+1. Resets in-memory and on disk pointers on the `core.BlockChain` struct
+1. Updates VM's last accepted block
 
 ## Resuming a partial sync operation
 

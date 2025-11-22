@@ -1,3 +1,5 @@
+<!-- markdownlint-disable MD024 -->
+
 # Release Notes
 
 ## [v0.8.1](https://github.com/ava-labs/subnet-evm/releases/tag/v0.8.1)

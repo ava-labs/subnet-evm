@@ -8,7 +8,7 @@ The VM creates the Ethereum backend and provides basic block building, parsing, 
 
 ## APIs
 
-The VM creates APIs for the node through the function `CreateHandlers()`. CreateHandlers returns the `Service` struct to serve Subnet-EVM specific APIs. Additionally, the Ethereum backend APIs are also returned at the `/rpc` extension.
+The VM creates APIs for the node through the function `CreateHandlers()`. CreateHandlers returns the `Service` struct to serve Coreth specific APIs. Additionally, the Ethereum backend APIs are also returned at the `/rpc` extension.
 
 ## Block Handling
 
@@ -20,4 +20,4 @@ The VM uses the block type from [`libevm/core/types`](https://github.com/ava-lab
 
 The Block type implements the AvalancheGo ChainVM Block interface. The key functions for this interface are `Verify()`, `Accept()`, `Reject()`, and `Status()`.
 
-The Block type (implemented as [`wrappedBlock`](wrapped_block.go)) wraps the block type from [`libevm/core/types`](https://github.com/ava-labs/libevm/tree/master/core/types) and implements these functions to allow the consensus engine to verify blocks as valid, perform consensus, and mark them as accepted or rejected. Blocks contain standard Ethereum transactions as well as atomic transactions (stored in the block's `ExtData` field) that enable cross-chain asset transfers. Blocks may also include optional block extensions for extensible VM functionality. See the documentation in AvalancheGo for the more detailed VM invariants that are maintained here.
+The Block type (implemented as [`wrappedBlock`](wrapped_block.go)) wraps the block type from [`libevm/core/types`](https://github.com/ava-labs/libevm/tree/master/core/types) and implements these functions to allow the consensus engine to verify blocks as valid, perform consensus, and mark them as accepted or rejected. Blocks contain standard Ethereum transactions that enable cross-chain asset transfers. Blocks may also include optional block extensions for extensible VM functionality. See the documentation in AvalancheGo for the more detailed VM invariants that are maintained here.

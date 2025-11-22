@@ -9,20 +9,19 @@ layer.
 
 ## State transition tool (`t8n`)
 
-
 The `evm t8n` tool is a stateless state transition utility. It is a utility
 which can
 
 1. Take a prestate, including
-  - Accounts,
-  - Block context information,
-  - Previous blockhashes (*optional)
-2. Apply a set of transactions,
-3. Apply a mining-reward (*optional),
-4. And generate a post-state, including
-  - State root, transaction root, receipt root,
-  - Information about rejected transactions,
-  - Optionally: a full or partial post-state dump
+    * Accounts,
+    * Block context information,
+    * Previous blockhashes (*optional)
+1. Apply a set of transactions,
+1. Apply a mining-reward (*optional),
+1. And generate a post-state, including
+    * State root, transaction root, receipt root,
+    * Information about rejected transactions,
+    * Optionally: a full or partial post-state dump
 
 ### Specification
 
@@ -35,7 +34,7 @@ implementation.
 
 Command line params that need to be supported are
 
-```
+```bash
     --input.alloc value            (default: "alloc.json")
     --input.env value              (default: "env.json")
     --input.txs value              (default: "txs.json")
@@ -52,6 +51,7 @@ Command line params that need to be supported are
     --trace.nostack                (default: false)
     --trace.returndata             (default: false)
 ```
+
 #### Objects
 
 The transition tool uses JSON objects to read and write data related to the transition operation. The
@@ -118,50 +118,50 @@ The `txs` object is an array of any of the transaction types: `LegacyTx`,
 
 ```go
 type LegacyTx struct {
-	Nonce     uint64          `json:"nonce"`
-	GasPrice  *big.Int        `json:"gasPrice"`
-	Gas       uint64          `json:"gas"`
-	To        *common.Address `json:"to"`
-	Value     *big.Int        `json:"value"`
-	Data      []byte          `json:"data"`
-	V         *big.Int        `json:"v"`
-	R         *big.Int        `json:"r"`
-	S         *big.Int        `json:"s"`
-    SecretKey *common.Hash    `json:"secretKey"`
+  Nonce     uint64          `json:"nonce"`
+  GasPrice  *big.Int        `json:"gasPrice"`
+  Gas       uint64          `json:"gas"`
+  To        *common.Address `json:"to"`
+  Value     *big.Int        `json:"value"`
+  Data      []byte          `json:"data"`
+  V         *big.Int        `json:"v"`
+  R         *big.Int        `json:"r"`
+  S         *big.Int        `json:"s"`
+  SecretKey *common.Hash    `json:"secretKey"`
 }
 type AccessList []AccessTuple
 type AccessTuple struct {
-	Address     common.Address `json:"address"        gencodec:"required"`
-	StorageKeys []common.Hash  `json:"storageKeys"    gencodec:"required"`
+  Address     common.Address `json:"address"        gencodec:"required"`
+  StorageKeys []common.Hash  `json:"storageKeys"    gencodec:"required"`
 }
 type AccessListTx struct {
-	ChainID    *big.Int        `json:"chainId"`
-	Nonce      uint64          `json:"nonce"`
-	GasPrice   *big.Int        `json:"gasPrice"`
-	Gas        uint64          `json:"gas"`
-	To         *common.Address `json:"to"`
-	Value      *big.Int        `json:"value"`
-	Data       []byte          `json:"data"`
-	AccessList AccessList      `json:"accessList"`
-	V          *big.Int        `json:"v"`
-	R          *big.Int        `json:"r"`
-	S          *big.Int        `json:"s"`
-    SecretKey  *common.Hash     `json:"secretKey"`
+  ChainID    *big.Int        `json:"chainId"`
+  Nonce      uint64          `json:"nonce"`
+  GasPrice   *big.Int        `json:"gasPrice"`
+  Gas        uint64          `json:"gas"`
+  To         *common.Address `json:"to"`
+  Value      *big.Int        `json:"value"`
+  Data       []byte          `json:"data"`
+  AccessList AccessList      `json:"accessList"`
+  V          *big.Int        `json:"v"`
+  R          *big.Int        `json:"r"`
+  S          *big.Int        `json:"s"`
+  SecretKey  *common.Hash     `json:"secretKey"`
 }
 type DynamicFeeTx struct {
-	ChainID    *big.Int        `json:"chainId"`
-	Nonce      uint64          `json:"nonce"`
-	GasTipCap  *big.Int        `json:"maxPriorityFeePerGas"`
-	GasFeeCap  *big.Int        `json:"maxFeePerGas"`
-	Gas        uint64          `json:"gas"`
-	To         *common.Address `json:"to"`
-	Value      *big.Int        `json:"value"`
-	Data       []byte          `json:"data"`
-	AccessList AccessList      `json:"accessList"`
-	V          *big.Int        `json:"v"`
-	R          *big.Int        `json:"r"`
-	S          *big.Int        `json:"s"`
-    SecretKey  *common.Hash     `json:"secretKey"`
+  ChainID    *big.Int        `json:"chainId"`
+  Nonce      uint64          `json:"nonce"`
+  GasTipCap  *big.Int        `json:"maxPriorityFeePerGas"`
+  GasFeeCap  *big.Int        `json:"maxFeePerGas"`
+  Gas        uint64          `json:"gas"`
+  To         *common.Address `json:"to"`
+  Value      *big.Int        `json:"value"`
+  Data       []byte          `json:"data"`
+  AccessList AccessList      `json:"accessList"`
+  V          *big.Int        `json:"v"`
+  R          *big.Int        `json:"r"`
+  S          *big.Int        `json:"s"`
+  SecretKey  *common.Hash     `json:"secretKey"`
 }
 ```
 
@@ -192,40 +192,44 @@ There are a few (not many) errors that can occur, those are defined below.
 
 ##### EVM-based errors (`2` to `9`)
 
-- Other EVM error. Exit code `2`
-- Failed configuration: when a non-supported or invalid fork was specified. Exit code `3`.
-- Block history is not supplied, but needed for a `BLOCKHASH` operation. If `BLOCKHASH`
+* Other EVM error. Exit code `2`
+* Failed configuration: when a non-supported or invalid fork was specified. Exit code `3`.
+* Block history is not supplied, but needed for a `BLOCKHASH` operation. If `BLOCKHASH`
   is invoked targeting a block which history has not been provided for, the program will
   exit with code `4`.
 
 ##### IO errors (`10`-`20`)
 
-- Invalid input json: the supplied data could not be marshalled.
+* Invalid input json: the supplied data could not be marshalled.
   The program will exit with code `10`
-- IO problems: failure to load or save files, the program will exit with code `11`
+* IO problems: failure to load or save files, the program will exit with code `11`
 
-```
+```bash
 # This should exit with 3
 ./evm t8n --input.alloc=./testdata/1/alloc.json --input.txs=./testdata/1/txs.json --input.env=./testdata/1/env.json --state.fork=Frontier+1346 2>/dev/null
 exitcode:3 OK
 ```
+
 #### Forks
-### Basic usage
 
 The chain configuration to be used for a transition is specified via the
 `--state.fork` CLI flag. A list of possible values and configurations can be
 found in [`tests/init.go`](../../tests/init.go).
 
 #### Examples
+
 ##### Basic usage
 
 Invoking it with the provided example files
-```
+
+```bash
 ./evm t8n --input.alloc=./testdata/1/alloc.json --input.txs=./testdata/1/txs.json --input.env=./testdata/1/env.json --state.fork=Berlin
 ```
+
 Two resulting files:
 
 `alloc.json`:
+
 ```json
 {
  "0x8a8eafb1cf62bfbeb1741769dae1a9dd47996192": {
@@ -241,7 +245,9 @@ Two resulting files:
  }
 }
 ```
+
 `result.json`:
+
 ```json
 {
  "stateRoot": "0x84208a19bc2b46ada7445180c1db162be5b39b9abc8c0a54b05d32943eae4e13",
@@ -275,10 +281,13 @@ Two resulting files:
 ```
 
 We can make them spit out the data to e.g. `stdout` like this:
-```
+
+```bash
 ./evm t8n --input.alloc=./testdata/1/alloc.json --input.txs=./testdata/1/txs.json --input.env=./testdata/1/env.json --output.result=stdout --output.alloc=stdout --state.fork=Berlin
 ```
+
 Output:
+
 ```json
 {
   "alloc": {
@@ -330,19 +339,19 @@ Output:
 
 Mining rewards and ommer rewards might need to be added. This is how those are applied:
 
-- `block_reward` is the block mining reward for the miner (`0xaa`), of a block at height `N`.
-- For each ommer (mined by `0xbb`), with blocknumber `N-delta`
-   - (where `delta` is the difference between the current block and the ommer)
-   - The account `0xbb` (ommer miner) is awarded `(8-delta)/ 8 * block_reward`
-   - The account `0xaa` (block miner) is awarded `block_reward / 32`
+* `block_reward` is the block mining reward for the miner (`0xaa`), of a block at height `N`.
+* For each ommer (mined by `0xbb`), with blocknumber `N-delta`
+  * (where `delta` is the difference between the current block and the ommer)
+  * The account `0xbb` (ommer miner) is awarded `(8-delta)/ 8 * block_reward`
+  * The account `0xaa` (block miner) is awarded `block_reward / 32`
 
 To make `t8n` apply these, the following inputs are required:
 
-- `--state.reward`
-  - For ethash, it is `5000000000000000000` `wei`,
-  - If this is not defined, mining rewards are not applied,
-  - A value of `0` is valid, and causes accounts to be 'touched'.
-- For each ommer, the tool needs to be given an `address\` and a `delta`. This
+* `--state.reward`
+  * For ethash, it is `5000000000000000000` `wei`,
+  * If this is not defined, mining rewards are not applied,
+  * A value of `0` is valid, and causes accounts to be 'touched'.
+* For each ommer, the tool needs to be given an `address\` and a `delta`. This
   is done via the `ommers` field in `env`.
 
 Note: the tool does not verify that e.g. the normal uncle rules apply,
@@ -350,7 +359,9 @@ and allows e.g two uncles at the same height, or the uncle-distance. This means 
 the tool allows for negative uncle reward (distance > 8)
 
 Example:
+
 `./testdata/5/env.json`:
+
 ```json
 {
   "currentCoinbase": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -364,8 +375,11 @@ Example:
   ]
 }
 ```
+
 When applying this, using a reward of `0x08`
+
 Output:
+
 ```json
 {
   "alloc": {
@@ -381,11 +395,14 @@ Output:
   }
 }
 ```
+
 #### Future EIPS
 
 It is also possible to experiment with future eips that are not yet defined in a hard fork.
+
 Example, putting EIP-1344 into Frontier:
-```
+
+```bash
 ./evm t8n --state.fork=Frontier+1344 --input.pre=./testdata/1/pre.json --input.txs=./testdata/1/txs.json --input.env=/testdata/1/env.json
 ```
 
@@ -393,16 +410,18 @@ Example, putting EIP-1344 into Frontier:
 
 The `BLOCKHASH` opcode requires blockhashes to be provided by the caller, inside the `env`.
 If a required blockhash is not provided, the exit code should be `4`:
+
 Example where blockhashes are provided:
-```
+
+```bash
 ./evm t8n --input.alloc=./testdata/3/alloc.json --input.txs=./testdata/3/txs.json --input.env=./testdata/3/env.json  --trace --state.fork=Berlin
-
 ```
 
-```
+```bash
 cat trace-0-0x72fadbef39cd251a437eea619cfeda752271a5faaaa2147df012e112159ffb81.jsonl | grep BLOCKHASH -C2
 ```
-```
+
+```json
 {"pc":0,"op":96,"gas":"0x5f58ef8","gasCost":"0x3","memSize":0,"stack":[],"depth":1,"refund":0,"opName":"PUSH1"}
 {"pc":2,"op":64,"gas":"0x5f58ef5","gasCost":"0x14","memSize":0,"stack":["0x1"],"depth":1,"refund":0,"opName":"BLOCKHASH"}
 {"pc":3,"op":0,"gas":"0x5f58ee1","gasCost":"0x0","memSize":0,"stack":["0xdac58aa524e50956d0c0bae7f3f8bb9d35381365d07804dd5b48a5a297c06af4"],"depth":1,"refund":0,"opName":"STOP"}
@@ -410,19 +429,22 @@ cat trace-0-0x72fadbef39cd251a437eea619cfeda752271a5faaaa2147df012e112159ffb81.j
 ```
 
 In this example, the caller has not provided the required blockhash:
-```
+
+```bash
 ./evm t8n --input.alloc=./testdata/4/alloc.json --input.txs=./testdata/4/txs.json --input.env=./testdata/4/env.json --trace --state.fork=Berlin
 ERROR(4): getHash(3) invoked, blockhash for that block not provided
 ```
+
 Error code: 4
 
 #### Chaining
 
 Another thing that can be done, is to chain invocations:
-```
-./evm t8n --input.alloc=./testdata/1/alloc.json --input.txs=./testdata/1/txs.json --input.env=./testdata/1/env.json --state.fork=Berlin --output.alloc=stdout | ./evm t8n --input.alloc=stdin --input.env=./testdata/1/env.json --input.txs=./testdata/1/txs.json --state.fork=Berlin
 
+```bash
+./evm t8n --input.alloc=./testdata/1/alloc.json --input.txs=./testdata/1/txs.json --input.env=./testdata/1/env.json --state.fork=Berlin --output.alloc=stdout | ./evm t8n --input.alloc=stdin --input.env=./testdata/1/env.json --input.txs=./testdata/1/txs.json --state.fork=Berlin
 ```
+
 What happened here, is that we first applied two identical transactions, so the second one was rejected.
 Then, taking the poststate alloc as the input for the next state, we tried again to include
 the same two transactions: this time, both failed due to too low nonce.
@@ -437,7 +459,8 @@ The input format for RLP-form transactions is _identical_ to the _output_ format
 to use the evm to go from `json` input to `rlp` input.
 
 The following command takes **json** the transactions in `./testdata/13/txs.json` and signs them. After execution, they are output to `signed_txs.rlp`.:
-```
+
+```bash
 ./evm t8n --state.fork=London --input.alloc=./testdata/13/alloc.json --input.txs=./testdata/13/txs.json --input.env=./testdata/13/env.json --output.result=alloc_jsontx.json --output.body=signed_txs.rlp
 INFO [12-27|09:25:11.102] Trie dumping started                     root=e4b924..6aef61
 INFO [12-27|09:25:11.102] Trie dumping complete                    accounts=3 elapsed="275.66µs"
@@ -447,30 +470,36 @@ INFO [12-27|09:25:11.103] Wrote file                               file=signed_t
 ```
 
 The `output.body` is the rlp-list of transactions, encoded in hex and placed in a string a'la `json` encoding rules:
-```
+
+```bash
 cat signed_txs.rlp
 "0xf8d2b86702f864010180820fa08284d09411111111111111111111111111111111111111118080c001a0b7dfab36232379bb3d1497a4f91c1966b1f932eae3ade107bf5d723b9cb474e0a06261c359a10f2132f126d250485b90cf20f30340801244a08ef6142ab33d1904b86702f864010280820fa08284d09411111111111111111111111111111111111111118080c080a0d4ec563b6568cd42d998fc4134b36933c6568d01533b5adf08769270243c6c7fa072bf7c21eac6bbeae5143371eef26d5e279637f3bd73482b55979d76d935b1e9"
 ```
 
 We can use `rlpdump` to check what the contents are:
-```
+
+```bash
 rlpdump -hex $(cat signed_txs.rlp | jq -r )
 [
   02f864010180820fa08284d09411111111111111111111111111111111111111118080c001a0b7dfab36232379bb3d1497a4f91c1966b1f932eae3ade107bf5d723b9cb474e0a06261c359a10f2132f126d250485b90cf20f30340801244a08ef6142ab33d1904,
   02f864010280820fa08284d09411111111111111111111111111111111111111118080c080a0d4ec563b6568cd42d998fc4134b36933c6568d01533b5adf08769270243c6c7fa072bf7c21eac6bbeae5143371eef26d5e279637f3bd73482b55979d76d935b1e9,
 ]
 ```
+
 Now, we can now use those (or any other already signed transactions), as input, like so:
-```
+
+```bash
 ./evm t8n --state.fork=London --input.alloc=./testdata/13/alloc.json --input.txs=./signed_txs.rlp --input.env=./testdata/13/env.json --output.result=alloc_rlptx.json
 INFO [12-27|09:25:11.187] Trie dumping started                     root=e4b924..6aef61
 INFO [12-27|09:25:11.187] Trie dumping complete                    accounts=3 elapsed="123.676µs"
 INFO [12-27|09:25:11.187] Wrote file                               file=alloc.json
 INFO [12-27|09:25:11.187] Wrote file                               file=alloc_rlptx.json
 ```
+
 You might have noticed that the results from these two invocations were stored in two separate files.
 And we can now finally check that they match.
-```
+
+```bash
 cat alloc_jsontx.json | jq .stateRoot && cat alloc_rlptx.json | jq .stateRoot
 "0xe4b924a6adb5959fccf769d5b7bb2f6359e26d1e76a2443c5a91a36d826aef61"
 "0xe4b924a6adb5959fccf769d5b7bb2f6359e26d1e76a2443c5a91a36d826aef61"
@@ -479,6 +508,7 @@ cat alloc_jsontx.json | jq .stateRoot && cat alloc_rlptx.json | jq .stateRoot
 ## Transaction tool
 
 The transaction tool is used to perform static validity checks on transactions such as:
+
 * intrinsic gas calculation
 * max values on integers
 * fee semantics, such as `maxFeePerGas < maxPriorityFeePerGas`
@@ -486,7 +516,7 @@ The transaction tool is used to perform static validity checks on transactions s
 
 ### Examples
 
-```
+```bash
 ./evm t9n --state.fork Homestead --input.txs testdata/15/signed_txs.rlp
 [
   {
@@ -499,7 +529,8 @@ The transaction tool is used to perform static validity checks on transactions s
   }
 ]
 ```
-```
+
+```bash
 ./evm t9n --state.fork London --input.txs testdata/15/signed_txs.rlp
 [
   {
@@ -514,6 +545,7 @@ The transaction tool is used to perform static validity checks on transactions s
   }
 ]
 ```
+
 ## Block builder tool (b11r)
 
 The `evm b11r` tool is used to assemble and seal full block rlps.
@@ -524,7 +556,7 @@ The `evm b11r` tool is used to assemble and seal full block rlps.
 
 Command line params that need to be supported are:
 
-```
+```bash
     --input.header value        `stdin` or file name of where to find the block header to use. (default: "header.json")
     --input.ommers value        `stdin` or file name of where to find the list of ommer header RLPs to use.
     --input.txs value           `stdin` or file name of where to find the transactions list in RLP form. (default: "txs.rlp")
@@ -546,7 +578,7 @@ Command line params that need to be supported are:
 
 The `header` object is a consensus header.
 
-```go=
+```go
 type Header struct {
         ParentHash  common.Hash       `json:"parentHash"`
         OmmerHash   *common.Hash      `json:"sha3Uncles"`
@@ -566,12 +598,13 @@ type Header struct {
         BaseFee     *big.Int          `json:"baseFeePerGas"`
 }
 ```
+
 #### `ommers`
 
 The `ommers` object is a list of RLP-encoded ommer blocks in hex
 representation.
 
-```go=
+```go
 type Ommers []string
 ```
 
@@ -579,7 +612,7 @@ type Ommers []string
 
 The `txs` object is a list of RLP-encoded transactions in hex representation.
 
-```go=
+```go
 type Txs []string
 ```
 
@@ -588,7 +621,7 @@ type Txs []string
 The `clique` object provides the necessary information to complete a clique
 seal of the block.
 
-```go=
+```go
 var CliqueInfo struct {
         Key       *common.Hash    `json:"secretKey"`
         Voted     *common.Address `json:"voted"`
@@ -601,7 +634,7 @@ var CliqueInfo struct {
 
 The `output` object contains two values, the block RLP and the block hash.
 
-```go=
+```go
 type BlockInfo struct {
     Rlp  []byte      `json:"rlp"`
     Hash common.Hash `json:"hash"`

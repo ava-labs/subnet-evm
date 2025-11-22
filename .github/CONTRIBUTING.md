@@ -6,8 +6,7 @@ If you'd like to contribute to subnet-evm, please fork, fix, commit and send a p
 
 ## Coding guidelines
 
-Please make sure your contributions adhere to our coding and documentation
-guidelines:
+Please make sure your contributions adhere to our coding guidelines:
 
 - Code must adhere to the official Go
   [formatting](https://go.dev/doc/effective_go#formatting) guidelines
@@ -42,7 +41,7 @@ Mocks are auto-generated using [mockgen](https://pkg.go.dev/go.uber.org/mock/moc
   - if the file `mocks_generate_test.go` does not exist in the package where the interface is located, create it with content (adapt as needed):
 
     ```go
-    // Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
+    // Copyright (C) 2025-2025, Ava Labs, Inc. All rights reserved.
     // See the file LICENSE for licensing terms.
 
     package mypackage
