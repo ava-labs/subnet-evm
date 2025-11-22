@@ -168,7 +168,7 @@ func TestEthTxGossip(t *testing.T) {
 // Tests that a tx is gossiped when it is issued
 func TestEthTxPushGossipOutbound(t *testing.T) {
 	require := require.New(t)
-	ctx := context.Background()
+	ctx := t.Context()
 	snowCtx := utilstest.NewTestSnowContext(t)
 	sender := &enginetest.SenderStub{
 		SentAppGossip: make(chan []byte, 1),
@@ -221,7 +221,7 @@ func TestEthTxPushGossipOutbound(t *testing.T) {
 // Tests that a gossiped tx is added to the mempool and forwarded
 func TestEthTxPushGossipInbound(t *testing.T) {
 	require := require.New(t)
-	ctx := context.Background()
+	ctx := t.Context()
 	snowCtx := utilstest.NewTestSnowContext(t)
 
 	sender := &enginetest.Sender{}
