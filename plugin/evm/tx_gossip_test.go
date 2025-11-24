@@ -42,7 +42,7 @@ func TestEthTxGossip(t *testing.T) {
 	require := require.New(t)
 	ctx := t.Context()
 	snowCtx := snowtest.Context(t, SubnetEVMTestChainID)
-snowCtx.ValidatorState = utilstest.NewTestValidatorState()
+	snowCtx.ValidatorState = utilstest.NewTestValidatorState()
 
 	responseSender := &enginetest.SenderStub{
 		SentAppResponse: make(chan []byte, 1),
