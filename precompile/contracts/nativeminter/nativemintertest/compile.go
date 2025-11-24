@@ -4,7 +4,7 @@
 package nativemintertest
 
 // Step 1: Compile Solidity contracts to generate ABI and bin files
-//go:generate solc-v0.8.30 -o artifacts --overwrite --abi --bin --base-path ../../../.. precompile/=precompile/ --evm-version paris solidity/NativeMinterTest.sol
+//go:generate solc-v0.8.30 -o artifacts --overwrite --abi --bin --base-path ../../../.. precompile/=precompile/ --evm-version paris NativeMinterTest.sol
 // Step 2: Generate Go bindings from the compiled artifacts
 //go:generate go run github.com/ava-labs/libevm/cmd/abigen --pkg nativemintertest --type INativeMinter --abi artifacts/INativeMinter.abi --bin artifacts/INativeMinter.bin --out gen_inativeminter_binding.go
 //go:generate go run github.com/ava-labs/libevm/cmd/abigen --pkg nativemintertest --type NativeMinterTest --abi artifacts/NativeMinterTest.abi --bin artifacts/NativeMinterTest.bin --out gen_nativemintertest_binding.go

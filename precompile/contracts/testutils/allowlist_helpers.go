@@ -14,8 +14,7 @@ import (
 )
 
 // All precompiles that use the AllowList pattern extend IAllowList in Solidity, so their Go bindings
-// will autoamatically have these 5 methods and implement the AllowListContract interface.
-
+// will automatically have these 5 methods and implement the AllowListContract interface.
 // Defining this interface allows the helper functions to work with any precompile that uses the AllowList pattern.
 type AllowListContract interface {
 	ReadAllowList(opts *bind.CallOpts, addr common.Address) (*big.Int, error)
