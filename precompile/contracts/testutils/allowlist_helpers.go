@@ -6,9 +6,10 @@ import (
 
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/types"
+	"github.com/stretchr/testify/require"
+
 	"github.com/ava-labs/subnet-evm/accounts/abi/bind"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
-	"github.com/stretchr/testify/require"
 
 	sim "github.com/ava-labs/subnet-evm/ethclient/simulated"
 )
