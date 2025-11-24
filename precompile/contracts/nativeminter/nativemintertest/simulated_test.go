@@ -119,7 +119,7 @@ func TestNativeMinter(t *testing.T) {
 		},
 		{
 			name: "unprivileged user cannot mint directly",
-			test: func(t *testing.T, backend *sim.Backend, nativeMinter *INativeMinter) {
+			test: func(t *testing.T, _ *sim.Backend, nativeMinter *INativeMinter) {
 				testAddr := common.HexToAddress("0x1234567890123456789012345678901234567890")
 
 				// Unprivileged user tries to mint - should fail

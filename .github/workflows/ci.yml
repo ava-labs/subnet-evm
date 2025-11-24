@@ -16,8 +16,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          submodules: recursive
       - uses: actions/setup-go@v5
         with:
           go-version-file: "go.mod"
@@ -47,8 +45,6 @@ jobs:
         os: [macos-latest, ubuntu-22.04, ubuntu-latest]
     steps:
       - uses: actions/checkout@v4
-        with:
-          submodules: recursive
       - uses: actions/setup-go@v5
         with:
           go-version-file: "go.mod"
