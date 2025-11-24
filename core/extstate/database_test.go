@@ -6,7 +6,6 @@ package extstate
 import (
 	"encoding/binary"
 	"math/rand"
-	"path/filepath"
 	"slices"
 	"testing"
 
@@ -82,8 +81,8 @@ func newFuzzState(t *testing.T) *fuzzState {
 	})
 
 	firewoodMemdb := rawdb.NewMemoryDatabase()
-	fwCfg := firewood.Defaults                              // copy the defaults
-	fwCfg.FilePath = filepath.Join(t.TempDir(), "firewood") // Use a temporary directory for the Firewood
+	fwCfg := firewood.Defaults       // copy the defaults
+	fwCfg.ChainDataDir = t.TempDir() // Use a temporary directory for the Firewood
 	firewoodState := NewDatabaseWithConfig(
 		firewoodMemdb,
 		&triedb.Config{
@@ -352,7 +351,7 @@ func FuzzTree(f *testing.F) {
 					fuzzState.deleteStorage(rand.Intn(len(fuzzState.currentAddrs)), rand.Uint64())
 				}
 			default:
-				t.Fatalf("unknown step: %d", step)
+				require.Failf(t, "unknown step", "got: %d", step)
 			}
 		}
 	})
