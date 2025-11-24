@@ -41,11 +41,8 @@ var SubnetEVMTestChainID = ids.GenerateTestID()
 func TestEthTxGossip(t *testing.T) {
 	require := require.New(t)
 	ctx := t.Context()
-
-	validatorState := utilstest.NewTestValidatorState()
-
 	snowCtx := snowtest.Context(t, SubnetEVMTestChainID)
-	snowCtx.ValidatorState = validatorState
+snowCtx.ValidatorState = utilstest.NewTestValidatorState()
 
 	responseSender := &enginetest.SenderStub{
 		SentAppResponse: make(chan []byte, 1),
