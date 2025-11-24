@@ -1,10 +1,9 @@
 ## Difficulty calculation
 
-This test shows how the `evm t8n` can be used to calculate the (ethash) difficulty, if none is provided by the caller.
+This test shows how the `evm t8n` can be used to calculate the (ethash) difficulty, if none is provided by the caller. 
 
 Calculating it (with an empty set of txs) using `London` rules (and no provided unclehash for the parent block):
-
-```bash
+```
 [user@work evm]$ ./evm t8n --input.alloc=./testdata/14/alloc.json --input.txs=./testdata/14/txs.json --input.env=./testdata/14/env.json --output.result=stdout --state.fork=London
 INFO [03-09|10:43:57.070] Trie dumping started                     root=6f0588..7f4bdc
 INFO [03-09|10:43:57.070] Trie dumping complete                    accounts=2 elapsed="214.663µs"
@@ -23,10 +22,8 @@ INFO [03-09|10:43:57.071] Wrote file                               file=alloc.js
   }
 }
 ```
-
 Same thing, but this time providing a non-empty (and non-`emptyKeccak`) unclehash, which leads to a slightly different result:
-
-```bash
+```
 [user@work evm]$ ./evm t8n --input.alloc=./testdata/14/alloc.json --input.txs=./testdata/14/txs.json --input.env=./testdata/14/env.uncles.json --output.result=stdout --state.fork=London
 INFO [03-09|10:44:20.511] Trie dumping started                     root=6f0588..7f4bdc
 INFO [03-09|10:44:20.511] Trie dumping complete                    accounts=2 elapsed="184.319µs"
@@ -45,3 +42,4 @@ INFO [03-09|10:44:20.512] Wrote file                               file=alloc.js
   }
 }
 ```
+

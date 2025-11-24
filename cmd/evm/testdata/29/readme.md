@@ -1,11 +1,11 @@
 ## EIP 4788
 
-This test contains testcases for EIP-4788. The 4788-contract is
+This test contains testcases for EIP-4788. The 4788-contract is 
 located at address `0x000F3df6D732807Ef1319fB7B8bB8522d0Beac02`, and this test executes a simple transaction. It also
-implicitly invokes the system tx, which sets calls the contract and sets the
+implicitly invokes the system tx, which sets calls the contract and sets the 
 storage values
 
-```bash
+```
 $ dir=./testdata/29/ && go run . t8n --state.fork=Cancun  --input.alloc=$dir/alloc.json --input.txs=$dir/txs.json --input.env=$dir/env.json --output.alloc=stdout
 INFO [09-27|15:34:53.049] Trie dumping started                     root=19a4f8..01573c
 INFO [09-27|15:34:53.049] Trie dumping complete                    accounts=2 elapsed="192.759µs"

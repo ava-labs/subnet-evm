@@ -1,11 +1,10 @@
 ## Difficulty calculation
 
-This test shows how the `evm t8n` can be used to calculate the (ethash) difficulty, if none is provided by the caller,
+This test shows how the `evm t8n` can be used to calculate the (ethash) difficulty, if none is provided by the caller, 
 this time on `GrayGlacier` (Eip 5133).
 
 Calculating it (with an empty set of txs) using `GrayGlacier` rules (and no provided unclehash for the parent block):
-
-```bash
+```
 [user@work evm]$ ./evm t8n --input.alloc=./testdata/19/alloc.json --input.txs=./testdata/19/txs.json --input.env=./testdata/19/env.json --output.result=stdout --state.fork=GrayGlacier
 INFO [03-09|10:45:26.777] Trie dumping started                     root=6f0588..7f4bdc
 INFO [03-09|10:45:26.777] Trie dumping complete                    accounts=2 elapsed="176.471µs"
