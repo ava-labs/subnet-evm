@@ -63,7 +63,7 @@ func newBackendWithDeployerAllowList(t *testing.T) *sim.Backend {
 
 // Helper functions to reduce test boilerplate
 
-func deployAllowListTestContract(t *testing.T, b *sim.Backend, auth *bind.TransactOpts) (common.Address, *allowlisttest.AllowListTest) {
+func deployAllowListTest(t *testing.T, b *sim.Backend, auth *bind.TransactOpts) (common.Address, *allowlisttest.AllowListTest) {
 	t.Helper()
 	addr, tx, contract, err := allowlisttest.DeployAllowListTest(auth, b.Client(), deployerallowlist.ContractAddress)
 	require.NoError(t, err)
@@ -105,14 +105,14 @@ func TestDeployerAllowList(t *testing.T) {
 		{
 			name: "should verify new address has no role",
 			test: func(t *testing.T, backend *sim.Backend, allowList *allowlisttest.IAllowList) {
-				allowListTestAddr, _ := deployAllowListTestContract(t, backend, admin)
+				allowListTestAddr, _ := deployAllowListTest(t, backend, admin)
 				verifyRole(t, allowList, allowListTestAddr, allowlist.NoRole)
 			},
 		},
 		{
 			name: "should verify contract correctly reports admin status",
 			test: func(t *testing.T, backend *sim.Backend, allowList *allowlisttest.IAllowList) {
-				allowListTestAddr, allowListTest := deployAllowListTestContract(t, backend, admin)
+				allowListTestAddr, allowListTest := deployAllowListTest(t, backend, admin)
 
 				verifyRole(t, allowList, allowListTestAddr, allowlist.NoRole)
 
@@ -130,7 +130,7 @@ func TestDeployerAllowList(t *testing.T) {
 			test: func(t *testing.T, backend *sim.Backend, allowList *allowlisttest.IAllowList) {
 				verifyRole(t, allowList, unprivilegedAddress, allowlist.NoRole)
 
-				_, allowListTest := deployAllowListTestContract(t, backend, admin)
+				_, allowListTest := deployAllowListTest(t, backend, admin)
 
 				// Try to deploy via unprivileged user - should fail
 				_, err := allowListTest.DeployContract(unprivileged)
@@ -141,7 +141,7 @@ func TestDeployerAllowList(t *testing.T) {
 		{
 			name: "should allow admin to add contract as admin via precompile",
 			test: func(t *testing.T, backend *sim.Backend, allowList *allowlisttest.IAllowList) {
-				allowListTestAddr, allowListTest := deployAllowListTestContract(t, backend, admin)
+				allowListTestAddr, allowListTest := deployAllowListTest(t, backend, admin)
 
 				verifyRole(t, allowList, allowListTestAddr, allowlist.NoRole)
 				setAsAdmin(t, backend, allowList, admin, allowListTestAddr)
@@ -155,8 +155,8 @@ func TestDeployerAllowList(t *testing.T) {
 		{
 			name: "should allow admin to add deployer via contract",
 			test: func(t *testing.T, backend *sim.Backend, allowList *allowlisttest.IAllowList) {
-				allowListTestAddr, allowListTest := deployAllowListTestContract(t, backend, admin)
-				otherContractAddr, _ := deployAllowListTestContract(t, backend, admin)
+				allowListTestAddr, allowListTest := deployAllowListTest(t, backend, admin)
+				otherContractAddr, _ := deployAllowListTest(t, backend, admin)
 
 				verifyRole(t, allowList, allowListTestAddr, allowlist.NoRole)
 				setAsAdmin(t, backend, allowList, admin, allowListTestAddr)
@@ -175,8 +175,8 @@ func TestDeployerAllowList(t *testing.T) {
 		{
 			name: "should allow enabled address to deploy contracts",
 			test: func(t *testing.T, backend *sim.Backend, allowList *allowlisttest.IAllowList) {
-				allowListTestAddr, allowListTest := deployAllowListTestContract(t, backend, admin)
-				deployerContractAddr, deployerContract := deployAllowListTestContract(t, backend, admin)
+				allowListTestAddr, allowListTest := deployAllowListTest(t, backend, admin)
+				deployerContractAddr, deployerContract := deployAllowListTest(t, backend, admin)
 
 				setAsAdmin(t, backend, allowList, admin, allowListTestAddr)
 
@@ -196,8 +196,8 @@ func TestDeployerAllowList(t *testing.T) {
 		{
 			name: "should allow admin to revoke deployer",
 			test: func(t *testing.T, backend *sim.Backend, allowList *allowlisttest.IAllowList) {
-				allowListTestAddr, allowListTest := deployAllowListTestContract(t, backend, admin)
-				deployerContractAddr, _ := deployAllowListTestContract(t, backend, admin)
+				allowListTestAddr, allowListTest := deployAllowListTest(t, backend, admin)
+				deployerContractAddr, _ := deployAllowListTest(t, backend, admin)
 
 				setAsAdmin(t, backend, allowList, admin, allowListTestAddr)
 
