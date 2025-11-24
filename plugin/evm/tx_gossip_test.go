@@ -42,7 +42,8 @@ func TestEthTxGossip(t *testing.T) {
 	require := require.New(t)
 	ctx := t.Context()
 	snowCtx := snowtest.Context(t, SubnetEVMTestChainID)
-	snowCtx.ValidatorState = utilstest.NewTestValidatorState()
+	validatorState := utilstest.NewTestValidatorState()
+	snowCtx.ValidatorState = validatorState
 
 	responseSender := &enginetest.SenderStub{
 		SentAppResponse: make(chan []byte, 1),
@@ -73,7 +74,7 @@ func TestEthTxGossip(t *testing.T) {
 	validatorSet := p2p.NewValidators(
 		logging.NoLog{},
 		snowCtx.SubnetID,
-		validatorState,
+		snowCtx.ValidatorState,
 		0,
 	)
 	network, err := p2p.NewNetwork(
