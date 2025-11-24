@@ -8,7 +8,7 @@ The VM creates the Ethereum backend and provides basic block building, parsing, 
 
 ## APIs
 
-The VM creates APIs for the node through the function `CreateHandlers()`. CreateHandlers returns the `Service` struct to serve Coreth specific APIs. Additionally, the Ethereum backend APIs are also returned at the `/rpc` extension.
+The VM creates APIs for the node through the function `CreateHandlers()`. CreateHandlers returns the `Service` struct to serve subnet-evm specific APIs. Additionally, the Ethereum backend APIs are also returned at the `/rpc` extension.
 
 ## Block Handling
 
