@@ -45,8 +45,7 @@ func TestMain(m *testing.M) {
 func newBackendWithNativeMinter(t *testing.T) *sim.Backend {
 	t.Helper()
 	chainCfg := params.Copy(params.TestChainConfig)
-	// Match the simulated backend chain ID used for signing (1337).
-	chainCfg.ChainID = big.NewInt(1337)
+
 	// Enable ContractNativeMinter at genesis with admin set to adminAddress.
 	params.GetExtra(&chainCfg).GenesisPrecompiles = extras.Precompiles{
 		nativeminter.ConfigKey: nativeminter.NewConfig(utils.NewUint64(0), []common.Address{adminAddress}, nil, nil, nil),
@@ -70,22 +69,8 @@ func deployNativeMinterTest(t *testing.T, b *sim.Backend, auth *bind.TransactOpt
 	return addr, contract
 }
 
-func verifyRole(t *testing.T, nativeMinter *INativeMinter, address common.Address, expectedRole allowlist.Role) {
-	t.Helper()
-	role, err := nativeMinter.ReadAllowList(nil, address)
-	require.NoError(t, err)
-	require.Equal(t, expectedRole.Big(), role)
-}
-
-func setAsEnabled(t *testing.T, b *sim.Backend, nativeMinter *INativeMinter, auth *bind.TransactOpts, address common.Address) {
-	t.Helper()
-	tx, err := nativeMinter.SetEnabled(auth, address)
-	require.NoError(t, err)
-	testutils.WaitReceiptSuccessful(t, b, tx)
-}
-
 func TestNativeMinter(t *testing.T) {
-	chainID := big.NewInt(1337)
+	chainID := params.TestChainConfig.ChainID
 	admin := testutils.NewAuth(t, adminKey, chainID)
 	unprivileged := testutils.NewAuth(t, unprivilegedKey, chainID)
 
@@ -132,7 +117,7 @@ func TestNativeMinter(t *testing.T) {
 			test: func(t *testing.T, backend *sim.Backend, nativeMinter *INativeMinter) {
 				testContractAddr, testContract := deployNativeMinterTest(t, backend, admin)
 
-				verifyRole(t, nativeMinter, testContractAddr, allowlist.NoRole)
+				testutils.VerifyRole(t, nativeMinter, testContractAddr, allowlist.NoRole)
 
 				testAddr := common.HexToAddress("0x1234567890123456789012345678901234567890")
 
@@ -146,11 +131,11 @@ func TestNativeMinter(t *testing.T) {
 			test: func(t *testing.T, backend *sim.Backend, nativeMinter *INativeMinter) {
 				testContractAddr, _ := deployNativeMinterTest(t, backend, admin)
 
-				verifyRole(t, nativeMinter, testContractAddr, allowlist.NoRole)
+				testutils.VerifyRole(t, nativeMinter, testContractAddr, allowlist.NoRole)
 
-				setAsEnabled(t, backend, nativeMinter, admin, testContractAddr)
+				testutils.SetAsEnabled(t, backend, nativeMinter, admin, testContractAddr)
 
-				verifyRole(t, nativeMinter, testContractAddr, allowlist.EnabledRole)
+				testutils.VerifyRole(t, nativeMinter, testContractAddr, allowlist.EnabledRole)
 			},
 		},
 		{
@@ -159,7 +144,7 @@ func TestNativeMinter(t *testing.T) {
 				testContractAddr, testContract := deployNativeMinterTest(t, backend, admin)
 				testAddr := common.HexToAddress("0x1234567890123456789012345678901234567890")
 
-				setAsEnabled(t, backend, nativeMinter, admin, testContractAddr)
+				testutils.SetAsEnabled(t, backend, nativeMinter, admin, testContractAddr)
 
 				initialBalance, err := backend.Client().BalanceAt(t.Context(), testAddr, nil)
 				require.NoError(t, err)
@@ -192,7 +177,7 @@ func TestNativeMinter(t *testing.T) {
 }
 
 func TestINativeMinter_Events(t *testing.T) {
-	chainID := big.NewInt(1337)
+	chainID := params.TestChainConfig.ChainID
 	admin := testutils.NewAuth(t, adminKey, chainID)
 	testKey, _ := crypto.GenerateKey()
 	testAddress := crypto.PubkeyToAddress(testKey.PublicKey)

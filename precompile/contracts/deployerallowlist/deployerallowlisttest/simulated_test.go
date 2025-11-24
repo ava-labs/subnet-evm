@@ -46,8 +46,6 @@ func TestMain(m *testing.M) {
 func newBackendWithDeployerAllowList(t *testing.T) *sim.Backend {
 	t.Helper()
 	chainCfg := params.Copy(params.TestChainConfig)
-	// Match the simulated backend chain ID used for signing (1337).
-	chainCfg.ChainID = big.NewInt(1337)
 	// Enable ContractDeployerAllowList at genesis with admin set to adminAddress.
 	params.GetExtra(&chainCfg).GenesisPrecompiles = extras.Precompiles{
 		deployerallowlist.ConfigKey: deployerallowlist.NewConfig(utils.NewUint64(0), []common.Address{adminAddress}, nil, nil),
@@ -71,22 +69,8 @@ func deployAllowListTest(t *testing.T, b *sim.Backend, auth *bind.TransactOpts) 
 	return addr, contract
 }
 
-func verifyRole(t *testing.T, allowList *allowlisttest.IAllowList, address common.Address, expectedRole allowlist.Role) {
-	t.Helper()
-	role, err := allowList.ReadAllowList(nil, address)
-	require.NoError(t, err)
-	require.Equal(t, expectedRole.Big(), role)
-}
-
-func setAsAdmin(t *testing.T, b *sim.Backend, allowList *allowlisttest.IAllowList, auth *bind.TransactOpts, address common.Address) {
-	t.Helper()
-	tx, err := allowList.SetAdmin(auth, address)
-	require.NoError(t, err)
-	testutils.WaitReceiptSuccessful(t, b, tx)
-}
-
 func TestDeployerAllowList(t *testing.T) {
-	chainID := big.NewInt(1337)
+	chainID := params.TestChainConfig.ChainID
 	admin := testutils.NewAuth(t, adminKey, chainID)
 	unprivileged := testutils.NewAuth(t, unprivilegedKey, chainID)
 
@@ -99,14 +83,14 @@ func TestDeployerAllowList(t *testing.T) {
 		{
 			name: "should verify sender is admin",
 			test: func(t *testing.T, _ *sim.Backend, allowList *allowlisttest.IAllowList) {
-				verifyRole(t, allowList, adminAddress, allowlist.AdminRole)
+				testutils.VerifyRole(t, allowList, adminAddress, allowlist.AdminRole)
 			},
 		},
 		{
 			name: "should verify new address has no role",
 			test: func(t *testing.T, backend *sim.Backend, allowList *allowlisttest.IAllowList) {
 				allowListTestAddr, _ := deployAllowListTest(t, backend, admin)
-				verifyRole(t, allowList, allowListTestAddr, allowlist.NoRole)
+				testutils.VerifyRole(t, allowList, allowListTestAddr, allowlist.NoRole)
 			},
 		},
 		{
@@ -114,7 +98,7 @@ func TestDeployerAllowList(t *testing.T) {
 			test: func(t *testing.T, backend *sim.Backend, allowList *allowlisttest.IAllowList) {
 				allowListTestAddr, allowListTest := deployAllowListTest(t, backend, admin)
 
-				verifyRole(t, allowList, allowListTestAddr, allowlist.NoRole)
+				testutils.VerifyRole(t, allowList, allowListTestAddr, allowlist.NoRole)
 
 				isAdmin, err := allowListTest.IsAdmin(nil, allowListTestAddr)
 				require.NoError(t, err)
@@ -128,7 +112,7 @@ func TestDeployerAllowList(t *testing.T) {
 		{
 			name: "should not let address with no role deploy contracts",
 			test: func(t *testing.T, backend *sim.Backend, allowList *allowlisttest.IAllowList) {
-				verifyRole(t, allowList, unprivilegedAddress, allowlist.NoRole)
+				testutils.VerifyRole(t, allowList, unprivilegedAddress, allowlist.NoRole)
 
 				_, allowListTest := deployAllowListTest(t, backend, admin)
 
@@ -143,9 +127,9 @@ func TestDeployerAllowList(t *testing.T) {
 			test: func(t *testing.T, backend *sim.Backend, allowList *allowlisttest.IAllowList) {
 				allowListTestAddr, allowListTest := deployAllowListTest(t, backend, admin)
 
-				verifyRole(t, allowList, allowListTestAddr, allowlist.NoRole)
-				setAsAdmin(t, backend, allowList, admin, allowListTestAddr)
-				verifyRole(t, allowList, allowListTestAddr, allowlist.AdminRole)
+				testutils.VerifyRole(t, allowList, allowListTestAddr, allowlist.NoRole)
+				testutils.SetAsAdmin(t, backend, allowList, admin, allowListTestAddr)
+				testutils.VerifyRole(t, allowList, allowListTestAddr, allowlist.AdminRole)
 
 				isAdmin, err := allowListTest.IsAdmin(nil, allowListTestAddr)
 				require.NoError(t, err)
@@ -158,9 +142,9 @@ func TestDeployerAllowList(t *testing.T) {
 				allowListTestAddr, allowListTest := deployAllowListTest(t, backend, admin)
 				otherContractAddr, _ := deployAllowListTest(t, backend, admin)
 
-				verifyRole(t, allowList, allowListTestAddr, allowlist.NoRole)
-				setAsAdmin(t, backend, allowList, admin, allowListTestAddr)
-				verifyRole(t, allowList, allowListTestAddr, allowlist.AdminRole)
+				testutils.VerifyRole(t, allowList, allowListTestAddr, allowlist.NoRole)
+				testutils.SetAsAdmin(t, backend, allowList, admin, allowListTestAddr)
+				testutils.VerifyRole(t, allowList, allowListTestAddr, allowlist.AdminRole)
 
 				tx, err := allowListTest.SetEnabled(admin, otherContractAddr)
 				require.NoError(t, err)
@@ -169,7 +153,7 @@ func TestDeployerAllowList(t *testing.T) {
 				isEnabled, err := allowListTest.IsEnabled(nil, otherContractAddr)
 				require.NoError(t, err)
 				require.True(t, isEnabled)
-				verifyRole(t, allowList, otherContractAddr, allowlist.EnabledRole)
+				testutils.VerifyRole(t, allowList, otherContractAddr, allowlist.EnabledRole)
 			},
 		},
 		{
@@ -178,7 +162,7 @@ func TestDeployerAllowList(t *testing.T) {
 				allowListTestAddr, allowListTest := deployAllowListTest(t, backend, admin)
 				deployerContractAddr, deployerContract := deployAllowListTest(t, backend, admin)
 
-				setAsAdmin(t, backend, allowList, admin, allowListTestAddr)
+				testutils.SetAsAdmin(t, backend, allowList, admin, allowListTestAddr)
 
 				tx, err := allowListTest.SetEnabled(admin, deployerContractAddr)
 				require.NoError(t, err)
@@ -199,7 +183,7 @@ func TestDeployerAllowList(t *testing.T) {
 				allowListTestAddr, allowListTest := deployAllowListTest(t, backend, admin)
 				deployerContractAddr, _ := deployAllowListTest(t, backend, admin)
 
-				setAsAdmin(t, backend, allowList, admin, allowListTestAddr)
+				testutils.SetAsAdmin(t, backend, allowList, admin, allowListTestAddr)
 
 				tx, err := allowListTest.SetEnabled(admin, deployerContractAddr)
 				require.NoError(t, err)
@@ -213,7 +197,7 @@ func TestDeployerAllowList(t *testing.T) {
 				require.NoError(t, err)
 				testutils.WaitReceipt(t, backend, tx)
 
-				verifyRole(t, allowList, deployerContractAddr, allowlist.NoRole)
+				testutils.VerifyRole(t, allowList, deployerContractAddr, allowlist.NoRole)
 			},
 		},
 	}
@@ -232,7 +216,7 @@ func TestDeployerAllowList(t *testing.T) {
 }
 
 func TestIAllowList_Events(t *testing.T) {
-	chainID := big.NewInt(1337)
+	chainID := params.TestChainConfig.ChainID
 	admin := testutils.NewAuth(t, adminKey, chainID)
 	testKey, _ := crypto.GenerateKey()
 	testAddress := crypto.PubkeyToAddress(testKey.PublicKey)
