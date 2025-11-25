@@ -55,6 +55,7 @@ func TestCappedMemoryTrieWriter(t *testing.T) {
 		require.NoError(t, w.InsertTrie(block))
 		require.Zero(t, m.LastDereference, "should not have dereferenced block on insert")
 		require.Zero(t, m.LastCommit, "should not have committed block on insert")
+		require.NoError(t, w.AcceptTrie(block))
 
 		if i <= tipBufferSize {
 			require.Zero(t, m.LastDereference, "should not have dereferenced block on accept")
