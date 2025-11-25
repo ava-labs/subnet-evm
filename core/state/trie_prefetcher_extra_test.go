@@ -178,8 +178,8 @@ func addKVs(
 		for i := 0; i < count/2; i++ {
 			key := make([]byte, 32)
 			value := make([]byte, 32)
-			rand.Read(key)
-			rand.Read(value)
+			_, _ = rand.Read(key)
+			_, _ = rand.Read(value)
 
 			statedb.SetState(address, common.BytesToHash(key), common.BytesToHash(value))
 		}

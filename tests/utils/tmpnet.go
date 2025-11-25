@@ -24,7 +24,7 @@ func NewTmpnetNodes(count int) []*tmpnet.Node {
 	nodes := make([]*tmpnet.Node, count)
 	for i := range nodes {
 		node := tmpnet.NewNode()
-		node.EnsureKeys()
+		_ = node.EnsureKeys()
 		nodes[i] = node
 	}
 	return nodes
