@@ -374,7 +374,7 @@ func testOldPackSetFeeConfigInputEqual(t *testing.T, feeConfig commontype.FeeCon
 		input, err := OldPackSetFeeConfig(feeConfig)
 		input2, err2 := PackSetFeeConfig(feeConfig)
 		if err != nil {
-			require.ErrorIs(t, err2, err)
+			require.Equal(t, err.Error(), err2.Error())
 			return
 		}
 		require.NoError(t, err2)
@@ -383,7 +383,7 @@ func testOldPackSetFeeConfigInputEqual(t *testing.T, feeConfig commontype.FeeCon
 		value, err := OldUnpackFeeConfig(input)
 		unpacked, err2 := UnpackSetFeeConfigInput(input, true)
 		if err != nil {
-			require.ErrorIs(t, err2, err)
+			require.Equal(t, err.Error(), err2.Error())
 			return
 		}
 		require.NoError(t, err2)

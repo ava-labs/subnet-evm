@@ -14,8 +14,10 @@ import (
 )
 
 var (
-	ErrGasLimitTooLow                            = errors.New("gasLimit cannot be less than or equal to 0")
-	ErrGasLimitNil                               = errors.New("gasLimit cannot be nil")
+	ErrGasLimitTooLow         = errors.New("gasLimit cannot be less than or equal to 0")
+	ErrGasLimitNil            = errors.New("gasLimit cannot be nil")
+	ErrMinBlockGasCostTooHigh = errors.New("minBlockGasCost cannot be greater than maxBlockGasCost")
+
 	errMinBaseFeeNil                             = errors.New("minBaseFee cannot be nil")
 	errTargetGasNil                              = errors.New("targetGas cannot be nil")
 	errBaseFeeChangeDenominatorNil               = errors.New("baseFeeChangeDenominator cannot be nil")
@@ -27,7 +29,6 @@ var (
 	errTargetGasTooLow                           = errors.New("targetGas cannot be less than or equal to 0")
 	errBaseFeeChangeDenominatorTooLow            = errors.New("baseFeeChangeDenominator cannot be less than or equal to 0")
 	errMinBlockGasCostNegative                   = errors.New("minBlockGasCost cannot be less than 0")
-	errMinBlockGasCostTooHigh                    = errors.New("minBlockGasCost cannot be greater than maxBlockGasCost")
 	errBlockGasCostStepNegative                  = errors.New("blockGasCostStep cannot be less than 0")
 	errMaxBlockGasCostNotUint64                  = errors.New("maxBlockGasCost is not a valid uint64")
 	errGasLimitExceedsHashLength                 = errors.New("gasLimit exceeds hash length")
@@ -121,7 +122,7 @@ func (f *FeeConfig) Verify() error {
 	case f.MinBlockGasCost.Cmp(common.Big0) == -1:
 		return fmt.Errorf("%w: minBlockGasCost = %d", errMinBlockGasCostNegative, f.MinBlockGasCost)
 	case f.MinBlockGasCost.Cmp(f.MaxBlockGasCost) == 1:
-		return fmt.Errorf("%w: minBlockGasCost = %d, maxBlockGasCost = %d", errMinBlockGasCostTooHigh, f.MinBlockGasCost, f.MaxBlockGasCost)
+		return fmt.Errorf("%w: minBlockGasCost = %d, maxBlockGasCost = %d", ErrMinBlockGasCostTooHigh, f.MinBlockGasCost, f.MaxBlockGasCost)
 	case f.BlockGasCostStep.Cmp(common.Big0) == -1:
 		return fmt.Errorf("%w: blockGasCostStep = %d", errBlockGasCostStepNegative, f.BlockGasCostStep)
 	case !f.MaxBlockGasCost.IsUint64():

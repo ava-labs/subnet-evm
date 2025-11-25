@@ -4,7 +4,6 @@
 package allowlisttest
 
 import (
-	"errors"
 	"testing"
 
 	"github.com/ava-labs/libevm/common"
@@ -14,6 +13,7 @@ import (
 
 	"github.com/ava-labs/subnet-evm/core/extstate"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
+	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/precompile/precompiletest"
@@ -195,7 +195,7 @@ func AllowListTests(_ testing.TB, module modules.Module) []precompiletest.Precom
 			},
 			SuppliedGas: 0,
 			ReadOnly:    false,
-			ExpectedErr: errors.New("invalid non-activated function selector"),
+			ExpectedErr: contract.ErrInvalidNonActivatedFunctionSelector,
 		},
 		{
 			Name:       "no_role_set_manager",
@@ -233,7 +233,7 @@ func AllowListTests(_ testing.TB, module modules.Module) []precompiletest.Precom
 			},
 			SuppliedGas: 0,
 			ReadOnly:    false,
-			ExpectedErr: errors.New("invalid non-activated function selector"),
+			ExpectedErr: contract.ErrInvalidNonActivatedFunctionSelector,
 		},
 		{
 			Name:       "enabled_set_manager",
@@ -271,7 +271,7 @@ func AllowListTests(_ testing.TB, module modules.Module) []precompiletest.Precom
 			},
 			SuppliedGas: 0,
 			ReadOnly:    false,
-			ExpectedErr: errors.New("invalid non-activated function selector"),
+			ExpectedErr: contract.ErrInvalidNonActivatedFunctionSelector,
 		},
 		{
 			Name:       "admin_set_manager",

@@ -75,7 +75,7 @@ func TestVerify(t *testing.T) {
 				c.MaxBlockGasCost = big.NewInt(1)
 				return &c
 			}(),
-			wantError: errMinBlockGasCostTooHigh,
+			wantError: ErrMinBlockGasCostTooHigh,
 		},
 		{
 			name:      "invalid BlockGasCostStep in FeeConfig",

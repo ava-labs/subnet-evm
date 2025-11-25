@@ -4,7 +4,6 @@
 package feemanager
 
 import (
-	"errors"
 	"math/big"
 	"testing"
 
@@ -132,7 +131,7 @@ var (
 			Config: &Config{
 				InitialFeeConfig: &testFeeConfig,
 			},
-			ExpectedErr: errors.New("cannot be greater than maxBlockGasCost"),
+			ExpectedErr: commontype.ErrMinBlockGasCostTooHigh,
 			AfterHook: func(t testing.TB, state *extstate.StateDB) {
 				feeConfig := GetStoredFeeConfig(state)
 				require.Equal(t, testFeeConfig, feeConfig)
