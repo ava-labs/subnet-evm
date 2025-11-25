@@ -122,14 +122,14 @@ func TestPackGetFeeConfigOutput(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			unpacked, err := UnpackGetFeeConfigOutput(test.input, test.skipLenCheck)
 			if test.expectedErr != "" {
-				require.ErrorContains(t, err, test.expectedErr)
+				require.ErrorContains(t, err, test.expectedErr) //nolint:forbidigo // uses upstream code
 			} else {
 				require.NoError(t, err)
 				require.True(t, test.expectedOutput.Equal(&unpacked), "not equal: expectedOutput %v, unpacked %v", test.expectedOutput, unpacked)
 			}
 			oldUnpacked, oldErr := OldUnpackFeeConfig(test.input)
 			if test.expectedOldErr != "" {
-				require.ErrorContains(t, oldErr, test.expectedOldErr)
+				require.ErrorContains(t, oldErr, test.expectedOldErr) //nolint:forbidigo // uses upstream code
 			} else {
 				require.NoError(t, oldErr)
 				require.True(t, test.expectedOutput.Equal(&oldUnpacked), "not equal: expectedOutput %v, oldUnpacked %v", test.expectedOutput, oldUnpacked)
@@ -293,14 +293,14 @@ func TestPackSetFeeConfigInput(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			unpacked, err := UnpackSetFeeConfigInput(test.input, test.strictMode)
 			if test.expectedErr != "" {
-				require.ErrorContains(t, err, test.expectedErr)
+				require.ErrorContains(t, err, test.expectedErr) //nolint:forbidigo // uses upstream code
 			} else {
 				require.NoError(t, err)
 				require.True(t, test.expectedOutput.Equal(&unpacked), "not equal: expectedOutput %v, unpacked %v", test.expectedOutput, unpacked)
 			}
 			oldUnpacked, oldErr := OldUnpackFeeConfig(test.input)
 			if test.expectedOldErr != "" {
-				require.ErrorContains(t, oldErr, test.expectedOldErr)
+				require.ErrorContains(t, oldErr, test.expectedOldErr) //nolint:forbidigo // uses upstream code
 			} else {
 				require.NoError(t, oldErr)
 				require.True(t, test.expectedOutput.Equal(&oldUnpacked), "not equal: expectedOutput %v, oldUnpacked %v", test.expectedOutput, oldUnpacked)
@@ -326,7 +326,7 @@ func testOldPackGetFeeConfigOutputEqual(t *testing.T, feeConfig commontype.FeeCo
 		input, err := OldPackFeeConfig(feeConfig)
 		input2, err2 := PackGetFeeConfigOutput(feeConfig)
 		if err != nil {
-			require.ErrorContains(t, err2, err.Error())
+			require.ErrorIs(t, err2, err)
 			return
 		}
 		require.NoError(t, err2)
@@ -335,7 +335,7 @@ func testOldPackGetFeeConfigOutputEqual(t *testing.T, feeConfig commontype.FeeCo
 		config, err := OldUnpackFeeConfig(input)
 		unpacked, err2 := UnpackGetFeeConfigOutput(input, false)
 		if err != nil {
-			require.ErrorContains(t, err2, err.Error())
+			require.ErrorIs(t, err2, err)
 			return
 		}
 		require.NoError(t, err2)
@@ -357,7 +357,7 @@ func testOldPackGetLastChangedAtOutputEqual(t *testing.T, blockNumber *big.Int, 
 		value, err := OldUnpackGetLastChangedAtOutput(input)
 		unpacked, err2 := UnpackGetFeeConfigLastChangedAtOutput(input)
 		if err != nil {
-			require.ErrorContains(t, err2, err.Error())
+			require.ErrorIs(t, err2, err)
 			return
 		}
 		require.NoError(t, err2)
@@ -374,7 +374,7 @@ func testOldPackSetFeeConfigInputEqual(t *testing.T, feeConfig commontype.FeeCon
 		input, err := OldPackSetFeeConfig(feeConfig)
 		input2, err2 := PackSetFeeConfig(feeConfig)
 		if err != nil {
-			require.ErrorContains(t, err2, err.Error())
+			require.ErrorIs(t, err2, err)
 			return
 		}
 		require.NoError(t, err2)
@@ -383,7 +383,7 @@ func testOldPackSetFeeConfigInputEqual(t *testing.T, feeConfig commontype.FeeCon
 		value, err := OldUnpackFeeConfig(input)
 		unpacked, err2 := UnpackSetFeeConfigInput(input, true)
 		if err != nil {
-			require.ErrorContains(t, err2, err.Error())
+			require.ErrorIs(t, err2, err)
 			return
 		}
 		require.NoError(t, err2)

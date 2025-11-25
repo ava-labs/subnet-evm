@@ -12,9 +12,9 @@ import (
 
 func TestVerify(t *testing.T) {
 	tests := []struct {
-		name          string
-		config        *FeeConfig
-		expectedError string
+		name      string
+		config    *FeeConfig
+		wantError error
 	}{
 		{
 			name: "nil gasLimit in FeeConfig",
@@ -30,42 +30,42 @@ func TestVerify(t *testing.T) {
 				MaxBlockGasCost:  big.NewInt(1_000_000),
 				BlockGasCostStep: big.NewInt(200_000),
 			},
-			expectedError: "gasLimit cannot be nil",
+			wantError: ErrGasLimitNil,
 		},
 		{
-			name:          "invalid GasLimit in FeeConfig",
-			config:        func() *FeeConfig { c := ValidTestFeeConfig; c.GasLimit = big.NewInt(0); return &c }(),
-			expectedError: "gasLimit = 0 cannot be less than or equal to 0",
+			name:      "invalid GasLimit in FeeConfig",
+			config:    func() *FeeConfig { c := ValidTestFeeConfig; c.GasLimit = big.NewInt(0); return &c }(),
+			wantError: ErrGasLimitTooLow,
 		},
 		{
-			name:          "invalid TargetBlockRate in FeeConfig",
-			config:        func() *FeeConfig { c := ValidTestFeeConfig; c.TargetBlockRate = 0; return &c }(),
-			expectedError: "targetBlockRate = 0 cannot be less than or equal to 0",
+			name:      "invalid TargetBlockRate in FeeConfig",
+			config:    func() *FeeConfig { c := ValidTestFeeConfig; c.TargetBlockRate = 0; return &c }(),
+			wantError: errTargetBlockRateTooLow,
 		},
 		{
-			name:          "invalid MinBaseFee in FeeConfig",
-			config:        func() *FeeConfig { c := ValidTestFeeConfig; c.MinBaseFee = big.NewInt(-1); return &c }(),
-			expectedError: "minBaseFee = -1 cannot be less than 0",
+			name:      "invalid MinBaseFee in FeeConfig",
+			config:    func() *FeeConfig { c := ValidTestFeeConfig; c.MinBaseFee = big.NewInt(-1); return &c }(),
+			wantError: errMinBaseFeeNegative,
 		},
 		{
-			name:          "invalid TargetGas in FeeConfig",
-			config:        func() *FeeConfig { c := ValidTestFeeConfig; c.TargetGas = big.NewInt(0); return &c }(),
-			expectedError: "targetGas = 0 cannot be less than or equal to 0",
+			name:      "invalid TargetGas in FeeConfig",
+			config:    func() *FeeConfig { c := ValidTestFeeConfig; c.TargetGas = big.NewInt(0); return &c }(),
+			wantError: errTargetGasTooLow,
 		},
 		{
-			name:          "invalid BaseFeeChangeDenominator in FeeConfig",
-			config:        func() *FeeConfig { c := ValidTestFeeConfig; c.BaseFeeChangeDenominator = big.NewInt(0); return &c }(),
-			expectedError: "baseFeeChangeDenominator = 0 cannot be less than or equal to 0",
+			name:      "invalid BaseFeeChangeDenominator in FeeConfig",
+			config:    func() *FeeConfig { c := ValidTestFeeConfig; c.BaseFeeChangeDenominator = big.NewInt(0); return &c }(),
+			wantError: errBaseFeeChangeDenominatorTooLow,
 		},
 		{
-			name:          "invalid MinBlockGasCost in FeeConfig",
-			config:        func() *FeeConfig { c := ValidTestFeeConfig; c.MinBlockGasCost = big.NewInt(-1); return &c }(),
-			expectedError: "minBlockGasCost = -1 cannot be less than 0",
+			name:      "invalid MinBlockGasCost in FeeConfig",
+			config:    func() *FeeConfig { c := ValidTestFeeConfig; c.MinBlockGasCost = big.NewInt(-1); return &c }(),
+			wantError: errMinBlockGasCostNegative,
 		},
 		{
-			name:          "valid FeeConfig",
-			config:        &ValidTestFeeConfig,
-			expectedError: "",
+			name:      "valid FeeConfig",
+			config:    &ValidTestFeeConfig,
+			wantError: nil,
 		},
 		{
 			name: "MinBlockGasCost bigger than MaxBlockGasCost in FeeConfig",
@@ -75,24 +75,19 @@ func TestVerify(t *testing.T) {
 				c.MaxBlockGasCost = big.NewInt(1)
 				return &c
 			}(),
-			expectedError: "minBlockGasCost = 2 cannot be greater than maxBlockGasCost = 1",
+			wantError: errMinBlockGasCostTooHigh,
 		},
 		{
-			name:          "invalid BlockGasCostStep in FeeConfig",
-			config:        func() *FeeConfig { c := ValidTestFeeConfig; c.BlockGasCostStep = big.NewInt(-1); return &c }(),
-			expectedError: "blockGasCostStep = -1 cannot be less than 0",
+			name:      "invalid BlockGasCostStep in FeeConfig",
+			config:    func() *FeeConfig { c := ValidTestFeeConfig; c.BlockGasCostStep = big.NewInt(-1); return &c }(),
+			wantError: errBlockGasCostStepNegative,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			err := test.config.Verify()
-			if test.expectedError == "" {
-				require.NoError(t, err)
-			} else {
-				require.Error(t, err)
-				require.Contains(t, err.Error(), test.expectedError)
-			}
+			require.ErrorIs(t, err, test.wantError)
 		})
 	}
 }

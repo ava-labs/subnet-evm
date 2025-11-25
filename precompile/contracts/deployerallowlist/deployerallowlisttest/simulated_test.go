@@ -12,7 +12,6 @@ import (
 
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/types"
-	"github.com/ava-labs/libevm/core/vm"
 	"github.com/ava-labs/libevm/crypto"
 	"github.com/stretchr/testify/require"
 
@@ -153,8 +152,8 @@ func TestDeployerAllowList(t *testing.T) {
 
 				// Try to deploy via unprivileged user - should fail
 				_, err := allowListTest.DeployContract(unprivileged)
-				// The error returned is a JSON Error rather than the vm.ErrExecutionReverted error
-				require.ErrorContains(t, err, vm.ErrExecutionReverted.Error())
+				// The error returned is actually a JSON Error
+				require.ErrorContains(t, err, "execution reverted") //nolint:forbidigo // uses upstream code
 			},
 		},
 		{

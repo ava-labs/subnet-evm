@@ -245,7 +245,7 @@ func TestRequestRequestsRoutingAndResponse(t *testing.T) {
 	}
 
 	// ensure empty nodeID is not allowed
-	err = net.SendAppRequest(context.Background(), ids.EmptyNodeID, []byte("hello there"), nil)
+	err = net.SendAppRequest(t.Context(), ids.EmptyNodeID, []byte("hello there"), nil)
 	require.ErrorIs(t, err, errEmptyNodeID)
 }
 
@@ -561,7 +561,7 @@ func TestNetworkPropagatesRequestHandlerError(t *testing.T) {
 	require.NoError(t, err)
 
 	// Check that if the request handler returns an error, it is propagated as a fatal error.
-	err = clientNetwork.AppRequest(context.Background(), nodeID, requestID, time.Now().Add(time.Second), requestMessage)
+	err = clientNetwork.AppRequest(t.Context(), nodeID, requestID, time.Now().Add(time.Second), requestMessage)
 	require.ErrorIs(t, err, errTest)
 }
 

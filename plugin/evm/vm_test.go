@@ -3166,7 +3166,7 @@ func TestGenesisGasLimit(t *testing.T) {
 	vm := &VM{}
 	err = vm.Initialize(t.Context(), ctx, db, genesisBytes, []byte{}, []byte{}, []*commonEng.Fx{}, &enginetest.Sender{})
 	// This should fail because the gas limit is different from the fee config
-	require.ErrorContains(t, err, "failed to verify genesis")
+	require.ErrorIs(t, err, errVerifyGenesis)
 
 	// This should succeed because the gas limit is the same as the fee config
 	genesis.GasLimit = params.GetExtra(genesis.Config).FeeConfig.GasLimit.Uint64()
@@ -3547,8 +3547,7 @@ func TestDelegatePrecompile_BehaviorAcrossUpgrades(t *testing.T) {
 				// On subnet-evm, InvalidateExecution causes the transaction to be excluded from the block.
 				// BuildBlock will create a block but it will fail verification because it's empty
 				// and subnet-evm doesn't allow empty blocks.
-				require.Error(t, err, "BuildBlock should fail because it would create an empty block")
-				require.ErrorContains(t, err, "empty block", "Should fail with empty block error")
+				require.ErrorIs(t, err, errEmptyBlock)
 				return
 			}
 			require.NoError(t, err)

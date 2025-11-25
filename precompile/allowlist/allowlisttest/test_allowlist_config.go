@@ -5,7 +5,6 @@ package allowlisttest
 
 import (
 	"encoding/json"
-	"errors"
 	"testing"
 
 	"github.com/ava-labs/libevm/common"
@@ -58,7 +57,7 @@ func AllowListConfigVerifyTests(t testing.TB, module modules.Module) map[string]
 				ManagerAddresses: nil,
 				EnabledAddresses: nil,
 			}),
-			ExpectedError: errors.New("duplicate address in admin list"),
+			WantError: allowlist.ErrDuplicateAdminAddress,
 		},
 		"invalid allow list config with duplicate enableds in allowlist": {
 			Config: mkConfigWithAllowList(module, &allowlist.AllowListConfig{
@@ -66,7 +65,7 @@ func AllowListConfigVerifyTests(t testing.TB, module modules.Module) map[string]
 				ManagerAddresses: nil,
 				EnabledAddresses: []common.Address{TestEnabledAddr, TestEnabledAddr},
 			}),
-			ExpectedError: errors.New("duplicate address in enabled list"),
+			WantError: allowlist.ErrDuplicateEnabledAddress,
 		},
 		"invalid allow list config with duplicate managers in allowlist": {
 			Config: mkConfigWithAllowList(module, &allowlist.AllowListConfig{
@@ -74,7 +73,7 @@ func AllowListConfigVerifyTests(t testing.TB, module modules.Module) map[string]
 				ManagerAddresses: []common.Address{TestManagerAddr, TestManagerAddr},
 				EnabledAddresses: nil,
 			}),
-			ExpectedError: errors.New("duplicate address in manager list"),
+			WantError: allowlist.ErrDuplicateManagerAddress,
 		},
 		"invalid allow list config with same admin and enabled in allowlist": {
 			Config: mkConfigWithAllowList(module, &allowlist.AllowListConfig{
@@ -82,7 +81,7 @@ func AllowListConfigVerifyTests(t testing.TB, module modules.Module) map[string]
 				ManagerAddresses: nil,
 				EnabledAddresses: []common.Address{TestAdminAddr},
 			}),
-			ExpectedError: errors.New("cannot set address as both admin and enabled"),
+			WantError: allowlist.ErrAdminAndEnabledAddress,
 		},
 		"invalid allow list config with same admin and manager in allowlist": {
 			Config: mkConfigWithAllowList(module, &allowlist.AllowListConfig{
@@ -90,7 +89,7 @@ func AllowListConfigVerifyTests(t testing.TB, module modules.Module) map[string]
 				ManagerAddresses: []common.Address{TestAdminAddr},
 				EnabledAddresses: nil,
 			}),
-			ExpectedError: errors.New("cannot set address as both admin and manager"),
+			WantError: allowlist.ErrAdminAndManagerAddress,
 		},
 		"invalid allow list config with same manager and enabled in allowlist": {
 			Config: mkConfigWithAllowList(module, &allowlist.AllowListConfig{
@@ -98,7 +97,7 @@ func AllowListConfigVerifyTests(t testing.TB, module modules.Module) map[string]
 				ManagerAddresses: []common.Address{TestManagerAddr},
 				EnabledAddresses: []common.Address{TestManagerAddr},
 			}),
-			ExpectedError: errors.New("cannot set address as both enabled and manager"),
+			WantError: allowlist.ErrEnabledAndManagerAddress,
 		},
 		"invalid allow list config with manager role before activation": {
 			Config: mkConfigWithUpgradeAndAllowList(module, &allowlist.AllowListConfig{
@@ -113,7 +112,7 @@ func AllowListConfigVerifyTests(t testing.TB, module modules.Module) map[string]
 				config.EXPECT().IsDurango(gomock.Any()).Return(false)
 				return config
 			}(),
-			ExpectedError: allowlist.ErrCannotAddManagersBeforeDurango,
+			WantError: allowlist.ErrCannotAddManagersBeforeDurango,
 		},
 		"nil member allow list config in allowlist": {
 			Config: mkConfigWithAllowList(module, &allowlist.AllowListConfig{
@@ -121,7 +120,7 @@ func AllowListConfigVerifyTests(t testing.TB, module modules.Module) map[string]
 				ManagerAddresses: nil,
 				EnabledAddresses: nil,
 			}),
-			ExpectedError: nil,
+			WantError: nil,
 		},
 		"empty member allow list config in allowlist": {
 			Config: mkConfigWithAllowList(module, &allowlist.AllowListConfig{
@@ -129,7 +128,7 @@ func AllowListConfigVerifyTests(t testing.TB, module modules.Module) map[string]
 				ManagerAddresses: []common.Address{},
 				EnabledAddresses: []common.Address{},
 			}),
-			ExpectedError: nil,
+			WantError: nil,
 		},
 		"valid allow list config in allowlist": {
 			Config: mkConfigWithAllowList(module, &allowlist.AllowListConfig{
@@ -137,7 +136,7 @@ func AllowListConfigVerifyTests(t testing.TB, module modules.Module) map[string]
 				ManagerAddresses: []common.Address{TestManagerAddr},
 				EnabledAddresses: []common.Address{TestEnabledAddr},
 			}),
-			ExpectedError: nil,
+			WantError: nil,
 		},
 	}
 }

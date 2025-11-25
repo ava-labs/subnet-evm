@@ -4,7 +4,6 @@
 package feemanager
 
 import (
-	"errors"
 	"math/big"
 	"testing"
 
@@ -37,12 +36,12 @@ func TestVerify(t *testing.T) {
 	invalidFeeConfig.GasLimit = big.NewInt(0)
 	tests := map[string]precompiletest.ConfigVerifyTest{
 		"invalid initial fee manager config": {
-			Config:        NewConfig(utils.NewUint64(3), admins, nil, nil, &invalidFeeConfig),
-			ExpectedError: errors.New("gasLimit = 0 cannot be less than or equal to 0"),
+			Config:    NewConfig(utils.NewUint64(3), admins, nil, nil, &invalidFeeConfig),
+			WantError: commontype.ErrGasLimitTooLow,
 		},
 		"nil initial fee manager config": {
-			Config:        NewConfig(utils.NewUint64(3), admins, nil, nil, &commontype.FeeConfig{}),
-			ExpectedError: errors.New("fee config gasLimit cannot be nil"),
+			Config:    NewConfig(utils.NewUint64(3), admins, nil, nil, &commontype.FeeConfig{}),
+			WantError: commontype.ErrGasLimitNil,
 		},
 	}
 	allowlisttest.VerifyPrecompileWithAllowListTests(t, Module, tests)

@@ -104,7 +104,7 @@ func TestUnpackMintNativeCoinInput(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			unpackedAddress, unpackedAmount, err := UnpackMintNativeCoinInput(test.input, test.strictMode)
 			if test.expectedErr != "" {
-				require.ErrorContains(t, err, test.expectedErr)
+				require.ErrorContains(t, err, test.expectedErr) //nolint:forbidigo // uses upstream code
 			} else {
 				require.NoError(t, err)
 				require.Equal(t, test.expectedAddr, unpackedAddress)
@@ -112,7 +112,7 @@ func TestUnpackMintNativeCoinInput(t *testing.T) {
 			}
 			oldUnpackedAddress, oldUnpackedAmount, oldErr := OldUnpackMintNativeCoinInput(test.input)
 			if test.expectedOldErr != "" {
-				require.ErrorContains(t, oldErr, test.expectedOldErr)
+				require.ErrorContains(t, oldErr, test.expectedOldErr) //nolint:forbidigo // uses upstream code
 			} else {
 				require.NoError(t, oldErr)
 				require.Equal(t, test.expectedAddr, oldUnpackedAddress)
@@ -134,7 +134,7 @@ func testOldPackMintNativeCoinEqual(t *testing.T, addr common.Address, amount *b
 		input, err := OldPackMintNativeCoinInput(addr, amount)
 		input2, err2 := PackMintNativeCoin(addr, amount)
 		if err != nil {
-			require.ErrorContains(t, err2, err.Error())
+			require.ErrorIs(t, err2, err)
 			return
 		}
 		require.NoError(t, err2)
@@ -144,7 +144,7 @@ func testOldPackMintNativeCoinEqual(t *testing.T, addr common.Address, amount *b
 		to, assetAmount, err := OldUnpackMintNativeCoinInput(input)
 		unpackedAddr, unpackedAmount, err2 := UnpackMintNativeCoinInput(input, true)
 		if err != nil {
-			require.ErrorContains(t, err2, err.Error())
+			require.ErrorIs(t, err2, err)
 			return
 		}
 		require.NoError(t, err2)

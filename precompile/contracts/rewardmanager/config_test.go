@@ -25,7 +25,7 @@ func TestVerify(t *testing.T) {
 				AllowFeeRecipients: true,
 				RewardAddress:      common.HexToAddress("0x01"),
 			}),
-			ExpectedError: ErrCannotEnableBothRewards,
+			WantError: ErrCannotEnableBothRewards,
 		},
 	}
 	allowlisttest.VerifyPrecompileWithAllowListTests(t, Module, tests)

@@ -11,6 +11,7 @@ import (
 	"github.com/ava-labs/libevm/common/math"
 	"go.uber.org/mock/gomock"
 
+	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist/allowlisttest"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/precompile/precompiletest"
@@ -29,19 +30,19 @@ func TestVerify(t *testing.T) {
 				config.EXPECT().IsDurango(gomock.Any()).Return(true).AnyTimes()
 				return config
 			}(),
-			ExpectedError: nil,
+			WantError: nil,
 		},
 		"invalid allow list config in native minter allowlisttest": {
-			Config:        NewConfig(utils.NewUint64(3), admins, admins, nil, nil),
-			ExpectedError: errors.New("cannot set address"),
+			Config:    NewConfig(utils.NewUint64(3), admins, admins, nil, nil),
+			WantError: allowlist.ErrAdminAndEnabledAddress,
 		},
 		"duplicate admins in config in native minter allowlisttest": {
-			Config:        NewConfig(utils.NewUint64(3), append(admins, admins[0]), enableds, managers, nil),
-			ExpectedError: errors.New("duplicate address"),
+			Config:    NewConfig(utils.NewUint64(3), append(admins, admins[0]), enableds, managers, nil),
+			WantError: allowlist.ErrDuplicateAdminAddress,
 		},
 		"duplicate enableds in config in native minter allowlisttest": {
-			Config:        NewConfig(utils.NewUint64(3), admins, append(enableds, enableds[0]), managers, nil),
-			ExpectedError: errors.New("duplicate address"),
+			Config:    NewConfig(utils.NewUint64(3), admins, append(enableds, enableds[0]), managers, nil),
+			WantError: allowlist.ErrDuplicateEnabledAddress,
 		},
 		"nil amount in native minter config": {
 			Config: NewConfig(utils.NewUint64(3), admins, nil, nil,
@@ -49,7 +50,7 @@ func TestVerify(t *testing.T) {
 					common.HexToAddress("0x01"): math.NewHexOrDecimal256(123),
 					common.HexToAddress("0x02"): nil,
 				}),
-			ExpectedError: errors.New("initial mint cannot contain nil"),
+			WantError: errors.New("initial mint cannot contain nil"),
 		},
 		"negative amount in native minter config": {
 			Config: NewConfig(utils.NewUint64(3), admins, nil, nil,
@@ -57,7 +58,7 @@ func TestVerify(t *testing.T) {
 					common.HexToAddress("0x01"): math.NewHexOrDecimal256(123),
 					common.HexToAddress("0x02"): math.NewHexOrDecimal256(-1),
 				}),
-			ExpectedError: errors.New("initial mint cannot contain invalid amount"),
+			WantError: errors.New("initial mint cannot contain invalid amount"),
 		},
 	}
 	allowlisttest.VerifyPrecompileWithAllowListTests(t, Module, tests)
