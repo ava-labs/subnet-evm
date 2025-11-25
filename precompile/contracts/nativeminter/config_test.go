@@ -4,7 +4,6 @@
 package nativeminter
 
 import (
-	"errors"
 	"testing"
 
 	"github.com/ava-labs/libevm/common"
@@ -50,7 +49,7 @@ func TestVerify(t *testing.T) {
 					common.HexToAddress("0x01"): math.NewHexOrDecimal256(123),
 					common.HexToAddress("0x02"): nil,
 				}),
-			WantError: errors.New("initial mint cannot contain nil"),
+			WantError: errInitialMintNilAmount,
 		},
 		"negative amount in native minter config": {
 			Config: NewConfig(utils.NewUint64(3), admins, nil, nil,
@@ -58,7 +57,7 @@ func TestVerify(t *testing.T) {
 					common.HexToAddress("0x01"): math.NewHexOrDecimal256(123),
 					common.HexToAddress("0x02"): math.NewHexOrDecimal256(-1),
 				}),
-			WantError: errors.New("initial mint cannot contain invalid amount"),
+			WantError: errInitialMintInvalidAmount,
 		},
 	}
 	allowlisttest.VerifyPrecompileWithAllowListTests(t, Module, tests)
