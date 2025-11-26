@@ -19,12 +19,12 @@ import (
 	"github.com/ava-labs/subnet-evm/params/extras"
 	"github.com/ava-labs/subnet-evm/plugin/evm/customtypes"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
-	allowlistbindings "github.com/ava-labs/subnet-evm/precompile/allowlist/allowlisttest/bindings"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/deployerallowlist"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/testutils"
 	"github.com/ava-labs/subnet-evm/utils"
 
 	sim "github.com/ava-labs/subnet-evm/ethclient/simulated"
+	allowlistbindings "github.com/ava-labs/subnet-evm/precompile/allowlist/allowlisttest/bindings"
 )
 
 var (

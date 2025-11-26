@@ -20,11 +20,11 @@ import (
 	"github.com/ava-labs/subnet-evm/plugin/evm/customtypes"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/nativeminter"
-	nativeminterbindings "github.com/ava-labs/subnet-evm/precompile/contracts/nativeminter/nativemintertest/bindings"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/testutils"
 	"github.com/ava-labs/subnet-evm/utils"
 
 	sim "github.com/ava-labs/subnet-evm/ethclient/simulated"
+	nativeminterbindings "github.com/ava-labs/subnet-evm/precompile/contracts/nativeminter/nativemintertest/bindings"
 )
 
 var (
