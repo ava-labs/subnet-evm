@@ -9,11 +9,11 @@ import (
 	"strings"
 
 	ethereum "github.com/ava-labs/libevm"
+	"github.com/ava-labs/subnet-evm/accounts/abi"
+	"github.com/ava-labs/subnet-evm/accounts/abi/bind"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/libevm/event"
-	"github.com/ava-labs/subnet-evm/accounts/abi"
-	"github.com/ava-labs/subnet-evm/accounts/abi/bind"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -186,6 +186,7 @@ func (_INativeMinter *INativeMinterTransactorRaw) Transact(opts *bind.TransactOp
 func (_INativeMinter *INativeMinterCaller) ReadAllowList(opts *bind.CallOpts, addr common.Address) (*big.Int, error) {
 	var out []interface{}
 	err := _INativeMinter.contract.Call(opts, &out, "readAllowList", addr)
+
 	if err != nil {
 		return *new(*big.Int), err
 	}
@@ -193,6 +194,7 @@ func (_INativeMinter *INativeMinterCaller) ReadAllowList(opts *bind.CallOpts, ad
 	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
 
 	return out0, err
+
 }
 
 // ReadAllowList is a free data retrieval call binding the contract method 0xeb54dae1.
@@ -393,6 +395,7 @@ type INativeMinterNativeCoinMinted struct {
 //
 // Solidity: event NativeCoinMinted(address indexed sender, address indexed recipient, uint256 amount)
 func (_INativeMinter *INativeMinterFilterer) FilterNativeCoinMinted(opts *bind.FilterOpts, sender []common.Address, recipient []common.Address) (*INativeMinterNativeCoinMintedIterator, error) {
+
 	var senderRule []interface{}
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
@@ -413,6 +416,7 @@ func (_INativeMinter *INativeMinterFilterer) FilterNativeCoinMinted(opts *bind.F
 //
 // Solidity: event NativeCoinMinted(address indexed sender, address indexed recipient, uint256 amount)
 func (_INativeMinter *INativeMinterFilterer) WatchNativeCoinMinted(opts *bind.WatchOpts, sink chan<- *INativeMinterNativeCoinMinted, sender []common.Address, recipient []common.Address) (event.Subscription, error) {
+
 	var senderRule []interface{}
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
@@ -546,6 +550,7 @@ type INativeMinterRoleSet struct {
 //
 // Solidity: event RoleSet(uint256 indexed role, address indexed account, address indexed sender, uint256 oldRole)
 func (_INativeMinter *INativeMinterFilterer) FilterRoleSet(opts *bind.FilterOpts, role []*big.Int, account []common.Address, sender []common.Address) (*INativeMinterRoleSetIterator, error) {
+
 	var roleRule []interface{}
 	for _, roleItem := range role {
 		roleRule = append(roleRule, roleItem)
@@ -570,6 +575,7 @@ func (_INativeMinter *INativeMinterFilterer) FilterRoleSet(opts *bind.FilterOpts
 //
 // Solidity: event RoleSet(uint256 indexed role, address indexed account, address indexed sender, uint256 oldRole)
 func (_INativeMinter *INativeMinterFilterer) WatchRoleSet(opts *bind.WatchOpts, sink chan<- *INativeMinterRoleSet, role []*big.Int, account []common.Address, sender []common.Address) (event.Subscription, error) {
+
 	var roleRule []interface{}
 	for _, roleItem := range role {
 		roleRule = append(roleRule, roleItem)

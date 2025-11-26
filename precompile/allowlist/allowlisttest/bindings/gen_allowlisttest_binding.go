@@ -9,11 +9,11 @@ import (
 	"strings"
 
 	ethereum "github.com/ava-labs/libevm"
+	"github.com/ava-labs/subnet-evm/accounts/abi"
+	"github.com/ava-labs/subnet-evm/accounts/abi/bind"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/libevm/event"
-	"github.com/ava-labs/subnet-evm/accounts/abi"
-	"github.com/ava-labs/subnet-evm/accounts/abi/bind"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -208,6 +208,7 @@ func (_AllowListTest *AllowListTestTransactorRaw) Transact(opts *bind.TransactOp
 func (_AllowListTest *AllowListTestCaller) IsAdmin(opts *bind.CallOpts, addr common.Address) (bool, error) {
 	var out []interface{}
 	err := _AllowListTest.contract.Call(opts, &out, "isAdmin", addr)
+
 	if err != nil {
 		return *new(bool), err
 	}
@@ -215,6 +216,7 @@ func (_AllowListTest *AllowListTestCaller) IsAdmin(opts *bind.CallOpts, addr com
 	out0 := *abi.ConvertType(out[0], new(bool)).(*bool)
 
 	return out0, err
+
 }
 
 // IsAdmin is a free data retrieval call binding the contract method 0x24d7806c.
@@ -237,6 +239,7 @@ func (_AllowListTest *AllowListTestCallerSession) IsAdmin(addr common.Address) (
 func (_AllowListTest *AllowListTestCaller) IsEnabled(opts *bind.CallOpts, addr common.Address) (bool, error) {
 	var out []interface{}
 	err := _AllowListTest.contract.Call(opts, &out, "isEnabled", addr)
+
 	if err != nil {
 		return *new(bool), err
 	}
@@ -244,6 +247,7 @@ func (_AllowListTest *AllowListTestCaller) IsEnabled(opts *bind.CallOpts, addr c
 	out0 := *abi.ConvertType(out[0], new(bool)).(*bool)
 
 	return out0, err
+
 }
 
 // IsEnabled is a free data retrieval call binding the contract method 0x9015d371.
@@ -266,6 +270,7 @@ func (_AllowListTest *AllowListTestCallerSession) IsEnabled(addr common.Address)
 func (_AllowListTest *AllowListTestCaller) IsManager(opts *bind.CallOpts, addr common.Address) (bool, error) {
 	var out []interface{}
 	err := _AllowListTest.contract.Call(opts, &out, "isManager", addr)
+
 	if err != nil {
 		return *new(bool), err
 	}
@@ -273,6 +278,7 @@ func (_AllowListTest *AllowListTestCaller) IsManager(opts *bind.CallOpts, addr c
 	out0 := *abi.ConvertType(out[0], new(bool)).(*bool)
 
 	return out0, err
+
 }
 
 // IsManager is a free data retrieval call binding the contract method 0xf3ae2415.
