@@ -1,7 +1,7 @@
 // Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-package allowlisttest
+package bindings
 
 // Step 1: Compile Solidity contracts to generate ABI and bin files
 //go:generate solc-v0.8.30 -o artifacts --overwrite --abi --bin --base-path . precompile/=../../ --evm-version paris AllowListTest.sol

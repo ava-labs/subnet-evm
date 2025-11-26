@@ -1,7 +1,7 @@
 // Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-package nativemintertest
+package nativeminter_test
 
 import (
 	"math/big"
@@ -20,6 +20,7 @@ import (
 	"github.com/ava-labs/subnet-evm/plugin/evm/customtypes"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/nativeminter"
+	nativeminterbindings "github.com/ava-labs/subnet-evm/precompile/contracts/nativeminter/nativemintertest/bindings"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/testutils"
 	"github.com/ava-labs/subnet-evm/utils"
 
@@ -61,9 +62,9 @@ func newBackendWithNativeMinter(t *testing.T) *sim.Backend {
 
 // Helper functions to reduce test boilerplate
 
-func deployNativeMinterTest(t *testing.T, b *sim.Backend, auth *bind.TransactOpts) (common.Address, *NativeMinterTest) {
+func deployNativeMinterTest(t *testing.T, b *sim.Backend, auth *bind.TransactOpts) (common.Address, *nativeminterbindings.NativeMinterTest) {
 	t.Helper()
-	addr, tx, contract, err := DeployNativeMinterTest(auth, b.Client(), nativeminter.ContractAddress)
+	addr, tx, contract, err := nativeminterbindings.DeployNativeMinterTest(auth, b.Client(), nativeminter.ContractAddress)
 	require.NoError(t, err)
 	testutils.WaitReceiptSuccessful(t, b, tx)
 	return addr, contract
@@ -78,13 +79,13 @@ func TestNativeMinter(t *testing.T) {
 
 	type testCase struct {
 		name string
-		test func(t *testing.T, backend *sim.Backend, nativeMinterIntf *INativeMinter)
+		test func(t *testing.T, backend *sim.Backend, nativeMinterIntf *nativeminterbindings.INativeMinter)
 	}
 
 	testCases := []testCase{
 		{
 			name: "admin can mint directly",
-			test: func(t *testing.T, backend *sim.Backend, nativeMinter *INativeMinter) {
+			test: func(t *testing.T, backend *sim.Backend, nativeMinter *nativeminterbindings.INativeMinter) {
 				testAddr := common.HexToAddress("0x1234567890123456789012345678901234567890")
 
 				initialBalance, err := backend.Client().BalanceAt(t.Context(), testAddr, nil)
@@ -104,7 +105,7 @@ func TestNativeMinter(t *testing.T) {
 		},
 		{
 			name: "unprivileged user cannot mint directly",
-			test: func(t *testing.T, _ *sim.Backend, nativeMinter *INativeMinter) {
+			test: func(t *testing.T, _ *sim.Backend, nativeMinter *nativeminterbindings.INativeMinter) {
 				testAddr := common.HexToAddress("0x1234567890123456789012345678901234567890")
 
 				// Unprivileged user tries to mint - should fail
@@ -114,7 +115,7 @@ func TestNativeMinter(t *testing.T) {
 		},
 		{
 			name: "contract without permission cannot mint",
-			test: func(t *testing.T, backend *sim.Backend, nativeMinter *INativeMinter) {
+			test: func(t *testing.T, backend *sim.Backend, nativeMinter *nativeminterbindings.INativeMinter) {
 				testContractAddr, testContract := deployNativeMinterTest(t, backend, admin)
 
 				testutils.VerifyRole(t, nativeMinter, testContractAddr, allowlist.NoRole)
@@ -128,7 +129,7 @@ func TestNativeMinter(t *testing.T) {
 		},
 		{
 			name: "contract can be added to allow list",
-			test: func(t *testing.T, backend *sim.Backend, nativeMinter *INativeMinter) {
+			test: func(t *testing.T, backend *sim.Backend, nativeMinter *nativeminterbindings.INativeMinter) {
 				testContractAddr, _ := deployNativeMinterTest(t, backend, admin)
 
 				testutils.VerifyRole(t, nativeMinter, testContractAddr, allowlist.NoRole)
@@ -140,7 +141,7 @@ func TestNativeMinter(t *testing.T) {
 		},
 		{
 			name: "enabled contract can mint",
-			test: func(t *testing.T, backend *sim.Backend, nativeMinter *INativeMinter) {
+			test: func(t *testing.T, backend *sim.Backend, nativeMinter *nativeminterbindings.INativeMinter) {
 				testContractAddr, testContract := deployNativeMinterTest(t, backend, admin)
 				testAddr := common.HexToAddress("0x1234567890123456789012345678901234567890")
 
@@ -168,7 +169,7 @@ func TestNativeMinter(t *testing.T) {
 			backend := newBackendWithNativeMinter(t)
 			defer backend.Close()
 
-			nativeMinter, err := NewINativeMinter(nativeminter.ContractAddress, backend.Client())
+			nativeMinter, err := nativeminterbindings.NewINativeMinter(nativeminter.ContractAddress, backend.Client())
 			require.NoError(t, err)
 
 			tc.test(t, backend, nativeMinter)
@@ -185,7 +186,7 @@ func TestINativeMinter_Events(t *testing.T) {
 	backend := newBackendWithNativeMinter(t)
 	defer backend.Close()
 
-	nativeMinter, err := NewINativeMinter(nativeminter.ContractAddress, backend.Client())
+	nativeMinter, err := nativeminterbindings.NewINativeMinter(nativeminter.ContractAddress, backend.Client())
 	require.NoError(t, err)
 
 	t.Run("should emit NativeCoinMinted event", func(t *testing.T) {
