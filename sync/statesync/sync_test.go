@@ -211,7 +211,7 @@ func TestCancelSync(t *testing.T) {
 	serverTrieDB := triedb.NewDatabase(serverDB, nil)
 	// Create trie with 2000 accounts (more than one leaf request)
 	root := fillAccountsWithStorage(t, r, serverDB, serverTrieDB, common.Hash{}, 2000)
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 	testSync(t, syncTest{
 		ctx: ctx,
@@ -531,9 +531,7 @@ func assertDBConsistency(t testing.TB, root common.Hash, clientDB ethdb.Database
 		}
 		numSnapshotAccounts++
 	}
-	if err := accountIt.Error(); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, accountIt.Error())
 	trieAccountLeaves := 0
 
 	statesynctest.AssertTrieConsistency(t, root, serverTrieDB, clientTrieDB, func(key, val []byte) error {
