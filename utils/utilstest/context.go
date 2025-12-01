@@ -6,7 +6,6 @@ package utilstest
 import (
 	"testing"
 
-	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/avalanchego/snow/snowtest"
 )
@@ -28,14 +27,6 @@ import (
 // that includes the GetValidatorSetF function, which is required by many tests.
 func NewTestSnowContext(t testing.TB) *snow.Context {
 	snowCtx := snowtest.Context(t, SubnetEVMTestChainID)
-	snowCtx.ValidatorState = NewTestValidatorState()
-	return snowCtx
-}
-
-// NewTestSnowContextWithChainID returns a snow.Context with validator state properly configured for testing
-// with a specific chain ID. This is provided for backward compatibility when a specific chain ID is needed.
-func NewTestSnowContextWithChainID(t testing.TB, chainID ids.ID) *snow.Context {
-	snowCtx := snowtest.Context(t, chainID)
 	snowCtx.ValidatorState = NewTestValidatorState()
 	return snowCtx
 }
