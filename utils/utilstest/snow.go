@@ -74,13 +74,6 @@ func NewTestSnowContext(t testing.TB) *snow.Context {
 
 // NewTestSnowContextWithValidatorState returns a snow.Context with the provided validator state.
 // This is useful when you need to customize the validator state behavior for specific tests.
-//
-// Usage example:
-//
-//	validatorState := utilstest.NewTestValidatorState()
-//	// Customize the validator state functions...
-//	validatorState.GetValidatorSetF = func(...) {...}
-//	snowCtx := utilstest.NewTestSnowContextWithValidatorState(t, validatorState)
 func NewTestSnowContextWithValidatorState(t testing.TB, validatorState validators.State) *snow.Context {
 	snowCtx := snowtest.Context(t, SubnetEVMTestChainID)
 	snowCtx.ValidatorState = validatorState
