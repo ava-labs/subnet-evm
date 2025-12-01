@@ -46,78 +46,71 @@ func TestUnpackMintNativeCoinInput(t *testing.T) {
 	// exclude 4 bytes for function selector
 	testInputBytes = testInputBytes[4:]
 	tests := []struct {
-		name           string
-		input          []byte
-		strictMode     bool
-		expectedErr    string
-		expectedOldErr string
-		expectedAddr   common.Address
-		expectedAmount *big.Int
+		name       string
+		input      []byte
+		strictMode bool
+		wantErr    error
+		wantOldErr error
+		wantAddr   common.Address
+		wantAmount *big.Int
 	}{
 		{
-			name:           "empty input strict mode",
-			input:          []byte{},
-			strictMode:     true,
-			expectedErr:    ErrInvalidLen.Error(),
-			expectedOldErr: ErrInvalidLen.Error(),
+			name:       "empty input strict mode",
+			input:      []byte{},
+			strictMode: true,
+			wantErr:    ErrInvalidLen,
+			wantOldErr: ErrInvalidLen,
 		},
 		{
-			name:           "empty input",
-			input:          []byte{},
-			strictMode:     false,
-			expectedErr:    "attempting to unmarshal an empty string",
-			expectedOldErr: ErrInvalidLen.Error(),
+			name:       "empty input",
+			input:      []byte{},
+			strictMode: false,
+			wantErr:    ErrUnpackInput,
+			wantOldErr: ErrInvalidLen,
 		},
 		{
-			name:           "input with extra bytes strict mode",
-			input:          append(testInputBytes, make([]byte, 32)...),
-			strictMode:     true,
-			expectedErr:    ErrInvalidLen.Error(),
-			expectedOldErr: ErrInvalidLen.Error(),
+			name:       "input with extra bytes strict mode",
+			input:      append(testInputBytes, make([]byte, 32)...),
+			strictMode: true,
+			wantErr:    ErrInvalidLen,
+			wantOldErr: ErrInvalidLen,
 		},
 		{
-			name:           "input with extra bytes",
-			input:          append(testInputBytes, make([]byte, 32)...),
-			strictMode:     false,
-			expectedErr:    "",
-			expectedOldErr: ErrInvalidLen.Error(),
-			expectedAddr:   constants.BlackholeAddr,
-			expectedAmount: common.Big2,
+			name:       "input with extra bytes",
+			input:      append(testInputBytes, make([]byte, 32)...),
+			strictMode: false,
+			wantErr:    nil,
+			wantOldErr: ErrInvalidLen,
+			wantAddr:   constants.BlackholeAddr,
+			wantAmount: common.Big2,
 		},
 		{
-			name:           "input with extra bytes (not divisible by 32) strict mode",
-			input:          append(testInputBytes, make([]byte, 33)...),
-			strictMode:     true,
-			expectedErr:    ErrInvalidLen.Error(),
-			expectedOldErr: ErrInvalidLen.Error(),
+			name:       "input with extra bytes (not divisible by 32) strict mode",
+			input:      append(testInputBytes, make([]byte, 33)...),
+			strictMode: true,
+			wantErr:    ErrInvalidLen,
+			wantOldErr: ErrInvalidLen,
 		},
 		{
-			name:           "input with extra bytes (not divisible by 32)",
-			input:          append(testInputBytes, make([]byte, 33)...),
-			strictMode:     false,
-			expectedAddr:   constants.BlackholeAddr,
-			expectedAmount: common.Big2,
-			expectedOldErr: ErrInvalidLen.Error(),
+			name:       "input with extra bytes (not divisible by 32)",
+			input:      append(testInputBytes, make([]byte, 33)...),
+			strictMode: false,
+			wantErr:    nil,
+			wantOldErr: ErrInvalidLen,
+			wantAddr:   constants.BlackholeAddr,
+			wantAmount: common.Big2,
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			unpackedAddress, unpackedAmount, err := UnpackMintNativeCoinInput(test.input, test.strictMode)
-			if test.expectedErr != "" {
-				require.ErrorContains(t, err, test.expectedErr) //nolint:forbidigo // uses upstream code
-			} else {
-				require.NoError(t, err)
-				require.Equal(t, test.expectedAddr, unpackedAddress)
-				require.Equal(t, test.expectedAmount, unpackedAmount, "expected %s, got %s", test.expectedAmount.String(), unpackedAmount.String())
-			}
+			require.ErrorIs(t, err, test.wantErr)
+			require.Equal(t, test.wantAddr, unpackedAddress)
+			require.Equal(t, test.wantAmount, unpackedAmount, "expected %s, got %s", test.wantAmount.String(), unpackedAmount.String())
 			oldUnpackedAddress, oldUnpackedAmount, oldErr := OldUnpackMintNativeCoinInput(test.input)
-			if test.expectedOldErr != "" {
-				require.ErrorContains(t, oldErr, test.expectedOldErr) //nolint:forbidigo // uses upstream code
-			} else {
-				require.NoError(t, oldErr)
-				require.Equal(t, test.expectedAddr, oldUnpackedAddress)
-				require.Equal(t, test.expectedAmount, oldUnpackedAmount, "expected %s, got %s", test.expectedAmount.String(), oldUnpackedAmount.String())
-			}
+			require.ErrorIs(t, oldErr, test.wantOldErr)
+			require.Equal(t, test.wantAddr, oldUnpackedAddress)
+			require.Equal(t, test.wantAmount, oldUnpackedAmount, "expected %s, got %s", test.wantAmount.String(), oldUnpackedAmount.String())
 		})
 	}
 }

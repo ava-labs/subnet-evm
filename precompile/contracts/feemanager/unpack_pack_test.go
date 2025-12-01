@@ -71,70 +71,62 @@ func TestPackGetFeeConfigOutput(t *testing.T) {
 		name           string
 		input          []byte
 		skipLenCheck   bool
-		expectedErr    string
-		expectedOldErr string
+		expectedErr    error
+		expectedOldErr error
 		expectedOutput commontype.FeeConfig
 	}{
 		{
 			name:           "empty input",
 			input:          []byte{},
 			skipLenCheck:   false,
-			expectedErr:    ErrInvalidLen.Error(),
-			expectedOldErr: ErrInvalidLen.Error(),
+			expectedErr:    ErrInvalidLen,
+			expectedOldErr: ErrInvalidLen,
 		},
 		{
 			name:           "empty input skip len check",
 			input:          []byte{},
 			skipLenCheck:   true,
-			expectedErr:    "attempting to unmarshal an empty string",
-			expectedOldErr: ErrInvalidLen.Error(),
+			expectedErr:    ErrUnpackOutput,
+			expectedOldErr: ErrInvalidLen,
 		},
 		{
 			name:           "input with extra bytes",
 			input:          append(testInputBytes, make([]byte, 32)...),
 			skipLenCheck:   false,
-			expectedErr:    ErrInvalidLen.Error(),
-			expectedOldErr: ErrInvalidLen.Error(),
+			expectedErr:    ErrInvalidLen,
+			expectedOldErr: ErrInvalidLen,
 		},
 		{
 			name:           "input with extra bytes skip len check",
 			input:          append(testInputBytes, make([]byte, 32)...),
 			skipLenCheck:   true,
-			expectedErr:    "",
-			expectedOldErr: ErrInvalidLen.Error(),
+			expectedErr:    nil,
+			expectedOldErr: ErrInvalidLen,
 			expectedOutput: testFeeConfig,
 		},
 		{
 			name:           "input with extra bytes (not divisible by 32)",
 			input:          append(testInputBytes, make([]byte, 33)...),
 			skipLenCheck:   false,
-			expectedErr:    ErrInvalidLen.Error(),
-			expectedOldErr: ErrInvalidLen.Error(),
+			expectedErr:    ErrInvalidLen,
+			expectedOldErr: ErrInvalidLen,
 		},
 		{
 			name:           "input with extra bytes (not divisible by 32) skip len check",
 			input:          append(testInputBytes, make([]byte, 33)...),
 			skipLenCheck:   true,
-			expectedErr:    "improperly formatted output",
-			expectedOldErr: ErrInvalidLen.Error(),
+			expectedErr:    ErrUnpackOutput,
+			expectedOldErr: ErrInvalidLen,
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			unpacked, err := UnpackGetFeeConfigOutput(test.input, test.skipLenCheck)
-			if test.expectedErr != "" {
-				require.ErrorContains(t, err, test.expectedErr) //nolint:forbidigo // uses upstream code
-			} else {
-				require.NoError(t, err)
-				require.True(t, test.expectedOutput.Equal(&unpacked), "not equal: expectedOutput %v, unpacked %v", test.expectedOutput, unpacked)
-			}
+			require.ErrorIs(t, err, test.expectedErr)
+			require.True(t, test.expectedOutput.Equal(&unpacked), "not equal: expectedOutput %v, unpacked %v", test.expectedOutput, unpacked)
 			oldUnpacked, oldErr := OldUnpackFeeConfig(test.input)
-			if test.expectedOldErr != "" {
-				require.ErrorContains(t, oldErr, test.expectedOldErr) //nolint:forbidigo // uses upstream code
-			} else {
-				require.NoError(t, oldErr)
-				require.True(t, test.expectedOutput.Equal(&oldUnpacked), "not equal: expectedOutput %v, oldUnpacked %v", test.expectedOutput, oldUnpacked)
-			}
+			require.ErrorIs(t, oldErr, test.expectedOldErr)
+			require.True(t, test.expectedOutput.Equal(&oldUnpacked), "not equal: expectedOutput %v, oldUnpacked %v", test.expectedOutput, oldUnpacked)
 		})
 	}
 }
@@ -225,86 +217,87 @@ func TestPackSetFeeConfigInput(t *testing.T) {
 	// exclude 4 bytes for function selector
 	testInputBytes = testInputBytes[4:]
 	tests := []struct {
-		name           string
-		input          []byte
-		strictMode     bool
-		expectedErr    string
-		expectedOldErr string
-		expectedOutput commontype.FeeConfig
+		name       string
+		input      []byte
+		strictMode bool
+		wantErr    error
+		wantOldErr error
+		wantOutput commontype.FeeConfig
 	}{
 		{
-			name:           "empty input strict mode",
-			input:          []byte{},
-			strictMode:     true,
-			expectedErr:    ErrInvalidLen.Error(),
-			expectedOldErr: ErrInvalidLen.Error(),
+			name:       "empty input strict mode",
+			input:      []byte{},
+			strictMode: true,
+			wantErr:    ErrInvalidLen,
+			wantOldErr: ErrInvalidLen,
 		},
 		{
-			name:           "empty input",
-			input:          []byte{},
-			strictMode:     false,
-			expectedErr:    "attempting to unmarshal an empty string",
-			expectedOldErr: ErrInvalidLen.Error(),
+			name:       "empty input",
+			input:      []byte{},
+			strictMode: false,
+			wantErr:    ErrUnpackInput,
+			wantOldErr: ErrInvalidLen,
 		},
 		{
-			name:           "input with insufficient len strict mode",
-			input:          []byte{123},
-			strictMode:     true,
-			expectedErr:    ErrInvalidLen.Error(),
-			expectedOldErr: ErrInvalidLen.Error(),
+			name:       "input with insufficient len strict mode",
+			input:      []byte{123},
+			strictMode: true,
+			wantErr:    ErrInvalidLen,
+			wantOldErr: ErrInvalidLen,
 		},
 		{
-			name:           "input with insufficient len",
-			input:          []byte{123},
-			strictMode:     false,
-			expectedErr:    "length insufficient",
-			expectedOldErr: ErrInvalidLen.Error(),
+			name:       "input with insufficient len",
+			input:      []byte{123},
+			strictMode: false,
+			wantErr:    ErrUnpackInput,
+			wantOldErr: ErrInvalidLen,
 		},
 		{
-			name:           "input with extra bytes strict mode",
-			input:          append(testInputBytes, make([]byte, 32)...),
-			strictMode:     true,
-			expectedErr:    ErrInvalidLen.Error(),
-			expectedOldErr: ErrInvalidLen.Error(),
+			name:       "input with extra bytes strict mode",
+			input:      append(testInputBytes, make([]byte, 32)...),
+			strictMode: true,
+			wantErr:    ErrInvalidLen,
+			wantOldErr: ErrInvalidLen,
 		},
 		{
-			name:           "input with extra bytes",
-			input:          append(testInputBytes, make([]byte, 32)...),
-			strictMode:     false,
-			expectedErr:    "",
-			expectedOldErr: ErrInvalidLen.Error(),
-			expectedOutput: testFeeConfig,
+			name:       "input with extra bytes",
+			input:      append(testInputBytes, make([]byte, 32)...),
+			strictMode: false,
+			wantErr:    nil,
+			wantOldErr: ErrInvalidLen,
+			wantOutput: testFeeConfig,
 		},
 		{
-			name:           "input with extra bytes (not divisible by 32) strict mode",
-			input:          append(testInputBytes, make([]byte, 33)...),
-			strictMode:     true,
-			expectedErr:    ErrInvalidLen.Error(),
-			expectedOldErr: ErrInvalidLen.Error(),
+			name:       "input with extra bytes (not divisible by 32) strict mode",
+			input:      append(testInputBytes, make([]byte, 33)...),
+			strictMode: true,
+			wantErr:    ErrInvalidLen,
+			wantOldErr: ErrInvalidLen,
 		},
 		{
-			name:           "input with extra bytes (not divisible by 32)",
-			input:          append(testInputBytes, make([]byte, 33)...),
-			strictMode:     false,
-			expectedOutput: testFeeConfig,
-			expectedOldErr: ErrInvalidLen.Error(),
+			name:       "input with extra bytes (not divisible by 32)",
+			input:      append(testInputBytes, make([]byte, 33)...),
+			strictMode: false,
+			wantErr:    nil,
+			wantOldErr: ErrInvalidLen,
+			wantOutput: testFeeConfig,
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			unpacked, err := UnpackSetFeeConfigInput(test.input, test.strictMode)
-			if test.expectedErr != "" {
-				require.ErrorContains(t, err, test.expectedErr) //nolint:forbidigo // uses upstream code
+			if test.wantErr != nil {
+				require.ErrorIs(t, err, test.wantErr)
 			} else {
 				require.NoError(t, err)
-				require.True(t, test.expectedOutput.Equal(&unpacked), "not equal: expectedOutput %v, unpacked %v", test.expectedOutput, unpacked)
+				require.True(t, test.wantOutput.Equal(&unpacked), "not equal: expectedOutput %v, unpacked %v", test.wantOutput, unpacked)
 			}
 			oldUnpacked, oldErr := OldUnpackFeeConfig(test.input)
-			if test.expectedOldErr != "" {
-				require.ErrorContains(t, oldErr, test.expectedOldErr) //nolint:forbidigo // uses upstream code
+			if test.wantOldErr != nil {
+				require.ErrorIs(t, oldErr, test.wantOldErr)
 			} else {
 				require.NoError(t, oldErr)
-				require.True(t, test.expectedOutput.Equal(&oldUnpacked), "not equal: expectedOutput %v, oldUnpacked %v", test.expectedOutput, oldUnpacked)
+				require.True(t, test.wantOutput.Equal(&oldUnpacked), "not equal: expectedOutput %v, oldUnpacked %v", test.wantOutput, oldUnpacked)
 			}
 		})
 	}

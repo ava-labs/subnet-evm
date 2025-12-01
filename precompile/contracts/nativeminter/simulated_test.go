@@ -9,6 +9,7 @@ import (
 
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/core/vm"
 	"github.com/ava-labs/libevm/crypto"
 	"github.com/stretchr/testify/require"
 
@@ -110,8 +111,8 @@ func TestNativeMinter(t *testing.T) {
 
 				// Unprivileged user tries to mint - should fail
 				_, err := nativeMinter.MintNativeCoin(unprivileged, testAddr, amount)
-				// The error returned is a JSON Error rather than the vm.ErrExecutionReverted error
-				require.ErrorContains(t, err, "execution reverted") //nolint:forbidigo // uses upstream code
+				// The error returned is a JSON Error rather than the nativeminter.ErrCannotMinterror
+				require.ErrorContains(t, err, nativeminter.ErrCannotMint.Error()) //nolint:forbidigo // uses upstream code
 			},
 		},
 		{
@@ -126,7 +127,7 @@ func TestNativeMinter(t *testing.T) {
 				// Contract tries to mint and then should revert because it's not enabled
 				_, err := testContract.MintNativeCoin(admin, testAddr, amount)
 				// The error returned is a JSON Error rather than the vm.ErrExecutionReverted error
-				require.ErrorContains(t, err, "execution reverted") //nolint:forbidigo // uses upstream code
+				require.ErrorContains(t, err, vm.ErrExecutionReverted.Error()) //nolint:forbidigo // uses upstream code
 			},
 		},
 		{
