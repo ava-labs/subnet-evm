@@ -195,9 +195,7 @@ func TestFeeManager(t *testing.T) {
 				testContractAddr, _ := deployFeeManagerTest(t, backend, admin)
 				allowlisttest.VerifyRole(t, feeManager, adminAddress, allowlist.AdminRole)
 				allowlisttest.VerifyRole(t, feeManager, testContractAddr, allowlist.NoRole)
-
 				allowlisttest.SetAsEnabled(t, backend, feeManager, admin, testContractAddr)
-
 				allowlisttest.VerifyRole(t, feeManager, testContractAddr, allowlist.EnabledRole)
 			},
 		},
@@ -207,25 +205,14 @@ func TestFeeManager(t *testing.T) {
 				testContractAddr, testContract := deployFeeManagerTest(t, backend, admin)
 				allowlisttest.SetAsEnabled(t, backend, feeManager, admin, testContractAddr)
 
-				// Verify initial config matches genesis
 				verifyFeeConfigMatches(t, testContract, genesisFeeConfig)
-
-				// Change to C-Chain fees
 				setFeeConfig(t, backend, testContract, admin, cchainFeeConfig)
-
-				// Verify config changed to C-Chain values
 				verifyFeeConfigMatches(t, testContract, cchainFeeConfig)
 
 				// Verify last changed at block number
 				lastChangedAt, err := testContract.GetFeeConfigLastChangedAt(nil)
 				require.NoError(t, err)
 				require.NotZero(t, lastChangedAt.Uint64())
-
-				// Create fresh auth with proper gas settings for the new (higher) base fee
-				freshAdmin := testutils.NewAuth(t, adminKey, params.TestChainConfig.ChainID)
-				freshAdmin.GasFeeCap = new(big.Int).Mul(cchainFeeConfig.MinBaseFee, big.NewInt(2))
-				freshAdmin.GasTipCap = big.NewInt(1)
-				setFeeConfig(t, backend, testContract, freshAdmin, genesisFeeConfig)
 			},
 		},
 		{
@@ -263,10 +250,6 @@ func TestFeeManager(t *testing.T) {
 				)
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "underpriced")
-
-				// Lower fee back to original
-				freshAdmin := testutils.NewAuth(t, adminKey, params.TestChainConfig.ChainID)
-				setFeeConfig(t, backend, testContract, freshAdmin, genesisFeeConfig)
 			},
 		},
 	}
