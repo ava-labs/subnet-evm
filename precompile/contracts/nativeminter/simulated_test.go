@@ -19,6 +19,7 @@ import (
 	"github.com/ava-labs/subnet-evm/params/extras"
 	"github.com/ava-labs/subnet-evm/plugin/evm/customtypes"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
+	"github.com/ava-labs/subnet-evm/precompile/allowlist/allowlisttest"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/nativeminter"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/testutils"
 	"github.com/ava-labs/subnet-evm/utils"
@@ -118,7 +119,7 @@ func TestNativeMinter(t *testing.T) {
 			test: func(t *testing.T, backend *sim.Backend, nativeMinter *nativeminterbindings.INativeMinter) {
 				testContractAddr, testContract := deployNativeMinterTest(t, backend, admin)
 
-				testutils.VerifyRole(t, nativeMinter, testContractAddr, allowlist.NoRole)
+				allowlisttest.VerifyRole(t, nativeMinter, testContractAddr, allowlist.NoRole)
 
 				testAddr := common.HexToAddress("0x1234567890123456789012345678901234567890")
 
@@ -132,11 +133,11 @@ func TestNativeMinter(t *testing.T) {
 			test: func(t *testing.T, backend *sim.Backend, nativeMinter *nativeminterbindings.INativeMinter) {
 				testContractAddr, _ := deployNativeMinterTest(t, backend, admin)
 
-				testutils.VerifyRole(t, nativeMinter, testContractAddr, allowlist.NoRole)
+				allowlisttest.VerifyRole(t, nativeMinter, testContractAddr, allowlist.NoRole)
 
-				testutils.SetAsEnabled(t, backend, nativeMinter, admin, testContractAddr)
+				allowlisttest.SetAsEnabled(t, backend, nativeMinter, admin, testContractAddr)
 
-				testutils.VerifyRole(t, nativeMinter, testContractAddr, allowlist.EnabledRole)
+				allowlisttest.VerifyRole(t, nativeMinter, testContractAddr, allowlist.EnabledRole)
 			},
 		},
 		{
@@ -145,7 +146,7 @@ func TestNativeMinter(t *testing.T) {
 				testContractAddr, testContract := deployNativeMinterTest(t, backend, admin)
 				testAddr := common.HexToAddress("0x1234567890123456789012345678901234567890")
 
-				testutils.SetAsEnabled(t, backend, nativeMinter, admin, testContractAddr)
+				allowlisttest.SetAsEnabled(t, backend, nativeMinter, admin, testContractAddr)
 
 				initialBalance, err := backend.Client().BalanceAt(t.Context(), testAddr, nil)
 				require.NoError(t, err)
