@@ -160,6 +160,12 @@ func TestEthTxGossip(t *testing.T) {
 	wg.Wait()
 }
 
+type noOpGossiper struct{}
+
+func (noOpGossiper) Gossip(context.Context) error {
+	return nil
+}
+
 // Tests that a tx is gossiped when it is issued
 func TestEthTxPushGossipOutbound(t *testing.T) {
 	require := require.New(t)
@@ -170,7 +176,7 @@ func TestEthTxPushGossipOutbound(t *testing.T) {
 	}
 
 	vm := &VM{
-		ethTxPullGossiper: gossip.NoOpGossiper{},
+		ethTxPullGossiper: noOpGossiper{},
 	}
 
 	require.NoError(vm.Initialize(
@@ -221,7 +227,7 @@ func TestEthTxPushGossipInbound(t *testing.T) {
 
 	sender := &enginetest.Sender{}
 	vm := &VM{
-		ethTxPullGossiper: gossip.NoOpGossiper{},
+		ethTxPullGossiper: noOpGossiper{},
 	}
 
 	require.NoError(vm.Initialize(
