@@ -1,625 +1,307 @@
-# EVM tool
+# Subnet-EVM Configuration
 
-The EVM tool provides a few useful subcommands to facilitate testing at the EVM
-layer.
+> **Note**: These are the configuration options available in the Subnet-EVM codebase. To set these values, you need to create a configuration file at `~/.avalanchego/configs/chains/<blockchainID>/config.json`.
+>
+> For the AvalancheGo node configuration options, see the AvalancheGo Configuration page.
 
-* transition tool    (`t8n`) : a stateless state transition utility
-* transaction tool   (`t9n`) : a transaction validation utility
-* block builder tool (`b11r`): a block assembler utility
+This document describes all configuration options available for Subnet-EVM.
 
-## State transition tool (`t8n`)
+## Example Configuration
 
-
-The `evm t8n` tool is a stateless state transition utility. It is a utility
-which can
-
-1. Take a prestate, including
-  - Accounts,
-  - Block context information,
-  - Previous blockhashes (*optional)
-2. Apply a set of transactions,
-3. Apply a mining-reward (*optional),
-4. And generate a post-state, including
-  - State root, transaction root, receipt root,
-  - Information about rejected transactions,
-  - Optionally: a full or partial post-state dump
-
-### Specification
-
-The idea is to specify the behaviour of this binary very _strict_, so that other
-node implementors can build replicas based on their own state-machines, and the
-state generators can swap between a \`geth\`-based implementation and a \`parityvm\`-based
-implementation.
-
-#### Command line params
-
-Command line params that need to be supported are
-
-```
-    --input.alloc value            (default: "alloc.json")
-    --input.env value              (default: "env.json")
-    --input.txs value              (default: "txs.json")
-    --output.alloc value           (default: "alloc.json")
-    --output.basedir value
-    --output.body value
-    --output.result value          (default: "result.json")
-    --state.chainid value          (default: 1)
-    --state.fork value             (default: "GrayGlacier")
-    --state.reward value           (default: 0)
-    --trace.memory                 (default: false)
-    --trace.nomemory               (default: true)
-    --trace.noreturndata           (default: true)
-    --trace.nostack                (default: false)
-    --trace.returndata             (default: false)
-```
-#### Objects
-
-The transition tool uses JSON objects to read and write data related to the transition operation. The
-following object definitions are required.
-
-##### `alloc`
-
-The `alloc` object defines the prestate that transition will begin with.
-
-```go
-// Map of address to account definition.
-type Alloc map[common.Address]Account
-// Genesis account. Each field is optional.
-type Account struct {
-    Code       []byte                           `json:"code"`
-    Storage    map[common.Hash]common.Hash      `json:"storage"`
-    Balance    *big.Int                         `json:"balance"`
-    Nonce      uint64                           `json:"nonce"`
-    SecretKey  []byte                            `json:"secretKey"`
-}
-```
-
-##### `env`
-
-The `env` object defines the environmental context in which the transition will
-take place.
-
-```go
-type Env struct {
-    // required
-    CurrentCoinbase  common.Address      `json:"currentCoinbase"`
-    CurrentGasLimit  uint64              `json:"currentGasLimit"`
-    CurrentNumber    uint64              `json:"currentNumber"`
-    CurrentTimestamp uint64              `json:"currentTimestamp"`
-    Withdrawals      []*Withdrawal       `json:"withdrawals"`
-    // optional
-    CurrentDifficulty *big.Int           `json:"currentDifficulty"`
-    CurrentRandom     *big.Int           `json:"currentRandom"`
-    CurrentBaseFee    *big.Int           `json:"currentBaseFee"`
-    ParentDifficulty  *big.Int           `json:"parentDifficulty"`
-    ParentGasUsed     uint64             `json:"parentGasUsed"`
-    ParentGasLimit    uint64             `json:"parentGasLimit"`
-    ParentTimestamp   uint64             `json:"parentTimestamp"`
-    BlockHashes       map[uint64]common.Hash `json:"blockHashes"`
-    ParentUncleHash   common.Hash        `json:"parentUncleHash"`
-    Ommers            []Ommer            `json:"ommers"`
-}
-type Ommer struct {
-    Delta   uint64         `json:"delta"`
-    Address common.Address `json:"address"`
-}
-type Withdrawal struct {
-    Index          uint64         `json:"index"`
-    ValidatorIndex uint64         `json:"validatorIndex"`
-    Recipient      common.Address `json:"recipient"`
-    Amount         *big.Int       `json:"amount"`
-}
-```
-
-##### `txs`
-
-The `txs` object is an array of any of the transaction types: `LegacyTx`,
-`AccessListTx`, or `DynamicFeeTx`.
-
-```go
-type LegacyTx struct {
-	Nonce     uint64          `json:"nonce"`
-	GasPrice  *big.Int        `json:"gasPrice"`
-	Gas       uint64          `json:"gas"`
-	To        *common.Address `json:"to"`
-	Value     *big.Int        `json:"value"`
-	Data      []byte          `json:"data"`
-	V         *big.Int        `json:"v"`
-	R         *big.Int        `json:"r"`
-	S         *big.Int        `json:"s"`
-    SecretKey *common.Hash    `json:"secretKey"`
-}
-type AccessList []AccessTuple
-type AccessTuple struct {
-	Address     common.Address `json:"address"        gencodec:"required"`
-	StorageKeys []common.Hash  `json:"storageKeys"    gencodec:"required"`
-}
-type AccessListTx struct {
-	ChainID    *big.Int        `json:"chainId"`
-	Nonce      uint64          `json:"nonce"`
-	GasPrice   *big.Int        `json:"gasPrice"`
-	Gas        uint64          `json:"gas"`
-	To         *common.Address `json:"to"`
-	Value      *big.Int        `json:"value"`
-	Data       []byte          `json:"data"`
-	AccessList AccessList      `json:"accessList"`
-	V          *big.Int        `json:"v"`
-	R          *big.Int        `json:"r"`
-	S          *big.Int        `json:"s"`
-    SecretKey  *common.Hash     `json:"secretKey"`
-}
-type DynamicFeeTx struct {
-	ChainID    *big.Int        `json:"chainId"`
-	Nonce      uint64          `json:"nonce"`
-	GasTipCap  *big.Int        `json:"maxPriorityFeePerGas"`
-	GasFeeCap  *big.Int        `json:"maxFeePerGas"`
-	Gas        uint64          `json:"gas"`
-	To         *common.Address `json:"to"`
-	Value      *big.Int        `json:"value"`
-	Data       []byte          `json:"data"`
-	AccessList AccessList      `json:"accessList"`
-	V          *big.Int        `json:"v"`
-	R          *big.Int        `json:"r"`
-	S          *big.Int        `json:"s"`
-    SecretKey  *common.Hash     `json:"secretKey"`
-}
-```
-
-##### `result`
-
-The `result` object is output after a transition is executed. It includes
-information about the post-transition environment.
-
-```go
-type ExecutionResult struct {
-    StateRoot   common.Hash    `json:"stateRoot"`
-    TxRoot      common.Hash    `json:"txRoot"`
-    ReceiptRoot common.Hash    `json:"receiptsRoot"`
-    LogsHash    common.Hash    `json:"logsHash"`
-    Bloom       types.Bloom    `json:"logsBloom"`
-    Receipts    types.Receipts `json:"receipts"`
-    Rejected    []*rejectedTx  `json:"rejected,omitempty"`
-    Difficulty  *big.Int       `json:"currentDifficulty"`
-    GasUsed     uint64         `json:"gasUsed"`
-    BaseFee     *big.Int       `json:"currentBaseFee,omitempty"`
-}
-```
-
-#### Error codes and output
-
-All logging should happen against the `stderr`.
-There are a few (not many) errors that can occur, those are defined below.
-
-##### EVM-based errors (`2` to `9`)
-
-- Other EVM error. Exit code `2`
-- Failed configuration: when a non-supported or invalid fork was specified. Exit code `3`.
-- Block history is not supplied, but needed for a `BLOCKHASH` operation. If `BLOCKHASH`
-  is invoked targeting a block which history has not been provided for, the program will
-  exit with code `4`.
-
-##### IO errors (`10`-`20`)
-
-- Invalid input json: the supplied data could not be marshalled.
-  The program will exit with code `10`
-- IO problems: failure to load or save files, the program will exit with code `11`
-
-```
-# This should exit with 3
-./evm t8n --input.alloc=./testdata/1/alloc.json --input.txs=./testdata/1/txs.json --input.env=./testdata/1/env.json --state.fork=Frontier+1346 2>/dev/null
-exitcode:3 OK
-```
-#### Forks
-### Basic usage
-
-The chain configuration to be used for a transition is specified via the
-`--state.fork` CLI flag. A list of possible values and configurations can be
-found in [`tests/init.go`](../../tests/init.go).
-
-#### Examples
-##### Basic usage
-
-Invoking it with the provided example files
-```
-./evm t8n --input.alloc=./testdata/1/alloc.json --input.txs=./testdata/1/txs.json --input.env=./testdata/1/env.json --state.fork=Berlin
-```
-Two resulting files:
-
-`alloc.json`:
 ```json
 {
- "0x8a8eafb1cf62bfbeb1741769dae1a9dd47996192": {
-  "balance": "0xfeed1a9d",
-  "nonce": "0x1"
- },
- "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
-  "balance": "0x5ffd4878be161d74",
-  "nonce": "0xac"
- },
- "0xc94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
-  "balance": "0xa410"
- }
-}
-```
-`result.json`:
-```json
-{
- "stateRoot": "0x84208a19bc2b46ada7445180c1db162be5b39b9abc8c0a54b05d32943eae4e13",
- "txRoot": "0xc4761fd7b87ff2364c7c60b6c5c8d02e522e815328aaea3f20e3b7b7ef52c42d",
- "receiptsRoot": "0x056b23fbba480696b65fe5a59b8f2148a1299103c4f57df839233af2cf4ca2d2",
- "logsHash": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
- "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
- "receipts": [
-  {
-   "root": "0x",
-   "status": "0x1",
-   "cumulativeGasUsed": "0x5208",
-   "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
-   "logs": null,
-   "transactionHash": "0x0557bacce3375c98d806609b8d5043072f0b6a8bae45ae5a67a00d3a1a18d673",
-   "contractAddress": "0x0000000000000000000000000000000000000000",
-   "gasUsed": "0x5208",
-   "blockHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
-   "transactionIndex": "0x0"
-  }
- ],
- "rejected": [
-  {
-   "index": 1,
-   "error": "nonce too low: address 0x8A8eAFb1cf62BfBeb1741769DAE1a9dd47996192, tx: 0 state: 1"
-  }
- ],
- "currentDifficulty": "0x20000",
- "gasUsed": "0x5208"
+  "eth-apis": ["eth", "eth-filter", "net", "web3"],
+  "pruning-enabled": true,
+  "commit-interval": 4096,
+  "trie-clean-cache": 512,
+  "trie-dirty-cache": 512,
+  "snapshot-cache": 256,
+  "rpc-gas-cap": 50000000,
+  "log-level": "info",
+  "metrics-expensive-enabled": true,
+  "continuous-profiler-dir": "./profiles",
+  "state-sync-enabled": false,
+  "accepted-cache-size": 32
 }
 ```
 
-We can make them spit out the data to e.g. `stdout` like this:
-```
-./evm t8n --input.alloc=./testdata/1/alloc.json --input.txs=./testdata/1/txs.json --input.env=./testdata/1/env.json --output.result=stdout --output.alloc=stdout --state.fork=Berlin
-```
-Output:
-```json
-{
-  "alloc": {
-    "0x8a8eafb1cf62bfbeb1741769dae1a9dd47996192": {
-      "balance": "0xfeed1a9d",
-      "nonce": "0x1"
-    },
-    "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
-      "balance": "0x5ffd4878be161d74",
-      "nonce": "0xac"
-    },
-    "0xc94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
-      "balance": "0xa410"
-    }
-  },
-  "result": {
-    "stateRoot": "0x84208a19bc2b46ada7445180c1db162be5b39b9abc8c0a54b05d32943eae4e13",
-    "txRoot": "0xc4761fd7b87ff2364c7c60b6c5c8d02e522e815328aaea3f20e3b7b7ef52c42d",
-    "receiptsRoot": "0x056b23fbba480696b65fe5a59b8f2148a1299103c4f57df839233af2cf4ca2d2",
-    "logsHash": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
-    "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
-    "receipts": [
-      {
-        "root": "0x",
-        "status": "0x1",
-        "cumulativeGasUsed": "0x5208",
-        "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
-        "logs": null,
-        "transactionHash": "0x0557bacce3375c98d806609b8d5043072f0b6a8bae45ae5a67a00d3a1a18d673",
-        "contractAddress": "0x0000000000000000000000000000000000000000",
-        "gasUsed": "0x5208",
-        "blockHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
-        "transactionIndex": "0x0"
-      }
-    ],
-    "rejected": [
-      {
-        "index": 1,
-        "error": "nonce too low: address 0x8A8eAFb1cf62BfBeb1741769DAE1a9dd47996192, tx: 0 state: 1"
-      }
-    ],
-    "currentDifficulty": "0x20000",
-    "gasUsed": "0x5208"
-  }
-}
-```
+## Configuration Format
 
-#### About Ommers
+Configuration is provided as a JSON object. All fields are optional unless otherwise specified.
 
-Mining rewards and ommer rewards might need to be added. This is how those are applied:
+## API Configuration
 
-- `block_reward` is the block mining reward for the miner (`0xaa`), of a block at height `N`.
-- For each ommer (mined by `0xbb`), with blocknumber `N-delta`
-   - (where `delta` is the difference between the current block and the ommer)
-   - The account `0xbb` (ommer miner) is awarded `(8-delta)/ 8 * block_reward`
-   - The account `0xaa` (block miner) is awarded `block_reward / 32`
+### Ethereum APIs
 
-To make `t8n` apply these, the following inputs are required:
+| Option | Type | Description | Default |
+|--------|------|-------------|---------|
+| `eth-apis` | array of strings | List of Ethereum services that should be enabled | `["eth", "eth-filter", "net", "web3", "internal-eth", "internal-blockchain", "internal-transaction"]` |
 
-- `--state.reward`
-  - For ethash, it is `5000000000000000000` `wei`,
-  - If this is not defined, mining rewards are not applied,
-  - A value of `0` is valid, and causes accounts to be 'touched'.
-- For each ommer, the tool needs to be given an `address\` and a `delta`. This
-  is done via the `ommers` field in `env`.
+### Subnet-EVM Specific APIs
 
-Note: the tool does not verify that e.g. the normal uncle rules apply,
-and allows e.g two uncles at the same height, or the uncle-distance. This means that
-the tool allows for negative uncle reward (distance > 8)
+| Option | Type | Description | Default |
+|--------|------|-------------|---------|
+| `validators-api-enabled` | bool | Enable the validators API | `true` |
+| `admin-api-enabled` | bool | Enable the admin API for administrative operations | `false` |
+| `admin-api-dir` | string | Directory for admin API operations | - |
+| `warp-api-enabled` | bool | Enable the Warp API for cross-chain messaging | `false` |
 
-Example:
-`./testdata/5/env.json`:
-```json
-{
-  "currentCoinbase": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-  "currentDifficulty": "0x20000",
-  "currentGasLimit": "0x750a163df65e8a",
-  "currentNumber": "1",
-  "currentTimestamp": "1000",
-  "ommers": [
-    {"delta":  1, "address": "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" },
-    {"delta":  2, "address": "0xcccccccccccccccccccccccccccccccccccccccc" }
-  ]
-}
-```
-When applying this, using a reward of `0x08`
-Output:
-```json
-{
-  "alloc": {
-    "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa": {
-      "balance": "0x88"
-    },
-    "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb": {
-      "balance": "0x70"
-    },
-    "0xcccccccccccccccccccccccccccccccccccccccc": {
-      "balance": "0x60"
-    }
-  }
-}
-```
-#### Future EIPS
+### API Limits and Security
 
-It is also possible to experiment with future eips that are not yet defined in a hard fork.
-Example, putting EIP-1344 into Frontier:
-```
-./evm t8n --state.fork=Frontier+1344 --input.pre=./testdata/1/pre.json --input.txs=./testdata/1/txs.json --input.env=/testdata/1/env.json
-```
+| Option | Type | Description | Default |
+|--------|------|-------------|---------|
+| `rpc-gas-cap` | uint64 | Maximum gas limit for RPC calls | `50,000,000` |
+| `rpc-tx-fee-cap` | float64 | Maximum transaction fee cap in AVAX | `100` |
+| `api-max-duration` | duration | Maximum duration for API calls (0 = no limit) | `0` |
+| `api-max-blocks-per-request` | int64 | Maximum number of blocks per getLogs request (0 = no limit) | `0` |
+| `http-body-limit` | uint64 | Maximum size of HTTP request bodies | - |
+| `batch-request-limit` | uint64 | Maximum number of requests that can be batched in an RPC call. For no limit, set either this or `batch-response-max-size` to 0 | `1000` |
+| `batch-response-max-size` | uint64 | Maximum size (in bytes) of response that can be returned from a batched RPC call. For no limit, set either this or `batch-request-limit` to 0. Defaults to `25 MB`| `1000` |
 
-#### Block history
+### WebSocket Settings
 
-The `BLOCKHASH` opcode requires blockhashes to be provided by the caller, inside the `env`.
-If a required blockhash is not provided, the exit code should be `4`:
-Example where blockhashes are provided:
-```
-./evm t8n --input.alloc=./testdata/3/alloc.json --input.txs=./testdata/3/txs.json --input.env=./testdata/3/env.json  --trace --state.fork=Berlin
+| Option | Type | Description | Default |
+|--------|------|-------------|---------|
+| `ws-cpu-refill-rate` | duration | Rate at which WebSocket CPU usage quota is refilled (0 = no limit) | `0` |
+| `ws-cpu-max-stored` | duration | Maximum stored WebSocket CPU usage quota (0 = no limit) | `0` |
 
-```
+## Cache Configuration
 
-```
-cat trace-0-0x72fadbef39cd251a437eea619cfeda752271a5faaaa2147df012e112159ffb81.jsonl | grep BLOCKHASH -C2
-```
-```
-{"pc":0,"op":96,"gas":"0x5f58ef8","gasCost":"0x3","memSize":0,"stack":[],"depth":1,"refund":0,"opName":"PUSH1"}
-{"pc":2,"op":64,"gas":"0x5f58ef5","gasCost":"0x14","memSize":0,"stack":["0x1"],"depth":1,"refund":0,"opName":"BLOCKHASH"}
-{"pc":3,"op":0,"gas":"0x5f58ee1","gasCost":"0x0","memSize":0,"stack":["0xdac58aa524e50956d0c0bae7f3f8bb9d35381365d07804dd5b48a5a297c06af4"],"depth":1,"refund":0,"opName":"STOP"}
-{"output":"","gasUsed":"0x17"}
-```
+### Trie Caches
 
-In this example, the caller has not provided the required blockhash:
-```
-./evm t8n --input.alloc=./testdata/4/alloc.json --input.txs=./testdata/4/txs.json --input.env=./testdata/4/env.json --trace --state.fork=Berlin
-ERROR(4): getHash(3) invoked, blockhash for that block not provided
-```
-Error code: 4
+| Option | Type | Description | Default |
+|--------|------|-------------|---------|
+| `trie-clean-cache` | int | Size of the trie clean cache in MB | `512` |
+| `trie-dirty-cache` | int | Size of the trie dirty cache in MB | `512` |
+| `trie-dirty-commit-target` | int | Memory limit to target in the dirty cache before performing a commit in MB | `20` |
+| `trie-prefetcher-parallelism` | int | Maximum concurrent disk reads trie prefetcher should perform | `16` |
 
-#### Chaining
+### Other Caches
 
-Another thing that can be done, is to chain invocations:
-```
-./evm t8n --input.alloc=./testdata/1/alloc.json --input.txs=./testdata/1/txs.json --input.env=./testdata/1/env.json --state.fork=Berlin --output.alloc=stdout | ./evm t8n --input.alloc=stdin --input.env=./testdata/1/env.json --input.txs=./testdata/1/txs.json --state.fork=Berlin
+| Option | Type | Description | Default |
+|--------|------|-------------|---------|
+| `snapshot-cache` | int | Size of the snapshot disk layer clean cache in MB | `256` |
+| `accepted-cache-size` | int | Depth to keep in the accepted headers and logs cache (blocks) | `32` |
+| `state-sync-server-trie-cache` | int | Trie cache size for state sync server in MB | `64` |
 
-```
-What happened here, is that we first applied two identical transactions, so the second one was rejected.
-Then, taking the poststate alloc as the input for the next state, we tried again to include
-the same two transactions: this time, both failed due to too low nonce.
+## Ethereum Settings
 
-In order to meaningfully chain invocations, one would need to provide meaningful new `env`, otherwise the
-actual blocknumber (exposed to the EVM) would not increase.
+### Transaction Processing
 
-#### Transactions in RLP form
+| Option | Type | Description | Default |
+|--------|------|-------------|---------|
+| `preimages-enabled` | bool | Enable preimage recording | `false` |
+| `allow-unfinalized-queries` | bool | Allow queries for unfinalized blocks | `false` |
+| `allow-unprotected-txs` | bool | Allow unprotected transactions (without EIP-155) | `false` |
+| `allow-unprotected-tx-hashes` | array | List of specific transaction hashes allowed to be unprotected | EIP-1820 registry tx |
+| `local-txs-enabled` | bool | Enable treatment of transactions from local accounts as local | `false` |
 
-It is possible to provide already-signed transactions as input to, using an `input.txs` which ends with the `rlp` suffix.
-The input format for RLP-form transactions is _identical_ to the _output_ format for block bodies. Therefore, it's fully possible
-to use the evm to go from `json` input to `rlp` input.
+### Snapshots
 
-The following command takes **json** the transactions in `./testdata/13/txs.json` and signs them. After execution, they are output to `signed_txs.rlp`.:
-```
-./evm t8n --state.fork=London --input.alloc=./testdata/13/alloc.json --input.txs=./testdata/13/txs.json --input.env=./testdata/13/env.json --output.result=alloc_jsontx.json --output.body=signed_txs.rlp
-INFO [12-27|09:25:11.102] Trie dumping started                     root=e4b924..6aef61
-INFO [12-27|09:25:11.102] Trie dumping complete                    accounts=3 elapsed="275.66µs"
-INFO [12-27|09:25:11.102] Wrote file                               file=alloc.json
-INFO [12-27|09:25:11.103] Wrote file                               file=alloc_jsontx.json
-INFO [12-27|09:25:11.103] Wrote file                               file=signed_txs.rlp
-```
+| Option | Type | Description | Default |
+|--------|------|-------------|---------|
+| `snapshot-wait` | bool | Wait for snapshot generation on startup | `false` |
+| `snapshot-verification-enabled` | bool | Enable snapshot verification | `false` |
 
-The `output.body` is the rlp-list of transactions, encoded in hex and placed in a string a'la `json` encoding rules:
-```
-cat signed_txs.rlp
-"0xf8d2b86702f864010180820fa08284d09411111111111111111111111111111111111111118080c001a0b7dfab36232379bb3d1497a4f91c1966b1f932eae3ade107bf5d723b9cb474e0a06261c359a10f2132f126d250485b90cf20f30340801244a08ef6142ab33d1904b86702f864010280820fa08284d09411111111111111111111111111111111111111118080c080a0d4ec563b6568cd42d998fc4134b36933c6568d01533b5adf08769270243c6c7fa072bf7c21eac6bbeae5143371eef26d5e279637f3bd73482b55979d76d935b1e9"
-```
+## Pruning and State Management
 
-We can use `rlpdump` to check what the contents are:
-```
-rlpdump -hex $(cat signed_txs.rlp | jq -r )
-[
-  02f864010180820fa08284d09411111111111111111111111111111111111111118080c001a0b7dfab36232379bb3d1497a4f91c1966b1f932eae3ade107bf5d723b9cb474e0a06261c359a10f2132f126d250485b90cf20f30340801244a08ef6142ab33d1904,
-  02f864010280820fa08284d09411111111111111111111111111111111111111118080c080a0d4ec563b6568cd42d998fc4134b36933c6568d01533b5adf08769270243c6c7fa072bf7c21eac6bbeae5143371eef26d5e279637f3bd73482b55979d76d935b1e9,
-]
-```
-Now, we can now use those (or any other already signed transactions), as input, like so:
-```
-./evm t8n --state.fork=London --input.alloc=./testdata/13/alloc.json --input.txs=./signed_txs.rlp --input.env=./testdata/13/env.json --output.result=alloc_rlptx.json
-INFO [12-27|09:25:11.187] Trie dumping started                     root=e4b924..6aef61
-INFO [12-27|09:25:11.187] Trie dumping complete                    accounts=3 elapsed="123.676µs"
-INFO [12-27|09:25:11.187] Wrote file                               file=alloc.json
-INFO [12-27|09:25:11.187] Wrote file                               file=alloc_rlptx.json
-```
-You might have noticed that the results from these two invocations were stored in two separate files.
-And we can now finally check that they match.
-```
-cat alloc_jsontx.json | jq .stateRoot && cat alloc_rlptx.json | jq .stateRoot
-"0xe4b924a6adb5959fccf769d5b7bb2f6359e26d1e76a2443c5a91a36d826aef61"
-"0xe4b924a6adb5959fccf769d5b7bb2f6359e26d1e76a2443c5a91a36d826aef61"
-```
+ > **Note**: If a node is ever run with `pruning-enabled` as `false` (archival mode), setting `pruning-enabled` to `true` will result in a warning and the node will shut down. This is to protect against unintentional misconfigurations of an archival node. To override this and switch to pruning mode, in addition to `pruning-enabled: true`, `allow-missing-tries` should be set to `true` as well.
 
-## Transaction tool
+### Basic Pruning
 
-The transaction tool is used to perform static validity checks on transactions such as:
-* intrinsic gas calculation
-* max values on integers
-* fee semantics, such as `maxFeePerGas < maxPriorityFeePerGas`
-* newer tx types on old forks
+| Option | Type | Description | Default |
+|--------|------|-------------|---------|
+| `pruning-enabled` | bool | Enable state pruning to save disk space | `true` |
+| `commit-interval` | uint64 | Interval at which to persist EVM and atomic tries (blocks) | `4096` |
+| `accepted-queue-limit` | int | Maximum blocks to queue before blocking during acceptance | `64` |
 
-### Examples
+### State Reconstruction
 
-```
-./evm t9n --state.fork Homestead --input.txs testdata/15/signed_txs.rlp
-[
-  {
-    "error": "transaction type not supported",
-    "hash": "0xa98a24882ea90916c6a86da650fbc6b14238e46f0af04a131ce92be897507476"
-  },
-  {
-    "error": "transaction type not supported",
-    "hash": "0x36bad80acce7040c45fd32764b5c2b2d2e6f778669fb41791f73f546d56e739a"
-  }
-]
-```
-```
-./evm t9n --state.fork London --input.txs testdata/15/signed_txs.rlp
-[
-  {
-    "address": "0xd02d72e067e77158444ef2020ff2d325f929b363",
-    "hash": "0xa98a24882ea90916c6a86da650fbc6b14238e46f0af04a131ce92be897507476",
-    "intrinsicGas": "0x5208"
-  },
-  {
-    "address": "0xd02d72e067e77158444ef2020ff2d325f929b363",
-    "hash": "0x36bad80acce7040c45fd32764b5c2b2d2e6f778669fb41791f73f546d56e739a",
-    "intrinsicGas": "0x5208"
-  }
-]
-```
-## Block builder tool (b11r)
+| Option | Type | Description | Default |
+|--------|------|-------------|---------|
+| `allow-missing-tries` | bool | Suppress warnings about incomplete trie index | `false` |
+| `populate-missing-tries` | uint64 | Starting block for re-populating missing tries (null = disabled) | `null` |
+| `populate-missing-tries-parallelism` | int | Concurrent readers for re-populating missing tries | `1024` |
 
-The `evm b11r` tool is used to assemble and seal full block rlps.
+### Offline Pruning
 
-### Specification
+> **Note**: If offline pruning is enabled it will run on startup and block until it completes (approximately one hour on Mainnet). This will reduce the size of the database by deleting old trie nodes. **While performing offline pruning, your node will not be able to process blocks and will be considered offline.** While ongoing, the pruning process consumes a small amount of additional disk space (for deletion markers and the bloom filter). For more information see the [disk space considerations documentation](https://build.avax.network/docs/nodes/maintain/reduce-disk-usage#disk-space-considerations). Since offline pruning deletes old state data, this should not be run on nodes that need to support archival API requests. This is meant to be run manually, so after running with this flag once, it must be toggled back to false before running the node again. Therefore, you should run with this flag set to true and then set it to false on the subsequent run.
 
-#### Command line params
+| Option | Type | Description | Default |
+|--------|------|-------------|---------|
+| `offline-pruning-enabled` | bool | Enable offline pruning | `false` |
+| `offline-pruning-bloom-filter-size` | uint64 | Bloom filter size for offline pruning in MB | `512` |
+| `offline-pruning-data-directory` | string | Directory for offline pruning data | - |
 
-Command line params that need to be supported are:
+### Historical Data
 
-```
-    --input.header value        `stdin` or file name of where to find the block header to use. (default: "header.json")
-    --input.ommers value        `stdin` or file name of where to find the list of ommer header RLPs to use.
-    --input.txs value           `stdin` or file name of where to find the transactions list in RLP form. (default: "txs.rlp")
-    --output.basedir value      Specifies where output files are placed. Will be created if it does not exist.
-    --output.block value        Determines where to put the alloc of the post-state. (default: "block.json")
-                                <file> - into the file <file>
-                                `stdout` - into the stdout output
-                                `stderr` - into the stderr output
-    --seal.clique value         Seal block with Clique. `stdin` or file name of where to find the Clique sealing data.
-    --seal.ethash               Seal block with ethash. (default: false)
-    --seal.ethash.dir value     Path to ethash DAG. If none exists, a new DAG will be generated.
-    --seal.ethash.mode value    Defines the type and amount of PoW verification an ethash engine makes. (default: "normal")
-    --verbosity value           Sets the verbosity level. (default: 3)
-```
+| Option | Type | Description | Default |
+|--------|------|-------------|---------|
+| `historical-proof-query-window` | uint64 | Number of blocks before last accepted for proof queries (archive mode only, ~24 hours) | `43200` |
+| `state-history` | uint64 | Number of most recent states that are accesible on disk (pruning mode only) | `32` |
 
-#### Objects
+## Transaction Pool Configuration
 
-##### `header`
+| Option | Type | Description | Default |
+|--------|------|-------------|---------|
+| `tx-pool-price-limit` | uint64 | Minimum gas price for transaction acceptance | - |
+| `tx-pool-price-bump` | uint64 | Minimum price bump percentage for transaction replacement | - |
+| `tx-pool-account-slots` | uint64 | Maximum number of executable transaction slots per account | - |
+| `tx-pool-global-slots` | uint64 | Maximum number of executable transaction slots for all accounts | - |
+| `tx-pool-account-queue` | uint64 | Maximum number of non-executable transaction slots per account | - |
+| `tx-pool-global-queue` | uint64 | Maximum number of non-executable transaction slots for all accounts | - |
+| `tx-pool-lifetime` | duration | Maximum time transactions can stay in the pool | - |
 
-The `header` object is a consensus header.
+## Gossip Configuration
 
-```go=
-type Header struct {
-        ParentHash  common.Hash       `json:"parentHash"`
-        OmmerHash   *common.Hash      `json:"sha3Uncles"`
-        Coinbase    *common.Address   `json:"miner"`
-        Root        common.Hash       `json:"stateRoot"         gencodec:"required"`
-        TxHash      *common.Hash      `json:"transactionsRoot"`
-        ReceiptHash *common.Hash      `json:"receiptsRoot"`
-        Bloom       types.Bloom       `json:"logsBloom"`
-        Difficulty  *big.Int          `json:"difficulty"`
-        Number      *big.Int          `json:"number"            gencodec:"required"`
-        GasLimit    uint64            `json:"gasLimit"          gencodec:"required"`
-        GasUsed     uint64            `json:"gasUsed"`
-        Time        uint64            `json:"timestamp"         gencodec:"required"`
-        Extra       []byte            `json:"extraData"`
-        MixDigest   common.Hash       `json:"mixHash"`
-        Nonce       *types.BlockNonce `json:"nonce"`
-        BaseFee     *big.Int          `json:"baseFeePerGas"`
-}
-```
-#### `ommers`
+### Push Gossip Settings
 
-The `ommers` object is a list of RLP-encoded ommer blocks in hex
-representation.
+| Option | Type | Description | Default |
+|--------|------|-------------|---------|
+| `push-gossip-percent-stake` | float64 | Percentage of total stake to push gossip to (range: [0, 1]) | `0.9` |
+| `push-gossip-num-validators` | int | Number of validators to push gossip to | `100` |
+| `push-gossip-num-peers` | int | Number of non-validator peers to push gossip to | `0` |
 
-```go=
-type Ommers []string
-```
+### Regossip Settings
 
-#### `txs`
+| Option | Type | Description | Default |
+|--------|------|-------------|---------|
+| `push-regossip-num-validators` | int | Number of validators to regossip to | `10` |
+| `push-regossip-num-peers` | int | Number of non-validator peers to regossip to | `0` |
+| `priority-regossip-addresses` | array | Addresses to prioritize for regossip | - |
 
-The `txs` object is a list of RLP-encoded transactions in hex representation.
+### Timing Configuration
 
-```go=
-type Txs []string
-```
+| Option | Type | Description | Default |
+|--------|------|-------------|---------|
+| `push-gossip-frequency` | duration | Frequency of push gossip | `100ms` |
+| `pull-gossip-frequency` | duration | Frequency of pull gossip | `1s` |
+| `regossip-frequency` | duration | Frequency of regossip | `30s` |
 
-#### `clique`
+## Logging and Monitoring
 
-The `clique` object provides the necessary information to complete a clique
-seal of the block.
+### Logging
 
-```go=
-var CliqueInfo struct {
-        Key       *common.Hash    `json:"secretKey"`
-        Voted     *common.Address `json:"voted"`
-        Authorize *bool           `json:"authorize"`
-        Vanity    common.Hash     `json:"vanity"`
-}
-```
+| Option | Type | Description | Default |
+|--------|------|-------------|---------|
+| `log-level` | string | Logging level (trace, debug, info, warn, error, crit) | `"info"` |
+| `log-json-format` | bool | Use JSON format for logs | `false` |
 
-#### `output`
+### Profiling
 
-The `output` object contains two values, the block RLP and the block hash.
+| Option | Type | Description | Default |
+|--------|------|-------------|---------|
+| `continuous-profiler-dir` | string | Directory for continuous profiler output (empty = disabled) | - |
+| `continuous-profiler-frequency` | duration | Frequency to run continuous profiler | `15m` |
+| `continuous-profiler-max-files` | int | Maximum number of profiler files to maintain | `5` |
 
-```go=
-type BlockInfo struct {
-    Rlp  []byte      `json:"rlp"`
-    Hash common.Hash `json:"hash"`
-}
-```
+### Metrics
 
-## A Note on Encoding
+| Option | Type | Description | Default |
+|--------|------|-------------|---------|
+| `metrics-expensive-enabled` | bool | Enable expensive debug-level metrics; this includes Firewood metrics | `true` |
 
-The encoding of values for `evm` utility attempts to be relatively flexible. It
-generally supports hex-encoded or decimal-encoded numeric values, and
-hex-encoded byte values (like `common.Address`, `common.Hash`, etc). When in
-doubt, the [`execution-apis`](https://github.com/ethereum/execution-apis) way
-of encoding should always be accepted.
+## Security and Access
 
-## Testing
+### Keystore
 
-There are many test cases in the [`cmd/evm/testdata`](./testdata) directory.
-These fixtures are used to power the `t8n` tests in
-[`t8n_test.go`](./t8n_test.go). The best way to verify correctness of new `evm`
-implementations is to execute these and verify the output and error codes match
-the expected values.
+| Option | Type | Description | Default |
+|--------|------|-------------|---------|
+| `keystore-directory` | string | Directory for keystore files (absolute or relative path) | - |
+| `keystore-external-signer` | string | External signer configuration | - |
+| `keystore-insecure-unlock-allowed` | bool | Allow insecure account unlocking | `false` |
+
+### Fee Configuration
+
+| Option | Type | Description | Default |
+|--------|------|-------------|---------|
+| `feeRecipient` | string | Address to send transaction fees to (leave empty if not supported) | - |
+
+## Network and Sync
+
+### Network
+
+| Option | Type | Description | Default |
+|--------|------|-------------|---------|
+| `max-outbound-active-requests` | int64 | Maximum number of outbound active requests for VM2VM network | `16` |
+
+### State Sync
+
+> **Note:** If state-sync is enabled, the peer will download chain state from peers up to a recent block near tip, then proceed with normal bootstrapping. Please note that if you need historical data, state sync isn't the right option. However, it is sufficient if you are just running a validator.
+
+| Option | Type | Description | Default |
+|--------|------|-------------|---------|
+| `state-sync-enabled` | bool | Enable state sync | `false` |
+| `state-sync-skip-resume` | bool | Force state sync to use highest available summary block | `false` |
+| `state-sync-ids` | string | Comma-separated list of state sync IDs | - |
+| `state-sync-commit-interval` | uint64 | Commit interval for state sync (blocks) | `16384` |
+| `state-sync-min-blocks` | uint64 | Minimum blocks ahead required for state sync | `300000` |
+| `state-sync-request-size` | uint16 | Number of key/values to request per state sync request | `1024` |
+
+## Database Configuration
+
+> **WARNING**: `firewood` and `path` schemes are untested in production. Using `path` is strongly discouraged. To use `firewood`, you must also set the following config options:
+>
+> - `populate-missing-tries: nil`
+> - `state-sync-enabled: false`
+> - `snapshot-cache: 0`
+
+Failing to set these options will result in errors on VM initialization. Additionally, not all APIs are available - see these portions of the config documentation for more details.
+
+| Option | Type | Description | Default |
+|--------|------|-------------|---------|
+| `database-type` | string | Type of database to use | `"pebbledb"` |
+| `database-path` | string | Path to database directory | - |
+| `database-read-only` | bool | Open database in read-only mode | `false` |
+| `database-config` | string | Inline database configuration | - |
+| `database-config-file` | string | Path to database configuration file | - |
+| `use-standalone-database` | bool | Use standalone database instead of shared one | - |
+| `inspect-database` | bool | Inspect database on startup | `false` |
+| `state-scheme` | string |  EXPERIMENTAL: specifies the database scheme to store state data; can be one of `hash` or `firewood` | `hash` |
+
+## Transaction Indexing
+
+| Option | Type | Description | Default |
+|--------|------|-------------|---------|
+| `transaction-history` | uint64 | Maximum number of blocks from head whose transaction indices are reserved (0 = no limit) | - |
+| `tx-lookup-limit` | uint64 | **Deprecated** - use `transaction-history` instead | - |
+| `skip-tx-indexing` | bool | Skip indexing transactions entirely | `false` |
+
+## Warp Configuration
+
+| Option | Type | Description | Default |
+|--------|------|-------------|---------|
+| `warp-off-chain-messages` | array | Off-chain messages the node should be willing to sign | - |
+| `prune-warp-db-enabled` | bool | Clear warp database on startup | `false` |
+
+## Miscellaneous
+
+| Option | Type | Description | Default |
+|--------|------|-------------|---------|
+| `airdrop` | string | Path to airdrop file | - |
+| `skip-upgrade-check` | bool | Skip checking that upgrades occur before last accepted block ⚠️ **Warning**: Only use when you understand the implications | `false` |
+| `min-delay-target` | integer | The minimum delay between blocks (in milliseconds) that this node will attempt to use when creating blocks | Parent block's target |
+
+## Gossip Constants
+
+The following constants are defined for transaction gossip behavior and cannot be configured without a custom build of Subnet-EVM:
+
+| Constant | Type | Description | Value |
+|----------|------|-------------|-------|
+| Bloom Filter Min Target Elements | int | Minimum target elements for bloom filter | `8,192` |
+| Bloom Filter Target False Positive Rate | float | Target false positive rate | `1%` |
+| Bloom Filter Reset False Positive Rate | float | Reset false positive rate | `5%` |
+| Bloom Filter Churn Multiplier | int | Churn multiplier | `3` |
+| Push Gossip Discarded Elements | int | Number of discarded elements | `16,384` |
+| Tx Gossip Target Message Size | size | Target message size for transaction gossip | `20 KiB` |
+| Tx Gossip Throttling Period | duration | Throttling period | `10s` |
+| Tx Gossip Throttling Limit | int | Throttling limit | `2` |
+| Tx Gossip Poll Size | int | Poll size | `1` |
+
+## Validation Notes
+
+- Cannot enable `populate-missing-tries` while pruning or offline pruning is enabled
+- Cannot run offline pruning while pruning is disabled  
+- Commit interval must be non-zero when pruning is enabled
+- `push-gossip-percent-stake` must be in range `[0, 1]`
+- Some settings may require node restart to take effect
