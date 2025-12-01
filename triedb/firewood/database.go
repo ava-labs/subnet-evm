@@ -4,6 +4,7 @@
 package firewood
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -23,6 +24,13 @@ import (
 	"github.com/ava-labs/libevm/trie/triestate"
 	"github.com/ava-labs/libevm/triedb"
 	"github.com/ava-labs/libevm/triedb/database"
+)
+
+const (
+	// Directory where all Firewood state lives.
+	firewoodDir          = "firewood"
+	firewoodFileName     = "firewood.db"
+	firewoodRootStoreDir = "root_store"
 )
 
 var (
@@ -61,11 +69,12 @@ type ProposalContext struct {
 }
 
 type Config struct {
-	FilePath             string
+	ChainDataDir         string
 	CleanCacheSize       int  // Size of the clean cache in bytes
 	FreeListCacheEntries uint // Number of free list entries to cache
-	Revisions            uint
+	Revisions            uint // Number of revisions to keep in memory (must be >= 2)
 	ReadCacheStrategy    ffi.CacheStrategy
+	ArchiveMode          bool
 }
 
 // Note that `FilePath` is not specified, and must always be set by the user.
@@ -99,15 +108,23 @@ type Database struct {
 // New creates a new Firewood database with the given disk database and configuration.
 // Any error during creation will cause the program to exit.
 func New(config Config) (*Database, error) {
-	if err := validatePath(config.FilePath); err != nil {
+	firewoodDir := filepath.Join(config.ChainDataDir, firewoodDir)
+	filePath := filepath.Join(firewoodDir, firewoodFileName)
+	if err := validatePath(filePath); err != nil {
 		return nil, err
 	}
 
-	fw, err := ffi.New(config.FilePath, &ffi.Config{
+	var rootStoreDir string
+	if config.ArchiveMode {
+		rootStoreDir = filepath.Join(firewoodDir, firewoodRootStoreDir)
+	}
+
+	fw, err := ffi.New(filePath, &ffi.Config{
 		NodeCacheEntries:     uint(config.CleanCacheSize) / 256, // TODO: estimate 256 bytes per node
 		FreeListCacheEntries: config.FreeListCacheEntries,
 		Revisions:            config.Revisions,
 		ReadCacheStrategy:    config.ReadCacheStrategy,
+		RootStoreDir:         rootStoreDir,
 	})
 	if err != nil {
 		return nil, err
@@ -163,14 +180,14 @@ func (*Database) Scheme() string {
 
 // Initialized checks whether a non-empty genesis block has been written.
 func (db *Database) Initialized(common.Hash) bool {
-	rootBytes, err := db.fwDisk.Root()
+	root, err := db.fwDisk.Root()
 	if err != nil {
 		log.Error("firewood: error getting current root", "error", err)
 		return false
 	}
-	root := common.BytesToHash(rootBytes)
+
 	// If the current root isn't empty, then unless the database is empty, we have a genesis block recorded.
-	return root != types.EmptyRootHash
+	return common.Hash(root) != types.EmptyRootHash
 }
 
 // Update takes a root and a set of keys-values and creates a new proposal.
@@ -285,22 +302,13 @@ func (db *Database) propose(root common.Hash, parentRoot common.Hash, hash commo
 //
 // Afterward, we know that no other proposal at this height can be committed, so we can dereference all
 // children in the the other branches of the proposal tree.
-func (db *Database) Commit(root common.Hash, report bool) (err error) {
+func (db *Database) Commit(root common.Hash, report bool) error {
 	// We need to lock the proposal tree to prevent concurrent writes.
-	var pCtx *ProposalContext
 	db.proposalLock.Lock()
 	defer db.proposalLock.Unlock()
 
-	// On success, we should persist the genesis root as necessary, and dereference all children
-	// of the committed proposal.
-	defer func() {
-		// If we attempted to commit a proposal, but it failed, we must dereference its children.
-		if pCtx != nil {
-			db.cleanupCommittedProposal(pCtx)
-		}
-	}()
-
 	// Find the proposal with the given root.
+	var pCtx *ProposalContext
 	for _, possible := range db.proposalMap[root] {
 		if possible.Parent.Root == db.proposalTree.Root && possible.Parent.Block == db.proposalTree.Block {
 			// We found the proposal with the correct parent.
@@ -317,21 +325,25 @@ func (db *Database) Commit(root common.Hash, report bool) (err error) {
 
 	start := time.Now()
 	// Commit the proposal to the database.
-	if commitErr := pCtx.Proposal.Commit(); commitErr != nil {
-		return fmt.Errorf("firewood: error committing proposal %s: %w", root.Hex(), commitErr)
+	if err := pCtx.Proposal.Commit(); err != nil {
+		db.dereference(pCtx) // no longer committable
+		return fmt.Errorf("firewood: error committing proposal %s: %w", root.Hex(), err)
 	}
 	ffiCommitCount.Inc(1)
 	ffiCommitTimer.Inc(time.Since(start).Milliseconds())
 	ffiOutstandingProposals.Dec(1)
+	// Now that the proposal is committed, we should clean up the proposal tree on return.
+	defer db.cleanupCommittedProposal(pCtx)
 
 	// Assert that the root of the database matches the committed proposal root.
-	currentRootBytes, err := db.fwDisk.Root()
+	currentRoot, err := db.fwDisk.Root()
 	if err != nil {
 		return fmt.Errorf("firewood: error getting current root after commit: %w", err)
 	}
-	currentRoot := common.BytesToHash(currentRootBytes)
-	if currentRoot != root {
-		return fmt.Errorf("firewood: current root %s does not match expected root %s", currentRoot.Hex(), root.Hex())
+
+	currentRootHash := common.Hash(currentRoot)
+	if currentRootHash != root {
+		return fmt.Errorf("firewood: current root %s does not match expected root %s", currentRootHash.Hex(), root.Hex())
 	}
 
 	if report {
@@ -351,21 +363,11 @@ func (*Database) Size() (common.StorageSize, common.StorageSize) {
 	return 0, 0
 }
 
-// This isn't called anywhere in subnet-evm
-func (*Database) Reference(common.Hash, common.Hash) {
-	log.Error("firewood: Reference not implemented")
-}
+// Reference is a no-op.
+func (*Database) Reference(common.Hash, common.Hash) {}
 
-// Dereference drops a proposal from the database.
-// This function is no-op because unused proposals are dereferenced when no longer valid.
-// We cannot dereference at this call. Consider the following case:
-// Chain 1 has root A and root C
-// Chain 2 has root B and root C
-// We commit root A, and immediately dereference root B and its child.
-// Root C is Rejected, (which is intended to be 2C) but there's now only one record of root C in the proposal map.
-// Thus, we recognize the single root C as the only proposal, and dereference it.
-func (*Database) Dereference(common.Hash) {
-}
+// Dereference is a no-op since Firewood handles unused state roots internally.
+func (*Database) Dereference(common.Hash) {}
 
 // Firewood does not support this.
 func (*Database) Cap(common.StorageSize) error {
@@ -386,7 +388,8 @@ func (db *Database) Close() error {
 	db.proposalTree.Children = nil
 
 	// Close the database
-	return db.fwDisk.Close()
+	// This may block momentarily while finalizers for Firewood objects run.
+	return db.fwDisk.Close(context.Background())
 }
 
 // createProposal creates a new proposal from the given layer
@@ -416,16 +419,16 @@ func createProposal(layer proposable, root common.Hash, keys, values [][]byte) (
 	ffiProposeTimer.Inc(time.Since(start).Milliseconds())
 	ffiOutstandingProposals.Inc(1)
 
-	currentRootBytes, err := p.Root()
+	currentRoot, err := p.Root()
 	if err != nil {
 		return nil, fmt.Errorf("firewood: error getting root of proposal %s: %w", root, err)
 	}
-	currentRoot := common.BytesToHash(currentRootBytes)
-	if root != currentRoot {
-		return nil, fmt.Errorf("firewood: proposed root %s does not match expected root %s", currentRoot.Hex(), root.Hex())
+
+	currentRootHash := common.Hash(currentRoot)
+	if root != currentRootHash {
+		return nil, fmt.Errorf("firewood: proposed root %s does not match expected root %s", currentRootHash.Hex(), root.Hex())
 	}
 
-	// Store the proposal context.
 	return p, nil
 }
 
@@ -490,16 +493,16 @@ func (db *Database) removeProposalFromMap(pCtx *ProposalContext) {
 // Reader retrieves a node reader belonging to the given state root.
 // An error will be returned if the requested state is not available.
 func (db *Database) Reader(root common.Hash) (database.Reader, error) {
-	if _, err := db.fwDisk.GetFromRoot(root.Bytes(), []byte{}); err != nil {
+	if _, err := db.fwDisk.GetFromRoot(ffi.Hash(root), []byte{}); err != nil {
 		return nil, fmt.Errorf("firewood: unable to retrieve from root %s: %w", root.Hex(), err)
 	}
-	return &reader{db: db, root: root}, nil
+	return &reader{db: db, root: ffi.Hash(root)}, nil
 }
 
 // reader is a state reader of Database which implements the Reader interface.
 type reader struct {
 	db   *Database
-	root common.Hash // The root of the state this reader is reading.
+	root ffi.Hash // The root of the state this reader is reading.
 }
 
 // Node retrieves the trie node with the given node hash. No error will be
@@ -508,7 +511,7 @@ func (reader *reader) Node(_ common.Hash, path []byte, _ common.Hash) ([]byte, e
 	// This function relies on Firewood's internal locking to ensure concurrent reads are safe.
 	// This is safe even if a proposal is being committed concurrently.
 	start := time.Now()
-	result, err := reader.db.fwDisk.GetFromRoot(reader.root.Bytes(), path)
+	result, err := reader.db.fwDisk.GetFromRoot(reader.root, path)
 	if metrics.EnabledExpensive {
 		ffiReadCount.Inc(1)
 		ffiReadTimer.Inc(time.Since(start).Milliseconds())
@@ -555,11 +558,11 @@ func (db *Database) getProposalHash(parentRoot common.Hash, keys, values [][]byt
 	// We succesffuly created a proposal, so we must drop it after use.
 	defer p.Drop()
 
-	rootBytes, err := p.Root()
+	root, err := p.Root()
 	if err != nil {
 		return common.Hash{}, err
 	}
-	return common.BytesToHash(rootBytes), nil
+	return common.Hash(root), nil
 }
 
 func arrangeKeyValuePairs(nodes *trienode.MergedNodeSet) ([][]byte, [][]byte) {

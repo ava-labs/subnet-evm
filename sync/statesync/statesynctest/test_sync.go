@@ -35,9 +35,7 @@ func AssertDBConsistency(t testing.TB, root common.Hash, clientDB ethdb.Database
 		}
 		numSnapshotAccounts++
 	}
-	if err := accountIt.Error(); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, accountIt.Error())
 	trieAccountLeaves := 0
 
 	AssertTrieConsistency(t, root, serverTrieDB, clientTrieDB, func(key, val []byte) error {

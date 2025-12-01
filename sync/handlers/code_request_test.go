@@ -4,7 +4,6 @@
 package handlers
 
 import (
-	"context"
 	"crypto/rand"
 	"testing"
 
@@ -92,7 +91,7 @@ func TestCodeRequestHandler(t *testing.T) {
 
 		t.Run(name, func(t *testing.T) {
 			request, expectedResponse := test.setup()
-			responseBytes, err := codeRequestHandler.OnCodeRequest(context.Background(), ids.GenerateTestNodeID(), 1, request)
+			responseBytes, err := codeRequestHandler.OnCodeRequest(t.Context(), ids.GenerateTestNodeID(), 1, request)
 			require.NoError(t, err)
 
 			// If the expected response is empty, require that the handler returns an empty response and return early.
@@ -101,12 +100,9 @@ func TestCodeRequestHandler(t *testing.T) {
 				return
 			}
 			var response message.CodeResponse
-			if _, err = message.Codec.Unmarshal(responseBytes, &response); err != nil {
-				t.Fatal("error unmarshalling CodeResponse", err)
-			}
-			if len(expectedResponse) != len(response.Data) {
-				t.Fatalf("Unexpected length of code data expected %d != %d", len(expectedResponse), len(response.Data))
-			}
+			_, err = message.Codec.Unmarshal(responseBytes, &response)
+			require.NoError(t, err)
+			require.Len(t, response.Data, len(expectedResponse))
 			for i, code := range expectedResponse {
 				require.Equal(t, code, response.Data[i], "code bytes mismatch at index %d", i)
 			}
