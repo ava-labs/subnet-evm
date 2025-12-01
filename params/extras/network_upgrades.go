@@ -128,6 +128,9 @@ func (n *NetworkUpgrades) verifyNetworkUpgrades(agoUpgrades upgrade.Config) erro
 	if err := verifyWithDefault(n.GraniteTimestamp, defaults.GraniteTimestamp); err != nil {
 		return fmt.Errorf("granite fork block timestamp is invalid: %w", err)
 	}
+	if err := verifyWithDefault(n.HeliconTimestamp, defaults.HeliconTimestamp); err != nil {
+		return fmt.Errorf("helicon fork block timestamp is invalid: %w", err)
+	}
 	return nil
 }
 
@@ -146,6 +149,9 @@ func (n *NetworkUpgrades) Override(o *NetworkUpgrades) {
 	}
 	if o.GraniteTimestamp != nil {
 		n.GraniteTimestamp = o.GraniteTimestamp
+	}
+	if o.HeliconTimestamp != nil {
+		n.HeliconTimestamp = o.HeliconTimestamp
 	}
 }
 
