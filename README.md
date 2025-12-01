@@ -48,7 +48,7 @@ Full documentation for the C-Chain's API can be found in the [builder docs](http
 
 ## Compatibility
 
-The C-Chain is compatible with almost all Ethereum tooling, including [Core,](https://docs.avax.network/build/dapp/launch-dapp#through-core) [Metamask,](https://docs.avax.network/build/dapp/launch-dapp#through-metamask) and [Remix](https://build.avax.network/docs/avalanche-l1s/add-utility/deploy-smart-contract#using-remix).
+Subnet-EVM is compatible with almost all Ethereum tooling, including [Foundry](https://build.avax.network/academy/blockchain/solidity-foundry/03-smart-contracts/03-foundry-quickstart) and [Remix](https://build.avax.network/docs/avalanche-l1s/add-utility/deploy-smart-contract#using-remix).
 
 **Note:** Subnet-EVM and Avalanche C-Chain currently implement the Ethereum Cancun fork and do not yet support newer hardforks (such as Pectra). Since Solidity v0.8.30 switched its default target EVM version to Pectra, contracts compiled with default settings may emit bytecode using instructions/features that Avalanche does not support.
 To avoid this mismatch, explicitly set the Solidity compiler’s `evmVersion` to `cancun` when deploying to Subnet-EVM or the C-Chain.
