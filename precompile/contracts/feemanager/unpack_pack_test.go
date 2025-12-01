@@ -326,20 +326,18 @@ func testOldPackGetFeeConfigOutputEqual(t *testing.T, feeConfig commontype.FeeCo
 	t.Run(fmt.Sprintf("TestGetFeeConfigOutput, feeConfig %v", feeConfig), func(t *testing.T) {
 		input, err := OldPackFeeConfig(feeConfig)
 		input2, err2 := PackGetFeeConfigOutput(feeConfig)
+		require.ErrorIs(t, err2, err)
 		if err != nil {
-			require.ErrorIs(t, err2, err)
 			return
 		}
-		require.NoError(t, err2)
 		require.Equal(t, input, input2)
 
 		config, err := OldUnpackFeeConfig(input)
 		unpacked, err2 := UnpackGetFeeConfigOutput(input, false)
+		require.ErrorIs(t, err2, err)
 		if err != nil {
-			require.ErrorIs(t, err2, err)
 			return
 		}
-		require.NoError(t, err2)
 		require.True(t, config.Equal(&unpacked), "not equal: config %v, unpacked %v", feeConfig, unpacked)
 		if checkOutputs {
 			require.True(t, feeConfig.Equal(&unpacked), "not equal: feeConfig %v, unpacked %v", feeConfig, unpacked)
@@ -357,11 +355,10 @@ func testOldPackGetLastChangedAtOutputEqual(t *testing.T, blockNumber *big.Int, 
 
 		value, err := OldUnpackGetLastChangedAtOutput(input)
 		unpacked, err2 := UnpackGetFeeConfigLastChangedAtOutput(input)
+		require.ErrorIs(t, err2, err)
 		if err != nil {
-			require.ErrorIs(t, err2, err)
 			return
 		}
-		require.NoError(t, err2)
 		require.Zero(t, value.Cmp(unpacked), "not equal: value %v, unpacked %v", value, unpacked)
 		if checkOutputs {
 			require.Zero(t, blockNumber.Cmp(unpacked), "not equal: blockNumber %v, unpacked %v", blockNumber, unpacked)

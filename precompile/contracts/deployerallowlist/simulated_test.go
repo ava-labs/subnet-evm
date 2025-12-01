@@ -118,7 +118,7 @@ func TestDeployerAllowList(t *testing.T) {
 
 				// Try to deploy via unprivileged user - should fail
 				_, err := allowListTest.DeployContract(unprivileged)
-				// The error returned is actually a JSON Error
+				// The error returned is a JSON Error rather than the vm.ErrExecutionReverted error
 				require.ErrorContains(t, err, "execution reverted") //nolint:forbidigo // uses upstream code
 			},
 		},

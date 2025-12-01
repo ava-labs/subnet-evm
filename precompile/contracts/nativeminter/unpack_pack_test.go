@@ -133,21 +133,19 @@ func testOldPackMintNativeCoinEqual(t *testing.T, addr common.Address, amount *b
 	t.Run(fmt.Sprintf("TestUnpackAndPacks, addr: %s, amount: %s", addr.String(), amount.String()), func(t *testing.T) {
 		input, err := OldPackMintNativeCoinInput(addr, amount)
 		input2, err2 := PackMintNativeCoin(addr, amount)
+		require.ErrorIs(t, err2, err)
 		if err != nil {
-			require.ErrorIs(t, err2, err)
 			return
 		}
-		require.NoError(t, err2)
 		require.Equal(t, input, input2)
 
 		input = input[4:]
 		to, assetAmount, err := OldUnpackMintNativeCoinInput(input)
 		unpackedAddr, unpackedAmount, err2 := UnpackMintNativeCoinInput(input, true)
+		require.ErrorIs(t, err2, err)
 		if err != nil {
-			require.ErrorIs(t, err2, err)
 			return
 		}
-		require.NoError(t, err2)
 		require.Equal(t, to, unpackedAddr)
 		require.Equal(t, assetAmount.Bytes(), unpackedAmount.Bytes())
 		if checkOutputs {
