@@ -61,7 +61,7 @@ func newBackendWithDeployerAllowList(t *testing.T) *sim.Backend {
 
 // Helper functions to reduce test boilerplate
 
-func deployallowlistbindings(t *testing.T, b *sim.Backend, auth *bind.TransactOpts) (common.Address, *allowlistbindings.AllowListTest) {
+func deployAllowListTest(t *testing.T, b *sim.Backend, auth *bind.TransactOpts) (common.Address, *allowlistbindings.AllowListTest) {
 	t.Helper()
 	addr, tx, contract, err := allowlistbindings.DeployAllowListTest(auth, b.Client(), deployerallowlist.ContractAddress)
 	require.NoError(t, err)
@@ -89,22 +89,22 @@ func TestDeployerAllowList(t *testing.T) {
 		{
 			name: "should verify new address has no role",
 			test: func(t *testing.T, backend *sim.Backend, allowList *allowlistbindings.IAllowList) {
-				allowlistbindingsAddr, _ := deployallowlistbindings(t, backend, admin)
-				testutils.VerifyRole(t, allowList, allowlistbindingsAddr, allowlist.NoRole)
+				allowListTestAddr, _ := deployAllowListTest(t, backend, admin)
+				testutils.VerifyRole(t, allowList, allowListTestAddr, allowlist.NoRole)
 			},
 		},
 		{
 			name: "should verify contract correctly reports admin status",
 			test: func(t *testing.T, backend *sim.Backend, allowList *allowlistbindings.IAllowList) {
-				allowlistbindingsAddr, allowlistbindings := deployallowlistbindings(t, backend, admin)
+				allowListTestAddr, allowListTest := deployAllowListTest(t, backend, admin)
 
-				testutils.VerifyRole(t, allowList, allowlistbindingsAddr, allowlist.NoRole)
+				testutils.VerifyRole(t, allowList, allowListTestAddr, allowlist.NoRole)
 
-				isAdmin, err := allowlistbindings.IsAdmin(nil, allowlistbindingsAddr)
+				isAdmin, err := allowListTest.IsAdmin(nil, allowListTestAddr)
 				require.NoError(t, err)
 				require.False(t, isAdmin)
 
-				isAdmin, err = allowlistbindings.IsAdmin(nil, adminAddress)
+				isAdmin, err = allowListTest.IsAdmin(nil, adminAddress)
 				require.NoError(t, err)
 				require.True(t, isAdmin)
 			},
@@ -114,10 +114,10 @@ func TestDeployerAllowList(t *testing.T) {
 			test: func(t *testing.T, backend *sim.Backend, allowList *allowlistbindings.IAllowList) {
 				testutils.VerifyRole(t, allowList, unprivilegedAddress, allowlist.NoRole)
 
-				_, allowlistbindings := deployallowlistbindings(t, backend, admin)
+				_, allowListTest := deployAllowListTest(t, backend, admin)
 
 				// Try to deploy via unprivileged user - should fail
-				_, err := allowlistbindings.DeployContract(unprivileged)
+				_, err := allowListTest.DeployContract(unprivileged)
 				// The error returned is a JSON Error rather than the vm.ErrExecutionReverted error
 				require.ErrorContains(t, err, vm.ErrExecutionReverted.Error())
 			},
@@ -125,13 +125,13 @@ func TestDeployerAllowList(t *testing.T) {
 		{
 			name: "should allow admin to add contract as admin via precompile",
 			test: func(t *testing.T, backend *sim.Backend, allowList *allowlistbindings.IAllowList) {
-				allowlistbindingsAddr, allowlistbindings := deployallowlistbindings(t, backend, admin)
+				allowListTestAddr, allowListTest := deployAllowListTest(t, backend, admin)
 
-				testutils.VerifyRole(t, allowList, allowlistbindingsAddr, allowlist.NoRole)
-				testutils.SetAsAdmin(t, backend, allowList, admin, allowlistbindingsAddr)
-				testutils.VerifyRole(t, allowList, allowlistbindingsAddr, allowlist.AdminRole)
+				testutils.VerifyRole(t, allowList, allowListTestAddr, allowlist.NoRole)
+				testutils.SetAsAdmin(t, backend, allowList, admin, allowListTestAddr)
+				testutils.VerifyRole(t, allowList, allowListTestAddr, allowlist.AdminRole)
 
-				isAdmin, err := allowlistbindings.IsAdmin(nil, allowlistbindingsAddr)
+				isAdmin, err := allowListTest.IsAdmin(nil, allowListTestAddr)
 				require.NoError(t, err)
 				require.True(t, isAdmin)
 			},
@@ -139,18 +139,18 @@ func TestDeployerAllowList(t *testing.T) {
 		{
 			name: "should allow admin to add deployer via contract",
 			test: func(t *testing.T, backend *sim.Backend, allowList *allowlistbindings.IAllowList) {
-				allowlistbindingsAddr, allowlistbindings := deployallowlistbindings(t, backend, admin)
-				otherContractAddr, _ := deployallowlistbindings(t, backend, admin)
+				allowListTestAddr, allowListTest := deployAllowListTest(t, backend, admin)
+				otherContractAddr, _ := deployAllowListTest(t, backend, admin)
 
-				testutils.VerifyRole(t, allowList, allowlistbindingsAddr, allowlist.NoRole)
-				testutils.SetAsAdmin(t, backend, allowList, admin, allowlistbindingsAddr)
-				testutils.VerifyRole(t, allowList, allowlistbindingsAddr, allowlist.AdminRole)
+				testutils.VerifyRole(t, allowList, allowListTestAddr, allowlist.NoRole)
+				testutils.SetAsAdmin(t, backend, allowList, admin, allowListTestAddr)
+				testutils.VerifyRole(t, allowList, allowListTestAddr, allowlist.AdminRole)
 
-				tx, err := allowlistbindings.SetEnabled(admin, otherContractAddr)
+				tx, err := allowListTest.SetEnabled(admin, otherContractAddr)
 				require.NoError(t, err)
 				testutils.WaitReceipt(t, backend, tx)
 
-				isEnabled, err := allowlistbindings.IsEnabled(nil, otherContractAddr)
+				isEnabled, err := allowListTest.IsEnabled(nil, otherContractAddr)
 				require.NoError(t, err)
 				require.True(t, isEnabled)
 				testutils.VerifyRole(t, allowList, otherContractAddr, allowlist.EnabledRole)
@@ -159,16 +159,16 @@ func TestDeployerAllowList(t *testing.T) {
 		{
 			name: "should allow enabled address to deploy contracts",
 			test: func(t *testing.T, backend *sim.Backend, allowList *allowlistbindings.IAllowList) {
-				allowlistbindingsAddr, allowlistbindings := deployallowlistbindings(t, backend, admin)
-				deployerContractAddr, deployerContract := deployallowlistbindings(t, backend, admin)
+				allowListTestAddr, allowListTest := deployAllowListTest(t, backend, admin)
+				deployerContractAddr, deployerContract := deployAllowListTest(t, backend, admin)
 
-				testutils.SetAsAdmin(t, backend, allowList, admin, allowlistbindingsAddr)
+				testutils.SetAsAdmin(t, backend, allowList, admin, allowListTestAddr)
 
-				tx, err := allowlistbindings.SetEnabled(admin, deployerContractAddr)
+				tx, err := allowListTest.SetEnabled(admin, deployerContractAddr)
 				require.NoError(t, err)
 				testutils.WaitReceipt(t, backend, tx)
 
-				isEnabled, err := allowlistbindings.IsEnabled(nil, deployerContractAddr)
+				isEnabled, err := allowListTest.IsEnabled(nil, deployerContractAddr)
 				require.NoError(t, err)
 				require.True(t, isEnabled)
 
@@ -180,20 +180,20 @@ func TestDeployerAllowList(t *testing.T) {
 		{
 			name: "should allow admin to revoke deployer",
 			test: func(t *testing.T, backend *sim.Backend, allowList *allowlistbindings.IAllowList) {
-				allowlistbindingsAddr, allowlistbindings := deployallowlistbindings(t, backend, admin)
-				deployerContractAddr, _ := deployallowlistbindings(t, backend, admin)
+				allowListTestAddr, allowListTest := deployAllowListTest(t, backend, admin)
+				deployerContractAddr, _ := deployAllowListTest(t, backend, admin)
 
-				testutils.SetAsAdmin(t, backend, allowList, admin, allowlistbindingsAddr)
+				testutils.SetAsAdmin(t, backend, allowList, admin, allowListTestAddr)
 
-				tx, err := allowlistbindings.SetEnabled(admin, deployerContractAddr)
+				tx, err := allowListTest.SetEnabled(admin, deployerContractAddr)
 				require.NoError(t, err)
 				testutils.WaitReceipt(t, backend, tx)
 
-				isEnabled, err := allowlistbindings.IsEnabled(nil, deployerContractAddr)
+				isEnabled, err := allowListTest.IsEnabled(nil, deployerContractAddr)
 				require.NoError(t, err)
 				require.True(t, isEnabled)
 
-				tx, err = allowlistbindings.Revoke(admin, deployerContractAddr)
+				tx, err = allowListTest.Revoke(admin, deployerContractAddr)
 				require.NoError(t, err)
 				testutils.WaitReceipt(t, backend, tx)
 
