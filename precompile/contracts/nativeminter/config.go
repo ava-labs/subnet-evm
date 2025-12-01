@@ -19,8 +19,8 @@ import (
 var (
 	_ precompileconfig.Config = (*Config)(nil)
 
-	errInitialMintNilAmount     = errors.New("initial mint cannot contain nil amount")
-	errInitialMintInvalidAmount = errors.New("initial mint cannot contain invalid amount")
+	ErrInitialMintNilAmount     = errors.New("initial mint cannot contain nil amount")
+	ErrInitialMintInvalidAmount = errors.New("initial mint cannot contain invalid amount")
 )
 
 // Config implements the precompileconfig.Config interface while adding in the
@@ -96,11 +96,11 @@ func (c *Config) Verify(chainConfig precompileconfig.ChainConfig) error {
 	// ensure that all of the initial mint values in the map are non-nil positive values
 	for addr, amount := range c.InitialMint {
 		if amount == nil {
-			return fmt.Errorf("%w for address %s", errInitialMintNilAmount, addr)
+			return fmt.Errorf("%w for address %s", ErrInitialMintNilAmount, addr)
 		}
 		bigIntAmount := (*big.Int)(amount)
 		if bigIntAmount.Sign() < 1 {
-			return fmt.Errorf("%w: amount %v for address %s", errInitialMintInvalidAmount, bigIntAmount, addr)
+			return fmt.Errorf("%w: amount %v for address %s", ErrInitialMintInvalidAmount, bigIntAmount, addr)
 		}
 	}
 	return c.AllowListConfig.Verify(chainConfig, c.Upgrade)
