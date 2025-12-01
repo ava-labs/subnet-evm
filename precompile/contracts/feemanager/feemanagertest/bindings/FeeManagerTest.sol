@@ -56,4 +56,3 @@ contract FeeManagerTest {
     return feeManager.getFeeConfigLastChangedAt();
   }
 }
-
