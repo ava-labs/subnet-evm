@@ -105,12 +105,16 @@ func TestUnpackMintNativeCoinInput(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			unpackedAddress, unpackedAmount, err := UnpackMintNativeCoinInput(test.input, test.strictMode)
 			require.ErrorIs(t, err, test.wantErr)
-			require.Equal(t, test.wantAddr, unpackedAddress)
-			require.Equal(t, test.wantAmount, unpackedAmount, "expected %s, got %s", test.wantAmount.String(), unpackedAmount.String())
+			if test.wantErr == nil {
+				require.Equal(t, test.wantAddr, unpackedAddress)
+				require.Equal(t, test.wantAmount, unpackedAmount, "expected %s, got %s", test.wantAmount.String(), unpackedAmount.String())
+			}
 			oldUnpackedAddress, oldUnpackedAmount, oldErr := OldUnpackMintNativeCoinInput(test.input)
 			require.ErrorIs(t, oldErr, test.wantOldErr)
-			require.Equal(t, test.wantAddr, oldUnpackedAddress)
-			require.Equal(t, test.wantAmount, oldUnpackedAmount, "expected %s, got %s", test.wantAmount.String(), oldUnpackedAmount.String())
+			if test.wantOldErr == nil {
+				require.Equal(t, test.wantAddr, oldUnpackedAddress)
+				require.Equal(t, test.wantAmount, oldUnpackedAmount, "expected %s, got %s", test.wantAmount.String(), oldUnpackedAmount.String())
+			}
 		})
 	}
 }

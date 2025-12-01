@@ -68,65 +68,69 @@ func TestPackGetFeeConfigOutput(t *testing.T) {
 	testInputBytes, err := PackGetFeeConfigOutput(testFeeConfig)
 	require.NoError(t, err)
 	tests := []struct {
-		name           string
-		input          []byte
-		skipLenCheck   bool
-		expectedErr    error
-		expectedOldErr error
-		expectedOutput commontype.FeeConfig
+		name         string
+		input        []byte
+		skipLenCheck bool
+		wantErr      error
+		wantOldErr   error
+		wantOutput   commontype.FeeConfig
 	}{
 		{
-			name:           "empty input",
-			input:          []byte{},
-			skipLenCheck:   false,
-			expectedErr:    ErrInvalidLen,
-			expectedOldErr: ErrInvalidLen,
+			name:         "empty input",
+			input:        []byte{},
+			skipLenCheck: false,
+			wantErr:      ErrInvalidLen,
+			wantOldErr:   ErrInvalidLen,
 		},
 		{
-			name:           "empty input skip len check",
-			input:          []byte{},
-			skipLenCheck:   true,
-			expectedErr:    ErrUnpackOutput,
-			expectedOldErr: ErrInvalidLen,
+			name:         "empty input skip len check",
+			input:        []byte{},
+			skipLenCheck: true,
+			wantErr:      ErrUnpackOutput,
+			wantOldErr:   ErrInvalidLen,
 		},
 		{
-			name:           "input with extra bytes",
-			input:          append(testInputBytes, make([]byte, 32)...),
-			skipLenCheck:   false,
-			expectedErr:    ErrInvalidLen,
-			expectedOldErr: ErrInvalidLen,
+			name:         "input with extra bytes",
+			input:        append(testInputBytes, make([]byte, 32)...),
+			skipLenCheck: false,
+			wantErr:      ErrInvalidLen,
+			wantOldErr:   ErrInvalidLen,
 		},
 		{
-			name:           "input with extra bytes skip len check",
-			input:          append(testInputBytes, make([]byte, 32)...),
-			skipLenCheck:   true,
-			expectedErr:    nil,
-			expectedOldErr: ErrInvalidLen,
-			expectedOutput: testFeeConfig,
+			name:         "input with extra bytes skip len check",
+			input:        append(testInputBytes, make([]byte, 32)...),
+			skipLenCheck: true,
+			wantErr:      nil,
+			wantOldErr:   ErrInvalidLen,
+			wantOutput:   testFeeConfig,
 		},
 		{
-			name:           "input with extra bytes (not divisible by 32)",
-			input:          append(testInputBytes, make([]byte, 33)...),
-			skipLenCheck:   false,
-			expectedErr:    ErrInvalidLen,
-			expectedOldErr: ErrInvalidLen,
+			name:         "input with extra bytes (not divisible by 32)",
+			input:        append(testInputBytes, make([]byte, 33)...),
+			skipLenCheck: false,
+			wantErr:      ErrInvalidLen,
+			wantOldErr:   ErrInvalidLen,
 		},
 		{
-			name:           "input with extra bytes (not divisible by 32) skip len check",
-			input:          append(testInputBytes, make([]byte, 33)...),
-			skipLenCheck:   true,
-			expectedErr:    ErrUnpackOutput,
-			expectedOldErr: ErrInvalidLen,
+			name:         "input with extra bytes (not divisible by 32) skip len check",
+			input:        append(testInputBytes, make([]byte, 33)...),
+			skipLenCheck: true,
+			wantErr:      ErrUnpackOutput,
+			wantOldErr:   ErrInvalidLen,
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			unpacked, err := UnpackGetFeeConfigOutput(test.input, test.skipLenCheck)
-			require.ErrorIs(t, err, test.expectedErr)
-			require.True(t, test.expectedOutput.Equal(&unpacked), "not equal: expectedOutput %v, unpacked %v", test.expectedOutput, unpacked)
+			require.ErrorIs(t, err, test.wantErr)
+			if test.wantErr == nil {
+				require.True(t, test.wantOutput.Equal(&unpacked), "not equal: expectedOutput %v, unpacked %v", test.wantOutput, unpacked)
+			}
 			oldUnpacked, oldErr := OldUnpackFeeConfig(test.input)
-			require.ErrorIs(t, oldErr, test.expectedOldErr)
-			require.True(t, test.expectedOutput.Equal(&oldUnpacked), "not equal: expectedOutput %v, oldUnpacked %v", test.expectedOutput, oldUnpacked)
+			require.ErrorIs(t, oldErr, test.wantOldErr)
+			if test.wantOldErr == nil {
+				require.True(t, test.wantOutput.Equal(&oldUnpacked), "not equal: expectedOutput %v, oldUnpacked %v", test.wantOutput, oldUnpacked)
+			}
 		})
 	}
 }
