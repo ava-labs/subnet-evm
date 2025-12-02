@@ -1,3 +1,8 @@
+# THIS REPOSITORY HAS MOVED
+
+> **⚠️ WARNING: Do not depend on this repository. It has been deprecated.**
+Subnet-EVM has been moved entirely to the [AvalancheGo](https://github.com/ava-labs/avalanchego/tree/master/graft/subnet-evm), and this repository is no longer under active development. To open issues, pull requests, and discussions, do so in [AvalancheGo](https://github.com/ava-labs/avalanchego). For the latest releases, see the [AvalancheGo release page](https://github.com/ava-labs/avalanchego/releases).
+
 # Subnet EVM
 
 [![Releases](https://img.shields.io/github/v/tag/ava-labs/subnet-evm.svg?sort=semver)](https://github.com/ava-labs/subnet-evm/releases)
