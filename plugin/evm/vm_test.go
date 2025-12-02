@@ -766,9 +766,9 @@ func testReorgProtection(t *testing.T, scheme string) {
 	// should NEVER happen. However, the VM defends against this
 	// just in case.
 	err = vm1.SetPreference(t.Context(), vm1BlkC.ID())
-	require.ErrorContains(t, err, "cannot orphan finalized block") //nolint:forbidigo // uses upstream code
+	require.ErrorContains(t, err, "cannot orphan finalized block", "Expected error when setting preference that would orphan finalized block") //nolint:forbidigo // uses upstream code
 	err = vm1BlkC.Accept(t.Context())
-	require.ErrorContains(t, err, "expected accepted block to have parent") //nolint:forbidigo // uses upstream code
+	require.ErrorContains(t, err, "expected accepted block to have parent", "Expected error when accepting orphaned block") //nolint:forbidigo // uses upstream code
 }
 
 // Regression test to ensure that a VM that accepts block C while preferring
@@ -1088,7 +1088,7 @@ func testStickyPreference(t *testing.T, scheme string) {
 
 	// Attempt to accept out of order
 	err = vm1BlkD.Accept(t.Context())
-	require.ErrorContains(t, err, "expected accepted block to have parent") //nolint:forbidigo // uses upstream code
+	require.ErrorContains(t, vm1BlkD.Accept(t.Context()), "expected accepted block to have parent", "unexpected error when accepting out of order block") //nolint:forbidigo // uses upstream code
 
 	// Accept in order
 	require.NoError(t, vm1BlkC.Accept(t.Context()), "Block failed verification on VM1")
