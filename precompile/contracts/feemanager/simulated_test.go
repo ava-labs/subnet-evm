@@ -96,8 +96,9 @@ func deployFeeManagerTest(t *testing.T, b *sim.Backend, auth *bind.TransactOpts)
 	return addr, contract
 }
 
-// setFeeConfig sets fee config using a FeeConfig struct instead of individual parameters
-func setFeeConfig(t *testing.T, b *sim.Backend, contract *feemanagerbindings.FeeManagerTest, auth *bind.TransactOpts, config commontype.FeeConfig) {
+// setFeeConfig sets fee config using a FeeConfig struct instead of individual parameters.
+// Returns the block number where the config was changed.
+func setFeeConfig(t *testing.T, b *sim.Backend, contract *feemanagerbindings.FeeManagerTest, auth *bind.TransactOpts, config commontype.FeeConfig) uint64 {
 	t.Helper()
 	tx, err := contract.SetFeeConfig(
 		auth,
@@ -111,30 +112,29 @@ func setFeeConfig(t *testing.T, b *sim.Backend, contract *feemanagerbindings.Fee
 		config.BlockGasCostStep,
 	)
 	require.NoError(t, err)
-	testutils.WaitReceiptSuccessful(t, b, tx)
+	receipt := testutils.WaitReceiptSuccessful(t, b, tx)
+	return receipt.BlockNumber.Uint64()
 }
 
-// verifyFeeConfigMatches verifies that the contract's fee config matches the expected config
-func verifyFeeConfigMatches(t *testing.T, contract *feemanagerbindings.FeeManagerTest, expected commontype.FeeConfig) {
-	t.Helper()
-	actual, err := contract.GetFeeConfig(nil)
-	require.NoError(t, err)
-
-	require.Zero(t, expected.GasLimit.Cmp(actual.GasLimit), "gasLimit mismatch")
-	require.Equal(t, big.NewInt(int64(expected.TargetBlockRate)), actual.TargetBlockRate, "targetBlockRate mismatch")
-	require.Zero(t, expected.MinBaseFee.Cmp(actual.MinBaseFee), "minBaseFee mismatch")
-	require.Zero(t, expected.TargetGas.Cmp(actual.TargetGas), "targetGas mismatch")
-	require.Zero(t, expected.BaseFeeChangeDenominator.Cmp(actual.BaseFeeChangeDenominator), "baseFeeChangeDenominator mismatch")
-	require.Zero(t, expected.MinBlockGasCost.Cmp(actual.MinBlockGasCost), "minBlockGasCost mismatch")
-	require.Zero(t, expected.MaxBlockGasCost.Cmp(actual.MaxBlockGasCost), "maxBlockGasCost mismatch")
-	require.Zero(t, expected.BlockGasCostStep.Cmp(actual.BlockGasCostStep), "blockGasCostStep mismatch")
+// toCommonFeeConfig converts a bindings FeeConfig to a commontype.FeeConfig
+func toCommonFeeConfig(cfg feemanagerbindings.IFeeManagerFeeConfig) commontype.FeeConfig {
+	return commontype.FeeConfig{
+		GasLimit:                 cfg.GasLimit,
+		TargetBlockRate:          uint64(cfg.TargetBlockRate.Int64()),
+		MinBaseFee:               cfg.MinBaseFee,
+		TargetGas:                cfg.TargetGas,
+		BaseFeeChangeDenominator: cfg.BaseFeeChangeDenominator,
+		MinBlockGasCost:          cfg.MinBlockGasCost,
+		MaxBlockGasCost:          cfg.MaxBlockGasCost,
+		BlockGasCostStep:         cfg.BlockGasCostStep,
+	}
 }
 
-// verifyEventFeeConfigMatches verifies that an event's fee config matches the expected config
-func verifyEventFeeConfigMatches(t *testing.T, actual feemanagerbindings.IFeeManagerFeeConfig, expected commontype.FeeConfig) {
+// verifyFeeConfigsMatch verifies that two fee configs match
+func verifyFeeConfigsMatch(t *testing.T, expected, actual commontype.FeeConfig) {
 	t.Helper()
 	require.Zero(t, expected.GasLimit.Cmp(actual.GasLimit), "gasLimit mismatch")
-	require.Equal(t, big.NewInt(int64(expected.TargetBlockRate)), actual.TargetBlockRate, "targetBlockRate mismatch")
+	require.Zero(t, big.NewInt(int64(expected.TargetBlockRate)).Cmp(big.NewInt(int64(actual.TargetBlockRate))), "targetBlockRate mismatch")
 	require.Zero(t, expected.MinBaseFee.Cmp(actual.MinBaseFee), "minBaseFee mismatch")
 	require.Zero(t, expected.TargetGas.Cmp(actual.TargetGas), "targetGas mismatch")
 	require.Zero(t, expected.BaseFeeChangeDenominator.Cmp(actual.BaseFeeChangeDenominator), "baseFeeChangeDenominator mismatch")
@@ -205,14 +205,19 @@ func TestFeeManager(t *testing.T) {
 				testContractAddr, testContract := deployFeeManagerTest(t, backend, admin)
 				allowlisttest.SetAsEnabled(t, backend, feeManager, admin, testContractAddr)
 
-				verifyFeeConfigMatches(t, testContract, genesisFeeConfig)
-				setFeeConfig(t, backend, testContract, admin, cchainFeeConfig)
-				verifyFeeConfigMatches(t, testContract, cchainFeeConfig)
+				got, err := testContract.GetFeeConfig(nil)
+				require.NoError(t, err)
+				verifyFeeConfigsMatch(t, genesisFeeConfig, toCommonFeeConfig(got))
 
-				// Verify last changed at block number
+				blockNum := setFeeConfig(t, backend, testContract, admin, cchainFeeConfig)
+
+				got, err = testContract.GetFeeConfig(nil)
+				require.NoError(t, err)
+				verifyFeeConfigsMatch(t, cchainFeeConfig, toCommonFeeConfig(got))
+
 				lastChangedAt, err := testContract.GetFeeConfigLastChangedAt(nil)
 				require.NoError(t, err)
-				require.NotZero(t, lastChangedAt.Uint64())
+				require.Equal(t, blockNum, lastChangedAt.Uint64())
 			},
 		},
 		{
@@ -229,7 +234,7 @@ func TestFeeManager(t *testing.T) {
 				// Raise min fee by one
 				raisedConfig := genesisFeeConfig
 				raisedConfig.MinBaseFee = new(big.Int).Add(originalMinBaseFee, big.NewInt(1))
-				setFeeConfig(t, backend, testContract, admin, raisedConfig)
+				_ = setFeeConfig(t, backend, testContract, admin, raisedConfig)
 
 				// Try to send a transaction with the old (now too low) fee - should fail
 				lowFeeAuth := testutils.NewAuth(t, adminKey, params.TestChainConfig.ChainID)
@@ -305,8 +310,8 @@ func TestIFeeManager_Events(t *testing.T) {
 		event := iter.Event
 		require.Equal(adminAddress, event.Sender)
 
-		verifyEventFeeConfigMatches(t, event.OldFeeConfig, genesisFeeConfig)
-		verifyEventFeeConfigMatches(t, event.NewFeeConfig, cchainFeeConfig)
+		verifyFeeConfigsMatch(t, genesisFeeConfig, toCommonFeeConfig(event.OldFeeConfig))
+		verifyFeeConfigsMatch(t, cchainFeeConfig, toCommonFeeConfig(event.NewFeeConfig))
 
 		require.False(iter.Next(), "expected no more FeeConfigChanged events")
 		require.NoError(iter.Error())
