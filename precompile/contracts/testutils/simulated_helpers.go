@@ -4,7 +4,6 @@
 package testutils
 
 import (
-	"context"
 	"crypto/ecdsa"
 	"math/big"
 	"testing"
@@ -49,17 +48,16 @@ func WaitReceiptSuccessful(t *testing.T, b *sim.Backend, tx *types.Transaction) 
 // TODO(jonathanoppenheimer): after libevmifiying the geth code, investigate whether we can use the same code for both
 func SendSimpleTx(t *testing.T, b *sim.Backend, key *ecdsa.PrivateKey) *types.Transaction {
 	t.Helper()
-	ctx := context.Background()
 	client := b.Client()
 	addr := crypto.PubkeyToAddress(key.PublicKey)
 
-	chainID, err := client.ChainID(ctx)
+	chainID, err := client.ChainID(t.Context())
 	require.NoError(t, err)
 
-	nonce, err := client.NonceAt(ctx, addr, nil)
+	nonce, err := client.NonceAt(t.Context(), addr, nil)
 	require.NoError(t, err)
 
-	head, err := client.HeaderByNumber(ctx, nil)
+	head, err := client.HeaderByNumber(t.Context(), nil)
 	require.NoError(t, err)
 
 	gasPrice := new(big.Int).Add(head.BaseFee, big.NewInt(params.GWei))
@@ -77,7 +75,7 @@ func SendSimpleTx(t *testing.T, b *sim.Backend, key *ecdsa.PrivateKey) *types.Tr
 	signedTx, err := types.SignTx(tx, types.LatestSignerForChainID(chainID), key)
 	require.NoError(t, err)
 
-	err = client.SendTransaction(ctx, signedTx)
+	err = client.SendTransaction(t.Context(), signedTx)
 	require.NoError(t, err)
 
 	return signedTx

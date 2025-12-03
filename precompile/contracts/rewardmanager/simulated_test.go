@@ -4,7 +4,6 @@
 package rewardmanager_test
 
 import (
-	"context"
 	"math/big"
 	"testing"
 
@@ -190,31 +189,30 @@ func TestRewardManager(t *testing.T) {
 		},
 		{
 			name: "fees should go to blackhole by default",
-			test: func(t *testing.T, backend *sim.Backend, rewardManager *rewardmanagerbindings.IRewardManager) {
-				ctx := context.Background()
+			test: func(t *testing.T, backend *sim.Backend, _ *rewardmanagerbindings.IRewardManager) {
 				client := backend.Client()
 
-				initialBlackholeBalance, err := client.BalanceAt(ctx, constants.BlackholeAddr, nil)
+				initialBlackholeBalance, err := client.BalanceAt(t.Context(), constants.BlackholeAddr, nil)
 				require.NoError(t, err)
 
 				tx := testutils.SendSimpleTx(t, backend, adminKey)
 				testutils.WaitReceiptSuccessful(t, backend, tx)
 
-				newBlackholeBalance, err := client.BalanceAt(ctx, constants.BlackholeAddr, nil)
+				newBlackholeBalance, err := client.BalanceAt(t.Context(), constants.BlackholeAddr, nil)
 				require.NoError(t, err)
 
-				require.Greater(t, newBlackholeBalance.Cmp(initialBlackholeBalance), 0,
+				require.Positive(t, newBlackholeBalance.Cmp(initialBlackholeBalance),
 					"blackhole balance should have increased from fees")
-			}},
+			},
+		},
 		{
 			name: "fees should go to configured reward address",
 			test: func(t *testing.T, backend *sim.Backend, rewardManager *rewardmanagerbindings.IRewardManager) {
-				ctx := context.Background()
 				client := backend.Client()
 
 				rewardRecipientAddr, _ := deployRewardManagerTest(t, backend, admin)
 
-				initialRecipientBalance, err := client.BalanceAt(ctx, rewardRecipientAddr, nil)
+				initialRecipientBalance, err := client.BalanceAt(t.Context(), rewardRecipientAddr, nil)
 				require.NoError(t, err)
 
 				allowlisttest.SetAsEnabled(t, backend, rewardManager, admin, rewardRecipientAddr)
@@ -227,17 +225,17 @@ func TestRewardManager(t *testing.T) {
 				require.NoError(t, err)
 				require.Equal(t, rewardRecipientAddr, currentAddr)
 
-				// Send a transaction to generate fees
-				// The fees from THIS transaction should go to the reward address
+				// The fees from this transaction should go to the reward address
 				tx = testutils.SendSimpleTx(t, backend, adminKey)
 				testutils.WaitReceiptSuccessful(t, backend, tx)
 
-				newRecipientBalance, err := client.BalanceAt(ctx, rewardRecipientAddr, nil)
+				newRecipientBalance, err := client.BalanceAt(t.Context(), rewardRecipientAddr, nil)
 				require.NoError(t, err)
 
-				require.Greater(t, newRecipientBalance.Cmp(initialRecipientBalance), 0,
+				require.Positive(t, newRecipientBalance.Cmp(initialRecipientBalance),
 					"reward recipient balance should have increased from fees")
-			}},
+			},
+		},
 	}
 
 	for _, tc := range testCases {
