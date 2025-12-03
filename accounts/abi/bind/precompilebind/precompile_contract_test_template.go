@@ -95,7 +95,7 @@ var(
 			{{- end}}
 			SuppliedGas: {{$func.Normalized.Name}}GasCost,
 			ReadOnly:    false,
-			WantErr: {{if $fail}} ErrCannot{{$func.Normalized.Name}} {{- else}} nil {{- end}},
+			ExpectedErr: {{if $fail}} ErrCannot{{$func.Normalized.Name}} {{- else}} nil {{- end}},
 		},
 		{{- end}}
 		{{- end}}
@@ -124,7 +124,7 @@ var(
 			},
 			SuppliedGas:  {{$func.Normalized.Name}}GasCost,
 			ReadOnly:    true,
-			WantErr: vm.ErrWriteProtection,
+			ExpectedErr: vm.ErrWriteProtection,
 		},
 		{{- end}}
 		{
@@ -151,7 +151,7 @@ var(
 			},
 			SuppliedGas: {{$func.Normalized.Name}}GasCost - 1,
 			ReadOnly:    false,
-			WantErr: vm.ErrOutOfGas,
+			ExpectedErr: vm.ErrOutOfGas,
 		},
 		{{- end}}
 		{{- if .Contract.Fallback}}
@@ -161,7 +161,7 @@ var(
 			Input:  []byte{},
 			SuppliedGas: {{.Contract.Type}}FallbackGasCost - 1,
 			ReadOnly:    false,
-			WantErr: vm.ErrOutOfGas,
+			ExpectedErr: vm.ErrOutOfGas,
 		},
 		{
 			Name:   "readOnly fallback should fail",
@@ -169,7 +169,7 @@ var(
 			Input: []byte{},
 			SuppliedGas: {{.Contract.Type}}FallbackGasCost,
 			ReadOnly:    true,
-			WantErr: vm.ErrWriteProtection,
+			ExpectedErr: vm.ErrWriteProtection,
 		},
 		{
 			Name: "fallback should succeed",
@@ -177,7 +177,7 @@ var(
 			Input: []byte{},
 			SuppliedGas: {{.Contract.Type}}FallbackGasCost,
 			ReadOnly:    false,
-			WantErr: nil,
+			ExpectedErr: nil,
 			// CUSTOM CODE STARTS HERE
 			// set expected output here
 			ExpectedRes: []byte{},

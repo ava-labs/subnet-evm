@@ -54,8 +54,8 @@ type PrecompileTest struct {
 	AfterHook func(t testing.TB, state *extstate.StateDB)
 	// ExpectedRes is the expected raw byte result returned by the precompile
 	ExpectedRes []byte
-	// WantErr is the expected error returned by the precompile
-	WantErr error
+	// ExpectedErr is the expected error returned by the precompile
+	ExpectedErr error
 	// ChainConfig is the chain config to use for the precompile's block context
 	// If nil, the default chain config will be used.
 	ChainConfigFn func(*gomock.Controller) precompileconfig.ChainConfig
@@ -81,7 +81,7 @@ func (test PrecompileTest) Run(t *testing.T, module modules.Module) {
 
 	if runParams.Input != nil {
 		ret, remainingGas, err := module.Contract.Run(runParams.AccessibleState, runParams.Caller, runParams.ContractAddress, runParams.Input, runParams.SuppliedGas, runParams.ReadOnly)
-		require.ErrorIs(t, err, test.WantErr)
+		require.ErrorIs(t, err, test.ExpectedErr)
 		require.Equal(t, uint64(0), remainingGas)
 		require.Equal(t, test.ExpectedRes, ret)
 	}
@@ -105,7 +105,7 @@ func (test PrecompileTest) Bench(b *testing.B, module modules.Module) {
 	snapshot := stateDB.Snapshot()
 
 	ret, remainingGas, err := module.Contract.Run(runParams.AccessibleState, runParams.Caller, runParams.ContractAddress, runParams.Input, runParams.SuppliedGas, runParams.ReadOnly)
-	require.ErrorIs(b, err, test.WantErr)
+	require.ErrorIs(b, err, test.ExpectedErr)
 	require.Equal(b, uint64(0), remainingGas)
 	require.Equal(b, test.ExpectedRes, ret)
 
@@ -141,7 +141,7 @@ func (test PrecompileTest) Bench(b *testing.B, module modules.Module) {
 	// the benchmark should catch the error here.
 	stateDB.RevertToSnapshot(snapshot)
 	ret, remainingGas, err = module.Contract.Run(runParams.AccessibleState, runParams.Caller, runParams.ContractAddress, runParams.Input, runParams.SuppliedGas, runParams.ReadOnly)
-	require.ErrorIs(b, err, test.WantErr)
+	require.ErrorIs(b, err, test.ExpectedErr)
 	require.Equal(b, uint64(0), remainingGas)
 	require.Equal(b, test.ExpectedRes, ret)
 

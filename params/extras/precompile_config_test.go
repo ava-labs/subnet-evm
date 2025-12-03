@@ -92,9 +92,9 @@ func TestVerifyWithChainConfigAtNilTimestamp(t *testing.T) {
 func TestVerifyPrecompileUpgrades(t *testing.T) {
 	admins := []common.Address{{1}}
 	tests := []struct {
-		name      string
-		upgrades  []PrecompileUpgrade
-		wantError error
+		name          string
+		upgrades      []PrecompileUpgrade
+		expectedError error
 	}{
 		{
 			name: "enable and disable tx allow list",
@@ -106,7 +106,7 @@ func TestVerifyPrecompileUpgrades(t *testing.T) {
 					Config: txallowlist.NewDisableConfig(utils.NewUint64(2)),
 				},
 			},
-			wantError: nil,
+			expectedError: nil,
 		},
 		{
 			name: "invalid allow list config in tx allowlist",
@@ -121,7 +121,7 @@ func TestVerifyPrecompileUpgrades(t *testing.T) {
 					Config: txallowlist.NewConfig(utils.NewUint64(3), admins, admins, admins),
 				},
 			},
-			wantError: allowlist.ErrAdminAndEnabledAddress,
+			expectedError: allowlist.ErrAdminAndEnabledAddress,
 		},
 		{
 			name: "invalid initial fee manager config",
@@ -135,7 +135,7 @@ func TestVerifyPrecompileUpgrades(t *testing.T) {
 						}()),
 				},
 			},
-			wantError: commontype.ErrGasLimitTooLow,
+			expectedError: commontype.ErrGasLimitTooLow,
 		},
 		{
 			name: "invalid initial fee manager config gas limit 0",
@@ -149,7 +149,7 @@ func TestVerifyPrecompileUpgrades(t *testing.T) {
 						}()),
 				},
 			},
-			wantError: commontype.ErrGasLimitTooLow,
+			expectedError: commontype.ErrGasLimitTooLow,
 		},
 		{
 			name: "different upgrades are allowed to configure same timestamp for different precompiles",
@@ -161,7 +161,7 @@ func TestVerifyPrecompileUpgrades(t *testing.T) {
 					Config: feemanager.NewConfig(utils.NewUint64(1), admins, nil, nil, nil),
 				},
 			},
-			wantError: nil,
+			expectedError: nil,
 		},
 		{
 			name: "different upgrades must be monotonically increasing",
@@ -173,7 +173,7 @@ func TestVerifyPrecompileUpgrades(t *testing.T) {
 					Config: feemanager.NewConfig(utils.NewUint64(1), admins, nil, nil, nil),
 				},
 			},
-			wantError: errPrecompileUpgradeTimestampNotMonotonic,
+			expectedError: errPrecompileUpgradeTimestampNotMonotonic,
 		},
 		{
 			name: "upgrades with same keys are not allowed to configure same timestamp for same precompiles",
@@ -185,7 +185,7 @@ func TestVerifyPrecompileUpgrades(t *testing.T) {
 					Config: txallowlist.NewDisableConfig(utils.NewUint64(1)),
 				},
 			},
-			wantError: errPrecompileUpgradeSameKeyTimestampNotStrictly,
+			expectedError: errPrecompileUpgradeSameKeyTimestampNotStrictly,
 		},
 	}
 	for _, tt := range tests {
@@ -197,7 +197,7 @@ func TestVerifyPrecompileUpgrades(t *testing.T) {
 			config.PrecompileUpgrades = tt.upgrades
 
 			err := config.Verify()
-			require.ErrorIs(err, tt.wantError)
+			require.ErrorIs(err, tt.expectedError)
 		})
 	}
 }

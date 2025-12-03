@@ -57,7 +57,7 @@ func AllowListConfigVerifyTests(t testing.TB, module modules.Module) map[string]
 				ManagerAddresses: nil,
 				EnabledAddresses: nil,
 			}),
-			WantError: allowlist.ErrDuplicateAdminAddress,
+			ExpectedError: allowlist.ErrDuplicateAdminAddress,
 		},
 		"invalid allow list config with duplicate enableds in allowlist": {
 			Config: mkConfigWithAllowList(module, &allowlist.AllowListConfig{
@@ -65,7 +65,7 @@ func AllowListConfigVerifyTests(t testing.TB, module modules.Module) map[string]
 				ManagerAddresses: nil,
 				EnabledAddresses: []common.Address{TestEnabledAddr, TestEnabledAddr},
 			}),
-			WantError: allowlist.ErrDuplicateEnabledAddress,
+			ExpectedError: allowlist.ErrDuplicateEnabledAddress,
 		},
 		"invalid allow list config with duplicate managers in allowlist": {
 			Config: mkConfigWithAllowList(module, &allowlist.AllowListConfig{
@@ -73,7 +73,7 @@ func AllowListConfigVerifyTests(t testing.TB, module modules.Module) map[string]
 				ManagerAddresses: []common.Address{TestManagerAddr, TestManagerAddr},
 				EnabledAddresses: nil,
 			}),
-			WantError: allowlist.ErrDuplicateManagerAddress,
+			ExpectedError: allowlist.ErrDuplicateManagerAddress,
 		},
 		"invalid allow list config with same admin and enabled in allowlist": {
 			Config: mkConfigWithAllowList(module, &allowlist.AllowListConfig{
@@ -81,7 +81,7 @@ func AllowListConfigVerifyTests(t testing.TB, module modules.Module) map[string]
 				ManagerAddresses: nil,
 				EnabledAddresses: []common.Address{TestAdminAddr},
 			}),
-			WantError: allowlist.ErrAdminAndEnabledAddress,
+			ExpectedError: allowlist.ErrAdminAndEnabledAddress,
 		},
 		"invalid allow list config with same admin and manager in allowlist": {
 			Config: mkConfigWithAllowList(module, &allowlist.AllowListConfig{
@@ -89,7 +89,7 @@ func AllowListConfigVerifyTests(t testing.TB, module modules.Module) map[string]
 				ManagerAddresses: []common.Address{TestAdminAddr},
 				EnabledAddresses: nil,
 			}),
-			WantError: allowlist.ErrAdminAndManagerAddress,
+			ExpectedError: allowlist.ErrAdminAndManagerAddress,
 		},
 		"invalid allow list config with same manager and enabled in allowlist": {
 			Config: mkConfigWithAllowList(module, &allowlist.AllowListConfig{
@@ -97,7 +97,7 @@ func AllowListConfigVerifyTests(t testing.TB, module modules.Module) map[string]
 				ManagerAddresses: []common.Address{TestManagerAddr},
 				EnabledAddresses: []common.Address{TestManagerAddr},
 			}),
-			WantError: allowlist.ErrEnabledAndManagerAddress,
+			ExpectedError: allowlist.ErrEnabledAndManagerAddress,
 		},
 		"invalid allow list config with manager role before activation": {
 			Config: mkConfigWithUpgradeAndAllowList(module, &allowlist.AllowListConfig{
@@ -112,7 +112,7 @@ func AllowListConfigVerifyTests(t testing.TB, module modules.Module) map[string]
 				config.EXPECT().IsDurango(gomock.Any()).Return(false)
 				return config
 			}(),
-			WantError: allowlist.ErrCannotAddManagersBeforeDurango,
+			ExpectedError: allowlist.ErrCannotAddManagersBeforeDurango,
 		},
 		"nil member allow list config in allowlist": {
 			Config: mkConfigWithAllowList(module, &allowlist.AllowListConfig{
@@ -120,7 +120,7 @@ func AllowListConfigVerifyTests(t testing.TB, module modules.Module) map[string]
 				ManagerAddresses: nil,
 				EnabledAddresses: nil,
 			}),
-			WantError: nil,
+			ExpectedError: nil,
 		},
 		"empty member allow list config in allowlist": {
 			Config: mkConfigWithAllowList(module, &allowlist.AllowListConfig{
@@ -128,7 +128,7 @@ func AllowListConfigVerifyTests(t testing.TB, module modules.Module) map[string]
 				ManagerAddresses: []common.Address{},
 				EnabledAddresses: []common.Address{},
 			}),
-			WantError: nil,
+			ExpectedError: nil,
 		},
 		"valid allow list config in allowlist": {
 			Config: mkConfigWithAllowList(module, &allowlist.AllowListConfig{
@@ -136,7 +136,7 @@ func AllowListConfigVerifyTests(t testing.TB, module modules.Module) map[string]
 				ManagerAddresses: []common.Address{TestManagerAddr},
 				EnabledAddresses: []common.Address{TestEnabledAddr},
 			}),
-			WantError: nil,
+			ExpectedError: nil,
 		},
 	}
 }

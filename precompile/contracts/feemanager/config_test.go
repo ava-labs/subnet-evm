@@ -37,12 +37,12 @@ func TestVerify(t *testing.T) {
 	invalidFeeConfig.GasLimit = big.NewInt(0)
 	tests := map[string]precompiletest.ConfigVerifyTest{
 		"invalid initial fee manager config": {
-			Config:    feemanager.NewConfig(utils.NewUint64(3), admins, nil, nil, &invalidFeeConfig),
-			WantError: commontype.ErrGasLimitTooLow,
+			Config:        feemanager.NewConfig(utils.NewUint64(3), admins, nil, nil, &invalidFeeConfig),
+			ExpectedError: commontype.ErrGasLimitTooLow,
 		},
 		"nil initial fee manager config": {
-			Config:    feemanager.NewConfig(utils.NewUint64(3), admins, nil, nil, &commontype.FeeConfig{}),
-			WantError: commontype.ErrGasLimitNil,
+			Config:        feemanager.NewConfig(utils.NewUint64(3), admins, nil, nil, &commontype.FeeConfig{}),
+			ExpectedError: commontype.ErrGasLimitNil,
 		},
 	}
 	allowlisttest.VerifyPrecompileWithAllowListTests(t, feemanager.Module, tests)

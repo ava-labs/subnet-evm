@@ -15,9 +15,9 @@ import (
 
 // ConfigVerifyTest is a test case for verifying a config
 type ConfigVerifyTest struct {
-	Config      precompileconfig.Config
-	ChainConfig precompileconfig.ChainConfig
-	WantError   error
+	Config        precompileconfig.Config
+	ChainConfig   precompileconfig.ChainConfig
+	ExpectedError error
 }
 
 // ConfigEqualTest is a test case for comparing two configs
@@ -43,7 +43,7 @@ func RunVerifyTests(t *testing.T, tests map[string]ConfigVerifyTest) {
 				chainConfig = mockChainConfig
 			}
 			err := test.Config.Verify(chainConfig)
-			require.ErrorIs(err, test.WantError)
+			require.ErrorIs(err, test.ExpectedError)
 		})
 	}
 }

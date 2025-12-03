@@ -30,19 +30,19 @@ func TestVerify(t *testing.T) {
 				config.EXPECT().IsDurango(gomock.Any()).Return(true).AnyTimes()
 				return config
 			}(),
-			WantError: nil,
+			ExpectedError: nil,
 		},
 		"invalid allow list config in native minter allowlisttest": {
-			Config:    nativeminter.NewConfig(utils.NewUint64(3), admins, admins, nil, nil),
-			WantError: allowlist.ErrAdminAndEnabledAddress,
+			Config:        nativeminter.NewConfig(utils.NewUint64(3), admins, admins, nil, nil),
+			ExpectedError: allowlist.ErrAdminAndEnabledAddress,
 		},
 		"duplicate admins in config in native minter allowlisttest": {
-			Config:    nativeminter.NewConfig(utils.NewUint64(3), append(admins, admins[0]), enableds, managers, nil),
-			WantError: allowlist.ErrDuplicateAdminAddress,
+			Config:        nativeminter.NewConfig(utils.NewUint64(3), append(admins, admins[0]), enableds, managers, nil),
+			ExpectedError: allowlist.ErrDuplicateAdminAddress,
 		},
 		"duplicate enableds in config in native minter allowlisttest": {
-			Config:    nativeminter.NewConfig(utils.NewUint64(3), admins, append(enableds, enableds[0]), managers, nil),
-			WantError: allowlist.ErrDuplicateEnabledAddress,
+			Config:        nativeminter.NewConfig(utils.NewUint64(3), admins, append(enableds, enableds[0]), managers, nil),
+			ExpectedError: allowlist.ErrDuplicateEnabledAddress,
 		},
 		"nil amount in native minter config": {
 			Config: nativeminter.NewConfig(utils.NewUint64(3), admins, nil, nil,
@@ -50,7 +50,7 @@ func TestVerify(t *testing.T) {
 					common.HexToAddress("0x01"): math.NewHexOrDecimal256(123),
 					common.HexToAddress("0x02"): nil,
 				}),
-			WantError: nativeminter.ErrInitialMintNilAmount,
+			ExpectedError: nativeminter.ErrInitialMintNilAmount,
 		},
 		"negative amount in native minter config": {
 			Config: nativeminter.NewConfig(utils.NewUint64(3), admins, nil, nil,
@@ -58,7 +58,7 @@ func TestVerify(t *testing.T) {
 					common.HexToAddress("0x01"): math.NewHexOrDecimal256(123),
 					common.HexToAddress("0x02"): math.NewHexOrDecimal256(-1),
 				}),
-			WantError: nativeminter.ErrInitialMintInvalidAmount,
+			ExpectedError: nativeminter.ErrInitialMintInvalidAmount,
 		},
 	}
 	allowlisttest.VerifyPrecompileWithAllowListTests(t, nativeminter.Module, tests)

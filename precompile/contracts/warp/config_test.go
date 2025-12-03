@@ -16,12 +16,12 @@ import (
 func TestVerify(t *testing.T) {
 	tests := map[string]precompiletest.ConfigVerifyTest{
 		"quorum numerator less than minimum": {
-			Config:    NewConfig(utils.NewUint64(3), WarpQuorumNumeratorMinimum-1, false),
-			WantError: ErrInvalidQuorumRatio,
+			Config:        NewConfig(utils.NewUint64(3), WarpQuorumNumeratorMinimum-1, false),
+			ExpectedError: ErrInvalidQuorumRatio,
 		},
 		"quorum numerator greater than quorum denominator": {
-			Config:    NewConfig(utils.NewUint64(3), WarpQuorumDenominator+1, false),
-			WantError: ErrInvalidQuorumRatio,
+			Config:        NewConfig(utils.NewUint64(3), WarpQuorumDenominator+1, false),
+			ExpectedError: ErrInvalidQuorumRatio,
 		},
 		"default quorum numerator": {
 			Config: NewDefaultConfig(utils.NewUint64(3)),
@@ -39,7 +39,7 @@ func TestVerify(t *testing.T) {
 				config.EXPECT().IsDurango(gomock.Any()).Return(false)
 				return config
 			}(),
-			WantError: errWarpCannotBeActivated,
+			ExpectedError: errWarpCannotBeActivated,
 		},
 	}
 	precompiletest.RunVerifyTests(t, tests)
