@@ -23,9 +23,9 @@ func TestVerifyStateUpgrades(t *testing.T) {
 		},
 	}
 	tests := []struct {
-		name      string
-		upgrades  []StateUpgrade
-		wantError error
+		name          string
+		upgrades      []StateUpgrade
+		expectedError error
 	}{
 		{
 			name: "valid upgrade",
@@ -33,7 +33,7 @@ func TestVerifyStateUpgrades(t *testing.T) {
 				{BlockTimestamp: utils.NewUint64(1), StateUpgradeAccounts: modifiedAccounts},
 				{BlockTimestamp: utils.NewUint64(2), StateUpgradeAccounts: modifiedAccounts},
 			},
-			wantError: nil,
+			expectedError: nil,
 		},
 		{
 			name: "upgrade block timestamp is not strictly increasing",
@@ -41,7 +41,7 @@ func TestVerifyStateUpgrades(t *testing.T) {
 				{BlockTimestamp: utils.NewUint64(1), StateUpgradeAccounts: modifiedAccounts},
 				{BlockTimestamp: utils.NewUint64(1), StateUpgradeAccounts: modifiedAccounts},
 			},
-			wantError: errStateUpgradeTimestampNotMonotonic,
+			expectedError: errStateUpgradeTimestampNotMonotonic,
 		},
 		{
 			name: "upgrade block timestamp decreases",
@@ -49,14 +49,14 @@ func TestVerifyStateUpgrades(t *testing.T) {
 				{BlockTimestamp: utils.NewUint64(2), StateUpgradeAccounts: modifiedAccounts},
 				{BlockTimestamp: utils.NewUint64(1), StateUpgradeAccounts: modifiedAccounts},
 			},
-			wantError: errStateUpgradeTimestampNotMonotonic,
+			expectedError: errStateUpgradeTimestampNotMonotonic,
 		},
 		{
 			name: "upgrade block timestamp is zero",
 			upgrades: []StateUpgrade{
 				{BlockTimestamp: utils.NewUint64(0), StateUpgradeAccounts: modifiedAccounts},
 			},
-			wantError: errStateUpgradeTimestampZero,
+			expectedError: errStateUpgradeTimestampZero,
 		},
 	}
 	for _, tt := range tests {
@@ -68,7 +68,7 @@ func TestVerifyStateUpgrades(t *testing.T) {
 			config.StateUpgrades = tt.upgrades
 
 			err := config.Verify()
-			require.ErrorIs(err, tt.wantError)
+			require.ErrorIs(err, tt.expectedError)
 		})
 	}
 }

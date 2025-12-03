@@ -205,16 +205,16 @@ func TestVerifyPrecompileUpgrades(t *testing.T) {
 func TestVerifyPrecompiles(t *testing.T) {
 	admins := []common.Address{{1}}
 	tests := []struct {
-		name        string
-		precompiles Precompiles
-		wantError   error
+		name          string
+		precompiles   Precompiles
+		expectedError error
 	}{
 		{
 			name: "invalid allow list config in tx allowlist",
 			precompiles: Precompiles{
 				txallowlist.ConfigKey: txallowlist.NewConfig(utils.NewUint64(3), admins, admins, admins),
 			},
-			wantError: allowlist.ErrAdminAndEnabledAddress,
+			expectedError: allowlist.ErrAdminAndEnabledAddress,
 		},
 		{
 			name: "invalid initial fee manager config",
@@ -226,7 +226,7 @@ func TestVerifyPrecompiles(t *testing.T) {
 						return &feeConfig
 					}()),
 			},
-			wantError: commontype.ErrGasLimitTooLow,
+			expectedError: commontype.ErrGasLimitTooLow,
 		},
 	}
 	for _, tt := range tests {
@@ -238,7 +238,7 @@ func TestVerifyPrecompiles(t *testing.T) {
 			config.GenesisPrecompiles = tt.precompiles
 
 			err := config.Verify()
-			require.ErrorIs(err, tt.wantError)
+			require.ErrorIs(err, tt.expectedError)
 		})
 	}
 }

@@ -12,9 +12,9 @@ import (
 
 func TestVerify(t *testing.T) {
 	tests := []struct {
-		name      string
-		config    *FeeConfig
-		wantError error
+		name          string
+		config        *FeeConfig
+		expectedError error
 	}{
 		{
 			name: "nil gasLimit in FeeConfig",
@@ -30,42 +30,42 @@ func TestVerify(t *testing.T) {
 				MaxBlockGasCost:  big.NewInt(1_000_000),
 				BlockGasCostStep: big.NewInt(200_000),
 			},
-			wantError: ErrGasLimitNil,
+			expectedError: ErrGasLimitNil,
 		},
 		{
-			name:      "invalid GasLimit in FeeConfig",
-			config:    func() *FeeConfig { c := ValidTestFeeConfig; c.GasLimit = big.NewInt(0); return &c }(),
-			wantError: ErrGasLimitTooLow,
+			name:          "invalid GasLimit in FeeConfig",
+			config:        func() *FeeConfig { c := ValidTestFeeConfig; c.GasLimit = big.NewInt(0); return &c }(),
+			expectedError: ErrGasLimitTooLow,
 		},
 		{
-			name:      "invalid TargetBlockRate in FeeConfig",
-			config:    func() *FeeConfig { c := ValidTestFeeConfig; c.TargetBlockRate = 0; return &c }(),
-			wantError: errTargetBlockRateTooLow,
+			name:          "invalid TargetBlockRate in FeeConfig",
+			config:        func() *FeeConfig { c := ValidTestFeeConfig; c.TargetBlockRate = 0; return &c }(),
+			expectedError: errTargetBlockRateTooLow,
 		},
 		{
-			name:      "invalid MinBaseFee in FeeConfig",
-			config:    func() *FeeConfig { c := ValidTestFeeConfig; c.MinBaseFee = big.NewInt(-1); return &c }(),
-			wantError: errMinBaseFeeNegative,
+			name:          "invalid MinBaseFee in FeeConfig",
+			config:        func() *FeeConfig { c := ValidTestFeeConfig; c.MinBaseFee = big.NewInt(-1); return &c }(),
+			expectedError: errMinBaseFeeNegative,
 		},
 		{
-			name:      "invalid TargetGas in FeeConfig",
-			config:    func() *FeeConfig { c := ValidTestFeeConfig; c.TargetGas = big.NewInt(0); return &c }(),
-			wantError: errTargetGasTooLow,
+			name:          "invalid TargetGas in FeeConfig",
+			config:        func() *FeeConfig { c := ValidTestFeeConfig; c.TargetGas = big.NewInt(0); return &c }(),
+			expectedError: errTargetGasTooLow,
 		},
 		{
-			name:      "invalid BaseFeeChangeDenominator in FeeConfig",
-			config:    func() *FeeConfig { c := ValidTestFeeConfig; c.BaseFeeChangeDenominator = big.NewInt(0); return &c }(),
-			wantError: errBaseFeeChangeDenominatorTooLow,
+			name:          "invalid BaseFeeChangeDenominator in FeeConfig",
+			config:        func() *FeeConfig { c := ValidTestFeeConfig; c.BaseFeeChangeDenominator = big.NewInt(0); return &c }(),
+			expectedError: errBaseFeeChangeDenominatorTooLow,
 		},
 		{
-			name:      "invalid MinBlockGasCost in FeeConfig",
-			config:    func() *FeeConfig { c := ValidTestFeeConfig; c.MinBlockGasCost = big.NewInt(-1); return &c }(),
-			wantError: errMinBlockGasCostNegative,
+			name:          "invalid MinBlockGasCost in FeeConfig",
+			config:        func() *FeeConfig { c := ValidTestFeeConfig; c.MinBlockGasCost = big.NewInt(-1); return &c }(),
+			expectedError: errMinBlockGasCostNegative,
 		},
 		{
-			name:      "valid FeeConfig",
-			config:    &ValidTestFeeConfig,
-			wantError: nil,
+			name:          "valid FeeConfig",
+			config:        &ValidTestFeeConfig,
+			expectedError: nil,
 		},
 		{
 			name: "MinBlockGasCost bigger than MaxBlockGasCost in FeeConfig",
@@ -75,19 +75,19 @@ func TestVerify(t *testing.T) {
 				c.MaxBlockGasCost = big.NewInt(1)
 				return &c
 			}(),
-			wantError: ErrMinBlockGasCostTooHigh,
+			expectedError: ErrMinBlockGasCostTooHigh,
 		},
 		{
-			name:      "invalid BlockGasCostStep in FeeConfig",
-			config:    func() *FeeConfig { c := ValidTestFeeConfig; c.BlockGasCostStep = big.NewInt(-1); return &c }(),
-			wantError: errBlockGasCostStepNegative,
+			name:          "invalid BlockGasCostStep in FeeConfig",
+			config:        func() *FeeConfig { c := ValidTestFeeConfig; c.BlockGasCostStep = big.NewInt(-1); return &c }(),
+			expectedError: errBlockGasCostStepNegative,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			err := test.config.Verify()
-			require.ErrorIs(t, err, test.wantError)
+			require.ErrorIs(t, err, test.expectedError)
 		})
 	}
 }
