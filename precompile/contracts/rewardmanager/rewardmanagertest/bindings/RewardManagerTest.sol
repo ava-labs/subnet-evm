@@ -33,4 +33,3 @@ contract RewardManagerTest {
     // Allow contract to receive ETH for fee testing
     receive() external payable {}
 }
-
