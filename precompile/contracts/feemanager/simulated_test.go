@@ -96,11 +96,16 @@ func deployFeeManagerTest(t *testing.T, b *sim.Backend, auth *bind.TransactOpts)
 	return addr, contract
 }
 
-// setFeeConfig sets fee config using a FeeConfig struct instead of individual parameters.
-// Returns the block number where the config was changed.
-func setFeeConfig(t *testing.T, b *sim.Backend, contract *feemanagerbindings.FeeManagerTest, auth *bind.TransactOpts, config commontype.FeeConfig) uint64 {
-	t.Helper()
-	tx, err := contract.SetFeeConfig(
+// feeConfigSetter is satisfied by both FeeManagerTest and IFeeManager bindings.
+// This allows us to use the same helper for both.
+type feeConfigSetter interface {
+	SetFeeConfig(opts *bind.TransactOpts, gasLimit *big.Int, targetBlockRate *big.Int, minBaseFee *big.Int, targetGas *big.Int, baseFeeChangeDenominator *big.Int, minBlockGasCost *big.Int, maxBlockGasCost *big.Int, blockGasCostStep *big.Int) (*types.Transaction, error)
+}
+
+// trySetFeeConfig attempts to set fee config using a FeeConfig struct.
+// Returns the transaction and any error from the call.
+func trySetFeeConfig(contract feeConfigSetter, auth *bind.TransactOpts, config commontype.FeeConfig) (*types.Transaction, error) {
+	return contract.SetFeeConfig(
 		auth,
 		config.GasLimit,
 		new(big.Int).SetUint64(config.TargetBlockRate),
@@ -111,6 +116,13 @@ func setFeeConfig(t *testing.T, b *sim.Backend, contract *feemanagerbindings.Fee
 		config.MaxBlockGasCost,
 		config.BlockGasCostStep,
 	)
+}
+
+// setFeeConfig sets fee config using a FeeConfig struct instead of individual parameters.
+// Returns the block number where the config was changed.
+func setFeeConfig(t *testing.T, b *sim.Backend, contract feeConfigSetter, auth *bind.TransactOpts, config commontype.FeeConfig) uint64 {
+	t.Helper()
+	tx, err := trySetFeeConfig(contract, auth, config)
 	require.NoError(t, err)
 	receipt := testutils.WaitReceiptSuccessful(t, b, tx)
 	return receipt.BlockNumber.Uint64()
@@ -175,17 +187,7 @@ func TestFeeManager(t *testing.T) {
 				allowlisttest.VerifyRole(t, feeManager, testContractAddr, allowlist.NoRole)
 
 				// Try to change fee config from contract without being enabled - should fail during gas estimation
-				_, err := testContract.SetFeeConfig(
-					admin,
-					cchainFeeConfig.GasLimit,
-					new(big.Int).SetUint64(cchainFeeConfig.TargetBlockRate),
-					cchainFeeConfig.MinBaseFee,
-					cchainFeeConfig.TargetGas,
-					cchainFeeConfig.BaseFeeChangeDenominator,
-					cchainFeeConfig.MinBlockGasCost,
-					cchainFeeConfig.MaxBlockGasCost,
-					cchainFeeConfig.BlockGasCostStep,
-				)
+				_, err := trySetFeeConfig(testContract, admin, cchainFeeConfig)
 				require.ErrorContains(t, err, "execution reverted")
 			},
 		},
@@ -242,19 +244,10 @@ func TestFeeManager(t *testing.T) {
 				lowFeeAuth.GasFeeCap = originalMinBaseFee
 				lowFeeAuth.GasTipCap = big.NewInt(1)
 
-				_, err = testContract.SetFeeConfig(
-					lowFeeAuth,
-					genesisFeeConfig.GasLimit,
-					new(big.Int).SetUint64(genesisFeeConfig.TargetBlockRate),
-					originalMinBaseFee,
-					genesisFeeConfig.TargetGas,
-					genesisFeeConfig.BaseFeeChangeDenominator,
-					genesisFeeConfig.MinBlockGasCost,
-					genesisFeeConfig.MaxBlockGasCost,
-					genesisFeeConfig.BlockGasCostStep,
-				)
-				require.Error(t, err)
-				require.Contains(t, err.Error(), "underpriced")
+				lowFeeConfig := genesisFeeConfig
+				lowFeeConfig.MinBaseFee = originalMinBaseFee
+				_, err = trySetFeeConfig(testContract, lowFeeAuth, lowFeeConfig)
+				require.ErrorContains(t, err, "underpriced")
 			},
 		},
 	}
@@ -286,19 +279,7 @@ func TestIFeeManager_Events(t *testing.T) {
 		require := require.New(t)
 
 		// Change fee config from genesis to C-Chain
-		tx, err := feeManager.SetFeeConfig(
-			admin,
-			cchainFeeConfig.GasLimit,
-			new(big.Int).SetUint64(cchainFeeConfig.TargetBlockRate),
-			cchainFeeConfig.MinBaseFee,
-			cchainFeeConfig.TargetGas,
-			cchainFeeConfig.BaseFeeChangeDenominator,
-			cchainFeeConfig.MinBlockGasCost,
-			cchainFeeConfig.MaxBlockGasCost,
-			cchainFeeConfig.BlockGasCostStep,
-		)
-		require.NoError(err)
-		testutils.WaitReceiptSuccessful(t, backend, tx)
+		_ = setFeeConfig(t, backend, feeManager, admin, cchainFeeConfig)
 
 		// Filter for FeeConfigChanged events
 		iter, err := feeManager.FilterFeeConfigChanged(nil, []common.Address{adminAddress})
