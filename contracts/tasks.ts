@@ -81,42 +81,6 @@ task("deployerAllowList:revoke", "Removes the address from the list")
     await getRole(allowList, args.address)
   })
 
-// npx hardhat allowList:readRole --network local --address [address]
-task("txAllowList:readRole", "Gets the network transaction allow list")
-  .addParam("address", "the address you want to know the allowlist role for")
-  .setAction(async (args, hre) => {
-    const allowList = await hre.ethers.getContractAt("IAllowList", TX_ALLOW_LIST_ADDRESS)
-    await getRole(allowList, args.address)
-  })
-
-// npx hardhat allowList:addDeployer --network local --address [address]
-task("txAllowList:addDeployer", "Adds an address to the transaction allow list")
-  .addParam("address", "the address you want to add as a deployer")
-  .setAction(async (args, hre) => {
-    const allowList = await hre.ethers.getContractAt("IAllowList", TX_ALLOW_LIST_ADDRESS)
-    // ADD CODE BELOW
-    await allowList.setEnabled(args.address)
-    await getRole(allowList, args.address)
-  })
-
-// npx hardhat allowList:addAdmin --network local --address [address]
-task("txAllowList:addAdmin", "Adds an admin on the transaction allow list")
-  .addParam("address", "the address you want to add as a admin")
-  .setAction(async (args, hre) => {
-    const allowList = await hre.ethers.getContractAt("IAllowList", TX_ALLOW_LIST_ADDRESS)
-    await allowList.setAdmin(args.address)
-    await getRole(allowList, args.address)
-  })
-
-// npx hardhat allowList:revoke --network local --address [address]
-task("txAllowList:revoke", "Removes the address from the transaction allow list")
-  .addParam("address", "the address you want to revoke all permission")
-  .setAction(async (args, hre) => {
-    const allowList = await hre.ethers.getContractAt("IAllowList", TX_ALLOW_LIST_ADDRESS)
-    await allowList.setNone(args.address)
-    await getRole(allowList, args.address)
-  })
-
 // npx hardhat minter:readRole --network local --address [address]
 task("minter:readRole", "Gets the network deployer minter list")
   .addParam("address", "the address you want to know the minter role for")
