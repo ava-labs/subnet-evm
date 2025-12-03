@@ -169,7 +169,7 @@ func TestEthTxPushGossipOutbound(t *testing.T) {
 	}
 
 	vm := &VM{
-		ethTxPullGossiper: gossip.NoOpGossiper{},
+		ethTxPullGossiper: noOpGossiper{},
 	}
 
 	require.NoError(vm.Initialize(
@@ -220,7 +220,7 @@ func TestEthTxPushGossipInbound(t *testing.T) {
 
 	sender := &enginetest.Sender{}
 	vm := &VM{
-		ethTxPullGossiper: gossip.NoOpGossiper{},
+		ethTxPullGossiper: noOpGossiper{},
 	}
 
 	require.NoError(vm.Initialize(
@@ -262,4 +262,12 @@ func TestEthTxPushGossipInbound(t *testing.T) {
 	require.NoError(vm.AppGossip(ctx, ids.EmptyNodeID, inboundGossipMsg))
 
 	require.True(vm.txPool.Has(signedTx.Hash()))
+}
+
+var _ gossip.Gossiper = (*noOpGossiper)(nil)
+
+type noOpGossiper struct{}
+
+func (noOpGossiper) Gossip(context.Context) error {
+	return nil
 }
