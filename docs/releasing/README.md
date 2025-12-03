@@ -57,7 +57,7 @@ Remember to use the appropriate versioning for your release.
     compatibility.json has subnet-evm version v0.7.3 stated as compatible with RPC chain VM protocol version 0 but AvalancheGo protocol version is 39
     ```
 
-    This message can help you figure out what the correct RPC chain VM protocol version (here `39`) has to be in compatibility.json for your current release. Alternatively, you can refer to the [Avalanchego repository `version/compatibility.json` file](https://github.com/ava-labs/avalanchego/blob/main/version/compatibility.json) to find the RPC chain VM protocol version matching the AvalancheGo version we use here.
+    This message can help you figure out what the correct RPC chain VM protocol version (here `39`) has to be in compatibility.json for your current release. Alternatively, you can refer to the [Avalanchego repository `version/compatibility.json` file](https://github.com/ava-labs/avalanchego/blob/master/version/compatibility.json) to find the RPC chain VM protocol version matching the AvalancheGo version we use here.
 1. Specify the AvalancheGo compatibility in the [README.md relevant section](../../README.md#avalanchego-compatibility). For example we would add:
 
     ```text
@@ -421,7 +421,7 @@ export P_VERSION=v0.7.4
     compatibility.json has subnet-evm version v0.7.4 stated as compatible with RPC chain VM protocol version 0 but AvalancheGo protocol version is 39
     ```
 
-    This message can help you figure out what the correct RPC chain VM protocol version (here `39`) has to be in compatibility.json for your current release. Alternatively, you can refer to the [Avalanchego repository `version/compatibility.json` file](https://github.com/ava-labs/avalanchego/blob/main/version/compatibility.json) to find the RPC chain VM protocol version matching the AvalancheGo version we use here.
+    This message can help you figure out what the correct RPC chain VM protocol version (here `39`) has to be in compatibility.json for your current release. Alternatively, you can refer to the [Avalanchego repository `version/compatibility.json` file](https://github.com/ava-labs/avalanchego/blob/master/version/compatibility.json) to find the RPC chain VM protocol version matching the AvalancheGo version we use here.
 1. Commit your changes and push the branch
 
     ```bash
