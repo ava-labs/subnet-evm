@@ -31,4 +31,4 @@ Which OS you used to reveal the bug.
 **Additional context**
 Add any other context about the problem here.
 
-You can submit a bug on the [Avalanche Bug Bounty program page](https://hackenproof.com/avalanche/avalanche-protocol).
+You can submit a bug on the [Avalanche Bug Bounty program page](https://immunefi.com/bug-bounty/avalanche/information/).
