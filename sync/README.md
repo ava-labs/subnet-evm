@@ -61,24 +61,24 @@ The above information is called a _state summary_, and each syncable block corre
 The following steps are executed by the VM to sync its state from peers (see `stateSyncClient.StateSync`):
 
 1. Wipe snapshot data
-1. Sync 256 parents of the syncable block (see `BlockRequest`)
-1. Sync the EVM state: account trie, code, and storage tries
-1. Update in-memory and on-disk pointers
+1. Sync 256 parents of the syncable block (see `BlockRequest`),
+1. Sync the EVM state: account trie, code, and storage tries,
+1. Update in-memory and on-disk pointers.
 
 Steps 3 and 4 involve syncing tries. To sync trie data, the VM will send a series of `LeafRequests` to its peers. Each request specifies:
 
-- Type of trie (`NodeType`)
+- Type of trie (`NodeType`):
   - `statesync.StateTrieNode` (account trie and storage tries share the same database)
-- `Root` of the trie to sync
-- `Start` and `End` specify a range of keys
+- `Root` of the trie to sync,
+- `Start` and `End` specify a range of keys.
 
 Peers responding to these requests send back trie leafs (key/value pairs) beginning at `Start` and up to `End` (or a maximum number of leafs). The response must also contain include a merkle proof for the range of leafs it contains. Nodes serving state sync data are responsible for constructing these proofs (see `sync/handlers/leafs_request.go`)
 
 `client.GetLeafs` handles sending a single request and validating the response. This method will retry the request from a different peer up to `maxRetryAttempts` (= 32) times if the peer's response is:
 
-- malformed
-- does not contain a valid merkle proof
-- not received in time
+- malformed,
+- does not contain a valid merkle proof,
+- not received in time.
 
 If there are more leafs in a trie than can be returned in a single response,  the client will make successive requests to continue fetching data (with `Start` set to the last key received) until the trie is complete.  `CallbackLeafSyncer` manages this process and does a callback on each batch of received leafs.
 
