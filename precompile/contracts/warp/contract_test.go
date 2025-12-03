@@ -111,7 +111,7 @@ func getBlockchainIDTests(tb testing.TB, rules extras.AvalancheRules) []precompi
 			},
 			SuppliedGas: gasConfig.GetBlockchainID - 1,
 			ReadOnly:    false,
-			ExpectedErr: vm.ErrOutOfGas,
+			WantErr:     vm.ErrOutOfGas,
 			Rules:       rules,
 		},
 	}
@@ -154,7 +154,7 @@ func sendWarpMessageTests(tb testing.TB, rules extras.AvalancheRules) []precompi
 			InputFn:     func(testing.TB) []byte { return sendWarpMessageInput },
 			SuppliedGas: gasConfig.SendWarpMessageCost(len(sendWarpMessageInput[4:])),
 			ReadOnly:    true,
-			ExpectedErr: vm.ErrWriteProtection,
+			WantErr:     vm.ErrWriteProtection,
 			Rules:       rules,
 		},
 		{
@@ -163,7 +163,7 @@ func sendWarpMessageTests(tb testing.TB, rules extras.AvalancheRules) []precompi
 			InputFn:     func(testing.TB) []byte { return sendWarpMessageInput },
 			SuppliedGas: gasConfig.SendWarpMessageBase - 1,
 			ReadOnly:    false,
-			ExpectedErr: vm.ErrOutOfGas,
+			WantErr:     vm.ErrOutOfGas,
 			Rules:       rules,
 		},
 		{
@@ -172,7 +172,7 @@ func sendWarpMessageTests(tb testing.TB, rules extras.AvalancheRules) []precompi
 			InputFn:     func(testing.TB) []byte { return sendWarpMessageInput },
 			SuppliedGas: gasConfig.SendWarpMessageCost(len(sendWarpMessageInput[4:])) - 1,
 			ReadOnly:    false,
-			ExpectedErr: vm.ErrOutOfGas,
+			WantErr:     vm.ErrOutOfGas,
 			Rules:       rules,
 		},
 		{
@@ -183,7 +183,7 @@ func sendWarpMessageTests(tb testing.TB, rules extras.AvalancheRules) []precompi
 			},
 			SuppliedGas: gasConfig.SendWarpMessageBase,
 			ReadOnly:    false,
-			ExpectedErr: errInvalidSendInput,
+			WantErr:     errInvalidSendInput,
 			Rules:       rules,
 		},
 		{
@@ -429,7 +429,7 @@ func getVerifiedWarpMessageTests(tb testing.TB, rules extras.AvalancheRules) []p
 			Predicates:  []predicate.Predicate{warpMessagePredicate},
 			SuppliedGas: gasConfig.GetVerifiedWarpMessageBase - 1,
 			ReadOnly:    false,
-			ExpectedErr: vm.ErrOutOfGas,
+			WantErr:     vm.ErrOutOfGas,
 			Rules:       rules,
 		},
 		{
@@ -442,7 +442,7 @@ func getVerifiedWarpMessageTests(tb testing.TB, rules extras.AvalancheRules) []p
 			},
 			SuppliedGas: gasConfig.GetVerifiedWarpMessageCost(len(warpMessagePredicate)) - 1,
 			ReadOnly:    false,
-			ExpectedErr: vm.ErrOutOfGas,
+			WantErr:     vm.ErrOutOfGas,
 			Rules:       rules,
 		},
 		{
@@ -455,7 +455,7 @@ func getVerifiedWarpMessageTests(tb testing.TB, rules extras.AvalancheRules) []p
 			},
 			SuppliedGas: gasConfig.GetVerifiedWarpMessageCost(len(invalidPackedPredicate)),
 			ReadOnly:    false,
-			ExpectedErr: errInvalidPredicateBytes,
+			WantErr:     errInvalidPredicateBytes,
 			Rules:       rules,
 		},
 		{
@@ -468,7 +468,7 @@ func getVerifiedWarpMessageTests(tb testing.TB, rules extras.AvalancheRules) []p
 			},
 			SuppliedGas: gasConfig.GetVerifiedWarpMessageCost(len(invalidWarpMsgPredicate)),
 			ReadOnly:    false,
-			ExpectedErr: errInvalidWarpMsg,
+			WantErr:     errInvalidWarpMsg,
 			Rules:       rules,
 		},
 		{
@@ -481,7 +481,7 @@ func getVerifiedWarpMessageTests(tb testing.TB, rules extras.AvalancheRules) []p
 			},
 			SuppliedGas: gasConfig.GetVerifiedWarpMessageCost(len(invalidAddressedPredicate)),
 			ReadOnly:    false,
-			ExpectedErr: errInvalidAddressedPayload,
+			WantErr:     errInvalidAddressedPayload,
 			Rules:       rules,
 		},
 		{
@@ -492,7 +492,7 @@ func getVerifiedWarpMessageTests(tb testing.TB, rules extras.AvalancheRules) []p
 			},
 			SuppliedGas: gasConfig.GetVerifiedWarpMessageBase,
 			ReadOnly:    false,
-			ExpectedErr: errInvalidIndexInput,
+			WantErr:     errInvalidIndexInput,
 			Rules:       rules,
 		},
 		{
@@ -505,7 +505,7 @@ func getVerifiedWarpMessageTests(tb testing.TB, rules extras.AvalancheRules) []p
 			},
 			SuppliedGas: gasConfig.GetVerifiedWarpMessageBase,
 			ReadOnly:    false,
-			ExpectedErr: errInvalidIndexInput,
+			WantErr:     errInvalidIndexInput,
 			Rules:       rules,
 		},
 		{
@@ -518,7 +518,7 @@ func getVerifiedWarpMessageTests(tb testing.TB, rules extras.AvalancheRules) []p
 			},
 			SuppliedGas: gasConfig.GetVerifiedWarpMessageBase,
 			ReadOnly:    false,
-			ExpectedErr: errInvalidIndexInput,
+			WantErr:     errInvalidIndexInput,
 			Rules:       rules,
 		},
 	}
@@ -719,7 +719,7 @@ func getVerifiedWarpBlockHashTests(tb testing.TB, rules extras.AvalancheRules) [
 			Predicates:  []predicate.Predicate{warpMessagePredicate},
 			SuppliedGas: gasConfig.GetVerifiedWarpMessageBase - 1,
 			ReadOnly:    false,
-			ExpectedErr: vm.ErrOutOfGas,
+			WantErr:     vm.ErrOutOfGas,
 			Rules:       rules,
 		},
 		{
@@ -732,7 +732,7 @@ func getVerifiedWarpBlockHashTests(tb testing.TB, rules extras.AvalancheRules) [
 			},
 			SuppliedGas: gasConfig.GetVerifiedWarpMessageCost(len(warpMessagePredicate)) - 1,
 			ReadOnly:    false,
-			ExpectedErr: vm.ErrOutOfGas,
+			WantErr:     vm.ErrOutOfGas,
 			Rules:       rules,
 		},
 		{
@@ -745,7 +745,7 @@ func getVerifiedWarpBlockHashTests(tb testing.TB, rules extras.AvalancheRules) [
 			},
 			SuppliedGas: gasConfig.GetVerifiedWarpMessageCost(len(invalidPackedPredicate)),
 			ReadOnly:    false,
-			ExpectedErr: errInvalidPredicateBytes,
+			WantErr:     errInvalidPredicateBytes,
 			Rules:       rules,
 		},
 		{
@@ -758,7 +758,7 @@ func getVerifiedWarpBlockHashTests(tb testing.TB, rules extras.AvalancheRules) [
 			},
 			SuppliedGas: gasConfig.GetVerifiedWarpMessageCost(len(invalidWarpMsgPredicate)),
 			ReadOnly:    false,
-			ExpectedErr: errInvalidWarpMsg,
+			WantErr:     errInvalidWarpMsg,
 			Rules:       rules,
 		},
 		{
@@ -771,7 +771,7 @@ func getVerifiedWarpBlockHashTests(tb testing.TB, rules extras.AvalancheRules) [
 			},
 			SuppliedGas: gasConfig.GetVerifiedWarpMessageCost(len(invalidHashPredicate)),
 			ReadOnly:    false,
-			ExpectedErr: errInvalidBlockHashPayload,
+			WantErr:     errInvalidBlockHashPayload,
 			Rules:       rules,
 		},
 		{
@@ -782,7 +782,7 @@ func getVerifiedWarpBlockHashTests(tb testing.TB, rules extras.AvalancheRules) [
 			},
 			SuppliedGas: gasConfig.GetVerifiedWarpMessageBase,
 			ReadOnly:    false,
-			ExpectedErr: errInvalidIndexInput,
+			WantErr:     errInvalidIndexInput,
 			Rules:       rules,
 		},
 		{
@@ -795,7 +795,7 @@ func getVerifiedWarpBlockHashTests(tb testing.TB, rules extras.AvalancheRules) [
 			},
 			SuppliedGas: gasConfig.GetVerifiedWarpMessageBase,
 			ReadOnly:    false,
-			ExpectedErr: errInvalidIndexInput,
+			WantErr:     errInvalidIndexInput,
 			Rules:       rules,
 		},
 		{
@@ -808,7 +808,7 @@ func getVerifiedWarpBlockHashTests(tb testing.TB, rules extras.AvalancheRules) [
 			},
 			SuppliedGas: gasConfig.GetVerifiedWarpMessageBase,
 			ReadOnly:    false,
-			ExpectedErr: errInvalidIndexInput,
+			WantErr:     errInvalidIndexInput,
 			Rules:       rules,
 		},
 	}

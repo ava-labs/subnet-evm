@@ -36,7 +36,7 @@ var tests = []precompiletest.PrecompileTest{
 		},
 		SuppliedGas: nativeminter.MintGasCost,
 		ReadOnly:    false,
-		ExpectedErr: nativeminter.ErrCannotMint,
+		WantErr:     nativeminter.ErrCannotMint,
 	},
 	{
 		Name:       "calling_mintNativeCoin_from_Enabled_should_succeed",
@@ -148,7 +148,7 @@ var tests = []precompiletest.PrecompileTest{
 		},
 		SuppliedGas: nativeminter.MintGasCost,
 		ReadOnly:    true,
-		ExpectedErr: vm.ErrWriteProtection,
+		WantErr:     vm.ErrWriteProtection,
 	},
 	{
 		Name:       "readOnly_mint_with_allow_role_fails",
@@ -162,7 +162,7 @@ var tests = []precompiletest.PrecompileTest{
 		},
 		SuppliedGas: nativeminter.MintGasCost,
 		ReadOnly:    true,
-		ExpectedErr: vm.ErrWriteProtection,
+		WantErr:     vm.ErrWriteProtection,
 	},
 	{
 		Name:       "readOnly_mint_with_admin_role_fails",
@@ -176,7 +176,7 @@ var tests = []precompiletest.PrecompileTest{
 		},
 		SuppliedGas: nativeminter.MintGasCost,
 		ReadOnly:    true,
-		ExpectedErr: vm.ErrWriteProtection,
+		WantErr:     vm.ErrWriteProtection,
 	},
 	{
 		Name:       "insufficient_gas_mint_from_admin",
@@ -190,7 +190,7 @@ var tests = []precompiletest.PrecompileTest{
 		},
 		SuppliedGas: nativeminter.MintGasCost + nativeminter.NativeCoinMintedEventGasCost - 1,
 		ReadOnly:    false,
-		ExpectedErr: vm.ErrOutOfGas,
+		WantErr:     vm.ErrOutOfGas,
 	},
 	{
 		Name:       "mint_does_not_log_pre_Durango",
@@ -235,7 +235,7 @@ var tests = []precompiletest.PrecompileTest{
 		},
 		SuppliedGas: nativeminter.MintGasCost,
 		ReadOnly:    false,
-		ExpectedErr: nativeminter.ErrInvalidLen,
+		WantErr:     nativeminter.ErrInvalidLen,
 	},
 	{
 		Name:       "mint_with_extra_padded_bytes_should_succeed_with_Durango",
