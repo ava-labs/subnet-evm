@@ -45,14 +45,6 @@ func RegisterAsyncTests() {
 			runDefaultHardhatTests(ctx, blockchainID, "tx_allow_list")
 		})
 
-		ginkgo.It("reward manager", ginkgo.Label("Precompile"), ginkgo.Label("RewardManager"), func() {
-			ctx, cancel := context.WithTimeout(context.Background(), timeout)
-			defer cancel()
-
-			blockchainID := subnetsSuite.GetBlockchainID("reward_manager")
-			runDefaultHardhatTests(ctx, blockchainID, "reward_manager")
-		})
-
 		// ADD YOUR PRECOMPILE HERE
 		/*
 			ginkgo.It("your precompile", ginkgo.Label("Precompile"), ginkgo.Label("YourPrecompile"), func() {
