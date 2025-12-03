@@ -1087,8 +1087,7 @@ func testStickyPreference(t *testing.T, scheme string) {
 	require.Equal(t, blkDHash, vm1.blockChain.CurrentBlock().Hash(), "expected current block to have hash %s but got %s", blkDHash.Hex(), vm1.blockChain.CurrentBlock().Hash().Hex())
 
 	// Attempt to accept out of order
-	err = vm1BlkD.Accept(t.Context())
-	require.ErrorContains(t, vm1BlkD.Accept(t.Context()), "expected accepted block to have parent", "unexpected error when accepting out of order block") //nolint:forbidigo // uses upstream code
+	require.ErrorContains(t, err, "expected accepted block to have parent", "unexpected error when accepting out of order block") //nolint:forbidigo // uses upstream code
 
 	// Accept in order
 	require.NoError(t, vm1BlkC.Accept(t.Context()), "Block failed verification on VM1")
