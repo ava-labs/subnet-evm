@@ -103,7 +103,7 @@ func setFeeConfig(t *testing.T, b *sim.Backend, contract *feemanagerbindings.Fee
 	tx, err := contract.SetFeeConfig(
 		auth,
 		config.GasLimit,
-		big.NewInt(int64(config.TargetBlockRate)),
+		new(big.Int).SetUint64(config.TargetBlockRate),
 		config.MinBaseFee,
 		config.TargetGas,
 		config.BaseFeeChangeDenominator,
@@ -120,7 +120,7 @@ func setFeeConfig(t *testing.T, b *sim.Backend, contract *feemanagerbindings.Fee
 func toCommonFeeConfig(cfg feemanagerbindings.IFeeManagerFeeConfig) commontype.FeeConfig {
 	return commontype.FeeConfig{
 		GasLimit:                 cfg.GasLimit,
-		TargetBlockRate:          uint64(cfg.TargetBlockRate.Int64()),
+		TargetBlockRate:          cfg.TargetBlockRate.Uint64(),
 		MinBaseFee:               cfg.MinBaseFee,
 		TargetGas:                cfg.TargetGas,
 		BaseFeeChangeDenominator: cfg.BaseFeeChangeDenominator,
@@ -134,7 +134,7 @@ func toCommonFeeConfig(cfg feemanagerbindings.IFeeManagerFeeConfig) commontype.F
 func verifyFeeConfigsMatch(t *testing.T, expected, actual commontype.FeeConfig) {
 	t.Helper()
 	require.Zero(t, expected.GasLimit.Cmp(actual.GasLimit), "gasLimit mismatch")
-	require.Zero(t, big.NewInt(int64(expected.TargetBlockRate)).Cmp(big.NewInt(int64(actual.TargetBlockRate))), "targetBlockRate mismatch")
+	require.Zero(t, new(big.Int).SetUint64(expected.TargetBlockRate).Cmp(new(big.Int).SetUint64(actual.TargetBlockRate)), "targetBlockRate mismatch")
 	require.Zero(t, expected.MinBaseFee.Cmp(actual.MinBaseFee), "minBaseFee mismatch")
 	require.Zero(t, expected.TargetGas.Cmp(actual.TargetGas), "targetGas mismatch")
 	require.Zero(t, expected.BaseFeeChangeDenominator.Cmp(actual.BaseFeeChangeDenominator), "baseFeeChangeDenominator mismatch")
@@ -178,7 +178,7 @@ func TestFeeManager(t *testing.T) {
 				_, err := testContract.SetFeeConfig(
 					admin,
 					cchainFeeConfig.GasLimit,
-					big.NewInt(int64(cchainFeeConfig.TargetBlockRate)),
+					new(big.Int).SetUint64(cchainFeeConfig.TargetBlockRate),
 					cchainFeeConfig.MinBaseFee,
 					cchainFeeConfig.TargetGas,
 					cchainFeeConfig.BaseFeeChangeDenominator,
@@ -245,7 +245,7 @@ func TestFeeManager(t *testing.T) {
 				_, err = testContract.SetFeeConfig(
 					lowFeeAuth,
 					genesisFeeConfig.GasLimit,
-					big.NewInt(int64(genesisFeeConfig.TargetBlockRate)),
+					new(big.Int).SetUint64(genesisFeeConfig.TargetBlockRate),
 					originalMinBaseFee,
 					genesisFeeConfig.TargetGas,
 					genesisFeeConfig.BaseFeeChangeDenominator,
@@ -289,7 +289,7 @@ func TestIFeeManager_Events(t *testing.T) {
 		tx, err := feeManager.SetFeeConfig(
 			admin,
 			cchainFeeConfig.GasLimit,
-			big.NewInt(int64(cchainFeeConfig.TargetBlockRate)),
+			new(big.Int).SetUint64(cchainFeeConfig.TargetBlockRate),
 			cchainFeeConfig.MinBaseFee,
 			cchainFeeConfig.TargetGas,
 			cchainFeeConfig.BaseFeeChangeDenominator,
