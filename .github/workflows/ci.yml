@@ -26,7 +26,7 @@ jobs:
       - name: Set up solc
         uses: ARR4N/setup-solc@v0.2.0
         with:
-          versions: '0.8.30'
+          versions: "0.8.30"
       - name: Run all lint checks
         run: ./scripts/run_task.sh lint-all-ci
       - name: Check go.mod and go.sum are up-to-date
@@ -82,7 +82,7 @@ jobs:
       - name: Set up solc
         uses: ARR4N/setup-solc@v0.2.0
         with:
-          versions: '0.8.30'
+          versions: "0.8.30"
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
@@ -98,7 +98,7 @@ jobs:
           name: subnet-evm-e2e-logs-precompile
           path: /tmp/e2e-test/precompile-data
           retention-days: 5
-  
+
   e2e_warp:
     name: e2e warp tests
     runs-on: ubuntu-latest
@@ -111,7 +111,7 @@ jobs:
       - name: Set up solc
         uses: ARR4N/setup-solc@v0.2.0
         with:
-          versions: '0.8.30'
+          versions: "0.8.30"
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
@@ -119,7 +119,7 @@ jobs:
       - name: Setup Contracts
         run: ./scripts/run_task.sh setup-contracts
       - name: Run Warp E2E Tests
-        uses: ava-labs/avalanchego/.github/actions/run-monitored-tmpnet-cmd@29b4e6bc541bcd913da6c51c1c5403fff2e377a4
+        uses: ava-labs/avalanchego/.github/actions/run-monitored-tmpnet-cmd@df4a8e531761a55d6878d6d2f16e9acb023de19d
         with:
           run: ./scripts/run_task.sh test-e2e-warp-ci
           artifact_prefix: warp
@@ -131,7 +131,7 @@ jobs:
           loki_push_url: ${{ secrets.LOKI_PUSH_URL || '' }}
           loki_username: ${{ secrets.LOKI_ID || '' }}
           loki_password: ${{ secrets.LOKI_PASSWORD || '' }}
-       
+
   e2e_load:
     name: e2e load tests
     runs-on: ubuntu-latest
@@ -141,7 +141,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Run E2E Load Tests
-        uses: ava-labs/avalanchego/.github/actions/run-monitored-tmpnet-cmd@29b4e6bc541bcd913da6c51c1c5403fff2e377a4
+        uses: ava-labs/avalanchego/.github/actions/run-monitored-tmpnet-cmd@df4a8e531761a55d6878d6d2f16e9acb023de19d
         with:
           run: ./scripts/run_task.sh test-e2e-load-ci
           artifact_prefix: load
@@ -153,7 +153,7 @@ jobs:
           loki_push_url: ${{ secrets.LOKI_PUSH_URL || '' }}
           loki_username: ${{ secrets.LOKI_ID || '' }}
           loki_password: ${{ secrets.LOKI_PASSWORD || '' }}
-  
+
   test_build_image:
     name: Image build
     runs-on: ubuntu-latest
@@ -165,7 +165,7 @@ jobs:
           sudo apt -y install qemu-system qemu-user-static
       - name: Check image build
         run: ./scripts/run_task.sh test-build-image
-  
+
   test_build_antithesis_images:
     name: Build Antithesis images
     runs-on: ubuntu-latest
