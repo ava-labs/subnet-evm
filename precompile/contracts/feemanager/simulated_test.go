@@ -9,12 +9,14 @@ import (
 
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/core/vm"
 	"github.com/ava-labs/libevm/crypto"
 	"github.com/stretchr/testify/require"
 
 	"github.com/ava-labs/subnet-evm/accounts/abi/bind"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/core"
+	"github.com/ava-labs/subnet-evm/core/txpool"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/plugin/evm/customtypes"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
@@ -167,7 +169,7 @@ func TestFeeManager(t *testing.T) {
 
 				// Try to change fee config from contract without being enabled - should fail during gas estimation
 				_, err := trySetFeeConfig(testContract, admin, cchainFeeConfig)
-				require.ErrorContains(t, err, "execution reverted")
+				require.ErrorContains(t, err, vm.ErrExecutionReverted.Error()) //nolint:forbidigo // upstream error wrapped as string
 			},
 		},
 		{
@@ -226,7 +228,7 @@ func TestFeeManager(t *testing.T) {
 				lowFeeConfig := genesisFeeConfig
 				lowFeeConfig.MinBaseFee = originalMinBaseFee
 				_, err = trySetFeeConfig(testContract, lowFeeAuth, lowFeeConfig)
-				require.ErrorContains(t, err, "underpriced")
+				require.ErrorContains(t, err, txpool.ErrUnderpriced.Error()) //nolint:forbidigo // upstream error wrapped as string
 			},
 		},
 	}
