@@ -124,8 +124,7 @@ func TestNativeMinter(t *testing.T) {
 
 				// Contract tries to mint and then should revert because it's not enabled
 				_, err := testContract.MintNativeCoin(admin, testAddr, amount)
-				// The error returned is a JSON Error rather than the vm.ErrExecutionReverted error
-				require.ErrorContains(t, err, vm.ErrExecutionReverted.Error()) //nolint:forbidigo // uses upstream code
+				require.ErrorContains(t, err, vm.ErrExecutionReverted.Error()) //nolint:forbidigo // upstream error wrapped as string
 			},
 		},
 		{
