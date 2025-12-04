@@ -110,8 +110,7 @@ func TestNativeMinter(t *testing.T) {
 
 				// Unprivileged user tries to mint - should fail
 				_, err := nativeMinter.MintNativeCoin(unprivileged, testAddr, amount)
-				// The error returned is a JSON Error rather than the nativeminter.ErrCannotMinterror
-				require.ErrorContains(t, err, nativeminter.ErrCannotMint.Error()) //nolint:forbidigo // uses upstream code
+				require.ErrorContains(t, err, nativeminter.ErrCannotMint.Error()) //nolint:forbidigo // upstream error wrapped as string
 			},
 		},
 		{
