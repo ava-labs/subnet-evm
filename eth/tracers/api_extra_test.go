@@ -28,6 +28,7 @@ import (
 	"github.com/ava-labs/subnet-evm/plugin/evm/customtypes"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/txallowlist"
 	"github.com/ava-labs/subnet-evm/rpc"
+	"github.com/ava-labs/subnet-evm/stateupgrade"
 
 	ethparams "github.com/ava-labs/libevm/params"
 )
@@ -333,9 +334,9 @@ func testTraceCallWithOverridesStateUpgrade(t *testing.T, scheme string) {
 	activateStateUpgradeBlock := uint64(2)
 	// assumes gap is 10 sec
 	activateStateUpgradeTime := activateStateUpgradeBlock * 10
-	activateStateUpgradeConfig := extras.StateUpgrade{
+	activateStateUpgradeConfig := stateupgrade.StateUpgrade{
 		BlockTimestamp: &activateStateUpgradeTime,
-		StateUpgradeAccounts: map[common.Address]extras.StateUpgradeAccount{
+		StateUpgradeAccounts: map[common.Address]stateupgrade.StateUpgradeAccount{
 			accounts[2].addr: {
 				// deplete all balance
 				BalanceChange: (*math.HexOrDecimal256)(new(big.Int).Neg(big.NewInt(5 * params.Ether))),
@@ -343,7 +344,7 @@ func testTraceCallWithOverridesStateUpgrade(t *testing.T, scheme string) {
 		},
 	}
 
-	params.GetExtra(genesis.Config).StateUpgrades = []extras.StateUpgrade{
+	params.GetExtra(genesis.Config).StateUpgrades = []stateupgrade.StateUpgrade{
 		activateStateUpgradeConfig,
 	}
 	genBlocks := 3

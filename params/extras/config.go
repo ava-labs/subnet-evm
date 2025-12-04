@@ -14,6 +14,7 @@ import (
 	"github.com/ava-labs/libevm/common"
 
 	"github.com/ava-labs/subnet-evm/commontype"
+	"github.com/ava-labs/subnet-evm/stateupgrade"
 	"github.com/ava-labs/subnet-evm/utils"
 
 	ethparams "github.com/ava-labs/libevm/params"
@@ -91,7 +92,7 @@ type UpgradeConfig struct {
 	NetworkUpgradeOverrides *NetworkUpgrades `json:"networkUpgradeOverrides,omitempty"`
 
 	// Config for modifying state as a network upgrade.
-	StateUpgrades []StateUpgrade `json:"stateUpgrades,omitempty"`
+	StateUpgrades []stateupgrade.StateUpgrade `json:"stateUpgrades,omitempty"`
 
 	// Config for enabling and disabling precompiles as network upgrades.
 	PrecompileUpgrades []PrecompileUpgrade `json:"precompileUpgrades,omitempty"`
@@ -323,7 +324,7 @@ func (c *ChainConfig) Verify() error {
 		return fmt.Errorf("invalid precompile upgrades: %w", err)
 	}
 	// Verify the state upgrades are internally consistent given the existing chainConfig.
-	if err := c.verifyStateUpgrades(); err != nil {
+	if err := stateupgrade.VerifyStateUpgrades(c.StateUpgrades); err != nil {
 		return fmt.Errorf("invalid state upgrades: %w", err)
 	}
 
