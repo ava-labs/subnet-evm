@@ -9,4 +9,3 @@ REPO_ROOT=$(
 cd "${REPO_ROOT}"
 
 go tool ginkgo "${@}"
-
