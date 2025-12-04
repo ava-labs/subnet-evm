@@ -178,6 +178,7 @@ func addKVs(
 		for i := 0; i < count/2; i++ {
 			key := make([]byte, 32)
 			value := make([]byte, 32)
+			// rand.Read never returns an error
 			_, _ = rand.Read(key)
 			_, _ = rand.Read(value)
 
