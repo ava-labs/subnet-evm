@@ -11,7 +11,6 @@ import (
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/avalanchego/upgrade"
 	"github.com/ava-labs/libevm/common"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/ava-labs/subnet-evm/commontype"
@@ -86,7 +85,7 @@ $`,
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			got := test.config.Description()
-			assert.Regexp(t, test.wantRegex, got, "config description mismatch")
+			require.Regexp(t, test.wantRegex, got, "config description mismatch")
 		})
 	}
 }
@@ -106,8 +105,8 @@ func TestChainConfigVerify(t *testing.T) {
 	}
 
 	tests := map[string]struct {
-		config   ChainConfig
-		errRegex string
+		config    ChainConfig
+		wantError error
 	}{
 		"invalid_feeconfig": {
 			config: ChainConfig{
@@ -115,7 +114,7 @@ func TestChainConfigVerify(t *testing.T) {
 					GasLimit: nil,
 				},
 			},
-			errRegex: "^invalid fee config: ",
+			wantError: commontype.ErrGasLimitNil,
 		},
 		"invalid_precompile_upgrades": {
 			// Also see precompile_config_test.go TestVerifyWithChainConfig* tests
@@ -129,7 +128,7 @@ func TestChainConfigVerify(t *testing.T) {
 					},
 				},
 			},
-			errRegex: "^invalid precompile upgrades: ",
+			wantError: errPrecompileUpgradeInvalidDisable,
 		},
 		"invalid_state_upgrades": {
 			config: ChainConfig{
@@ -140,7 +139,7 @@ func TestChainConfigVerify(t *testing.T) {
 					},
 				},
 			},
-			errRegex: "^invalid state upgrades: ",
+			wantError: errStateUpgradeNilTimestamp,
 		},
 		"invalid_network_upgrades": {
 			config: ChainConfig{
@@ -150,7 +149,7 @@ func TestChainConfigVerify(t *testing.T) {
 				},
 				AvalancheContext: AvalancheContext{SnowCtx: &snow.Context{}},
 			},
-			errRegex: "^invalid network upgrades: ",
+			wantError: errCannotBeNil,
 		},
 		"valid": {
 			config: ChainConfig{
@@ -169,18 +168,14 @@ func TestChainConfigVerify(t *testing.T) {
 					},
 				}},
 			},
+			wantError: nil,
 		},
 	}
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			err := test.config.Verify()
-			if test.errRegex == "" {
-				assert.NoError(t, err)
-			} else {
-				require.Error(t, err)
-				assert.Regexp(t, test.errRegex, err.Error())
-			}
+			require.ErrorIs(t, err, test.wantError)
 		})
 	}
 }

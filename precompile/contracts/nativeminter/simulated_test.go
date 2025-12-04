@@ -75,7 +75,6 @@ func TestNativeMinter(t *testing.T) {
 	chainID := params.TestChainConfig.ChainID
 	admin := testutils.NewAuth(t, adminKey, chainID)
 	unprivileged := testutils.NewAuth(t, unprivilegedKey, chainID)
-
 	amount := big.NewInt(100)
 
 	type testCase struct {
@@ -111,7 +110,7 @@ func TestNativeMinter(t *testing.T) {
 
 				// Unprivileged user tries to mint - should fail
 				_, err := nativeMinter.MintNativeCoin(unprivileged, testAddr, amount)
-				require.Error(t, err)
+				require.ErrorContains(t, err, nativeminter.ErrCannotMint.Error()) //nolint:forbidigo // upstream error wrapped as string
 			},
 		},
 		{
@@ -125,7 +124,7 @@ func TestNativeMinter(t *testing.T) {
 
 				// Contract tries to mint and then should revert because it's not enabled
 				_, err := testContract.MintNativeCoin(admin, testAddr, amount)
-				require.ErrorContains(t, err, vm.ErrExecutionReverted.Error())
+				require.ErrorContains(t, err, vm.ErrExecutionReverted.Error()) //nolint:forbidigo // upstream error wrapped as string
 			},
 		},
 		{
