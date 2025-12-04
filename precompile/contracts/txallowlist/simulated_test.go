@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/core/vm"
 	"github.com/ava-labs/libevm/crypto"
 	"github.com/stretchr/testify/require"
 
@@ -143,7 +144,7 @@ func TestTxAllowList(t *testing.T) {
 
 				// Try to set another address as enabled - should fail
 				_, err := allowListTest.SetEnabled(admin, otherContractAddr)
-				require.ErrorContains(t, err, "execution reverted")
+				require.ErrorContains(t, err, vm.ErrExecutionReverted.Error()) //nolint:forbidigo // upstream error wrapped as string
 
 				allowlisttest.VerifyRole(t, allowList, otherContractAddr, allowlist.NoRole)
 			},
@@ -217,7 +218,7 @@ func TestTxAllowList(t *testing.T) {
 				allowlisttest.SetAsAdmin(t, backend, allowList, admin, adminContractAddr)
 
 				_, err := managerContract.Revoke(admin, adminContractAddr)
-				require.ErrorContains(t, err, "execution reverted")
+				require.ErrorContains(t, err, vm.ErrExecutionReverted.Error()) //nolint:forbidigo // upstream error wrapped as string
 
 				allowlisttest.VerifyRole(t, allowList, adminContractAddr, allowlist.AdminRole)
 			},
@@ -231,7 +232,7 @@ func TestTxAllowList(t *testing.T) {
 				allowlisttest.SetAsManager(t, backend, allowList, admin, managerContractAddr)
 
 				_, err := managerContract.SetAdmin(admin, otherContractAddr)
-				require.ErrorContains(t, err, "execution reverted")
+				require.ErrorContains(t, err, vm.ErrExecutionReverted.Error()) //nolint:forbidigo // upstream error wrapped as string
 
 				allowlisttest.VerifyRole(t, allowList, otherContractAddr, allowlist.NoRole)
 			},
@@ -245,7 +246,7 @@ func TestTxAllowList(t *testing.T) {
 				allowlisttest.SetAsManager(t, backend, allowList, admin, managerContractAddr)
 
 				_, err := managerContract.SetManager(admin, otherContractAddr)
-				require.ErrorContains(t, err, "execution reverted")
+				require.ErrorContains(t, err, vm.ErrExecutionReverted.Error()) //nolint:forbidigo // upstream error wrapped as string
 
 				allowlisttest.VerifyRole(t, allowList, otherContractAddr, allowlist.NoRole)
 			},
@@ -260,7 +261,7 @@ func TestTxAllowList(t *testing.T) {
 				allowlisttest.SetAsManager(t, backend, allowList, admin, manager2Addr)
 
 				_, err := manager1Contract.Revoke(admin, manager2Addr)
-				require.ErrorContains(t, err, "execution reverted")
+				require.ErrorContains(t, err, vm.ErrExecutionReverted.Error()) //nolint:forbidigo // upstream error wrapped as string
 
 				allowlisttest.VerifyRole(t, allowList, manager2Addr, allowlist.ManagerRole)
 			},
