@@ -13,6 +13,7 @@ import (
 	"github.com/ava-labs/subnet-evm/accounts/abi/bind"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/testutils"
+	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 
 	sim "github.com/ava-labs/subnet-evm/ethclient/simulated"
 	allowlistbindings "github.com/ava-labs/subnet-evm/precompile/allowlist/allowlisttest/bindings"
@@ -22,9 +23,10 @@ import (
 // This can be used by any precompile that uses the AllowList pattern.
 func RunAllowListEventTests(
 	t *testing.T,
-	newBackend func(t *testing.T) *sim.Backend,
+	precompileCfg precompileconfig.Config,
 	contractAddress common.Address,
 	adminAuth *bind.TransactOpts,
+	fundedAddrs ...common.Address,
 ) {
 	t.Helper()
 
@@ -119,7 +121,7 @@ func RunAllowListEventTests(
 		t.Run(tc.name, func(t *testing.T) {
 			require := require.New(t)
 
-			backend := newBackend(t)
+			backend := testutils.NewBackendWithPrecompile(t, precompileCfg, fundedAddrs...)
 			defer backend.Close()
 
 			allowList, err := allowlistbindings.NewIAllowList(contractAddress, backend.Client())

@@ -4,18 +4,15 @@
 package txallowlist_test
 
 import (
-	"math/big"
 	"testing"
 
 	"github.com/ava-labs/libevm/common"
-	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/libevm/crypto"
 	"github.com/stretchr/testify/require"
 
 	"github.com/ava-labs/subnet-evm/accounts/abi/bind"
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/params/extras"
 	"github.com/ava-labs/subnet-evm/plugin/evm/customtypes"
 	"github.com/ava-labs/subnet-evm/plugin/evm/vmerrors"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
@@ -43,24 +40,6 @@ func TestMain(m *testing.M) {
 	params.RegisterExtras()
 	m.Run()
 }
-
-func newBackendWithTxAllowList(t *testing.T) *sim.Backend {
-	t.Helper()
-	chainCfg := params.Copy(params.TestChainConfig)
-	// Enable TxAllowList at genesis with admin set to adminAddress.
-	params.GetExtra(&chainCfg).GenesisPrecompiles = extras.Precompiles{
-		txallowlist.ConfigKey: txallowlist.NewConfig(utils.NewUint64(0), []common.Address{adminAddress}, nil, nil),
-	}
-	return sim.NewBackend(
-		types.GenesisAlloc{
-			adminAddress:        {Balance: big.NewInt(1000000000000000000)},
-			unprivilegedAddress: {Balance: big.NewInt(1000000000000000000)},
-		},
-		sim.WithChainConfig(&chainCfg),
-	)
-}
-
-// Helper functions to reduce test boilerplate
 
 func deployAllowListTest(t *testing.T, b *sim.Backend, auth *bind.TransactOpts) (common.Address, *allowlistbindings.AllowListTest) {
 	t.Helper()
@@ -288,9 +267,10 @@ func TestTxAllowList(t *testing.T) {
 		},
 	}
 
+	precompileCfg := txallowlist.NewConfig(utils.NewUint64(0), []common.Address{adminAddress}, nil, nil)
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			backend := newBackendWithTxAllowList(t)
+			backend := testutils.NewBackendWithPrecompile(t, precompileCfg, adminAddress, unprivilegedAddress)
 			defer backend.Close()
 
 			allowList, err := allowlistbindings.NewIAllowList(txallowlist.ContractAddress, backend.Client())
@@ -302,6 +282,7 @@ func TestTxAllowList(t *testing.T) {
 }
 
 func TestIAllowList_Events(t *testing.T) {
+	precompileCfg := txallowlist.NewConfig(utils.NewUint64(0), []common.Address{adminAddress}, nil, nil)
 	admin := testutils.NewAuth(t, adminKey, params.TestChainConfig.ChainID)
-	allowlisttest.RunAllowListEventTests(t, newBackendWithTxAllowList, txallowlist.ContractAddress, admin)
+	allowlisttest.RunAllowListEventTests(t, precompileCfg, txallowlist.ContractAddress, admin, adminAddress, unprivilegedAddress)
 }
