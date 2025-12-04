@@ -128,10 +128,8 @@ func TestUnpackGetFeeConfigOutput(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			unpacked, err := UnpackGetFeeConfigOutput(test.input, test.skipLenCheck)
-			if test.expectedErr != "" {
-				require.ErrorContains(t, err, test.expectedErr)
-			} else {
-				require.NoError(t, err)
+			require.ErrorIs(t, err, test.expectedErr)
+			if test.expectedErr == nil {
 				require.True(t, test.expectedOutput.Equal(&unpacked), "not equal: expectedOutput %v, unpacked %v", test.expectedOutput, unpacked)
 			}
 		})
@@ -288,11 +286,11 @@ func TestUnpackSetFeeConfigInput(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			unpacked, err := UnpackSetFeeConfigInput(test.input, test.strictMode)
-			if test.expectedErr != "" {
-				require.ErrorContains(t, err, test.expectedErr)
+			if test.wantErr != nil {
+				require.ErrorIs(t, err, test.wantErr)
 			} else {
 				require.NoError(t, err)
-				require.True(t, test.expectedOutput.Equal(&unpacked), "not equal: expectedOutput %v, unpacked %v", test.expectedOutput, unpacked)
+				require.True(t, test.wantOutput.Equal(&unpacked), "not equal: expectedOutput %v, unpacked %v", test.wantOutput, unpacked)
 			}
 		})
 	}

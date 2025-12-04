@@ -148,6 +148,7 @@ var (
 	errInitializingLogger                         = errors.New("failed to initialize logger")
 	errShuttingDownVM                             = errors.New("shutting down VM")
 	errPathStateUnsupported                       = errors.New("path state scheme is not supported")
+	errVerifyGenesis                              = errors.New("failed to verify genesis")
 	errFirewoodSnapshotCacheDisabled              = errors.New("snapshot cache must be disabled for Firewood")
 	errFirewoodOfflinePruningUnsupported          = errors.New("offline pruning is not supported for Firewood")
 	errFirewoodStateSyncUnsupported               = errors.New("state sync is not yet supported for Firewood")
@@ -497,7 +498,9 @@ func (vm *VM) Initialize(
 
 	// Add p2p warp message warpHandler
 	warpHandler := acp118.NewCachedHandler(meteredCache, vm.warpBackend, vm.ctx.WarpSigner)
-	vm.Network.AddHandler(p2p.SignatureRequestHandlerID, warpHandler)
+	if err = vm.Network.AddHandler(p2p.SignatureRequestHandlerID, warpHandler); err != nil {
+		return err
+	}
 
 	vm.stateSyncDone = make(chan struct{})
 
@@ -561,7 +564,7 @@ func parseGenesis(ctx *snow.Context, genesisBytes []byte, upgradeBytes []byte, a
 	}
 
 	if err := g.Verify(); err != nil {
-		return nil, fmt.Errorf("failed to verify genesis: %w", err)
+		return nil, fmt.Errorf("%w: %w", errVerifyGenesis, err)
 	}
 
 	// Align all the Ethereum upgrades to the Avalanche upgrades
@@ -813,7 +816,9 @@ func (vm *VM) onNormalOperationsStarted() error {
 
 	// Initially sync the uptime tracker so that APIs expose recent data even if
 	// called immediately after bootstrapping.
-	vm.uptimeTracker.Sync(ctx)
+	if err := vm.uptimeTracker.Sync(ctx); err != nil {
+		return err
+	}
 
 	vm.shutdownWg.Add(1)
 	go func() {
@@ -986,8 +991,9 @@ func (vm *VM) Shutdown(context.Context) error {
 	for _, handler := range vm.rpcHandlers {
 		handler.Stop()
 	}
-	vm.eth.Stop()
-	log.Info("Ethereum backend stop completed")
+	if err := vm.eth.Stop(); err != nil {
+		log.Error("failed stopping eth", "err", err)
+	}
 	if vm.usingStandaloneDB {
 		if err := vm.db.Close(); err != nil {
 			log.Error("failed to close database: %w", err)

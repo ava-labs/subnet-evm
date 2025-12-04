@@ -107,6 +107,8 @@ func TestUnpackMintNativeCoinInput(t *testing.T) {
 			name:           "input with extra bytes (not divisible by 32)",
 			input:          append(testInputBytes, make([]byte, 33)...),
 			strictMode:     false,
+			expectedErr:    nil,
+			expectedOldErr: ErrInvalidLen,
 			expectedAddr:   constants.BlackholeAddr,
 			expectedAmount: common.Big2,
 		},
@@ -114,10 +116,8 @@ func TestUnpackMintNativeCoinInput(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			unpackedAddress, unpackedAmount, err := UnpackMintNativeCoinInput(test.input, test.strictMode)
-			if test.expectedErr != "" {
-				require.ErrorContains(t, err, test.expectedErr)
-			} else {
-				require.NoError(t, err)
+			require.ErrorIs(t, err, test.expectedErr)
+			if test.expectedErr == nil {
 				require.Equal(t, test.expectedAddr, unpackedAddress)
 				require.Equal(t, test.expectedAmount, unpackedAmount, "expected %s, got %s", test.expectedAmount.String(), unpackedAmount.String())
 			}
