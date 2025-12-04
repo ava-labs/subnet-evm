@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/core/vm"
 	"github.com/ava-labs/libevm/crypto"
 	"github.com/stretchr/testify/require"
 
@@ -80,7 +81,7 @@ func TestRewardManager(t *testing.T) {
 				allowlisttest.VerifyRole(t, rewardManager, testContractAddr, allowlist.NoRole)
 
 				_, err := testContract.SetRewardAddress(admin, testContractAddr)
-				require.ErrorContains(t, err, "execution reverted")
+				require.ErrorContains(t, err, vm.ErrExecutionReverted.Error()) //nolint:forbidigo // upstream error wrapped as string
 			},
 		},
 		{
