@@ -173,7 +173,7 @@ type Config struct {
 	WarpOffChainMessages []hexutil.Bytes `json:"warp-off-chain-messages"`
 
 	// RPC settings
-	HttpBodyLimit        uint64 `json:"http-body-limit"`
+	HTTPBodyLimit        uint64 `json:"http-body-limit"`
 	BatchRequestLimit    uint64 `json:"batch-request-limit"`
 	BatchResponseMaxSize uint64 `json:"batch-response-max-size"`
 
@@ -236,7 +236,7 @@ func (d Duration) MarshalJSON() ([]byte, error) {
 }
 
 // validate returns an error if this is an invalid config.
-func (c *Config) validate(_ uint32) error {
+func (c *Config) validate(uint32) error {
 	if c.PopulateMissingTries != nil && (c.OfflinePruning || c.Pruning) {
 		return fmt.Errorf("cannot enable populate missing tries while offline pruning (enabled: %t)/pruning (enabled: %t) are enabled", c.OfflinePruning, c.Pruning)
 	}

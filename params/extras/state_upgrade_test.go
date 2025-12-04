@@ -33,7 +33,7 @@ func TestVerifyStateUpgrades(t *testing.T) {
 	tests := []struct {
 		name          string
 		upgrades      []StateUpgrade
-		expectedError string
+		expectedError error
 	}{
 		{
 			name: "valid upgrade",
@@ -41,6 +41,7 @@ func TestVerifyStateUpgrades(t *testing.T) {
 				{BlockTimestamp: utils.NewUint64(1), StateUpgradeAccounts: modifiedAccounts},
 				{BlockTimestamp: utils.NewUint64(2), StateUpgradeAccounts: modifiedAccounts},
 			},
+			expectedError: nil,
 		},
 		{
 			name: "upgrade block timestamp is not strictly increasing",
@@ -48,7 +49,7 @@ func TestVerifyStateUpgrades(t *testing.T) {
 				{BlockTimestamp: utils.NewUint64(1), StateUpgradeAccounts: modifiedAccounts},
 				{BlockTimestamp: utils.NewUint64(1), StateUpgradeAccounts: modifiedAccounts},
 			},
-			expectedError: "config block timestamp (1) <= previous timestamp (1)",
+			expectedError: errStateUpgradeTimestampNotMonotonic,
 		},
 		{
 			name: "upgrade block timestamp decreases",
@@ -56,14 +57,14 @@ func TestVerifyStateUpgrades(t *testing.T) {
 				{BlockTimestamp: utils.NewUint64(2), StateUpgradeAccounts: modifiedAccounts},
 				{BlockTimestamp: utils.NewUint64(1), StateUpgradeAccounts: modifiedAccounts},
 			},
-			expectedError: "config block timestamp (1) <= previous timestamp (2)",
+			expectedError: errStateUpgradeTimestampNotMonotonic,
 		},
 		{
 			name: "upgrade block timestamp is zero",
 			upgrades: []StateUpgrade{
 				{BlockTimestamp: utils.NewUint64(0), StateUpgradeAccounts: modifiedAccounts},
 			},
-			expectedError: "config block timestamp (0) must be greater than 0",
+			expectedError: errStateUpgradeTimestampZero,
 		},
 		{
 			name: "balance change exceeds uint256",
@@ -129,11 +130,7 @@ func TestVerifyStateUpgrades(t *testing.T) {
 			config.StateUpgrades = tt.upgrades
 
 			err := config.Verify()
-			if tt.expectedError == "" {
-				require.NoError(err)
-			} else {
-				require.ErrorContains(err, tt.expectedError)
-			}
+			require.ErrorIs(err, tt.expectedError)
 		})
 	}
 }

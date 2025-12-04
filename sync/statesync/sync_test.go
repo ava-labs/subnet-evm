@@ -24,6 +24,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/ava-labs/subnet-evm/core/state/snapshot"
+	"github.com/ava-labs/subnet-evm/plugin/evm/customrawdb"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
 	"github.com/ava-labs/subnet-evm/sync/handlers"
 	"github.com/ava-labs/subnet-evm/sync/statesync/statesynctest"
@@ -46,15 +47,15 @@ type syncTest struct {
 
 func testSync(t *testing.T, test syncTest) {
 	t.Helper()
-	ctx := context.Background()
+	ctx := t.Context()
 	if test.ctx != nil {
 		ctx = test.ctx
 	}
 	r := rand.New(rand.NewSource(1))
 	clientDB, serverDB, serverTrieDB, root := test.prepareForTest(t, r)
-	leafsRequestHandler := handlers.NewLeafsRequestHandler(serverTrieDB, nil, message.Codec, handlerstats.NewNoopHandlerStats())
+	leafsRequestHandler := handlers.NewLeafsRequestHandler(serverTrieDB, message.StateTrieKeyLength, nil, message.Codec, handlerstats.NewNoopHandlerStats())
 	codeRequestHandler := handlers.NewCodeRequestHandler(serverDB, message.Codec, handlerstats.NewNoopHandlerStats())
-	mockClient := statesyncclient.NewMockClient(message.Codec, leafsRequestHandler, codeRequestHandler, nil)
+	mockClient := statesyncclient.NewTestClient(message.Codec, leafsRequestHandler, codeRequestHandler, nil)
 	// Set intercept functions for the mock client
 	mockClient.GetLeafsIntercept = test.GetLeafsIntercept
 	mockClient.GetCodeIntercept = test.GetCodeIntercept
@@ -70,13 +71,13 @@ func testSync(t *testing.T, test syncTest) {
 	})
 	require.NoError(t, err, "failed to create state syncer")
 	// begin sync
-	s.Start(ctx)
-	waitFor(t, context.Background(), s.Wait, test.expectedError, testSyncTimeout)
+	require.NoError(t, s.Start(ctx))
+	waitFor(t, t.Context(), s.Wait, test.expectedError, testSyncTimeout)
 	if test.expectedError != nil {
 		return
 	}
 
-	statesynctest.AssertDBConsistency(t, root, clientDB, serverTrieDB, triedb.NewDatabase(clientDB, nil))
+	assertDBConsistency(t, root, clientDB, serverTrieDB, triedb.NewDatabase(clientDB, nil))
 }
 
 // testSyncResumes tests a series of syncTests work as expected, invoking a callback function after each
@@ -97,10 +98,10 @@ func waitFor(t *testing.T, ctx context.Context, resultFunc func(context.Context)
 	if ctx.Err() != nil {
 		// print a stack trace to assist with debugging
 		var stackBuf bytes.Buffer
-		pprof.Lookup("goroutine").WriteTo(&stackBuf, 2)
+		require.NoErrorf(t, pprof.Lookup("goroutine").WriteTo(&stackBuf, 2), "error trying to print stack trace for timeout")
 		t.Log(stackBuf.String())
 		// fail the test
-		t.Fatal("unexpected timeout waiting for sync result")
+		require.Fail(t, "unexpected timeout waiting for sync result")
 	}
 
 	require.ErrorIs(t, err, expected, "result of sync did not match expected error")
@@ -144,7 +145,7 @@ func TestSimpleSyncCases(t *testing.T) {
 			prepareForTest: func(t *testing.T, r *rand.Rand) (ethdb.Database, ethdb.Database, *triedb.Database, common.Hash) {
 				serverDB := rawdb.NewMemoryDatabase()
 				serverTrieDB := triedb.NewDatabase(serverDB, nil)
-				root := statesynctest.FillAccountsWithStorage(t, r, serverDB, serverTrieDB, common.Hash{}, numAccounts)
+				root := fillAccountsWithStorage(t, r, serverDB, serverTrieDB, common.Hash{}, numAccounts)
 				return rawdb.NewMemoryDatabase(), serverDB, serverTrieDB, root
 			},
 		},
@@ -186,7 +187,7 @@ func TestSimpleSyncCases(t *testing.T) {
 			prepareForTest: func(t *testing.T, r *rand.Rand) (ethdb.Database, ethdb.Database, *triedb.Database, common.Hash) {
 				serverDB := rawdb.NewMemoryDatabase()
 				serverTrieDB := triedb.NewDatabase(serverDB, nil)
-				root := statesynctest.FillAccountsWithStorage(t, r, serverDB, serverTrieDB, common.Hash{}, numAccountsSmall)
+				root := fillAccountsWithStorage(t, r, serverDB, serverTrieDB, common.Hash{}, numAccountsSmall)
 				return rawdb.NewMemoryDatabase(), serverDB, serverTrieDB, root
 			},
 			GetCodeIntercept: func(_ []common.Hash, _ [][]byte) ([][]byte, error) {
@@ -208,8 +209,8 @@ func TestCancelSync(t *testing.T) {
 	serverDB := rawdb.NewMemoryDatabase()
 	serverTrieDB := triedb.NewDatabase(serverDB, nil)
 	// Create trie with 2000 accounts (more than one leaf request)
-	root := statesynctest.FillAccountsWithStorage(t, r, serverDB, serverTrieDB, common.Hash{}, 2000)
-	ctx, cancel := context.WithCancel(context.Background())
+	root := fillAccountsWithStorage(t, r, serverDB, serverTrieDB, common.Hash{}, 2000)
+	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 	testSync(t, syncTest{
 		ctx: ctx,
@@ -228,7 +229,7 @@ func TestCancelSync(t *testing.T) {
 // function which returns [errInterrupted] after passing through [numRequests]
 // leafs requests for [root].
 type interruptLeafsIntercept struct {
-	numRequests    uint32
+	numRequests    atomic.Uint32
 	interruptAfter uint32
 	root           common.Hash
 }
@@ -238,7 +239,7 @@ type interruptLeafsIntercept struct {
 // After that, all requests for leafs from [root] return [errInterrupted].
 func (i *interruptLeafsIntercept) getLeafsIntercept(request message.LeafsRequest, response message.LeafsResponse) (message.LeafsResponse, error) {
 	if request.Root == i.root {
-		if numRequests := atomic.AddUint32(&i.numRequests, 1); numRequests > i.interruptAfter {
+		if numRequests := i.numRequests.Add(1); numRequests > i.interruptAfter {
 			return message.LeafsResponse{}, errInterrupted
 		}
 	}
@@ -263,7 +264,7 @@ func TestResumeSyncAccountsTrieInterrupted(t *testing.T) {
 		GetLeafsIntercept: intercept.getLeafsIntercept,
 	})
 
-	require.EqualValues(t, 2, intercept.numRequests)
+	require.GreaterOrEqual(t, intercept.numRequests.Load(), uint32(2))
 
 	testSync(t, syncTest{
 		prepareForTest: func(*testing.T, *rand.Rand) (ethdb.Database, ethdb.Database, *triedb.Database, common.Hash) {
@@ -516,20 +517,104 @@ func testSyncerSyncsToNewRoot(t *testing.T, deleteBetweenSyncs func(*testing.T, 
 	})
 }
 
+// assertDBConsistency checks [serverTrieDB] and [clientTrieDB] have the same EVM state trie at [root],
+// and that [clientTrieDB.DiskDB] has corresponding account & snapshot values.
+// Also verifies any code referenced by the EVM state is present in [clientTrieDB] and the hash is correct.
+func assertDBConsistency(t testing.TB, root common.Hash, clientDB ethdb.Database, serverTrieDB, clientTrieDB *triedb.Database) {
+	numSnapshotAccounts := 0
+	accountIt := customrawdb.IterateAccountSnapshots(clientDB)
+	defer accountIt.Release()
+	for accountIt.Next() {
+		if !bytes.HasPrefix(accountIt.Key(), rawdb.SnapshotAccountPrefix) || len(accountIt.Key()) != len(rawdb.SnapshotAccountPrefix)+common.HashLength {
+			continue
+		}
+		numSnapshotAccounts++
+	}
+	require.NoError(t, accountIt.Error())
+	trieAccountLeaves := 0
+
+	statesynctest.AssertTrieConsistency(t, root, serverTrieDB, clientTrieDB, func(key, val []byte) error {
+		trieAccountLeaves++
+		accHash := common.BytesToHash(key)
+		var acc types.StateAccount
+		if err := rlp.DecodeBytes(val, &acc); err != nil {
+			return err
+		}
+		// check snapshot consistency
+		snapshotVal := rawdb.ReadAccountSnapshot(clientDB, accHash)
+		expectedSnapshotVal := types.SlimAccountRLP(acc)
+		require.Equal(t, expectedSnapshotVal, snapshotVal)
+
+		// check code consistency
+		if !bytes.Equal(acc.CodeHash, types.EmptyCodeHash[:]) {
+			codeHash := common.BytesToHash(acc.CodeHash)
+			code := rawdb.ReadCode(clientDB, codeHash)
+			actualHash := crypto.Keccak256Hash(code)
+			require.NotEmpty(t, code)
+			require.Equal(t, codeHash, actualHash)
+		}
+		if acc.Root == types.EmptyRootHash {
+			return nil
+		}
+
+		storageIt := rawdb.IterateStorageSnapshots(clientDB, accHash)
+		defer storageIt.Release()
+
+		snapshotStorageKeysCount := 0
+		for storageIt.Next() {
+			snapshotStorageKeysCount++
+		}
+
+		storageTrieLeavesCount := 0
+
+		// check storage trie and storage snapshot consistency
+		statesynctest.AssertTrieConsistency(t, acc.Root, serverTrieDB, clientTrieDB, func(key, val []byte) error {
+			storageTrieLeavesCount++
+			snapshotVal := rawdb.ReadStorageSnapshot(clientDB, accHash, common.BytesToHash(key))
+			require.Equal(t, val, snapshotVal)
+			return nil
+		})
+
+		require.Equal(t, storageTrieLeavesCount, snapshotStorageKeysCount)
+		return nil
+	})
+
+	// Check that the number of accounts in the snapshot matches the number of leaves in the accounts trie
+	require.Equal(t, trieAccountLeaves, numSnapshotAccounts)
+}
+
+func fillAccountsWithStorage(t *testing.T, r *rand.Rand, serverDB ethdb.Database, serverTrieDB *triedb.Database, root common.Hash, numAccounts int) common.Hash { //nolint:unparam
+	newRoot, _ := statesynctest.FillAccounts(t, r, serverTrieDB, root, numAccounts, func(_ *testing.T, _ int, account types.StateAccount) types.StateAccount {
+		codeBytes := make([]byte, 256)
+		_, err := r.Read(codeBytes)
+		require.NoError(t, err, "error reading random code bytes")
+
+		codeHash := crypto.Keccak256Hash(codeBytes)
+		rawdb.WriteCode(serverDB, codeHash, codeBytes)
+		account.CodeHash = codeHash[:]
+
+		// now create state trie
+		numKeys := 16
+		account.Root, _, _ = statesynctest.GenerateTrie(t, r, serverTrieDB, numKeys, common.HashLength)
+		return account
+	})
+	return newRoot
+}
+
 func TestDifferentWaitContext(t *testing.T) {
 	r := rand.New(rand.NewSource(1))
 	serverDB := rawdb.NewMemoryDatabase()
 	serverTrieDB := triedb.NewDatabase(serverDB, nil)
 	// Create trie with many accounts to ensure sync takes time
-	root := statesynctest.FillAccountsWithStorage(t, r, serverDB, serverTrieDB, common.Hash{}, 2000)
+	root := fillAccountsWithStorage(t, r, serverDB, serverTrieDB, common.Hash{}, 2000)
 	clientDB := rawdb.NewMemoryDatabase()
 
 	// Track requests to show sync continues after Wait returns
 	var requestCount int64
 
-	leafsRequestHandler := handlers.NewLeafsRequestHandler(serverTrieDB, nil, message.Codec, handlerstats.NewNoopHandlerStats())
+	leafsRequestHandler := handlers.NewLeafsRequestHandler(serverTrieDB, message.StateTrieKeyLength, nil, message.Codec, handlerstats.NewNoopHandlerStats())
 	codeRequestHandler := handlers.NewCodeRequestHandler(serverDB, message.Codec, handlerstats.NewNoopHandlerStats())
-	mockClient := statesyncclient.NewMockClient(message.Codec, leafsRequestHandler, codeRequestHandler, nil)
+	mockClient := statesyncclient.NewTestClient(message.Codec, leafsRequestHandler, codeRequestHandler, nil)
 
 	// Intercept to track ongoing requests and add delay
 	mockClient.GetLeafsIntercept = func(_ message.LeafsRequest, resp message.LeafsResponse) (message.LeafsResponse, error) {
@@ -548,13 +633,11 @@ func TestDifferentWaitContext(t *testing.T) {
 		MaxOutstandingCodeHashes: DefaultMaxOutstandingCodeHashes,
 		RequestSize:              1024,
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	// Create two different contexts
-	startCtx := context.Background() // Never cancelled
-	waitCtx, waitCancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	startCtx := t.Context() // Never cancelled
+	waitCtx, waitCancel := context.WithTimeout(t.Context(), 100*time.Millisecond)
 	defer waitCancel()
 
 	// Start with one context

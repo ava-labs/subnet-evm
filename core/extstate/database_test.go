@@ -6,7 +6,6 @@ package extstate
 import (
 	"encoding/binary"
 	"math/rand"
-	"path/filepath"
 	"slices"
 	"testing"
 
@@ -82,8 +81,8 @@ func newFuzzState(t *testing.T) *fuzzState {
 	})
 
 	firewoodMemdb := rawdb.NewMemoryDatabase()
-	fwCfg := firewood.Defaults                              // copy the defaults
-	fwCfg.FilePath = filepath.Join(t.TempDir(), "firewood") // Use a temporary directory for the Firewood
+	fwCfg := firewood.Defaults       // copy the defaults
+	fwCfg.ChainDataDir = t.TempDir() // Use a temporary directory for the Firewood
 	firewoodState := NewDatabaseWithConfig(
 		firewoodMemdb,
 		&triedb.Config{
@@ -209,7 +208,7 @@ func (fs *fuzzState) updateAccount(addrIndex int) {
 		fs.require.NoError(err, "failed to get account %s for update in %s", addr.Hex(), tr.name)
 		fs.require.NotNil(acc, "account %s is nil for update in %s", addr.Hex(), tr.name)
 		acc.Nonce++
-		acc.CodeHash = crypto.Keccak256Hash(acc.CodeHash[:]).Bytes()
+		acc.CodeHash = crypto.Keccak256Hash(acc.CodeHash).Bytes()
 		acc.Balance.Add(acc.Balance, uint256.NewInt(3))
 		fs.require.NoError(tr.accountTrie.UpdateAccount(addr, acc), "failed to update account %s in %s", addr.Hex(), tr.name)
 	}
@@ -286,7 +285,7 @@ func (fs *fuzzState) updateStorage(accountIndex int, storageIndexInput uint64) {
 	storageKeyHash := crypto.Keccak256Hash(storageKey[:])
 	fs.inputCounter++
 	updatedValInput := binary.BigEndian.AppendUint64(storageKeyHash[:], fs.inputCounter)
-	updatedVal := crypto.Keccak256Hash(updatedValInput[:])
+	updatedVal := crypto.Keccak256Hash(updatedValInput)
 
 	for _, tr := range fs.merkleTries {
 		str := fs.openStorageTrie(addr, tr)
@@ -311,7 +310,7 @@ func (fs *fuzzState) deleteStorage(accountIndex int, storageIndexInput uint64) {
 func FuzzTree(f *testing.F) {
 	f.Fuzz(func(t *testing.T, randSeed int64, byteSteps []byte) {
 		fuzzState := newFuzzState(t)
-		rand := rand.New(rand.NewSource(randSeed))
+		rand := rand.New(rand.NewSource(randSeed)) // this isn't a good fuzz test, but it is reproducible.
 
 		for range 10 {
 			fuzzState.createAccount()
@@ -324,7 +323,7 @@ func FuzzTree(f *testing.F) {
 		}
 
 		for _, step := range byteSteps {
-			step = step % maxStep
+			step %= maxStep
 			t.Log(stepMap[step])
 			switch step {
 			case commit:
@@ -352,7 +351,7 @@ func FuzzTree(f *testing.F) {
 					fuzzState.deleteStorage(rand.Intn(len(fuzzState.currentAddrs)), rand.Uint64())
 				}
 			default:
-				t.Fatalf("unknown step: %d", step)
+				require.Failf(t, "unknown step", "got: %d", step)
 			}
 		}
 	})

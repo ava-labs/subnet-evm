@@ -4,7 +4,6 @@
 package abi
 
 import (
-	"bytes"
 	"math/big"
 	"strings"
 	"testing"
@@ -15,10 +14,10 @@ import (
 
 // Note: This file contains tests in addition to those found in go-ethereum.
 
-const TEST_ABI = `[{"type":"function","name":"receive","inputs":[{"name":"sender","type":"address"},{"name":"amount","type":"uint256"},{"name":"memo","type":"bytes"}],"outputs":[{"internalType":"bool","name":"isAllowed","type":"bool"}]}]`
+const TestABI = `[{"type":"function","name":"receive","inputs":[{"name":"sender","type":"address"},{"name":"amount","type":"uint256"},{"name":"memo","type":"bytes"}],"outputs":[{"internalType":"bool","name":"isAllowed","type":"bool"}]}]`
 
 func TestUnpackInputIntoInterface(t *testing.T) {
-	abi, err := JSON(strings.NewReader(TEST_ABI))
+	abi, err := JSON(strings.NewReader(TestABI))
 	require.NoError(t, err)
 
 	type inputType struct {
@@ -35,7 +34,7 @@ func TestUnpackInputIntoInterface(t *testing.T) {
 	rawData, err := abi.Pack("receive", input.Sender, input.Amount, input.Memo)
 	require.NoError(t, err)
 
-	abi, err = JSON(strings.NewReader(TEST_ABI))
+	abi, err = JSON(strings.NewReader(TestABI))
 	require.NoError(t, err)
 
 	for _, test := range []struct {
@@ -82,14 +81,10 @@ func TestUnpackInputIntoInterface(t *testing.T) {
 				err = abi.UnpackInputIntoInterface(&v, "receive", data, test.strictMode) // skips 4 byte selector
 
 				if test.expectedErrorSubstring != "" {
-					require.Error(t, err)
-					require.ErrorContains(t, err, test.expectedErrorSubstring)
+					require.ErrorContains(t, err, test.expectedErrorSubstring) //nolint:forbidigo // uses upstream code
 				} else {
 					require.NoError(t, err)
-					// Verify unpacked values match input
-					require.Equal(t, v.Amount, input.Amount)
-					require.EqualValues(t, v.Amount, input.Amount)
-					require.True(t, bytes.Equal(v.Memo, input.Memo))
+					require.Equal(t, input, v)
 				}
 			})
 		}
@@ -97,7 +92,7 @@ func TestUnpackInputIntoInterface(t *testing.T) {
 }
 
 func TestPackOutput(t *testing.T) {
-	abi, err := JSON(strings.NewReader(TEST_ABI))
+	abi, err := JSON(strings.NewReader(TestABI))
 	require.NoError(t, err)
 
 	bytes, err := abi.PackOutput("receive", true)

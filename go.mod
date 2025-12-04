@@ -1,16 +1,26 @@
 module github.com/ava-labs/subnet-evm
 
-go 1.24.8
+// CLI tools intended for invocation with `go tool` should be added to
+// tools/go.mod to avoid polluting the main module's dependencies. See
+// CONTRIBUTING.md for more details.
+
+// - Changes to the minimum golang version must also be replicated in:
+//   - go.mod (here)
+//   - tools/go.mod
+//   - RELEASES.md
+//
+// - If updating between minor versions (e.g. 1.24.x -> 1.25.x):
+//   - Consider updating the version of golangci-lint (see tools/go.mod)
+go 1.24.9
 
 require (
 	github.com/VictoriaMetrics/fastcache v1.12.1
 	github.com/antithesishq/antithesis-sdk-go v0.3.8
-	github.com/ava-labs/avalanchego v1.13.6-rc.1
-	github.com/ava-labs/firewood-go-ethhash/ffi v0.0.12
-	github.com/ava-labs/libevm v1.13.15-0.20251002164226-35926db4d661
+	github.com/ava-labs/avalanchego v1.14.1-0.20251120155522-df4a8e531761
+	github.com/ava-labs/firewood-go-ethhash/ffi v0.0.15
+	github.com/ava-labs/libevm v1.13.15-0.20251016142715-1bccf4f2ddb2
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/deckarep/golang-set/v2 v2.1.0
-	github.com/fjl/gencodec v0.1.1
 	github.com/go-cmd/cmd v1.4.3
 	github.com/gorilla/rpc v1.2.0
 	github.com/gorilla/websocket v1.5.0
@@ -32,12 +42,11 @@ require (
 	go.uber.org/goleak v1.3.0
 	go.uber.org/mock v0.5.0
 	go.uber.org/zap v1.27.0
-	golang.org/x/crypto v0.42.0
+	golang.org/x/crypto v0.45.0
 	golang.org/x/exp v0.0.0-20241215155358-4a5509556b9e
-	golang.org/x/mod v0.28.0
-	golang.org/x/sync v0.17.0
+	golang.org/x/sync v0.18.0
 	golang.org/x/time v0.12.0
-	golang.org/x/tools v0.37.0
+	golang.org/x/tools v0.38.0
 	google.golang.org/protobuf v1.36.8
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 )
@@ -47,10 +56,10 @@ require (
 	connectrpc.com/grpcreflect v1.3.0 // indirect
 	github.com/DataDog/zstd v1.5.2 // indirect
 	github.com/Microsoft/go-winio v0.6.1 // indirect
-	github.com/StephenButtolph/canoto v0.17.2 // indirect
-	github.com/ava-labs/coreth v0.15.4-rc.4 // indirect
+	github.com/StephenButtolph/canoto v0.17.3 // indirect
+	github.com/ava-labs/coreth v0.16.0-rc.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/bits-and-blooms/bitset v1.10.0 // indirect
+	github.com/bits-and-blooms/bitset v1.20.0 // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.3.5 // indirect
 	github.com/btcsuite/btcd/btcutil v1.1.3 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
@@ -62,11 +71,10 @@ require (
 	github.com/cockroachdb/redact v1.1.3 // indirect
 	github.com/cockroachdb/tokenbucket v0.0.0-20230807174530-cc333fc44b06 // indirect
 	github.com/compose-spec/compose-go v1.20.2 // indirect
-	github.com/consensys/bavard v0.1.13 // indirect
-	github.com/consensys/gnark-crypto v0.12.1 // indirect
+	github.com/consensys/gnark-crypto v0.18.1 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.6 // indirect
 	github.com/crate-crypto/go-ipa v0.0.0-20231025140028-3c0104f4b233 // indirect
-	github.com/crate-crypto/go-kzg-4844 v1.0.0 // indirect
+	github.com/crate-crypto/go-kzg-4844 v1.1.0 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.0 // indirect
 	github.com/deepmap/oapi-codegen v1.6.0 // indirect
 	github.com/distribution/reference v0.5.0 // indirect
@@ -78,7 +86,6 @@ require (
 	github.com/ethereum/c-kzg-4844 v1.0.0 // indirect
 	github.com/ferranbt/fastssz v0.1.2 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
-	github.com/garslo/gogen v0.0.0-20230926014519-f497ca02dd4c // indirect
 	github.com/gballet/go-libpcsclite v0.0.0-20191108122812-4678299bea08 // indirect
 	github.com/gballet/go-verkle v0.1.1-0.20231031103413-a67434b50f46 // indirect
 	github.com/getsentry/sentry-go v0.35.0 // indirect
@@ -124,7 +131,6 @@ require (
 	github.com/minio/sha256-simd v1.0.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/mitchellh/pointerstructure v1.2.0 // indirect
-	github.com/mmcloughlin/addchain v0.4.0 // indirect
 	github.com/moby/spdystream v0.2.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
@@ -169,11 +175,12 @@ require (
 	go.opentelemetry.io/otel/trace v1.37.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.7.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/net v0.44.0 // indirect
+	golang.org/x/mod v0.29.0 // indirect
+	golang.org/x/net v0.47.0 // indirect
 	golang.org/x/oauth2 v0.30.0 // indirect
-	golang.org/x/sys v0.36.0 // indirect
-	golang.org/x/term v0.35.0 // indirect
-	golang.org/x/text v0.29.0 // indirect
+	golang.org/x/sys v0.38.0 // indirect
+	golang.org/x/term v0.37.0 // indirect
+	golang.org/x/text v0.31.0 // indirect
 	gonum.org/v1/gonum v0.16.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250707201910-8d1bb00bc6a7 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250818200422-3122310a409c // indirect
@@ -187,8 +194,14 @@ require (
 	k8s.io/klog/v2 v2.110.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20231010175941-2dd684a91f00 // indirect
 	k8s.io/utils v0.0.0-20230726121419-3b25d923346b // indirect
-	rsc.io/tmplfunc v0.0.3 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.1 // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect
+)
+
+// The following tools are managed here instead of in tools/go.mod
+// because they are already direct dependencies of the main module.
+tool (
+	github.com/ava-labs/libevm/rlp/rlpgen
+	github.com/onsi/ginkgo/v2/ginkgo
 )

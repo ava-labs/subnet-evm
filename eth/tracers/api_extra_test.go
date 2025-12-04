@@ -4,7 +4,6 @@
 package tracers
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"math/big"
@@ -132,26 +131,13 @@ func testTraceBlockPrecompileActivation(t *testing.T, scheme string) {
 		},
 	}
 	for i, tc := range testSuite {
-		result, err := api.TraceBlockByNumber(context.Background(), tc.blockNumber, tc.config)
+		result, err := api.TraceBlockByNumber(t.Context(), tc.blockNumber, tc.config)
+		require.ErrorIs(t, err, tc.expectErr, "test %d", i)
 		if tc.expectErr != nil {
-			if err == nil {
-				t.Errorf("test %d, want error %v", i, tc.expectErr)
-				continue
-			}
-			if !reflect.DeepEqual(err, tc.expectErr) {
-				t.Errorf("test %d: error mismatch, want %v, get %v", i, tc.expectErr, err)
-			}
-			continue
-		}
-		if err != nil {
-			t.Errorf("test %d, want no error, have %v", i, err)
 			continue
 		}
 		have, _ := json.Marshal(result)
-		want := tc.want
-		if string(have) != want {
-			t.Errorf("test %d, result mismatch, have\n%v\n, want\n%v\n", i, string(have), want)
-		}
+		require.Equal(t, tc.want, string(have), "test %d", i)
 	}
 }
 
@@ -210,7 +196,7 @@ func testTraceTransactionPrecompileActivation(t *testing.T, scheme string) {
 	api := NewAPI(backend)
 	for i, target := range blockNoTxMap {
 		t.Run(fmt.Sprintf("blockNumber %d", i), func(t *testing.T) {
-			result, err := api.TraceTransaction(context.Background(), target, nil)
+			result, err := api.TraceTransaction(t.Context(), target, nil)
 			require := require.New(t)
 			require.NoError(err)
 			var have *logger.ExecutionResult
@@ -300,34 +286,25 @@ func testTraceChainPrecompileActivation(t *testing.T, scheme string) {
 		ref.Store(0)
 		rel.Store(0)
 
-		from, _ := api.blockByNumber(context.Background(), rpc.BlockNumber(c.start))
-		to, _ := api.blockByNumber(context.Background(), rpc.BlockNumber(c.end))
+		from, _ := api.blockByNumber(t.Context(), rpc.BlockNumber(c.start))
+		to, _ := api.blockByNumber(t.Context(), rpc.BlockNumber(c.end))
 		resCh := api.traceChain(from, to, c.config, nil)
 
 		next := c.start + 1
 		for result := range resCh {
-			if have, want := uint64(result.Block), next; have != want {
-				t.Fatalf("unexpected tracing block, have %d want %d", have, want)
-			}
-			if have, want := len(result.Traces), int(next); have != want {
-				t.Fatalf("unexpected result length, have %d want %d", have, want)
-			}
+			require.Equal(t, next, uint64(result.Block), "unexpected tracing block")
+			require.Len(t, result.Traces, int(next), "unexpected result length")
 			for _, trace := range result.Traces {
 				trace.TxHash = common.Hash{}
 				blob, _ := json.Marshal(trace)
-				if have, want := string(blob), single; have != want {
-					t.Fatalf("unexpected tracing result, have\n%v\nwant:\n%v", have, want)
-				}
+				require.Equal(t, single, string(blob), "unexpected tracing result")
 			}
 			next += 1
 		}
-		if next != c.end+1 {
-			t.Error("Missing tracing block")
-		}
+		require.Equal(t, c.end+1, next, "Missing tracing block")
 
-		if nref, nrel := ref.Load(), rel.Load(); nref != nrel {
-			t.Errorf("Ref and deref actions are not equal, ref %d rel %d", nref, nrel)
-		}
+		nref, nrel := ref.Load(), rel.Load()
+		require.Equal(t, nrel, nref, "Ref and deref actions are not equal")
 	}
 }
 
@@ -423,6 +400,9 @@ func testTraceCallWithOverridesStateUpgrade(t *testing.T, scheme string) {
 			expect:    `{"gas":21000,"failed":true,"returnValue":"","structLogs":[]}`,
 		},
 		{
+			// Test that state upgrades are NOT applied when only time is overridden.
+			// Even though we override time to after the state upgrade, the upgrade
+			// should not be applied because it uses the original block time.
 			blockNumber: rpc.BlockNumber(activateStateUpgradeBlock - 1),
 			call: ethapi.TransactionArgs{
 				From:  &accounts[2].addr,
@@ -431,34 +411,24 @@ func testTraceCallWithOverridesStateUpgrade(t *testing.T, scheme string) {
 			},
 			config: &TraceCallConfig{
 				BlockOverrides: &ethapi.BlockOverrides{
-					Time: (*hexutil.Uint64)(&fastForwardTime),
+					Number: (*hexutil.Big)(big.NewInt(int64(activateStateUpgradeBlock - 1))),
+					Time:   (*hexutil.Uint64)(&fastForwardTime),
 				},
 			},
-			expectErr: core.ErrInsufficientFunds,
-			expect:    `{"gas":21000,"failed":true,"returnValue":"","structLogs":[]}`,
+			expectErr: nil,
+			expect:    `{"gas":21000,"failed":false,"returnValue":"","structLogs":[]}`,
 		},
 	}
 	for i, testspec := range testSuite {
-		result, err := api.TraceCall(context.Background(), testspec.call, rpc.BlockNumberOrHash{BlockNumber: &testspec.blockNumber}, testspec.config)
-		if testspec.expectErr != nil {
-			require.ErrorIs(t, err, testspec.expectErr, "test %d", i)
+		result, err := api.TraceCall(t.Context(), testspec.call, rpc.BlockNumberOrHash{BlockNumber: &testspec.blockNumber}, testspec.config)
+		require.ErrorIs(t, err, testspec.expectErr, "test %d", i)
+		if err != nil {
 			continue
-		} else {
-			if err != nil {
-				t.Errorf("test %d: expect no error, got %v", i, err)
-				continue
-			}
-			var have *logger.ExecutionResult
-			if err := json.Unmarshal(result.(json.RawMessage), &have); err != nil {
-				t.Errorf("test %d: failed to unmarshal result %v", i, err)
-			}
-			var want *logger.ExecutionResult
-			if err := json.Unmarshal([]byte(testspec.expect), &want); err != nil {
-				t.Errorf("test %d: failed to unmarshal result %v", i, err)
-			}
-			if !reflect.DeepEqual(have, want) {
-				t.Errorf("test %d: result mismatch, want %v, got %v", i, testspec.expect, string(result.(json.RawMessage)))
-			}
 		}
+		var have *logger.ExecutionResult
+		require.NoError(t, json.Unmarshal(result.(json.RawMessage), &have), "test %d: failed to unmarshal result", i)
+		var want *logger.ExecutionResult
+		require.NoError(t, json.Unmarshal([]byte(testspec.expect), &want), "test %d: failed to unmarshal result", i)
+		require.Equal(t, want, have, "test %d: result mismatch", i)
 	}
 }

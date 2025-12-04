@@ -32,13 +32,10 @@ func FuzzPackMintNativeCoinEqualTest(f *testing.F) {
 	f.Add(constants.BlackholeAddr.Bytes(), common.Big2.Bytes())
 	f.Fuzz(func(t *testing.T, b []byte, bigIntBytes []byte) {
 		bigIntVal := new(big.Int).SetBytes(bigIntBytes)
-		doCheckOutputs := true
 		// we can only check if outputs are correct if the value is less than MaxUint256
 		// otherwise the value will be truncated when packed,
 		// and thus unpacked output will not be equal to the value
-		if bigIntVal.Cmp(abi.MaxUint256) > 0 {
-			doCheckOutputs = false
-		}
+		doCheckOutputs := bigIntVal.Cmp(abi.MaxUint256) <= 0
 		testOldPackMintNativeCoinEqual(t, common.BytesToAddress(b), bigIntVal, doCheckOutputs)
 	})
 }
@@ -52,8 +49,8 @@ func TestUnpackMintNativeCoinInput(t *testing.T) {
 		name           string
 		input          []byte
 		strictMode     bool
-		expectedErr    string
-		expectedOldErr string
+		expectedErr    error
+		expectedOldErr error
 		expectedAddr   common.Address
 		expectedAmount *big.Int
 	}{
@@ -61,29 +58,29 @@ func TestUnpackMintNativeCoinInput(t *testing.T) {
 			name:           "empty input strict mode",
 			input:          []byte{},
 			strictMode:     true,
-			expectedErr:    ErrInvalidLen.Error(),
-			expectedOldErr: ErrInvalidLen.Error(),
+			expectedErr:    ErrInvalidLen,
+			expectedOldErr: ErrInvalidLen,
 		},
 		{
 			name:           "empty input",
 			input:          []byte{},
 			strictMode:     false,
-			expectedErr:    "attempting to unmarshal an empty string",
-			expectedOldErr: ErrInvalidLen.Error(),
+			expectedErr:    ErrUnpackInput,
+			expectedOldErr: ErrInvalidLen,
 		},
 		{
 			name:           "input with extra bytes strict mode",
 			input:          append(testInputBytes, make([]byte, 32)...),
 			strictMode:     true,
-			expectedErr:    ErrInvalidLen.Error(),
-			expectedOldErr: ErrInvalidLen.Error(),
+			expectedErr:    ErrInvalidLen,
+			expectedOldErr: ErrInvalidLen,
 		},
 		{
 			name:           "input with extra bytes",
 			input:          append(testInputBytes, make([]byte, 32)...),
 			strictMode:     false,
-			expectedErr:    "",
-			expectedOldErr: ErrInvalidLen.Error(),
+			expectedErr:    nil,
+			expectedOldErr: ErrInvalidLen,
 			expectedAddr:   constants.BlackholeAddr,
 			expectedAmount: common.Big2,
 		},
@@ -91,35 +88,32 @@ func TestUnpackMintNativeCoinInput(t *testing.T) {
 			name:           "input with extra bytes (not divisible by 32) strict mode",
 			input:          append(testInputBytes, make([]byte, 33)...),
 			strictMode:     true,
-			expectedErr:    ErrInvalidLen.Error(),
-			expectedOldErr: ErrInvalidLen.Error(),
+			expectedErr:    ErrInvalidLen,
+			expectedOldErr: ErrInvalidLen,
 		},
 		{
 			name:           "input with extra bytes (not divisible by 32)",
 			input:          append(testInputBytes, make([]byte, 33)...),
 			strictMode:     false,
+			expectedErr:    nil,
+			expectedOldErr: ErrInvalidLen,
 			expectedAddr:   constants.BlackholeAddr,
 			expectedAmount: common.Big2,
-			expectedOldErr: ErrInvalidLen.Error(),
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			unpackedAddress, unpackedAmount, err := UnpackMintNativeCoinInput(test.input, test.strictMode)
-			if test.expectedErr != "" {
-				require.ErrorContains(t, err, test.expectedErr)
-			} else {
-				require.NoError(t, err)
+			require.ErrorIs(t, err, test.expectedErr)
+			if test.expectedErr == nil {
 				require.Equal(t, test.expectedAddr, unpackedAddress)
-				require.True(t, test.expectedAmount.Cmp(unpackedAmount) == 0, "expected %s, got %s", test.expectedAmount.String(), unpackedAmount.String())
+				require.Equal(t, test.expectedAmount, unpackedAmount, "expected %s, got %s", test.expectedAmount.String(), unpackedAmount.String())
 			}
 			oldUnpackedAddress, oldUnpackedAmount, oldErr := OldUnpackMintNativeCoinInput(test.input)
-			if test.expectedOldErr != "" {
-				require.ErrorContains(t, oldErr, test.expectedOldErr)
-			} else {
-				require.NoError(t, oldErr)
+			require.ErrorIs(t, oldErr, test.expectedOldErr)
+			if test.expectedOldErr == nil {
 				require.Equal(t, test.expectedAddr, oldUnpackedAddress)
-				require.True(t, test.expectedAmount.Cmp(oldUnpackedAmount) == 0, "expected %s, got %s", test.expectedAmount.String(), oldUnpackedAmount.String())
+				require.Equal(t, test.expectedAmount, oldUnpackedAmount, "expected %s, got %s", test.expectedAmount.String(), oldUnpackedAmount.String())
 			}
 		})
 	}
@@ -136,21 +130,19 @@ func testOldPackMintNativeCoinEqual(t *testing.T, addr common.Address, amount *b
 	t.Run(fmt.Sprintf("TestUnpackAndPacks, addr: %s, amount: %s", addr.String(), amount.String()), func(t *testing.T) {
 		input, err := OldPackMintNativeCoinInput(addr, amount)
 		input2, err2 := PackMintNativeCoin(addr, amount)
+		require.ErrorIs(t, err2, err)
 		if err != nil {
-			require.ErrorContains(t, err2, err.Error())
 			return
 		}
-		require.NoError(t, err2)
 		require.Equal(t, input, input2)
 
 		input = input[4:]
 		to, assetAmount, err := OldUnpackMintNativeCoinInput(input)
 		unpackedAddr, unpackedAmount, err2 := UnpackMintNativeCoinInput(input, true)
+		require.ErrorIs(t, err2, err)
 		if err != nil {
-			require.ErrorContains(t, err2, err.Error())
 			return
 		}
-		require.NoError(t, err2)
 		require.Equal(t, to, unpackedAddr)
 		require.Equal(t, assetAmount.Bytes(), unpackedAmount.Bytes())
 		if checkOutputs {

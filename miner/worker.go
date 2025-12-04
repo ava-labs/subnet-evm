@@ -139,12 +139,12 @@ func (w *worker) commitNewWork(predicateContext *precompileconfig.PredicateConte
 	w.mu.RLock()
 	defer w.mu.RUnlock()
 	var (
-		parent     = w.chain.CurrentBlock()
-		tstart     = w.clock.Time()
-		chainExtra = params.GetExtra(w.chainConfig)
+		parent      = w.chain.CurrentBlock()
+		chainExtra  = params.GetExtra(w.chainConfig)
+		tstart      = customheader.GetNextTimestamp(parent, w.clock.Time())
+		timestamp   = uint64(tstart.Unix())
+		timestampMS = uint64(tstart.UnixMilli())
 	)
-
-	timestamp, timestampMS := customheader.GetNextTimestamp(parent, tstart)
 
 	header := &types.Header{
 		ParentHash: parent.Hash(),
@@ -515,7 +515,6 @@ func (w *worker) handleResult(env *environment, block *types.Block, createdAt ti
 	var (
 		hash     = block.Hash()
 		receipts = make([]*types.Receipt, len(unfinishedReceipts))
-		logs     []*types.Log
 	)
 	for i, unfinishedReceipt := range unfinishedReceipts {
 		receipt := new(types.Receipt)
@@ -536,7 +535,6 @@ func (w *worker) handleResult(env *environment, block *types.Block, createdAt ti
 			*log = *unfinishedLog
 			log.BlockHash = hash
 		}
-		logs = append(logs, receipt.Logs...)
 	}
 
 	feesInEther, err := core.TotalFeesFloat(block, receipts)

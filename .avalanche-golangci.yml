@@ -54,14 +54,14 @@ linters:
     - asciicheck
     - bodyclose
     - copyloopvar
-    # - depguard
-    # - errcheck
+    - depguard
+    - errcheck
     - errorlint
-    # - forbidigo
+    - forbidigo
     - goconst
-    # - gocritic
+    - gocritic
     - goprintffuncname
-    # - gosec
+    - gosec
     - govet
     - importas
     - ineffassign
@@ -75,13 +75,14 @@ linters:
     - predeclared
     - revive
     - spancheck
-    # - staticcheck
+    - staticcheck
     - tagalign
-    # - testifylint
+    - testifylint
     - unconvert
     - unparam
     - unused
     - usestdlibvars
+    - usetesting
     - whitespace
   settings:
     depguard:
@@ -208,16 +209,16 @@ linters:
         - serialize
       strict: true
     testifylint:
-    # Enable all checkers (https://github.com/Antonboom/testifylint#checkers).
-    # Default: false
-    enable-all: true
-    # Disable checkers by name
-    # (in addition to default
-    #   suite-thelper
-    # ).
-    disable:
-      - go-require
-      - float-compare
+      # Enable all checkers (https://github.com/Antonboom/testifylint#checkers).
+      # Default: false
+      enable-all: true
+      # Disable checkers by name
+      # (in addition to default
+      #   suite-thelper
+      # ).
+      disable:
+        - go-require
+        - float-compare
     unused:
       # Mark all struct fields that have been written to as used.
       # Default: true
@@ -228,6 +229,14 @@ linters:
       # Mark all local variables as used.
       # default: true
       local-variables-are-used: false
+    usetesting:
+      os-create-temp:     true # Disallow `os.CreateTemp("", ...)`
+      os-mkdir-temp:      true # Disallow `os.MkdirTemp()`
+      os-setenv:          true # Disallow `os.Setenv()`
+      os-temp-dir:        true # Disallow `os.TempDir()`
+      os-chdir:           true # Disallow `os.Chdir()`
+      context-background: true # Disallow `context.Background()`
+      context-todo:       true # Disallow `context.TODO()` 
   exclusions:
     generated: lax
     presets:
@@ -235,3 +244,12 @@ linters:
       - common-false-positives
       - legacy
       - std-error-handling
+    rules:
+      # Exclude some linters from running on test files.
+      # 1. Exclude the top level tests/ directory.
+      # 2. Exclude any file prefixed with test_ in any directory.
+      # 3. Exclude any directory suffixed with test.
+      # 4. Exclude any file suffixed with _test.go.
+      - path: "(^tests/)|(^(.*/)*test_[^/]*\\.go$)|(.*test/.*)|(.*_test\\.go$)"
+        linters:
+          - gosec

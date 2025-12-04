@@ -6,6 +6,9 @@ package core
 import (
 	"fmt"
 	"math/big"
+	"os"
+	"path/filepath"
+	"slices"
 	"testing"
 
 	"github.com/ava-labs/libevm/common"
@@ -15,7 +18,6 @@ import (
 	"github.com/ava-labs/libevm/crypto"
 	"github.com/ava-labs/libevm/ethdb"
 	"github.com/holiman/uint256"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/ava-labs/subnet-evm/commontype"
@@ -138,6 +140,50 @@ func copyMemDB(db ethdb.Database) (ethdb.Database, error) {
 	return newDB, nil
 }
 
+// copyDir recursively copies all files and folders from a directory [src] to a
+// new temporary directory and returns the path to the new directory.
+func copyDir(t *testing.T, src string) string {
+	t.Helper()
+
+	if src == "" {
+		return ""
+	}
+
+	dst := t.TempDir()
+	err := filepath.Walk(src, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		// Calculate the relative path from src
+		relPath, err := filepath.Rel(src, path)
+		if err != nil {
+			return err
+		}
+
+		// Skip the root directory itself
+		if relPath == "." {
+			return nil
+		}
+
+		dstPath := filepath.Join(dst, relPath)
+
+		if info.IsDir() {
+			return os.MkdirAll(dstPath, info.Mode().Perm())
+		}
+
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+
+		return os.WriteFile(dstPath, data, info.Mode().Perm())
+	})
+
+	require.NoError(t, err)
+	return dst
+}
+
 // checkBlockChainState creates a new BlockChain instance and checks that exporting each block from
 // genesis to last accepted from the original instance yields the same last accepted block and state
 // root.
@@ -152,84 +198,60 @@ func checkBlockChainState(
 	checkState func(sdb *state.StateDB) error,
 ) (*BlockChain, *BlockChain) {
 	var (
+		require           = require.New(t)
 		lastAcceptedBlock = bc.LastConsensusAcceptedBlock()
 		newDB             = rawdb.NewMemoryDatabase()
 	)
 
 	acceptedState, err := bc.StateAt(lastAcceptedBlock.Root())
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := checkState(acceptedState); err != nil {
-		t.Fatalf("Check state failed for original blockchain due to: %s", err)
-	}
+	require.NoError(err)
+	require.NoError(checkState(acceptedState), "Check state failed for original blockchain")
 
 	oldChainDataDir := bc.CacheConfig().ChainDataDir // cacheConfig uses same reference in most tests
 	newBlockChain, err := create(newDB, gspec, common.Hash{}, t.TempDir())
-	if err != nil {
-		t.Fatalf("Failed to create new blockchain instance: %s", err)
-	}
+	require.NoError(err, "Failed to create new blockchain instance")
 	defer newBlockChain.Stop()
 
 	for i := uint64(1); i <= lastAcceptedBlock.NumberU64(); i++ {
 		block := bc.GetBlockByNumber(i)
-		if block == nil {
-			t.Fatalf("Failed to retrieve block by number %d from original chain", i)
-		}
-		if err := newBlockChain.InsertBlock(block); err != nil {
-			t.Fatalf("Failed to insert block %s:%d due to %s", block.Hash().Hex(), block.NumberU64(), err)
-		}
-		if err := newBlockChain.Accept(block); err != nil {
-			t.Fatalf("Failed to accept block %s:%d due to %s", block.Hash().Hex(), block.NumberU64(), err)
-		}
+		require.NotNilf(block, "Failed to retrieve block by number %d from original chain", i)
+		require.NoErrorf(newBlockChain.InsertBlock(block), "Failed to insert block %s:%d", block.Hash().Hex(), block.NumberU64())
+		require.NoErrorf(newBlockChain.Accept(block), "Failed to accept block %s:%d", block.Hash().Hex(), block.NumberU64())
 	}
 	newBlockChain.DrainAcceptorQueue()
 
 	newLastAcceptedBlock := newBlockChain.LastConsensusAcceptedBlock()
-	if newLastAcceptedBlock.Hash() != lastAcceptedBlock.Hash() {
-		t.Fatalf("Expected new blockchain to have last accepted block %s:%d, but found %s:%d", lastAcceptedBlock.Hash().Hex(), lastAcceptedBlock.NumberU64(), newLastAcceptedBlock.Hash().Hex(), newLastAcceptedBlock.NumberU64())
-	}
+	require.Equal(lastAcceptedBlock.Hash(), newLastAcceptedBlock.Hash())
 
 	// Check that the state of [newBlockChain] passes the check
 	acceptedState, err = newBlockChain.StateAt(lastAcceptedBlock.Root())
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := checkState(acceptedState); err != nil {
-		t.Fatalf("Check state failed for newly generated blockchain due to: %s", err)
-	}
+	require.NoError(err)
+	require.NoErrorf(checkState(acceptedState), "Check state failed for newly generated blockchain")
 
 	// Copy the database over to prevent any issues when re-using [originalDB] after this call.
 	originalDB, err = copyMemDB(originalDB)
-	if err != nil {
-		t.Fatal(err)
-	}
-	restartedChain, err := create(originalDB, gspec, lastAcceptedBlock.Hash(), oldChainDataDir)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(err)
+	newChainDataDir := copyDir(t, oldChainDataDir)
+	restartedChain, err := create(originalDB, gspec, lastAcceptedBlock.Hash(), newChainDataDir)
+	require.NoError(err)
 	defer restartedChain.Stop()
-	if currentBlock := restartedChain.CurrentBlock(); currentBlock.Hash() != lastAcceptedBlock.Hash() {
-		t.Fatalf("Expected restarted chain to have current block %s:%d, but found %s:%d", lastAcceptedBlock.Hash().Hex(), lastAcceptedBlock.NumberU64(), currentBlock.Hash().Hex(), currentBlock.Number.Uint64())
-	}
-	if restartedLastAcceptedBlock := restartedChain.LastConsensusAcceptedBlock(); restartedLastAcceptedBlock.Hash() != lastAcceptedBlock.Hash() {
-		t.Fatalf("Expected restarted chain to have current block %s:%d, but found %s:%d", lastAcceptedBlock.Hash().Hex(), lastAcceptedBlock.NumberU64(), restartedLastAcceptedBlock.Hash().Hex(), restartedLastAcceptedBlock.NumberU64())
-	}
+
+	currentBlock := restartedChain.CurrentBlock()
+	require.Equal(lastAcceptedBlock.Hash(), currentBlock.Hash(), "Restarted chain's current block does not match last accepted block")
+	restartedLastAcceptedBlock := restartedChain.LastConsensusAcceptedBlock()
+	require.Equal(lastAcceptedBlock.Hash(), restartedLastAcceptedBlock.Hash(), "Restarted chain's last accepted block does not match last accepted block")
 
 	// Check that the state of [restartedChain] passes the check
 	acceptedState, err = restartedChain.StateAt(lastAcceptedBlock.Root())
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := checkState(acceptedState); err != nil {
-		t.Fatalf("Check state failed for restarted blockchain due to: %s", err)
-	}
+	require.NoError(err)
+	require.NoError(checkState(acceptedState), "Check state failed for restarted blockchain")
 
 	return newBlockChain, restartedChain
 }
 
 func InsertChainAcceptSingleBlock(t *testing.T, create createFunc) {
 	var (
+		require = require.New(t)
 		key1, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 		key2, _ = crypto.HexToECDSA("8a1f9a8f95be41cd7ccb6168179afb4504aefe388d1e14474d32c45c72ce7b7a")
 		addr1   = crypto.PubkeyToAddress(key1.PublicKey)
@@ -241,13 +263,11 @@ func InsertChainAcceptSingleBlock(t *testing.T, create createFunc) {
 	genesisBalance := big.NewInt(1000000)
 	gspec := &Genesis{
 		Config: &params.ChainConfig{HomesteadBlock: new(big.Int)},
-		Alloc:  GenesisAlloc{addr1: {Balance: genesisBalance}},
+		Alloc:  types.GenesisAlloc{addr1: {Balance: genesisBalance}},
 	}
 	blockchain, err := create(chainDB, gspec, common.Hash{}, t.TempDir())
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer blockchain.Stop()
+	require.NoError(err)
+	t.Cleanup(blockchain.Stop)
 
 	// This call generates a chain of 3 blocks.
 	signer := types.HomesteadSigner{}
@@ -255,17 +275,12 @@ func InsertChainAcceptSingleBlock(t *testing.T, create createFunc) {
 		tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr1), addr2, big.NewInt(10000), ethparams.TxGas, nil, nil), signer, key1)
 		gen.AddTx(tx)
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(err)
 
 	// Insert three blocks into the chain and accept only the first block.
-	if _, err := blockchain.InsertChain(chain); err != nil {
-		t.Fatal(err)
-	}
-	if err := blockchain.Accept(chain[0]); err != nil {
-		t.Fatal(err)
-	}
+	_, err = blockchain.InsertChain(chain)
+	require.NoError(err)
+	require.NoError(blockchain.Accept(chain[0]))
 	blockchain.DrainAcceptorQueue()
 
 	// check the state of the last accepted block
@@ -300,6 +315,7 @@ func InsertChainAcceptSingleBlock(t *testing.T, create createFunc) {
 
 func InsertLongForkedChain(t *testing.T, create createFunc) {
 	var (
+		require = require.New(t)
 		key1, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 		key2, _ = crypto.HexToECDSA("8a1f9a8f95be41cd7ccb6168179afb4504aefe388d1e14474d32c45c72ce7b7a")
 		addr1   = crypto.PubkeyToAddress(key1.PublicKey)
@@ -315,10 +331,8 @@ func InsertLongForkedChain(t *testing.T, create createFunc) {
 	}
 
 	blockchain, err := create(chainDB, gspec, common.Hash{}, t.TempDir())
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer blockchain.Stop()
+	require.NoError(err)
+	t.Cleanup(blockchain.Stop)
 
 	numBlocks := 129
 	signer := types.HomesteadSigner{}
@@ -327,9 +341,7 @@ func InsertLongForkedChain(t *testing.T, create createFunc) {
 		tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr1), addr2, big.NewInt(10000), ethparams.TxGas, nil, nil), signer, key1)
 		gen.AddTx(tx)
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(err)
 	// Generate the forked chain to be longer than the original chain to check for a regression where
 	// a longer chain can trigger a reorg.
 	_, chain2, _, err := GenerateChainWithGenesis(gspec, blockchain.engine, numBlocks+1, 10, func(_ int, gen *BlockGen) {
@@ -337,103 +349,74 @@ func InsertLongForkedChain(t *testing.T, create createFunc) {
 		tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr1), addr2, big.NewInt(5000), ethparams.TxGas, nil, nil), signer, key1)
 		gen.AddTx(tx)
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(err)
 
 	if blockchain.snaps != nil {
-		if want, got := 1, blockchain.snaps.NumBlockLayers(); got != want {
-			t.Fatalf("incorrect snapshot layer count; got %d, want %d", got, want)
-		}
+		got := blockchain.snaps.NumBlockLayers()
+		require.Equal(1, got, "incorrect snapshot layer count")
 	}
 
 	// Insert both chains.
-	if _, err := blockchain.InsertChain(chain1); err != nil {
-		t.Fatal(err)
-	}
+	_, err = blockchain.InsertChain(chain1)
+	require.NoError(err)
 
 	if blockchain.snaps != nil {
-		if want, got := 1+len(chain1), blockchain.snaps.NumBlockLayers(); got != want {
-			t.Fatalf("incorrect snapshot layer count; got %d, want %d", got, want)
-		}
+		got := blockchain.snaps.NumBlockLayers()
+		require.Equal(1+len(chain1), got, "incorrect snapshot layer count")
 	}
 
-	if _, err := blockchain.InsertChain(chain2); err != nil {
-		t.Fatal(err)
-	}
+	_, err = blockchain.InsertChain(chain2)
+	require.NoError(err)
 
 	if blockchain.snaps != nil {
-		if want, got := 1+len(chain1)+len(chain2), blockchain.snaps.NumBlockLayers(); got != want {
-			t.Fatalf("incorrect snapshot layer count; got %d, want %d", got, want)
-		}
+		got := blockchain.snaps.NumBlockLayers()
+		require.Equal(1+len(chain1)+len(chain2), got, "incorrect snapshot layer count")
 	}
 
 	currentBlock := blockchain.CurrentBlock()
 	expectedCurrentBlock := chain1[len(chain1)-1]
-	if currentBlock.Hash() != expectedCurrentBlock.Hash() {
-		t.Fatalf("Expected current block to be %s:%d, but found %s%d", expectedCurrentBlock.Hash().Hex(), expectedCurrentBlock.NumberU64(), currentBlock.Hash().Hex(), currentBlock.Number.Uint64())
-	}
+	require.Equal(expectedCurrentBlock.Hash(), currentBlock.Hash())
 
-	if err := blockchain.ValidateCanonicalChain(); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(blockchain.ValidateCanonicalChain())
 
 	// Accept the first block in [chain1], reject all blocks in [chain2] to
 	// mimic the order that the consensus engine will call Accept/Reject in
 	// and then Accept the rest of the blocks in [chain1].
-	if err := blockchain.Accept(chain1[0]); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(blockchain.Accept(chain1[0]))
 	blockchain.DrainAcceptorQueue()
 
 	if blockchain.snaps != nil {
-		// Snap layer count should be 1 fewer
-		if want, got := len(chain1)+len(chain2), blockchain.snaps.NumBlockLayers(); got != want {
-			t.Fatalf("incorrect snapshot layer count; got %d, want %d", got, want)
-		}
+		// Snap layer count should match chain length
+		require.Equal(len(chain1)+len(chain2), blockchain.snaps.NumBlockLayers(), "incorrect snapshot layer count")
 	}
 
 	for i := 0; i < len(chain2); i++ {
-		if err := blockchain.Reject(chain2[i]); err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(blockchain.Reject(chain2[i]))
 
 		if blockchain.snaps != nil {
 			// Snap layer count should decrease by 1 per Reject
-			if want, got := len(chain1)+len(chain2)-i-1, blockchain.snaps.NumBlockLayers(); got != want {
-				t.Fatalf("incorrect snapshot layer count; got %d, want %d", got, want)
-			}
+			require.Equal(len(chain1)+len(chain2)-i-1, blockchain.snaps.NumBlockLayers(), "incorrect snapshot layer count")
 		}
 	}
 
 	if blockchain.snaps != nil {
-		if want, got := len(chain1), blockchain.snaps.NumBlockLayers(); got != want {
-			t.Fatalf("incorrect snapshot layer count; got %d, want %d", got, want)
-		}
+		require.Equal(len(chain1), blockchain.snaps.NumBlockLayers(), "incorrect snapshot layer count")
 	}
 
 	for i := 1; i < len(chain1); i++ {
-		if err := blockchain.Accept(chain1[i]); err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(blockchain.Accept(chain1[i]))
 		blockchain.DrainAcceptorQueue()
 
 		if blockchain.snaps != nil {
 			// Snap layer count should decrease by 1 per Accept
-			if want, got := len(chain1)-i, blockchain.snaps.NumBlockLayers(); got != want {
-				t.Fatalf("incorrect snapshot layer count; got %d, want %d", got, want)
-			}
+			require.Equal(len(chain1)-i, blockchain.snaps.NumBlockLayers(), "incorrect snapshot layer count")
 		}
 	}
 
 	lastAcceptedBlock := blockchain.LastConsensusAcceptedBlock()
 	expectedLastAcceptedBlock := chain1[len(chain1)-1]
-	if lastAcceptedBlock.Hash() != expectedLastAcceptedBlock.Hash() {
-		t.Fatalf("Expected last accepted block to be %s:%d, but found %s%d", expectedLastAcceptedBlock.Hash().Hex(), expectedLastAcceptedBlock.NumberU64(), lastAcceptedBlock.Hash().Hex(), lastAcceptedBlock.NumberU64())
-	}
-	if err := blockchain.ValidateCanonicalChain(); err != nil {
-		t.Fatal(err)
-	}
+	require.Equal(expectedLastAcceptedBlock.Hash(), lastAcceptedBlock.Hash())
+	require.NoError(blockchain.ValidateCanonicalChain())
 
 	// check the state of the last accepted block
 	checkState := func(sdb *state.StateDB) error {
@@ -464,6 +447,7 @@ func InsertLongForkedChain(t *testing.T, create createFunc) {
 
 func AcceptNonCanonicalBlock(t *testing.T, create createFunc) {
 	var (
+		require = require.New(t)
 		key1, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 		key2, _ = crypto.HexToECDSA("8a1f9a8f95be41cd7ccb6168179afb4504aefe388d1e14474d32c45c72ce7b7a")
 		addr1   = crypto.PubkeyToAddress(key1.PublicKey)
@@ -479,10 +463,8 @@ func AcceptNonCanonicalBlock(t *testing.T, create createFunc) {
 	}
 
 	blockchain, err := create(chainDB, gspec, common.Hash{}, t.TempDir())
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer blockchain.Stop()
+	require.NoError(err)
+	t.Cleanup(blockchain.Stop)
 
 	numBlocks := 3
 	signer := types.HomesteadSigner{}
@@ -491,58 +473,40 @@ func AcceptNonCanonicalBlock(t *testing.T, create createFunc) {
 		tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr1), addr2, big.NewInt(10000), ethparams.TxGas, nil, nil), signer, key1)
 		gen.AddTx(tx)
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(err)
 	_, chain2, _, err := GenerateChainWithGenesis(gspec, blockchain.engine, numBlocks, 10, func(_ int, gen *BlockGen) {
 		// Generate a transaction with a different amount to create a chain of blocks different from [chain1]
 		tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr1), addr2, big.NewInt(5000), ethparams.TxGas, nil, nil), signer, key1)
 		gen.AddTx(tx)
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(err)
 
 	// Insert three blocks into the chain and accept only the first.
-	if _, err := blockchain.InsertChain(chain1); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := blockchain.InsertChain(chain2); err != nil {
-		t.Fatal(err)
-	}
+	_, err = blockchain.InsertChain(chain1)
+	require.NoError(err)
+	_, err = blockchain.InsertChain(chain2)
+	require.NoError(err)
 
 	currentBlock := blockchain.CurrentBlock()
 	expectedCurrentBlock := chain1[len(chain1)-1]
-	if currentBlock.Hash() != expectedCurrentBlock.Hash() {
-		t.Fatalf("Expected current block to be %s:%d, but found %s%d", expectedCurrentBlock.Hash().Hex(), expectedCurrentBlock.NumberU64(), currentBlock.Hash().Hex(), currentBlock.Number.Uint64())
-	}
+	require.Equal(expectedCurrentBlock.Hash(), currentBlock.Hash())
 
-	if err := blockchain.ValidateCanonicalChain(); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(blockchain.ValidateCanonicalChain())
 
 	// Accept the first block in [chain2], reject all blocks in [chain1] to
 	// mimic the order that the consensus engine will call Accept/Reject in.
-	if err := blockchain.Accept(chain2[0]); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(blockchain.Accept(chain2[0]))
 	blockchain.DrainAcceptorQueue()
 
 	for i := 0; i < len(chain1); i++ {
-		if err := blockchain.Reject(chain1[i]); err != nil {
-			t.Fatal(err)
-		}
-		require.False(t, blockchain.HasBlock(chain1[i].Hash(), chain1[i].NumberU64()))
+		require.NoError(blockchain.Reject(chain1[i]))
+		require.False(blockchain.HasBlock(chain1[i].Hash(), chain1[i].NumberU64()))
 	}
 
 	lastAcceptedBlock := blockchain.LastConsensusAcceptedBlock()
 	expectedLastAcceptedBlock := chain2[0]
-	if lastAcceptedBlock.Hash() != expectedLastAcceptedBlock.Hash() {
-		t.Fatalf("Expected last accepted block to be %s:%d, but found %s%d", expectedLastAcceptedBlock.Hash().Hex(), expectedLastAcceptedBlock.NumberU64(), lastAcceptedBlock.Hash().Hex(), lastAcceptedBlock.NumberU64())
-	}
-	if err := blockchain.ValidateCanonicalChain(); err != nil {
-		t.Fatal(err)
-	}
+	require.Equal(expectedLastAcceptedBlock.Hash(), lastAcceptedBlock.Hash())
+	require.NoError(blockchain.ValidateCanonicalChain())
 
 	// check the state of the last accepted block
 	checkState := func(sdb *state.StateDB) error {
@@ -573,6 +537,7 @@ func AcceptNonCanonicalBlock(t *testing.T, create createFunc) {
 
 func SetPreferenceRewind(t *testing.T, create createFunc) {
 	var (
+		require = require.New(t)
 		key1, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 		key2, _ = crypto.HexToECDSA("8a1f9a8f95be41cd7ccb6168179afb4504aefe388d1e14474d32c45c72ce7b7a")
 		addr1   = crypto.PubkeyToAddress(key1.PublicKey)
@@ -588,10 +553,8 @@ func SetPreferenceRewind(t *testing.T, create createFunc) {
 	}
 
 	blockchain, err := create(chainDB, gspec, common.Hash{}, t.TempDir())
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer blockchain.Stop()
+	require.NoError(err)
+	t.Cleanup(blockchain.Stop)
 
 	numBlocks := 3
 	signer := types.HomesteadSigner{}
@@ -600,45 +563,30 @@ func SetPreferenceRewind(t *testing.T, create createFunc) {
 		tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr1), addr2, big.NewInt(10000), ethparams.TxGas, nil, nil), signer, key1)
 		gen.AddTx(tx)
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(err)
 
 	// Insert three blocks into the chain and accept only the first.
-	if _, err := blockchain.InsertChain(chain); err != nil {
-		t.Fatal(err)
-	}
+	_, err = blockchain.InsertChain(chain)
+	require.NoError(err)
 
 	currentBlock := blockchain.CurrentBlock()
 	expectedCurrentBlock := chain[len(chain)-1]
-	if currentBlock.Hash() != expectedCurrentBlock.Hash() {
-		t.Fatalf("Expected current block to be %s:%d, but found %s%d", expectedCurrentBlock.Hash().Hex(), expectedCurrentBlock.NumberU64(), currentBlock.Hash().Hex(), currentBlock.Number.Uint64())
-	}
-
-	if err := blockchain.ValidateCanonicalChain(); err != nil {
-		t.Fatal(err)
-	}
+	require.Equal(expectedCurrentBlock.Hash(), currentBlock.Hash())
+	require.NoError(blockchain.ValidateCanonicalChain())
 
 	// SetPreference to an ancestor of the currently preferred block. Test that this unlikely, but possible behavior
 	// is handled correctly.
-	if err := blockchain.SetPreference(chain[0]); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(blockchain.SetPreference(chain[0]))
 
 	currentBlock = blockchain.CurrentBlock()
 	expectedCurrentBlock = chain[0]
-	if currentBlock.Hash() != expectedCurrentBlock.Hash() {
-		t.Fatalf("Expected current block to be %s:%d, but found %s%d", expectedCurrentBlock.Hash().Hex(), expectedCurrentBlock.NumberU64(), currentBlock.Hash().Hex(), currentBlock.Number.Uint64())
-	}
+	require.Equal(expectedCurrentBlock.Hash(), currentBlock.Hash())
 
 	lastAcceptedBlock := blockchain.LastConsensusAcceptedBlock()
 	expectedLastAcceptedBlock := blockchain.Genesis()
-	if lastAcceptedBlock.Hash() != expectedLastAcceptedBlock.Hash() {
-		t.Fatalf("Expected last accepted block to be %s:%d, but found %s%d", expectedLastAcceptedBlock.Hash().Hex(), expectedLastAcceptedBlock.NumberU64(), lastAcceptedBlock.Hash().Hex(), lastAcceptedBlock.NumberU64())
-	}
-	if err := blockchain.ValidateCanonicalChain(); err != nil {
-		t.Fatal(err)
-	}
+	require.Equal(expectedLastAcceptedBlock.Hash(), lastAcceptedBlock.Hash())
+	require.NoError(blockchain.ValidateCanonicalChain())
+
 	// check the state of the last accepted block
 	checkGenesisState := func(sdb *state.StateDB) error {
 		nonce1 := sdb.GetNonce(addr1)
@@ -662,19 +610,14 @@ func SetPreferenceRewind(t *testing.T, create createFunc) {
 	}
 	checkBlockChainState(t, blockchain, gspec, chainDB, create, checkGenesisState)
 
-	if err := blockchain.Accept(chain[0]); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(blockchain.Accept(chain[0]))
 	blockchain.DrainAcceptorQueue()
 
 	lastAcceptedBlock = blockchain.LastConsensusAcceptedBlock()
 	expectedLastAcceptedBlock = chain[0]
-	if lastAcceptedBlock.Hash() != expectedLastAcceptedBlock.Hash() {
-		t.Fatalf("Expected last accepted block to be %s:%d, but found %s%d", expectedLastAcceptedBlock.Hash().Hex(), expectedLastAcceptedBlock.NumberU64(), lastAcceptedBlock.Hash().Hex(), lastAcceptedBlock.NumberU64())
-	}
-	if err := blockchain.ValidateCanonicalChain(); err != nil {
-		t.Fatal(err)
-	}
+	require.Equal(expectedLastAcceptedBlock.Hash(), lastAcceptedBlock.Hash())
+	require.NoError(blockchain.ValidateCanonicalChain())
+
 	checkUpdatedState := func(sdb *state.StateDB) error {
 		nonce := sdb.GetNonce(addr1)
 		if nonce != 1 {
@@ -705,6 +648,7 @@ func SetPreferenceRewind(t *testing.T, create createFunc) {
 
 func BuildOnVariousStages(t *testing.T, create createFunc) {
 	var (
+		require = require.New(t)
 		key1, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 		key2, _ = crypto.HexToECDSA("8a1f9a8f95be41cd7ccb6168179afb4504aefe388d1e14474d32c45c72ce7b7a")
 		key3, _ = crypto.HexToECDSA("49a7b37aa6f6645917e7b807e9d1c00d4fa71f18343b0d4122a4d2df64dd6fee")
@@ -718,17 +662,15 @@ func BuildOnVariousStages(t *testing.T, create createFunc) {
 	genesisBalance := big.NewInt(1000000)
 	gspec := &Genesis{
 		Config: &params.ChainConfig{HomesteadBlock: new(big.Int)},
-		Alloc: GenesisAlloc{
+		Alloc: types.GenesisAlloc{
 			addr1: {Balance: genesisBalance},
 			addr3: {Balance: genesisBalance},
 		},
 	}
 
 	blockchain, err := create(chainDB, gspec, common.Hash{}, t.TempDir())
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer blockchain.Stop()
+	require.NoError(err)
+	t.Cleanup(blockchain.Stop)
 
 	// This call generates a chain of 3 blocks.
 	signer := types.HomesteadSigner{}
@@ -742,9 +684,8 @@ func BuildOnVariousStages(t *testing.T, create createFunc) {
 			gen.AddTx(tx)
 		}
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(err)
+
 	// Build second chain forked off of the 10th block in [chain1]
 	chain2, _, err := GenerateChain(gspec.Config, chain1[9], blockchain.engine, genDB, 10, 10, func(i int, gen *BlockGen) {
 		// Send all funds back and forth between the two accounts
@@ -756,9 +697,8 @@ func BuildOnVariousStages(t *testing.T, create createFunc) {
 			gen.AddTx(tx)
 		}
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(err)
+
 	// Build third chain forked off of the 5th block in [chain1].
 	// The parent of this chain will be accepted before this fork
 	// is inserted.
@@ -772,62 +712,45 @@ func BuildOnVariousStages(t *testing.T, create createFunc) {
 			gen.AddTx(tx)
 		}
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(err)
 
 	// Insert first 10 blocks from [chain1]
-	if _, err := blockchain.InsertChain(chain1); err != nil {
-		t.Fatal(err)
-	}
+	_, err = blockchain.InsertChain(chain1)
+	require.NoError(err)
 	// Accept the first 5 blocks
 	for _, block := range chain1[0:5] {
-		if err := blockchain.Accept(block); err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(blockchain.Accept(block))
 	}
 	blockchain.DrainAcceptorQueue()
 
 	// Insert the forked chain [chain2] which starts at the 10th
 	// block in [chain1] ie. a block that is still in processing.
-	if _, err := blockchain.InsertChain(chain2); err != nil {
-		t.Fatal(err)
-	}
+	_, err = blockchain.InsertChain(chain2)
+	require.NoError(err)
 	// Insert another forked chain starting at the last accepted
 	// block from [chain1].
-	if _, err := blockchain.InsertChain(chain3); err != nil {
-		t.Fatal(err)
-	}
+	_, err = blockchain.InsertChain(chain3)
+	require.NoError(err)
 	// Accept the next block in [chain1] and then reject all
 	// of the blocks in [chain3], which would then be rejected.
-	if err := blockchain.Accept(chain1[5]); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(blockchain.Accept(chain1[5]))
 	blockchain.DrainAcceptorQueue()
 	for _, block := range chain3 {
-		if err := blockchain.Reject(block); err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(blockchain.Reject(block))
 	}
 	// Accept the rest of the blocks in [chain1]
 	for _, block := range chain1[6:10] {
-		if err := blockchain.Accept(block); err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(blockchain.Accept(block))
 	}
 	blockchain.DrainAcceptorQueue()
 
 	// Accept the first block in [chain2] and reject the
 	// subsequent blocks in [chain1] which would then be rejected.
-	if err := blockchain.Accept(chain2[0]); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(blockchain.Accept(chain2[0]))
 	blockchain.DrainAcceptorQueue()
 
 	for _, block := range chain1[10:] {
-		if err := blockchain.Reject(block); err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(blockchain.Reject(block))
 	}
 
 	// check the state of the last accepted block
@@ -871,32 +794,25 @@ func BuildOnVariousStages(t *testing.T, create createFunc) {
 }
 
 func EmptyBlocks(t *testing.T, create createFunc) {
+	require := require.New(t)
 	chainDB := rawdb.NewMemoryDatabase()
-
 	gspec := &Genesis{
 		Config: &params.ChainConfig{HomesteadBlock: new(big.Int)},
-		Alloc:  GenesisAlloc{},
+		Alloc:  types.GenesisAlloc{},
 	}
 
 	blockchain, err := create(chainDB, gspec, common.Hash{}, t.TempDir())
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer blockchain.Stop()
+	require.NoError(err)
+	t.Cleanup(blockchain.Stop)
 
-	_, chain, _, err := GenerateChainWithGenesis(gspec, blockchain.engine, 3, 10, func(int, *BlockGen) {})
-	if err != nil {
-		t.Fatal(err)
-	}
+	_, chain, _, err := GenerateChainWithGenesis(gspec, blockchain.engine, 3, 10, func(_ int, _ *BlockGen) {})
+	require.NoError(err)
 
 	// Insert three blocks into the chain and accept only the first block.
-	if _, err := blockchain.InsertChain(chain); err != nil {
-		t.Fatal(err)
-	}
+	_, err = blockchain.InsertChain(chain)
+	require.NoError(err)
 	for _, block := range chain {
-		if err := blockchain.Accept(block); err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(blockchain.Accept(block))
 	}
 	blockchain.DrainAcceptorQueue()
 
@@ -910,6 +826,7 @@ func EmptyBlocks(t *testing.T, create createFunc) {
 
 func EmptyAndNonEmptyBlocks(t *testing.T, create createFunc) {
 	var (
+		require = require.New(t)
 		key1, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 		key2, _ = crypto.HexToECDSA("8a1f9a8f95be41cd7ccb6168179afb4504aefe388d1e14474d32c45c72ce7b7a")
 		addr1   = crypto.PubkeyToAddress(key1.PublicKey)
@@ -925,10 +842,8 @@ func EmptyAndNonEmptyBlocks(t *testing.T, create createFunc) {
 	}
 
 	blockchain, err := create(chainDB, gspec, common.Hash{}, t.TempDir())
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer blockchain.Stop()
+	require.NoError(err)
+	t.Cleanup(blockchain.Stop)
 
 	_, chain, _, err := GenerateChainWithGenesis(gspec, blockchain.engine, 5, 10, func(i int, gen *BlockGen) {
 		if i == 3 {
@@ -937,17 +852,12 @@ func EmptyAndNonEmptyBlocks(t *testing.T, create createFunc) {
 			gen.AddTx(tx)
 		}
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(err)
 
-	if _, err := blockchain.InsertChain(chain); err != nil {
-		t.Fatal(err)
-	}
+	_, err = blockchain.InsertChain(chain)
+	require.NoError(err)
 	for _, block := range chain {
-		if err := blockchain.Accept(block); err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(blockchain.Accept(block))
 	}
 	blockchain.DrainAcceptorQueue()
 
@@ -980,6 +890,7 @@ func EmptyAndNonEmptyBlocks(t *testing.T, create createFunc) {
 
 func ReorgReInsert(t *testing.T, create createFunc) {
 	var (
+		require = require.New(t)
 		key1, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 		key2, _ = crypto.HexToECDSA("8a1f9a8f95be41cd7ccb6168179afb4504aefe388d1e14474d32c45c72ce7b7a")
 		addr1   = crypto.PubkeyToAddress(key1.PublicKey)
@@ -995,10 +906,8 @@ func ReorgReInsert(t *testing.T, create createFunc) {
 	}
 
 	blockchain, err := create(chainDB, gspec, common.Hash{}, t.TempDir())
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer blockchain.Stop()
+	require.NoError(err)
+	t.Cleanup(blockchain.Stop)
 
 	signer := types.HomesteadSigner{}
 	numBlocks := 3
@@ -1007,41 +916,24 @@ func ReorgReInsert(t *testing.T, create createFunc) {
 		tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr1), addr2, big.NewInt(10000), ethparams.TxGas, nil, nil), signer, key1)
 		gen.AddTx(tx)
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(err)
 
 	// Insert and accept first block
-	if err := blockchain.InsertBlock(chain[0]); err != nil {
-		t.Fatal(err)
-	}
-	if err := blockchain.Accept(chain[0]); err != nil {
-		t.Fatal(err)
-	}
+
+	require.NoError(blockchain.InsertBlock(chain[0]))
+	require.NoError(blockchain.Accept(chain[0]))
 
 	// Insert block and then set preference back (rewind) to last accepted blck
-	if err := blockchain.InsertBlock(chain[1]); err != nil {
-		t.Fatal(err)
-	}
-	if err := blockchain.SetPreference(chain[0]); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(blockchain.InsertBlock(chain[1]))
+	require.NoError(blockchain.SetPreference(chain[0]))
 
 	// Re-insert and accept block
-	if err := blockchain.InsertBlock(chain[1]); err != nil {
-		t.Fatal(err)
-	}
-	if err := blockchain.Accept(chain[1]); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(blockchain.InsertBlock(chain[1]))
+	require.NoError(blockchain.Accept(chain[1]))
 
 	// Build on top of the re-inserted block and accept
-	if err := blockchain.InsertBlock(chain[2]); err != nil {
-		t.Fatal(err)
-	}
-	if err := blockchain.Accept(chain[2]); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(blockchain.InsertBlock(chain[2]))
+	require.NoError(blockchain.Accept(chain[2]))
 	blockchain.DrainAcceptorQueue()
 
 	// Nothing to assert about the state
@@ -1086,6 +978,7 @@ func ReorgReInsert(t *testing.T, create createFunc) {
 //nolint:goimports
 func AcceptBlockIdenticalStateRoot(t *testing.T, create createFunc) {
 	var (
+		require = require.New(t)
 		key1, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 		key2, _ = crypto.HexToECDSA("8a1f9a8f95be41cd7ccb6168179afb4504aefe388d1e14474d32c45c72ce7b7a")
 		addr1   = crypto.PubkeyToAddress(key1.PublicKey)
@@ -1101,10 +994,8 @@ func AcceptBlockIdenticalStateRoot(t *testing.T, create createFunc) {
 	}
 
 	blockchain, err := create(chainDB, gspec, common.Hash{}, t.TempDir())
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer blockchain.Stop()
+	require.NoError(err)
+	t.Cleanup(blockchain.Stop)
 
 	signer := types.HomesteadSigner{}
 	_, chain1, _, err := GenerateChainWithGenesis(gspec, blockchain.engine, 3, 10, func(i int, gen *BlockGen) {
@@ -1115,9 +1006,7 @@ func AcceptBlockIdenticalStateRoot(t *testing.T, create createFunc) {
 		}
 		// Allow the third block to be empty.
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(err)
 	_, chain2, _, err := GenerateChainWithGenesis(gspec, blockchain.engine, 2, 10, func(i int, gen *BlockGen) {
 		// Send 1/4 of the funds from addr1 to addr2 in tx1 and 3/4 of the funds in tx2. This will produce the identical state
 		// root in the second block of [chain2] as is present in the second block of [chain1].
@@ -1129,63 +1018,43 @@ func AcceptBlockIdenticalStateRoot(t *testing.T, create createFunc) {
 			gen.AddTx(tx)
 		}
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(err)
 
 	// Assert that the block root of the second block in both chains is identical
-	if chain1[1].Root() != chain2[1].Root() {
-		t.Fatalf("Expected the latter block in both chain1 and chain2 to have identical state root, but found %s and %s", chain1[1].Root(), chain2[1].Root())
-	}
+	require.Equal(chain1[1].Root(), chain2[1].Root())
 
 	// Insert first two blocks of [chain1] and both blocks in [chain2]
 	// This leaves us one additional block to insert on top of [chain1]
 	// after testing that the state roots are handled correctly.
-	if _, err := blockchain.InsertChain(chain1[:2]); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := blockchain.InsertChain(chain2); err != nil {
-		t.Fatal(err)
-	}
+	_, err = blockchain.InsertChain(chain1[:2])
+	require.NoError(err)
+	_, err = blockchain.InsertChain(chain2)
+	require.NoError(err)
 
 	currentBlock := blockchain.CurrentBlock()
 	expectedCurrentBlock := chain1[1]
-	if currentBlock.Hash() != expectedCurrentBlock.Hash() {
-		t.Fatalf("Expected current block to be %s:%d, but found %s%d", expectedCurrentBlock.Hash().Hex(), expectedCurrentBlock.NumberU64(), currentBlock.Hash().Hex(), currentBlock.Number.Uint64())
-	}
+	require.Equal(expectedCurrentBlock.Hash(), currentBlock.Hash())
 
 	// Accept the first block in [chain1] and reject all of [chain2]
-	if err := blockchain.Accept(chain1[0]); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(blockchain.Accept(chain1[0]))
 	blockchain.DrainAcceptorQueue()
 
 	for _, block := range chain2 {
-		if err := blockchain.Reject(block); err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(blockchain.Reject(block))
 	}
 
 	// Accept the last two blocks in [chain1]. This is a regression test to ensure
 	// that we do not discard a snapshot difflayer that is still in use by a
 	// processing block, when a different block with the same root is rejected.
-	if err := blockchain.Accept(chain1[1]); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(blockchain.Accept(chain1[1]))
 	blockchain.DrainAcceptorQueue()
 
 	lastAcceptedBlock := blockchain.LastConsensusAcceptedBlock()
 	expectedLastAcceptedBlock := chain1[1]
-	if lastAcceptedBlock.Hash() != expectedLastAcceptedBlock.Hash() {
-		t.Fatalf("Expected last accepted block to be %s:%d, but found %s%d", expectedLastAcceptedBlock.Hash().Hex(), expectedLastAcceptedBlock.NumberU64(), lastAcceptedBlock.Hash().Hex(), lastAcceptedBlock.NumberU64())
-	}
+	require.Equal(expectedLastAcceptedBlock.Hash(), lastAcceptedBlock.Hash())
 
-	if err := blockchain.InsertBlock(chain1[2]); err != nil {
-		t.Fatal(err)
-	}
-	if err := blockchain.Accept(chain1[2]); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(blockchain.InsertBlock(chain1[2]))
+	require.NoError(blockchain.Accept(chain1[2]))
 	blockchain.DrainAcceptorQueue()
 
 	// check the state of the last accepted block
@@ -1230,6 +1099,7 @@ func AcceptBlockIdenticalStateRoot(t *testing.T, create createFunc) {
 //nolint:goimports
 func ReprocessAcceptBlockIdenticalStateRoot(t *testing.T, create createFunc) {
 	var (
+		require = require.New(t)
 		key1, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 		key2, _ = crypto.HexToECDSA("8a1f9a8f95be41cd7ccb6168179afb4504aefe388d1e14474d32c45c72ce7b7a")
 		addr1   = crypto.PubkeyToAddress(key1.PublicKey)
@@ -1245,9 +1115,8 @@ func ReprocessAcceptBlockIdenticalStateRoot(t *testing.T, create createFunc) {
 	}
 
 	blockchain, err := create(chainDB, gspec, common.Hash{}, t.TempDir())
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(err)
+	t.Cleanup(blockchain.Stop)
 
 	signer := types.HomesteadSigner{}
 	_, chain1, _, err := GenerateChainWithGenesis(gspec, blockchain.engine, 3, 10, func(i int, gen *BlockGen) {
@@ -1258,9 +1127,7 @@ func ReprocessAcceptBlockIdenticalStateRoot(t *testing.T, create createFunc) {
 		}
 		// Allow the third block to be empty.
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(err)
 	_, chain2, _, err := GenerateChainWithGenesis(gspec, blockchain.engine, 2, 10, func(i int, gen *BlockGen) {
 		// Send 1/4 of the funds from addr1 to addr2 in tx1 and 3/4 of the funds in tx2. This will produce the identical state
 		// root in the second block of [chain2] as is present in the second block of [chain1].
@@ -1272,88 +1139,61 @@ func ReprocessAcceptBlockIdenticalStateRoot(t *testing.T, create createFunc) {
 			gen.AddTx(tx)
 		}
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(err)
 
 	// Assert that the block root of the second block in both chains is identical
-	if chain1[1].Root() != chain2[1].Root() {
-		t.Fatalf("Expected the latter block in both chain1 and chain2 to have identical state root, but found %s and %s", chain1[1].Root(), chain2[1].Root())
-	}
+	require.Equal(chain1[1].Root(), chain2[1].Root())
 
 	// Insert first two blocks of [chain1] and both blocks in [chain2]
 	// This leaves us one additional block to insert on top of [chain1]
 	// after testing that the state roots are handled correctly.
-	if _, err := blockchain.InsertChain(chain1[:2]); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := blockchain.InsertChain(chain2); err != nil {
-		t.Fatal(err)
-	}
+	_, err = blockchain.InsertChain(chain1[:2])
+	require.NoError(err)
+	_, err = blockchain.InsertChain(chain2)
+	require.NoError(err)
 
 	currentBlock := blockchain.CurrentBlock()
 	expectedCurrentBlock := chain1[1]
-	if currentBlock.Hash() != expectedCurrentBlock.Hash() {
-		t.Fatalf("Expected current block to be %s:%d, but found %s%d", expectedCurrentBlock.Hash().Hex(), expectedCurrentBlock.NumberU64(), currentBlock.Hash().Hex(), currentBlock.Number.Uint64())
-	}
-
+	require.Equal(expectedCurrentBlock.Hash(), currentBlock.Hash())
 	blockchain.Stop()
 
 	chainDB = rawdb.NewMemoryDatabase()
 	blockchain, err = create(chainDB, gspec, common.Hash{}, t.TempDir())
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer blockchain.Stop()
+	require.NoError(err)
+	t.Cleanup(blockchain.Stop)
 
 	// Insert first two blocks of [chain1] and both blocks in [chain2]
 	// This leaves us one additional block to insert on top of [chain1]
 	// after testing that the state roots are handled correctly.
-	if _, err := blockchain.InsertChain(chain1[:2]); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := blockchain.InsertChain(chain2); err != nil {
-		t.Fatal(err)
-	}
+	_, err = blockchain.InsertChain(chain1[:2])
+	require.NoError(err)
+	_, err = blockchain.InsertChain(chain2)
+	require.NoError(err)
 
 	currentBlock = blockchain.CurrentBlock()
 	expectedCurrentBlock = chain1[1]
-	if currentBlock.Hash() != expectedCurrentBlock.Hash() {
-		t.Fatalf("Expected current block to be %s:%d, but found %s%d", expectedCurrentBlock.Hash().Hex(), expectedCurrentBlock.NumberU64(), currentBlock.Hash().Hex(), currentBlock.Number.Uint64())
-	}
+	require.Equalf(expectedCurrentBlock.Hash(), currentBlock.Hash(), "block hash mismatch for expected height %d, actual height %d", expectedCurrentBlock.NumberU64(), currentBlock.Number.Uint64())
 
 	// Accept the first block in [chain1] and reject all of [chain2]
-	if err := blockchain.Accept(chain1[0]); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(blockchain.Accept(chain1[0]))
 	blockchain.DrainAcceptorQueue()
 
 	for _, block := range chain2 {
-		if err := blockchain.Reject(block); err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(blockchain.Reject(block))
 	}
 
 	// Accept the last two blocks in [chain1]. This is a regression test to ensure
 	// that we do not discard a snapshot difflayer that is still in use by a
 	// processing block, when a different block with the same root is rejected.
-	if err := blockchain.Accept(chain1[1]); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(blockchain.Accept(chain1[1]))
 	blockchain.DrainAcceptorQueue()
 
 	lastAcceptedBlock := blockchain.LastConsensusAcceptedBlock()
 	expectedLastAcceptedBlock := chain1[1]
-	if lastAcceptedBlock.Hash() != expectedLastAcceptedBlock.Hash() {
-		t.Fatalf("Expected last accepted block to be %s:%d, but found %s%d", expectedLastAcceptedBlock.Hash().Hex(), expectedLastAcceptedBlock.NumberU64(), lastAcceptedBlock.Hash().Hex(), lastAcceptedBlock.NumberU64())
-	}
+	require.Equal(expectedLastAcceptedBlock.Hash(), lastAcceptedBlock.Hash())
 
-	if err := blockchain.InsertBlock(chain1[2]); err != nil {
-		t.Fatal(err)
-	}
-	if err := blockchain.Accept(chain1[2]); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(blockchain.InsertBlock(chain1[2]))
+	require.NoError(blockchain.Accept(chain1[2]))
 	blockchain.DrainAcceptorQueue()
 
 	// check the state of the last accepted block
@@ -1396,7 +1236,7 @@ func GenerateChainInvalidBlockFee(t *testing.T, create createFunc) {
 	genesisBalance := new(big.Int).Mul(big.NewInt(1000000), big.NewInt(params.Ether))
 	gspec := &Genesis{
 		Config: params.TestFortunaChainConfig,
-		Alloc:  GenesisAlloc{addr1: {Balance: genesisBalance}},
+		Alloc:  types.GenesisAlloc{addr1: {Balance: genesisBalance}},
 	}
 
 	blockchain, err := create(chainDB, gspec, common.Hash{}, t.TempDir())
@@ -1437,7 +1277,7 @@ func InsertChainInvalidBlockFee(t *testing.T, create createFunc) {
 	genesisBalance := new(big.Int).Mul(big.NewInt(1000000), big.NewInt(params.Ether))
 	gspec := &Genesis{
 		Config: params.TestFortunaChainConfig,
-		Alloc:  GenesisAlloc{addr1: {Balance: genesisBalance}},
+		Alloc:  types.GenesisAlloc{addr1: {Balance: genesisBalance}},
 	}
 
 	blockchain, err := create(chainDB, gspec, common.Hash{}, t.TempDir())
@@ -1570,13 +1410,11 @@ func StatefulPrecompiles(t *testing.T, create createFunc) {
 	}
 	gspec := &Genesis{
 		Config: &config,
-		Alloc:  GenesisAlloc{addr1: {Balance: genesisBalance}},
+		Alloc:  types.GenesisAlloc{addr1: {Balance: genesisBalance}},
 	}
 
 	blockchain, err := create(chainDB, gspec, common.Hash{}, t.TempDir())
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	defer blockchain.Stop()
 
 	signer := types.LatestSigner(params.TestChainConfig)
@@ -1600,15 +1438,12 @@ func StatefulPrecompiles(t *testing.T, create createFunc) {
 		MaxBlockGasCost:  big.NewInt(4_000_000),
 		BlockGasCostStep: big.NewInt(500_000),
 	}
-	assert := assert.New(t)
 	tests := map[string]test{
 		"allow list": {
 			addTx: func(gen *BlockGen) {
 				feeCap := new(big.Int).Add(gen.BaseFee(), tip)
 				input, err := allowlist.PackModifyAllowList(addr2, allowlist.AdminRole)
-				if err != nil {
-					t.Fatal(err)
-				}
+				require.NoError(t, err)
 				tx := types.NewTx(&types.DynamicFeeTx{
 					ChainID:   params.TestChainConfig.ChainID,
 					Nonce:     gen.TxNonce(addr1),
@@ -1621,9 +1456,7 @@ func StatefulPrecompiles(t *testing.T, create createFunc) {
 				})
 
 				signedTx, err := types.SignTx(tx, signer, key1)
-				if err != nil {
-					t.Fatal(err)
-				}
+				require.NoError(t, err)
 				gen.AddTx(signedTx)
 			},
 			verifyState: func(sdb *state.StateDB) error {
@@ -1639,22 +1472,16 @@ func StatefulPrecompiles(t *testing.T, create createFunc) {
 			},
 			verifyGenesis: func(sdb *state.StateDB) {
 				res := deployerallowlist.GetContractDeployerAllowListStatus(sdb, addr1)
-				if allowlist.AdminRole != res {
-					t.Fatalf("unexpected allow list status for addr1 %s, expected %s", res, allowlist.AdminRole)
-				}
+				require.Equal(t, allowlist.AdminRole, res, "unexpected allow list status for addr1 %s, expected %s", res, allowlist.AdminRole)
 				res = deployerallowlist.GetContractDeployerAllowListStatus(sdb, addr2)
-				if allowlist.NoRole != res {
-					t.Fatalf("unexpected allow list status for addr2 %s, expected %s", res, allowlist.NoRole)
-				}
+				require.Equal(t, allowlist.NoRole, res, "unexpected allow list status for addr2 %s, expected %s", res, allowlist.NoRole)
 			},
 		},
 		"fee manager set config": {
 			addTx: func(gen *BlockGen) {
 				feeCap := new(big.Int).Add(gen.BaseFee(), tip)
 				input, err := feemanager.PackSetFeeConfig(testFeeConfig)
-				if err != nil {
-					t.Fatal(err)
-				}
+				require.NoError(t, err)
 				tx := types.NewTx(&types.DynamicFeeTx{
 					ChainID:   params.TestChainConfig.ChainID,
 					Nonce:     gen.TxNonce(addr1),
@@ -1667,30 +1494,28 @@ func StatefulPrecompiles(t *testing.T, create createFunc) {
 				})
 
 				signedTx, err := types.SignTx(tx, signer, key1)
-				if err != nil {
-					t.Fatal(err)
-				}
+				require.NoError(t, err)
 				gen.AddTx(signedTx)
 			},
 			verifyState: func(sdb *state.StateDB) error {
 				res := feemanager.GetFeeManagerStatus(sdb, addr1)
-				assert.Equal(allowlist.AdminRole, res)
+				require.Equal(t, allowlist.AdminRole, res)
 
 				storedConfig := feemanager.GetStoredFeeConfig(sdb)
-				assert.EqualValues(testFeeConfig, storedConfig)
+				require.Equal(t, testFeeConfig, storedConfig)
 
 				feeConfig, _, err := blockchain.GetFeeConfigAt(blockchain.CurrentHeader())
-				assert.NoError(err)
-				assert.EqualValues(testFeeConfig, feeConfig)
+				require.NoError(t, err)
+				require.Equal(t, testFeeConfig, feeConfig)
 				return nil
 			},
 			verifyGenesis: func(sdb *state.StateDB) {
 				res := feemanager.GetFeeManagerStatus(sdb, addr1)
-				assert.Equal(allowlist.AdminRole, res)
+				require.Equal(t, allowlist.AdminRole, res)
 
 				feeConfig, _, err := blockchain.GetFeeConfigAt(blockchain.Genesis().Header())
-				assert.NoError(err)
-				assert.EqualValues(params.GetExtra(&config).FeeConfig, feeConfig)
+				require.NoError(t, err)
+				require.Equal(t, params.GetExtra(&config).FeeConfig, feeConfig)
 			},
 		},
 	}
@@ -1702,23 +1527,16 @@ func StatefulPrecompiles(t *testing.T, create createFunc) {
 			test.addTx(gen)
 		}
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	// Insert three blocks into the chain and accept only the first block.
-	if _, err := blockchain.InsertChain(chain); err != nil {
-		t.Fatal(err)
-	}
-	if err := blockchain.Accept(chain[0]); err != nil {
-		t.Fatal(err)
-	}
+	_, err = blockchain.InsertChain(chain)
+	require.NoError(t, err)
+	require.NoError(t, blockchain.Accept(chain[0]))
 	blockchain.DrainAcceptorQueue()
 
 	genesisState, err := blockchain.StateAt(blockchain.Genesis().Root())
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	for _, test := range tests {
 		if test.verifyGenesis == nil {
 			continue
@@ -1742,6 +1560,7 @@ func StatefulPrecompiles(t *testing.T, create createFunc) {
 
 func ReexecBlocks(t *testing.T, create ReexecTestFunc) {
 	var (
+		require = require.New(t)
 		key1, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 		key2, _ = crypto.HexToECDSA("8a1f9a8f95be41cd7ccb6168179afb4504aefe388d1e14474d32c45c72ce7b7a")
 		addr1   = crypto.PubkeyToAddress(key1.PublicKey)
@@ -1757,10 +1576,8 @@ func ReexecBlocks(t *testing.T, create ReexecTestFunc) {
 	}
 
 	blockchain, err := create(chainDB, gspec, common.Hash{}, t.TempDir(), 4096)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer blockchain.Stop()
+	require.NoError(err)
+	t.Cleanup(blockchain.Stop)
 
 	// This call generates a chain of 10 blocks.
 	signer := types.HomesteadSigner{}
@@ -1768,21 +1585,16 @@ func ReexecBlocks(t *testing.T, create ReexecTestFunc) {
 		tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr1), addr2, big.NewInt(10000), ethparams.TxGas, nil, nil), signer, key1)
 		gen.AddTx(tx)
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(err)
 
 	// Insert three blocks into the chain and accept only the first block.
-	if _, err := blockchain.InsertChain(chain); err != nil {
-		t.Fatal(err)
-	}
+	_, err = blockchain.InsertChain(chain)
+	require.NoError(err)
 
 	foundTxs := []common.Hash{}
 	missingTxs := []common.Hash{}
 	for i, block := range chain {
-		if err := blockchain.Accept(block); err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(blockchain.Accept(block))
 
 		if i == 3 {
 			// At height 3, kill the async accepted block processor to force an
@@ -1808,15 +1620,11 @@ func ReexecBlocks(t *testing.T, create ReexecTestFunc) {
 	// async worker shutdown cannot be found.
 	for _, tx := range foundTxs {
 		txLookup, _, _ := blockchain.GetTransactionLookup(tx)
-		if txLookup == nil {
-			t.Fatalf("missing transaction: %v", tx)
-		}
+		require.NotNilf(txLookup, "missing tx: %v", tx)
 	}
 	for _, tx := range missingTxs {
 		txLookup, _, _ := blockchain.GetTransactionLookup(tx)
-		if txLookup != nil {
-			t.Fatalf("transaction should be missing: %v", tx)
-		}
+		require.Nilf(txLookup, "transaction should be missing: %v", tx)
 	}
 
 	// check the state of the last accepted block
@@ -1853,25 +1661,24 @@ func ReexecBlocks(t *testing.T, create ReexecTestFunc) {
 
 	newChain, restartedChain := checkBlockChainState(t, blockchain, gspec, chainDB, checkCreate, checkState)
 
-	allTxs := append(foundTxs, missingTxs...)
+	allTxs := slices.Concat(foundTxs, missingTxs)
 	for _, bc := range []*BlockChain{newChain, restartedChain} {
 		// We should confirm that snapshots were properly initialized
-		if bc.snaps == nil && bc.cacheConfig.SnapshotLimit > 0 {
-			t.Fatal("snapshot initialization failed")
+		if bc.cacheConfig.SnapshotLimit > 0 {
+			require.NotNil(bc.snaps, "snapshot initialization failed")
 		}
 
 		// We should confirm all transactions can now be queried
 		for _, tx := range allTxs {
 			txLookup, _, _ := bc.GetTransactionLookup(tx)
-			if txLookup == nil {
-				t.Fatalf("missing transaction: %v", tx)
-			}
+			require.NotNilf(txLookup, "missing tx: %v", tx)
 		}
 	}
 }
 
 func ReexecMaxBlocks(t *testing.T, create ReexecTestFunc) {
 	var (
+		require = require.New(t)
 		key1, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 		key2, _ = crypto.HexToECDSA("8a1f9a8f95be41cd7ccb6168179afb4504aefe388d1e14474d32c45c72ce7b7a")
 		addr1   = crypto.PubkeyToAddress(key1.PublicKey)
@@ -1887,10 +1694,8 @@ func ReexecMaxBlocks(t *testing.T, create ReexecTestFunc) {
 	}
 
 	blockchain, err := create(chainDB, gspec, common.Hash{}, t.TempDir(), 4096)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer blockchain.Stop()
+	require.NoError(err)
+	t.Cleanup(blockchain.Stop)
 
 	// Check that we are generating enough blocks to test the reexec functionality.
 	genNumBlocks := 20
@@ -1902,21 +1707,16 @@ func ReexecMaxBlocks(t *testing.T, create ReexecTestFunc) {
 		tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr1), addr2, big.NewInt(10000), ethparams.TxGas, nil, nil), signer, key1)
 		gen.AddTx(tx)
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(err)
 
 	// Insert three blocks into the chain and accept only the first block.
-	if _, err := blockchain.InsertChain(chain); err != nil {
-		t.Fatal(err)
-	}
+	_, err = blockchain.InsertChain(chain)
+	require.NoError(err)
 
 	foundTxs := []common.Hash{}
 	missingTxs := []common.Hash{}
 	for i, block := range chain {
-		if err := blockchain.Accept(block); err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(blockchain.Accept(block))
 
 		if i == numAcceptedBlocks {
 			// kill the async accepted block processor to force an
@@ -1942,15 +1742,11 @@ func ReexecMaxBlocks(t *testing.T, create ReexecTestFunc) {
 	// async worker shutdown cannot be found.
 	for _, tx := range foundTxs {
 		txLookup, _, _ := blockchain.GetTransactionLookup(tx)
-		if txLookup == nil {
-			t.Fatalf("missing transaction: %v", tx)
-		}
+		require.NotNilf(txLookup, "missing transaction: %v", tx)
 	}
 	for _, tx := range missingTxs {
 		txLookup, _, _ := blockchain.GetTransactionLookup(tx)
-		if txLookup != nil {
-			t.Fatalf("transaction should be missing: %v", tx)
-		}
+		require.Nilf(txLookup, "transaction should be missing: %v", tx)
 	}
 
 	// check the state of the last accepted block
@@ -1985,19 +1781,17 @@ func ReexecMaxBlocks(t *testing.T, create ReexecTestFunc) {
 	}
 	newChain, restartedChain := checkBlockChainState(t, blockchain, gspec, chainDB, checkCreate, checkState)
 
-	allTxs := append(foundTxs, missingTxs...)
+	allTxs := slices.Concat(foundTxs, missingTxs)
 	for _, bc := range []*BlockChain{newChain, restartedChain} {
 		// We should confirm that snapshots were properly initialized
-		if bc.snaps == nil && bc.cacheConfig.SnapshotLimit > 0 {
-			t.Fatal("snapshot initialization failed")
+		if bc.cacheConfig.SnapshotLimit > 0 {
+			require.NotNil(bc.snaps, "snapshot initialization failed")
 		}
 
 		// We should confirm all transactions can now be queried
 		for _, tx := range allTxs {
 			txLookup, _, _ := bc.GetTransactionLookup(tx)
-			if txLookup == nil {
-				t.Fatalf("missing transaction: %v", tx)
-			}
+			require.NotNilf(txLookup, "missing transaction: %v", tx)
 		}
 	}
 }
@@ -2020,9 +1814,7 @@ func ReexecCorruptedStateTest(t *testing.T, create ReexecTestFunc) {
 	}
 
 	blockchain, err := create(chainDB, gspec, common.Hash{}, tempDir, 4096)
-	if err != nil {
-		t.Fatalf("failed to create blockchain: %v", err)
-	}
+	require.NoError(t, err)
 
 	// Check that we are generating enough blocks to test the reexec functionality.
 	signer := types.HomesteadSigner{}
@@ -2030,38 +1822,29 @@ func ReexecCorruptedStateTest(t *testing.T, create ReexecTestFunc) {
 		tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr1), addr2, big.NewInt(10000), ethparams.TxGas, nil, nil), signer, key1)
 		gen.AddTx(tx)
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	// Insert three blocks into the chain and accept only the first block.
-	if _, err := blockchain.InsertChain(chain); err != nil {
-		t.Fatal(err)
-	}
+	_, err = blockchain.InsertChain(chain)
+	require.NoError(t, err)
+
 	// Accept only the first block.
-	if err := blockchain.Accept(chain[0]); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, blockchain.Accept(chain[0]))
 
 	// Simulate a crash by updating the acceptor tip
-	blockchain.writeBlockAcceptedIndices(chain[1])
+	require.NoError(t, blockchain.writeBlockAcceptedIndices(chain[1]))
 	blockchain.Stop()
 
 	// Restart blockchain with existing state
-	restartedBlockchain, err := create(chainDB, gspec, chain[1].Hash(), tempDir, 4096)
-	if err != nil {
-		t.Fatalf("failed to restart blockchain: %v", err)
-	}
+	newDir := copyDir(t, tempDir) // avoid file lock
+	restartedBlockchain, err := create(chainDB, gspec, chain[1].Hash(), newDir, 4096)
+	require.NoError(t, err)
 	defer restartedBlockchain.Stop()
 
 	// We should be able to accept the remaining blocks
 	for _, block := range chain[2:] {
-		if err := restartedBlockchain.InsertBlock(block); err != nil {
-			t.Fatalf("failed to insert block %d: %v", block.NumberU64(), err)
-		}
-		if err := restartedBlockchain.Accept(block); err != nil {
-			t.Fatalf("failed to accept block %d: %v", block.NumberU64(), err)
-		}
+		require.NoErrorf(t, restartedBlockchain.InsertBlock(block), "inserting block %d", block.NumberU64())
+		require.NoErrorf(t, restartedBlockchain.Accept(block), "accepting block %d", block.NumberU64())
 	}
 
 	// check the state of the last accepted block

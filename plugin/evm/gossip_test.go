@@ -5,7 +5,9 @@ package evm
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"math/big"
+	"strings"
 	"testing"
 	"time"
 
@@ -16,7 +18,6 @@ import (
 	"github.com/ava-labs/libevm/core/vm"
 	"github.com/ava-labs/libevm/crypto"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
@@ -60,7 +61,7 @@ func TestGossipSubscribe(t *testing.T) {
 	// use a custom bloom filter to test the bloom filter reset
 	gossipTxPool.bloom, err = gossip.NewBloomFilter(prometheus.NewRegistry(), "", 1, 0.01, 0.0000000000000001) // maxCount =1
 	require.NoError(err)
-	ctx, cancel := context.WithCancel(context.TODO())
+	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 	go gossipTxPool.Subscribe(ctx)
 
@@ -77,19 +78,17 @@ func TestGossipSubscribe(t *testing.T) {
 		require.NoError(err, "failed adding tx to remote mempool")
 	}
 
-	require.EventuallyWithTf(
-		func(c *assert.CollectT) {
-			gossipTxPool.lock.RLock()
-			defer gossipTxPool.lock.RUnlock()
+	require.Eventually(func() bool {
+		gossipTxPool.lock.RLock()
+		defer gossipTxPool.lock.RUnlock()
 
-			for i, tx := range ethTxs {
-				assert.Truef(c, gossipTxPool.bloom.Has(&GossipEthTx{Tx: tx}), "expected tx[%d] to be in bloom filter", i)
+		for _, tx := range ethTxs {
+			if !gossipTxPool.bloom.Has(&GossipEthTx{Tx: tx}) {
+				return false
 			}
-		},
-		30*time.Second,
-		500*time.Millisecond,
-		"expected all transactions to eventually be in the bloom filter",
-	)
+		}
+		return true
+	}, 30*time.Second, 500*time.Millisecond, "expected all transactions to eventually be in the bloom filter")
 }
 
 func setupPoolWithConfig(t *testing.T, config *params.ChainConfig, fundedAddress common.Address) *txpool.TxPool {
@@ -109,4 +108,27 @@ func setupPoolWithConfig(t *testing.T, config *params.ChainConfig, fundedAddress
 	require.NoError(t, err)
 
 	return txPool
+}
+
+func getValidEthTxs(key *ecdsa.PrivateKey, count int, gasPrice *big.Int) []*types.Transaction {
+	res := make([]*types.Transaction, count)
+
+	to := common.Address{}
+	amount := big.NewInt(0)
+	gasLimit := uint64(37000)
+
+	for i := 0; i < count; i++ {
+		tx, _ := types.SignTx(
+			types.NewTransaction(
+				uint64(i),
+				to,
+				amount,
+				gasLimit,
+				gasPrice,
+				[]byte(strings.Repeat("aaaaaaaaaa", 100))),
+			types.HomesteadSigner{}, key)
+		tx.SetTime(time.Now().Add(-1 * time.Minute))
+		res[i] = tx
+	}
+	return res
 }

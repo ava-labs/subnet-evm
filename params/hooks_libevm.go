@@ -78,8 +78,7 @@ func (r RulesExtra) ActivePrecompiles(existing []common.Address) []common.Addres
 }
 
 func (r RulesExtra) currentPrecompiles() map[common.Address]vm.PrecompiledContract {
-	switch {
-	case r.IsGranite:
+	if r.IsGranite {
 		return PrecompiledContractsGranite
 	}
 	return nil
@@ -166,10 +165,6 @@ func (a accessibleState) GetStateDB() contract.StateDB {
 
 func (a accessibleState) GetBlockContext() contract.BlockContext {
 	return a.blockContext
-}
-
-func (a accessibleState) GetChainConfig() precompileconfig.ChainConfig {
-	return GetExtra(a.env.ChainConfig())
 }
 
 func (a accessibleState) GetRules() precompileconfig.Rules {

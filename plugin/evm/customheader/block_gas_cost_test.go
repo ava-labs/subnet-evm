@@ -10,7 +10,6 @@ import (
 
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/types"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/ava-labs/subnet-evm/commontype"
@@ -115,7 +114,7 @@ func BlockGasCostTest(t *testing.T, feeConfig commontype.FeeConfig) {
 				},
 			)
 
-			assert.Equal(t, test.expected, BlockGasCost(
+			require.Equal(t, test.expected, BlockGasCost(
 				config,
 				feeConfig,
 				parent,
@@ -216,108 +215,12 @@ func BlockGasCostWithStepTest(t *testing.T, feeConfig commontype.FeeConfig) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			assert.Equal(t, test.expected, BlockGasCostWithStep(
+			require.Equal(t, test.expected, BlockGasCostWithStep(
 				feeConfig,
 				test.parentCost,
 				blockGasCostStep,
 				test.timeElapsed,
 			))
-		})
-	}
-}
-
-func TestEstimateRequiredTip(t *testing.T) {
-	tests := []struct {
-		name               string
-		subnetEVMTimestamp *uint64
-		header             *types.Header
-		want               *big.Int
-		wantErr            error
-	}{
-		{
-			name:               "not_subnet_evm",
-			subnetEVMTimestamp: utils.NewUint64(1),
-			header:             &types.Header{},
-		},
-		{
-			name:               "nil_base_fee",
-			subnetEVMTimestamp: utils.NewUint64(0),
-			header: customtypes.WithHeaderExtra(
-				&types.Header{},
-				&customtypes.HeaderExtra{
-					BlockGasCost: big.NewInt(1),
-				},
-			),
-			wantErr: errBaseFeeNil,
-		},
-		{
-			name:               "nil_block_gas_cost",
-			subnetEVMTimestamp: utils.NewUint64(0),
-			header: &types.Header{
-				BaseFee: big.NewInt(1),
-			},
-			wantErr: errBlockGasCostNil,
-		},
-		{
-			name:               "no_gas_used",
-			subnetEVMTimestamp: utils.NewUint64(0),
-			header: customtypes.WithHeaderExtra(
-				&types.Header{
-					GasUsed: 0,
-					BaseFee: big.NewInt(1),
-				},
-				&customtypes.HeaderExtra{
-					BlockGasCost: big.NewInt(1),
-				},
-			),
-			wantErr: errNoGasUsed,
-		},
-		{
-			name:               "success",
-			subnetEVMTimestamp: utils.NewUint64(0),
-			header: customtypes.WithHeaderExtra(
-				&types.Header{
-					GasUsed: 912,
-					BaseFee: big.NewInt(456),
-				},
-				&customtypes.HeaderExtra{
-					BlockGasCost: big.NewInt(101112),
-				},
-			),
-			// totalRequiredTips = BlockGasCost * BaseFee
-			// estimatedTip = totalRequiredTips / GasUsed
-			want: big.NewInt((101112 * 456) / (912)),
-		},
-		{
-			name:               "success_rounds_up",
-			subnetEVMTimestamp: utils.NewUint64(0),
-			header: customtypes.WithHeaderExtra(
-				&types.Header{
-					GasUsed: 124,
-					BaseFee: big.NewInt(456),
-				},
-				&customtypes.HeaderExtra{
-					BlockGasCost: big.NewInt(101112),
-				},
-			),
-			// totalGasUsed = GasUsed + ExtDataGasUsed
-			// totalRequiredTips = BlockGasCost * BaseFee
-			// estimatedTip = totalRequiredTips / totalGasUsed
-			want: big.NewInt((101112*456)/(124) + 1), // +1 to round up
-		},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			require := require.New(t)
-
-			config := &extras.ChainConfig{
-				NetworkUpgrades: extras.NetworkUpgrades{
-					SubnetEVMTimestamp: test.subnetEVMTimestamp,
-				},
-			}
-			requiredTip, err := EstimateRequiredTip(config, test.header)
-			require.ErrorIs(err, test.wantErr)
-			require.Equal(test.want, requiredTip)
 		})
 	}
 }

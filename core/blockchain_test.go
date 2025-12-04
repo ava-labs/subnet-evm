@@ -1,5 +1,29 @@
 // Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
+//
+// This file is a derived work, based on the go-ethereum library whose original
+// notices appear below.
+//
+// It is distributed under a license compatible with the licensing terms of the
+// original code from which it is derived.
+//
+// Much love to the original authors for their work.
+// **********
+// Copyright 2014 The go-ethereum Authors
+// This file is part of the go-ethereum library.
+//
+// The go-ethereum library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The go-ethereum library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 package core
 
@@ -51,7 +75,7 @@ var (
 		AcceptorQueueLimit:        64,
 	}
 
-	// Firewood should only be included for non-archive, snapshot disabled tests.
+	// Firewood should only be included for snapshot disabled tests.
 	schemes = []string{rawdb.HashScheme, customrawdb.FirewoodScheme}
 )
 
@@ -90,22 +114,36 @@ func TestArchiveBlockChain(t *testing.T) {
 }
 
 func TestArchiveBlockChainSnapsDisabled(t *testing.T) {
-	create := func(db ethdb.Database, gspec *Genesis, lastAcceptedHash common.Hash, _ string) (*BlockChain, error) {
+	for _, scheme := range schemes {
+		t.Run(scheme, func(t *testing.T) {
+			testArchiveBlockChainSnapsDisabled(t, scheme)
+		})
+	}
+}
+
+func testArchiveBlockChainSnapsDisabled(t *testing.T, scheme string) {
+	create := func(db ethdb.Database, gspec *Genesis, lastAcceptedHash common.Hash, dataPath string) (*BlockChain, error) {
+		cacheConfig := &CacheConfig{
+			TrieCleanLimit:            256,
+			TrieDirtyLimit:            256,
+			TrieDirtyCommitTarget:     20,
+			TriePrefetcherParallelism: 4,
+			Pruning:                   false, // Archive mode
+			StateHistory:              32,    // Required for Firewood's minimum Revision count
+			SnapshotLimit:             0,     // Disable snapshots
+			AcceptorQueueLimit:        64,
+			StateScheme:               scheme,
+			ChainDataDir:              dataPath,
+		}
+
 		return createBlockChain(
 			db,
-			&CacheConfig{
-				TrieCleanLimit:            256,
-				TrieDirtyLimit:            256,
-				TrieDirtyCommitTarget:     20,
-				TriePrefetcherParallelism: 4,
-				Pruning:                   false, // Archive mode
-				SnapshotLimit:             0,     // Disable snapshots
-				AcceptorQueueLimit:        64,
-			},
+			cacheConfig,
 			gspec,
 			lastAcceptedHash,
 		)
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
 			tt.testFunc(t, create)
@@ -330,6 +368,164 @@ func TestBlockChainOfflinePruningUngracefulShutdown(t *testing.T) {
 			t.Parallel()
 			tt.testFunc(t, create)
 		})
+	}
+}
+
+// TestPruningToNonPruning tests that opening a previously pruned database as a
+// non-pruned database is successful.
+func TestPruningToNonPruning(t *testing.T) {
+	for _, scheme := range schemes {
+		t.Run(scheme, func(t *testing.T) {
+			testPruningToNonPruning(t, scheme)
+		})
+	}
+}
+
+// testPruningToNonPruning tests that opening a previously pruned database as a
+// non-pruned database is successful.
+//
+// This test checks the following invariants:
+// 1. Verifies that a pruned node does not have the state for all blocks (except
+// the last accepted block) upon restart.
+// 2. Verify that a pruned => archival node has the state for all blocks
+// accepted during archival mode upon restart.
+func testPruningToNonPruning(t *testing.T, scheme string) {
+	var (
+		key1, _   = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
+		key2, _   = crypto.HexToECDSA("8a1f9a8f95be41cd7ccb6168179afb4504aefe388d1e14474d32c45c72ce7b7a")
+		addr1     = crypto.PubkeyToAddress(key1.PublicKey)
+		addr2     = crypto.PubkeyToAddress(key2.PublicKey)
+		chainDB   = rawdb.NewMemoryDatabase()
+		numStates = uint64(5)
+	)
+
+	gspec := &Genesis{
+		Config: &params.ChainConfig{HomesteadBlock: new(big.Int)},
+		Alloc:  types.GenesisAlloc{addr1: {Balance: big.NewInt(1000000)}},
+	}
+
+	chainDataDir := t.TempDir()
+	pruningConfig := &CacheConfig{
+		TrieCleanLimit:            256,
+		TrieDirtyLimit:            256,
+		TrieDirtyCommitTarget:     20,
+		TriePrefetcherParallelism: 4,
+		Pruning:                   true, // Enable pruning
+		CommitInterval:            4096,
+		StateHistory:              numStates,
+		AcceptorQueueLimit:        64,
+		StateScheme:               scheme,
+		ChainDataDir:              chainDataDir,
+	}
+
+	// Create a node in pruning mode.
+	blockchain, err := createBlockChain(chainDB, pruningConfig, gspec, common.Hash{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Generate 10 (2 * numStates) blocks.
+	signer := types.HomesteadSigner{}
+	_, blocks, _, err := GenerateChainWithGenesis(gspec, blockchain.engine, 2*int(numStates), 10, func(i int, gen *BlockGen) {
+		tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr1), addr2, big.NewInt(10000), ethparams.TxGas, nil, nil), signer, key1)
+		gen.AddTx(tx)
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	prunedBlocks := blocks[:numStates]
+	nonPrunedBlocks := blocks[numStates:]
+
+	// Insert the first five blocks.
+	// The states of the first four blocks will be lost upon restart.
+	if _, err := blockchain.InsertChain(prunedBlocks); err != nil {
+		t.Fatal(err)
+	}
+	for _, block := range prunedBlocks {
+		if err := blockchain.Accept(block); err != nil {
+			t.Fatal(err)
+		}
+	}
+	blockchain.DrainAcceptorQueue()
+
+	lastAcceptedHash := blockchain.LastConsensusAcceptedBlock().Hash()
+	blockchain.Stop()
+
+	// Reopen the node.
+	blockchain, err = createBlockChain(chainDB, pruningConfig, gspec, lastAcceptedHash)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// 1. Verify that a pruned node does not have the state for all blocks (except
+	// the last accepted block) upon restart.
+	for _, block := range prunedBlocks[:numStates-1] {
+		if blockchain.HasState(block.Root()) {
+			t.Fatalf("Expected blockchain to be missing state for intermediate block %d with pruning enabled", block.NumberU64())
+		}
+	}
+
+	blockchain.Stop()
+
+	archiveConfig := &CacheConfig{
+		TrieCleanLimit:            256,
+		TrieDirtyLimit:            256,
+		TrieDirtyCommitTarget:     20,
+		TriePrefetcherParallelism: 4,
+		Pruning:                   false, // Archive mode
+		AcceptorQueueLimit:        64,
+		StateScheme:               scheme,
+		StateHistory:              32,
+		ChainDataDir:              chainDataDir,
+	}
+
+	// Reopen the node, but switch from pruning to archival mode.
+	blockchain, err = createBlockChain(
+		chainDB,
+		archiveConfig,
+		gspec,
+		lastAcceptedHash,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Insert the remaining five blocks.
+	// The states of all these blocks will still be accessible on restart
+	// since we're now in archival mode.
+	if _, err := blockchain.InsertChain(nonPrunedBlocks); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, block := range nonPrunedBlocks {
+		if err := blockchain.Accept(block); err != nil {
+			t.Fatal(err)
+		}
+	}
+	blockchain.DrainAcceptorQueue()
+
+	lastAcceptedHash = blockchain.LastConsensusAcceptedBlock().Hash()
+	blockchain.Stop()
+
+	// Reopen the archival node.
+	blockchain, err = createBlockChain(
+		chainDB,
+		archiveConfig,
+		gspec,
+		lastAcceptedHash,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer blockchain.Stop()
+
+	// 2. Verify that a pruned => archival node has the state for all blocks
+	// accepted during archival mode upon restart.
+	for _, block := range nonPrunedBlocks {
+		if !blockchain.HasState(block.Root()) {
+			t.Fatalf("Expected blockchain to have the state for block %d with pruning disabled", block.NumberU64())
+		}
 	}
 }
 

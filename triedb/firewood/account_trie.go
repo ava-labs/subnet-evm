@@ -59,8 +59,7 @@ func (a *AccountTrie) GetAccount(addr common.Address) (*types.StateAccount, erro
 	key := crypto.Keccak256Hash(addr.Bytes()).Bytes()
 
 	// First check if there's a pending update for this account
-	keyStr := string(key)
-	if updateValue, exists := a.dirtyKeys[keyStr]; exists {
+	if updateValue, exists := a.dirtyKeys[string(key)]; exists {
 		// If the value is empty, it indicates deletion
 		// Invariant: All encoded values have length > 0
 		if len(updateValue) == 0 {
@@ -105,8 +104,7 @@ func (a *AccountTrie) GetStorage(addr common.Address, key []byte) ([]byte, error
 	copy(combinedKey[common.HashLength:], storageKey)
 
 	// Check if there's a pending update for this storage slot
-	keyStr := string(combinedKey[:])
-	if updateValue, exists := a.dirtyKeys[keyStr]; exists {
+	if updateValue, exists := a.dirtyKeys[string(combinedKey[:])]; exists {
 		// If the value is empty, it indicates deletion
 		if len(updateValue) == 0 {
 			return nil, nil
@@ -169,10 +167,10 @@ func (a *AccountTrie) UpdateStorage(addr common.Address, key []byte, value []byt
 func (a *AccountTrie) DeleteAccount(addr common.Address) error {
 	key := crypto.Keccak256Hash(addr.Bytes()).Bytes()
 	// Queue the key for deletion
-	a.dirtyKeys[string(key)] = []byte{}
+	a.dirtyKeys[string(key)] = nil
 	a.updateKeys = append(a.updateKeys, key)
-	a.updateValues = append(a.updateValues, []byte{}) // Empty value indicates deletion
-	a.hasChanges = true                               // Mark that there are changes to commit
+	a.updateValues = append(a.updateValues, nil) // Nil value indicates deletion
+	a.hasChanges = true                          // Mark that there are changes to commit
 	return nil
 }
 
@@ -185,10 +183,10 @@ func (a *AccountTrie) DeleteStorage(addr common.Address, key []byte) error {
 	copy(combinedKey[common.HashLength:], storageKey)
 
 	// Queue the key for deletion
-	a.dirtyKeys[string(combinedKey[:])] = []byte{}
+	a.dirtyKeys[string(combinedKey[:])] = nil
 	a.updateKeys = append(a.updateKeys, combinedKey[:])
-	a.updateValues = append(a.updateValues, []byte{}) // Empty value indicates deletion
-	a.hasChanges = true                               // Mark that there are changes to commit
+	a.updateValues = append(a.updateValues, nil) // Nil value indicates deletion
+	a.hasChanges = true                          // Mark that there are changes to commit
 	return nil
 }
 

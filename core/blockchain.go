@@ -34,7 +34,6 @@ import (
 	"fmt"
 	"io"
 	"math/big"
-	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
@@ -60,7 +59,6 @@ import (
 	"github.com/ava-labs/subnet-evm/core/state/snapshot"
 	"github.com/ava-labs/subnet-evm/internal/version"
 	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/plugin/evm/customlogs"
 	"github.com/ava-labs/subnet-evm/plugin/evm/customrawdb"
 	"github.com/ava-labs/subnet-evm/plugin/evm/customtypes"
 	"github.com/ava-labs/subnet-evm/triedb/firewood"
@@ -125,6 +123,9 @@ var (
 	acceptedLogsCounter  = metrics.GetOrRegisterCounter("chain/logs/accepted", nil)
 	processedLogsCounter = metrics.GetOrRegisterCounter("chain/logs/processed", nil)
 
+	latestMinDelayGauge       = metrics.NewRegisteredGauge("chain/latest/mindelay", nil)
+	latestMinDelayExcessGauge = metrics.NewRegisteredGauge("chain/latest/mindelay/excess", nil)
+
 	ErrRefuseToCorruptArchiver = errors.New("node has operated with pruning disabled, shutting down to prevent missing tries")
 
 	errFutureBlockUnsupported  = errors.New("future block insertion not supported")
@@ -174,8 +175,6 @@ const (
 	// trieCleanCacheStatsNamespace is the namespace to surface stats from the trie
 	// clean cache's underlying fastcache.
 	trieCleanCacheStatsNamespace = "hashdb/memcache/clean/fastcache"
-
-	firewoodFileName = "firewood.db"
 )
 
 // cacheableFeeConfig encapsulates fee configuration itself and the block number that it has changed at,
@@ -242,12 +241,14 @@ func (c *CacheConfig) triedbConfig() *triedb.Config {
 		if c.ChainDataDir == "" {
 			log.Crit("Chain data directory must be specified for Firewood")
 		}
+
 		config.DBOverride = firewood.Config{
-			FilePath:             filepath.Join(c.ChainDataDir, firewoodFileName),
+			ChainDataDir:         c.ChainDataDir,
 			CleanCacheSize:       c.TrieCleanLimit * 1024 * 1024,
 			FreeListCacheEntries: firewood.Defaults.FreeListCacheEntries,
 			Revisions:            uint(c.StateHistory), // must be at least 2
 			ReadCacheStrategy:    ffi.CacheAllReads,
+			ArchiveMode:          !c.Pruning,
 		}.BackendConstructor
 	}
 	return config
@@ -641,7 +642,10 @@ func (bc *BlockChain) startAcceptor() {
 		bc.acceptorTipLock.Unlock()
 
 		// Update accepted feeds
-		flattenedLogs := customlogs.FlattenLogs(logs)
+		var flattenedLogs []*types.Log
+		for _, txLogs := range logs {
+			flattenedLogs = append(flattenedLogs, txLogs...)
+		}
 		bc.chainAcceptedFeed.Send(ChainEvent{Block: next, Hash: next.Hash(), Logs: flattenedLogs})
 		if len(flattenedLogs) > 0 {
 			bc.logsAcceptedFeed.Send(flattenedLogs)
@@ -1138,6 +1142,14 @@ func (bc *BlockChain) Accept(block *types.Block) error {
 	} else {
 		blockTotalFeesGauge.Update(total.Int64())
 	}
+	if params.GetExtra(bc.chainConfig).IsGranite(block.Time()) {
+		extraHeader := customtypes.GetHeaderExtra(block.Header())
+		if extraHeader.MinDelayExcess != nil {
+			delayExcess := *extraHeader.MinDelayExcess
+			latestMinDelayGauge.Update(int64(delayExcess.Delay()))
+			latestMinDelayExcessGauge.Update(int64(delayExcess))
+		}
+	}
 	return nil
 }
 
@@ -1517,7 +1529,11 @@ func (bc *BlockChain) collectUnflattenedLogs(b *types.Block, removed bool) [][]*
 // the processing of a block. These logs are later announced as deleted or reborn.
 func (bc *BlockChain) collectLogs(b *types.Block, removed bool) []*types.Log {
 	unflattenedLogs := bc.collectUnflattenedLogs(b, removed)
-	return customlogs.FlattenLogs(unflattenedLogs)
+	var logs []*types.Log
+	for _, txLogs := range unflattenedLogs {
+		logs = append(logs, txLogs...)
+	}
+	return logs
 }
 
 // reorg takes two blocks, an old chain and a new chain and will reconstruct the

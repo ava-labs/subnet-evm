@@ -40,13 +40,13 @@ import (
 
 	ethereum "github.com/ava-labs/libevm"
 	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/core/bloombits"
 	"github.com/ava-labs/libevm/core/rawdb"
 	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/libevm/ethdb"
 	"github.com/ava-labs/libevm/event"
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
 	"github.com/ava-labs/subnet-evm/core"
-	"github.com/ava-labs/subnet-evm/core/bloombits"
 	"github.com/ava-labs/subnet-evm/internal/ethapi"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/plugin/evm/customrawdb"
@@ -842,7 +842,9 @@ func TestPendingTxFilterDeadlock(t *testing.T) {
 	subs := make([]*Subscription, 20)
 	for i := 0; i < len(subs); i++ {
 		fid := api.NewPendingTransactionFilter(nil)
+		api.filtersMu.Lock()
 		f, ok := api.filters[fid]
+		api.filtersMu.Unlock()
 		if !ok {
 			t.Fatalf("Filter %s should exist", fid)
 		}

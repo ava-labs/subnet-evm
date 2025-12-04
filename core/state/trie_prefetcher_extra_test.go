@@ -123,11 +123,8 @@ func BenchmarkPrefetcherDatabase(b *testing.B) {
 			commit(levelDB, snaps, db)
 			b.Logf("Root: %v, kvs: %d, block: %d (committed)", root, count, block)
 		}
-		if previous != root {
-			require.NoError(db.TrieDB().Dereference(previous))
-		} else {
-			b.Fatal("root did not change")
-		}
+		require.NotEqual(root, previous, "root and previous should not be equal")
+		require.NoError(db.TrieDB().Dereference(previous))
 	}
 	require.NoError(levelDB.Close())
 	b.Log("Starting benchmarks")
@@ -181,8 +178,9 @@ func addKVs(
 		for i := 0; i < count/2; i++ {
 			key := make([]byte, 32)
 			value := make([]byte, 32)
-			rand.Read(key)
-			rand.Read(value)
+			// rand.Read never returns an error
+			_, _ = rand.Read(key)
+			_, _ = rand.Read(value)
 
 			statedb.SetState(address, common.BytesToHash(key), common.BytesToHash(value))
 		}

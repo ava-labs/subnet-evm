@@ -19,6 +19,14 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: "go.mod"
+          cache-dependency-path: |
+            go.sum
+            tools/go.sum
+            tools/legacy-golangci-lint.sum
+      - name: Set up solc
+        uses: ARR4N/setup-solc@v0.2.0
+        with:
+          versions: "0.8.30"
       - name: Run all lint checks
         run: ./scripts/run_task.sh lint-all-ci
       - name: Check go.mod and go.sum are up-to-date
@@ -27,6 +35,14 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: ./scripts/run_task.sh check-avalanchego-version
+  links-lint:
+    name: Markdown Links Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: umbrelladocs/action-linkspector@de84085e0f51452a470558693d7d308fbb2fa261 #v1.2.5
+        with:
+          fail_level: any
 
   unit_test:
     name: Golang Unit Tests (${{ matrix.os }})
@@ -40,6 +56,9 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: "go.mod"
+          cache-dependency-path: |
+            go.sum
+            tools/go.sum
       - run: go mod download
       - name: Check generated codec files are up to date
         run: ./scripts/run_task.sh check-generate-codec
@@ -59,10 +78,11 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Set up Go
-        uses: actions/setup-go@v5
+          submodules: recursive
+      - name: Set up solc
+        uses: ARR4N/setup-solc@v0.2.0
         with:
-          go-version-file: "go.mod"
+          versions: "0.8.30"
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
@@ -78,7 +98,7 @@ jobs:
           name: subnet-evm-e2e-logs-precompile
           path: /tmp/e2e-test/precompile-data
           retention-days: 5
-  
+
   e2e_warp:
     name: e2e warp tests
     runs-on: ubuntu-latest
@@ -87,6 +107,11 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          submodules: recursive
+      - name: Set up solc
+        uses: ARR4N/setup-solc@v0.2.0
+        with:
+          versions: "0.8.30"
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
@@ -94,7 +119,7 @@ jobs:
       - name: Setup Contracts
         run: ./scripts/run_task.sh setup-contracts
       - name: Run Warp E2E Tests
-        uses: ava-labs/avalanchego/.github/actions/run-monitored-tmpnet-cmd@8564a57d3ca61f976c90b4ad96e41640a2a3cdc4
+        uses: ava-labs/avalanchego/.github/actions/run-monitored-tmpnet-cmd@df4a8e531761a55d6878d6d2f16e9acb023de19d
         with:
           run: ./scripts/run_task.sh test-e2e-warp-ci
           artifact_prefix: warp
@@ -106,7 +131,7 @@ jobs:
           loki_push_url: ${{ secrets.LOKI_PUSH_URL || '' }}
           loki_username: ${{ secrets.LOKI_ID || '' }}
           loki_password: ${{ secrets.LOKI_PASSWORD || '' }}
-       
+
   e2e_load:
     name: e2e load tests
     runs-on: ubuntu-latest
@@ -116,7 +141,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Run E2E Load Tests
-        uses: ava-labs/avalanchego/.github/actions/run-monitored-tmpnet-cmd@8564a57d3ca61f976c90b4ad96e41640a2a3cdc4
+        uses: ava-labs/avalanchego/.github/actions/run-monitored-tmpnet-cmd@df4a8e531761a55d6878d6d2f16e9acb023de19d
         with:
           run: ./scripts/run_task.sh test-e2e-load-ci
           artifact_prefix: load
@@ -128,7 +153,7 @@ jobs:
           loki_push_url: ${{ secrets.LOKI_PUSH_URL || '' }}
           loki_username: ${{ secrets.LOKI_ID || '' }}
           loki_password: ${{ secrets.LOKI_PASSWORD || '' }}
-  
+
   test_build_image:
     name: Image build
     runs-on: ubuntu-latest
@@ -140,7 +165,7 @@ jobs:
           sudo apt -y install qemu-system qemu-user-static
       - name: Check image build
         run: ./scripts/run_task.sh test-build-image
-  
+
   test_build_antithesis_images:
     name: Build Antithesis images
     runs-on: ubuntu-latest

@@ -34,8 +34,9 @@ var (
 	// Singleton StatefulPrecompiledContract for minting native assets by permissioned callers.
 	ContractNativeMinterPrecompile contract.StatefulPrecompiledContract = createNativeMinterPrecompile()
 
-	ErrCannotMint = errors.New("non-enabled cannot mint")
-	ErrInvalidLen = errors.New("invalid input length for minting")
+	ErrCannotMint  = errors.New("non-enabled cannot mint")
+	ErrInvalidLen  = errors.New("invalid input length for minting")
+	ErrUnpackInput = errors.New("failed to unpack input")
 
 	// NativeMinterRawABI contains the raw ABI of NativeMinter contract.
 	//go:embed contract.abi
@@ -73,8 +74,11 @@ func UnpackMintNativeCoinInput(input []byte, useStrictMode bool) (common.Address
 	}
 	inputStruct := MintNativeCoinInput{}
 	err := NativeMinterABI.UnpackInputIntoInterface(&inputStruct, "mintNativeCoin", input, useStrictMode)
+	if err != nil {
+		return common.Address{}, nil, fmt.Errorf("%w: %w", ErrUnpackInput, err)
+	}
 
-	return inputStruct.Addr, inputStruct.Amount, err
+	return inputStruct.Addr, inputStruct.Amount, nil
 }
 
 // mintNativeCoin checks if the caller is permissioned for minting operation.
@@ -88,7 +92,8 @@ func mintNativeCoin(accessibleState contract.AccessibleState, caller common.Addr
 		return nil, remainingGas, vm.ErrWriteProtection
 	}
 
-	useStrictMode := !contract.IsDurangoActivated(accessibleState)
+	rules := accessibleState.GetRules()
+	useStrictMode := !rules.IsDurangoActivated()
 	to, amount, err := UnpackMintNativeCoinInput(input, useStrictMode)
 	if err != nil {
 		return nil, remainingGas, err
@@ -101,7 +106,7 @@ func mintNativeCoin(accessibleState contract.AccessibleState, caller common.Addr
 		return nil, remainingGas, fmt.Errorf("%w: %s", ErrCannotMint, caller)
 	}
 
-	if contract.IsDurangoActivated(accessibleState) {
+	if rules.IsDurangoActivated() {
 		if remainingGas, err = contract.DeductGas(remainingGas, NativeCoinMintedEventGasCost); err != nil {
 			return nil, 0, err
 		}

@@ -1,46 +1,43 @@
 # Contributing
 
-Thank you for considering to help out with the source code! We welcome
-contributions from anyone on the internet, and are grateful for even the
-smallest of fixes!
+Thank you for considering to help out with the source code! We welcome contributions from anyone on the internet, and are grateful for even the smallest of fixes!
 
-If you'd like to contribute to subnet-evm, please fork, fix, commit and send a
-pull request for the maintainers to review and merge into the main code base. If
-you wish to submit more complex changes though, please check up with the core
-devs first on [Discord](https://chat.avalabs.org) to
-ensure those changes are in line with the general philosophy of the project
-and/or get some early feedback which can make both your efforts much lighter as
-well as our review and merge procedures quick and simple.
+If you'd like to contribute to subnet-evm, please fork, fix, commit and send a pull request for the maintainers to review and merge into the main code base. If you wish to submit more complex changes though, please check up with the core devs first on [Discord](https://chat.avalabs.org) to ensure those changes are in line with the general philosophy of the project and/or get some early feedback which can make both your efforts much lighter as well as our review and merge procedures quick and simple.
 
 ## Coding guidelines
 
-Please make sure your contributions adhere to our coding and documentation
-guidelines:
+Please make sure your contributions adhere to our coding guidelines:
 
 - Code must adhere to the official Go
   [formatting](https://go.dev/doc/effective_go#formatting) guidelines
   (i.e. uses [gofmt](https://pkg.go.dev/cmd/gofmt)).
+- Code must be documented adhering to the official Go
+  [commentary](https://go.dev/doc/effective_go#commentary) guidelines.
 - Pull requests need to be based on and opened against the `master` branch.
 - Pull reuqests should include a detailed description
-- Commits are required to be signed. See [here](https://docs.github.com/en/authentication/managing-commit-signature-verification/signing-commits)
+- Commits are required to be signed. See the [commit signature verification documentation](https://docs.github.com/en/authentication/managing-commit-signature-verification/signing-commits)
   for information on signing commits.
 - Commit messages should be prefixed with the package(s) they modify.
   - E.g. "eth, rpc: make trace configs optional"
 
-### Mocks
+## Can I have feature X
+
+Before you submit a feature request, please check and make sure that it isn't possible through some other means.
+
+## Mocks
 
 Mocks are auto-generated using [mockgen](https://pkg.go.dev/go.uber.org/mock/mockgen) and `//go:generate` commands in the code.
 
-- To **re-generate all mocks**, use the command below from the root of the project:
+- To **re-generate all mocks**, use the task below from the root of the project:
 
-    ```sh
-    go generate -run "go.uber.org/mock/mockgen" ./...
-    ```
+  ```sh
+  task generate-mocks
+  ```
 
 - To **add** an interface that needs a corresponding mock generated:
   - if the file `mocks_generate_test.go` exists in the package where the interface is located, either:
-    - modify its `//go:generate go run go.uber.org/mock/mockgen` to generate a mock for your interface (preferred); or
-    - add another `//go:generate go run go.uber.org/mock/mockgen` to generate a mock for your interface according to specific mock generation settings
+    - modify its `//go:generate go tool -modfile=tools/go.mod mockgen` to generate a mock for your interface (preferred); or
+    - add another `//go:generate go tool -modfile=tools/go.mod mockgen` to generate a mock for your interface according to specific mock generation settings
   - if the file `mocks_generate_test.go` does not exist in the package where the interface is located, create it with content (adapt as needed):
 
     ```go
@@ -49,7 +46,7 @@ Mocks are auto-generated using [mockgen](https://pkg.go.dev/go.uber.org/mock/moc
 
     package mypackage
 
-    //go:generate go run go.uber.org/mock/mockgen -package=${GOPACKAGE} -destination=mocks_test.go . YourInterface
+    //go:generate go tool -modfile=tools/go.mod mockgen -package=${GOPACKAGE} -destination=mocks_test.go . YourInterface
     ```
 
     Notes:
@@ -61,19 +58,28 @@ Mocks are auto-generated using [mockgen](https://pkg.go.dev/go.uber.org/mock/moc
       - generates a mock file for multiple interfaces, remove your interface from the line
       - generates a mock file only for the interface, remove the entire line. If the file is empty, remove `mocks_generate_test.go` as well.
 
-## Documentation guidelines
+## Tool Dependencies
 
-- Code should be well commented, so it is easier to read and maintain.
- Any complex sections or invariants should be documented explicitly.
-- Code must be documented adhering to the official Go
-  [commentary](https://go.dev/doc/effective_go#commentary) guidelines.
-- Changes with user facing impact (e.g., addition or modification of flags and
- options) should be accompanied by a link to a pull request to the [avalanche-docs](https://github.com/ava-labs/avalanche-docs)
- repository. [example](https://github.com/ava-labs/avalanche-docs/pull/1119/files).
-- Changes that modify a package significantly or add new features should
- either update the existing or include a new `README.md` file in that package.
+This project uses `go tool` to manage development tool dependencies in `tools/go.mod`. This isolates tool dependencies from the main application dependencies and provides consistent, version-locked tools across the team.
 
-## Can I have feature X
+### Managing Tools
 
-Before you submit a feature request, please check and make sure that it isn't
-possible through some other means.
+- To **add a new tool**:
+
+  ```sh
+  go get -tool -modfile=tools/go.mod example.com/tool/cmd/toolname@version
+  ```
+
+- To **upgrade a tool**:
+
+  ```sh
+  go get -tool -modfile=tools/go.mod example.com/tool/cmd/toolname@newversion
+  ```
+
+- To **run a tool manually**:
+
+  ```sh
+  go tool -modfile=tools/go.mod toolname [args...]
+  ```
+
+Note: `ginkgo` remains in the main `go.mod` as it is used directly in e2e test code.

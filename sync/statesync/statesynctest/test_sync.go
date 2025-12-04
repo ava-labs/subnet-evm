@@ -15,7 +15,7 @@ import (
 	"github.com/ava-labs/libevm/ethdb"
 	"github.com/ava-labs/libevm/rlp"
 	"github.com/ava-labs/libevm/triedb"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/ava-labs/subnet-evm/plugin/evm/customrawdb"
 	"github.com/ava-labs/subnet-evm/utils/utilstest"
@@ -34,9 +34,7 @@ func AssertDBConsistency(t testing.TB, root common.Hash, clientDB ethdb.Database
 		}
 		numSnapshotAccounts++
 	}
-	if err := accountIt.Error(); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, accountIt.Error())
 	trieAccountLeaves := 0
 
 	AssertTrieConsistency(t, root, serverTrieDB, clientTrieDB, func(key, val []byte) error {
@@ -49,15 +47,15 @@ func AssertDBConsistency(t testing.TB, root common.Hash, clientDB ethdb.Database
 		// check snapshot consistency
 		snapshotVal := rawdb.ReadAccountSnapshot(clientDB, accHash)
 		expectedSnapshotVal := types.SlimAccountRLP(acc)
-		assert.Equal(t, expectedSnapshotVal, snapshotVal)
+		require.Equal(t, expectedSnapshotVal, snapshotVal)
 
 		// check code consistency
 		if !bytes.Equal(acc.CodeHash, types.EmptyCodeHash[:]) {
 			codeHash := common.BytesToHash(acc.CodeHash)
 			code := rawdb.ReadCode(clientDB, codeHash)
 			actualHash := crypto.Keccak256Hash(code)
-			assert.NotZero(t, len(code))
-			assert.Equal(t, codeHash, actualHash)
+			require.NotEmpty(t, code)
+			require.Equal(t, codeHash, actualHash)
 		}
 		if acc.Root == types.EmptyRootHash {
 			return nil
@@ -77,36 +75,16 @@ func AssertDBConsistency(t testing.TB, root common.Hash, clientDB ethdb.Database
 		AssertTrieConsistency(t, acc.Root, serverTrieDB, clientTrieDB, func(key, val []byte) error {
 			storageTrieLeavesCount++
 			snapshotVal := rawdb.ReadStorageSnapshot(clientDB, accHash, common.BytesToHash(key))
-			assert.Equal(t, val, snapshotVal)
+			require.Equal(t, val, snapshotVal)
 			return nil
 		})
 
-		assert.Equal(t, storageTrieLeavesCount, snapshotStorageKeysCount)
+		require.Equal(t, storageTrieLeavesCount, snapshotStorageKeysCount)
 		return nil
 	})
 
 	// Check that the number of accounts in the snapshot matches the number of leaves in the accounts trie
-	assert.Equal(t, trieAccountLeaves, numSnapshotAccounts)
-}
-
-func FillAccountsWithStorage(t *testing.T, r *rand.Rand, serverDB ethdb.Database, serverTrieDB *triedb.Database, root common.Hash, numAccounts int) common.Hash {
-	newRoot, _ := FillAccounts(t, r, serverTrieDB, root, numAccounts, func(t *testing.T, _ int, account types.StateAccount) types.StateAccount {
-		codeBytes := make([]byte, 256)
-		_, err := r.Read(codeBytes)
-		if err != nil {
-			t.Fatalf("error reading random code bytes: %v", err)
-		}
-
-		codeHash := crypto.Keccak256Hash(codeBytes)
-		rawdb.WriteCode(serverDB, codeHash, codeBytes)
-		account.CodeHash = codeHash[:]
-
-		// now create state trie
-		numKeys := 16
-		account.Root, _, _ = GenerateTrie(t, r, serverTrieDB, numKeys, common.HashLength)
-		return account
-	})
-	return newRoot
+	require.Equal(t, trieAccountLeaves, numSnapshotAccounts)
 }
 
 // FillAccountsWithOverlappingStorage adds [numAccounts] randomly generated accounts to the secure trie at [root]

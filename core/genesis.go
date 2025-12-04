@@ -57,7 +57,7 @@ import (
 	"github.com/holiman/uint256"
 )
 
-//go:generate go run github.com/fjl/gencodec -type Genesis -field-override genesisSpecMarshaling -out gen_genesis.go
+//go:generate go tool -modfile=../tools/go.mod gencodec -type Genesis -field-override genesisSpecMarshaling -out gen_genesis.go
 
 var errGenesisNoConfig = errors.New("genesis has no chain configuration")
 
@@ -443,7 +443,7 @@ func (g *Genesis) Verify() error {
 func GenesisBlockForTesting(db ethdb.Database, addr common.Address, balance *big.Int) *types.Block {
 	g := Genesis{
 		Config:  params.TestChainConfig,
-		Alloc:   GenesisAlloc{addr: {Balance: balance}},
+		Alloc:   types.GenesisAlloc{addr: {Balance: balance}},
 		BaseFee: big.NewInt(legacy.BaseFee),
 	}
 	return g.MustCommit(db, triedb.NewDatabase(db, triedb.HashDefaults))

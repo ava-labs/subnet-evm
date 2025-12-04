@@ -11,16 +11,11 @@ import (
 
 	"github.com/ava-labs/avalanchego/vms/evm/acp226"
 	"github.com/ava-labs/libevm/common"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/ava-labs/subnet-evm/internal/blocktest"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ava-labs/subnet-evm/utils/utilstest"
-
-	// TODO(arr4n) These tests were originally part of the `subnet-evm/core/types`
-	// package so assume the presence of identifiers. A dot-import reduces PR
-	// noise during the refactoring.
-	. "github.com/ava-labs/libevm/core/types"
 )
 
 func TestBlockGetters(t *testing.T) {
@@ -59,13 +54,13 @@ func TestBlockGetters(t *testing.T) {
 			block := NewBlock(header, nil, nil, nil, blocktest.NewHasher())
 
 			blockGasCost := BlockGasCost(block)
-			assert.Equal(t, test.wantBlockGasCost, blockGasCost, "BlockGasCost()")
+			require.Equal(t, test.wantBlockGasCost, blockGasCost, "BlockGasCost()")
 
 			timeMilliseconds := BlockTimeMilliseconds(block)
-			assert.Equal(t, test.wantTimeMilliseconds, timeMilliseconds, "BlockTimeMilliseconds()")
+			require.Equal(t, test.wantTimeMilliseconds, timeMilliseconds, "BlockTimeMilliseconds()")
 
 			minDelayExcess := BlockMinDelayExcess(block)
-			assert.Equal(t, test.wantMinDelayExcess, minDelayExcess, "BlockMinDelayExcess()")
+			require.Equal(t, test.wantMinDelayExcess, minDelayExcess, "BlockMinDelayExcess()")
 		})
 	}
 }
@@ -91,7 +86,7 @@ func TestCopyHeader(t *testing.T) {
 		headerExtra = &HeaderExtra{}
 		extras.Header.Set(want, headerExtra)
 
-		assert.Equal(t, want, cpy)
+		require.Equal(t, want, cpy)
 	})
 
 	t.Run("filled_header", func(t *testing.T) {
@@ -103,8 +98,8 @@ func TestCopyHeader(t *testing.T) {
 		gotExtra := GetHeaderExtra(gotHeader)
 
 		wantHeader, wantExtra := headerWithNonZeroFields()
-		assert.Equal(t, wantHeader, gotHeader)
-		assert.Equal(t, wantExtra, gotExtra)
+		require.Equal(t, wantHeader, gotHeader)
+		require.Equal(t, wantExtra, gotExtra)
 
 		exportedFieldsPointToDifferentMemory(t, header, gotHeader)
 		exportedFieldsPointToDifferentMemory(t, GetHeaderExtra(header), gotExtra)
@@ -144,7 +139,7 @@ func exportedFieldsPointToDifferentMemory[T interface {
 			case []uint8:
 				assertDifferentPointers(t, unsafe.SliceData(f), unsafe.SliceData(fieldCp.([]uint8)))
 			default:
-				t.Errorf("field %q type %T needs to be added to switch cases of exportedFieldsDeepCopied", field.Name, f)
+				require.Failf(t, "field type needs to be added to switch cases", "field %q type %T needs to be added to switch cases of exportedFieldsDeepCopied", field.Name, f)
 			}
 		})
 	}
@@ -154,14 +149,9 @@ func exportedFieldsPointToDifferentMemory[T interface {
 // pointers pointing to different memory locations.
 func assertDifferentPointers[T any](t *testing.T, a *T, b any) {
 	t.Helper()
-	switch {
-	case a == nil:
-		t.Errorf("a (%T) cannot be nil", a)
-	case b == nil:
-		t.Errorf("b (%T) cannot be nil", b)
-	case a == b:
-		t.Errorf("pointers to same memory")
-	}
+	require.NotNil(t, a, "a (%T) cannot be nil", a)
+	require.NotNil(t, b, "b (%T) cannot be nil", b)
+	require.NotSame(t, a, b, "pointers to same memory")
 	// Note: no need to check `b` is of the same type as `a`, otherwise
 	// the memory address would be different as well.
 }

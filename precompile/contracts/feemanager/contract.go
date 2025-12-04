@@ -52,6 +52,8 @@ var (
 
 	ErrCannotChangeFee = errors.New("non-enabled cannot change fee config")
 	ErrInvalidLen      = errors.New("invalid input length for fee config Input")
+	ErrUnpackInput     = errors.New("failed to unpack input")
+	ErrUnpackOutput    = errors.New("failed to unpack output")
 
 	// IFeeManagerRawABI contains the raw ABI of FeeManager contract.
 	//go:embed contract.abi
@@ -188,7 +190,7 @@ func UnpackSetFeeConfigInput(input []byte, useStrictMode bool) (commontype.FeeCo
 	inputStruct := FeeConfigABIStruct{}
 	err := FeeManagerABI.UnpackInputIntoInterface(&inputStruct, "setFeeConfig", input, useStrictMode)
 	if err != nil {
-		return commontype.FeeConfig{}, err
+		return commontype.FeeConfig{}, fmt.Errorf("%w: %w", ErrUnpackInput, err)
 	}
 
 	result := commontype.FeeConfig{
@@ -217,7 +219,8 @@ func setFeeConfig(accessibleState contract.AccessibleState, caller common.Addres
 	}
 
 	// do not use strict mode after Durango
-	useStrictMode := !contract.IsDurangoActivated(accessibleState)
+	rules := accessibleState.GetRules()
+	useStrictMode := !rules.IsDurangoActivated()
 	feeConfig, err := UnpackSetFeeConfigInput(input, useStrictMode)
 	if err != nil {
 		return nil, remainingGas, err
@@ -230,7 +233,7 @@ func setFeeConfig(accessibleState contract.AccessibleState, caller common.Addres
 		return nil, remainingGas, fmt.Errorf("%w: %s", ErrCannotChangeFee, caller)
 	}
 
-	if contract.IsDurangoActivated(accessibleState) {
+	if rules.IsDurangoActivated() {
 		if remainingGas, err = contract.DeductGas(remainingGas, FeeConfigChangedEventGasCost); err != nil {
 			return nil, 0, err
 		}
@@ -300,7 +303,7 @@ func UnpackGetFeeConfigOutput(output []byte, skipLenCheck bool) (commontype.FeeC
 	outputStruct := FeeConfigABIStruct{}
 	err := FeeManagerABI.UnpackIntoInterface(&outputStruct, "getFeeConfig", output)
 	if err != nil {
-		return commontype.FeeConfig{}, err
+		return commontype.FeeConfig{}, fmt.Errorf("%w: %w", ErrUnpackOutput, err)
 	}
 
 	result := commontype.FeeConfig{

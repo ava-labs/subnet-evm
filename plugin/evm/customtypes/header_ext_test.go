@@ -16,15 +16,9 @@ import (
 	"github.com/ava-labs/avalanchego/vms/evm/acp226"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/rlp"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/ava-labs/subnet-evm/utils/utilstest"
-
-	// TODO(arr4n) These tests were originally part of the `subnet-evm/core/types`
-	// package so assume the presence of identifiers. A dot-import reduces PR
-	// noise during the refactoring.
-	. "github.com/ava-labs/libevm/core/types"
 )
 
 func TestMain(m *testing.M) {
@@ -45,11 +39,11 @@ func TestHeaderRLP(t *testing.T) {
 		wantHashHex = "460d4b45e82d1690f901bc1281125e51b138c7b0559dad122e2bc7386ecf3486"
 	)
 
-	assert.Equal(t, wantHex, hex.EncodeToString(got), "Header RLP")
+	require.Equal(t, wantHex, hex.EncodeToString(got), "Header RLP")
 
 	header, _ := headerWithNonZeroFields()
 	gotHashHex := header.Hash().Hex()
-	assert.Equal(t, "0x"+wantHashHex, gotHashHex, "Header.Hash()")
+	require.Equal(t, "0x"+wantHashHex, gotHashHex, "Header.Hash()")
 }
 
 func TestHeaderJSON(t *testing.T) {
@@ -78,8 +72,8 @@ func testHeaderEncodeDecode(
 
 	wantHeader, wantExtra := headerWithNonZeroFields()
 	wantHeader.WithdrawalsHash = nil
-	assert.Equal(t, wantHeader, gotHeader)
-	assert.Equal(t, wantExtra, gotExtra)
+	require.Equal(t, wantHeader, gotHeader)
+	require.Equal(t, wantExtra, gotExtra)
 
 	return encoded
 }
@@ -151,7 +145,7 @@ func allFieldsSet[T interface {
 				if fieldValue.Kind() == reflect.Ptr {
 					require.Falsef(t, fieldValue.IsNil(), "field %q is nil", field.Name)
 				}
-				fieldValue = reflect.NewAt(fieldValue.Type(), unsafe.Pointer(fieldValue.UnsafeAddr())).Elem() //nolint:gosec
+				fieldValue = reflect.NewAt(fieldValue.Type(), unsafe.Pointer(fieldValue.UnsafeAddr())).Elem()
 			}
 
 			switch f := fieldValue.Interface().(type) {
@@ -178,9 +172,9 @@ func allFieldsSet[T interface {
 			case *acp226.DelayExcess:
 				assertNonZero(t, f)
 			case []uint8, []*Header, Transactions, []*Transaction, Withdrawals, []*Withdrawal:
-				assert.NotEmpty(t, f)
+				require.NotEmpty(t, f)
 			default:
-				t.Errorf("Field %q has unsupported type %T", field.Name, f)
+				require.Failf(t, "Field has unsupported type", "Field %q has unsupported type %T", field.Name, f)
 			}
 		})
 	}
@@ -191,10 +185,7 @@ func assertNonZero[T interface {
 		*big.Int | *common.Hash | *uint64 | *[]uint8 | *Header | *acp226.DelayExcess
 }](t *testing.T, v T) {
 	t.Helper()
-	var zero T
-	if v == zero {
-		t.Errorf("must not be zero value for %T", v)
-	}
+	require.NotZero(t, v)
 }
 
 // Note [TestCopyHeader] tests the [HeaderExtra.PostCopy] method.
