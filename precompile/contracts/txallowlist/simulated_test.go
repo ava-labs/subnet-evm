@@ -100,7 +100,7 @@ func TestTxAllowList(t *testing.T) {
 				allowlisttest.VerifyRole(t, allowList, unprivilegedAddress, allowlist.NoRole)
 
 				_, _, _, err := allowlistbindings.DeployAllowListTest(unprivileged, backend.Client(), txallowlist.ContractAddress)
-				require.ErrorContains(t, err, vmerrors.ErrSenderAddressNotAllowListed.Error()) //nolint:forbidigo // upstream error wrapped as string
+				require.ErrorContains(t, err, vmerrors.ErrSenderAddressNotAllowListed.Error()) // //nolint:forbidigo // upstream error wrapped as string
 			},
 		},
 		{
