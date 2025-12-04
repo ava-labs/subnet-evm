@@ -67,7 +67,7 @@ func TestUnpackMintNativeCoinInput(t *testing.T) {
 		name           string
 		input          []byte
 		strictMode     bool
-		expectedErr    string
+		expectedErr    error
 		expectedAddr   common.Address
 		expectedAmount *big.Int
 	}{
@@ -75,25 +75,25 @@ func TestUnpackMintNativeCoinInput(t *testing.T) {
 			name:        "empty input strict mode",
 			input:       []byte{},
 			strictMode:  true,
-			expectedErr: ErrInvalidLen.Error(),
+			expectedErr: ErrInvalidLen,
 		},
 		{
 			name:        "empty input",
 			input:       []byte{},
 			strictMode:  false,
-			expectedErr: "attempting to unmarshal an empty string",
+			expectedErr: ErrUnpackInput,
 		},
 		{
 			name:        "input with extra bytes strict mode",
 			input:       append(testInputBytes, make([]byte, 32)...),
 			strictMode:  true,
-			expectedErr: ErrInvalidLen.Error(),
+			expectedErr: ErrInvalidLen,
 		},
 		{
 			name:           "input with extra bytes",
 			input:          append(testInputBytes, make([]byte, 32)...),
 			strictMode:     false,
-			expectedErr:    "",
+			expectedErr:    nil,
 			expectedAddr:   constants.BlackholeAddr,
 			expectedAmount: common.Big2,
 		},
@@ -101,14 +101,13 @@ func TestUnpackMintNativeCoinInput(t *testing.T) {
 			name:        "input with extra bytes (not divisible by 32) strict mode",
 			input:       append(testInputBytes, make([]byte, 33)...),
 			strictMode:  true,
-			expectedErr: ErrInvalidLen.Error(),
+			expectedErr: ErrInvalidLen,
 		},
 		{
 			name:           "input with extra bytes (not divisible by 32)",
 			input:          append(testInputBytes, make([]byte, 33)...),
 			strictMode:     false,
 			expectedErr:    nil,
-			expectedOldErr: ErrInvalidLen,
 			expectedAddr:   constants.BlackholeAddr,
 			expectedAmount: common.Big2,
 		},

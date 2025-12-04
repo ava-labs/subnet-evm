@@ -84,45 +84,45 @@ func TestUnpackGetFeeConfigOutput(t *testing.T) {
 		name           string
 		input          []byte
 		skipLenCheck   bool
-		expectedErr    string
+		expectedErr    error
 		expectedOutput commontype.FeeConfig
 	}{
 		{
 			name:         "empty input",
 			input:        []byte{},
 			skipLenCheck: false,
-			expectedErr:  ErrInvalidLen.Error(),
+			expectedErr:  ErrInvalidLen,
 		},
 		{
 			name:         "empty input skip len check",
 			input:        []byte{},
 			skipLenCheck: true,
-			expectedErr:  "attempting to unmarshal an empty string",
+			expectedErr:  ErrUnpackOutput,
 		},
 		{
 			name:         "input with extra bytes",
 			input:        append(testInputBytes, make([]byte, 32)...),
 			skipLenCheck: false,
-			expectedErr:  ErrInvalidLen.Error(),
+			expectedErr:  ErrInvalidLen,
 		},
 		{
 			name:           "input with extra bytes skip len check",
 			input:          append(testInputBytes, make([]byte, 32)...),
 			skipLenCheck:   true,
-			expectedErr:    "",
+			expectedErr:    nil,
 			expectedOutput: testFeeConfig,
 		},
 		{
 			name:         "input with extra bytes (not divisible by 32)",
 			input:        append(testInputBytes, make([]byte, 33)...),
 			skipLenCheck: false,
-			expectedErr:  ErrInvalidLen.Error(),
+			expectedErr:  ErrInvalidLen,
 		},
 		{
 			name:         "input with extra bytes (not divisible by 32) skip len check",
 			input:        append(testInputBytes, make([]byte, 33)...),
 			skipLenCheck: true,
-			expectedErr:  "improperly formatted output",
+			expectedErr:  ErrUnpackOutput,
 		},
 	}
 	for _, test := range tests {
@@ -227,60 +227,60 @@ func TestUnpackSetFeeConfigInput(t *testing.T) {
 	// exclude 4 bytes for function selector
 	testInputBytes = testInputBytes[4:]
 	tests := []struct {
-		name           string
-		input          []byte
-		strictMode     bool
-		expectedErr    string
-		expectedOutput commontype.FeeConfig
+		name       string
+		input      []byte
+		strictMode bool
+		wantErr    error
+		wantOutput commontype.FeeConfig
 	}{
 		{
-			name:        "empty input strict mode",
-			input:       []byte{},
-			strictMode:  true,
-			expectedErr: ErrInvalidLen.Error(),
+			name:       "empty input strict mode",
+			input:      []byte{},
+			strictMode: true,
+			wantErr:    ErrInvalidLen,
 		},
 		{
-			name:        "empty input",
-			input:       []byte{},
-			strictMode:  false,
-			expectedErr: "attempting to unmarshal an empty string",
+			name:       "empty input",
+			input:      []byte{},
+			strictMode: false,
+			wantErr:    ErrUnpackInput,
 		},
 		{
-			name:        "input with insufficient len strict mode",
-			input:       []byte{123},
-			strictMode:  true,
-			expectedErr: ErrInvalidLen.Error(),
+			name:       "input with insufficient len strict mode",
+			input:      []byte{123},
+			strictMode: true,
+			wantErr:    ErrInvalidLen,
 		},
 		{
-			name:        "input with insufficient len",
-			input:       []byte{123},
-			strictMode:  false,
-			expectedErr: "length insufficient",
+			name:       "input with insufficient len",
+			input:      []byte{123},
+			strictMode: false,
+			wantErr:    ErrUnpackInput,
 		},
 		{
-			name:        "input with extra bytes strict mode",
-			input:       append(testInputBytes, make([]byte, 32)...),
-			strictMode:  true,
-			expectedErr: ErrInvalidLen.Error(),
+			name:       "input with extra bytes strict mode",
+			input:      append(testInputBytes, make([]byte, 32)...),
+			strictMode: true,
+			wantErr:    ErrInvalidLen,
 		},
 		{
-			name:           "input with extra bytes",
-			input:          append(testInputBytes, make([]byte, 32)...),
-			strictMode:     false,
-			expectedErr:    "",
-			expectedOutput: testFeeConfig,
+			name:       "input with extra bytes",
+			input:      append(testInputBytes, make([]byte, 32)...),
+			strictMode: false,
+			wantErr:    nil,
+			wantOutput: testFeeConfig,
 		},
 		{
-			name:        "input with extra bytes (not divisible by 32) strict mode",
-			input:       append(testInputBytes, make([]byte, 33)...),
-			strictMode:  true,
-			expectedErr: ErrInvalidLen.Error(),
+			name:       "input with extra bytes (not divisible by 32) strict mode",
+			input:      append(testInputBytes, make([]byte, 33)...),
+			strictMode: true,
+			wantErr:    ErrInvalidLen,
 		},
 		{
-			name:           "input with extra bytes (not divisible by 32)",
-			input:          append(testInputBytes, make([]byte, 33)...),
-			strictMode:     false,
-			expectedOutput: testFeeConfig,
+			name:       "input with extra bytes (not divisible by 32)",
+			input:      append(testInputBytes, make([]byte, 33)...),
+			strictMode: false,
+			wantOutput: testFeeConfig,
 		},
 	}
 	for _, test := range tests {
