@@ -17,6 +17,7 @@ import (
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/params/extras"
 	"github.com/ava-labs/subnet-evm/plugin/evm/customtypes"
+	"github.com/ava-labs/subnet-evm/plugin/evm/vmerrors"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist/allowlisttest"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/testutils"
@@ -72,6 +73,7 @@ func deployAllowListTest(t *testing.T, b *sim.Backend, auth *bind.TransactOpts) 
 func TestTxAllowList(t *testing.T) {
 	chainID := params.TestChainConfig.ChainID
 	admin := testutils.NewAuth(t, adminKey, chainID)
+	unprivileged := testutils.NewAuth(t, unprivilegedKey, chainID)
 
 	type testCase struct {
 		name string
@@ -90,6 +92,15 @@ func TestTxAllowList(t *testing.T) {
 			test: func(t *testing.T, backend *sim.Backend, allowList *allowlistbindings.IAllowList) {
 				allowListTestAddr, _ := deployAllowListTest(t, backend, admin)
 				allowlisttest.VerifyRole(t, allowList, allowListTestAddr, allowlist.NoRole)
+			},
+		},
+		{
+			name: "should not let non-enabled address submit txs",
+			test: func(t *testing.T, backend *sim.Backend, allowList *allowlistbindings.IAllowList) {
+				allowlisttest.VerifyRole(t, allowList, unprivilegedAddress, allowlist.NoRole)
+
+				_, _, _, err := allowlistbindings.DeployAllowListTest(unprivileged, backend.Client(), txallowlist.ContractAddress)
+				require.ErrorContains(t, err, vmerrors.ErrSenderAddressNotAllowListed.Error()) //nolint:forbidigo // upstream error wrapped as string
 			},
 		},
 		{
@@ -292,5 +303,5 @@ func TestTxAllowList(t *testing.T) {
 
 func TestIAllowList_Events(t *testing.T) {
 	admin := testutils.NewAuth(t, adminKey, params.TestChainConfig.ChainID)
-	allowlisttest.RunAllowListEventTests(t, newBackendWithTxAllowList, txallowlist.ContractAddress, admin, adminAddress)
+	allowlisttest.RunAllowListEventTests(t, newBackendWithTxAllowList, txallowlist.ContractAddress, admin)
 }

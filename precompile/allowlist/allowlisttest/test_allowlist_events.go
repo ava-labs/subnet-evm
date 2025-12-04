@@ -25,7 +25,6 @@ func RunAllowListEventTests(
 	newBackend func(t *testing.T) *sim.Backend,
 	contractAddress common.Address,
 	adminAuth *bind.TransactOpts,
-	adminAddress common.Address,
 ) {
 	t.Helper()
 
@@ -50,7 +49,7 @@ func RunAllowListEventTests(
 				{
 					Role:    allowlist.AdminRole.Big(),
 					Account: testAddress,
-					Sender:  adminAddress,
+					Sender:  adminAuth.From,
 					OldRole: allowlist.NoRole.Big(),
 				},
 			},
@@ -66,7 +65,7 @@ func RunAllowListEventTests(
 				{
 					Role:    allowlist.ManagerRole.Big(),
 					Account: testAddress,
-					Sender:  adminAddress,
+					Sender:  adminAuth.From,
 					OldRole: allowlist.NoRole.Big(),
 				},
 			},
@@ -82,7 +81,7 @@ func RunAllowListEventTests(
 				{
 					Role:    allowlist.EnabledRole.Big(),
 					Account: testAddress,
-					Sender:  adminAddress,
+					Sender:  adminAuth.From,
 					OldRole: allowlist.NoRole.Big(),
 				},
 			},
@@ -103,13 +102,13 @@ func RunAllowListEventTests(
 				{
 					Role:    allowlist.EnabledRole.Big(),
 					Account: testAddress,
-					Sender:  adminAddress,
+					Sender:  adminAuth.From,
 					OldRole: allowlist.NoRole.Big(),
 				},
 				{
 					Role:    allowlist.NoRole.Big(),
 					Account: testAddress,
-					Sender:  adminAddress,
+					Sender:  adminAuth.From,
 					OldRole: allowlist.EnabledRole.Big(),
 				},
 			},

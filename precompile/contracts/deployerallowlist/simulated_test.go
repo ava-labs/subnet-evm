@@ -218,5 +218,5 @@ func TestDeployerAllowList(t *testing.T) {
 
 func TestIAllowList_Events(t *testing.T) {
 	admin := testutils.NewAuth(t, adminKey, params.TestChainConfig.ChainID)
-	allowlisttest.RunAllowListEventTests(t, newBackendWithDeployerAllowList, deployerallowlist.ContractAddress, admin, adminAddress)
+	allowlisttest.RunAllowListEventTests(t, newBackendWithDeployerAllowList, deployerallowlist.ContractAddress, admin)
 }
