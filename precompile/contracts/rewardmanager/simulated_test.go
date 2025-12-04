@@ -4,11 +4,9 @@
 package rewardmanager_test
 
 import (
-	"math/big"
 	"testing"
 
 	"github.com/ava-labs/libevm/common"
-	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/libevm/crypto"
 	"github.com/stretchr/testify/require"
 
@@ -16,7 +14,6 @@ import (
 	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/params/extras"
 	"github.com/ava-labs/subnet-evm/plugin/evm/customtypes"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist/allowlisttest"
@@ -43,24 +40,6 @@ func TestMain(m *testing.M) {
 	params.RegisterExtras()
 	m.Run()
 }
-
-func newBackendWithRewardManager(t *testing.T) *sim.Backend {
-	t.Helper()
-	chainCfg := params.Copy(params.TestChainConfig)
-	// Enable RewardManager at genesis with admin set to adminAddress.
-	params.GetExtra(&chainCfg).GenesisPrecompiles = extras.Precompiles{
-		rewardmanager.ConfigKey: rewardmanager.NewConfig(utils.NewUint64(0), []common.Address{adminAddress}, nil, nil, nil),
-	}
-	return sim.NewBackend(
-		types.GenesisAlloc{
-			adminAddress:        {Balance: big.NewInt(1000000000000000000)},
-			unprivilegedAddress: {Balance: big.NewInt(1000000000000000000)},
-		},
-		sim.WithChainConfig(&chainCfg),
-	)
-}
-
-// Helper functions
 
 func deployRewardManagerTest(t *testing.T, b *sim.Backend, auth *bind.TransactOpts) (common.Address, *rewardmanagerbindings.RewardManagerTest) {
 	t.Helper()
@@ -240,7 +219,7 @@ func TestRewardManager(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			backend := newBackendWithRewardManager(t)
+			backend := testutils.NewBackendWithPrecompile(t, rewardmanager.NewConfig(utils.NewUint64(0), []common.Address{adminAddress}, nil, nil, nil), adminAddress, unprivilegedAddress)
 			defer backend.Close()
 
 			rewardManager, err := rewardmanagerbindings.NewIRewardManager(rewardmanager.ContractAddress, backend.Client())
@@ -257,80 +236,86 @@ func TestIRewardManager_Events(t *testing.T) {
 	testKey, _ := crypto.GenerateKey()
 	testAddress := crypto.PubkeyToAddress(testKey.PublicKey)
 
-	t.Run("should emit RewardAddressChanged event", func(t *testing.T) {
-		backend := newBackendWithRewardManager(t)
-		defer backend.Close()
+	type testCase struct {
+		name string
+		test func(t *testing.T, backend *sim.Backend, rewardManager *rewardmanagerbindings.IRewardManager)
+	}
 
-		rewardManager, err := rewardmanagerbindings.NewIRewardManager(rewardmanager.ContractAddress, backend.Client())
-		require.NoError(t, err)
+	testCases := []testCase{
+		{
+			name: "should emit RewardAddressChanged event",
+			test: func(t *testing.T, backend *sim.Backend, rewardManager *rewardmanagerbindings.IRewardManager) {
+				tx, err := rewardManager.SetRewardAddress(admin, testAddress)
+				require.NoError(t, err)
+				testutils.WaitReceiptSuccessful(t, backend, tx)
 
-		tx, err := rewardManager.SetRewardAddress(admin, testAddress)
-		require.NoError(t, err)
-		testutils.WaitReceiptSuccessful(t, backend, tx)
+				iter, err := rewardManager.FilterRewardAddressChanged(nil, nil, nil, nil)
+				require.NoError(t, err)
+				defer iter.Close()
 
-		iter, err := rewardManager.FilterRewardAddressChanged(nil, nil, nil, nil)
-		require.NoError(t, err)
-		defer iter.Close()
+				require.True(t, iter.Next(), "expected to find RewardAddressChanged event")
+				event := iter.Event
+				require.Equal(t, adminAddress, event.Sender)
+				require.Equal(t, constants.BlackholeAddr, event.OldRewardAddress)
+				require.Equal(t, testAddress, event.NewRewardAddress)
 
-		require.True(t, iter.Next(), "expected to find RewardAddressChanged event")
-		event := iter.Event
-		require.Equal(t, adminAddress, event.Sender, "sender mismatch")
-		require.Equal(t, constants.BlackholeAddr, event.OldRewardAddress, "old reward address mismatch")
-		require.Equal(t, testAddress, event.NewRewardAddress, "new reward address mismatch")
+				require.False(t, iter.Next(), "expected no more events")
+				require.NoError(t, iter.Error())
+			},
+		},
+		{
+			name: "should emit FeeRecipientsAllowed event",
+			test: func(t *testing.T, backend *sim.Backend, rewardManager *rewardmanagerbindings.IRewardManager) {
+				tx, err := rewardManager.AllowFeeRecipients(admin)
+				require.NoError(t, err)
+				testutils.WaitReceiptSuccessful(t, backend, tx)
 
-		require.False(t, iter.Next(), "expected no more events")
-		require.NoError(t, iter.Error())
-	})
+				iter, err := rewardManager.FilterFeeRecipientsAllowed(nil, nil)
+				require.NoError(t, err)
+				defer iter.Close()
 
-	t.Run("should emit FeeRecipientsAllowed event", func(t *testing.T) {
-		backend := newBackendWithRewardManager(t)
-		defer backend.Close()
+				require.True(t, iter.Next(), "expected to find FeeRecipientsAllowed event")
+				require.Equal(t, adminAddress, iter.Event.Sender)
 
-		rewardManager, err := rewardmanagerbindings.NewIRewardManager(rewardmanager.ContractAddress, backend.Client())
-		require.NoError(t, err)
+				require.False(t, iter.Next(), "expected no more events")
+				require.NoError(t, iter.Error())
+			},
+		},
+		{
+			name: "should emit RewardsDisabled event",
+			test: func(t *testing.T, backend *sim.Backend, rewardManager *rewardmanagerbindings.IRewardManager) {
+				tx, err := rewardManager.DisableRewards(admin)
+				require.NoError(t, err)
+				testutils.WaitReceiptSuccessful(t, backend, tx)
 
-		tx, err := rewardManager.AllowFeeRecipients(admin)
-		require.NoError(t, err)
-		testutils.WaitReceiptSuccessful(t, backend, tx)
+				iter, err := rewardManager.FilterRewardsDisabled(nil, nil)
+				require.NoError(t, err)
+				defer iter.Close()
 
-		iter, err := rewardManager.FilterFeeRecipientsAllowed(nil, nil)
-		require.NoError(t, err)
-		defer iter.Close()
+				require.True(t, iter.Next(), "expected to find RewardsDisabled event")
+				require.Equal(t, adminAddress, iter.Event.Sender)
 
-		require.True(t, iter.Next(), "expected to find FeeRecipientsAllowed event")
-		event := iter.Event
-		require.Equal(t, adminAddress, event.Sender, "sender mismatch")
+				require.False(t, iter.Next(), "expected no more events")
+				require.NoError(t, iter.Error())
+			},
+		},
+	}
 
-		require.False(t, iter.Next(), "expected no more events")
-		require.NoError(t, iter.Error())
-	})
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			backend := testutils.NewBackendWithPrecompile(t, rewardmanager.NewConfig(utils.NewUint64(0), []common.Address{adminAddress}, nil, nil, nil), adminAddress, unprivilegedAddress)
+			defer backend.Close()
 
-	t.Run("should emit RewardsDisabled event", func(t *testing.T) {
-		backend := newBackendWithRewardManager(t)
-		defer backend.Close()
+			rewardManager, err := rewardmanagerbindings.NewIRewardManager(rewardmanager.ContractAddress, backend.Client())
+			require.NoError(t, err)
 
-		rewardManager, err := rewardmanagerbindings.NewIRewardManager(rewardmanager.ContractAddress, backend.Client())
-		require.NoError(t, err)
-
-		tx, err := rewardManager.DisableRewards(admin)
-		require.NoError(t, err)
-		testutils.WaitReceiptSuccessful(t, backend, tx)
-
-		iter, err := rewardManager.FilterRewardsDisabled(nil, nil)
-		require.NoError(t, err)
-		defer iter.Close()
-
-		require.True(t, iter.Next(), "expected to find RewardsDisabled event")
-		event := iter.Event
-		require.Equal(t, adminAddress, event.Sender, "sender mismatch")
-
-		require.False(t, iter.Next(), "expected no more events")
-		require.NoError(t, iter.Error())
-	})
+			tc.test(t, backend, rewardManager)
+		})
+	}
 }
 
-// TODO(jonathanoppenheimer): uncomment this once RunAllowListEventTests() is merged into main
-// func TestIAllowList_Events(t *testing.T) {
-// 	admin := testutils.NewAuth(t, adminKey, params.TestChainConfig.ChainID)
-// 	allowlisttest.RunAllowListEventTests(t, newBackendWithRewardManager, rewardmanager.ContractAddress, admin, adminAddress)
-// }
+func TestIAllowList_Events(t *testing.T) {
+	precompileCfg := rewardmanager.NewConfig(utils.NewUint64(0), []common.Address{adminAddress}, nil, nil, nil)
+	admin := testutils.NewAuth(t, adminKey, params.TestChainConfig.ChainID)
+	allowlisttest.RunAllowListEventTests(t, precompileCfg, rewardmanager.ContractAddress, admin, adminAddress)
+}
