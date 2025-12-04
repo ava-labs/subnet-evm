@@ -19,6 +19,7 @@ grep -P 'lint.sh' scripts/lint.sh &>/dev/null || (
 )
 
 # Library for file list generation.
+# shellcheck source=/dev/null
 source ./scripts/lint_setup.sh
 
 # by default, "./scripts/lint.sh" runs all lint tests

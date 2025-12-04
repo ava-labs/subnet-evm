@@ -92,6 +92,7 @@ if ! docker pull "${AVALANCHEGO_NODE_IMAGE}"; then
   AVALANCHEGO_NODE_IMAGE="${AVALANCHEGO_LOCAL_IMAGE_NAME}:${AVALANCHE_VERSION}"
   echo "Building ${AVALANCHEGO_NODE_IMAGE} locally"
 
+  # shellcheck source=/dev/null
   source "${SUBNET_EVM_PATH}"/scripts/lib_avalanchego_clone.sh
   clone_avalanchego "${AVALANCHE_VERSION}"
   SKIP_BUILD_RACE=1 \

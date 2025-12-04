@@ -15,6 +15,7 @@ SUBNET_EVM_PATH=$( cd "$( dirname "${BASH_SOURCE[0]}" )"; cd .. && pwd )
 # TODO(marun) Support use of a released node image if using a release version of avalanchego
 
 source "${SUBNET_EVM_PATH}"/scripts/constants.sh
+# shellcheck source=/dev/null
 source "${SUBNET_EVM_PATH}"/scripts/lib_avalanchego_clone.sh
 
 clone_avalanchego "${AVALANCHE_VERSION}"
