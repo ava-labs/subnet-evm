@@ -31,16 +31,14 @@ func NewAuth(t *testing.T, key *ecdsa.PrivateKey, chainID *big.Int) *bind.Transa
 }
 
 // NewBackendWithPrecompile creates a simulated backend with the given precompile enabled
-// at genesis and funds the specified addresses with 1 ETH each.
-func NewBackendWithPrecompile(t *testing.T, precompileCfg precompileconfig.Config, fundedAddrs ...common.Address) *sim.Backend {
-	t.Helper()
-	return NewBackendWithPrecompileAndOptions(t, precompileCfg, fundedAddrs)
-}
-
-// NewBackendWithPrecompileAndOptions creates a simulated backend with the given precompile enabled
 // at genesis and funds the specified addresses with 1 ETH each. Additional options can be passed
 // to configure the backend.
-func NewBackendWithPrecompileAndOptions(t *testing.T, precompileCfg precompileconfig.Config, fundedAddrs []common.Address, opts ...func(*node.Config, *ethconfig.Config)) *sim.Backend {
+func NewBackendWithPrecompile(
+	t *testing.T,
+	precompileCfg precompileconfig.Config,
+	fundedAddrs []common.Address,
+	opts ...func(*node.Config, *ethconfig.Config),
+) *sim.Backend {
 	t.Helper()
 	chainCfg := params.Copy(params.TestChainConfig)
 	params.GetExtra(&chainCfg).GenesisPrecompiles = extras.Precompiles{
@@ -52,8 +50,8 @@ func NewBackendWithPrecompileAndOptions(t *testing.T, precompileCfg precompileco
 		genesisAlloc[addr] = types.Account{Balance: big.NewInt(1000000000000000000)}
 	}
 
-	allOpts := append([]func(*node.Config, *ethconfig.Config){sim.WithChainConfig(&chainCfg)}, opts...)
-	return sim.NewBackend(genesisAlloc, allOpts...)
+	opts = append(opts, sim.WithChainConfig(&chainCfg))
+	return sim.NewBackend(genesisAlloc, opts...)
 }
 
 // WaitReceipt commits the simulated backend and waits for the transaction receipt.
