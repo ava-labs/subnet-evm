@@ -21,6 +21,6 @@ interface IAllowList {
     // Set [addr] to have no role for the precompile contract.
     function setNone(address addr) external;
 
-    // Read the status os [addr].
+    // Read the status of [addr].
     function readAllowList(address addr) external view returns (uint256 role);
 }
