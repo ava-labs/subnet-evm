@@ -21,7 +21,7 @@ func RegisterAsyncTests() {
 		ginkgo.AbortSuite("Failed to get genesis files: " + err.Error())
 	}
 	if len(genesisFiles) == 0 {
-		ginkgo.Skip("No genesis files found")
+		ginkgo.AbortSuite("No genesis files found")
 	}
 	_ = ginkgo.Describe("[Asynchronized Precompile Tests]", func() {
 		// Each ginkgo It node specifies the name of the genesis file (in ./tests/precompile/genesis/)
