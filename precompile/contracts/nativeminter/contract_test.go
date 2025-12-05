@@ -210,7 +210,6 @@ var tests = []precompiletest.PrecompileTest{
 		ReadOnly:    false,
 		ExpectedRes: []byte{},
 		AfterHook: func(t testing.TB, stateDB *extstate.StateDB) {
-			// Check no logs are stored in state
 			logs := stateDB.Logs()
 			require.Empty(t, logs)
 		},

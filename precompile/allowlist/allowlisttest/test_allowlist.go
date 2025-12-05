@@ -637,7 +637,6 @@ func AllowListTests(_ testing.TB, module modules.Module) []precompiletest.Precom
 			ReadOnly:    false,
 			ExpectedRes: []byte{},
 			AfterHook: func(t testing.TB, stateDB *extstate.StateDB) {
-				// Check no logs are stored in state
 				logs := stateDB.Logs()
 				require.Empty(t, logs)
 			},
@@ -660,7 +659,6 @@ func AllowListTests(_ testing.TB, module modules.Module) []precompiletest.Precom
 			ReadOnly:    false,
 			ExpectedRes: []byte{},
 			AfterHook: func(t testing.TB, stateDB *extstate.StateDB) {
-				// Check no logs are stored in state
 				logs := stateDB.Logs()
 				require.Empty(t, logs)
 			},
@@ -683,7 +681,6 @@ func AllowListTests(_ testing.TB, module modules.Module) []precompiletest.Precom
 			ReadOnly:    false,
 			ExpectedRes: []byte{},
 			AfterHook: func(t testing.TB, stateDB *extstate.StateDB) {
-				// Check no logs are stored in state
 				logs := stateDB.Logs()
 				require.Empty(t, logs)
 			},
@@ -708,7 +705,6 @@ func SetDefaultRoles(contractAddress common.Address) func(t testing.TB, state *e
 func RunPrecompileWithAllowListTests(t *testing.T, module modules.Module, tests []precompiletest.PrecompileTest) {
 	t.Helper()
 
-	// Add the contract specific tests to the map of tests to run.
 	precompiletest.RunPrecompileTests(
 		t,
 		module,
