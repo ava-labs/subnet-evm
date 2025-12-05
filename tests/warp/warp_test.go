@@ -37,12 +37,12 @@ import (
 	"github.com/ava-labs/subnet-evm/ethclient"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/warp"
-	warpbindings "github.com/ava-labs/subnet-evm/precompile/contracts/warp/warptest/bindings"
 	"github.com/ava-labs/subnet-evm/tests"
 	"github.com/ava-labs/subnet-evm/tests/utils"
 
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	ethereum "github.com/ava-labs/libevm"
+	warpbindings "github.com/ava-labs/subnet-evm/precompile/contracts/warp/warptest/bindings"
 	warpBackend "github.com/ava-labs/subnet-evm/warp"
 	ginkgo "github.com/onsi/ginkgo/v2"
 )
