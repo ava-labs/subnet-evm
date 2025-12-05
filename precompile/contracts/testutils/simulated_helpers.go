@@ -52,7 +52,7 @@ func NewBackendWithPrecompileAndOptions(t *testing.T, precompileCfg precompileco
 		genesisAlloc[addr] = types.Account{Balance: big.NewInt(1000000000000000000)}
 	}
 
-	allOpts := append([]func(*node.Config, *ethconfig.Config){sim.WithChainConfig(&chainCfg)}, opts...)
+	allOpts := append(opts, sim.WithChainConfig(&chainCfg))
 	return sim.NewBackend(genesisAlloc, allOpts...)
 }
 
