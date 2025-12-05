@@ -187,6 +187,17 @@ tasks:
       - task: build
       - task: test-e2e-load
 
+  test-e2e-precompile:
+    desc: Run end-to-end precompile tests using Ginkgo with parallel execution
+    cmd: bash -x ./scripts/run_ginkgo_precompile.sh # ci.yml
+
+  test-e2e-precompile-ci: # consolidated test-e2e-precompile
+    desc: Run E2E precompile tests with CI setup
+    cmds:
+      - task: install-avalanchego-release
+      - task: build
+      - task: test-e2e-precompile
+
   test-e2e-warp:
     desc: Run end-to-end warp tests using Ginkgo test framework
     cmd: bash -x ./scripts/run_ginkgo_warp.sh # ci.yml
