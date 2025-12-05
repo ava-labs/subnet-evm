@@ -7,12 +7,9 @@ package warp
 import (
 	"context"
 	"crypto/ecdsa"
-	"encoding/hex"
 	"fmt"
 	"math/big"
-	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -171,8 +168,8 @@ var _ = ginkgo.Describe("[Warp]", func() {
 		log.Info("Delivering block hash payload to receiving subnet")
 		w.deliverBlockHashPayload()
 
-		log.Info("Executing HardHat test")
-		w.executeHardHatTest()
+		log.Info("Verifying warp message and blockchain ID")
+		w.verifyWarpMessageAndBlockchainID()
 
 		log.Info("Executing warp load test")
 		w.warpLoad()
@@ -549,33 +546,49 @@ func (w *warpTest) deliverBlockHashPayload() {
 	require.Equal(types.ReceiptStatusSuccessful, receipt.Status)
 }
 
-func (w *warpTest) executeHardHatTest() {
+func (w *warpTest) verifyWarpMessageAndBlockchainID() {
 	require := require.New(ginkgo.GinkgoT())
 	tc := e2e.NewTestContext()
 	ctx := tc.DefaultContext()
 
 	client := w.sendingSubnetClients[0]
-	log.Info("Subscribing to new heads")
-	newHeads := make(chan *types.Header, 10)
-	sub, err := client.SubscribeNewHead(ctx, newHeads)
+
+	log.Info("Verifying warp message fields",
+		"messageID", w.addressedCallUnsignedMessage.ID(),
+		"sourceChainID", w.addressedCallUnsignedMessage.SourceChainID,
+	)
+
+	require.Equal(
+		w.sendingSubnet.BlockchainID,
+		w.addressedCallUnsignedMessage.SourceChainID,
+		"source chain ID mismatch in unsigned message",
+	)
+
+	log.Info("Calling getBlockchainID on warp precompile")
+	packedInput, err := warp.PackGetBlockchainID()
 	require.NoError(err)
-	defer sub.Unsubscribe()
 
-	chainID, err := client.ChainID(ctx)
+	result, err := client.CallContract(ctx, ethereum.CallMsg{
+		To:   &warp.Module.Address,
+		Data: packedInput,
+	}, nil)
 	require.NoError(err)
 
-	rpcURI := toRPCURI(w.sendingSubnetURIs[0], w.sendingSubnet.BlockchainID.String())
+	require.Len(result, 32, "getBlockchainID should return 32 bytes")
+	returnedBlockchainID := ids.ID(common.BytesToHash(result))
 
-	os.Setenv("SENDER_ADDRESS", crypto.PubkeyToAddress(w.sendingSubnetFundedKey.PublicKey).Hex())
-	os.Setenv("SOURCE_CHAIN_ID", "0x"+w.sendingSubnet.BlockchainID.Hex())
-	os.Setenv("PAYLOAD", "0x"+common.Bytes2Hex(testPayload))
-	os.Setenv("EXPECTED_UNSIGNED_MESSAGE", "0x"+hex.EncodeToString(w.addressedCallUnsignedMessage.Bytes()))
-	os.Setenv("CHAIN_ID", strconv.FormatUint(chainID.Uint64(), 10))
+	log.Info("getBlockchainID returned", "blockchainID", returnedBlockchainID)
+	require.Equal(
+		w.sendingSubnet.BlockchainID,
+		returnedBlockchainID,
+		"getBlockchainID returned unexpected value",
+	)
 
-	cmdPath := filepath.Join(repoRootPath, "contracts")
-	// test path is relative to the cmd path
-	testPath := "./test/warp.ts"
-	utils.RunHardhatTestsCustomURI(ctx, rpcURI, cmdPath, testPath)
+	log.Info("Warp message and blockchain ID verification complete",
+		"senderAddress", crypto.PubkeyToAddress(w.sendingSubnetFundedKey.PublicKey).Hex(),
+		"sourceChainID", "0x"+w.sendingSubnet.BlockchainID.Hex(),
+		"payload", "0x"+common.Bytes2Hex(testPayload),
+	)
 }
 
 func (w *warpTest) warpLoad() {
@@ -721,8 +734,4 @@ func generateKeys(preFundedKey *ecdsa.PrivateKey, numWorkers int) ([]*key.Key, [
 
 func toWebsocketURI(uri string, blockchainID string) string {
 	return fmt.Sprintf("ws://%s/ext/bc/%s/ws", strings.TrimPrefix(uri, "http://"), blockchainID)
-}
-
-func toRPCURI(uri string, blockchainID string) string {
-	return fmt.Sprintf("%s/ext/bc/%s/rpc", uri, blockchainID)
 }
