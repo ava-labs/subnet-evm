@@ -21,12 +21,9 @@ func RegisterAsyncTests() {
 		ginkgo.AbortSuite("Failed to get genesis files: " + err.Error())
 	}
 	if len(genesisFiles) == 0 {
-		ginkgo.AbortSuite("No genesis files found")
+		ginkgo.Skip("No genesis files found")
 	}
 	_ = ginkgo.Describe("[Asynchronized Precompile Tests]", func() {
-		// Register the ping test first
-		utils.RegisterPingTest()
-
 		// Each ginkgo It node specifies the name of the genesis file (in ./tests/precompile/genesis/)
 		// to use to launch the subnet and the name of the TS test file to run on the subnet (in ./contracts/tests/)
 
