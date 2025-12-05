@@ -50,8 +50,8 @@ func NewBackendWithPrecompile(
 		genesisAlloc[addr] = types.Account{Balance: big.NewInt(1000000000000000000)}
 	}
 
-	allOpts := append(opts, sim.WithChainConfig(&chainCfg))
-	return sim.NewBackend(genesisAlloc, allOpts...)
+	opts = append(opts, sim.WithChainConfig(&chainCfg))
+	return sim.NewBackend(genesisAlloc, opts...)
 }
 
 // WaitReceipt commits the simulated backend and waits for the transaction receipt.
