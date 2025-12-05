@@ -231,7 +231,8 @@ func TestRewardManager(t *testing.T) {
 			test: func(t *testing.T, backend *sim.Backend, rewardManager *rewardmanagerbindings.IRewardManager) {
 				client := backend.Client()
 
-				rewardRecipientAddr, _ := deployRewardManagerTest(t, backend, admin)
+				rewardRecipientKey, _ := crypto.GenerateKey()
+				rewardRecipientAddr := crypto.PubkeyToAddress(rewardRecipientKey.PublicKey)
 
 				initialRecipientBalance, err := client.BalanceAt(t.Context(), rewardRecipientAddr, nil)
 				require.NoError(t, err)
