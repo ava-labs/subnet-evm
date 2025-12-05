@@ -108,9 +108,7 @@ tasks:
       - cmd: |
           # Find and remove generated binding files in precompile directories only
           find ./precompile -type f -name 'gen_*binding.go' -exec grep -l '^// Code generated - DO NOT EDIT\.$' {} \; | xargs -r rm
-      - cmd: |
-          # Generate bindings for precompile packages (contracts/ bindings are handled by setup-contracts separately)
-          go generate ./precompile/...
+      - cmd: go generate ./precompile/...
 
 
   install-avalanchego-release:
@@ -146,15 +144,6 @@ tasks:
   lint-fix:
     desc: Run golangci-lint with auto-fix where possible
     cmd: ./scripts/lint_fix.sh
-
-  # todo(JonathanOppenheimer): remove this task once we have migrated to the new contract testing framework
-  setup-contracts:
-    desc: Set up contracts by compiling Solidity contracts and generating Go bindings
-    dir: ./contracts
-    cmds:
-      - cmd: npm ci
-      - cmd: npx hardhat clean
-      - cmd: npx hardhat compile
 
   shellcheck:
     desc: Run shellcheck static analysis on all shell scripts with version management
