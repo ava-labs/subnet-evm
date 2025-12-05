@@ -10,7 +10,6 @@ import (
 
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/types"
-	"github.com/ava-labs/libevm/crypto"
 	"github.com/stretchr/testify/require"
 
 	"github.com/ava-labs/subnet-evm/accounts/abi/bind"
@@ -61,42 +60,4 @@ func WaitReceiptSuccessful(t *testing.T, b *sim.Backend, tx *types.Transaction) 
 	receipt := WaitReceipt(t, b, tx)
 	require.Equal(t, types.ReceiptStatusSuccessful, receipt.Status, "transaction should succeed")
 	return receipt
-}
-
-// SendSimpleTx sends a simple ETH transfer transaction
-// See ethclient/simulated/backend_test.go newTx() for the source of this code
-// TODO(jonathanoppenheimer): after libevmifiying the geth code, investigate whether we can use the same code for both
-func SendSimpleTx(t *testing.T, b *sim.Backend, key *ecdsa.PrivateKey) *types.Transaction {
-	t.Helper()
-	client := b.Client()
-	addr := crypto.PubkeyToAddress(key.PublicKey)
-
-	chainID, err := client.ChainID(t.Context())
-	require.NoError(t, err)
-
-	nonce, err := client.NonceAt(t.Context(), addr, nil)
-	require.NoError(t, err)
-
-	head, err := client.HeaderByNumber(t.Context(), nil)
-	require.NoError(t, err)
-
-	gasPrice := new(big.Int).Add(head.BaseFee, big.NewInt(params.GWei))
-
-	tx := types.NewTx(&types.DynamicFeeTx{
-		ChainID:   chainID,
-		Nonce:     nonce,
-		GasTipCap: big.NewInt(params.GWei),
-		GasFeeCap: gasPrice,
-		Gas:       21000,
-		To:        &addr,
-		Value:     big.NewInt(0),
-	})
-
-	signedTx, err := types.SignTx(tx, types.LatestSignerForChainID(chainID), key)
-	require.NoError(t, err)
-
-	err = client.SendTransaction(t.Context(), signedTx)
-	require.NoError(t, err)
-
-	return signedTx
 }

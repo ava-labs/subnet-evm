@@ -4,9 +4,12 @@
 package rewardmanager_test
 
 import (
+	"crypto/ecdsa"
+	"math/big"
 	"testing"
 
 	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/libevm/core/vm"
 	"github.com/ava-labs/libevm/crypto"
 	"github.com/stretchr/testify/require"
@@ -48,6 +51,44 @@ func deployRewardManagerTest(t *testing.T, b *sim.Backend, auth *bind.TransactOp
 	require.NoError(t, err)
 	testutils.WaitReceiptSuccessful(t, b, tx)
 	return addr, contract
+}
+
+// SendSimpleTx sends a simple ETH transfer transaction
+// See ethclient/simulated/backend_test.go newTx() for the source of this code
+// TODO(jonathanoppenheimer): after libevmifiying the geth code, investigate whether we can use the same code for both
+func SendSimpleTx(t *testing.T, b *sim.Backend, key *ecdsa.PrivateKey) *types.Transaction {
+	t.Helper()
+	client := b.Client()
+	addr := crypto.PubkeyToAddress(key.PublicKey)
+
+	chainID, err := client.ChainID(t.Context())
+	require.NoError(t, err)
+
+	nonce, err := client.NonceAt(t.Context(), addr, nil)
+	require.NoError(t, err)
+
+	head, err := client.HeaderByNumber(t.Context(), nil)
+	require.NoError(t, err)
+
+	gasPrice := new(big.Int).Add(head.BaseFee, big.NewInt(params.GWei))
+
+	tx := types.NewTx(&types.DynamicFeeTx{
+		ChainID:   chainID,
+		Nonce:     nonce,
+		GasTipCap: big.NewInt(params.GWei),
+		GasFeeCap: gasPrice,
+		Gas:       21000,
+		To:        &addr,
+		Value:     big.NewInt(0),
+	})
+
+	signedTx, err := types.SignTx(tx, types.LatestSignerForChainID(chainID), key)
+	require.NoError(t, err)
+
+	err = client.SendTransaction(t.Context(), signedTx)
+	require.NoError(t, err)
+
+	return signedTx
 }
 
 func TestRewardManager(t *testing.T) {
@@ -175,7 +216,7 @@ func TestRewardManager(t *testing.T) {
 				initialBlackholeBalance, err := client.BalanceAt(t.Context(), constants.BlackholeAddr, nil)
 				require.NoError(t, err)
 
-				tx := testutils.SendSimpleTx(t, backend, adminKey)
+				tx := SendSimpleTx(t, backend, adminKey)
 				testutils.WaitReceiptSuccessful(t, backend, tx)
 
 				newBlackholeBalance, err := client.BalanceAt(t.Context(), constants.BlackholeAddr, nil)
@@ -206,7 +247,7 @@ func TestRewardManager(t *testing.T) {
 				require.Equal(t, rewardRecipientAddr, currentAddr)
 
 				// The fees from this transaction should go to the reward address
-				tx = testutils.SendSimpleTx(t, backend, adminKey)
+				tx = SendSimpleTx(t, backend, adminKey)
 				testutils.WaitReceiptSuccessful(t, backend, tx)
 
 				newRecipientBalance, err := client.BalanceAt(t.Context(), rewardRecipientAddr, nil)
