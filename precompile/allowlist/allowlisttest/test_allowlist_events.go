@@ -133,6 +133,7 @@ func RunAllowListEventTests(
 			require.NoError(err)
 			defer iter.Close()
 
+			// Verify event fields match expected values
 			for _, expectedEvent := range tc.expectedEvents {
 				require.True(iter.Next(), "expected to find RoleSet event")
 				event := iter.Event
@@ -142,6 +143,7 @@ func RunAllowListEventTests(
 				require.Zero(expectedEvent.OldRole.Cmp(event.OldRole), "oldRole mismatch")
 			}
 
+			// Verify there are no more events
 			require.False(iter.Next(), "expected no more RoleSet events")
 			require.NoError(iter.Error())
 		})
