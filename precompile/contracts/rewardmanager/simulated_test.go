@@ -231,19 +231,20 @@ func TestRewardManager(t *testing.T) {
 			test: func(t *testing.T, backend *sim.Backend, rewardManager *rewardmanagerbindings.IRewardManager) {
 				client := backend.Client()
 
+				testContractAddr, testContract := deployRewardManagerTest(t, backend, admin)
+				allowlisttest.SetAsEnabled(t, backend, rewardManager, admin, testContractAddr)
+
 				rewardRecipientKey, _ := crypto.GenerateKey()
 				rewardRecipientAddr := crypto.PubkeyToAddress(rewardRecipientKey.PublicKey)
 
 				initialRecipientBalance, err := client.BalanceAt(t.Context(), rewardRecipientAddr, nil)
 				require.NoError(t, err)
 
-				allowlisttest.SetAsEnabled(t, backend, rewardManager, admin, rewardRecipientAddr)
-
-				tx, err := rewardManager.SetRewardAddress(admin, rewardRecipientAddr)
+				tx, err := testContract.SetRewardAddress(admin, rewardRecipientAddr)
 				require.NoError(t, err)
 				testutils.WaitReceiptSuccessful(t, backend, tx)
 
-				currentAddr, err := rewardManager.CurrentRewardAddress(nil)
+				currentAddr, err := testContract.CurrentRewardAddress(nil)
 				require.NoError(t, err)
 				require.Equal(t, rewardRecipientAddr, currentAddr)
 
@@ -276,8 +277,6 @@ func TestRewardManager(t *testing.T) {
 func TestIRewardManager_Events(t *testing.T) {
 	chainID := params.TestChainConfig.ChainID
 	admin := testutils.NewAuth(t, adminKey, chainID)
-	testKey, _ := crypto.GenerateKey()
-	testAddress := crypto.PubkeyToAddress(testKey.PublicKey)
 
 	type testCase struct {
 		name string
@@ -288,7 +287,13 @@ func TestIRewardManager_Events(t *testing.T) {
 		{
 			name: "should emit RewardAddressChanged event",
 			test: func(t *testing.T, backend *sim.Backend, rewardManager *rewardmanagerbindings.IRewardManager) {
-				tx, err := rewardManager.SetRewardAddress(admin, testAddress)
+				testContractAddr, testContract := deployRewardManagerTest(t, backend, admin)
+				allowlisttest.SetAsEnabled(t, backend, rewardManager, admin, testContractAddr)
+
+				rewardRecipientKey, _ := crypto.GenerateKey()
+				rewardRecipientAddr := crypto.PubkeyToAddress(rewardRecipientKey.PublicKey)
+
+				tx, err := testContract.SetRewardAddress(admin, rewardRecipientAddr)
 				require.NoError(t, err)
 				testutils.WaitReceiptSuccessful(t, backend, tx)
 
@@ -298,9 +303,9 @@ func TestIRewardManager_Events(t *testing.T) {
 
 				require.True(t, iter.Next(), "expected to find RewardAddressChanged event")
 				event := iter.Event
-				require.Equal(t, adminAddress, event.Sender)
+				require.Equal(t, testContractAddr, event.Sender)
 				require.Equal(t, constants.BlackholeAddr, event.OldRewardAddress)
-				require.Equal(t, testAddress, event.NewRewardAddress)
+				require.Equal(t, rewardRecipientAddr, event.NewRewardAddress)
 
 				require.False(t, iter.Next(), "expected no more events")
 				require.NoError(t, iter.Error())
@@ -309,7 +314,10 @@ func TestIRewardManager_Events(t *testing.T) {
 		{
 			name: "should emit FeeRecipientsAllowed event",
 			test: func(t *testing.T, backend *sim.Backend, rewardManager *rewardmanagerbindings.IRewardManager) {
-				tx, err := rewardManager.AllowFeeRecipients(admin)
+				testContractAddr, testContract := deployRewardManagerTest(t, backend, admin)
+				allowlisttest.SetAsEnabled(t, backend, rewardManager, admin, testContractAddr)
+
+				tx, err := testContract.AllowFeeRecipients(admin)
 				require.NoError(t, err)
 				testutils.WaitReceiptSuccessful(t, backend, tx)
 
@@ -318,7 +326,7 @@ func TestIRewardManager_Events(t *testing.T) {
 				defer iter.Close()
 
 				require.True(t, iter.Next(), "expected to find FeeRecipientsAllowed event")
-				require.Equal(t, adminAddress, iter.Event.Sender)
+				require.Equal(t, testContractAddr, iter.Event.Sender)
 
 				require.False(t, iter.Next(), "expected no more events")
 				require.NoError(t, iter.Error())
@@ -327,7 +335,10 @@ func TestIRewardManager_Events(t *testing.T) {
 		{
 			name: "should emit RewardsDisabled event",
 			test: func(t *testing.T, backend *sim.Backend, rewardManager *rewardmanagerbindings.IRewardManager) {
-				tx, err := rewardManager.DisableRewards(admin)
+				testContractAddr, testContract := deployRewardManagerTest(t, backend, admin)
+				allowlisttest.SetAsEnabled(t, backend, rewardManager, admin, testContractAddr)
+
+				tx, err := testContract.DisableRewards(admin)
 				require.NoError(t, err)
 				testutils.WaitReceiptSuccessful(t, backend, tx)
 
@@ -336,7 +347,7 @@ func TestIRewardManager_Events(t *testing.T) {
 				defer iter.Close()
 
 				require.True(t, iter.Next(), "expected to find RewardsDisabled event")
-				require.Equal(t, adminAddress, iter.Event.Sender)
+				require.Equal(t, testContractAddr, iter.Event.Sender)
 
 				require.False(t, iter.Next(), "expected no more events")
 				require.NoError(t, iter.Error())
