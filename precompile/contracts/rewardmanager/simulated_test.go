@@ -55,10 +55,10 @@ func deployRewardManagerTest(t *testing.T, b *sim.Backend, auth *bind.TransactOp
 	return addr, contract
 }
 
-// SendSimpleTx sends a simple ETH transfer transaction
+// sendSimpleTx sends a simple ETH transfer transaction
 // See ethclient/simulated/backend_test.go newTx() for the source of this code
 // TODO(jonathanoppenheimer): after libevmifiying the geth code, investigate whether we can use the same code for both
-func SendSimpleTx(t *testing.T, b *sim.Backend, key *ecdsa.PrivateKey) *types.Transaction {
+func sendSimpleTx(t *testing.T, b *sim.Backend, key *ecdsa.PrivateKey) *types.Transaction {
 	t.Helper()
 	client := b.Client()
 	addr := crypto.PubkeyToAddress(key.PublicKey)
@@ -220,7 +220,7 @@ func TestRewardManager(t *testing.T) {
 				initialBlackholeBalance, err := client.BalanceAt(t.Context(), constants.BlackholeAddr, nil)
 				require.NoError(t, err)
 
-				tx := SendSimpleTx(t, backend, adminKey)
+				tx := sendSimpleTx(t, backend, adminKey)
 				testutils.WaitReceiptSuccessful(t, backend, tx)
 
 				newBlackholeBalance, err := client.BalanceAt(t.Context(), constants.BlackholeAddr, nil)
@@ -253,7 +253,7 @@ func TestRewardManager(t *testing.T) {
 				require.Equal(t, rewardRecipientAddr, currentAddr)
 
 				// The fees from this transaction should go to the reward address
-				tx = SendSimpleTx(t, backend, adminKey)
+				tx = sendSimpleTx(t, backend, adminKey)
 				testutils.WaitReceiptSuccessful(t, backend, tx)
 
 				newRecipientBalance, err := client.BalanceAt(t.Context(), rewardRecipientAddr, nil)
@@ -283,7 +283,7 @@ func TestRewardManager(t *testing.T) {
 				require.NoError(t, err)
 
 				// The fees from this transaction should go to the coinbase address
-				tx := SendSimpleTx(t, backend, adminKey)
+				tx := sendSimpleTx(t, backend, adminKey)
 				testutils.WaitReceiptSuccessful(t, backend, tx)
 
 				newCoinbaseBalance, err := client.BalanceAt(t.Context(), coinbaseAddr, nil)
