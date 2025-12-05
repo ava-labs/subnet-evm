@@ -12,6 +12,7 @@ import (
 	"math/big"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"testing"
@@ -39,7 +40,6 @@ import (
 	"github.com/ava-labs/subnet-evm/ethclient"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/warp"
-	"github.com/ava-labs/subnet-evm/tests"
 	"github.com/ava-labs/subnet-evm/tests/utils"
 
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
@@ -56,9 +56,13 @@ const (
 var (
 	flagVars *e2e.FlagVars
 
-	repoRootPath = tests.GetRepoRootPath("tests/warp")
+	thisDir, repoRoot = func() (string, string) {
+		_, thisFile, _, _ := runtime.Caller(0)
+		dir := filepath.Dir(thisFile)
+		return dir, filepath.Dir(filepath.Dir(dir))
+	}()
 
-	genesisPath = filepath.Join(repoRootPath, "tests/precompile/genesis/warp.json")
+	genesisPath = filepath.Join(thisDir, "genesis.json")
 
 	subnetA, subnetB, cChainSubnetDetails *Subnet
 
@@ -572,7 +576,7 @@ func (w *warpTest) executeHardHatTest() {
 	os.Setenv("EXPECTED_UNSIGNED_MESSAGE", "0x"+hex.EncodeToString(w.addressedCallUnsignedMessage.Bytes()))
 	os.Setenv("CHAIN_ID", strconv.FormatUint(chainID.Uint64(), 10))
 
-	cmdPath := filepath.Join(repoRootPath, "contracts")
+	cmdPath := filepath.Join(repoRoot, "contracts")
 	// test path is relative to the cmd path
 	testPath := "./test/warp.ts"
 	utils.RunHardhatTestsCustomURI(ctx, rpcURI, cmdPath, testPath)

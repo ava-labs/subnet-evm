@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"math/big"
 	"path/filepath"
+	"runtime"
 	"time"
 
 	"github.com/antithesishq/antithesis-sdk-go/assert"
@@ -26,7 +27,6 @@ import (
 
 	"github.com/ava-labs/subnet-evm/accounts/abi/bind"
 	"github.com/ava-labs/subnet-evm/ethclient"
-	"github.com/ava-labs/subnet-evm/tests"
 	"github.com/ava-labs/subnet-evm/tests/utils"
 
 	ago_tests "github.com/ava-labs/avalanchego/tests"
@@ -51,8 +51,9 @@ func main() {
 			tmpnet.FlagsMap{},
 		),
 		func(nodes ...*tmpnet.Node) []*tmpnet.Subnet {
-			repoRootPath := tests.GetRepoRootPath("tests/antithesis")
-			genesisPath := filepath.Join(repoRootPath, "tests/load/genesis/genesis.json")
+			_, thisFile, _, _ := runtime.Caller(0)
+			testsDir := filepath.Dir(filepath.Dir(thisFile)) // tests/antithesis/ -> tests/
+			genesisPath := filepath.Join(testsDir, "load", "genesis", "genesis.json")
 			return []*tmpnet.Subnet{
 				utils.NewTmpnetSubnet("subnet-evm", genesisPath, utils.DefaultChainConfig, nodes...),
 			}

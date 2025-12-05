@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -18,7 +19,6 @@ import (
 	"github.com/ava-labs/libevm/log"
 	"github.com/stretchr/testify/require"
 
-	"github.com/ava-labs/subnet-evm/tests"
 	"github.com/ava-labs/subnet-evm/tests/utils"
 
 	ginkgo "github.com/onsi/ginkgo/v2"
@@ -32,8 +32,13 @@ const (
 )
 
 var (
-	flagVars     *e2e.FlagVars
-	repoRootPath = tests.GetRepoRootPath("tests/load")
+	flagVars *e2e.FlagVars
+
+	thisDir, repoRoot = func() (string, string) {
+		_, thisFile, _, _ := runtime.Caller(0)
+		dir := filepath.Dir(thisFile)
+		return dir, filepath.Dir(filepath.Dir(dir))
+	}()
 )
 
 func init() {
@@ -52,7 +57,7 @@ var _ = ginkgo.Describe("[Load Simulator]", ginkgo.Ordered, func() {
 
 	ginkgo.BeforeAll(func() {
 		tc := e2e.NewTestContext()
-		genesisPath := filepath.Join(repoRootPath, "tests/load/genesis/genesis.json")
+		genesisPath := filepath.Join(thisDir, "genesis", "genesis.json")
 
 		nodes := utils.NewTmpnetNodes(nodeCount)
 		env = e2e.NewTestEnvironment(
@@ -89,7 +94,7 @@ var _ = ginkgo.Describe("[Load Simulator]", ginkgo.Ordered, func() {
 
 		log.Info("Running load simulator...", "rpcEndpoints", commaSeparatedRPCEndpoints)
 		cmd := exec.Command("./scripts/run_simulator.sh")
-		cmd.Dir = repoRootPath
+		cmd.Dir = repoRoot
 		log.Info("Running load simulator script", "cmd", cmd.String())
 
 		out, err := cmd.CombinedOutput()
