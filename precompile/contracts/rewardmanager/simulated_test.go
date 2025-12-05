@@ -17,6 +17,8 @@ import (
 	"github.com/ava-labs/subnet-evm/accounts/abi/bind"
 	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/core"
+	"github.com/ava-labs/subnet-evm/eth/ethconfig"
+	"github.com/ava-labs/subnet-evm/node"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/plugin/evm/customtypes"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
@@ -96,8 +98,10 @@ func TestRewardManager(t *testing.T) {
 	admin := testutils.NewAuth(t, adminKey, chainID)
 
 	type testCase struct {
-		name string
-		test func(t *testing.T, backend *sim.Backend, rewardManagerIntf *rewardmanagerbindings.IRewardManager)
+		name                string
+		initialRewardConfig *rewardmanager.InitialRewardConfig      // optional
+		backendOpts         []func(*node.Config, *ethconfig.Config) // optional
+		test                func(t *testing.T, backend *sim.Backend, rewardManagerIntf *rewardmanagerbindings.IRewardManager)
 	}
 
 	testCases := []testCase{
@@ -259,11 +263,42 @@ func TestRewardManager(t *testing.T) {
 					"reward recipient balance should have increased from fees")
 			},
 		},
+		{
+			name:                "fees should go to coinbase when allowFeeRecipients is enabled",
+			initialRewardConfig: &rewardmanager.InitialRewardConfig{AllowFeeRecipients: true},
+			backendOpts: []func(*node.Config, *ethconfig.Config){
+				sim.WithEtherbase(crypto.PubkeyToAddress(unprivilegedKey.PublicKey)), // use unprivilegedAddress as coinbase
+			},
+			test: func(t *testing.T, backend *sim.Backend, _ *rewardmanagerbindings.IRewardManager) {
+				client := backend.Client()
+				coinbaseAddr := unprivilegedAddress
+
+				_, testContract := deployRewardManagerTest(t, backend, admin)
+
+				isAllowed, err := testContract.AreFeeRecipientsAllowed(nil)
+				require.NoError(t, err)
+				require.True(t, isAllowed, "fee recipients should be allowed")
+
+				initialCoinbaseBalance, err := client.BalanceAt(t.Context(), coinbaseAddr, nil)
+				require.NoError(t, err)
+
+				// The fees from this transaction should go to the coinbase address
+				tx := SendSimpleTx(t, backend, adminKey)
+				testutils.WaitReceiptSuccessful(t, backend, tx)
+
+				newCoinbaseBalance, err := client.BalanceAt(t.Context(), coinbaseAddr, nil)
+				require.NoError(t, err)
+
+				require.Positive(t, newCoinbaseBalance.Cmp(initialCoinbaseBalance),
+					"coinbase balance should have increased from fees")
+			},
+		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			backend := testutils.NewBackendWithPrecompile(t, rewardmanager.NewConfig(utils.NewUint64(0), []common.Address{adminAddress}, nil, nil, nil), adminAddress, unprivilegedAddress)
+			cfg := rewardmanager.NewConfig(utils.NewUint64(0), []common.Address{adminAddress}, nil, nil, tc.initialRewardConfig)
+			backend := testutils.NewBackendWithPrecompileAndOptions(t, cfg, []common.Address{adminAddress, unprivilegedAddress}, tc.backendOpts...)
 			defer backend.Close()
 
 			rewardManager, err := rewardmanagerbindings.NewIRewardManager(rewardmanager.ContractAddress, backend.Client())
