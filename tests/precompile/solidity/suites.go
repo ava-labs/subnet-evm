@@ -5,9 +5,6 @@
 package solidity
 
 import (
-	"context"
-	"fmt"
-
 	"github.com/ava-labs/subnet-evm/tests/utils"
 
 	ginkgo "github.com/onsi/ginkgo/v2"
@@ -47,16 +44,4 @@ func RegisterAsyncTests() {
 			})
 		*/
 	})
-}
-
-//	Default parameters are:
-//
-// 1. Hardhat contract environment is located at ./contracts
-// 2. Hardhat test file is located at ./contracts/test/<test>.ts
-// 3. npx is available in the ./contracts directory
-func runDefaultHardhatTests(ctx context.Context, blockchainID, testName string) {
-	cmdPath := "./contracts"
-	// test path is relative to the cmd path
-	testPath := fmt.Sprintf("./test/%s.ts", testName)
-	utils.RunHardhatTests(ctx, blockchainID, cmdPath, testPath)
 }
