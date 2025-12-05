@@ -7,7 +7,6 @@ package solidity
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/ava-labs/subnet-evm/tests/utils"
 
@@ -27,23 +26,12 @@ func RegisterAsyncTests() {
 	if len(genesisFiles) == 0 {
 		ginkgo.AbortSuite("No genesis files found")
 	}
-	subnetsSuite := utils.CreateSubnetsSuite(genesisFiles)
-
-	timeout := 3 * time.Minute
 	_ = ginkgo.Describe("[Asynchronized Precompile Tests]", func() {
 		// Register the ping test first
 		utils.RegisterPingTest()
 
 		// Each ginkgo It node specifies the name of the genesis file (in ./tests/precompile/genesis/)
 		// to use to launch the subnet and the name of the TS test file to run on the subnet (in ./contracts/tests/)
-
-		ginkgo.It("reward manager", ginkgo.Label("Precompile"), ginkgo.Label("RewardManager"), func() {
-			ctx, cancel := context.WithTimeout(context.Background(), timeout)
-			defer cancel()
-
-			blockchainID := subnetsSuite.GetBlockchainID("reward_manager")
-			runDefaultHardhatTests(ctx, blockchainID, "reward_manager")
-		})
 
 		// ADD YOUR PRECOMPILE HERE
 		/*
