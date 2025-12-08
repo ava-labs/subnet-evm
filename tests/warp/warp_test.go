@@ -363,22 +363,8 @@ func (w *warpTest) sendWarpMessageTx(ctx context.Context, client ethclient.Clien
 	return blockHash, blockNumber
 }
 
-// verifyAndExtractWarpMessage verifies the SendWarpMessage event using both raw client
-// filtering and topic-filtered querying, then extracts the unsigned message.
-//
-// We use topic-filtered FilterLogs queries instead of the generated binding's
-// FilterSendWarpMessage iterator because the binding's UnpackLog,
-// `func (c *BoundContract) UnpackLog(out interface{}, event string, log types.Log) error`
-// fails to decode the warp precompile's event data. The precompile uses WarpABI.PackEvent
-// which produces valid ABI-encoded data, but the generated binding's decoder seemingly
-// expects a different format, causing offset calculation errors like this:
-//
-// > abi: cannot marshal in to go slice: offset
-// > 36566719137455486913336721525167888666359637725852346248021916651272 would go
-// > over slice boundary
-//
-// So instead we use raw FilterLogs with topic filters to extract the event data.
-// TODO(JonathanOppenheimer): is there a better way to do this? a workaround?
+// verifyAndExtractWarpMessage filters for the SendWarpMessage event using the
+// generated binding and extracts the unsigned warp message.
 func (w *warpTest) verifyAndExtractWarpMessage(
 	ctx context.Context,
 	client ethclient.Client,
@@ -387,62 +373,39 @@ func (w *warpTest) verifyAndExtractWarpMessage(
 ) *avalancheWarp.UnsignedMessage {
 	require := require.New(ginkgo.GinkgoT())
 
-	// Method 1: Raw client FilterLogs (by address only)
-	log.Info("Filtering SendWarpMessage events using raw client")
-	clientLogs, err := client.FilterLogs(ctx, ethereum.FilterQuery{
-		BlockHash: &blockHash,
-		Addresses: []common.Address{warp.Module.Address},
-	})
-	require.NoError(err)
-	require.Len(clientLogs, 1)
-
-	clientLog := clientLogs[0]
-	unsignedMsgFromClient, err := warp.UnpackSendWarpEventDataToMessage(clientLog.Data)
+	log.Info("Filtering SendWarpMessage events using binding")
+	warpFilterer, err := warpbindings.NewIWarpMessengerFilterer(warp.Module.Address, client)
 	require.NoError(err)
 
-	// Method 2: Filter with indexed topic filters (event ID + sender)
-	// This replicates what the binding's FilterSendWarpMessage does internally,
-	// but without using the broken UnpackLog decoder.
-	log.Info("Filtering SendWarpMessage events using topic filters")
-	eventID := warp.WarpABI.Events["SendWarpMessage"].ID
-	senderTopic := common.BytesToHash(w.sendingSubnetFundedAddress.Bytes())
-
-	topicFilteredLogs, err := client.FilterLogs(ctx, ethereum.FilterQuery{
-		FromBlock: big.NewInt(int64(blockNumber)),
-		ToBlock:   big.NewInt(int64(blockNumber)),
-		Addresses: []common.Address{warp.Module.Address},
-		Topics: [][]common.Hash{
-			{eventID},     // Topic 0: Event signature
-			{senderTopic}, // Topic 1: Indexed sender
-			nil,           // Topic 2: Any messageID
+	iter, err := warpFilterer.FilterSendWarpMessage(
+		&bind.FilterOpts{
+			Start:   blockNumber,
+			End:     &blockNumber,
+			Context: ctx,
 		},
-	})
+		[]common.Address{w.sendingSubnetFundedAddress}, // sender filter
+		nil, // messageID filter: any
+	)
 	require.NoError(err)
-	require.Len(topicFilteredLogs, 1)
+	defer iter.Close()
 
-	topicLog := topicFilteredLogs[0]
-	unsignedMsgFromTopicFilter, err := warp.UnpackSendWarpEventDataToMessage(topicLog.Data)
-	require.NoError(err)
+	require.True(iter.Next(), "expected SendWarpMessage event")
+	event := iter.Event
 
-	// Verify both methods return the same event
-	require.Equal(clientLog.TxHash, topicLog.TxHash, "transaction hash mismatch")
-	require.Equal(clientLog.Data, topicLog.Data, "log data mismatch")
-
-	// Verify both produce the same unsigned message
-	require.Equal(unsignedMsgFromClient.Bytes(), unsignedMsgFromTopicFilter.Bytes(),
-		"raw and topic-filtered queries should return the same unsigned message")
-
-	// Verify event topics
-	require.Len(clientLog.Topics, 3, "SendWarpMessage should have 3 topics")
-	require.Equal(eventID, clientLog.Topics[0], "event ID mismatch")
-	require.Equal(senderTopic, clientLog.Topics[1], "sender topic mismatch")
-
-	log.Info("Found SendWarpMessage event via both methods",
-		"sender", w.sendingSubnetFundedAddress.Hex(),
-		"messageID", clientLog.Topics[2].Hex(),
+	log.Info("Found SendWarpMessage event",
+		"sender", event.Sender.Hex(),
+		"messageID", common.Bytes2Hex(event.MessageID[:]),
 	)
 
-	return unsignedMsgFromTopicFilter
+	require.Equal(w.sendingSubnetFundedAddress, event.Sender)
+
+	unsignedMsg, err := avalancheWarp.ParseUnsignedMessage(event.Message)
+	require.NoError(err)
+
+	require.False(iter.Next(), "expected exactly one SendWarpMessage event")
+	require.NoError(iter.Error())
+
+	return unsignedMsg
 }
 
 func (w *warpTest) aggregateSignaturesViaAPI() {
