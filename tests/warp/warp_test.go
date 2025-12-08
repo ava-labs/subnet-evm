@@ -37,12 +37,14 @@ import (
 	"github.com/ava-labs/subnet-evm/ethclient"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/warp"
+	"github.com/ava-labs/subnet-evm/precompile/contracts/warp/warpbindings"
 	"github.com/ava-labs/subnet-evm/tests"
 	"github.com/ava-labs/subnet-evm/tests/utils"
 
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
+	warpPayload "github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
 	ethereum "github.com/ava-labs/libevm"
-	warpbindings "github.com/ava-labs/subnet-evm/precompile/contracts/warp/warptest/bindings"
+	warptestbindings "github.com/ava-labs/subnet-evm/precompile/contracts/warp/warptest/bindings"
 	warpBackend "github.com/ava-labs/subnet-evm/warp"
 	ginkgo "github.com/onsi/ginkgo/v2"
 )
@@ -634,35 +636,84 @@ func (w *warpTest) warpBindingsTest() {
 
 	client := w.sendingSubnetClients[0]
 
-	log.Info("Verifying warp message fields",
-		"messageID", w.addressedCallUnsignedMessage.ID(),
-		"sourceChainID", w.addressedCallUnsignedMessage.SourceChainID,
-	)
+	log.Info("Deploying WarpTest proxy contract")
+	auth, err := bind.NewKeyedTransactorWithChainID(w.sendingSubnetFundedKey, w.sendingSubnetChainID)
+	require.NoError(err)
+	auth.Context = ctx
 
-	require.Equal(
-		w.sendingSubnet.BlockchainID,
-		w.addressedCallUnsignedMessage.SourceChainID,
-		"source chain ID mismatch in unsigned message",
-	)
-
-	log.Info("Calling getBlockchainID on warp precompile using bindings")
-	warpCaller, err := warpbindings.NewIWarpMessengerCaller(warp.Module.Address, client)
+	proxyAddr, deployTx, warpTestContract, err := warptestbindings.DeployWarpTest(auth, client, warp.Module.Address)
 	require.NoError(err)
 
-	returnedBlockchainID, err := warpCaller.GetBlockchainID(&bind.CallOpts{Context: ctx})
+	log.Info("Waiting for WarpTest deployment", "txHash", deployTx.Hash(), "proxyAddr", proxyAddr)
+	deployReceipt, err := bind.WaitMined(ctx, client, deployTx)
+	require.NoError(err)
+	require.Equal(types.ReceiptStatusSuccessful, deployReceipt.Status)
+
+	log.Info("Calling getBlockchainID via proxy contract")
+	returnedBlockchainID, err := warpTestContract.GetBlockchainID(&bind.CallOpts{Context: ctx})
+	require.NoError(err)
+	require.Equal(w.sendingSubnet.BlockchainID, ids.ID(returnedBlockchainID))
+	log.Info("getBlockchainID returned correct value", "blockchainID", ids.ID(returnedBlockchainID))
+
+	log.Info("Sending warp message via proxy contract", "payload", common.Bytes2Hex(testPayload))
+
+	startBlock, err := client.BlockNumber(ctx)
 	require.NoError(err)
 
-	log.Info("getBlockchainID returned", "blockchainID", ids.ID(returnedBlockchainID))
-	require.Equal(
-		w.sendingSubnet.BlockchainID,
-		ids.ID(returnedBlockchainID),
-		"getBlockchainID returned unexpected value",
+	sendTx, err := warpTestContract.SendWarpMessage(auth, testPayload)
+	require.NoError(err)
+
+	log.Info("Waiting for sendWarpMessage transaction", "txHash", sendTx.Hash())
+	sendReceipt, err := bind.WaitMined(ctx, client, sendTx)
+	require.NoError(err)
+	require.Equal(types.ReceiptStatusSuccessful, sendReceipt.Status)
+
+	log.Info("Filtering SendWarpMessage events using binding")
+	warpFilterer, err := warpbindings.NewIWarpMessengerFilterer(warp.Module.Address, client)
+	require.NoError(err)
+
+	// The event sender is the proxy contract , since the proxy calls the precompile
+	endBlock := sendReceipt.BlockNumber.Uint64()
+	iter, err := warpFilterer.FilterSendWarpMessage(
+		&bind.FilterOpts{
+			Start:   startBlock,
+			End:     &endBlock,
+			Context: ctx,
+		},
+		[]common.Address{proxyAddr}, // sender filter: the proxy contract
+		nil,                         // messageID filter: any
+	)
+	require.NoError(err)
+	defer iter.Close()
+
+	// Verify we got exactly one event with the correct data
+	require.True(iter.Next(), "expected at least one SendWarpMessage event")
+	event := iter.Event // event is *IWarpMessengerSendWarpMessage
+
+	log.Info("Received SendWarpMessage event",
+		"sender", event.Sender.Hex(),
+		"messageID", common.Bytes2Hex(event.MessageID[:]),
 	)
 
-	log.Info("Warp message and blockchain ID verification complete",
-		"senderAddress", crypto.PubkeyToAddress(w.sendingSubnetFundedKey.PublicKey).Hex(),
-		"sourceChainID", "0x"+w.sendingSubnet.BlockchainID.Hex(),
-		"payload", "0x"+common.Bytes2Hex(testPayload),
+	// Verify event fields
+	require.Equal(proxyAddr, event.Sender, "event sender should be proxy contract")
+
+	// The event.Message contains the full unsigned warp message bytes
+	unsignedMsg, err := avalancheWarp.ParseUnsignedMessage(event.Message)
+	require.NoError(err)
+
+	addressedCall, err := warpPayload.ParseAddressedCall(unsignedMsg.Payload)
+	require.NoError(err)
+
+	require.Equal(testPayload, addressedCall.Payload, "payload mismatch in warp message")
+	require.Equal(proxyAddr.Bytes(), addressedCall.SourceAddress, "source address should be proxy contract")
+
+	require.False(iter.Next(), "expected exactly one SendWarpMessage event")
+	require.NoError(iter.Error())
+
+	log.Info("warp bindings test complete",
+		"proxyAddr", proxyAddr.Hex(),
+		"blockchainID", ids.ID(returnedBlockchainID),
 	)
 }
 
