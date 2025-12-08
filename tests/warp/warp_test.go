@@ -298,7 +298,7 @@ func (w *warpTest) sendMessageFromSendingSubnet() {
 	blockHash, blockNumber := w.sendWarpMessageTx(ctx, client)
 	w.blockID = ids.ID(blockHash)
 
-	w.verifyAndExtractWarpMessage(ctx, client, blockHash, blockNumber)
+	w.verifyAndExtractWarpMessage(ctx, client, blockNumber)
 	log.Info("Parsed unsignedWarpMsg",
 		"unsignedWarpMessageID", w.addressedCallUnsignedMessage.ID(),
 		"unsignedWarpMessage", w.addressedCallUnsignedMessage,
@@ -368,7 +368,6 @@ func (w *warpTest) sendWarpMessageTx(ctx context.Context, client ethclient.Clien
 func (w *warpTest) verifyAndExtractWarpMessage(
 	ctx context.Context,
 	client ethclient.Client,
-	blockHash common.Hash,
 	blockNumber uint64,
 ) {
 	require := require.New(ginkgo.GinkgoT())
