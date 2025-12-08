@@ -170,8 +170,8 @@ var _ = ginkgo.Describe("[Warp]", func() {
 		log.Info("Delivering block hash payload to receiving subnet")
 		w.deliverBlockHashPayload()
 
-		log.Info("Verifying warp message and blockchain ID")
-		w.verifyWarpMessageAndBlockchainID()
+		log.Info("bindings test: verifying warp message and blockchain ID")
+		w.warpBindingsTest()
 
 		log.Info("Executing warp load test")
 		w.warpLoad()
@@ -627,7 +627,7 @@ func (w *warpTest) deliverBlockHashPayload() {
 	require.Equal(types.ReceiptStatusSuccessful, receipt.Status)
 }
 
-func (w *warpTest) verifyWarpMessageAndBlockchainID() {
+func (w *warpTest) warpBindingsTest() {
 	require := require.New(ginkgo.GinkgoT())
 	tc := e2e.NewTestContext()
 	ctx := tc.DefaultContext()
