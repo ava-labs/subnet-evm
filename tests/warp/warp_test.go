@@ -298,7 +298,7 @@ func (w *warpTest) sendMessageFromSendingSubnet() {
 	blockHash, blockNumber := w.sendWarpMessageTx(ctx, client)
 	w.blockID = ids.ID(blockHash)
 
-	w.addressedCallUnsignedMessage = w.verifyAndExtractWarpMessage(ctx, client, blockHash, blockNumber)
+	w.verifyAndExtractWarpMessage(ctx, client, blockHash, blockNumber)
 	log.Info("Parsed unsignedWarpMsg",
 		"unsignedWarpMessageID", w.addressedCallUnsignedMessage.ID(),
 		"unsignedWarpMessage", w.addressedCallUnsignedMessage,
@@ -364,13 +364,13 @@ func (w *warpTest) sendWarpMessageTx(ctx context.Context, client ethclient.Clien
 }
 
 // verifyAndExtractWarpMessage filters for the SendWarpMessage event using the
-// generated binding and extracts the unsigned warp message.
+// generated binding and sets w.addressedCallUnsignedMessage.
 func (w *warpTest) verifyAndExtractWarpMessage(
 	ctx context.Context,
 	client ethclient.Client,
 	blockHash common.Hash,
 	blockNumber uint64,
-) *avalancheWarp.UnsignedMessage {
+) {
 	require := require.New(ginkgo.GinkgoT())
 
 	log.Info("Filtering SendWarpMessage events using binding")
@@ -399,13 +399,11 @@ func (w *warpTest) verifyAndExtractWarpMessage(
 
 	require.Equal(w.sendingSubnetFundedAddress, event.Sender)
 
-	unsignedMsg, err := avalancheWarp.ParseUnsignedMessage(event.Message)
+	w.addressedCallUnsignedMessage, err = avalancheWarp.ParseUnsignedMessage(event.Message)
 	require.NoError(err)
 
 	require.False(iter.Next(), "expected exactly one SendWarpMessage event")
 	require.NoError(iter.Error())
-
-	return unsignedMsg
 }
 
 func (w *warpTest) aggregateSignaturesViaAPI() {
