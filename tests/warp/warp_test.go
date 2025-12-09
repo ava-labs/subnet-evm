@@ -363,8 +363,11 @@ func (w *warpTest) sendWarpMessageTx(ctx context.Context, client ethclient.Clien
 	return blockHash, blockNumber
 }
 
-// verifyAndExtractWarpMessage filters for the SendWarpMessage event using the
-// generated binding and sets w.addressedCallUnsignedMessage.
+// verifyAndExtractWarpMessage queries the given block for SendWarpMessage events
+// emitted by the specified sender using the IWarpMessengerFilterer binding. It
+// asserts that exactly one such event exists and then parses the unsigned warp
+// message from the event. The unsigned warp message is stored in
+// w.addressedCallUnsignedMessage for use in subsequent test steps.
 func (w *warpTest) verifyAndExtractWarpMessage(
 	ctx context.Context,
 	client ethclient.Client,
