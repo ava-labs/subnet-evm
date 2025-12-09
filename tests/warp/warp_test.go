@@ -402,7 +402,6 @@ func (w *warpTest) verifyAndExtractWarpMessage(
 
 	require.Equal(sender, event.Sender)
 
-	// The event.Message contains the full unsigned warp message bytes
 	w.addressedCallUnsignedMessage, err = avalancheWarp.ParseUnsignedMessage(event.Message)
 	require.NoError(err)
 
