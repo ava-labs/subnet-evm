@@ -388,8 +388,9 @@ func (w *warpTest) verifyAndExtractWarpMessage(
 	require.NoError(err)
 	defer iter.Close()
 
-	require.True(iter.Next(), "expected SendWarpMessage event")
-	event := iter.Event
+	// Verify we got exactly one event with the correct data
+	require.True(iter.Next(), "expected at least one SendWarpMessage event")
+	event := iter.Event // event is *IWarpMessengerSendWarpMessage
 
 	log.Info("Found SendWarpMessage event",
 		"sender", event.Sender.Hex(),
@@ -398,6 +399,7 @@ func (w *warpTest) verifyAndExtractWarpMessage(
 
 	require.Equal(w.sendingSubnetFundedAddress, event.Sender)
 
+	// The event.Message contains the full unsigned warp message bytes
 	w.addressedCallUnsignedMessage, err = avalancheWarp.ParseUnsignedMessage(event.Message)
 	require.NoError(err)
 
@@ -617,9 +619,6 @@ func (w *warpTest) warpBindingsTest() {
 
 	log.Info("Sending warp message via proxy contract", "payload", common.Bytes2Hex(testPayload))
 
-	startBlock, err := client.BlockNumber(ctx)
-	require.NoError(err)
-
 	sendTx, err := warpTestContract.SendWarpMessage(auth, testPayload)
 	require.NoError(err)
 
@@ -628,48 +627,13 @@ func (w *warpTest) warpBindingsTest() {
 	require.NoError(err)
 	require.Equal(types.ReceiptStatusSuccessful, sendReceipt.Status)
 
-	log.Info("Filtering SendWarpMessage events using binding")
-	warpFilterer, err := warpbindings.NewIWarpMessengerFilterer(warp.Module.Address, client)
-	require.NoError(err)
+	w.verifyAndExtractWarpMessage(ctx, client, sendReceipt.BlockNumber.Uint64())
 
-	// The event sender is the proxy contract , since the proxy calls the precompile
-	endBlock := sendReceipt.BlockNumber.Uint64()
-	iter, err := warpFilterer.FilterSendWarpMessage(
-		&bind.FilterOpts{
-			Start:   startBlock,
-			End:     &endBlock,
-			Context: ctx,
-		},
-		[]common.Address{proxyAddr}, // sender filter: the proxy contract
-		nil,                         // messageID filter: any
-	)
-	require.NoError(err)
-	defer iter.Close()
-
-	// Verify we got exactly one event with the correct data
-	require.True(iter.Next(), "expected at least one SendWarpMessage event")
-	event := iter.Event // event is *IWarpMessengerSendWarpMessage
-
-	log.Info("Received SendWarpMessage event",
-		"sender", event.Sender.Hex(),
-		"messageID", common.Bytes2Hex(event.MessageID[:]),
-	)
-
-	// Verify event fields
-	require.Equal(proxyAddr, event.Sender, "event sender should be proxy contract")
-
-	// The event.Message contains the full unsigned warp message bytes
-	unsignedMsg, err := avalancheWarp.ParseUnsignedMessage(event.Message)
-	require.NoError(err)
-
-	addressedCall, err := warpPayload.ParseAddressedCall(unsignedMsg.Payload)
+	addressedCall, err := warpPayload.ParseAddressedCall(w.addressedCallUnsignedMessage.Payload)
 	require.NoError(err)
 
 	require.Equal(testPayload, addressedCall.Payload, "payload mismatch in warp message")
 	require.Equal(proxyAddr.Bytes(), addressedCall.SourceAddress, "source address should be proxy contract")
-
-	require.False(iter.Next(), "expected exactly one SendWarpMessage event")
-	require.NoError(iter.Error())
 
 	log.Info("warp bindings test complete",
 		"proxyAddr", proxyAddr.Hex(),
