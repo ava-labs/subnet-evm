@@ -391,7 +391,7 @@ func (w *warpTest) verifyAndExtractWarpMessage(
 
 	// Verify we got exactly one event with the correct data
 	require.True(iter.Next(), "expected a SendWarpMessage event")
-	event := iter.Event // event is *IWarpMessengerSendWarpMessage
+	event := iter.Event
 
 	log.Info("Found SendWarpMessage event",
 		"sender", event.Sender.Hex(),
