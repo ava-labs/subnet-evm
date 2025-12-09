@@ -298,7 +298,7 @@ func (w *warpTest) sendMessageFromSendingSubnet() {
 	blockHash, blockNumber := w.sendWarpMessageTx(ctx, client)
 	w.blockID = ids.ID(blockHash)
 
-	w.verifyAndExtractWarpMessage(ctx, client, blockNumber)
+	w.verifyAndExtractWarpMessage(ctx, client, blockNumber, w.sendingSubnetFundedAddress)
 	log.Info("Parsed unsignedWarpMsg",
 		"unsignedWarpMessageID", w.addressedCallUnsignedMessage.ID(),
 		"unsignedWarpMessage", w.addressedCallUnsignedMessage,
@@ -369,6 +369,7 @@ func (w *warpTest) verifyAndExtractWarpMessage(
 	ctx context.Context,
 	client ethclient.Client,
 	blockNumber uint64,
+	sender common.Address,
 ) {
 	require := require.New(ginkgo.GinkgoT())
 
@@ -382,7 +383,7 @@ func (w *warpTest) verifyAndExtractWarpMessage(
 			End:     &blockNumber,
 			Context: ctx,
 		},
-		[]common.Address{w.sendingSubnetFundedAddress}, // sender filter
+		[]common.Address{sender},
 		nil, // messageID filter: any
 	)
 	require.NoError(err)
@@ -397,7 +398,7 @@ func (w *warpTest) verifyAndExtractWarpMessage(
 		"messageID", common.Bytes2Hex(event.MessageID[:]),
 	)
 
-	require.Equal(w.sendingSubnetFundedAddress, event.Sender)
+	require.Equal(sender, event.Sender)
 
 	// The event.Message contains the full unsigned warp message bytes
 	w.addressedCallUnsignedMessage, err = avalancheWarp.ParseUnsignedMessage(event.Message)
@@ -627,7 +628,7 @@ func (w *warpTest) warpBindingsTest() {
 	require.NoError(err)
 	require.Equal(types.ReceiptStatusSuccessful, sendReceipt.Status)
 
-	w.verifyAndExtractWarpMessage(ctx, client, sendReceipt.BlockNumber.Uint64())
+	w.verifyAndExtractWarpMessage(ctx, client, sendReceipt.BlockNumber.Uint64(), proxyAddr)
 
 	addressedCall, err := warpPayload.ParseAddressedCall(w.addressedCallUnsignedMessage.Payload)
 	require.NoError(err)
