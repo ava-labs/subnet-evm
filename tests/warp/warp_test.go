@@ -389,7 +389,6 @@ func (w *warpTest) verifyAndExtractWarpMessage(
 	require.NoError(err)
 	defer iter.Close()
 
-	// Verify we got exactly one event with the correct data
 	require.True(iter.Next(), "expected a SendWarpMessage event")
 	event := iter.Event
 
