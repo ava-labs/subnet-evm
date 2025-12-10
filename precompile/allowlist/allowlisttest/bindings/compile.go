@@ -6,7 +6,7 @@ package bindings
 // Step 1: Compile interface to generate ABI at top level
 //go:generate sh -c "solc-v0.8.30 -o ../.. --overwrite --abi --pretty-json --evm-version cancun ../../IAllowList.sol && mv ../../IAllowList.abi ../../contract.abi"
 // Step 2: Compile test contracts to generate ABI and bin files
-//go:generate solc-v0.8.30 -o artifacts --overwrite --abi --bin --base-path . precompile/=../../../ --evm-version cancun AllowListTest.sol
+//go:generate solc-v0.8.30 -o artifacts --overwrite --abi --bin --base-path . --metadata-hash none precompile/=../../../ --evm-version cancun AllowListTest.sol
 // Step 3: Generate Go bindings from the compiled artifacts
 //go:generate go run github.com/ava-labs/libevm/cmd/abigen --pkg bindings --type IAllowList --abi ../../contract.abi --bin artifacts/IAllowList.bin --out gen_allowlist_binding.go
 //go:generate go run github.com/ava-labs/libevm/cmd/abigen --pkg bindings --type AllowListTest --abi artifacts/AllowListTest.abi --bin artifacts/AllowListTest.bin --out gen_allowlisttest_binding.go
