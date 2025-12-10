@@ -86,7 +86,7 @@ var (
 // Singleton StatefulPrecompiledContract and signatures.
 var (
 	// WarpRawABI contains the raw ABI of Warp contract.
-	//go:embed IWarpMessenger.abi
+	//go:embed contract.abi
 	WarpRawABI string
 
 	WarpABI = contract.ParseABI(WarpRawABI)
