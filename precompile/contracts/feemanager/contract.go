@@ -56,7 +56,7 @@ var (
 	ErrUnpackOutput    = errors.New("failed to unpack output")
 
 	// IFeeManagerRawABI contains the raw ABI of FeeManager contract.
-	//go:embed IFeeManager.abi
+	//go:embed contract.abi
 	FeeManagerRawABI string
 
 	FeeManagerABI = contract.ParseABI(FeeManagerRawABI)
