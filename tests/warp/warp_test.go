@@ -59,7 +59,7 @@ var (
 
 	repoRootPath = tests.GetRepoRootPath("tests/warp")
 
-	genesisPath = filepath.Join(repoRootPath, "tests/warp/genesis.json")
+	genesisPath = filepath.Join(repoRootPath, "tests/warp/genesis/genesis.json")
 
 	subnetA, subnetB, cChainSubnetDetails *Subnet
 
@@ -298,7 +298,7 @@ func (w *warpTest) sendMessageFromSendingSubnet() {
 	blockHash, blockNumber := w.sendWarpMessageTx(ctx, client)
 	w.blockID = ids.ID(blockHash)
 
-	w.verifyAndExtractWarpMessage(ctx, client, blockNumber, w.sendingSubnetFundedAddress)
+	w.addressedCallUnsignedMessage = verifyAndExtractWarpMessage(ctx, client, blockNumber, w.sendingSubnetFundedAddress)
 	log.Info("Parsed unsignedWarpMsg",
 		"unsignedWarpMessageID", w.addressedCallUnsignedMessage.ID(),
 		"unsignedWarpMessage", w.addressedCallUnsignedMessage,
@@ -365,15 +365,14 @@ func (w *warpTest) sendWarpMessageTx(ctx context.Context, client ethclient.Clien
 
 // verifyAndExtractWarpMessage queries the given block for SendWarpMessage events
 // emitted by the specified sender using the IWarpMessengerFilterer binding. It
-// asserts that exactly one such event exists and then parses the unsigned warp
-// message from the event. The unsigned warp message is stored in
-// w.addressedCallUnsignedMessage for use in subsequent test steps.
-func (w *warpTest) verifyAndExtractWarpMessage(
+// asserts that exactly one such event exists and returns the parsed unsigned
+// warp message.
+func verifyAndExtractWarpMessage(
 	ctx context.Context,
 	client ethclient.Client,
 	blockNumber uint64,
 	sender common.Address,
-) {
+) *avalancheWarp.UnsignedMessage {
 	require := require.New(ginkgo.GinkgoT())
 
 	log.Info("Filtering SendWarpMessage events using binding")
@@ -402,11 +401,13 @@ func (w *warpTest) verifyAndExtractWarpMessage(
 
 	require.Equal(sender, event.Sender)
 
-	w.addressedCallUnsignedMessage, err = avalancheWarp.ParseUnsignedMessage(event.Message)
+	unsignedMessage, err := avalancheWarp.ParseUnsignedMessage(event.Message)
 	require.NoError(err)
 
 	require.False(iter.Next(), "expected exactly one SendWarpMessage event")
 	require.NoError(iter.Error())
+
+	return unsignedMessage
 }
 
 func (w *warpTest) aggregateSignaturesViaAPI() {
@@ -629,9 +630,9 @@ func (w *warpTest) warpBindingsTest() {
 	require.NoError(err)
 	require.Equal(types.ReceiptStatusSuccessful, sendReceipt.Status)
 
-	w.verifyAndExtractWarpMessage(ctx, client, sendReceipt.BlockNumber.Uint64(), proxyAddr)
+	unsignedMsg := verifyAndExtractWarpMessage(ctx, client, sendReceipt.BlockNumber.Uint64(), proxyAddr)
 
-	addressedCall, err := warpPayload.ParseAddressedCall(w.addressedCallUnsignedMessage.Payload)
+	addressedCall, err := warpPayload.ParseAddressedCall(unsignedMsg.Payload)
 	require.NoError(err)
 
 	require.Equal(testPayload, addressedCall.Payload, "payload mismatch in warp message")
