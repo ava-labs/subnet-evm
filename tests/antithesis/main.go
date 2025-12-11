@@ -52,7 +52,7 @@ func main() {
 		),
 		func(nodes ...*tmpnet.Node) []*tmpnet.Subnet {
 			repoRootPath := tests.GetRepoRootPath("tests/antithesis")
-			genesisPath := filepath.Join(repoRootPath, "tests/load/genesis.json")
+			genesisPath := filepath.Join(repoRootPath, "tests/load/genesis/genesis.json")
 			return []*tmpnet.Subnet{
 				utils.NewTmpnetSubnet("subnet-evm", genesisPath, utils.DefaultChainConfig, nodes...),
 			}
