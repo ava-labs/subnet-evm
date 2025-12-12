@@ -108,9 +108,6 @@ tasks:
       - cmd: |
           # Find and remove generated binding files in precompile directories only
           find ./precompile -type f -name 'gen_*binding.go' -exec grep -l '^// Code generated - DO NOT EDIT\.$' {} \; | xargs -r rm
-      - cmd: |
-          # Remove compiled artifacts (.abi, .bin) to ensure stale files from removed contracts are cleaned up
-          find ./precompile -type f \( -name '*.abi' -o -name '*.bin' \) -delete
       - cmd: go generate ./precompile/...
 
 
