@@ -59,7 +59,7 @@ var (
 
 	repoRootPath = tests.GetRepoRootPath("tests/warp")
 
-	genesisPath = filepath.Join(repoRootPath, "tests/warp/genesis/genesis.json")
+	genesisPath = filepath.Join(repoRootPath, "tests/warp/genesis.json")
 
 	subnetA, subnetB, cChainSubnetDetails *Subnet
 
