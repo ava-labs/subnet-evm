@@ -17,14 +17,11 @@
       "baseFeeChangeDenominator": 48,
       "minBlockGasCost": 0,
       "maxBlockGasCost": 10000000,
-      "targetBlockRate": 1,
+      "targetBlockRate": 2,
       "blockGasCostStep": 500000
     },
-    "rewardManagerConfig": {
-      "blockTimestamp": 0,
-      "adminAddresses": [
-        "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
-      ]
+    "warpConfig": {
+      "blockTimestamp": 1607144400
     }
   },
   "alloc": {
